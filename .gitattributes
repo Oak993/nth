@@ -1,0 +1,4 @@
+# Evidence files are hashed byte-for-byte by porting/tools/verify.mjs.
+# Line-ending conversion would change those digests on a fresh checkout and
+# break Gate A reproducibility, so disable it for everything in this tree.
+* -text
