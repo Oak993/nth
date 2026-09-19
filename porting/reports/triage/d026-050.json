@@ -1,0 +1,264 @@
+{
+  "chunk": "d026-050",
+  "triaged": [
+    {
+      "entry": 26,
+      "area": "hydra",
+      "site": "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:190-201, DroppyCode/Core/Models/Hydra.swift:1248-1302",
+      "one_line": "The lead's whole closing instruction paragraph can be rendered inside the last head's report card, because withoutLeadInstructions only strips it when it starts with one of nine known prefixes.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "The user opens the reports popover and the last head's card ends with the lead's private instruction text ('Do not check any of this with git status or git diff...', plus the report style rule), reading as if a head had written it. Confusing and ugly. Nothing is deleted, sent or changed.",
+      "verified_against_source": "CONFIRMED. Hydra.swift:1248 builds 'var closing: [String] = []'; :1302 emits the closing array joined with a single space as one paragraph after a blank line. HydraReportsPopover.swift:190-195 lists exactly nine leadPrefixes: 'The changes listed above', 'The heads worked in your checkout', 'A file listed with conflicts', 'Do not check any of this', 'Do not wait for', 'A head that failed', 'A head the user stopped', 'The user queued', 'The user sent'. :196-201 withoutLeadInstructions takes the last blank-line break backwards and drops the tail only if it hasPrefix one of those. Hydra.swift:1267 appends a 'X and Y both changed PATH: read it as it is now before you build on it.' line and :1271 appends a 'NAME's changes would not apply on their own; the patch is at PATH.' line; neither is in leadPrefixes. The two earlier candidates are gated: :1249 needs 'reports.contains(where: { $0.landing?.landed == true })' and :1252 needs a completed in-checkout head, so with no head landing cleanly the joined paragraph does begin at :1267 or :1271 and the whole block survives into the card. :72 is the call site ('if index == sections.count - 1 { body = withoutLeadInstructions(body) }').",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 27,
+      "area": "hydra",
+      "site": "DroppyCode/Core/Models/Hydra.swift:936-937",
+      "one_line": "mergeStatus's .failed arm is the only one that omits the pending-files sentence the caller already computed.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "After a failed merge the lead's context line does not say how many files are still unmerged, so the lead's next answer may not mention the outstanding files. The files themselves are untouched and are still in the checkout, which the .failed text says explicitly. Missing information in a message, nothing more.",
+      "verified_against_source": "CONFIRMED in substance, line cite is off. 'let pending' is built at :926-928. :934-935 the '.merged' arm returns 'Merge state: MERGED PENDING'. :938-945 the '.stray' arm appends pending at :943. :936-937 is the '.failed' arm and returns a string with no pending interpolation at all. CORRECTION: the register cites Hydra.swift:939-940, which is the .stray arm's comment and its 'var parts' line; the .failed arm is at 936-937 (grep -n 'case .failed:' on the file gives 936).",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 28,
+      "area": "hydra",
+      "site": "DroppyCode/Core/Models/HydraDelegationStream.swift:113-117",
+      "one_line": "An empty-string 'name' or 'project' in a delegation entry shadows its 'head' / 'repo' alias, because the ?? coalesces on nil, not on emptiness.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "For an entry shaped {name: empty, head: Otto} the head goes out under the next roster name instead of Otto: a naming surprise. For {project: empty, repo: gaze-site} the head runs in the chat's own project instead of the named one, so a briefed change lands in the wrong checkout. The head still appears in the heads panel with its task, its work is ordinary git-visible edits in a repository the user has open, and Hydra's own landing and merge cards name the project, so it is detectable and revertible through git. Reaching it needs the lead model to emit both keys with the first empty, which is off-spec output.",
+      "verified_against_source": "CONFIRMED, cite exact. :113-114 'let name = entry[\"name\"]?.string?.trimming... ?? entry[\"head\"]?.string?.trimming...'; :115 'let announced = (name?.isEmpty == false) ? name : nil'; :116-117 the same shape for 'project' / 'repo'; :119 passes 'project: (project?.isEmpty == false) ? project : nil'. An empty string is a non-nil Optional, so ?? short-circuits before the alias is read, and the emptiness test then collapses it to nil rather than to the alias.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 29,
+      "area": "hydra",
+      "site": "DroppyCode/App/AppModel+Hydra.swift:200-214 (reached from App/Views/Chat/HydraButton.swift:212-222)",
+      "one_line": "Turning Hydra on for a chat silently adopts the remembered pair's orchestratorModel and orchestratorEffort, changing the chat's model with no warning and no undo.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "The user flips one switch and the chat quietly moves to a different model and effort. The composer's model chip shows the new model straight away, so it is visible after the fact, and the user can set it back by hand. The next turn may cost more or less than expected. No data is lost, nothing is deleted, no secret moves, and the change stays inside the same provider.",
+      "verified_against_source": "CONFIRMED, cite exact. setHydra(_:for:) begins at :193. :200 'let pair = settings.hydraPair(for: thread.provider, model: thread.model)'; :206 'guard let pair else { return }'; :207-211 'if let lead = pair.orchestratorModel, lead != thread.model, providers.model(lead, for: thread.provider) != nil { updateThread(id) { $0.model = lead; $0.effort = pair.orchestratorEffort ?? $0.effort } }'; :212-214 'else if let effort = pair.orchestratorEffort { updateThread(id) { $0.effort = effort } }'. No note, no timeline row and no confirmation anywhere in the function.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 30,
+      "area": "hydra",
+      "site": "DroppyCode/App/AppModel+Hydra.swift:158, :164, :177, with the note at :124-128",
+      "one_line": "When the pair's worker provider is not installed or is switched off, workerModel and workerEffort are both dropped, but the fallback note mentions only the provider.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "The heads run on the lead's model and the lead's timeline says only that the pair's heads run on the lead's provider for now because the other one is not installed or is switched off. The user is not told the pair's head model was dropped too, so the heads may be quietly stronger or weaker than the pair configured. An incomplete message. No data or security consequence.",
+      "verified_against_source": "CONFIRMED, cites exact, with one framing refinement. hydraHeadsProvider returns pair.provider when the worker provider is absent (:116-117), and hydraPair requires pair.provider == thread.provider (:108), so 'elsewhere' at :154 is false. :158 'let keepsModel = pair.map { !$0.sendsHeadsElsewhere || elsewhere } ?? true' is then false for any pair that sends heads elsewhere; :164 'let pairEffort = keepsModel ? pair?.workerEffort : nil' and :177 'workerModel: keepsModel ? pair?.workerModel : nil' both become nil. hydraHeadsFallbackNote at :124-127 names only the provider and the reason. REFINEMENT rather than correction: the drop itself is deliberate and documented at :155-157 ('their model and effort ... mean nothing, and the heads inherit the chat's own model and effort instead'). The defect is only that the note does not say so.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 31,
+      "area": "hydra",
+      "site": "DroppyCode/App/Views/Chat/HydraPanel.swift:278-284",
+      "one_line": "'Clear finished heads' is the only heads-popover action that does not set isPresented = false, so the popover stays open after it runs.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "The popover stays open, now showing fewer rows, where the two sibling actions would have closed it. A one-click inconsistency in the chrome.",
+      "verified_against_source": "CONFIRMED, cite exact. :264-267 head selection sets hydraSelectedHeadID then 'isPresented = false'. :273-276 'Stop all heads' calls stopAllHydraHeads then 'isPresented = false'. :279-283 'Clear finished heads' wraps clearFinishedHydraHeads in withAnimation(Chrome.panelSlide) and never touches isPresented.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 32,
+      "area": "hydra",
+      "site": "DroppyCode/App/Runtime/ThreadRuntime.swift:2889 (with Core/Models/Hydra.swift:163-173 and App/AppModel+Hydra.swift:147-148)",
+      "one_line": "With Hydra switched off, hydraLaunch returns nil and 'launch?.hasRoom(running:) ?? true' dispatches the entire waiting head queue in one loop with no concurrency ceiling at all.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "Up to 31 heads spawn at once instead of at most 8, each with its own CLI process and, with isolateHeads on, its own copy of the checkout. The source's own comment at Hydra.swift:165-167 records exactly this load as having kept the main thread and the GPU busy past the point of answering, so that the app had to be force quit. The realistic worst case is therefore a hung app the user force quits, plus a disk and CPU spike and a burst of provider spend. Relaunching restores the app, head edits already on disk survive, and a debounced timeline save could lose the tail of one in-flight turn. This is the heaviest quirk in the range and is flagged as such, but it is an availability and resource defect: no data is destroyed, no security control is weakened and no secret is touched. Note it needs only that the queue be swept after Hydra is switched off, which spawnWaitingHeads does on every head completion (:2598), not only on arrival, so the window is wide rather than a tight race.",
+      "verified_against_source": "CONFIRMED, cite exact. :2889 is 'while !hydraWaiting.isEmpty, launch?.hasRoom(running: app.runningDroppyHeads(of: threadID)) ?? true {'. AppModel+Hydra.swift:147-148 'func hydraLaunch(for thread: ChatThread) -> HydraLaunch? { guard hydraIsOn(thread) else { return nil }', so the optional chain yields nil and '?? true' bypasses the cap. Hydra.swift:168 'static let uncappedConcurrency = 8'; :171-173 'func hasRoom(running: Int) -> Bool { running < (maxHeads ?? Self.uncappedConcurrency) }'. The queue itself is bounded: ThreadRuntime.swift:2658 'private static let maxDelegatedTasks = 32' and :2795 prefixes the queue to it, so the burst is bounded at 32 minus those already running. spawnWaitingHeads's own guard at :2881 checks only app, thread and a non-empty queue, never hydraIsOn.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 33,
+      "area": "hydra",
+      "site": "DroppyCode/App/AppModel+Hydra.swift:117 vs :126",
+      "one_line": "The fallback decision uses providers.countsAsInstalled while the note's wording uses providers.status(provider).isInstalled, so the stated reason can disagree with the actual cause.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "The timeline note tells the user the heads' provider is switched off in Settings when it is really not installed, or the reverse. A misleading one-line message; the fallback itself is correct either way.",
+      "verified_against_source": "CONFIRMED, both cites exact. :116-117 'guard let provider = pair.workerProvider, provider != pair.provider, providers.countsAsInstalled(provider), settings.isEnabled(provider) else { return pair.provider }'. :126 'let reason = providers.status(provider).isInstalled ? \"is switched off in Settings\" : \"is not installed on this Mac\"'. Two different installed-ness predicates over the same provider.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 34,
+      "area": "hydra",
+      "site": "DroppyCode/App/Views/Chat/HydraMergePopover.swift:28 vs App/Views/Chat/HydraReportsPopover.swift:159",
+      "one_line": "Two readers of two near-identical app-written lines disagree on the minus sign: the merge card's regex accepts only U+2212, the report card's accepts U+2212 or an ASCII hyphen.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "If a merge note ever carries an ASCII hyphen the merge card falls back to the generic popover and the user sees plain text instead of the laid-out card. Both strings are app-written, so today neither reader sees the variance. Presentation only.",
+      "verified_against_source": "CONFIRMED, both cites exact. HydraMergePopover.swift:27-29 declares filesPattern with the pattern literal on line 28, and its deletions group is a bare U+2212 with no alternation. HydraReportsPopover.swift:157-160 declares filePattern with the comment 'The minus the lead writes is U+2212; a hyphen still matches for safety.' and a character class holding both U+2212 and an escaped ASCII hyphen. The merge file's doc comment at :24-25 confirms the degradation: 'The files line, which is what makes a body a merge note at all: without it the caller keeps the generic popover.'",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 35,
+      "area": "hydra",
+      "site": "DroppyCode/Core/Models/Hydra.swift:1067-1072, with the walk-back at :1051-1059",
+      "one_line": "delegations(fromBody:) returns nil for both 'the JSON did not parse' and 'every entry was rejected', so an all-rejected block drives the caller through every earlier fence and finally the whole message tail.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "A block whose entries all lack a prompt makes the reader retry over earlier fences and then over the text from the hydra opener to the end. If some other JSON-shaped text in that region happens to carry a 'prompt' key, a head goes out on text the lead never meant as a brief; otherwise the block is finally reported unreadable. A stray head is a normal head: it shows in the heads panel with its task and its edits are ordinary git-visible changes. The common outcome is a slightly wrong 'unreadable block' path and some wasted parsing.",
+      "verified_against_source": "CONFIRMED in substance; the cite is one line late at the head. :1067 'private static func delegations(fromBody body: String) -> [HydraDelegation]?'; the parse-failure nil is at :1068 'guard let json = JSONValue.parse(body) else { return nil }' (the register's range starts at 1069); the all-rejected nil is at :1072 'return parsed.isEmpty ? nil : parsed'. The walk-back is real: :1053 'var ends = lineStartFences(in: text, from: bodyStart).reversed().map(\\.lowerBound)', :1054 'ends.append(text.endIndex)', :1055-1058 tries each in turn. The doc comment at :1044-1050 describes the walk-back as intended for a quoted fence, which is exactly why the two nil meanings being conflated matters.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 36,
+      "area": "hydra",
+      "site": "DroppyCode/App/AppModel+HydraMerge.swift:315-316 (helper at :182)",
+      "one_line": "In the generic catch the HydraMergeRecord.detail is built without the project prefix while the timeline note title on the next line is prefixed by title().",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "With several projects merging at once, the stored merge record's detail and the timeline note disagree about which project failed, so the user reading the record alone cannot tell which one it was. The record still carries 'project: project.name' as a field, so the information is not lost, only missing from the sentence. A misleading message.",
+      "verified_against_source": "CONFIRMED, cite exact. :182 'func title(_ name: String) -> String { several ? \"PROJECT: NAME\" : name }'. Every other failure record wraps its detail in title(): :189, :194, :206, :242, :263, :269, :277. :315 alone writes its detail bare as 'Hydra could not merge the team's work: ERROR', while :316 writes 'note(leadID, title(\"Hydra could not merge the team's work.\"), ...)'. The .merged record at :310 passes detail: nil, so :315 is the only inconsistent one.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 37,
+      "area": "runtime-and-state",
+      "site": "DroppyCode/App/Runtime/ThreadRuntime.swift:2142-2143 and :3429-3431, with App/Runtime/AutoContinue.swift:146 and Core/Models/Timeline.swift:211",
+      "one_line": "The .notice arm passes only level and message to appendNotice, which builds a fresh Notice and so discards Notice.limit, leaving the usage-limit row an anonymous .info notice.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "The stored usage-limit row does not draw the LimitResumeBadge, so the user loses the in-row controls for the auto-continue wait and sees a plain informational line instead. The auto-continue machinery itself still runs. A dropped UI affordance, which the rubric names as ordinary.",
+      "verified_against_source": "CONFIRMED, all four cites exact. ThreadRuntime.swift:2142-2143 'case .notice(let notice): appendNotice(notice.level, notice.message)'. :3429-3431 'private func appendNotice(_ level: Notice.Level, _ message: String) { append(TimelineItem(turnID: turnIDForNewRows, content: .notice(Notice(level: level, message: message)))) ...' constructs a brand new Notice, so every other field defaults. Timeline.swift:211 'var limit: LimitNotice? = nil' with the comment at :209-210 'Set on the usage-limit notice alone'. AutoContinue.swift:144-147 'private func notice(... limitMark: Bool = false) { var notice = Notice(level: level, message: message); if limitMark { notice.limit = LimitNotice(threadID: threadID) }; app?.existingRuntime(for: threadID)?.rehearse(.notice(notice)) }', so the mark is set and then dropped on the way through.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 38,
+      "area": "runtime-and-state",
+      "site": "DroppyCode/App/Runtime/AutoContinue.swift:83 (declared :24), read at App/Views/Chat/LimitResumeBadge.swift:57",
+      "one_line": "outcomes[threadID] = .handedOff(made.id) stores the new thread's UUID and the only reader matches the case without binding it: a write-only payload.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "Nothing visible. The badge says the work is continuing in a new thread without linking to that thread, which it could have. Dead state, the rubric's 'redundant' category.",
+      "verified_against_source": "CONFIRMED, cite exact. AutoContinue.swift:24 'case handedOff(UUID)'; :83 'outcomes[threadID] = .handedOff(made.id)'. A tree-wide grep for 'handedOff' returns exactly three sites: the declaration, that write, and LimitResumeBadge.swift:57 'case .handedOff: return \"Usage limit reached. Continuing in a new thread.\"' with no associated-value binding. No other reader exists.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 39,
+      "area": "runtime-and-state",
+      "site": "DroppyCode/App/Runtime/ThreadRuntime.swift:1159-1167 (enqueueFollowUp declared :974)",
+      "one_line": "The deferral exits in startTurn call enqueueFollowUp(text:attachments:), whose signature has no hydraHeads or hydraBrief, so a deferred head report or lead brief loses its pill rendering and heads attribution.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "A head's report or a lead's brief that had to wait comes back out of the queue as a plain user bubble instead of a heads pill, so the thread no longer shows it came from heads. Presentation and attribution only: the text and attachments survive intact and the turn still runs.",
+      "verified_against_source": "CONFIRMED in substance; the count is loose. :1158 'private func startTurn(text: String, attachments: [Attachment], hydraHeads: [Int]? = nil, hydraBrief: Bool = false) async'. :1159-1162 the busy-or-reverting guard and :1164-1167 the archived guard both call 'enqueueFollowUp(text: text, attachments: attachments)'. :974 'func enqueueFollowUp(text: String, attachments: [Attachment])' and :975-978 build 'FollowUpPrompt(text:attachments:)' only, so both extra arguments are discarded. CORRECTION: the register says 'the three deferral exits in startTurn'. There are two enqueueFollowUp call sites inside startTurn (:1160 and :1165) covering three conditions (busy, reverting, archived); the entry's own prose names the three conditions, so this reads as loose wording rather than a wrong claim.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 40,
+      "area": "runtime-and-state",
+      "site": "DroppyCode/App/Runtime/ThreadRuntime.swift:1163 (send path at :726-737)",
+      "one_line": "The app/thread/project guard in startTurn returns without enqueueing, unlike the guards on either side, so a send issued while the thread or project is momentarily unresolvable is dropped with no notice and no queue entry.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "The user presses Return, the composer clears, and the message never appears: no timeline row, no follow-up queue entry, no notice, and the typed text is not recoverable. The user can see plainly that nothing happened and retypes. What is lost is a transient composer draft, not stored work, thread history or project state; nothing on disk changes, no setting is overridden and nothing leaves the machine. Reaching it needs app.thread(threadID) or app.project(...) to be nil across the 'await ensureLoaded()' suspension, which means the thread or project was removed in that window. This is the closest call in the range and is recorded as borderline, but it stays ordinary: the outcome is a dropped message the user can see was dropped.",
+      "verified_against_source": "CONFIRMED, cite exact, and the draft really is already gone by then. :1163 'guard let app, let initialThread = app.thread(threadID), let project = app.project(initialThread.projectID) else { return }', a bare return between two guards that both enqueue (:1160, :1165). send() at :726-737 clears the composer at :734 'draft = ComposerDraft()' before :737 'Task { await ensureLoaded(); await startTurn(text: outgoing, attachments: attachments) }', so once the guard fails the text exists only in the captured local and is discarded with the task.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 41,
+      "area": "runtime-and-state",
+      "site": "DroppyCode/App/Runtime/ThreadRuntime.swift:1380-1392",
+      "one_line": "warmSession leaves warmup holding a finished Task when ensureSession throws, and the 'warmup == nil' precondition then permanently disables warm starts for that runtime instance.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "After one failed warm-up, every later send in that chat waits the full CLI boot (the doc comment says about half a second for claude) instead of starting warm. Latency only. The send path makes its own session, so nothing fails and nothing is lost.",
+      "verified_against_source": "CONFIRMED, every cite exact. :1380 'func warmSession() {'; :1381 'guard phase == .idle, session == nil, warmup == nil, !isReverting,'; :1385 'warmup = Task { [weak self] in'; :1388 'guard phase == .idle, session == nil else { warmup = nil; return }'; :1389 the comment 'A start that fails is not retried on every keystroke: the send makes its own.'; :1390 'if (try? await ensureSession(directory: directory)) != nil { warmup = nil }', with the nil-out inside the success branch only. The non-retry at :1389 is intended; the permanent latch is the unintended consequence, exactly as the register says.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 42,
+      "area": "runtime-and-state",
+      "site": "DroppyCode/Core/Support/Text.swift:80 and App/Runtime/ThreadRuntime.swift:3370",
+      "one_line": "Both comments call the 200_000 cap 'the same cap' as the other's, but the two constants bound different operands: the sum of the two inputs versus the produced hunk.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "A reader of either comment forms a wrong model of when a diff is dropped. No runtime effect at all. The register's own instruction, reproduce the behaviour and not the comments, is the right reading.",
+      "verified_against_source": "CONFIRMED, both cites exact, with one refinement. Text.swift:80 ends 'The same cap bounds command diffs (ThreadRuntime.fileEdits).' and :81 'static let diffLimit = 200_000'; the test at :101 is 'guard old.utf8.count + new.utf8.count <= diffLimit', the sum of the two inputs. ThreadRuntime.swift:3366 'private nonisolated static let editDiffLimit = 200_000' and :3370 ends 'The same cap the edits taken from a command's diff have.'; the test at :3373 is 'guard let diff = edit.diff, diff.utf8.count > editDiffLimit', the produced patch. REFINEMENT: it is the same numeric value applied to a different operand, rather than a flatly false statement, which is why it reads as true and misleads.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 43,
+      "area": "runtime-and-state",
+      "site": "DroppyCode/Core/Support/RecentCache.swift:43-46",
+      "one_line": "insert calls removeValue(for: key) before the 'cost <= costLimit' guard, so inserting an over-budget value for an already-cached key evicts the good entry and stores nothing.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "A cache entry that was there is gone and the oversized replacement is not stored, so the next read is a miss and the value is recomputed or re-fetched. A cache is by definition reconstructible: the effect is one extra piece of work.",
+      "verified_against_source": "CONFIRMED, cite exact. :43 'mutating func insert(_ value: Value, for key: Key, cost: Int = 1) {'; :44 'removeValue(for: key)'; :45 'let cost = max(0, cost)'; :46 'guard cost <= costLimit else { return }'. removeValue at :34-40 strips the key from both current and previous and adjusts both costs, so the eviction is complete before the guard can reject the new value.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 44,
+      "area": "runtime-and-state",
+      "site": "DroppyCode/Core/Support/RecentCache.swift:47-53",
+      "one_line": "On rollover the old previous map is overwritten by current in one assignment, discarding the older generation wholesale.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "Entries that had aged into the older generation are dropped together at a rollover, so a burst of cache misses follows and the values are recomputed. Standard two-generation cache behaviour with a bursty miss profile. Nothing durable is lost.",
+      "verified_against_source": "CONFIRMED as to the code; the stated consequence is wrong. :47 'if current.count >= limit || currentCost > costLimit - cost {'; :48 'previous = current'; :49-52 previousCost, 'current = [:]', reserveCapacity, 'currentCost = 0'; :54 'current[key] = Entry(value: value, cost: cost)'. CORRECTION: the register says 'a key that had just been promoted out of previous can be dropped at the very next rollover'. It cannot. value(for:) at :22-27 promotes by re-inserting, and the write at :54 happens after the rollover block, so a just-promoted key always lands in the fresh current. It then survives the next rollover by moving into previous, and is dropped only at the rollover after that if never touched again. The wholesale discard of the older generation is real; the one-rollover timing claim is off by one generation.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 45,
+      "area": "runtime-and-state",
+      "site": "DroppyCode/Services/Providers/ProviderRegistry.swift:161 and :698 vs :162-163, :176-177, :538-541, :669-672",
+      "one_line": "recentSlashCommands is routed through CaptureRun.defaults while the model catalogs use UserDefaults.standard, but every standard-suite site is gated on !CaptureRun.isEnabled, so there is no capture-run leak.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "None. Two different isolation mechanisms are used for two kinds of state: a separate defaults suite for one, an outright skip for the other. Inconsistent to read, identical in effect. A capture run reads and writes neither the real machine's catalogs nor its catalog dates.",
+      "verified_against_source": "CONFIRMED as to the literal line contents, but the register's conclusion is WRONG. :161 'recentCommands = (CaptureRun.defaults ?? .standard).dictionary(forKey: \"recentSlashCommands\") ...' and :698 '(CaptureRun.defaults ?? .standard).set(recentCommands, forKey: \"recentSlashCommands\")' are as described. :163 and :177 do read UserDefaults.standard, but each is the second clause of a condition that opens with '!CaptureRun.isEnabled' at :162 and :176, so under a capture run neither read happens at all. :541 'UserDefaults.standard.set(data, forKey: catalogDatesKey)' sits inside storeCatalogDates, whose first statement at :538 is 'guard !CaptureRun.isEnabled else { return }'. :672 'UserDefaults.standard.set(data, forKey: cacheKey)' is preceded at :669 by 'guard !CaptureRun.isEnabled else { return }'. The claim that a capture run gets the real machine's model catalogs, contradicting WebsiteCaptures.swift:10-12, does not hold: the isolation that comment promises is upheld for both kinds of state. There is nothing here to escalate and nothing to repair, only an inconsistency of style.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 46,
+      "area": "runtime-and-state",
+      "site": "DroppyCode/App/LegacyMigration.swift:21 (guard at :10), vs Services/Store/Storage.swift:22 and Core/Support/Text.swift:4",
+      "one_line": "LegacyMigration hardcodes the literal 'Droppy Code' as the destination folder where Storage.root uses AppInfo.name, a divergence currently masked by the development guard.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "Nothing in the shipped app: the release build's CFBundleDisplayName is 'Droppy Code', so the literal and AppInfo.name agree and the move lands where Storage reads. The defect is latent. It carries a PORT HAZARD worth the owner's eye but not an escalation: the Windows port's app name is by definition not 'Droppy Code', so a port that copied the literal AND had a legacy folder to move would relocate the user's whole library into a folder the app never reads, and the threads and history would look gone. On Windows there is no macOS 'Cody' Application Support folder to move, so the move cannot fire. The port should carry AppInfo.name here as an ENGINEERING DECISION and record it, rather than transcribe the literal.",
+      "verified_against_source": "CONFIRMED, every cite exact. LegacyMigration.swift:10 'guard !AppInfo.isDevelopment else { return }'; :7 'private static let formerSupportFolder = \"Cody\"'; :19 'let support = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]'; :20 'let formerLibrary = support.appendingPathComponent(formerSupportFolder, isDirectory: true)'; :21 'let library = support.appendingPathComponent(\"Droppy Code\", isDirectory: true)'; :22-24 moves formerLibrary to library when the destination is absent. Storage.swift:22 'let url = base.appendingPathComponent(AppInfo.name, isDirectory: true)'. Text.swift:4 'static let name = Bundle.main.object(forInfoDictionaryKey: \"CFBundleDisplayName\") as? String ?? \"Droppy Code\"'; Text.swift:5 'static let isDevelopment = Bundle.main.bundleIdentifier == \"iordv.droppycode.dev\"', which is what the :10 guard turns on.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 47,
+      "area": "runtime-and-state",
+      "site": "DroppyCode/Core/Support/Text.swift:101, after the scans at :87-100",
+      "one_line": "SimpleDiff.unified's input-size guard runs after the prefix and suffix scans and the slice construction, so a multi-megabyte pair is fully line-split and walked before being rejected.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "Wasted CPU and transient memory on a large pair that is then rejected anyway: a brief hitch, then correct stats with no hunk. The register's own words apply: a cost defect, not a correctness one.",
+      "verified_against_source": "CONFIRMED, cites exact. :85-86 split both texts on newlines; :87-90 the prefix scan; :91-95 the suffix scan; :96-100 build removed, added, leading, trailingEnd and trailing. :101 'guard old.utf8.count + new.utf8.count <= diffLimit else { return FileEdit.Stats(diff: nil, additions: added.count, deletions: removed.count) }'. The guard is genuinely last, and note it depends on added.count and removed.count, which is why it could not simply be hoisted without changing the returned stats.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 48,
+      "area": "chat-and-composer",
+      "site": "DroppyCode/UI/Markdown/LinkTitles.swift:98, :106, :109",
+      "one_line": "The claimed set is inserted into on claim and again on finish and is never cleared, while titles is flushed wholesale at 400, so a flushed id can never be re-claimed and a failed fetch is never retried.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "A video link renders with its bare URL instead of its title for the rest of the app launch. Quitting and reopening restores it. Presentation only: no request is repeated, nothing is stored wrongly.",
+      "verified_against_source": "CONFIRMED, all three cites exact. :86 'private var claimed = Set<String>()' with no removal anywhere in the type. :95-99 'func claim(_ id: String) -> Bool { ... return claimed.insert(id).inserted }'. :102-110 'func finish(_ id: String, title: String?) { ... if let title { if titles.count >= 400 { titles.removeAll(keepingCapacity: true) }; titles[id] = title }; claimed.insert(id) }'. The 'claimed.insert(id)' at :109 sits outside the 'if let title' block, so a nil answer is recorded as claimed exactly as the register says.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 49,
+      "area": "chat-and-composer",
+      "site": "DroppyCode/UI/Markdown/MarkdownView.swift:931-932 and UI/Markdown/LinkTitles.swift:106",
+      "one_line": "Both caches are flushed with removeAll(keepingCapacity: true) the moment they reach 300 / 400, so one insertion past the threshold discards every cached favicon or title rather than evicting one.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "Every favicon in a long thread blanks at once and re-fetches from the icon host the app already uses for them. The user sees a visible flicker and a burst of requests the app makes anyway. The defect introduces no new network destination, stores nothing wrongly, and the caches refill.",
+      "verified_against_source": "CONFIRMED, both cites exact. MarkdownView.swift:930-932 'if let image { if memory.count >= 300 { memory.removeAll(keepingCapacity: true) }; memory[key] = image }'. LinkTitles.swift:106 'if titles.count >= 400 { titles.removeAll(keepingCapacity: true) }'. Neither has any single-entry eviction. The re-fetch destination is the app's own existing one (MarkdownView.swift:945 builds the icons.duckduckgo.com ip3 URL), so this is volume, not a new destination, and C6 does not apply.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 50,
+      "area": "chat-and-composer",
+      "site": "DroppyCode/App/Views/Composer/ComposerView.swift:320-322, with :315, :318, :466-471 and :1048",
+      "one_line": "The .tab/.submit/.steer arm subscripts items with selected under no bounds check, but isVisible is defined as !items.isEmpty and selected is clamped on every write, so the trap is unreachable.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "None reachable. This is a dead condition, not a latent crash: the branch cannot be entered with an empty items array, and selected cannot hold an out-of-range value when it is entered. The register's guidance to make the out-of-range case a no-op on Windows is harmless defensive coding and an ENGINEERING DECISION, since it changes no reachable behaviour.",
+      "verified_against_source": "CONFIRMED as to the missing bounds check; the implied hazard does not exist, which the register does not say. :312 'if suggestions.isVisible {'; :315 'suggestions.selected = max(0, suggestions.selected - 1)'; :318 'suggestions.selected = min(suggestions.items.count - 1, suggestions.selected + 1)'; :320-322 'case .tab, .submit, .steer: pick(suggestions.items[suggestions.selected]); return true' with no clamp. But :1048 'var isVisible: Bool { !items.isEmpty }', so entering the switch already proves items is non-empty, and :318 therefore cannot yield -1 either. The only other writes are :254 'select: { suggestions.selected = index }' from a rendered row, in range by construction, and :471 'let selected = suggestions.range.location == range.location ? min(suggestions.selected, items.count - 1) : 0', which runs only after the guard at :466-469 'guard !items.isEmpty else { if suggestions.isVisible { suggestions = SuggestionState() }; return }'. So items.count is at least 1 whenever :471 runs, and selected stays in [0, items.count - 1] by induction from the initial 0 at :1046. No path stores a negative or oversized selected alongside a visible list.",
+      "disposition": "REPRODUCE"
+    }
+  ],
+  "recorded_entries_found_wrong": [
+    "Entry 27: the line cite is wrong. The register cites Hydra.swift:939-940, which is the .stray arm's comment and its 'var parts' line. The .failed arm that omits the pending sentence is at Hydra.swift:936-937. The substance of the entry is correct.",
+    "Entry 35: the line range starts one line late. The register cites Hydra.swift:1069-1073; the 'JSON did not parse' nil is at :1068 and the 'every entry was rejected' nil is at :1072. The conflation the entry describes is real.",
+    "Entry 39: 'the three deferral exits in startTurn' is loose. There are two enqueueFollowUp call sites inside startTurn (ThreadRuntime.swift:1160 and :1165) covering three conditions (busy, reverting, archived). The entry's own prose names the three conditions, so this is wording rather than a false claim.",
+    "Entry 42: 'The comments are wrong' overstates it. Both constants really are 200_000, so 'the same cap' is true of the value; what differs is the operand (Text.swift:101 bounds old.utf8.count + new.utf8.count, ThreadRuntime.swift:3373 bounds the produced diff.utf8.count). It is a misleading true statement, which is why it survives reading.",
+    "Entry 44: the stated consequence is wrong. The register says 'a key that had just been promoted out of previous can be dropped at the very next rollover'. It cannot. RecentCache.swift:22-27 promotes the key by re-inserting it, and the write at :54 happens after the rollover block at :47-53, so a just-promoted key always lands in the fresh current, survives the next rollover into previous, and is dropped only at the rollover after that if untouched. The wholesale discard of the older generation is real; the timing claim is off by one generation.",
+    "Entry 45: the conclusion is wrong and must not be carried into the port. The register says 'A capture run therefore gets a clean recent-command list but the real machine's model catalogs, contradicting WebsiteCaptures.swift:10-12'. Every UserDefaults.standard site named in the entry is gated on !CaptureRun.isEnabled: ProviderRegistry.swift:162 guards the read at :163, :176 guards the read at :177, :538 guards the write at :541, and :669 guards the write at :672. A capture run therefore neither reads nor writes the real machine's catalogs or catalog dates, and the isolation promised at WebsiteCaptures.swift:10-12 holds. What remains is an inconsistency of mechanism (a separate defaults suite for recentSlashCommands, an outright skip for the catalogs), not a leak.",
+    "Entry 50: the entry presents an unreachable branch as a latent trap without saying it is unreachable. ComposerView.swift:1048 defines isVisible as !items.isEmpty, so the switch at :312 cannot be entered with an empty items array, and the clamp at :471 runs only after the non-empty guard at :466-469, so selected is always in range when :321 subscripts. The missing bounds check at :320-322 is real, but it is a dead condition, and the register's suggested Windows no-op changes no reachable behaviour."
+  ]
+}

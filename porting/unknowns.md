@@ -251,3 +251,57 @@ Both remain open options for the owner alone.
   behavior recorded as the specification; items in 3 do not affect the port's product behavior and
   are recorded only; item 4 is treated as repository-root-relative by specification and verified on
   Windows against the real git.
+
+## UNK-0012 ESCALATION: Malformed custom-MCP variable silently discards every custom server, then the next save overwrites the file
+
+- **Status:** BLOCKED_ON_OWNER. Raised 2026-09-20 by the defect re-triage required by
+  amendment AM-0001. Quarantined as BLK-0002 in `porting/blocked_requirements.json`.
+- **Consequence criteria met:** C4.
+- **Source evidence:** DroppyCode/Core/Models/MCPCustom.swift:15-19, :36-48; DroppyCode/Services/MCP/MCPStore.swift:245-248
+- **Upstream defect entry:** 17 in `porting/upstream_defects.md`.
+- **Concrete harm:** A user with a hand-edited or partially corrupted mcp-customs.json - the exact case the file's own doc comment says is tolerated - opens the app and finds Settings > MCP > Custom empty, with no error anywhere. If they then add a replacement server, saveCustoms atomically overwrites the file with the single new entry and every previous custom server definition (name, command, args, url, variable keys) is permanently gone. Keychain secrets are NOT destroyed on this path, since deleteCustom is never called, so they survive as orphans - this is lost configuration, retypeable, not lost credentials and not lost project work. Probability is low: isSecret has existed since the file's first commit (75e30f217, 2026-09-18), so no shipped build ever wrote a Variable without it, and the trigger is an out-of-band edit or file corruption.
+  - C4 - silent data loss the user cannot detect or undo: one malformed nested object discards the entire custom-server list with no message (the try? at MCPStore.swift:247), and the first subsequent edit atomically overwrites mcp-customs.json with the empty list (MCPStore.swift:275). No backup, no undo, and nothing tells the user their file failed to parse.
+- **Neither option is approved:**
+  - Reproduce upstream exactly, including the data-loss path. Exact parity, including the defect.
+  - Harden the path so the loss cannot occur. This is a recorded owner-approved deviation, NOT parity.
+- **Quarantined paths:** any Windows implementation of custom MCP server decoding that swallows a decode failure; any save path that overwrites the custom-server store after a failed load
+- **Isolation:** a Gate C check fails while this entry is OPEN and a matching implementation
+  path exists, so neither alternative can be adopted by drift. Nothing else in the subsystem
+  is blocked.
+
+## UNK-0013 ESCALATION: Cookie-timeout tearDown can truncate a checkpoint silently; a later revert then deletes unrecoverable work
+
+- **Status:** BLOCKED_ON_OWNER. Raised 2026-09-20 by the defect re-triage required by
+  amendment AM-0001. Quarantined as BLK-0003 in `porting/blocked_requirements.json`.
+- **Consequence criteria met:** C1, C4.
+- **Source evidence:** DroppyCode/Services/Git/WorkingTreeWatch.swift:271 and :159-170, against Git.swift:445-462
+- **Upstream defect entry:** 81 in `porting/upstream_defects.md`.
+- **Concrete harm:** Usually benign: the turn simply has no checkpoint and the user later sees "No file checkpoint is available for this message." The bad outcome, which the source itself names, is a checkpoint that silently records only a few directories as though it were the whole tree. A later revert against that base then treats every other touched file as new (Git.swift:613) and DELETES it with FileManager.removeItem (Git.swift:619) instead of restoring its pre-turn content; for an uncommitted file that content is gone, and the app reports the revert as successful.
+  - C1: a revert against a silently truncated checkpoint deletes files at Git.swift:619 whose pre-turn, uncommitted content exists nowhere else, so the user's work is permanently lost.
+  - C4: the truncated capture exits 0 and is cached and committed as an ordinary checkpoint, so neither app nor user can tell the snapshot is wrong until a revert acts on it.
+- **Neither option is approved:**
+  - Reproduce upstream exactly, including the data-loss path. Exact parity, including the defect.
+  - Harden the path so the loss cannot occur. This is a recorded owner-approved deviation, NOT parity.
+- **Quarantined paths:** any Windows implementation of the working-tree watch scratch-index teardown; any checkpoint capture that can exit successfully on a partial tree
+- **Isolation:** a Gate C check fails while this entry is OPEN and a matching implementation
+  path exists, so neither alternative can be adopted by drift. Nothing else in the subsystem
+  is blocked.
+
+## UNK-0014 ESCALATION: previewRestore mixes CWD-relative and repo-root-relative paths; a revert can delete the wrong files and report success
+
+- **Status:** BLOCKED_ON_OWNER. Raised 2026-09-20 by the defect re-triage required by
+  amendment AM-0001. Quarantined as BLK-0004 in `porting/blocked_requirements.json`.
+- **Consequence criteria met:** C1, C4.
+- **Source evidence:** DroppyCode/Services/Git/Git.swift:586-590 (with :603-619 and :43)
+- **Upstream defect entry:** 84 in `porting/upstream_defects.md`.
+- **Concrete harm:** A user with diff.relative = true who has added a project that is a subfolder of a larger repository asks to undo a turn's file changes. The files the agent actually changed are not restored at all; the app acts instead on same-named paths at the repository root, DELETING any the base checkpoint does not hold (Git.swift:619) and overwriting any it does (Git.swift:607-611). The revert sheet shows the mis-derived names, which read like plausible file names, and the revert reports success.
+  - C1: files at the repository root that the turn never touched are deleted outright at Git.swift:619, and uncommitted content in them is not recoverable from the repository.
+  - C4: preview, restore and the app's own report all look normal, so the user gets no signal that the wrong files were acted on and the intended ones left alone.
+- **Neither option is approved:**
+  - Reproduce upstream exactly, including the data-loss path. Exact parity, including the defect.
+  - Harden the path so the loss cannot occur. This is a recorded owner-approved deviation, NOT parity.
+- **Quarantined paths:** any Windows implementation of previewRestore path derivation; any revert path that deletes files not present in the base checkpoint
+- **Isolation:** a Gate C check fails while this entry is OPEN and a matching implementation
+  path exists, so neither alternative can be adopted by drift. Nothing else in the subsystem
+  is blocked.
+

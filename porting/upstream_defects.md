@@ -254,3 +254,88 @@ lines mid-sentence. Counted from source by the lead:
 (169, 253, 286, 290, 404, 448, 459, 484, 558, 566, 679, 707) and **6 are forge CLI**
 (181, 186, 191, 216, 217, 218). The extract`s `add -A` split was correct: 6 sites
 (164, 253, 448, 459, 484, 707), one at the 120 s default (164) and five at 300 s.
+
+---
+
+# Register corrections from the 2026-09-20 triage
+
+The triage adjudicators read the cited source and found 19 entries in this
+register that misstate what the code does. Each correction is recorded rather than silently applied,
+because a wrong defect entry propagates into the port as either a copied non-bug or an invented one.
+
+## RC-01
+
+Entry 2 (AntigravitySession dead mode fields): the dead-store fact is correct but the stated consequence is wrong and must not be propagated. The register says 'A mid-thread mode or Plan/Build change cannot reach agy at all, and even a relaunch uses the original modes while picking up the UPDATED model/effort'. CORRECTION: ThreadRuntime.swift:504-519 includes launchRuntimeMode and launchInteraction in SessionSignature, and :1414/:1418 populate both from thread.* for .antigravity, so the session-reuse check at :1422 fails on any mode or Plan/Build change and :1496-1523 constructs a brand-new AntigravitySession from a fresh SessionConfiguration carrying the CURRENT modes. AntigravitySession is constructed at exactly one site (ThreadRuntime.swift:1516) and start() is only ever called on a freshly made object (:1478, :1486, :1547, :1563), so a relaunch cannot carry stale modes. launchModel and launchEffort are in the signature too, so there is no 'half applied, half discarded' asymmetry. The true finding is a harmless pair of write-only properties. This matters for the port: the Antigravity entries in SessionSignature are what keep the --dangerously-skip-permissions gate (AntigravitySession.swift:135-137) honest, and dropping them would turn this harmless quirk into a real C3/C5 defect that upstream does not have.
+
+## RC-02
+
+Entry 21 (MCPKeychain accessibility never migrates): the description of the code is accurate, but the implied security weakness is not realizable and should not be propagated. CORRECTION: git log -p --follow on DroppyCode/Services/MCP/MCPKeychain.swift shows exactly two commits (739518735 'Add MCP server support', 75e30f217) and kSecAttrAccessibleWhenUnlocked is present on the SecItemAdd path in both, so no shipped build ever created these items with a weaker accessibility for the update path to preserve; the macOS default for an add without the attribute is the same value in any case. The observation is true and currently inert. Recorded so the port does not carry it forward as a security finding, and noted that Windows has no kSecAttrAccessible analogue at all since secrets go through DPAPI.
+
+## RC-03
+
+Entry 17 (custom-MCP decode drops every custom server): not wrong, but INCOMPLETE in a way that changes its classification. The register records only the silent drop. It does not record that the drop is followed by an overwrite: customs stays empty and the next saveCustom (MCPStore.swift:175) or deleteCustom (:196) calls saveCustoms, which atomically writes the empty array over mcp-customs.json (:275). That is what takes the defect out of 'no lasting harm' and into C4, and it is why this entry is escalated rather than reproduced. Two smaller citation corrections in the same entry: the tolerance doc comment is at MCPCustom.swift:36-37, not :37-38, and the outer try? is at MCPStore.swift:247, inside the :245-248 load block.
+
+## RC-04
+
+Entry 27: the line cite is wrong. The register cites Hydra.swift:939-940, which is the .stray arm's comment and its 'var parts' line. The .failed arm that omits the pending sentence is at Hydra.swift:936-937. The substance of the entry is correct.
+
+## RC-05
+
+Entry 35: the line range starts one line late. The register cites Hydra.swift:1069-1073; the 'JSON did not parse' nil is at :1068 and the 'every entry was rejected' nil is at :1072. The conflation the entry describes is real.
+
+## RC-06
+
+Entry 39: 'the three deferral exits in startTurn' is loose. There are two enqueueFollowUp call sites inside startTurn (ThreadRuntime.swift:1160 and :1165) covering three conditions (busy, reverting, archived). The entry's own prose names the three conditions, so this is wording rather than a false claim.
+
+## RC-07
+
+Entry 42: 'The comments are wrong' overstates it. Both constants really are 200_000, so 'the same cap' is true of the value; what differs is the operand (Text.swift:101 bounds old.utf8.count + new.utf8.count, ThreadRuntime.swift:3373 bounds the produced diff.utf8.count). It is a misleading true statement, which is why it survives reading.
+
+## RC-08
+
+Entry 44: the stated consequence is wrong. The register says 'a key that had just been promoted out of previous can be dropped at the very next rollover'. It cannot. RecentCache.swift:22-27 promotes the key by re-inserting it, and the write at :54 happens after the rollover block at :47-53, so a just-promoted key always lands in the fresh current, survives the next rollover into previous, and is dropped only at the rollover after that if untouched. The wholesale discard of the older generation is real; the timing claim is off by one generation.
+
+## RC-09
+
+Entry 45: the conclusion is wrong and must not be carried into the port. The register says 'A capture run therefore gets a clean recent-command list but the real machine's model catalogs, contradicting WebsiteCaptures.swift:10-12'. Every UserDefaults.standard site named in the entry is gated on !CaptureRun.isEnabled: ProviderRegistry.swift:162 guards the read at :163, :176 guards the read at :177, :538 guards the write at :541, and :669 guards the write at :672. A capture run therefore neither reads nor writes the real machine's catalogs or catalog dates, and the isolation promised at WebsiteCaptures.swift:10-12 holds. What remains is an inconsistency of mechanism (a separate defaults suite for recentSlashCommands, an outright skip for the catalogs), not a leak.
+
+## RC-10
+
+Entry 50: the entry presents an unreachable branch as a latent trap without saying it is unreachable. ComposerView.swift:1048 defines isVisible as !items.isEmpty, so the switch at :312 cannot be entered with an empty items array, and the clamp at :471 runs only after the non-empty guard at :466-469, so selected is always in range when :321 subscripts. The missing bounds check at :320-322 is real, but it is a dead condition, and the register's suggested Windows no-op changes no reachable behaviour.
+
+## RC-11
+
+Entry 64 cites 'WindowChrome.swift:215-217' for drag(by:). Wrong location: :214-217 is inside the titlebar constraint update loop ('guard changed else { return }' at :214). 'func drag(by translation: CGFloat)' is at :340-342, body 'width = min(Self.maximumWidth, max(0, anchorWidth + translation))'. The rest of entry 64 is correct: endDrag() at :344-356, minimumWidth 210 (:240), maximumWidth 440 (:241), collapseThreshold 110 (:242).
+
+## RC-12
+
+Entry 74 cites 'SettingsView.swift:926-929'. The VStack(spacing: Chrome.sectionSpacing) opens at :927, not :926 (:926 is 'var body: some View {'). Correct span: :927-929. Substance unchanged.
+
+## RC-13
+
+Entry 55 presents LinkParagraphView.dismantleNSView as the complete counterpart to ProseRunView's. Minor imprecision: LinkParagraphView.swift:73-77 clears delegate and mergeTarget and calls streamVeil.detach, but does NOT clear onOpenHead. The asymmetry the entry names (the missing streamVeil.detach in ProseRunView) is real and correctly described.
+
+## RC-14
+
+Entry 62 omits what PopoverItem.confirmation actually is, which invites a wrong reading during the port. Correction for the record: it is an after-the-fact acknowledgement label ('Copied'), documented at Popovers.swift:205-207 as running the action at once, and every use site (RowAction.confirms; TimelineRows.swift:219, :220, :1405, :1406, :1409, :1413) is a Copy or Add. It is NOT a pre-action safety confirmation, so entry 62's synchronous-before-close ordering bypasses no destructive gate and the entry stays ORDINARY. This also means the 'confirmation:' parameter would not have protected entry 68's Delete row even if it had been passed.
+
+## RC-15
+
+Entry 80: the "120 s timeout kill" example does not reach the zip. Shell.terminate (Shell.swift:110-118) leaves a non-zero exit status, so ShellResult.succeeded is false (Shell.swift:9) and the guard at Git.swift:347 returns an empty set before the zip at :350 runs. The one real short-answer-with-exit-0 path is the post-exit drain deadline, Shell.swift:105 `await collector.finished(within: 3)` with OutputCollector.finished at Shell.swift:286-293. The asymmetry the entry records (no count check at :350, a thrown ShellError at :645-646) is correct as written.
+
+## RC-16
+
+Entry 78: two over-statements. A leading ':' can only reach checkoutPaths (Git.swift:395) and removePaths (:400); restore (:609, :617) and blobs (:625) map every path through root.appendingPathComponent(), so their pathspecs always begin with '/' and pathspec magic cannot fire. And previewRestore's own numstat call at :586 also omits --literal-pathspecs, so the revert preview globs exactly as the revert does; the inconsistency is between the diff() helper (:552) and everything else, not between what the user is shown and what is done.
+
+## RC-17
+
+Entry 99: "index.html:547 shows 'Free / AGPL'" is the wrong line. The text is at website/index.html:545 (<div class="free__price">Free<small>AGPL</small></div>); line 547 is a system-requirements bullet. The entry's other cites (project.yml:46, pbxproj:295 and :319, LICENSE:4, index.html:766, SettingsView.swift:1003) are exact.
+
+## RC-18
+
+Entry 96: the register says the sibling row at docs/audit-2026-09-15.md:77 drifts in its PATH. It also drifts in its LINE number: Shell.swift:208 is part of the read-only-command classifier, while LoginEnvironment.load, the subject of finding S2, is at Shell.swift:353 and its interactive login shell run is at :369.
+
+## RC-19
+
+Entry 86 (scope, not an error): the entry is right about the algorithm, but repositoryRoot() has only two callers (Git.swift:588 and :603) and both pass the joined paths to blobs() first, whose ls-tree rejects a pathspec outside the repository. A wrong root that lands outside the repository therefore throws before anything is written or deleted, and the revert reports "files could not be restored" (ThreadRuntime.swift:1874-1875). The harm is a failed revert, not a destructive one.
+

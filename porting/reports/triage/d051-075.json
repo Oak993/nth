@@ -1,0 +1,280 @@
+{
+  "chunk": "d051-075",
+  "range": "upstream_defects.md entries 51-75",
+  "reference_commit": "dd2b86efef9e77168f304a86e8a8411877578bbe",
+  "ruling_applied": "STANDING OWNER RULING 2026-09-20: default REPRODUCE; CONSEQUENTIAL defects (C1..C6) are isolated and escalated individually, neither reproduced nor fixed.",
+  "summary": {
+    "total": 25,
+    "ordinary_quirk": 24,
+    "consequential": 1,
+    "reproduce": 24,
+    "escalate": 1,
+    "register_corrections": 4
+  },
+  "triaged": [
+    {
+      "entry": 51,
+      "area": "chat-and-composer",
+      "site": "DroppyCode/App/Views/Composer/AttachmentFlight.swift:55-59",
+      "one_line": "The reduce-motion early return in AttachmentFlight.fly sits before the teardown of any previously stored ghost window, so a flight already in the air is never ordered out by a later call.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "If the user turns on Reduce Motion while an attachment ghost is mid-flight, that one small borderless ghost window keeps flying until its own CATransaction completion removes it, roughly the remaining fraction of one short spring animation. Nothing is retained afterwards and no user data is involved.",
+      "verified_against_source": "CONFIRMED. Line 55 is `guard !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }` and lines 56-59 are `if let existing = window { existing.orderOut(nil); window = nil }`. The guard is unambiguously first. The register description is accurate.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 52,
+      "area": "chat-and-composer",
+      "site": "DroppyCode/App/Views/Composer/AttachmentFlight.swift:195-203 with :31-35 and :55-61",
+      "one_line": "AttachmentArrival consumes the armed drop with AttachmentDrops.shared.take() before calling fly(), and fly() can return without animating, so the armed drop is discarded.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "The attachment chip appears without its fly-in animation. Nothing about the attachment itself is lost: AttachmentDrops.Drop (lines 11-15) carries only an NSImage, a source CGRect and a corner radius, all purely animation state, and the only call site (lines 195-202) passes no completion closure, so no follow-on work depends on the flight running. The chip is drawn by ordinary layout regardless.",
+      "verified_against_source": "CONFIRMED. Line 195 is `guard isNew, let drop = AttachmentDrops.shared.take() else { return }`, take() at :31-35 clears the stored drop unconditionally, and fly() returns early at :55 (reduce motion) and at :60-61 (nil cgImage or nil NSScreen.main). The register's 'harmless as shipped' note is correct and is further supported by AttachmentDrops.Drop holding no attachment payload.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 53,
+      "area": "chat-and-composer",
+      "site": "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:156-164, :294, :386-399",
+      "one_line": "A queued follow-up removed mid-drag while the pointer is off the grip leaves the openHand NSCursor push unbalanced for the rest of the launch.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "The mouse cursor keeps showing an open-hand grab shape outside the queue for the rest of the application launch, until the app is relaunched. Purely cosmetic; the queue, the prompts and the send path are unaffected.",
+      "verified_against_source": "CONFIRMED, all four cited sites match exactly. Line 156 `.onChange(of: runtime.followUps.map(\\.id))`, line 159 `if let id = drag.id, !ids.contains(id) { dragEnded() }`, line 294 `NSCursor.pop()` inside dragEnded(), line 388 `guard !isDragged else { return }` suppressing the hover-leave pop, line 389 the openHand push, line 392 the onDisappear pop conditioned on isHoveringGrip, line 398 the isDragged-change pop conditioned on !isHoveringGrip. A row removed while dragged with the pointer off the grip satisfies none of the three pop paths.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 54,
+      "area": "chat-and-composer",
+      "site": "DroppyCode/App/Runtime/ThreadRuntime.swift:206",
+      "one_line": "The followUps property declaration is indented eight spaces where its siblings use four; whitespace only.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "Nothing at runtime. The only risk is a port reviewer misreading the stray indentation as a nesting change and relocating the property.",
+      "verified_against_source": "CONFIRMED. Line 205 is `    private(set) var isLoadingHistory = false` (four spaces) and line 206 is `        private(set) var followUps: [FollowUpPrompt] = [] {` (eight spaces). Both are members of the same type; the extra indentation is cosmetic. The file uses CRLF line endings.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 55,
+      "area": "chat-and-composer",
+      "site": "DroppyCode/UI/Markdown/ProseRunView.swift:120-124 vs DroppyCode/UI/Markdown/LinkParagraphView.swift:73-77",
+      "one_line": "ProseRunRepresentable.dismantleNSView clears delegate, onOpenHead and mergeTarget but omits view.streamVeil.detach(view), which LinkParagraphView's dismantle does call.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "Nothing today. Grep over the whole tree shows streamVeil referenced only at LinkParagraphView.swift:57 (update), :76 (detach) and :290 (the property on LinkTextView). The prose-run path never calls update(_:active:), so no veil is ever attached on that path and no display link is left running. The defect is latent asymmetry, not a live leak.",
+      "verified_against_source": "CONFIRMED with one clarification. ProseRunView.swift:120 is `static func dismantleNSView(_ view: LinkTextView, coordinator: LinkParagraphView.Coordinator)` and its body clears delegate, onOpenHead and mergeTarget only. LinkParagraphView.swift:73-77 clears delegate and mergeTarget and calls `view.streamVeil.detach(view)`; it does NOT clear onOpenHead. The register's 'latent rather than live' framing is confirmed by the grep: streamVeil has zero references in ProseRunView.swift.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 56,
+      "area": "shell-chrome-and-theme",
+      "site": "DroppyCode/App/Views/Sidebar/FloatingSidebarPanel.swift:75-77 with :29-32",
+      "one_line": "The resize clamp applies the outer upper-bound min() last, so in a narrow chat area the panel size is written below minSize 240x320 and that sub-minimum value is persisted to settings.sidebarPanelSize on the same drag tick.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "A too-small persisted panel size. The user never sees it while the area stays narrow, because the read path at :29-32 floors the stored value back to 240x320 on every body evaluation. If the window later grows, the panel reopens at the stored sub-minimum value until the user resizes again. A layout oddity with a settings value the user can correct by dragging.",
+      "verified_against_source": "CONFIRMED. minSize is `CGSize(width: 240, height: 320)` at :18 and margin is 12 at :19. Lines 75-76 are `next.width = min(max(Self.minSize.width, next.width), area.width - origin.x - Self.margin)` and the matching height line; the outer min() has no lower bound, so it can drive the value under 240/320. Line 77 is `model.settings.sidebarPanelSize = next`, on the same onDrag tick. Lines 29-32 build `size` with `min(max(Self.minSize.width, stored.width), max(Self.minSize.width, area.width - Self.margin * 2))`, whose outer bound is itself floored at minSize, so the read path does re-floor.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 57,
+      "area": "shell-chrome-and-theme",
+      "site": "DroppyCode/App/Views/Sidebar/FloatingSidebarPanel.swift:34 with :75-76",
+      "one_line": "The resize clamp is anchored on `origin = dragOrigin ?? rest`, so resizing while the title strip is held clamps against the dragged origin rather than the resting one.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "During a simultaneous move-and-resize the panel's maximum size is computed against the in-flight position, so the resize bound shifts as the panel is dragged. Visual only, and the read path floors and clamps the result afterwards.",
+      "verified_against_source": "CONFIRMED. Line 34 is `let origin = dragOrigin ?? rest` and lines 75-76 use that same `origin` in `area.width - origin.x - Self.margin` and `area.height - origin.y - Self.margin`. The resting origin is `rest` at :33, computed from settings.sidebarPanelOrigin through Self.clamp.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 58,
+      "area": "shell-chrome-and-theme",
+      "site": "DroppyCode/App/Views/Sidebar/SidebarView.swift:2471 with :131",
+      "one_line": "thread(at:) picks the grabbed row with `frames.first { $0.value.contains(point) }?.key` over a [UUID: CGRect], so overlapping row frames resolve in unstable Swift dictionary order.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "When two row frames overlap (mid-animation or during a settle handover) a list drag can pick up the neighbouring thread instead of the one under the pointer, so the wrong row reorders or moves to a different project. The result is immediately visible in the sidebar and the user can drag it back; nothing is deleted and no thread content changes. Being unreproducible between runs is the real cost.",
+      "verified_against_source": "CONFIRMED. Line 2471 is exactly `frames.first { $0.value.contains(point) }?.key`, inside `func thread(at point: CGPoint) -> UUID?`. Its only consumer is the list-wide drag at :131, `guard let id = drag.id ?? rowFrames.thread(at: value.startLocation) else { return }`, feeding dragChanged(id, translation:). Swift Dictionary iteration order is per-process seeded, so the register's 'unstable between runs' is accurate.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 59,
+      "area": "shell-chrome-and-theme",
+      "site": "DroppyCode/App/Views/Sidebar/SidebarView.swift:847 vs :1453 and :1463",
+      "one_line": "The drag-slot height fallback assumes six heads per row and no chevron row, while the head card lays out at seven per row until measured and adds a whole extra glyph row when heads.count > 12.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "While reordering, the placeholder slot for a lead with seven or more heads is the wrong height until the real card height lands in rowHeights['heads-<id>'], so rows shift slightly as the drag settles. Cosmetic jitter in the sidebar; no state is written from the wrong value.",
+      "verified_against_source": "CONFIRMED, all three lines match. Line 847 is `let rows = (headCount + 5) / 6` feeding the fallback `rowHeights.values[\"heads-\\(id)\"] ?? ThreadRowMetrics.headCardHeight(rows: rows)` at :848. Line 1453 is `let perRow = width == 0 ? 7 : max(1, Int((usable + ThreadRowMetrics.headGlyphPitch - ThreadRowMetrics.headGlyphSize) / ThreadRowMetrics.headGlyphPitch))`. Line 1463 is `let cardRows = rows.count + (capped ? 1 : 0)` where `capped = heads.count > 12` at :1443.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 60,
+      "area": "shell-chrome-and-theme",
+      "site": "DroppyCode/UI/Theme/AppTheme.swift:223-227",
+      "one_line": "ThemeManager.current's didSet has no equality guard, so reassigning the same theme re-parses the whole ThemeSpec and posts ThemeManager.didChange for nothing.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "A redundant hex parse of up to five colors and one broadcast notification, re-tinting every layer-backed spinner cell and HydraButton observer. Wasted work measured in microseconds plus a redraw; no visible defect, no state change.",
+      "verified_against_source": "CONFIRMED. Line 223 is `nonisolated(unsafe) static var current: AppTheme = .system {` and the didSet body is `spec = current.spec` then `NotificationCenter.default.post(name: didChange, object: nil)`, with no `guard oldValue != current`. The register's 'five hex colours' count is right: ThemeSpec (:205-212) carries accent, surface, success, warning and danger as Colors, each built from a hex string in the palette tuple at :109-111 and mapped at :192-197.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 61,
+      "area": "shell-chrome-and-theme",
+      "site": "DroppyCode/App/AppSettings.swift:133 with :274-275 and :712",
+      "one_line": "The Swift constant is named settledCollapsed but the persisted UserDefaults key string is 'settledSectionCollapsed'.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "Nothing upstream. The hazard is entirely on the port: a Windows implementation that derives the persisted key from the property name writes 'settledCollapsed', and every existing user's collapsed-section preference silently reverts to the default true on first run. That is a port mistake to avoid, not upstream behavior to reproduce.",
+      "verified_against_source": "CONFIRMED verbatim. Line 133 is `static let settledCollapsed = \"settledSectionCollapsed\"`. The property is `var settledCollapsed: Bool` at :274 with `didSet { defaults.set(settledCollapsed, forKey: Key.settledCollapsed) }` at :275, and the load is `settledCollapsed = defaults.object(forKey: Key.settledCollapsed) as? Bool ?? true` at :712.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 62,
+      "area": "shell-chrome-and-theme",
+      "site": "DroppyCode/UI/Chrome/Popovers.swift:262, :270-273, :372",
+      "one_line": "The same RowAction runs at three different times: synchronously before the close for a confirmation row, deferred one main-loop turn after the close for a plain popover row, and synchronously inside the AppKit menu callback for a context-menu row.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "Ordering differences the sidebar already depends on. A port that unifies the three timings breaks the settle/reopen sequence at SidebarView.swift:2229-2242 and the model.finishRequest post at :2298-2306. No user-visible harm from the source's own behavior.",
+      "verified_against_source": "CONFIRMED, with one framing point that must be recorded so the port does not misread it. The three sites are exact: :262 `action()` inside the `if confirmation != nil, !isConfirmed` branch, ahead of the delayed close at :264-267; :270-273 `guard !isConfirmed`, then close, then `Task { @MainActor in action() }`; :372 `item.action()` directly in RowActionMenuButtons. IMPORTANT: PopoverItem.confirmation is NOT a safety confirmation. Its doc comment at :205-207 reads 'What the row says once tapped (\"Copied\"), in place with a checkmark, before the popover closes on its own. The action runs at once', and every real use site (RowAction.confirms; TimelineRows.swift:219, :220, :1405, :1406, :1409, :1413) is a Copy or Add acknowledgement. No destructive path is gated by it, so the synchronous-before-close ordering is not a bypassed confirmation and criterion C5 does not apply.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 63,
+      "area": "shell-chrome-and-theme",
+      "site": "DroppyCode/UI/Chrome/WindowChrome.swift:366-370 with :292",
+      "one_line": "persist() writes the 'sidebarStartsOpen' key on every sidebar toggle and every drag release although neither changes it, materialising the default false on disk after the first interaction.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "One extra UserDefaults key written with the value it already had by default. No behavior change today, since the read at :292 is `defaults.object(forKey: Key.startsOpen) as? Bool ?? false` and the written value equals that default. A future change to the default would no longer reach users who had toggled the sidebar once, which is the only lasting consequence and is invisible now.",
+      "verified_against_source": "CONFIRMED. persist() is at :366-370 with body `defaults.set(Double(restingWidth), forKey: Key.width)` and `defaults.set(startsOpen, forKey: Key.startsOpen)`. It is called from endDrag() (:354) and toggle() (:363). Key.startsOpen is `\"sidebarStartsOpen\"` at :247 and the default is false at :292.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 64,
+      "area": "shell-chrome-and-theme",
+      "site": "DroppyCode/UI/Chrome/WindowChrome.swift:340-342 (the register's ':215-217' is wrong) with :344-356",
+      "one_line": "drag(by:) clamps the live sidebar width to 0...440, below the 210 minimum; only endDrag() decides between collapsing under 110 and flooring at 210, so a width between 0 and 110 is a real transient layout state.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "While the user drags the sidebar edge inward, the chat pane lays out against a sidebar narrower than its stated 210 minimum, down to 0. The moment the drag ends the sidebar either collapses or snaps back to at least 210. A transient state during a gesture; nothing below the minimum is persisted.",
+      "verified_against_source": "CONFIRMED in substance, WRONG in its line citation. The register cites 'WindowChrome.swift:215-217' for drag(by:); at that offset the file is inside the titlebar constraint update loop (`guard changed else { return }` at :214). `func drag(by translation: CGFloat)` is at :340-342 with body `width = min(Self.maximumWidth, max(0, anchorWidth + translation))`. endDrag() is at :344-356 as the register says, with `if width < Self.collapseThreshold` at :345 and `let settled = max(Self.minimumWidth, width)` at :350. The constants are exact: minimumWidth 210 (:240), maximumWidth 440 (:241), collapseThreshold 110 (:242).",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 65,
+      "area": "shell-chrome-and-theme",
+      "site": "DroppyCode/App/Views/Sidebar/SidebarView.swift:1358 vs :1478",
+      "one_line": "SidebarHelperRow draws a running Hydra head's glyph without the isRunning argument, so the breath ring the same head shows on its card is missing on its helper row.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "A running helper looks idle on its helper row while looking running on the head card, so the user may not notice a head is working when looking at the row form. Purely an indicator omission; the status argument is still passed and the head keeps running.",
+      "verified_against_source": "CONFIRMED verbatim. Line 1358 is `HydraGlyph(persona: head.persona, size: ThreadRowMetrics.headGlyphSize, status: head.status)` and line 1478 is `HydraGlyph(persona: info.persona, size: ThreadRowMetrics.headGlyphSize, isRunning: info.status == .running, status: info.status)`. Only 1478 passes isRunning.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 66,
+      "area": "shell-chrome-and-theme",
+      "site": "DroppyCode/UI/Chrome/Popovers.swift:8-12 vs DroppyCode/UI/Chrome/Chrome.swift:83",
+      "one_line": "presentedChrome() tints with the raw optional ThemeManager.spec.accent instead of Chrome.accent, so for the system, light and dark themes it applies .tint(nil).",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "On the three themes whose accent is nil, a presented popover tree's controls fall back to SwiftUI's own tint resolution rather than receiving the explicit system control accent the window root applies. In practice the controls usually land on the same color; where they differ it is a small hue mismatch between a popover's buttons and the window's. Cosmetic.",
+      "verified_against_source": "CONFIRMED. presentedChrome() at :8-12 ends with `.tint(ThemeManager.spec.accent)`. Chrome.swift:83 is `static var accent: Color { ThemeManager.spec.accent ?? systemAccent }`. The three nil-accent themes are verified in the palette tuple: `.system` is `(nil, nil, \"1E1E20\", nil, nil, nil)` (:114), `.light` is `(.light, nil, \"FFFFFF\", nil, nil, nil)` (:115) and `.dark` is `(.dark, nil, \"1E1E20\", nil, nil, nil)` (:116), and ThemeSpec.accent is built as `palette.accent.map(Color.init(hex:))` at :193, leaving it nil for those three.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 67,
+      "area": "settings-usage-tour-diff-terminal",
+      "site": "DroppyCode/App/Views/Diff/DiffInspector.swift:629 with :649-653, :573-579, :606-608",
+      "one_line": "show() increments session without assigning pendingSession, so any popover close the coordinator did not initiate fails the session equality guard in popoverDidClose and leaves isDiffVisible set and the inspector content view controller attached.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "After the user dismisses the diff popover by clicking elsewhere, the thread stays flagged as showing its diff and the inspector's SwiftUI view tree stays alive observing the runtime and re-rendering on every change while nothing is on screen. Result: a stale open flag in the UI and one retained view tree for the rest of the launch, replaced only when the next open reuses the popover. Memory growth and wasted redraws; no data is lost and Review still reopens correctly because reopen() drives off diffOpenRequest (:601-602).",
+      "verified_against_source": "CONFIRMED exactly, including the off-by-one reachability claim. session and pendingSession are both declared 0 at :531-532. show() is at :627-636: line 629 is `session += 1` with no pendingSession assignment. close() at :573-579 sets both (`session += 1` at :575, `pendingSession = session` at :576). reopen()'s anchor-changed branch sets both at :606-607. popoverDidClose's guard is `if self.session == self.pendingSession {` at :649, gating `shown.isDiffVisible = false` at :650 and `self.popover.contentViewController = nil` at :653. The first show() therefore leaves session 1 against pendingSession 0, so the very first uninitiated close already misses the guard. The popover behavior is .semitransient (:536).",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 68,
+      "area": "settings-usage-tour-diff-terminal",
+      "site": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:564-566 with DroppyCode/Services/MCP/MCPStore.swift:193-199 and :124",
+      "one_line": "The custom-server ellipsis menu's Delete calls model.mcp.deleteCustom(server) on one click with no confirmation, ignoring settings.confirmBeforeDeleting, and deleteCustom also runs disconnect(), which deletes the server's Keychain secrets.",
+      "classification": "CONSEQUENTIAL",
+      "criteria": [
+        "C2: deleteCustom calls disconnect(), whose first act is MCPKeychain.deleteAll(server: entry) at MCPStore.swift:124. The server's stored API keys and other secret variable values are erased from the Keychain. If the server is OAuth, MCPOAuth.signOut(serverID:) at :126 also discards the stored grant. The app offers no recovery path; the user must re-obtain each credential from the vendor.",
+        "C1: the custom server definition itself (command, args, URL, plain variable values) is removed from the customs list at :197 and written out by saveCustoms() at :198, so the user's own configuration is destroyed in the same click.",
+        "C5: settings.confirmBeforeDeleting defaults to true (AppSettings.swift:702, key at :123, setter at :209-210) and is honored by six other destructive paths (SettingsView.swift:851, :892; SidebarView.swift:192, :360, :891). This one path overrides the user's explicit safety preference."
+      ],
+      "worst_realistic_outcome": "A single mis-aimed click in a small ellipsis menu, on a row immediately below a Disconnect entry, permanently erases a custom MCP server's configuration and its Keychain secrets with no prompt and no undo, even for a user who has explicitly asked to be asked before deleting. Recovery requires re-obtaining every credential from the upstream vendor and re-entering the server by hand.",
+      "verified_against_source": "CONFIRMED, and the lead correction at the end of upstream_defects.md is accurate. MCPSettingsPage.swift:564-566 is `PopoverItem(\"Delete\", symbol: \"trash\", isDestructive: true) { model.mcp.deleteCustom(server) }`, with no confirmation argument and no settings check. MCPStore.deleteCustom at :193-199 calls disconnect(entry.catalogEntry()) at :195, then removes and saves. disconnect() at :121 begins `MCPKeychain.deleteAll(server: entry)` at :124 and, for OAuth entries, MCPOAuth.signOut plus MCPProxy.shared.unregister at :126-127. confirmBeforeDeleting is loaded `?? true` at AppSettings.swift:702. One added detail: the PopoverItem `confirmation:` parameter would not have helped even if passed, because it is an after-the-fact acknowledgement label whose action runs first (Popovers.swift:205-207, :262).",
+      "disposition": "ESCALATE",
+      "escalation_note": "Already isolated as UNK-0010 and escalated by the lead. This triage confirms the classification and does not reopen it. Per the owner's standing instruction the behavior remains explicitly unresolved and isolated pending the owner's decision: the MCP deletion behavior is not silently changed, neither alternative is treated as approved, and this item does not block unrelated specification or implementation work. The 'Reproduce, do not fix' instruction in entry 68 stays suspended."
+    },
+    {
+      "entry": 69,
+      "area": "settings-usage-tour-diff-terminal",
+      "site": "DroppyCode/App/Views/Settings/MCPKeyPanel.swift:15-31 and :33-36 vs DroppyCode/App/Views/Settings/MCPSetupPanel.swift:18-26",
+      "one_line": "MCPKeyPanel.present() has no isPresenting re-entry guard and close() clears no presented-entry id, so a second present for the same entry reopens the vendor key page in the browser and rebuilds the hosting controller, discarding anything already typed into the fields.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "A user part-way through pasting an API key sees the panel's fields cleared and a duplicate browser tab open at the vendor's key page. The loss is a few seconds of unsaved typing, plainly visible on screen and immediately retryable. Nothing stored is deleted or exposed: nothing has been written to the Keychain at that point, and entry.keysURL is the catalog's own vendor page, the same destination the user asked for by opening the panel, so no new network destination is involved and C2/C4/C6 do not apply.",
+      "verified_against_source": "CONFIRMED. present() at :15-31 opens `entry.keysURL` via NSWorkspace at :16-18 with no guard, then at :24 assigns a freshly built `NSHostingController(rootView: content)` to the existing panel's contentViewController, replacing the live view state. close() at :33-36 only stops the escape monitor and calls `panel?.orderOut(nil)`. MCPSetupPanel by contrast has `func isPresenting(_ entry:)` at :18-20 checking `panel?.isVisible == true && presentedEntryID == entry.id`, and present() returns early at :23-26. The three call sites are exact: MCPSettingsPage.swift:356, :538 and :973.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 70,
+      "area": "settings-usage-tour-diff-terminal",
+      "site": "DroppyCode/App/Views/Terminal/TerminalPanel.swift:80 and :89 with DroppyCode/App/AppSettings.swift:722",
+      "one_line": "The terminal drawer applies the persisted height with no clamp on either the load path or the frame, while the 140...760 clamp exists only inside the drag's onChange.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "An out-of-range stored terminalHeight is applied verbatim, so the drawer opens far too tall or too short and can only be corrected by dragging its top strip. The app itself never writes such a value: the drag clamps to 140...760 before storing and the default is 260, so this needs a value from another build or a hand-edited defaults store. Layout annoyance with a user-reachable fix.",
+      "verified_against_source": "CONFIRMED. Line 80 is `.frame(height: dragHeight ?? model.settings.terminalHeight)`. The clamp is `dragHeight = min(760, max(140, origin + delta))` at :89, inside TerminalResizeHandle's onChange, and onEnd stores it at :92. AppSettings.swift:722 is `terminalHeight = defaults.object(forKey: Key.terminalHeight) as? Double ?? 260`, unclamped. The contrast the register draws is real: ChatZoom.clamped at ChatZoom.swift:16-18 is `min(stepCount - 1, max(0, index))` and is applied on read through percentage(at:) at :20-22.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 71,
+      "area": "settings-usage-tour-diff-terminal",
+      "site": "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:82-84 vs DroppyCode/App/Views/Usage/UsagePanel.swift:29",
+      "one_line": "The floating panel's title capsule draws a second ProviderIcon whenever headsProvider is non-nil, while the body suppresses the heads section unless headsProvider differs from provider.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "A Hydra pair whose heads run on the lead's own provider shows the same provider icon twice in the title strip, with no matching heads section below it. A duplicated 12pt glyph; confusing at most.",
+      "verified_against_source": "CONFIRMED. UsageFloatingPanel.swift:81 draws `ProviderIcon(provider: provider, size: 12)`, then :82-84 is `if let headsProvider { ProviderIcon(provider: headsProvider, size: 12) }`, with no inequality test. UsagePanel.swift:29 is `let heads: ProviderKind? = (headsProvider != nil && headsProvider != provider) ? headsProvider : nil`, preceded by the comment 'A second provider only when the pair's heads go out on one of their own.'",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 72,
+      "area": "settings-usage-tour-diff-terminal",
+      "site": "DroppyCode/App/Views/Usage/UsagePanel.swift:32 with DroppyCode/Core/Models/Timeline.swift:301-304",
+      "one_line": "showsContext is a redundant conjunction, because ContextUsage.fraction already returns nil unless windowTokens is non-nil and greater than zero.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "Nothing. A dead second operand evaluated on every body pass. The only risk is a port reading the two operands as independent and, for example, treating windowTokens == 0 as a showable context.",
+      "verified_against_source": "CONFIRMED. UsagePanel.swift:32 is `let showsContext = usage?.fraction != nil && usage?.windowTokens != nil`. Timeline.swift:301-304 is `var fraction: Double? { guard let windowTokens, windowTokens > 0 else { return nil }; return min(1, Double(usedTokens) / Double(windowTokens)) }`. The first operand strictly implies the second.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 73,
+      "area": "settings-usage-tour-diff-terminal",
+      "site": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:182-192 and :556-566 with DroppyCode/UI/Chrome/Popovers.swift:270-273",
+      "one_line": "Four of six PopoverItem actions on the two ellipsis menus omit showMenu = false while two set it; since PopoverItem always closes its popover before running the action, the writes are redundant in both directions.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "Nothing. Dead defensive assignments. The value of recording it is that a port reviewer does not read the inconsistency as a deliberate behavior difference between the six rows and try to make them match.",
+      "verified_against_source": "CONFIRMED, and the count is exactly six. Catalog menu at :182-192: 'Refresh' (:183, no showMenu), 'Show tools' (:186-188, sets showMenu = false), 'Disconnect' (:190-192, no showMenu). Custom menu at :556-566: 'Edit' (:556-559, sets showMenu = false), 'Disconnect' (:560-562, no showMenu), 'Delete' (:564-566, no showMenu). Two set, four omit. Popovers.swift:270-271 closes before the deferred `Task { @MainActor in action() }` at :273, so the assignment cannot matter.",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 74,
+      "area": "settings-usage-tour-diff-terminal",
+      "site": "DroppyCode/App/Views/Settings/SettingsView.swift:927-929 (the register says :926-929) with DroppyCode/App/Views/Settings/AboutUpdateViews.swift:731-733",
+      "one_line": "AboutSoftwareUpdateSection is the first child of the About page's VStack(spacing: Chrome.sectionSpacing) but renders nothing unless an update is available, leaving an extra section gap above the app card on the common path.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "A 20pt gap above the app card on the About page whenever no update is waiting, which is most of the time. Purely a layout blemish.",
+      "verified_against_source": "CONFIRMED, with a one-line citation nit. SettingsView.swift:927 is `VStack(alignment: .leading, spacing: Chrome.sectionSpacing) {`, :928 is `AboutSoftwareUpdateSection()` and :929 is `appCard`; :926 is `var body: some View {`, so the correct span is :927-929. AboutUpdateViews.swift:728 opens its own `VStack(alignment: .leading, spacing: Chrome.sectionSpacing)` whose only content is `if checker.updateAvailable, let update = checker.update { releaseBody(update) }` at :731-733, so it is a zero-height container otherwise. Chrome.sectionSpacing is 20 (Chrome.swift:59).",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 75,
+      "area": "git-and-checkpoints",
+      "site": "DroppyCode/Services/Git/Git.swift:159",
+      "one_line": "workingChanges() tests UTF-8 BYTES but truncates by CHARACTERS, so a non-ASCII patch keeps several times 40,000 bytes.",
+      "classification": "ORDINARY_QUIRK",
+      "worst_realistic_outcome": "When the user opens the commit sheet, a non-ASCII diff of up to roughly 160 KB (four-byte scalars, more for multi-scalar graphemes) is sent to the text engine the user already selected, instead of the intended 40 KB. The realistic effects are a slower and more expensive commit-message generation and, for a very large diff, a provider request rejected for size, leaving the message field empty for the user to type by hand. The 40,000 value is a payload-size guard, not a confidentiality boundary, and the destination is the user's own configured engine, so C6 does not apply.",
+      "verified_against_source": "CONFIRMED verbatim. Line 159 is `if patch.utf8.count > 40_000 { patch = String(patch.prefix(40_000)) }`, inside `func workingChanges() async -> (summary: String, patch: String)` at :156-161. String.prefix(_:) is the Collection method over Characters (extended grapheme clusters), so the mismatch is real. The consumer is the commit sheet: ChatView.swift:1610 (.task) and :1624, feeding TextGeneration.commitMessage(summary:patch:instructions:engine:directory:) at :1626-1632. The port instruction stands as written: test UTF-8 byte count, then take a 40,000-GRAPHEME prefix, not a 40,000-byte or 40,000-UTF-16-unit prefix.",
+      "disposition": "REPRODUCE"
+    }
+  ],
+  "recorded_entries_found_wrong": [
+    "Entry 64 cites 'WindowChrome.swift:215-217' for drag(by:). That is wrong. At :214-217 the file is inside the titlebar constraint update loop ('guard changed else { return }' at :214). 'func drag(by translation: CGFloat)' is at :340-342, body 'width = min(Self.maximumWidth, max(0, anchorWidth + translation))'. The rest of entry 64 is correct: endDrag() at :344-356, minimumWidth 210 (:240), maximumWidth 440 (:241), collapseThreshold 110 (:242).",
+    "Entry 74 cites 'SettingsView.swift:926-929'. The VStack(spacing: Chrome.sectionSpacing) opens at :927, not :926 (:926 is 'var body: some View {'). Correct span: :927-929. Substance unchanged.",
+    "Entry 55 presents LinkParagraphView.dismantleNSView as the complete counterpart. Minor imprecision: LinkParagraphView.swift:73-77 clears delegate and mergeTarget and calls streamVeil.detach, but does NOT clear onOpenHead. The asymmetry the entry names (the missing streamVeil.detach in ProseRunView) is real and correctly described.",
+    "Entry 62 does not say what PopoverItem.confirmation is, which invites a wrong reading. Recorded for the port: it is an after-the-fact acknowledgement label ('Copied'), documented at Popovers.swift:205-207 as running the action at once, and every use site (RowAction.confirms; TimelineRows.swift:219, :220, :1405, :1406, :1409, :1413) is a Copy or Add. It is NOT a pre-action safety confirmation, so entry 62's synchronous-before-close ordering bypasses no destructive gate and stays ORDINARY."
+  ],
+  "note_on_entry_22": "Out of this chunk's range (51-75). The lead correction was read and is consistent with the criteria applied here: upstream's use of Swift's SystemRandomNumberGenerator is not a defect, and the Windows port's own choice of CSPRNG is an ENGINEERING DECISION, not behavior to copy.",
+  "reference_integrity": "Nothing under E:/Droppy/reference/droppy-code was written. All access was read-only (sed, grep, git log -1). upstream_defects.md was read only."
+}

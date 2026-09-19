@@ -1,0 +1,276 @@
+{
+  "chunk": "d076-099",
+  "range": "upstream_defects.md entries 76 to 99",
+  "reference_commit": "dd2b86efef9e77168f304a86e8a8411877578bbe",
+  "ruling_applied": "STANDING OWNER RULING 2026-09-20: default REPRODUCE; isolate and escalate individually where faithful reproduction would be CONSEQUENTIAL (C1..C6).",
+  "summary": {
+    "entries": 24,
+    "ordinary_quirk": 22,
+    "consequential": 2,
+    "reproduce": 21,
+    "escalate": 3,
+    "note": "Entry 99 is classified ORDINARY_QUIRK under C1..C6 but carries disposition ESCALATE on the register's own pre-existing owner-decision flag: a false licence statement is not a behavioural parity item."
+  },
+  "triaged": [
+    {
+      "entry": 76,
+      "area": "git-and-checkpoints",
+      "site": "DroppyCode/Services/Git/Git.swift:213-226",
+      "one_line": "mergePullRequest sleeps a full 13 s retry delay after its last attempt, then throws.",
+      "verified_against_source": "CONFIRMED. Git.swift:213 is `for attempt in 0..<6`; :220 returns on success; :223 is the GitLab-only retry guard; :224 `try? await Task.sleep(for: .seconds(3 + attempt * 2))` sits at the bottom of the loop body with no check for the last attempt, so attempt 5 sleeps 13 s and the loop then falls out to `throw ShellError(lastFailure)` at :226. Sleep total 3+5+7+9+11+13 = 48 s, of which the final 13 s buys nothing. The register entry is exact.",
+      "worst_realistic_outcome": "A user landing a GitLab merge request that keeps failing waits 48 s instead of 35 s before the app says it could not be merged. Nothing is written, nothing is lost; the Merge button stays busy 13 s longer.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 77,
+      "area": "git-and-checkpoints",
+      "site": "DroppyCode/Services/Git/Git.swift:222-223",
+      "one_line": "The merge-retry predicate is a lowercased substring test for \"405\", \"not allowed\" or \"checking\" over stdout plus stderr.",
+      "verified_against_source": "CONFIRMED verbatim. :222 `let text = (result.output + result.errorOutput).lowercased()`; :223 `guard link.forge == .gitlab, text.contains(\"405\") || text.contains(\"not allowed\") || text.contains(\"checking\") else { break }`. No word boundaries, no status-code parsing: \"405\" matches those three digits anywhere (an MR number, a line number, a byte count, a hash prefix) and \"checking\" matches any sentence holding the word.",
+      "worst_realistic_outcome": "A GitLab merge that failed for an unrelated reason whose message happens to contain those digits or that word is retried up to six times, so the user waits up to 48 s for an error that was final on the first try. `glab mr merge` on a request it cannot merge changes nothing on the forge, so repeating it is only slow.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 78,
+      "area": "git-and-checkpoints",
+      "site": "DroppyCode/Services/Git/Git.swift:395, :400, :607-609, :616-617, :625 against :552",
+      "one_line": "Restore, checkout, rm and ls-tree pass user file names to git as pathspecs without --literal-pathspecs, while diff() adds the flag whenever paths are given.",
+      "verified_against_source": "CONFIRMED, with two corrections. Confirmed: :552 `var arguments = paths == nil ? [] : [\"--literal-pathspecs\"]`, and none of checkoutPaths (:395), removePaths (:400), restore (:607-609, :616-617) or blobs (:625) passes it. Correction 1: a leading ':' can only reach checkoutPaths and removePaths, which pass the names as given; restore and blobs first map each path through `root.appendingPathComponent($0).path` (:609, :617, :625), so those pathspecs always start with '/' and pathspec magic cannot fire. Correction 2: previewRestore's own numstat call at :586 also omits the flag, so the revert PREVIEW globs exactly the way the revert does; the inconsistency is between the diff() helper and everything else, not between what the user is shown and what is done. On Windows only '[' and ']' are legal in file names, so the reachable subset there is bracket expressions alone.",
+      "worst_realistic_outcome": "A user with a file literally named like a glob (say `notes[1].md`) who reverts a turn sees `notes1.md` in the revert sheet instead, and that file, not the intended one, is put back to the checkpoint; uncommitted edits in the collateral file are discarded. It needs an unusual file name and a sibling the bracket class matches, the affected path is listed in the preview before the user confirms, and tracked content stays recoverable from the repository.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 79,
+      "area": "git-and-checkpoints",
+      "site": "DroppyCode/Services/Git/Git.swift:253 against :448",
+      "one_line": "captureTree(paths:) adds with --ignore-errors; the incremental scratch add does not.",
+      "verified_against_source": "CONFIRMED. :253 `[\"add\", \"-A\", \"--ignore-errors\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"]`; :448 the same call without --ignore-errors, wrapped in `(try? ...)?.succeeded == true`. A failure at :448 falls through to the delete-and-reseed block at :453-459, whose own full walk `add -A -- .` (:459) also has no --ignore-errors and is checked, so an unreadable path can take the whole capture down there too.",
+      "worst_realistic_outcome": "A project holding a file the user cannot read (permission denied, a broken mount) loses the checkpoint for that turn: the capture throws, no checkpoint ref is written, and later the Edit-message flow reports \"No file checkpoint is available for this message. You can still keep the file changes.\" (ThreadRuntime.swift:1771). Nothing is written or deleted.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 80,
+      "area": "git-and-checkpoints",
+      "site": "DroppyCode/Services/Git/Git.swift:341-354 (zip at :350), against :645-646",
+      "one_line": "presentPaths zips paths against cat-file answers, so a short answer stream silently reports the unanswered tail as absent, while workingBlobs throws on the same mismatch.",
+      "verified_against_source": "CONFIRMED as to the code, with the register's example corrected. Confirmed: :350 `for (path, answer) in zip(paths, answers) where !answer.hasSuffix(\" missing\")` truncates to the shorter sequence with no count check, and :645-646 does check and throws `ShellError(\"git hash-object answered for \\(hashes.count) of \\(existing.count) files.\")`. Correction: the register's \"120 s timeout kill\" example never reaches the zip. Shell.terminate (Shell.swift:110-118) SIGTERMs the process, so the status is non-zero, `succeeded` is false (Shell.swift:9) and the guard at Git.swift:347 returns an EMPTY set first. The one real short-answer-with-exit-0 path is Shell.swift:105 `await collector.finished(within: 3)`, which gives up draining the pipes 3 s after exit (Shell.swift:286-293) and can return truncated stdout beside a zero status on a very large batch.",
+      "worst_realistic_outcome": "Two consumers. At AppModel+HydraMerge.swift:532 an under-answer only affects paths that are absent from disk (:535-538), so a file a head DELETED drops out of the merge set: the deletion is not carried into the lead's checkout and nothing says so. At AppModel+HydraMerge.swift:584 an under-answer (including the empty set from the guard) puts files into `gone` and `git rm`s them at :595, but only files that are clean locally and present in origin's commit, so they become staged deletions the user sees in git status and can restore from the object store. Neither path loses anything unrecoverably.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 81,
+      "area": "git-and-checkpoints",
+      "site": "DroppyCode/Services/Git/WorkingTreeWatch.swift:271 and :159-170, against Git.swift:445-462",
+      "one_line": "The cookie-timeout tearDown deletes the shared scratch index while another caller's detached capture may be using it, the exact hazard the registry-eviction path documents and avoids.",
+      "verified_against_source": "CONFIRMED, and the hazard is wider than the entry states. :271 `guard arrived else { tearDown(); return nil }` runs when a 1-second FSEvents cookie does not arrive (:258-261). tearDown (:159-170) ends with `try? FileManager.default.removeItem(at: self.scratch)` on the watch's own queue. The scratch index is per-watch (:120), the watch is shared per directory (:92-108), and currentTree (:298-336) lets one caller own a detached capture task (:310) while other callers enter settledGeneration concurrently, so a capture holding the scratch index and a cookie timeout deleting it genuinely overlap. The comment at :98-100 (\"Tearing that one down instead stopped its stream and deleted the scratch index a capture may be writing through\") shows upstream treats this as a real hazard and fixed it on the registry path only. In Git.captureTree(scratch:paths:) the file is probed at :447 with FileManager.fileExists and git is spawned afterwards: if the delete lands in that window, `git add --pathspec-from-file` opens a MISSING GIT_INDEX_FILE, starts from an empty index, adds only the changed pathspecs, exits 0, and write-tree (:449) returns a tree holding ONLY those paths. That tree is returned as the working tree, cached as the snapshot (WorkingTreeWatch.swift:328) and committed as the turn's checkpoint (Git.swift:416-429).",
+      "worst_realistic_outcome": "Usually benign: the capture fails or reseeds and the turn simply has no checkpoint, which surfaces later as \"No file checkpoint is available for this message.\" (ThreadRuntime.swift:1771). The bad outcome, which the source itself names, is a checkpoint that silently records only a few directories as though it were the whole tree. A later Edit-message revert against that base then sees every other touched file as new (Git.swift:613) and DELETES it from disk with FileManager.removeItem (Git.swift:619) instead of restoring its pre-turn content; for an uncommitted file that content is then gone. The app reports the revert as successful.",
+      "classification": "CONSEQUENTIAL",
+      "criteria": [
+        "C1: a revert taken against a silently truncated checkpoint deletes files at Git.swift:619 whose pre-turn, uncommitted content exists nowhere else, so the user's work is permanently lost.",
+        "C4: the truncated capture exits 0 and is cached and committed as an ordinary checkpoint, so neither the app nor the user can tell the snapshot is wrong until a revert acts on it."
+      ],
+      "disposition": "ESCALATE",
+      "escalation_note": "Isolated, not implemented either way, pending the owner's decision. The Windows port cannot reproduce an FSEvents race mechanically (it will use a different watcher), so the owner is choosing a rule rather than a line of code: either serialise watcher teardown against in-flight captures and keep the scratch index alive until the capture that holds it finishes, or copy the race as closely as the Windows watcher allows. Implementation deferred; this does not block other specification or implementation work."
+    },
+    {
+      "entry": 82,
+      "area": "git-and-checkpoints",
+      "site": "DroppyCode/Services/Git/WorkingTreeWatch.swift:93, :148, :159-170, :247, :271",
+      "one_line": "A watch torn down by a cookie timeout is never rebuilt and is still handed to every later caller, permanently demoting that directory to full captures.",
+      "verified_against_source": "CONFIRMED. FSEventStreamStart appears once, at :148 inside init. tearDown clears state.stream (:160-163) and nothing restarts it. shared's fast path at :93 returns the registered watch without looking at its stream, so every later caller gets the dead one; settledGeneration then returns nil at :247 and currentTree takes `capture(nil, nil)` at :296, which is Git.captureTree() over a throwaway index. The entry is only cleared by FIFO eviction once the register passes `limit = 32` (:87, :104).",
+      "worst_realistic_outcome": "After one missed cookie, every snapshot in that project walks the whole working tree again instead of only what changed. On a large checkout each checkpoint costs a full `git add -A` for the rest of the session, so turns start and end more slowly. Nothing is lost or wrong, only slow.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 83,
+      "area": "git-and-checkpoints",
+      "site": "DroppyCode/Services/Git/Git.swift:547-561",
+      "one_line": "diff(paths: []), non-nil but empty, produces a full-tree diff instead of an empty one; the empty-paths early return every sibling has is missing.",
+      "verified_against_source": "CONFIRMED, including the unreachability. With paths == [] the chunking guard at :556 is not taken, :557 appends only `--`, and the command becomes `--literal-pathspecs diff --no-ext-diff -M <from> <to> --`, which git reads as the whole tree. resetIndex (:388), checkoutPaths (:394), removePaths (:399), restore (:602) and previewRestore (:582) all open with `guard !paths.isEmpty else { return }`; diff does not. Every call site that passes paths guards first: AppModel+Hydra.swift:726 and :936 (`!work.paths.isEmpty`) and ThreadRuntime.swift:3289 (`guard !real.isEmpty`); AppModel+HydraMerge.swift:220 and ThreadRuntime.swift:2004 pass no paths at all. Unreachable at dd2b86e.",
+      "worst_realistic_outcome": "Nothing today, since no caller can reach it. A future caller would read a whole-tree patch, possibly hundreds of megabytes per the comment at :544-546, and show it as one turn's changes. A missing guard, not a fault a user can hit.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 84,
+      "area": "git-and-checkpoints",
+      "site": "DroppyCode/Services/Git/Git.swift:586-590 (with :603-619 and :43)",
+      "one_line": "previewRestore feeds CWD-relative pathspecs to git diff --numstat but joins the paths it returns onto repositoryRoot(), which only holds while git's diff output is repo-root-relative.",
+      "verified_against_source": "CONFIRMED. :586 passes `paths` unchanged (relative to the Git instance's `directory`) and builds RevertPreview from the numstat output; :588-590 then join those same strings onto `repositoryRoot()`. Git.run's only -c options are core.quotepath=false and color.ui=false (:43), so a user's `diff.relative = true` is not neutralised and --no-relative appears nowhere in the file. With diff.relative set and the project opened at a SUBDIRECTORY of the repository, git both limits the diff to that subdirectory and prints the paths relative to it, so the strings that come back are joined onto the wrong base. Unlike entry 86, nothing throws on this path: blobs() at :589 is handed absolute paths that are still inside the repository, so ls-tree accepts them and simply returns nothing, isKept is false for all of them (:593), and they all reach restore() as restorable.",
+      "worst_realistic_outcome": "A user who has `diff.relative = true` in their git config and has added a project that is a subfolder of a larger repository asks to undo a turn's file changes. The files the agent actually changed are not restored at all, and the app acts instead on same-named paths at the repository root: any the base checkpoint does not hold are DELETED from disk by FileManager.removeItem (Git.swift:619), and any it does hold are overwritten with the base version (Git.swift:607-611). The revert sheet shows the mis-derived names, which read like plausible file names, and the revert reports success.",
+      "classification": "CONSEQUENTIAL",
+      "criteria": [
+        "C1: files at the repository root that the turn never touched are deleted outright at Git.swift:619, and uncommitted content in them is not recoverable from the repository.",
+        "C4: the preview, the restore and the app's own report all look normal, so the user gets no signal that the wrong files were acted on and the intended ones left alone."
+      ],
+      "disposition": "ESCALATE",
+      "escalation_note": "Isolated, not implemented either way, pending the owner's decision. The trigger is a non-default user config (diff.relative) together with a project opened below the repository root, so the probability is low, but the effect is silent deletion of files the turn never touched. The owner decides between faithful reproduction and pinning the diff base (for example -c diff.relative=false, as Git.run already pins core.quotepath and color.ui). Implementation deferred; this does not block other specification or implementation work."
+    },
+    {
+      "entry": 85,
+      "area": "git-and-checkpoints",
+      "site": "DroppyCode/Services/Git/Git.swift:650-656",
+      "one_line": "deleteCheckpoints discards the result of its batch update-ref delete, so a failure leaves the refs with nothing reported.",
+      "verified_against_source": "CONFIRMED. :655 `_ = try? await run([\"update-ref\", \"--stdin\"], input: Data(commands.utf8))`: no Self.check, no return value, and the function is non-throwing (`func deleteCheckpoints(thread: UUID) async`). A locked ref, a read-only .git or a malformed batch leaves every checkpoint ref in place and the caller is told nothing.",
+      "worst_realistic_outcome": "A user deletes a thread and the hidden refs under refs/droppy-code/checkpoints/<thread>/ stay in their repository, keeping those checkpoint commits from being garbage collected. The repository holds a little extra history nobody sees; the app behaves normally. Nothing of the user's is lost and nothing leaves the machine.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 86,
+      "area": "git-and-checkpoints",
+      "site": "DroppyCode/Services/Git/Git.swift:67-74",
+      "one_line": "repositoryRoot() derives the root by deleting one path component per component of rev-parse --show-prefix instead of asking git for --show-toplevel.",
+      "verified_against_source": "CONFIRMED. :68 reads `rev-parse --show-prefix`, :70-72 call `root.deleteLastPathComponent()` once per '/'-separated component, starting from the Git instance's own `directory` URL. git computes show-prefix from the resolved physical directory, so wherever Foundation's logical path and git's resolved path sit at different depths below the root (a symlink or junction that changes depth) the derived root is wrong. Scope correction worth recording: repositoryRoot() has exactly two callers, Git.swift:588 (previewRestore) and :603 (restore), and both hand the joined paths to blobs() first (:589, :604), whose ls-tree rejects a pathspec outside the repository, so `output()` throws and the revert stops with \"Conversation reverted, but files could not be restored\" (ThreadRuntime.swift:1874-1875) BEFORE anything is written or deleted. A wrong root that lands outside the repository fails safe.",
+      "worst_realistic_outcome": "A user whose project directory is reached through a symlink or junction that changes its depth cannot revert a turn's files: the revert reports that the files could not be restored, while the conversation rewind still happens. Unexplained and annoying, not destructive.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE",
+      "port_note": "ENGINEERING DECISION territory for Windows: 8.3 short names, drive-letter case, junctions and UNC paths are all places where the logical path and git's resolved path diverge. The component-counting algorithm is the parity behaviour and should be reproduced with the divergence recorded, not quietly replaced by --show-toplevel."
+    },
+    {
+      "entry": 87,
+      "area": "build-assets-and-release",
+      "site": "scripts/tour_captures.py:36 (with :101, :117)",
+      "one_line": "tour_captures.py points at a Debug bundle named \"Droppy Code.app\" that the Debug configuration never builds.",
+      "verified_against_source": "CONFIRMED in every particular. :36 `APP = DERIVED / \"Build/Products/Debug/Droppy Code.app\"`; :101 builds `-configuration Debug`; project.yml:54 and DroppyCode.xcodeproj/project.pbxproj:326 both set the Debug PRODUCT_NAME to \"Droppy Code Dev\", and project.yml:56 sets the Debug CFBundleDisplayName to \"Droppy Code Dev\"; :117 is `subprocess.run([\"open\", \"-n\", str(APP), ...], check=True)`, so a missing bundle raises CalledProcessError. scripts/website_captures.py:34 has the correct \"Droppy Code Dev.app\".",
+      "worst_realistic_outcome": "A maintainer running scripts/tour_captures.py on a clean checkout gets a traceback after the build instead of tour stills. A developer script that ships in no product; no user of the app is affected.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 88,
+      "area": "build-assets-and-release",
+      "site": "scripts/website_captures.py:164 (with :133-151, :213)",
+      "one_line": "website_captures.py gives the tour run a 330 s budget and force-kills it, while the app's own watchdog budgets 600 s.",
+      "verified_against_source": "CONFIRMED. :164 `wait_for_run(marker, 330)`; wait_for_run waits up to 120 s for the app to appear (:138-143) and only then starts the budget (:144), killing with `pkill -9` at :150 and printing \"  the run overran its budget and was killed\" at :151. TourCaptures.swift:52-55 sleeps 600 s then exits, and the comment at :51 reads \"ten minutes of budget\". scripts/tour_captures.py:118 uses 630 s. encode_tour exits at :213 with \"No {path.name} from the last tour run; rerun without --encode\".",
+      "worst_realistic_outcome": "A maintainer capturing the website assets has a healthy capture run killed about four and a half minutes before the app would have finished, and the encode step then stops with a message that blames the run. Rerunning does not help. Developer tooling only.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 89,
+      "area": "build-assets-and-release",
+      "site": "scripts/tour_captures.py:109-129",
+      "one_line": "tour_captures.capture() has no launch-detection wait and can declare the run finished two seconds after `open`.",
+      "verified_against_source": "CONFIRMED. :117 runs `open -n`, :118 sets `deadline = time.time() + 630` immediately after, and :119-123 sleep 2 s then break as soon as `pgrep -f marker` is empty. Nothing waits for the app to exist first. scripts/website_captures.py:133-151 is the same loop with the wait added and its docstring at :136-137 says so (\"The app takes a moment to appear through LaunchServices, so the run is first waited into existence\"); tour_captures.py never received that fix.",
+      "worst_realistic_outcome": "A maintainer sees the capture step return in two seconds with no stills, because LaunchServices had not started the app yet, and the later steps fail on the missing files. Developer tooling only.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 90,
+      "area": "build-assets-and-release",
+      "site": "scripts/build_changelog.py:20 and :58-72",
+      "one_line": "The ## [Unreleased] section and everything in it is dropped from the site changelog with no diagnostic.",
+      "verified_against_source": "CONFIRMED. :20 `RELEASE_RE = re.compile(r\"^## \\[(\\d+(?:\\.\\d+)*)\\](?: - (\\d{4}-\\d{2}-\\d{2}))?\\s*$\")` requires digits inside the brackets, so \"## [Unreleased]\" never matches; split_releases (:58-72) only appends lines once `current is not None` (:68), so everything before the first version heading is discarded and nothing is printed or raised. At dd2b86e this drops CHANGELOG.md:7-12: the Unreleased heading, a `### Bug fixes` heading and three bullets. CHANGELOG.md:5 documents the Unreleased skip as intended; the silent part is that a typo in a version heading vanishes the same way.",
+      "worst_realistic_outcome": "A maintainer who mistypes a version heading publishes a site changelog missing that release and is told nothing. The app is unaffected; only the marketing site's changelog page comes out short.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 91,
+      "area": "build-assets-and-release",
+      "site": "scripts/build_changelog.py:87-95 (joined at :105)",
+      "one_line": "Bullets under an unrecognised ### heading land in the release summary prose with their leading \"- \" intact.",
+      "verified_against_source": "CONFIRMED. :87 `current = HEADING_MAP.get(key)` returns None for anything outside {new features, bug fixes, refinements} (:23-27) and thanks (:84-86); :90-91 is a no-op branch; from then on :93-95 appends every non-blank line to summary_lines with `line.strip()`, which removes whitespace only, so \"- Something\" is kept whole, and :105 joins them into the summary. No warning anywhere.",
+      "worst_realistic_outcome": "One release's summary paragraph on the website reads \"... - Something - Something else\" run together. Cosmetic, on the marketing site, and visible to whoever reviews the page.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 92,
+      "area": "build-assets-and-release",
+      "site": "scripts/sync_dev_data.sh:36 and :49",
+      "one_line": "The dev mirror copies the whole library including the MCP configuration but re-adds only four named API keys, never the MCP secrets.",
+      "verified_against_source": "CONFIRMED. :36 `rsync -a --delete \"$RELEASE_LIB/\" \"$DEV_LIB/\"` copies Application Support whole, which includes mcp.json (MCP.swift:244) and custom-mcp.json (MCP.swift:246). :49 iterates exactly \"DeepSeek API Key\", \"Meta API Key\", \"Z.ai API Key\" and \"Command Code API Key\" and re-adds them under the Dev service (:52). MCP secret values live in the same Keychain service (MCPKeychain.swift:15, kSecAttrService = AppInfo.name) under accounts \"MCP \" + server + \" \" + field (MCPKeychain.swift:7-9) and are not in that loop. MCPKeychain.swift:4-5 confirms the JSON files hold no secret values, so the mirror copies configuration only. quick_run.sh:10-11 tells the maintainer that Dev's own MCP sign-ins live only in Dev, which is about Dev's data being replaced, not about the mirror arriving incomplete.",
+      "worst_realistic_outcome": "A maintainer's Dev build opens with the release app's full MCP server list and no credentials for any of it, so those servers fail to connect until each is signed in again. The omission errs on the safe side: it copies less secret material, not more, and writes no secret anywhere new. Developer tooling only.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 93,
+      "area": "build-assets-and-release",
+      "site": "website/index.html:543",
+      "one_line": "The download card's hand-maintained version string says 1.5.3 while the project ships 1.6.0.",
+      "verified_against_source": "CONFIRMED. website/index.html:543 reads `<span>Droppy Code for macOS<small>Version 1.5.3 (U+00B7) Signed and notarized</small></span>` with a literal U+00B7 separator. MARKETING_VERSION is 1.6.0 in project.yml:13 and project.pbxproj:208 and :271, and website/changelog.json's newest release is 1.6.0 dated 2026-09-18. `grep -rn index.html scripts/` returns nothing, and scripts/deploy_site.sh:7 regenerates only website/changelog.json through build_changelog.py, so no script can correct the card.",
+      "worst_realistic_outcome": "Visitors to the marketing site are told the download is 1.5.3 when it is 1.6.0. Marketing copy on a site the Windows port does not ship; no user of the app is affected.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 94,
+      "area": "build-assets-and-release",
+      "site": "website/index.html:369",
+      "one_line": "The usage screenshot is served from an R2 key that nothing in the repository generates or uploads.",
+      "verified_against_source": "CONFIRMED. The URL .../site-assets/droppy-code/usage/v1/limits.webp occurs once in the whole tree, at website/index.html:369. scripts/website_captures.py declares only R2_PREFIX = \"site-assets/droppy-code\" (:39) and R2_TOUR_PREFIX = \"site-assets/droppy-code/tour/v5\" (:48), and no TOUR_STILLS (:49), FILMS (:79) or STILLS (:86) entry produces a usage/ key; the string \"usage\" does not occur in the script at all.",
+      "worst_realistic_outcome": "If that object is ever lost from the bucket, the usage section of the marketing page shows a broken image and nobody can regenerate it from the repository. Site only, outside the app.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 95,
+      "area": "build-assets-and-release",
+      "site": "website/assets/js/code.js:252-254",
+      "one_line": "The theme-picker comment names the wrong R2 prefix and denies the existence of the very stills the picker loads.",
+      "verified_against_source": "CONFIRMED in both halves. The comment at :252-254 says the captures live \"under site-assets/droppy-code/themes\" and that \"the tour prefix has no per-theme stills\", while THEME_BASE at :284 is \"https://droppy-releases.jordylegrand.workers.dev/site-assets/droppy-code/tour/v5/themes/\". scripts/website_captures.py:216-220 creates TOUR_OUT/themes and writes one still per `web-theme-*.png`, and TourCaptures.swift:200-209 captures `web-theme-<rawValue>` for every AppTheme.allCases; the THEMES table at code.js:255-282 lists 26 themes.",
+      "worst_realistic_outcome": "A maintainer reading the comment looks for the theme stills under the wrong prefix. The picker itself works. Site only, and a comment at that.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 96,
+      "area": "build-assets-and-release",
+      "site": "docs/audit-2026-09-15.md:78 (and :77)",
+      "one_line": "Audit finding S3 cites a file path that does not exist and a line count that is wrong.",
+      "verified_against_source": "CONFIRMED, with an addition. :78 cites `Support/WebsiteCaptures.swift` and \"900 lines\"; the file is DroppyCode/App/Captures/WebsiteCaptures.swift and wc -l gives 1122. :77 cites `Support/Shell.swift:208` where the file is DroppyCode/Core/Support/Shell.swift. Addition to the register's note: the LINE number there is stale too, since Shell.swift:208 is part of the read-only-command classifier, while LoginEnvironment.load, the subject of finding S2, is at Shell.swift:353 and its `[\"-l\", \"-i\", \"-c\", script]` run is at :369.",
+      "worst_realistic_outcome": "Someone acting on the audit spends a few minutes finding the file. A stale internal document; nothing in the app or the port depends on it.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 97,
+      "area": "build-assets-and-release",
+      "site": "docs/performance-2026-09-15.md:5-6, :31, :33, :34",
+      "one_line": "The performance document cites test and benchmark scripts and a test file that do not exist in the repository.",
+      "verified_against_source": "CONFIRMED. :5-6 claims `scripts/run_tests.sh` \"builds the dev app and runs all seven suites (117 tests)\"; :31 and :32 cite scripts/benchmark_performance.sh; :33 cites Tests/RuntimePerformanceTests.swift and `boundedReadRejectsOversizedSparseFiles`; :34 cites scripts/benchmark_file_matcher.sh. None of those paths exists at dd2b86e: scripts/ holds no run_tests.sh, benchmark_performance.sh or benchmark_file_matcher.sh, and there is no Tests directory or RuntimePerformanceTests.swift anywhere in the tree. AGENTS.md:25-26 states plainly that there is no test target and no test scripts and that the build is the check.",
+      "worst_realistic_outcome": "A reader believes the project has a test suite and numbers that can be rerun. For this port it is a trap worth naming, since the baseline claims cannot be reproduced, but it changes nothing a user of the app experiences.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 98,
+      "area": "build-assets-and-release",
+      "site": "README.md:37",
+      "one_line": "The README says the welcome tour has six pages; it has eight.",
+      "verified_against_source": "CONFIRMED. README.md:37 reads \"A welcome tour on first launch, six pages of real captures; the Help menu opens it again.\" Tour.pages (DroppyCode/App/Views/Tour/TourPages.swift:4-13) holds eight TourPage entries (:5-12). CHANGELOG.md:251 says \"The welcome tour has eight pages\" and website/index.html:454 says \"Eight pages of real screenshots.\"",
+      "worst_realistic_outcome": "A reader of the README expects six pages and sees eight. Documentation drift with no behavioural effect.",
+      "classification": "ORDINARY_QUIRK",
+      "disposition": "REPRODUCE"
+    },
+    {
+      "entry": 99,
+      "area": "build-assets-and-release",
+      "site": "project.yml:46 and DroppyCode.xcodeproj/project.pbxproj:295, :319",
+      "one_line": "The bundle's human-readable copyright claims the MIT License while the project is AGPL-3.0 everywhere else.",
+      "verified_against_source": "CONFIRMED, with one cite corrected. project.yml:46 and project.pbxproj:295 and :319 all set INFOPLIST_KEY_NSHumanReadableCopyright = \"Droppy Code, the coding app by Droppy. MIT License.\" LICENSE:4 is the GNU Affero General Public License version 3; SettingsView.swift:1003 reads \"AGPL-3.0 with attribution terms, and the notices for what the app builds on.\"; website/index.html:766 labels the repository link \"AGPL-3.0 License\". Correction: the \"Free / AGPL\" download-card text the register places at index.html:547 is at website/index.html:545 (`<div class=\"free__price\">Free<small>AGPL</small></div>`); line 547 is a system-requirements bullet about Apple silicon.",
+      "worst_realistic_outcome": "A user reading Get Info on the bundle is told the app is MIT-licensed when it is AGPL-3.0. No user data, security control or app behaviour is involved; the harm is legal and reputational, to the owner rather than to the user.",
+      "classification": "ORDINARY_QUIRK",
+      "criteria": [],
+      "disposition": "ESCALATE",
+      "escalation_note": "This does NOT meet C1..C6 and is not escalated on safety grounds. It is escalated because the register itself already flags it as an owner decision rather than a mechanical copy, and because the Windows port writes its own licence and attribution metadata under its own name: carrying a false licence statement across is a legal choice for the owner, not parity. Implementation deferred; this does not block other work."
+    }
+  ],
+  "recorded_entries_found_wrong": [
+    "Entry 80: the \"120 s timeout kill\" example does not reach the zip. Shell.terminate (Shell.swift:110-118) leaves a non-zero exit status, so ShellResult.succeeded is false (Shell.swift:9) and the guard at Git.swift:347 returns an empty set before the zip at :350 runs. The one real short-answer-with-exit-0 path is the post-exit drain deadline, Shell.swift:105 `await collector.finished(within: 3)` with OutputCollector.finished at Shell.swift:286-293. The asymmetry the entry records (no count check at :350, a thrown ShellError at :645-646) is correct as written.",
+    "Entry 78: two over-statements. A leading ':' can only reach checkoutPaths (Git.swift:395) and removePaths (:400); restore (:609, :617) and blobs (:625) map every path through root.appendingPathComponent(), so their pathspecs always begin with '/' and pathspec magic cannot fire. And previewRestore's own numstat call at :586 also omits --literal-pathspecs, so the revert preview globs exactly as the revert does; the inconsistency is between the diff() helper (:552) and everything else, not between what the user is shown and what is done.",
+    "Entry 99: \"index.html:547 shows 'Free / AGPL'\" is the wrong line. The text is at website/index.html:545 (`<div class=\"free__price\">Free<small>AGPL</small></div>`); line 547 is a system-requirements bullet. The other cites in the entry (project.yml:46, pbxproj:295 and :319, LICENSE:4, index.html:766, SettingsView.swift:1003) are exact.",
+    "Entry 96: the register says the sibling row at docs/audit-2026-09-15.md:77 drifts in its PATH. It also drifts in its LINE number: Shell.swift:208 is part of the read-only-command classifier, while LoginEnvironment.load, the subject of finding S2, is at Shell.swift:353 and its interactive login shell run is at :369.",
+    "Entry 86 (scope, not an error): the entry is right about the algorithm, but repositoryRoot() has only two callers (Git.swift:588 and :603) and both pass the joined paths to blobs() first, whose ls-tree rejects a pathspec outside the repository. A wrong root that lands outside the repository therefore throws before anything is written or deleted, and the revert reports \"files could not be restored\" (ThreadRuntime.swift:1874-1875). The harm is a failed revert, not a destructive one."
+  ]
+}
