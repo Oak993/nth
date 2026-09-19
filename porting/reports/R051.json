@@ -1,0 +1,412 @@
+{
+  "bundle_id": "R051",
+  "reader": "R051-reader",
+  "files": [
+    {
+      "path": "DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift",
+      "sha256": "232a8295a931a84c6387253ee1e016283fa3aac2eb416a64498f1e27d56851cb",
+      "lines_total": 90,
+      "ranges_read": [
+        [
+          1,
+          90
+        ]
+      ],
+      "purpose": "Single shared NSPopover that shows a 300pt-wide hover card for a Hydra head mention in chat markdown: the persona glyph, its name in the persona colour, the helper agent's task text (max 3 lines) and a status line. Opens after a 250ms hover delay and is anchored to the mention run with preferredEdge .maxY.",
+      "key_symbols": [
+        "HydraHeadHoverPopover (final class, @MainActor, NSObject, NSPopoverDelegate)",
+        "HydraHeadHoverPopover.shared (static singleton)",
+        "HydraHeadHoverPopover.show(persona:target:relativeTo:of:)",
+        "HydraHeadHoverPopover.hide()",
+        "popoverDidClose(_:)",
+        "private struct HydraHeadHoverCard: View",
+        "HydraHeadHoverCard.width (static let CGFloat = 300)",
+        "HydraHeadHoverCard.statusLine (private computed String)"
+      ],
+      "calls_into": [
+        "HydraPersona (name, color)",
+        "HydraMentionTarget (threadID, task, status)",
+        "HydraGlyph(persona:size:isRunning:status:)",
+        "Chrome.primaryText",
+        "Chrome.secondaryText",
+        "NSPopover.setFixedContent(_:size:) (project extension on NSPopover)",
+        "NSHostingView.intrinsicContentSize",
+        "Task.sleep(for:)"
+      ],
+      "state_owned": [
+        "private let popover = NSPopover() (behavior .applicationDefined, animates = true, delegate self)",
+        "private var shownID: UUID? (threadID of the target currently shown; cleared on hide and in popoverDidClose)",
+        "private var pending: Task<Void, Never>? (the debounce task for the 250ms delay)"
+      ],
+      "side_effects": [
+        "Schedules a Swift Concurrency Task with try? await Task.sleep(for: .milliseconds(250)) as the hover delay",
+        "Cancels the pending Task on a re-show or on hide()",
+        "Presents and closes an AppKit NSPopover (popover.show(relativeTo:of:preferredEdge:.maxY), popover.performClose(nil))",
+        "Creates a throwaway NSHostingView purely to measure intrinsicContentSize"
+      ],
+      "platform_assumptions": [
+        "AppKit NSPopover, NSPopoverDelegate, NSRect, NSView",
+        "SwiftUI NSHostingView for measuring a SwiftUI view's intrinsic size on macOS",
+        "@MainActor isolation for the whole class",
+        "popover.behavior = .applicationDefined so the popover is not dismissed by outside clicks; the owner must call hide()"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "HStack(spacing: 10) containing HydraGlyph(size: 28) and a VStack(alignment: .leading, spacing: 2)",
+        "Persona name: Text(verbatim:) .font(.system(size: 13, weight: .semibold)) .foregroundStyle(persona.color)",
+        "Task text: Text(verbatim: target.task) .font(.system(size: 12)) .foregroundStyle(Chrome.primaryText) .lineLimit(3)",
+        "Status line: .font(.system(size: 11)) .foregroundStyle(Chrome.secondaryText)",
+        "VStack .frame(maxWidth: .infinity, alignment: .leading)",
+        "Card .padding(12) and .frame(width: 300, alignment: .leading)",
+        "Exact status strings: \"Working\\u{2026}\" (running), \"Done \\u{00B7} click to open the chat\", \"Failed \\u{00B7} click to open the chat\", \"Stopped \\u{00B7} click to open the chat\"",
+        "Popover preferredEdge .maxY"
+      ],
+      "feature_notes": [
+        "Re-entrancy guard: if the popover is already shown for the same target.threadID, show() returns immediately and does nothing",
+        "Hover debounce is exactly 250 ms; moving off before then cancels via pending?.cancel()",
+        "Measurement rule: the hosting view is measured with content.frame(width: 300); a measured width under 300 is clamped up to 300, and a measured height <= 0 falls back to the literal 78 points",
+        "Comment records the bug this guards against: asking for intrinsic size without pinning the width made the popover wrap the task title to a couple of words per line",
+        "Status .running renders \"Working\\u{2026}\" with no click affordance; the other three statuses all invite clicking to open the chat",
+        "HydraGlyph is passed isRunning: target.status == .running as well as the raw status",
+        "An already-shown popover for a different thread is closed with popover.close() (not performClose) inside the delayed task before the new one is shown"
+      ],
+      "unresolved_questions": [
+        "HydraMentionTarget.status cases are enumerated here as running/completed/failed/stopped by the exhaustive switch, but the enum itself is declared outside this bundle, so any associated values are unknown",
+        "setFixedContent(_:size:) is a project extension on NSPopover defined outside this bundle; its contentViewController wiring is not visible here",
+        "Who calls show()/hide() (the hover source in InlineText or LinkTextView hover handling) is not in this file"
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Markdown/LinkParagraphView.swift",
+      "sha256": "2e467d72f630b864b51d0b5041d948cd4052ffe82cf06aceca84749320339787",
+      "lines_total": 550,
+      "ranges_read": [
+        [
+          1,
+          550
+        ]
+      ],
+      "purpose": "NSViewRepresentable wrapper plus the LinkTextView NSTextView subclass that renders a markdown paragraph containing real links as selectable AppKit text with the native pointing-hand cursor over links, click-to-open, favicon attachments, Hydra persona mention chips, a right-click link popover, and self-measuring height. Plain paragraphs stay on SwiftUI's Text path so only link paragraphs pay for this.",
+      "key_symbols": [
+        "struct LinkParagraphView: NSViewRepresentable",
+        "LinkParagraphView.makeNSView / updateNSView / sizeThatFits / makeCoordinator / dismantleNSView",
+        "LinkParagraphView.Coordinator: NSObject, NSTextViewDelegate",
+        "Coordinator.textView(_:clickedOnLink:at:)",
+        "LinkParagraphView.attributed(source:pointSize:dimmed:streaming:mentions:targets:) -> NSAttributedString",
+        "LinkParagraphView.fonts (static cache [CGFloat: (base, bold, italic, mono)])",
+        "LinkParagraphView.dragonCache (static [String: NSImage])",
+        "LinkParagraphView.nsColor(_:)",
+        "LinkParagraphView.dragonImage(_:size:)",
+        "LinkParagraphView.appendProse(_:font:color:base:bold:mentions:targets:into:)",
+        "extension NSAttributedString.Key { static let hydraHead }",
+        "struct MergeRequestTarget: Equatable (chatID, merge closure)",
+        "private struct MergeRequestTargetKey: EnvironmentKey",
+        "EnvironmentValues.mergeRequestTarget",
+        "final class LinkTextView: NSTextView",
+        "LinkTextView.hasLink(at:) / link(at:) / headMention(at:) / headMentionRect(at:) / linkAndRange(at:)",
+        "LinkTextView.hitTest / mouseDown / rightMouseDown / menu(for:) / presentLinkPopover(for:)",
+        "LinkTextView.render(_:) / height(forWidth:) / intrinsicContentSize / layout() / viewDidEndLiveResize()",
+        "LinkTextView.updateTrackingAreas() (override removing all areas) / resetCursorRects() (empty override)"
+      ],
+      "calls_into": [
+        "RichLink.prettyAttributed(_:streaming:)",
+        "FaviconCache.cached(host:)",
+        "Chrome.accentNSColor",
+        "HydraPersona (name, hex, asset)",
+        "HydraMentionTarget (url)",
+        "LinkPopover.shared.show(url:mergeTarget:relativeTo:of:)",
+        "MergeRequestLink (delivered through MergeRequestTarget.merge)",
+        "LinkTextVeil (streamVeil.update(_:active:), streamVeil.detach(_:))",
+        "EnvironmentValues.markdownBlockSelection",
+        "EnvironmentValues.markdownVeiled",
+        "NSWorkspace.shared.open(_:)",
+        "NSFontManager.shared.convert(_:toHaveTrait:)"
+      ],
+      "state_owned": [
+        "LinkParagraphView props: source: String, pointSize: CGFloat = 13, dimmed: Bool = false, streaming: Bool = false, revision: Int = 0, mentions: [HydraPersona] = [], targets: [String: HydraMentionTarget] = [:], onOpenHead: ((URL) -> Void)?, onHost: ((LinkTextView) -> Void)?",
+        "Coordinator diff state: lastSource: String?, lastPointSize: CGFloat = 0, lastDimmed = false, lastStreaming = false, lastRevision: Int = 0, lastVeiled = false, lastMentions: [String] = [], lastTargets: [String: HydraMentionTarget] = [:], lastHeads: [String: URL] = [:]",
+        "Static @MainActor font cache: fonts: [CGFloat: (base: NSFont, bold: NSFont, italic: NSFont, mono: NSFont)]",
+        "Static @MainActor dragonCache: [String: NSImage], keyed by persona.asset + \"@\" + String(format: \"%06X\", persona.hex) + \"@<size>\"",
+        "LinkTextView: private let storage = NSTextStorage(); private var lastLaidOutWidth, lastMeasuredHeight, measuredWidth, measuredHeight: CGFloat; private var needsSettleAfterResize: Bool",
+        "LinkTextView: var mergeTarget: MergeRequestTarget?, var passesProseThrough = false, var onOpenHead: ((URL) -> Void)?, let streamVeil = LinkTextVeil()"
+      ],
+      "side_effects": [
+        "NSWorkspace.shared.open(url) when a link is clicked (Coordinator handles both URL and String link values)",
+        "Calls onOpenHead?(url) on mouseDown over a Hydra head mention, swallowing the click (returns before super.mouseDown)",
+        "Presents LinkPopover.shared on right-click or control-click over a link",
+        "Renders an NSImage from NSImage(named: persona.asset) with a source-atop tint fill for persona glyphs, and caches it",
+        "Mutates NSTextStorage on render and forces layout via layoutManager.ensureLayout(for:)",
+        "dismantleNSView nils the delegate and mergeTarget and calls streamVeil.detach(view) to break retain cycles that would keep a chat row alive"
+      ],
+      "platform_assumptions": [
+        "AppKit NSTextView/NSLayoutManager/NSTextContainer/NSTextStorage TextKit 1 stack (glyphIndex(for:in:), boundingRect(forGlyphRange:in:), characterIndexForGlyph(at:), usedRect(for:))",
+        "NSViewRepresentable with sizeThatFits(_:nsView:context:) (SwiftUI on macOS)",
+        "NSTextAttachment with explicit bounds for inline images",
+        "NSFontManager italic trait conversion (.italicFontMask)",
+        "NSCursor.pointingHand supplied through linkTextAttributes[.cursor]",
+        "window?.inLiveResize and viewDidEndLiveResize for window-drag layout behaviour",
+        "NSColor.secondaryLabelColor / NSColor.labelColor semantic colours",
+        "U+FFFC OBJECT REPLACEMENT CHARACTER as the attachment character in NSTextStorage"
+      ],
+      "persisted_fields": [
+        "NSAttributedString.Key(\"droppycode.hydraHead\") - custom attribute name carrying the head mention's URL (or String) on both the glyph attachment run and the persona-name run"
+      ],
+      "ui_elements": [
+        "Default pointSize 13; monospace code face uses NSFont.monospacedSystemFont(ofSize: max(9, pointSize - 1), weight: .regular)",
+        "Favicon attachment: 14 x 14 points, bounds NSRect(x: 0, y: base.descender + 1, width: 14, height: 14), followed by a literal single space \" \" in the base font",
+        "Persona glyph attachment size: (base.pointSize * 1.25).rounded(), bounds y = base.descender + 1",
+        "Persona name rendered in the bold face and the persona's own RGB colour from persona.hex (>> 16, >> 8, & 0xFF, each / 255, alpha 1)",
+        "Link appearance: linkTextAttributes = [.foregroundColor: Chrome.accentNSColor, .underlineStyle: 0, .cursor: NSCursor.pointingHand] - accent colour, explicitly no underline; re-set on every render so a theme change recolours on-screen links",
+        "Dimmed paragraphs use NSColor.secondaryLabelColor, normal ones NSColor.labelColor",
+        "Text container starts at NSSize(width: 400, height: .greatestFiniteMagnitude), widthTracksTextView = false, heightTracksTextView = false, lineFragmentPadding = 0, textContainerInset = .zero",
+        "Head mention chips deliberately keep the normal arrow cursor (not the pointing hand) because only real links wear the hand",
+        "minSize = .zero, maxSize = greatestFiniteMagnitude on both axes, isVerticallyResizable = true, isHorizontallyResizable = false, autoresizingMask = [.width]"
+      ],
+      "feature_notes": [
+        "updateNSView short-circuits unless one of source/pointSize/dimmed/streaming/revision/veiled/mentions-names/targets changed; revision is read explicitly (_ = revision) so a favicon-load bump rebuilds the string with icons",
+        "After a re-render, view.streamVeil.update(view, active: markdownVeiled) runs so the veil reads the storage as it is now",
+        "Inline presentation intents mapped: .code wins outright and selects the mono font, otherwise .emphasized selects italic and .stronglyEmphasized selects bold (bold is applied after italic, so bold wins when both are present)",
+        "Mention matching sorts personas by name length descending and requires word boundaries: the character before must not be a letter or number, and the character after must not be a letter or number",
+        "A mention with an entry in targets gets .hydraHead attributes on both the glyph attachment and the name run; without a target the glyph and coloured bold name still render but are not clickable",
+        "passesProseThrough = !markdownBlockSelection: inside a finished reply hitTest returns nil over prose so SwiftUI's whole-reply drag selection takes over, while links and head mentions still hit-test through",
+        "Right-click (rightMouseDown) and control-click (menu(for:)) over a link both open LinkPopover instead of the system text menu; over prose the system menu still appears. Handled outside menu(for:) so the click never moves the selection",
+        "Link/head hit testing requires the glyph's boundingRect to actually contain the point, so a click past the end of a line does not count as being on the link",
+        "headMentionRect steps forward past the attachment run (stripping \\u{FFFC} and trimming whitespace/newlines) to find the adjacent name run, and falls back to a 1x1 rect at the point when the bounding rect is empty",
+        "Text automation all disabled: isAutomaticLinkDetectionEnabled, isAutomaticDataDetectionEnabled, isAutomaticTextCompletionEnabled, isAutomaticSpellingCorrectionEnabled, isAutomaticQuoteSubstitutionEnabled, isAutomaticDashSubstitutionEnabled, isAutomaticTextReplacementEnabled, isContinuousSpellCheckingEnabled, isGrammarCheckingEnabled all false; allowsUndo = false, usesFindBar = false, focusRingType = .none, drawsBackground = false, importsGraphics = true, isEditable = false, isSelectable = true",
+        "Performance decision recorded in comments: updateTrackingAreas() removes every tracking area and resetCursorRects() is an empty override, because AppKit rebuilding them per scrolled frame was a per-frame tax on long threads; the pointing hand comes from the paragraph's SwiftUI hover instead",
+        "Height caching: height(forWidth:) returns the cached measuredHeight when the width is unchanged; layout() only re-measures when the width moved by more than 0.5 points and only updates when the height moved by more than 0.5 points",
+        "During window live resize layout() sets needsSettleAfterResize and returns without measuring (the extra measurement landed a frame late and made the paragraph hop between two heights); viewDidEndLiveResize performs the one skipped measurement",
+        "init bug note preserved in a comment: the view must own its NSTextStorage because init(frame:textContainer:) holds the container weakly, and a bare container with no layout manager or storage was released immediately, leaving every link paragraph blank",
+        "MergeRequestTarget compares only on chatID (the merge closure is ignored by ==), and is delivered through the SwiftUI environment key mergeRequestTarget with default nil; nil leaves Merge off every link's popover",
+        "render() skips storage replacement when textStorage.isEqual(to: text), and resets lastMeasuredHeight and measuredWidth to 0 when it does replace, then calls invalidateIntrinsicContentSize()",
+        "height(forWidth:) returns 0 for width <= 0 or a missing layout manager/container, and uses ceil(layout.usedRect(for: container).height)"
+      ],
+      "unresolved_questions": [
+        "Coordinator.lastHeads: [String: URL] is declared but never read or written anywhere in this file, so it appears to be dead leftover state",
+        "LinkTextVeil is referenced (streamVeil.update/detach) but defined outside this bundle; the actual fade behaviour of the stream veil is not visible here",
+        "RichLink.prettyAttributed's short-title and bold-link rules are described in comments but implemented outside this bundle",
+        "Chrome.accentNSColor's exact colour values per theme are defined elsewhere",
+        "onHost is invoked only in makeNSView and never in updateNSView, so whether a caller needs re-notification when the representable's closure identity changes cannot be judged from this file"
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Markdown/LinkPopover.swift",
+      "sha256": "ab8949c67ce76d3607cb0acca111cb2294c4d0be2402ed64091b99a003273707",
+      "lines_total": 108,
+      "ranges_read": [
+        [
+          1,
+          108
+        ]
+      ],
+      "purpose": "The single shared transient NSPopover shown when a chat link is right-clicked, replacing the system text menu with house rows: an optional Merge row for a merge or pull request link (wearing the forge's favicon), then Open Link and Copy Link. Adds a local Escape key monitor so it dismisses like a menu.",
+      "key_symbols": [
+        "final class LinkPopover: NSObject, NSPopoverDelegate (@MainActor)",
+        "LinkPopover.shared",
+        "LinkPopover.show(url:mergeTarget:relativeTo:of:)",
+        "LinkPopover.close()",
+        "popoverDidClose(_:)",
+        "private startEscapeMonitor() / stopEscapeMonitor()",
+        "private lazy var closeBox: PopoverCloseBox",
+        "private struct LinkPopoverContent: View"
+      ],
+      "calls_into": [
+        "MergeRequestTarget (declared in LinkParagraphView.swift; its .merge closure)",
+        "MergeRequestLink(url:) (title, label)",
+        "PopoverItem(_:text:symbol:image:action:) and PopoverItem(_:symbol:action:)",
+        "PopoverDivider()",
+        "PopoverCloseBox",
+        "EnvironmentValues.closePopoverBox",
+        "NSPopover.setFixedContent(_:size:)",
+        "FaviconCache.cached(host:) and FaviconCache.image(for:)",
+        "NSWorkspace.shared.open(_:)",
+        "NSPasteboard.general"
+      ],
+      "state_owned": [
+        "private let popover = NSPopover() (behavior = .transient, animates = true, delegate = self)",
+        "private var escapeMonitor: Any? (the local NSEvent keyDown monitor token)",
+        "private lazy var closeBox = PopoverCloseBox { [weak self] in self?.close() } - one box for the popover's life so the rows never see a new one",
+        "LinkPopoverContent: @State private var favicon: NSImage?"
+      ],
+      "side_effects": [
+        "NSEvent.addLocalMonitorForEvents(matching: .keyDown) installed while shown, removed with NSEvent.removeMonitor on close and in popoverDidClose",
+        "NSWorkspace.shared.open(url) from the Open Link row",
+        "NSPasteboard.general.clearContents() then setString(url.absoluteString, forType: .string) from the Copy Link row",
+        "Async favicon fetch via await FaviconCache.image(for: host) in a .task, only when request != nil",
+        "Invokes mergeTarget?.merge(request) after closing the popover",
+        "Measures a throwaway NSHostingView for intrinsicContentSize"
+      ],
+      "platform_assumptions": [
+        "AppKit NSPopover with .transient behavior (dismissed by outside clicks)",
+        "NSEvent local event monitor for key handling; keyCode 53 is the hardware Escape key on macOS",
+        "NSPasteboard general pasteboard and NSPasteboard.PasteboardType.string",
+        "SF Symbols names \"arrow.triangle.merge\", \"safari\", \"link\"",
+        "NSHostingView measurement of SwiftUI content on macOS",
+        "Flipped coordinate system of the anchoring NSTextView, which is why preferredEdge .minY means below the words"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "VStack(alignment: .leading, spacing: 0) of rows, .padding(6), .frame(width: 220, alignment: .leading)",
+        "Merge row label: Text(\"Merge\") with .fontWeight(.semibold) then a space then Text(verbatim: request.label); the row's title argument is request.title",
+        "Merge row icon: the host's favicon when loaded, otherwise SF Symbol \"arrow.triangle.merge\" (symbol is passed only when favicon == nil)",
+        "PopoverDivider() between the Merge row and the standard rows, only when a request exists",
+        "Row \"Open Link\" with SF Symbol \"safari\"",
+        "Row \"Copy Link\" with SF Symbol \"link\"",
+        "Fallback popover size when measurement comes back <= 0 on either axis: NSSize(width: 220, height: 110)",
+        "preferredEdge .minY so the arrow points up at the clicked words"
+      ],
+      "feature_notes": [
+        "Only one popover exists app-wide; showing it on another link closes the current one first (if popover.isShown { popover.close() })",
+        "The Merge row appears only when mergeTarget is non-nil (request is built as mergeTarget == nil ? nil : MergeRequestLink(url: url)); a nil target leaves just Open Link and Copy Link",
+        "Choosing Merge closes the popover first and then calls mergeTarget?.merge(request), so the popover is gone before the merge helper spawns",
+        "Escape (keyCode 53) is swallowed (the monitor returns nil) and closes the popover; every other key is returned unchanged",
+        "The escape monitor is installed only once (guard escapeMonitor == nil) and torn down both on explicit close() and in popoverDidClose",
+        "Favicon lookup uses url.host?.lowercased(); a cached copy is used synchronously if present, otherwise it is fetched asynchronously and the SF Symbol shows until then",
+        "The favicon is fetched only when a merge request row exists; plain links never trigger a favicon fetch from this popover",
+        "The content is given the closeBox through .environment(\\.closePopoverBox, closeBox) so rows can dismiss the popover themselves"
+      ],
+      "unresolved_questions": [
+        "MergeRequestLink(url:) is defined outside this bundle, so whether it can represent a non-forge URL, and what title and label yield for an arbitrary link, cannot be confirmed here; consequently whether a Merge row could appear on a plain link when mergeTarget is set is unknown",
+        "PopoverItem, PopoverDivider, PopoverCloseBox and the closePopoverBox environment key are defined outside this bundle, so row height, hover highlight and exact typography are unknown from this file",
+        "setFixedContent(_:size:) is a project NSPopover extension defined elsewhere"
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Markdown/LinkTitles.swift",
+      "sha256": "012891820479a5c478d372f2129ace09cd189728dd5d0d6a99ea686d375ca408",
+      "lines_total": 112,
+      "ranges_read": [
+        [
+          1,
+          112
+        ]
+      ],
+      "purpose": "Resolves the human title of a bare YouTube video link in chat so it renders as the video's own title instead of \"youtube.com/watch\". Recognizes the YouTube URL shapes, fetches titles at most once each from YouTube's public oEmbed endpoint (no API key), and keeps them in a lock-guarded store rather than @MainActor state because RichLink.build reads it off the main actor during cache warm-up.",
+      "key_symbols": [
+        "enum LinkTitles",
+        "LinkTitles.videoID(for:) -> String?",
+        "LinkTitles.cached(for:) -> String?",
+        "LinkTitles.title(forVideo:) async -> String?",
+        "private struct OEmbed: Decodable { let title: String }",
+        "private static func oembedURL(for:)",
+        "private static func checked(_:)",
+        "private final class Store: @unchecked Sendable (shared, title(_:), claim(_:), finish(_:title:))"
+      ],
+      "calls_into": [
+        "URLComponents / URLQueryItem",
+        "URLSession.shared.data(from:)",
+        "HTTPURLResponse.statusCode",
+        "JSONDecoder",
+        "NSLock",
+        "RichLink.prettyTitle (documented read path, defined elsewhere)"
+      ],
+      "state_owned": [
+        "Store.shared singleton",
+        "private let lock = NSLock()",
+        "private var titles: [String: String] = [:] (video id -> title)",
+        "private var claimed = Set<String>() (ids whose fetch has been claimed or answered)"
+      ],
+      "side_effects": [
+        "Outbound network request: GET https://www.youtube.com/oembed?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3D<id>&format=json via URLSession.shared",
+        "Mutates the in-memory title cache under an NSLock",
+        "No disk writes, no keychain, no timers"
+      ],
+      "platform_assumptions": [
+        "Foundation only (no AppKit or SwiftUI); NSLock plus @unchecked Sendable for cross-actor access",
+        "Swift Concurrency async/await with URLSession.shared.data(from:)",
+        "Assumes outbound HTTPS to www.youtube.com is permitted (sandbox network client entitlement on macOS)"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Recognized hosts after stripping a leading \"www.\": \"youtu.be\", \"youtube.com\", \"m.youtube.com\", \"music.youtube.com\", \"youtube-nocookie.com\"; anything else returns nil",
+        "For youtu.be the id is the first path segment; for the youtube.com family the first segment must be one of \"shorts\", \"embed\", \"live\", \"v\" with a second segment present, otherwise the \"v\" query item is used",
+        "Video id validation (checked): at least 8 characters, and every character must be a letter, a number, \"-\" or \"_\"; a bare /watch or a playlist link fails this and is never asked about",
+        "The oEmbed request is built with exactly two query items in this order: name \"url\" value \"https://www.youtube.com/watch?v=<id>\", then name \"format\" value \"json\"",
+        "Only HTTP status 200 counts; any transport error, non-200 status or decode failure records finish(id, title: nil), so the link keeps its host-and-path form and is never asked again",
+        "A whitespace-and-newline-trimmed empty title is treated as no title (returns nil and is recorded as answered)",
+        "claim(id) uses Set.insert(_:).inserted so exactly one caller performs the fetch; concurrent or repeated callers get nil immediately rather than issuing a second request. The comment notes a streaming row restarts its task on every token, so the same video must be asked only once",
+        "Title cache cap: when titles.count >= 400 the whole dictionary is cleared with removeAll(keepingCapacity: true) before inserting the new title (a full flush, not LRU eviction); the claimed set is never cleared",
+        "finish() always inserts into claimed, whether or not a title was found",
+        "cached(for:) returns nil for any URL that is not a recognized video link, without touching the network",
+        "title(forVideo:) returns the known title immediately when Store already holds one, bypassing the claim"
+      ],
+      "unresolved_questions": [
+        "The claimed set grows without bound and is never cleared, even when titles is flushed at 400, so after a flush previously-claimed ids can never be re-fetched; whether that is intentional is not stated",
+        "Who drives title(forVideo:) (which view or warm-up task awaits it) is not in this file; the doc comment points at RichLink.prettyTitle for the read path only",
+        "No timeout, retry or cache policy is set beyond URLSession.shared defaults"
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Markdown/MarkdownParser.swift",
+      "sha256": "b5d86eddf582dbee5cf9dfa824d32086cf817f9628181c8e687d8b70b874c96b",
+      "lines_total": 338,
+      "ranges_read": [
+        [
+          1,
+          338
+        ]
+      ],
+      "purpose": "Block-level Markdown parser for agent output, with an incremental-reparse contract for streaming replies: it returns the parsed blocks plus how many are final (stable) and the UTF-8 offset to restart from, so a growing text only re-parses its tail. Inline styling is deliberately left to AttributedString.",
+      "key_symbols": [
+        "enum MarkdownBlock: Hashable, Sendable - cases heading(level:text:), paragraph(String), code(language:code:), list(ordered:start:items:), quote([MarkdownBlock]), table(header:rows:), rule",
+        "struct MarkdownListItem: Hashable, Sendable (text: String, checked: Bool?, children: [MarkdownBlock])",
+        "enum MarkdownParser",
+        "MarkdownParser.Parse: Equatable, Sendable (blocks: [MarkdownBlock], stable: Int, restart: Int)",
+        "MarkdownParser.parse(_ text: String) -> [MarkdownBlock]",
+        "MarkdownParser.parse(_:extending:) -> Parse",
+        "private static func parse(_ text: Substring) -> Parse",
+        "private static func parse(_ lines: ArraySlice<String>, depth:) -> (blocks: [MarkdownBlock], blockLines: [Int])",
+        "private struct ListMarker (indent, ordered, start, contentOffset, content)",
+        "private static func parseList(_:from:depth:)",
+        "private static func trimmed(_:) / listMarker(_:) / indentation(_:) / fenceMarker(_:) / headingLevel(_:) / isRule(_:) / isTableDelimiter(_:) / tableCells(_:)",
+        "private static let maxDepth = 8"
+      ],
+      "calls_into": [
+        "Foundation String/Substring/UTF8View APIs (split, trimmingCharacters, hasPrefix, drop(while:), prefix(while:))",
+        "CharacterSet(charactersIn: \"# \")",
+        "No project types: this file is self-contained"
+      ],
+      "state_owned": [
+        "No instance state; MarkdownParser is a caseless enum of static functions",
+        "Parse carries the incremental state a caller holds between streaming flushes (blocks, stable, restart)"
+      ],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Foundation only; no AppKit, SwiftUI or macOS-specific API in this file, so it ports without platform work",
+        "Relies on Swift UTF8View index arithmetic (text.utf8.index(_:offsetBy:), utf8.starts(with:), utf8.distance(from:to:)) and on String/Substring value semantics"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Streaming contract: a block counts as stable only if it starts at a line index <= lines.count - 3 (at least two lines above the last line), because the parser decides a line from that line and the next; restart is the UTF-8 byte offset of that block's first line. With no such block, stable = 0 and restart = 0 and nothing is reused",
+        "parse(_:extending:) reuses the previous parse only when previous.parse.stable > 0, the new text is strictly longer in UTF-8 bytes, and text.utf8.starts(with: previous.text.utf8); otherwise the whole text is parsed again. On reuse the result is previous blocks prefix + tail blocks, stable = previous.stable + tail.stable, restart = restart + tail.restart",
+        "Line splitting is done on the UTF-8 view, splitting on byte 0x0A and dropping a trailing 0x0D, with omittingEmptySubsequences: false and without copying the whole text first",
+        "maxDepth = 8: past 8 levels of quote or list nesting the inner lines are treated as paragraph text (both the quote branch and the list branch guard with depth < maxDepth)",
+        "Fences: both \"```\" and \"~~~\" are recognized; the marker is the full run of that character at the line start; the info string after the fence becomes the language (nil when empty); a closing line must start with the marker and consist only of that character. An unterminated fence consumes to the end of input",
+        "Headings: 1 to 6 '#' characters, and the rest of the line must be empty or start with a space; the text is then trimmed of leading and trailing characters in the set \"# \"",
+        "Rules: a line whose first UTF-8 byte is 0x2D ('-'), 0x2A ('*') or 0x5F ('_'), containing only that byte and spaces (0x20), with at least 3 occurrences of the marker",
+        "Quotes: consecutive lines starting with '>' are gathered, the '>' and one following space stripped, and the result parsed recursively at depth + 1",
+        "Tables: a line containing '|' whose next line is a delimiter (contains '-' and every character is in \"|:- \") starts a table; the header is that line's cells; rows continue while lines are non-empty and contain '|'. Cells strip one leading and one trailing '|' then split on '|' with omittingEmptySubsequences: false, trimming whitespace from each cell",
+        "Unordered list markers: '-', '*' or '+' followed by a space or tab; contentOffset = indent + 2; start is always 1",
+        "Ordered list markers: 1 to 9 digits followed by '.' or ')' followed by a space (or end of line); start = Int(digits) ?? 1; contentOffset = indent + digits.count + 2",
+        "A list may interrupt an in-progress paragraph only when the paragraph buffer is empty, or the marker is unordered, or the ordered marker starts at 1",
+        "Task list items: a leading \"[ ] \" sets checked = false and a leading \"[x] \" (case-insensitive via text.lowercased().hasPrefix) sets checked = true; in both cases the first 4 characters are removed",
+        "Indentation counts a space as 1 and a tab as 4, stopping at the first other character",
+        "List continuation across a blank line: the blank line is absorbed as an empty child line when the next line is indented past the marker and non-empty; it is skipped when the next line is a sibling marker at the same indent and same ordering; otherwise the list ends",
+        "Inside a list item, an indented line is dropped by min(indentation(line), first.contentOffset) characters and goes to childLines, unless childLines is empty and the line is neither a list marker nor a fence, in which case the trimmed line is appended to the item's own text (lazy continuation)",
+        "An unindented continuation line joins the item's text only while childLines is empty and the line is not a heading, not a fence and does not start with '>'; otherwise the list ends there",
+        "A list ends immediately when a marker at the same or lower indent has the opposite ordering (guard marker.ordered == first.ordered else break)",
+        "Item text lines are joined with \"\\n\" then trimmed of whitespace; paragraph lines are joined with \"\\n\" then trimmed of whitespace and newlines, and an empty result produces no block",
+        "trimmed(_:) fast path: when the line's first and last UTF-8 bytes are both printable ASCII (> 0x20 and < 0x7F) the line is returned unchanged, skipping trimmingCharacters entirely; the comment notes this also rules out the lead byte of a Unicode space",
+        "parseList's guard returns (.paragraph(lines[start]), start + 1) when the starting line unexpectedly has no marker, so the line is never lost"
+      ],
+      "unresolved_questions": [
+        "Setext headings (=== or --- underlines), reference links, footnotes and raw HTML blocks are not handled; whether that is a deliberate scope limit for agent output or an omission is not stated in the file",
+        "isRule is checked before the table branch, so a line of only dashes is classified as a rule; how that interacts with a table whose delimiter row contains no '|' is not documented and cannot be settled from this file alone",
+        "MarkdownBlock has no case for images or raw HTML, so how downstream views treat those inside paragraph text is outside this file",
+        "The ordered-list interruption rule (paragraph.isEmpty || !marker.ordered || marker.start == 1) differs in wording from CommonMark's rule; no comment states which behaviour was intended for edge cases such as an unordered marker interrupting prose"
+      ]
+    }
+  ]
+}

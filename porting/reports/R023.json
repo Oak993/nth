@@ -1,0 +1,419 @@
+{
+  "bundle_id": "R023",
+  "reader": "R023-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Settings/SettingsView.swift",
+      "sha256": "a44f7c513e565464a6adbfd431d7c6b9a99c345d9882d84041098a2aba92c94e",
+      "lines_total": 1193,
+      "ranges_read": [
+        [
+          1,
+          1193
+        ]
+      ],
+      "purpose": "The whole Settings window: the SettingsPage enum (9 pages with title/SF Symbol/tint/search keywords), the SettingsNavigation singleton that lets outside code request a page, the SettingsView shell (212pt sidebar + detail sheet, fixed 780x580), and the inline implementations of the General, Providers, Source control, Archive and About pages plus the theme picker, chat text size card, backdrop opacity slider, project marks popover, licenses popover and credit links.",
+      "key_symbols": [
+        "enum SettingsPage: String, CaseIterable, Identifiable (cases general, hydra, providers, mcp, models, sourceControl, shortcuts, archive, about)",
+        "SettingsPage.id / .title / .symbol / .tint / .keywords",
+        "@MainActor @Observable final class SettingsNavigation (static let shared, var requestedPage: SettingsPage?)",
+        "struct SettingsView: View (body, sidebar, detail, pageScroll, pageHasChromeControls, pageContent, static func travel(_:))",
+        "struct SettingsSwitch: View",
+        "private struct GeneralSettingsPage: View",
+        "private struct ChatTextSizeCard: View",
+        "private struct ChatTextSizeSlider: View",
+        "private struct BackdropOpacitySlider: View",
+        "private struct ProvidersRefreshButton: View",
+        "private struct ProvidersSettingsPage: View",
+        "private struct ProviderSettingsSection: View (showsUsage, showsSignIn)",
+        "private struct SourceControlSettingsPage: View",
+        "private struct ArchiveDeleteAllButton: View",
+        "private struct ArchiveSettingsPage: View",
+        "private struct AboutSettingsPage: View (appCard, static let droppyURL)",
+        "private struct LicensesRow: View (static files, static texts, static func text(of:))",
+        "private struct MadeByDroppyRow: View",
+        "private struct CreditLink: View",
+        "private struct ProjectMarksRow: View (func icon(for:))",
+        "private struct ThemePickerButton: View (static dark, static light, func item(_:))"
+      ],
+      "calls_into": [
+        "AppModel (@Environment), model.settings, model.providers, model.projects, model.project(_:), model.updateProject(_:_:), model.archivedThreads, model.unarchive(_:), model.delete(_:), model.deleteArchivedThreads(), model.sidebar.startsOpen",
+        "Chrome.gray/.blue/.orange/.accent/.primaryText/.secondaryText/.overlay(_:)/.hover, Chrome.sheetInset, Chrome.windowCornerRadius, Chrome.listInset, Chrome.symbolSize, Chrome.trafficLightDiameter, Chrome.trafficLightTop, Chrome.sectionSpacing, Chrome.contentHorizontalPadding, Chrome.chromeTopPadding, Chrome.chromeHorizontalPadding, Chrome.capsuleHeight, Chrome.capsuleContentHeight, Chrome.capsuleHorizontalPadding, Chrome.rowControlTrailingPadding, Chrome.rowButtonLabelHeight",
+        "ChromeSection, ChromeCard, ChromeRow, ChromeRowDivider, ChromeCompactTitle, ChromeSearchField, ChromeCapsule, ChromeIconButton, ChromeTextButton, ChromeVisualPicker, GlassPickerButton, chromeGlassCapsule(), detailSheet(), presentedChrome()",
+        "SidebarSearchField, SidebarRow, SidebarIconBadge, SidebarSymbol, HydraMarkImage, UpdateAvailableDot, PaneTopVeil, WindowBackdrop, WindowChromeConfigurator, WindowDragArea",
+        "ChromeScrollModel, SettingsScrollTracker (note/coast/end/isFrozen)",
+        "GeneralSettingsPage peers: TokenActivitySection, WallpaperCard, ProjectIconButton, PlanLimitsView, CreditsView, ProviderIcon, MarkdownView, PopoverMenu, PopoverSectionHeader, PopoverNote, PopoverDivider, PopoverItem",
+        "Sub-pages: MCPSettingsPage(query:), ModelsSettingsPage(query:), HydraSettingsPage(), ShortcutsSettingsPage()",
+        "RuntimeMode, WorkspaceMode, ThreadFinishAction, AppTheme, SidebarMode, ActivityThreadStyle, TextGenerationChoice, ProviderKind, ProjectIcon, ChatThread",
+        "UpdateChecker.shared.updateAvailable, AboutSoftwareUpdateSection, AboutUpdateCheckRow, AboutUpdateChromeAccessory",
+        "FinishChime.play(), SettleChime.play(), Tour.present(model:), Workspace.openTerminal(running:), Workspace.revealInFinder(_:), Storage.worktreesDirectory",
+        "PlanLimitsReader.exposesLimits(_:), CreditsReader.exposesCredits(_:), model.providers.refreshEverything()/refresh(_:)/refreshPlanLimits(_:)/refreshCredits(_:)/loadCatalog(_:force:)/status(_:)/isRefreshing",
+        "ChatZoom.scale(at:), ChatZoom.percentage(at:), ChatZoom.clamped(_:), ChatZoom.defaultIndex, ChatZoom.stepCount",
+        "AppSettings.defaultBackdropOpacity, AppInfo.version, AppInfo.build, UserBubble / UserBubble.tail, Font.chat(_:zoom:), markdownPointSize environment key"
+      ],
+      "state_owned": [
+        "SettingsView @State page: SettingsPage = .general",
+        "SettingsView @State search = \"\", modelSearch = \"\", mcpSearch = \"\"",
+        "SettingsView @State scrollChrome = ChromeScrollModel()",
+        "SettingsView @State scrollTracker = SettingsScrollTracker()",
+        "SettingsNavigation.shared.requestedPage (read-once then cleared)",
+        "ProviderSettingsSection @State binaryPath = \"\", apiKey = \"\", showsAPIKey = false, keyCheck: Task<Void, Never>?",
+        "ArchiveDeleteAllButton @State isConfirming = false",
+        "ArchiveSettingsPage @State pendingDeletion: ChatThread?",
+        "LicensesRow @State isPresented = false plus static let texts cache (Dictionary of resource -> file text, built once)",
+        "MadeByDroppyRow @State isHovering = false",
+        "ProjectMarksRow @State isPresented = false",
+        "ThemePickerButton @State isPresented = false, isHovering = false"
+      ],
+      "side_effects": [
+        "FinishChime.play() fires once when 'Chime when a turn finishes' is switched on; SettleChime.play() once when 'Sound when settling' is switched on",
+        "Workspace.openTerminal(running: provider.loginCommand) launches Terminal for the Sign in row",
+        "Workspace.revealInFinder(Storage.worktreesDirectory.path) from the Reveal button",
+        "Provider refreshes: model.providers.refreshEverything() from the chrome refresh button; refreshPlanLimits/refreshCredits fired by onChange(of: showsUsage, initial: true); a 600 ms debounce Task on an API-key edit then refresh(provider) and loadCatalog(provider, force: true)",
+        "Writes settings: setBinaryPath(_:for:), setAPIKeyInput(_:for:) (API key stated as stored in the Keychain)",
+        "Thread mutation: model.unarchive, model.delete, model.deleteArchivedThreads",
+        "LicensesRow reads LICENSE (no extension), THIRD_PARTY_NOTICES.md and TRADEMARK.md from Bundle.main once at static init",
+        "Tour.present(model:) re-opens the welcome slideshow",
+        "Opens external URLs via Link: provider.installURL, https://getdroppy.app, https://github.com/zeronsh/zeron, https://github.com/migueldeicaza/SwiftTerm, https://github.com/rampatra/TourKit"
+      ],
+      "platform_assumptions": [
+        "AppKit: NSApp.applicationIconImage for the About app icon",
+        "SwiftUI on macOS 26-era APIs: .buttonStyle(.glass), .glassEffect, onScrollGeometryChange, onScrollPhaseChange (phase == .interacting), withAnimation completion closures, @Observable",
+        "macOS Toggle(.switch) with controlSize(.small), TextField/SecureField .roundedBorder, TextEditor with scrollContentBackground(.hidden), popover(isPresented:arrowEdge:), confirmationDialog",
+        "Window chrome: traffic-light inset constants, WindowDragArea, WindowBackdrop, WindowChromeConfigurator, ignoresSafeArea on a fixed 780x580 window",
+        "Unix PATH lookups and a Terminal-launchable login command for CLI providers; gh / glab CLIs for pull requests",
+        "SF Symbols names throughout (gear, cpu, puzzlepiece.extension, slider.horizontal.3, arrow.triangle.branch, command, archivebox, info.circle, folder, rectangle.fill, minus, sidebar.left, macwindow.on.rectangle, macwindow, list.bullet, text.alignleft, checkmark, textformat.size.smaller, textformat.size.larger, circle.dotted, circle.fill, arrow.counterclockwise, arrow.clockwise, trash, eye, eye.slash, chevron.down, arrow.up.right, point.3.connected.trianglepath.dotted)",
+        "Asset catalog image named \"droppy-logo\""
+      ],
+      "persisted_fields": [
+        "model.settings.defaultRuntimeMode: RuntimeMode",
+        "model.settings.defaultWorkspaceMode: WorkspaceMode",
+        "model.settings.showReasoning: Bool",
+        "model.settings.antiSlopEnabled: Bool",
+        "model.settings.showsWorkingCard: Bool (true = Card, false = Line)",
+        "model.settings.recentDownloadsPicker: Bool",
+        "model.settings.notifyWhenFinished: Bool",
+        "model.settings.chimeWhenFinished: Bool",
+        "model.settings.confirmBeforeDeleting: Bool",
+        "model.settings.autoContinueAfterLimit: Bool",
+        "model.settings.showsUsagePanel: Bool",
+        "model.settings.projectsEnabled: Bool",
+        "model.settings.threadFinishAction: ThreadFinishAction (.settle / archive)",
+        "model.settings.settleSound: Bool",
+        "model.settings.theme: AppTheme",
+        "model.settings.backdropOpacity: Double in 0...1, reset target AppSettings.defaultBackdropOpacity",
+        "model.settings.sidebarMode: SidebarMode (.column / .floating / .panelOnly)",
+        "model.settings.activityThreadStyle: ActivityThreadStyle (.icon / text)",
+        "model.sidebar.startsOpen: Bool",
+        "model.settings.chatZoom: Int index into ChatZoom (default ChatZoom.defaultIndex, range 0...ChatZoom.stepCount-1)",
+        "model.settings.isEnabled(provider) / setEnabled(_:for:): Bool per ProviderKind",
+        "model.settings.binaryPath(for:) / setBinaryPath(_:for:): String per ProviderKind",
+        "model.settings.apiKeyInput(for:) / setAPIKeyInput(_:for:): String per ProviderKind (Keychain-backed)",
+        "model.settings.textGeneration: TextGenerationChoice",
+        "model.settings.commitInstructions: String",
+        "project.icon: ProjectIcon? per project UUID"
+      ],
+      "ui_elements": [
+        "Sidebar width 212; detail padded by Chrome.sheetInset trailing and vertical; window .frame(width: 780, height: 580); window clipped to RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style: .continuous)",
+        "Sidebar: Color.clear spacer of Chrome.trafficLightDiameter with .padding(.top, Chrome.trafficLightTop); search field padded .top 14; rows in VStack spacing 1, .padding(.top, 12), .padding(.bottom, 8)",
+        "Empty search result: \"No results\" at 13pt semibold, Chrome.primaryText.opacity(0.92), and \"Try a setting or a provider name.\" at 11pt Chrome.secondaryText, .padding(.horizontal, 8), .padding(.top, 14)",
+        "Hydra sidebar row draws HydraMarkImage at Chrome.symbolSize * 1.15; General's SidebarSymbol uses scale 1.15, all others 1",
+        "About row carries UpdateAvailableDot overlay(alignment: .topTrailing) when UpdateChecker.shared.updateAvailable",
+        "Page scroll: VStack spacing Chrome.sectionSpacing, .padding(.horizontal, Chrome.contentHorizontalPadding + 8), top padding = Chrome.chromeTopPadding + Chrome.capsuleHeight + 16 for pages with chrome controls else 22, bottom 24",
+        "Chrome overlay bar: HStack spacing 10 holding ChromeCompactTitle plus ChromeSearchField(prompt: \"Search models\") on Models, ChromeSearchField(prompt: \"Search servers\") on MCP, ProvidersRefreshButton on Providers, ArchiveDeleteAllButton on Archive, AboutUpdateChromeAccessory on About; minHeight Chrome.capsuleHeight",
+        "Empty archive detail: Image(systemName: \"archivebox\") at 44pt weight .light, Chrome.secondaryText.opacity(0.6), accessibility label \"No archived threads\"",
+        "Page titles: General, Providers, MCP, Models, Hydra, Source control, Shortcuts, Archive, About",
+        "Page tints: general Chrome.gray, providers Chrome.blue, mcp Color(red: 0.95, green: 0.55, blue: 0.20), models Color(red: 0.686, green: 0.322, blue: 0.871), hydra Color(red: 0.188, green: 0.690, blue: 0.780), sourceControl Color(red: 0.345, green: 0.337, blue: 0.839), shortcuts Color(red: 0.32, green: 0.48, blue: 0.93), archive Chrome.orange, about Color(red: 0.204, green: 0.780, blue: 0.349)",
+        "General sections: \"New threads\", \"Conversation\", \"Projects\", \"Finished threads\", \"Appearance\"",
+        "Row texts (General): \"Provider and model\" / \"A new thread follows the one you are in: its provider, model, effort and Hydra pair. With no thread open it starts on the provider you last chose.\"; \"Permissions\"; \"Workspace\" / \"Where a new thread makes its changes\"; \"Show thinking\" / \"The working line opens to the agent's thinking\"; \"Concise AI replies\" / \"Built-in guidance for shorter replies, useful code comments, and focused work, including Hydra heads. Changes apply on the next message.\"; \"Working line\" / \"A card with the turn's progress bar, or a plain line\" with options Card/Line; \"Recent downloads\" / \"The attach button offers recent downloads first\"; \"Notify when a turn finishes\"; \"Chime when a turn finishes\" / \"A soft chime, whether or not the thread is in view\"; \"Confirm before deleting threads\"; \"Continue after a usage limit\" / \"When the provider's limit is spent, the chat waits for the reset and then tells the agent to carry on\"; \"Show a usage panel\" with the long detail ending \"and it keeps the corner it was last dragged to\"",
+        "Projects section: \"Projects\" / \"Activates every project at once unless explicitly overridden\"; \"Marks\" / \"An emoji or symbol for each project, drawn before the thread's name in the activity list and on the project's own row\"",
+        "Finished threads: \"Done with a thread\" (picker symbols checkmark for .settle else archivebox); \"Sound when settling\" / \"A small note as the thread settles\", disabled and 0.5 opacity unless threadFinishAction == .settle",
+        "Appearance: \"Theme\"; \"Transparency\" / \"How much shows through the window\"; \"Sidebar\"; \"Activity list\"; \"Open the sidebar at launch\" / \"Collapsed otherwise; the list button in the toolbar shows and hides it any time\" (disabled and 0.5 opacity when sidebarMode == .panelOnly)",
+        "ChatTextSizeCard sample: VStack spacing 12 inside .padding(16); user bubble text \"Where does the composer decide how far the draft photo sits from the edges?\" with .padding(.leading, 14), .padding(.trailing, 14 + UserBubble.tail), .padding(.vertical, 9), background .tint.opacity(0.14) in UserBubble(); Spacer(minLength: 48); reply text mentioning `DraftAttachments` / **ComposerView.swift** / `attachmentInset`; animation .snappy(duration: 0.2) on index; row title \"Text size\", detail \"The stock size\" at 100% else \"<n>% of the stock size\"",
+        "ChatTextSizeSlider: HStack spacing 8, icons textformat.size.smaller / textformat.size.larger at 11pt with help \"Smaller\" / \"Larger\", Slider width 140 controlSize .small, range 0...Double(ChatZoom.stepCount - 1) step 1; reset button 22x22 arrow.counterclockwise at 11pt medium offset x: -28, help \"Back to the stock size\", transition .opacity + .offset(x: 6); accessibility value \"<n> percent\"",
+        "BackdropOpacitySlider: icons circle.dotted (help \"Clear\") and circle.fill (help \"Solid\"), Slider 0...1 width 140; off-stock threshold abs(value - AppSettings.defaultBackdropOpacity) >= 0.005; reset help \"Back to the stock look\"; accessibility label \"Window transparency\"",
+        "ProvidersRefreshButton: arrow.clockwise inside a ChromeCapsule; help \"Checking providers…\" while refreshing else \"Check providers again\"",
+        "Provider header row: ProviderIcon size 18 in a 22pt-wide frame, title 13pt (\"Checking…\" or status.summary), subtitle 11pt \"Version <version>\" or \"Native API · <host>\"; .padding(.leading, 16), .padding(.trailing, Chrome.rowControlTrailingPadding), .padding(.vertical, 11)",
+        "Usage block padding: .horizontal 16, .vertical 12, VStack spacing 14",
+        "API key row: title \"API key\" (API-key-based) or \"API key (optional)\"; details \"Stored in your Keychain. Get one at <source>.\" or \"Instead of `<loginCommand>`: a Studio key from <source>, stored in your Keychain and handed to the CLI.\"; field prompt \"sk-…\", 12pt monospaced, width 200; eye / eye.slash toggle with help \"Show the API key\" / \"Hide the API key\"; fallback source string \"the provider dashboard\"",
+        "\"Get a key\" row: detail \"<Provider> needs an API key. Nothing to install.\", link label \"Get a <Provider> key\"",
+        "\"Binary path\" row: TextField prompt provider.executableName, 12pt monospaced, width 200, detail = status.executable?.path",
+        "\"Install\" row: detail \"<Provider> was not found on your PATH.\", link label \"Get <Provider>\"; \"Sign in\" row: detail \"Click here to login again.\", button label \"Login\"",
+        "Source control page: section \"Text generation\" with row \"Thread titles and commit messages\" / \"Automatic uses the thread's own provider. Claude uses Haiku, Codex your default model.\"; section \"Commit message instructions\" with a TextEditor at 13pt, minHeight 90, padding 12, placeholder \"For example: use conventional commit prefixes\" padded .horizontal 5; section \"Worktrees and pull requests\" with \"Worktrees\" (detail Storage.worktreesDirectory.path, button \"Reveal\") and \"Pull requests\" / \"Opened with the GitHub CLI (gh) or GitLab CLI (glab) from your PATH.\"",
+        "ArchiveDeleteAllButton: ChromeTextButton(symbol: \"trash\", title: \"Delete all\", help: \"Delete every archived thread\", isDestructive: true), enabled only when count > 0; popover headers \"Delete the archived thread?\" / \"Delete all archived threads?\", notes \"Its history will be removed. Files in your project stay as they are.\" / \"The histories of all <count> threads will be removed. Files in your projects stay as they are.\", item \"Delete thread\" / \"Delete <count> threads\"",
+        "Archive rows: title = thread.title, detail = project name, buttons \"Restore\" and \"Delete\" (.glass, controlSize .small) with confirmationDialog titled 'Delete \"<title>\"?' and message \"Its history will be removed. Files in your project stay as they are.\"",
+        "About app card: app icon 56x56, \"Droppy Code\" 15pt semibold, \"Version <version> (<build>)\" 12pt secondary, padding 16, HStack spacing 14, VStack spacing 3; row \"Welcome tour\" / \"The slideshow from the first launch: Hydra, the effort slider, panels and themes.\" with button \"Show\"; body text \"The coding app by Droppy: a native home for your coding agents, built in Swift with Liquid Glass.\" at 13pt; license line \"Droppy Code is licensed under the GNU AGPL v3.0 with attribution terms; SwiftTerm is MIT licensed.\" at 12pt secondary",
+        "Credits section rows: MadeByDroppyRow; \"Working indicators\" / \"Ported from Zeron by Wing, MIT License.\" link \"zeronsh/zeron\"; \"Terminal\" / \"SwiftTerm by Miguel de Icaza, MIT License.\" link \"SwiftTerm\"; \"Welcome tour\" / \"Ported from TourKit by Ram Patra, MIT License.\" link \"rampatra/TourKit\"; LicensesRow",
+        "LicensesRow: title \"Licenses\", detail \"AGPL-3.0 with attribution terms, and the notices for what the app builds on.\", button \"Show\", popover 480x440, VStack spacing 18, padding 18, per-file title 13pt semibold, markdownPointSize 12, textSelection enabled; missing file text \"The <resource> file is missing from this copy of the app.\"",
+        "MadeByDroppyRow: droppy-logo image 40x40 interpolation .high, \"Made by Droppy\" 13pt semibold, \"Droppy Code is a coding app by Droppy for Mac.\" 11pt secondary, \"getdroppy.app\" + arrow.up.right at 12pt medium in Chrome.accent, opacity 1 on hover else 0.9, padding .leading 16 / .trailing Chrome.rowControlTrailingPadding + 4 / .vertical 12, help \"Open getdroppy.app\"",
+        "CreditLink: title plus arrow.up.right at 10pt bold, 12pt medium, Chrome.accent, help = url.absoluteString",
+        "ProjectMarksRow: button \"Edit\" disabled when model.projects.isEmpty, help \"Choose a mark for each project\", popover width 400 listing project name and path with ProjectIconButton",
+        "ThemePickerButton: swatch 14x14, name 12.5pt medium, chevron.down 8pt bold; opacity 0.92 unless hovering/presented; popover has System item then PopoverSectionHeader(\"Dark\") and PopoverSectionHeader(\"Light\")"
+      ],
+      "feature_notes": [
+        "Sidebar search matches page title or any keyword case-insensitively; pressing submit jumps to the first match; if the current page filters out, the first visible page takes over",
+        "SettingsNavigation.shared.requestedPage is honoured with initial: true and cleared immediately, which is how the update notification and post-install relaunch open About",
+        "Changing the page resets scrollChrome travel to 0 and clears both the model and MCP chrome search fields",
+        "Scroll handling freezes row hit-testing while a finger is interacting (scrollTracker.note()) and unfreezes on coast/settle; wheel scrolling is caught by onScrollGeometryChange instead of phases; scrollTracker.end() on disappear",
+        "travel(_:) = geometry.contentOffset.y + geometry.contentInsets.top",
+        "ProvidersSettingsPage builds every ProviderKind section eagerly (a comment explains lazy sections were rebuilt while scrolling and re-ran their checks)",
+        "Usage (plan limits / credits) only shows when the provider exposes them AND status.isInstalled AND status.auth != .signedOut; the refresh is throttled by the registry to once a minute",
+        "Sign-in row is hidden while signed in and while a check is running, so it never flashes before the answer",
+        "API-key edits debounce 600 ms then refresh the provider and force-reload its catalog; loading the stored key into the field does not save or check it",
+        "The Hydra page is deliberately second in the sidebar, right under General; its symbol \"point.3.connected.trianglepath.dotted\" is never drawn because the row uses HydraMarkImage",
+        "Turning on the chime or the settle sound plays it once immediately so the user hears it",
+        "Delete flows respect settings.confirmBeforeDeleting in both the per-row Delete and Delete all",
+        "The licenses popover text is read from the bundle once into a static dictionary because the popover body re-runs on hover and scroll"
+      ],
+      "unresolved_questions": [
+        "Chrome.* numeric constants (sheetInset, listInset, capsuleHeight, contentHorizontalPadding, chromeTopPadding, chromeHorizontalPadding, rowControlTrailingPadding, rowButtonLabelHeight, sectionSpacing, symbolSize, trafficLight*, windowCornerRadius) are defined in another file not in this bundle, so their literal values are unknown here",
+        "AppSettings.defaultBackdropOpacity and the ChatZoom ladder (stepCount, defaultIndex, scale/percentage tables) are defined elsewhere",
+        "The summary/detail/title strings on RuntimeMode, WorkspaceMode, ThreadFinishAction, AppTheme, SidebarMode, ActivityThreadStyle and TextGenerationChoice come from their own files",
+        "Whether the 'droppy-logo' asset is a PDF/PNG image set is not determinable from this file"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift",
+      "sha256": "25ce42aed81b285f73df207f605af9faefb6b12c2ea2a59b4e1e407c74396d15",
+      "lines_total": 675,
+      "ranges_read": [
+        [
+          1,
+          675
+        ]
+      ],
+      "purpose": "The Shortcuts settings page and its whole recording machinery: one card per AppShortcut.Section, a fixed 'Composer' card of built-in keys, the per-row ShortcutRecorder button, the keycap artwork (KeycapView with its pressed travel and coloured lip), the recording popover, and ShortcutRecordingSession, the @Observable object that installs an NSEvent local monitor and judges/commits a chord.",
+      "key_symbols": [
+        "struct ShortcutsSettingsPage: View",
+        "private struct ShortcutSectionHeader<Accessory: View>: View",
+        "private struct ShortcutSectionCard: View",
+        "private struct FixedShortcutsCard: View",
+        "enum ShortcutRowMetrics (rowPadding, dividerLeadingInset, controlSpacing, controlWidth, controlHeight)",
+        "private struct ShortcutSettingsRow<Accessory: View>: View",
+        "private struct ShortcutEntryRow: View",
+        "private struct ShortcutRecorder: View (func actions(current:))",
+        "private struct ShortcutCombinedControlStyle: ButtonStyle",
+        "private struct ShortcutCombinedControlContent: View (fill, ink)",
+        "private struct ShortcutPillButtonStyle: ButtonStyle",
+        "struct Keycap: Identifiable, Equatable (enum Phase { pressed, ghost }, isModifier, modifierCaps(for:phase:), keyCap(keyCode:phase:), caps(for:), ghostCommand, ghostKey)",
+        "enum KeycapTint (neutral, rejected, accepted; rejectedColor, acceptedColor)",
+        "private struct KeycapView: View (face, label, inkColor, lipColor)",
+        "struct ShortcutRecordingAction: Identifiable",
+        "private struct ShortcutRecordingPopoverContent: View",
+        "private struct ShortcutRecordingActionPillStyle: ButtonStyle",
+        "enum Haptics (static func perform(_:))",
+        "@MainActor @Observable final class ShortcutRecordingSession (enum Verdict { listening, rejected, accepted }; begin/cancel/close/handleFlagsChanged/handleKeyDown/handleKeyUp/judge/letGo/refreshCaps; tint)"
+      ],
+      "calls_into": [
+        "AppShortcut, AppShortcut.Section (allCases, title, symbol, shortcuts), shortcut.title, shortcut.detail, shortcut.defaultChord",
+        "ShortcutStore.shared (hasCustomizations(in:), reset(_:) for section and shortcut, chord(for:), set(_:for:), isCustomized(_:), refusal(for:replacing:))",
+        "KeyChord (keyCode, modifierFlags, description, init(keyCode:modifiers:), static allowedModifiers)",
+        "KeyNames.label(for:)",
+        "Chrome.sectionSpacing, Chrome.sectionHeaderSpacing, Chrome.hover, Chrome.accent, Chrome.primaryText, Chrome.secondaryText, Chrome.overlay(_:)",
+        "ChromeCard, SidebarIconBadge, SidebarSymbol, presentedChrome()",
+        "NSEvent, NSEvent.ModifierFlags, NSApplication.didResignActiveNotification, NSHapticFeedbackManager"
+      ],
+      "state_owned": [
+        "ShortcutRecorder @State session = ShortcutRecordingSession(), @State isPresenting = false",
+        "ShortcutCombinedControlContent @State isHovering = false",
+        "ShortcutRecordingSession observable: caps: [Keycap] (starts [Keycap.ghostCommand]), verdict: Verdict = .listening, actions: [ShortcutRecordingAction], message: String?",
+        "ShortcutRecordingSession @ObservationIgnored: isActive, shortcut, onClose, onCommit, heldModifiers: NSEvent.ModifierFlags, heldKeyCode: Int?, latched: KeyChord?, isFinishing, monitor: Any?, resignObserver: NSObjectProtocol?, finishTask: Task<Void, Never>?"
+      ],
+      "side_effects": [
+        "NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp, .flagsChanged]) while recording, swallowing every matched event (returns nil), removed in close()",
+        "NotificationCenter observer on NSApplication.didResignActiveNotification that cancels the recording; removed in close()",
+        "Haptic feedback: .alignment when a modifier is added, .generic on a rejected chord and on Clear / Reset to default, .levelChange on an accepted chord",
+        "Persists the chord through ShortcutStore.shared.set(_:for:) / reset(_:) (store is outside this file)",
+        "A 300 ms Task delay after the last key comes up before committing the accepted chord"
+      ],
+      "platform_assumptions": [
+        "AppKit NSEvent local monitoring and NSEvent.modifierFlags snapshot at begin()",
+        "macOS virtual key code 53 is Escape, hard-coded as the cancel key when no modifiers are held",
+        "NSHapticFeedbackManager.defaultPerformer (Force Touch trackpad feedback)",
+        "MainActor.assumeIsolated inside the notification callback",
+        "Mac modifier glyphs ⌃ ⌥ ⇧ ⌘ and the abbreviations ctrl/opt/shift/cmd",
+        "SwiftUI .glassEffect(.regular.interactive(), in: Capsule) and .focusEffectDisabled()",
+        "Composer keys listed as macOS chords: Return, ⇧ Return, ↑, ⌘ Return, ⌘ 1–9"
+      ],
+      "persisted_fields": [
+        "None written directly by this file; chords persist via ShortcutStore.shared.set(_:for:) keyed by AppShortcut (store defined elsewhere)"
+      ],
+      "ui_elements": [
+        "ShortcutRowMetrics: rowPadding 12, dividerLeadingInset 16, controlSpacing 16, controlWidth 168, controlHeight 24",
+        "Section header: SidebarIconBadge + SidebarSymbol, title 13pt semibold .secondary, lineLimit 1, Spacer(minLength: 8), frame height 22; a section with customizations shows a \"Reset\" pill",
+        "ShortcutPillButtonStyle: 11pt semibold, Chrome.primaryText, .padding(.horizontal, 10), height 22, Capsule filled Chrome.overlay(0.16) pressed else 0.1",
+        "ShortcutSettingsRow: title .font(.callout) .primary lineLimit 1 truncation .tail with .help(detail), accessory right-aligned and fixedSize, minHeight 24, padding 12",
+        "Recorder button: chord keycaps in an HStack spacing 7 at 13pt semibold, or the text \"Record shortcut\" at 12pt medium; frame 168x24; animation .spring(response: 0.3, dampingFraction: 0.8) on chord; popover arrowEdge .top",
+        "ShortcutCombinedControlStyle fills: recording = Chrome.accent.opacity(0.34 pressed / 0.26); set = Chrome.overlay(0.34 pressed / 0.30 hover / 0.24); unset = Chrome.overlay(0.14 pressed / 0.11 hover / 0.07); ink = Chrome.secondaryText.opacity(0.6) when disabled, Chrome.primaryText when set or recording, else Chrome.secondaryText; RoundedRectangle cornerRadius 8 continuous; scaleEffect 0.97 pressed; animations .easeOut(duration: 0.08) on press and Chrome.hover on hover/recording",
+        "Composer fixed card rows (title / detail / chord): \"Send\" / \"Sends the message in the composer.\" / \"Return\"; \"New line\" / \"Adds a line without sending.\" / \"⇧ Return\"; \"Steer a chat\" / \"While a turn runs, stops it and sends right away.\" / \"Return\"; \"Recall an earlier prompt\" / \"Works in an empty composer.\" / \"↑\"; \"Approve a request\" / \"Allows what the agent asked for.\" / \"⌘ Return\"; \"Jump to a thread\" / \"Selects one of the first nine threads.\" / \"⌘ 1–9\"; section header \"Composer\" with symbol \"text.cursor\"; each chord is 13pt semibold Chrome.secondaryText in a 168x24 RoundedRectangle(cornerRadius: 8) filled Chrome.overlay(0.07) with help \"Built in\"",
+        "KeycapView metrics: height 44, modifierWidth 64, keyMinWidth 38, radius 8, keyTravel 2; shadow black 0.45 radius 1.5 y 1; unpressed opacity 0.36; face = base fill Color(white: 0.07) offset y 2 under a LinearGradient from Color(white: 0.225) to Color(white: 0.155) top-to-bottom, strokeBorder white 0.09 -> 0 top-to-center lineWidth 1, and a bottom Capsule lip height 1.5 padded .horizontal 7 / .bottom 2.5; pressed face offset y = 1.5",
+        "Keycap label: modifier caps show the glyph at 12pt medium over the name at 11pt semibold, bottom-trailing, padding .horizontal 8 / .vertical 6; a key cap shows its label at 14pt semibold with .padding(.horizontal, 10) and a .scale(0.6)+opacity transition keyed on the symbol",
+        "Keycap ink: neutral Color.white.opacity(0.92), rejected Color(red: 0.94, green: 0.43, blue: 0.46), accepted Color(red: 0.30, green: 0.84, blue: 0.45); unpressed lip Color.white.opacity(0.10), pressed neutral lip white 0.55, rejected/accepted lips at 0.9 opacity",
+        "Recording popover: VStack spacing 12, padding 14, fixedSize; keycaps in HStack spacing 6 with .scale(0.5)+opacity transitions; refusal message 11pt medium in KeycapTint.rejectedColor lineLimit 1; action pills at 12pt semibold, .padding(.horizontal, 12), height 26, glass capsule, scale 0.97 pressed; caps animation .spring(response: 0.3, dampingFraction: 0.8) or .easeOut(duration: 0.12) with Reduce Motion; tint animation .easeOut(duration: 0.14); accessibility label \"Press keys…\"",
+        "Popover actions: \"Clear\" (destructive, only when a chord exists) and \"Reset to default\" (only when the shortcut is customized and has a defaultChord)",
+        "Modifier keycaps in order control (⌃ / ctrl), option (⌥ / opt), shift (⇧ / shift), command (⌘ / cmd); ghost caps are ⌘/cmd and the letter \"A\""
+      ],
+      "feature_notes": [
+        "The page is a LazyVStack of one card per AppShortcut.Section followed by the fixed Composer card, with .focusEffectDisabled()",
+        "A chord is judged the instant its key goes down and can be replaced while anything is still held; it commits 300 ms after every key is released",
+        "Escape with no modifiers cancels the recording; app deactivation cancels it too",
+        "A rejected chord clears the latch and returns to .listening when the keys are released, so the popover keeps listening",
+        "While no modifier is held the popover shows a single ghost ⌘ cap; with modifiers but no key it shows the held modifiers plus a ghost \"A\" cap",
+        "ShortcutStore.refusal(for:replacing:) supplies the human-readable conflict message shown under the keycaps",
+        "Section Reset is animated with Chrome.hover and appears only when that section has customizations",
+        "Key repeat events are ignored (event.isARepeat)",
+        "The local monitor consumes matching events (returns nil) so recorded keys never reach the app"
+      ],
+      "unresolved_questions": [
+        "AppShortcut, its Section cases, titles, symbols and default chords are defined in another file, so the actual list of customizable shortcuts is not visible here",
+        "ShortcutStore's persistence format and the exact wording of refusal(for:replacing:) messages are outside this file",
+        "KeyNames.label(for:) mapping from key codes to display labels is elsewhere",
+        "Chrome.sectionSpacing / sectionHeaderSpacing / hover literal values are defined elsewhere"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Settings/TokenActivitySection.swift",
+      "sha256": "036413d17bb40e1ace7a202b2dfdc0b20e3e1feb5c26c71fb38cce94f64db9e1",
+      "lines_total": 276,
+      "ranges_read": [
+        [
+          1,
+          276
+        ]
+      ],
+      "purpose": "The GitHub-style token activity heatmap that leads Settings > General: a five-step accent colour ladder, a Canvas-drawn year grid with an animatable cross-mode colour blend, a month label strip that drops labels that would crowd, and a legend line with the recorded token total and an uncertain-source caveat.",
+      "key_symbols": [
+        "private enum TokenActivityStyle (cellGap, cellRadius, labelHeight, minLabelAdvance, color(for:maxValue:future:))",
+        "struct TokenActivitySection: View (body, heatmap(grid:), monthStrip(grid:), legend(total:uncertainTokens:), static ladder, static modeHelp(_:), placedTicks(_:stride:))",
+        "private struct GridKey: Equatable (daily: [String: Int], mode: TokenActivityMode)",
+        "private struct HeatmapCanvas: View",
+        "private struct HeatmapBlendModifier: ViewModifier, Animatable (animatableData over blend)"
+      ],
+      "calls_into": [
+        "TokenLedger.shared (dailyTotals: [String: Int], uncertainTokensThisYear: Int, refreshIfNeeded() async)",
+        "TokenActivityGrid.build(daily:mode:), TokenActivityGrid.rows, grid.columns ([[Date?]]), grid.values ([[Int]]), grid.maxValue, grid.tomorrow, grid.monthTicks ([(label: String, column: Int)])",
+        "TokenActivityMode (.daily, .weekly, .cumulative; allCases, title)",
+        "UsagePanel.tokens(_:) for the formatted token counts",
+        "Chrome.overlay(_:), Chrome.accent, Chrome.primaryText, Chrome.secondaryText",
+        "ButtonStyle .chip(active:)",
+        "Color.mix(with:by:)"
+      ],
+      "state_owned": [
+        "@State mode: TokenActivityMode = .daily (view-local, not persisted)",
+        "@State ledger = TokenLedger.shared",
+        "@State previousGrid: TokenActivityGrid?",
+        "@State switchCount = 0",
+        "@State grid = TokenActivityGrid.build(daily: [:], mode: .daily)",
+        "HeatmapCanvas @State width: CGFloat = 0"
+      ],
+      "side_effects": [
+        "await ledger.refreshIfNeeded() in a .task when the section appears (the ledger itself does any file/IO work)",
+        "Rebuilds the grid whenever GridKey(daily:mode:) changes, with initial: true"
+      ],
+      "platform_assumptions": [
+        "SwiftUI Canvas with GraphicsContext.fill and Path(roundedRect:cornerRadius:style:)",
+        "macOS 26-era SwiftUI: onGeometryChange(for:of:), withAnimation(_:completion:), Color.mix(with:by:), .smooth(duration:) animations, ViewModifier + Animatable",
+        "Chrome.accent tracks the system accent colour for the System/Light/Dark themes"
+      ],
+      "persisted_fields": [
+        "None. The mode is view-local @State; the daily totals live in TokenLedger.shared (defined elsewhere)"
+      ],
+      "ui_elements": [
+        "TokenActivityStyle constants: cellGap 4, cellRadius 2, labelHeight 18, minLabelAdvance 30",
+        "Colour ladder: future days Chrome.overlay(0.035); zero or no max Chrome.overlay(0.07); fraction < 0.25 accent.opacity(0.32); < 0.5 accent.opacity(0.55); < 0.75 accent.opacity(0.8); else full accent",
+        "Header: \"Token activity\" at 15pt semibold Chrome.primaryText, lineLimit 1, accessibility trait .isHeader; HStack alignment .firstTextBaseline spacing 12, Spacer(minLength: 12); outer VStack spacing 10",
+        "Mode chips: one per TokenActivityMode using .buttonStyle(.chip(active:)), label 13pt with weight .medium when selected else .regular; row animation .smooth(duration: 0.25) on mode",
+        "Mode help strings: daily \"Each day on its own, against the busiest day of the year\", weekly \"Each week as one shade, against the busiest week\", cumulative \"The running total, so the year fills as it goes\"",
+        "Month strip: labels at 11pt Chrome.secondaryText, positioned at column * stride clamped to [12, width - 12], y = labelHeight / 2; stride = (width + cellGap) / max(columnCount, 1)",
+        "Legend: \"<formatted> tokens recorded\" at 11pt secondary, then \"Less\", five 10x10 swatches with cornerRadius 2, then \"More\"; HStack spacing 8 with Spacer(minLength: 12); VStack spacing 4",
+        "Uncertain-tokens caveat (shown only when > 0): \"<formatted> of these were recorded before spend kept its source, so they may overlap imported history.\" at 11pt secondary, fixedSize vertical",
+        "Legend accessibility: label \"Token activity\", value \"<n> tokens recorded\" or \"<n> tokens recorded, <m> of them without a kept source\"; the canvas itself is accessibilityHidden",
+        "Ladder sample values: [0, 1, 3, 5, 7] against maxValue 8, future false"
+      ],
+      "feature_notes": [
+        "Switching modes captures the current grid as previousGrid, bumps switchCount and animates with .smooth(duration: 0.45); previousGrid is cleared in the completion only if switchCount still matches that switch index",
+        "HeatmapBlendModifier animates over blend (Double(switchCount)) with base = Double(switchIndex - 1); progress = clamp(blend - base, 0, 1), and each cell is old.mix(with: new, by: progress), showing the old grid exactly at progress <= 0",
+        "Cell size = (width - gap * (columns - 1)) / columns; canvas height = cell * rows + gap * (rows - 1), so cells stay square at any width",
+        "A day is drawn as 'future' when its date >= grid.tomorrow, using the fainter Chrome.overlay(0.035)",
+        "Month labels closer together than 30pt of advance are skipped rather than overlapped",
+        "The section is deliberately plain page content, not a ChromeCard, so the grid uses the full column width",
+        "The grid is rebuilt only when the daily totals dictionary or the mode changes, to avoid redoing a year of calendar arithmetic on every usage event",
+        "Previous-grid lookup is guarded by c < previous.values.count so a shorter old grid cannot index out of range"
+      ],
+      "unresolved_questions": [
+        "TokenActivityGrid (rows count, column construction, maxValue and cumulative semantics) and TokenActivityMode's title strings are defined in another file",
+        "TokenLedger's storage, the dailyTotals key format (a String date key) and how uncertainTokensThisYear is computed are outside this file",
+        "UsagePanel.tokens(_:) formatting rules (K/M suffixes, grouping) are defined elsewhere",
+        "The exact appearance of .buttonStyle(.chip(active:)) is defined elsewhere"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Settings/WallpaperCard.swift",
+      "sha256": "a2724a3492e86fac87907ff3c767a614ba25959305f24409c6bfcd74ff3681c9",
+      "lines_total": 190,
+      "ranges_read": [
+        [
+          1,
+          190
+        ]
+      ],
+      "purpose": "The Appearance card that sets the window wallpaper: a 150pt-tall preview with a glass mini-window overlay, drag-and-drop plus an NSOpenPanel chooser, Remove/Change buttons, and a Softness blur slider with a reset that only appears once the value leaves 0.",
+      "key_symbols": [
+        "struct WallpaperCard: View (body, preview, wallpaperRow, softnessRow, func choose())",
+        "private var isOffStock: Bool (store.softness > 0.005)"
+      ],
+      "calls_into": [
+        "WallpaperStore.shared (image: NSImage?, hasWallpaper, isInstalling, lastError, softness, isAdjustingSoftness, install(from:), remove(), static accepts(_:), static acceptedTypes)",
+        "ChromeCard, ChromeRow, ChromeRowDivider",
+        "Chrome.overlay(_:), Chrome.accent, Chrome.secondaryText",
+        "NSOpenPanel, NSApp.keyWindow",
+        "SwiftUI glassEffect(in:), dropDestination(for: URL.self, ...)"
+      ],
+      "state_owned": [
+        "let store = WallpaperStore.shared (observed singleton)",
+        "@State isTargeted = false (drag hover state)"
+      ],
+      "side_effects": [
+        "NSOpenPanel presented as a sheet on NSApp.keyWindow (or a free-standing panel when there is no key window); on .OK it calls store.install(from: url), which copies/installs the picture",
+        "Drag-and-drop of a URL calls store.install(from:) for the first URL WallpaperStore.accepts",
+        "store.remove() clears the wallpaper; store.softness writes the blur value; store.isAdjustingSoftness is set true/false around slider editing"
+      ],
+      "platform_assumptions": [
+        "AppKit NSOpenPanel with allowedContentTypes / beginSheetModal(for:) / begin(_:) and NSImage; UniformTypeIdentifiers import",
+        "SwiftUI .glassEffect (Liquid Glass) for the mini-window stand-in",
+        "SF Symbols photo.on.rectangle.angled, drop, drop.fill, arrow.counterclockwise",
+        "dropDestination(for: URL.self) receiving file URLs from Finder"
+      ],
+      "persisted_fields": [
+        "store.softness: Double in 0...1, stock value 0 (persistence lives in WallpaperStore, not this file)",
+        "The wallpaper image itself, installed by WallpaperStore.install(from:)"
+      ],
+      "ui_elements": [
+        "Preview: 150pt tall, full width, clipped to RoundedRectangle(cornerRadius: 12, style: .continuous), image aspectRatio .fill",
+        "Mini-window overlay: RoundedRectangle(cornerRadius: 8, style: .continuous) filled .clear with glassEffect plus Color.black.opacity(0.2), three 5x5 Chrome.overlay(0.35) circles in an HStack spacing 4 padded .top 8 / .leading 8, sized 60% x 60% of the preview and centered",
+        "Empty state: RoundedRectangle(cornerRadius: 12) filled Chrome.overlay(0.04), symbol photo.on.rectangle.angled at 22pt Chrome.secondaryText, text \"Drop a picture here, or choose one\" at 12pt Chrome.secondaryText, VStack spacing 6",
+        "Drag highlight: Chrome.accent.opacity(0.18) fill over the 150pt rounded rect, scaleEffect 1.02, animation .snappy(duration: 0.2) on isTargeted",
+        "Image change animation .spring(duration: 0.45, bounce: 0.2); image and placeholder transition .scale(scale: 0.96) combined with .opacity; preview padded 16",
+        "Installing shows a ProgressView with controlSize .small",
+        "Wallpaper row title \"Wallpaper\"; detail is store.lastError when set, otherwise \"Fills the window edge to edge under the glass; the transparency slider lets the desktop show through it\" with a wallpaper, or \"A picture of your own behind the glass, mixed with the desktop by the transparency slider\" without",
+        "Buttons: \"Remove\" (only when a wallpaper exists) and \"Choose…\" / \"Change…\", both .buttonStyle(.glass) controlSize .small and disabled while installing; HStack spacing 8",
+        "Softness row (only when a wallpaper exists): title \"Softness\", detail \"Blurs the picture so text stays easy to read\"; icons drop (help \"Sharp\") and drop.fill (help \"Blurred\") at 11pt Chrome.secondaryText; Slider 0...1 controlSize .small width 140",
+        "Softness reset: arrow.counterclockwise at 11pt medium in a 22x22 frame, offset x: -28, help \"Back to sharp\", transition .opacity combined with .offset(x: 6), animation .snappy(duration: 0.2) on isOffStock; accessibility label \"Wallpaper softness\"",
+        "Open panel: message \"Choose a picture for the window\", prompt \"Use as Wallpaper\", allowsMultipleSelection false, canChooseDirectories false"
+      ],
+      "feature_notes": [
+        "Clicking anywhere on the preview opens the file chooser (the preview is itself a plain-styled Button)",
+        "Only the first dropped URL that passes WallpaperStore.accepts is installed; the drop returns false if none match",
+        "The Softness row and its divider are hidden entirely until a wallpaper exists",
+        "The reset control is shown only when softness > 0.005 and takes no layout room, so the slider stays flush with other card controls",
+        "store.isAdjustingSoftness is toggled with the slider's onEditingChanged, so other code can react to a live drag",
+        "The chooser is run as a window sheet when there is a key window so the settings sheet is not blocked"
+      ],
+      "unresolved_questions": [
+        "WallpaperStore's accepted UTTypes, where the installed image is written, and how softness is persisted are defined in another file",
+        "The exact error strings that can appear in store.lastError are not visible here",
+        "Whether store.softness maps linearly to a blur radius, and what radius, is decided in WallpaperStore / the backdrop view"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "bundle_id": "R034",
+  "reader": "R034-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Resources/AppIcon.icon/icon.json",
+      "sha256": "f3aabbba2ccadedea2e5263467a6092739595c424ff9f1b727728f0e3db04b2b",
+      "lines_total": 187,
+      "ranges_read": [
+        [
+          1,
+          187
+        ]
+      ],
+      "purpose": "Icon Composer (.icon) manifest for the Droppy Code app icon. Declares the background fill gradients for light and dark appearance, one layer group holding five image layers (two mascot bitmaps, two drop-shadow bitmaps, one low-opacity SVG overlay) with per-appearance opacity, Liquid Glass and position specializations, plus the group shadow, translucency and the supported platform icon masks. Xcode compiles it into AppIcon (ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon) and ships the result as AppIcon.icns.",
+      "key_symbols": [
+        "top-level key: fill-specializations",
+        "top-level key: groups",
+        "top-level key: supported-platforms",
+        "layer name \"mascot dark\" (image-name \"mascot dark.png\")",
+        "layer name \"shadow dark\" (image-name \"shadow dark.png\")",
+        "layer name \"mascot \" with a trailing space (image-name \"mascot (3).png\")",
+        "layer name \"shadow def\" (image-name \"shadow def.png\")",
+        "layer name \"SVG Image\" (image-name \"SVG Image.svg\")",
+        "per-layer keys: glass-specializations, hidden, image-name, name, opacity-specializations, position",
+        "position sub-keys: scale, translation-in-points",
+        "group sub-keys: layers, shadow {kind, opacity}, translucency {enabled, value}",
+        "specialization selector key \"appearance\" with values \"dark\" and \"tinted\"",
+        "color literal syntax display-p3:R,G,B,A and srgb:R,G,B,A",
+        "fill kind linear-gradient (two stops)"
+      ],
+      "calls_into": [
+        "DroppyCode/Resources/AppIcon.icon/Assets/mascot dark.png (referenced by image-name)",
+        "DroppyCode/Resources/AppIcon.icon/Assets/shadow dark.png (referenced by image-name)",
+        "DroppyCode/Resources/AppIcon.icon/Assets/mascot (3).png (referenced by image-name)",
+        "DroppyCode/Resources/AppIcon.icon/Assets/shadow def.png (referenced by image-name)",
+        "DroppyCode/Resources/AppIcon.icon/Assets/SVG Image.svg (referenced by image-name)",
+        "DroppyCode.xcodeproj/project.pbxproj build setting ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon (lines 286 and 311) consumes this icon at build time",
+        "release/dmg/generate_installer_background.swift line 160 loads the compiled output at /Applications/Droppy Code.app/Contents/Resources/AppIcon.icns"
+      ],
+      "state_owned": [
+        "No runtime state: declarative build-time asset manifest, no code, no stored properties, no observable objects"
+      ],
+      "side_effects": [
+        "None at runtime. Build-time only: actool reads this manifest plus the sibling Assets/ folder and emits AppIcon.icns into the app bundle Resources folder."
+      ],
+      "platform_assumptions": [
+        "Apple Icon Composer .icon bundle format (Xcode 26 / macOS 26 era), not a legacy .appiconset Contents.json",
+        "Liquid Glass rendering: the glass-specializations booleans ask the system to render a layer as glass; there is no Windows equivalent",
+        "Appearance specializations \"dark\" and \"tinted\" are Apple system icon appearance modes; \"tinted\" is the monochrome tinted icon mode",
+        "Display P3 wide-gamut color is used for four of the six gradient stop values (display-p3:...), sRGB for one; Windows icon pipelines are sRGB only",
+        "translation-in-points uses Apple points, and the system composites the group with an automatic system shadow (shadow.kind \"neutral\")",
+        "supported-platforms enumerates Apple platform icon masks: circles [\"watchOS\"], squares \"shared\"",
+        "Serialized in Xcode JSON style (space colon space, alphabetically sorted keys, 2-space indent) with CRLF line endings and no trailing newline on the final line"
+      ],
+      "persisted_fields": [
+        "fill-specializations: array of {appearance?: \"dark\", value: {linear-gradient: [string, string]}}",
+        "fill-specializations[0].value.linear-gradient = [\"display-p3:0.56863,0.76863,1.00000,1.00000\", \"srgb:0.14510,0.50196,1.00000,1.00000\"] (default / light plate)",
+        "fill-specializations[1] = {appearance: \"dark\", value: {linear-gradient: [\"display-p3:0.20870,0.20870,0.20870,1.00000\", \"display-p3:0.08561,0.08561,0.08561,1.00000\"]}}",
+        "groups: array of exactly one group object",
+        "groups[0].layers: array of exactly 5 layer objects",
+        "groups[0].shadow = {kind: \"neutral\", opacity: 0.6}",
+        "groups[0].translucency = {enabled: true, value: 0.2}",
+        "supported-platforms.circles = [\"watchOS\"]",
+        "supported-platforms.squares = \"shared\"",
+        "layer key \"hidden\": boolean, false on all four bitmap layers, absent on the SVG layer",
+        "layer key \"position\": {scale: number, translation-in-points: [number, number]}, absent on the SVG layer",
+        "layer key \"opacity-specializations\": array of {appearance?: \"dark\" | \"tinted\", value: number}",
+        "layer key \"glass-specializations\": array of {appearance?: \"dark\", value: boolean}, absent on the SVG layer"
+      ],
+      "ui_elements": [
+        "Layer 1 \"mascot dark\" / mascot dark.png: glass false default, glass true dark; hidden false; opacity 0 default, 1 dark, 1 tinted; position scale 0.5, translation-in-points [0, 36]",
+        "Layer 2 \"shadow dark\" / shadow dark.png: glass false default, glass false dark; hidden false; opacity 0 default, 1 dark, 1 tinted; position scale 1, translation-in-points [0, 342]",
+        "Layer 3 \"mascot \" (trailing space kept in the name) / mascot (3).png: glass true default, glass false dark; hidden false; opacity-specializations list only {appearance dark, value 0} and {appearance tinted, value 0} with no default entry; position scale 0.5, translation-in-points [0, 36]",
+        "Layer 4 \"shadow def\" / shadow def.png: glass false default, glass false dark; hidden false; opacity 1 default, 0 dark, 0 tinted; position scale 1, translation-in-points [0, 342]",
+        "Layer 5 \"SVG Image\" / SVG Image.svg: opacity 0.33 default and 0.33 dark, no tinted entry, no position block and no glass-specializations block",
+        "Group drop shadow: kind \"neutral\", opacity 0.6",
+        "Group translucency: enabled true, value 0.2",
+        "Light plate gradient: display-p3 (0.56863, 0.76863, 1.00000) pale sky blue to srgb (0.14510, 0.50196, 1.00000) saturated blue, alpha 1.00000 on both stops",
+        "Dark plate gradient: display-p3 (0.20870, 0.20870, 0.20870) to display-p3 (0.08561, 0.08561, 0.08561), alpha 1.00000 on both stops, a near-black neutral ramp"
+      ],
+      "feature_notes": [
+        "Appearance switching is done with opacity, not with hidden: every bitmap layer has hidden false, so all four bitmaps are always composited and only the per-appearance opacity values 0 or 1 decide which pair is seen. Light shows \"mascot \" (mascot (3).png) plus \"shadow def\"; dark and tinted show \"mascot dark\" plus \"shadow dark\".",
+        "Tinted appearance reuses the dark artwork exactly: tinted opacity is 1 on both dark-pair layers and 0 on both light-pair layers.",
+        "Both mascot bitmaps render at scale 0.5 with translation-in-points [0, 36]; both shadow bitmaps render at scale 1 with translation-in-points [0, 342].",
+        "Exactly one mascot layer is glass per appearance: \"mascot \" has glass true by default and false in dark, \"mascot dark\" has glass false by default and true in dark. Neither shadow layer is ever glass (false in both entries).",
+        "The SVG overlay holds a constant 0.33 opacity in both light and dark with no position adjustment, so it is a subtle texture or highlight pass rather than the primary mark.",
+        "The plate itself flips with appearance: bright blue gradient in light, near-black grey gradient in dark, so the icon background changes rather than only the artwork.",
+        "supported-platforms declares square masks as \"shared\" (one shared square rendition) and lists watchOS as the only circular-mask platform; this is a macOS app, so the watchOS circle entry is Icon Composer default metadata not exercised by the shipped product.",
+        "Authoring artifacts ship verbatim in the manifest: the asset name keeps the duplicate-download suffix \"mascot (3).png\" and the layer name keeps its trailing space as \"mascot \"."
+      ],
+      "unresolved_questions": [
+        "The file does not state z-order, so I cannot confirm from this file alone whether groups[0].layers[0] is front-most or back-most; the compositing order of mascot vs shadow vs SVG overlay is inferred from the layer names only.",
+        "The \"mascot \" layer has no default-appearance opacity entry. Icon Composer presumably treats the missing default as 1.0, which is required for the light icon to show the mascot at all, but the default is not written in the file.",
+        "The sign convention and canvas origin for translation-in-points ([0, 36] and [0, 342]) are not documented here, so whether positive Y is up or down on the icon canvas cannot be established from this file.",
+        "How translucency {enabled true, value 0.2} composites with the per-layer glass-specializations is a system rendering detail not expressed in this manifest.",
+        "The visual content, pixel dimensions and color of the five referenced assets in the sibling Assets/ folder cannot be determined from this file; those assets are not part of this bundle.",
+        "Whether the single srgb: stop in the light gradient (the other three stops are display-p3:) is deliberate or an artifact of how that color was picked in Icon Composer cannot be determined here."
+      ]
+    }
+  ]
+}

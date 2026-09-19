@@ -1,0 +1,814 @@
+{
+  "family": "hydra",
+  "commit": "dd2b86efef9e77168f304a86e8a8411877578bbe",
+  "reference_root": "E:/Droppy/reference/droppy-code",
+  "note": "Every 'verbatim' block below is the literal text of the named line range in the pinned checkout, copied by a generator that read the file, not retyped.",
+  "resolutions": [
+    {
+      "id": "C1",
+      "kind": "contradiction",
+      "finding": "R031 state_owned says HydraPrompts.verificationMarkers has 28 markers; its own feature_notes says 34.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/Core/Models/Hydra.swift:1128-1137",
+        "count": 34,
+        "elements": [
+          "xcodebuild",
+          "swift build",
+          "swift test",
+          "swiftlint",
+          "npm test",
+          "npm run build",
+          "npm run test",
+          "yarn build",
+          "yarn test",
+          "pnpm test",
+          "cargo build",
+          "cargo test",
+          "go test",
+          "pytest",
+          "gradle",
+          "eslint",
+          "tsc ",
+          "build succeeded",
+          "run the build",
+          "run the tests",
+          "run the test suite",
+          "build and prove",
+          "prove it builds",
+          "prove it compiles",
+          "check that it builds",
+          "check it still builds",
+          "make sure it builds",
+          "make sure it compiles",
+          "confirm the build",
+          "verify the build",
+          "verify that it builds",
+          "make sure nothing else broke",
+          "run the suite",
+          "build verification"
+        ],
+        "verbatim_declaration": "    private static let verificationMarkers: [String] = [\n        \"xcodebuild\", \"swift build\", \"swift test\", \"swiftlint\", \"npm test\", \"npm run build\",\n        \"npm run test\", \"yarn build\", \"yarn test\", \"pnpm test\", \"cargo build\", \"cargo test\",\n        \"go test\", \"pytest\", \"gradle\", \"eslint\", \"tsc \", \"build succeeded\", \"run the build\",\n        \"run the tests\", \"run the test suite\", \"build and prove\", \"prove it builds\",\n        \"prove it compiles\", \"check that it builds\", \"check it still builds\",\n        \"make sure it builds\", \"make sure it compiles\", \"confirm the build\",\n        \"verify the build\", \"verify that it builds\", \"make sure nothing else broke\",\n        \"run the suite\", \"build verification\",\n    ]",
+        "matching_rule": "DroppyCode/Core/Models/Hydra.swift:1141-1150 withoutVerificationSteps: splits the prompt on \"\\n\" with omittingEmptySubsequences: false, lowercases each line, drops the line if ANY marker is a substring of it. If no line was dropped the prompt is returned UNCHANGED (identity, not a re-join). Otherwise the kept lines are joined with \"\\n\" and the literal suffix \"\\nMake the assigned edits and report; the lead handles all validation.\" is appended.",
+        "verbatim_function": "    static func withoutVerificationSteps(_ prompt: String) -> String {\n        let kept = prompt.split(separator: \"\\n\", omittingEmptySubsequences: false).filter { line in\n            let lowered = line.lowercased()\n            return !verificationMarkers.contains { lowered.contains($0) }\n        }\n        if kept.count == prompt.split(separator: \"\\n\", omittingEmptySubsequences: false).count { return prompt }\n        return kept.joined(separator: \"\\n\")\n            + \"\\nMake the assigned edits and report; the lead handles all validation.\"\n    }\n",
+        "notes": [
+          "Note 'tsc ' carries a TRAILING SPACE; that space is part of the marker.",
+          "Matching is substring-on-lowercased-line, so 'gradle', 'pytest', 'eslint' fire inside longer words too (for example 'pytest-cov', 'eslintrc')."
+        ]
+      },
+      "port_impact": "Ship exactly these 34 strings in this order, keep the trailing space in 'tsc ', keep the substring (not word-boundary) match, keep the identity return when nothing was dropped, and keep the exact appended sentence."
+    },
+    {
+      "id": "C2",
+      "kind": "contradiction",
+      "finding": "R005 says the head cap is [pair?.maxHeads, settings.hydraMaxHeads].compactMap{$0}.min() and that with neither set heads run uncapped; R031 says hasRoom uses maxHeads ?? uncappedConcurrency = 8.",
+      "verdict": "PARTIALLY_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "both_are_true_of_different_things": true,
+        "launch_field": "DroppyCode/App/AppModel+Hydra.swift:180 — maxHeads: [pair?.maxHeads, settings.hydraMaxHeads].compactMap { $0 }.min(). With neither set the FIELD is nil. Source comment on DroppyCode/App/AppModel+Hydra.swift:179 literally says \"with neither, the heads run uncapped\".",
+        "dispatch_ceiling": "DroppyCode/Core/Models/Hydra.swift:168 uncappedConcurrency = 8; DroppyCode/Core/Models/Hydra.swift:171-173 func hasRoom(running:) { running < (maxHeads ?? Self.uncappedConcurrency) }.",
+        "verbatim_hasRoom": "    var antiSlopEnabled = true\n\n    /// How many Droppy-run heads may work at once for a pair with no cap of its own. The\n    /// tasks past it wait their turn (`ThreadRuntime.spawnWaitingHeads`) and go out as\n    /// heads finish, so a lead may still ask for as many as the job needs. Twenty-one heads\n    /// at once each streaming into the app, each on its own copy of the checkout and its\n    /// own CLI, kept the main thread and the GPU busy past the point of answering, and\n    /// the app had to be force quit.\n    static let uncappedConcurrency = 8\n\n    /// Whether one more head may go out with `running` already at work.\n    func hasRoom(running: Int) -> Bool {\n        running < (maxHeads ?? Self.uncappedConcurrency)\n    }",
+        "scope_of_the_8": "SOURCE FACT: hasRoom has exactly two call sites, and BOTH count Droppy-run heads only: DroppyCode/App/Runtime/ThreadRuntime.swift:1014 (launch.hasRoom(running: app.runningDroppyHeads(of: threadID))) and :2889 (while !hydraWaiting.isEmpty, launch?.hasRoom(running: app.runningDroppyHeads(of: threadID)) ?? true). runningDroppyHeads is AppModel+Hydra.swift:225-227 and filters hydra?.kind == .droppy && status == .running.",
+        "consequence_native": "SOURCE FACT: for a NATIVE launch (Claude/Codex/Copilot with heads on the lead's provider) nothing in the app enforces 8. With maxHeads nil the Claude/Copilot policy sentence simply omits the cap clause and codexConfig omits agents.max_concurrent_threads_per_session entirely (Hydra.swift:830-831), so the provider's own default governs.",
+        "consequence_droppy": "SOURCE FACT: for Droppy-run heads maxHeads nil means 8 concurrent, and the surplus sits in hydraWaiting and goes out as slots free (ThreadRuntime.spawnWaitingHeads).",
+        "edge_case": "SOURCE FACT: ThreadRuntime.swift:2889 uses `launch?.hasRoom(...) ?? true` — if hydraLaunch(for:) returns nil (Hydra switched off between the block arriving and the sweep) EVERY waiting head goes out at once with no ceiling at all."
+      },
+      "port_impact": "Model two distinct values. (1) The nil-able launch cap, which is what is written into prompts and into Codex config. (2) The Droppy-run dispatch ceiling of 8 used only when scheduling app-run heads. Do not clamp native heads to 8, and do not tell the lead about a cap of 8 when no cap is set. Reproduce the `?? true` escape hatch at the waiting-head sweep."
+    },
+    {
+      "id": "C3",
+      "kind": "contradiction",
+      "finding": "R005 says HydraCookbook.model(named:) breaks ties toward the LATER position in registry.models(for:).",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/App/HydraCookbook+Resolve.swift:49-62",
+        "verbatim": "    @MainActor static func model(named names: [String], for provider: ProviderKind, registry: ProviderRegistry) -> ModelOption? {\n        let options = registry.models(for: provider)\n        for name in names {\n            let matches = options.filter { $0.name.localizedCaseInsensitiveContains(name) || $0.id.localizedCaseInsensitiveContains(name) }\n            guard !matches.isEmpty else { continue }\n            return matches.max { lhs, rhs in\n                let lhsVersion = version(of: lhs.name) ?? -1\n                let rhsVersion = version(of: rhs.name) ?? -1\n                if lhsVersion != rhsVersion { return lhsVersion < rhsVersion }\n                return options.firstIndex(where: { $0.id == lhs.id })! > options.firstIndex(where: { $0.id == rhs.id })!\n            }\n        }\n        return nil\n    }\n\n    /// The first version number in a catalog name ('Gemini 3.8 Flash' → 3.8), if any.\n    private static func version(of name: String) -> Double? {\n        guard let match = name.firstMatch(of: #/[0-9]+(?:\\.[0-9]+)?/#) else { return nil }\n        return Double(match.output)\n    }",
+        "reasoning": "max(by:) replaces its running result only when areInIncreasingOrder(result, next) is true, so it keeps the FIRST of equals. With equal versions the comparator returns firstIndex(lhs) > firstIndex(rhs), which makes a HIGHER index compare as SMALLER. The maximum is therefore the LOWEST-index option. Worked example: matches [A(idx 0), B(idx 1)], same version. result = A; areInIncreasingOrder(A,B) = (0 > 1) = false; result stays A.",
+        "further_facts": [
+          "`names` is a priority list: the for-loop at :51 returns on the FIRST name that has any match, so a later name is never considered once an earlier one matched anything.",
+          "Matching is localizedCaseInsensitiveContains against BOTH option.name and option.id (:52).",
+          "version(of:) (:65-68) reads the first #/[0-9]+(?:\\.[0-9]+)?/# match of the option's NAME only (never the id) and yields Double; no version parses to -1, so an unversioned name always loses to any versioned one."
+        ]
+      },
+      "port_impact": "Implement the tie-break as 'lowest index in registry.models(for:) wins'. Implement version comparison on the display name only, with an absent version treated as -1. Return on the first names[] entry that matches anything."
+    },
+    {
+      "id": "C4",
+      "kind": "contradiction",
+      "finding": "R031 implies the Copilot worker gets a tools list and lists `tools` among the emitted Copilot customAgents keys.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/Core/Models/Hydra.swift:777-825",
+        "verbatim": "    static func copilotAgents(_ launch: HydraLaunch) -> [JSONValue] {\n        let antiSlop = AntiSlopPolicy.instructions(enabled: launch.antiSlopEnabled)\n        func agent(name: String, display: String, description: String, prompt: String, tools: [String]?) -> JSONValue {\n            var object: [String: JSONValue] = [\n                \"name\": .string(name),\n                \"displayName\": .string(display),\n                \"description\": .string(description),\n                \"prompt\": .string(prompt),\n                \"infer\": true,\n            ]\n            if let tools { object[\"tools\"] = .array(tools.map(JSONValue.string)) }\n            if let model = launch.workerModel, model != \"auto\" { object[\"model\"] = .string(model) }\n            if let effort = launch.workerEffort, !effort.isEmpty { object[\"reasoningEffort\"] = .string(effort) }\n            return .object(object)\n        }\n        let worker = agent(\n            name: workerAgentName,\n            display: \"Hydra worker\",\n            description: \"Hydra head that implements one delegated task: edits files, runs commands. Use when a request splits into independent pieces.\",\n            prompt: workerPrompt + \"\\n\\n\" + antiSlop,\n            tools: nil\n        )\n        var agents = [\n            worker,\n            // The scout's prompt keeps it read-only; the CLI's tool names are not pinned\n            // here, since a name it does not know could refuse the whole session.\n            agent(\n                name: scoutAgentName,\n                display: \"Hydra scout\",\n                description: \"Hydra head for read-only research: finds files, reads code and reports back. Use when a job needs many files or sources read.\",\n                prompt: scoutPrompt + \"\\n\\n\" + antiSlop,\n                tools: nil\n            ),\n        ]\n        // One worker variant per routable profile, as on Claude: the lead routes a task\n        // to the profile by starting the variant.\n        for profile in nativeRoutableProfiles(of: launch) {\n            guard case .object(var variant) = worker else { continue }\n            variant[\"name\"] = .string(workerAgentName(for: profile))\n            variant[\"displayName\"] = .string(\"Hydra worker · \\(profile.name)\")\n            variant[\"description\"] = .string(\"Hydra head that implements one delegated task, tuned as the '\\(profile.name)' profile. Prefer it for work that belongs to '\\(profile.name)' over the plain \\(workerAgentName).\")\n            if let model = profile.model, model != \"auto\" { variant[\"model\"] = .string(model) }\n            if let effort = profile.effort, !effort.isEmpty { variant[\"reasoningEffort\"] = .string(effort) }\n            agents.append(.object(variant))\n        }\n        return agents\n    }\n\n    /// Codex's config overrides for the thread: the heads' model and effort, and how many",
+        "facts": [
+          "The local helper `agent(name:display:description:prompt:tools:)` emits \"tools\" only under `if let tools` (:787).",
+          "worker is built with tools: nil (:792-798). scout is built with tools: nil (:803-809). There is no third call.",
+          "Therefore the Copilot customAgents objects NEVER carry a \"tools\" key. The `tools` parameter is dead in this checkout.",
+          "Copilot key set actually emitted, 5 always + up to 2 conditional: name, displayName, description, prompt, infer(true); plus model only when launch.workerModel != nil && != \"auto\"; plus reasoningEffort only when launch.workerEffort != nil && non-empty.",
+          "Profile variants (:812-822) copy the worker object and overwrite name, displayName (\"Hydra worker \\u00b7 <profile name>\"), description, and conditionally model (skipping \"auto\") and reasoningEffort. They inherit tools-absence.",
+          "Contrast Claude (:742-774): the SCOUT does carry \"tools\": [\"Read\",\"Grep\",\"Glob\",\"WebFetch\",\"WebSearch\"] (:756); the worker does not. Claude skips model when == \"default\"; Copilot skips it when == \"auto\"."
+        ]
+      },
+      "port_impact": "Emit no `tools` key at all for Copilot, on worker, scout and every profile variant. Keep Claude's scout tools array exactly [\"Read\",\"Grep\",\"Glob\",\"WebFetch\",\"WebSearch\"] and keep the two different 'default model' sentinels: \"default\" for Claude, \"auto\" for Copilot."
+    },
+    {
+      "id": "C5",
+      "kind": "contradiction",
+      "finding": "R005 leaves HydraPanel.finishHold unresolved while R013 fixes it at 2.0.",
+      "verdict": "PARTIALLY_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/App/Views/Chat/HydraPanel.swift:41 — static let finishHold: TimeInterval = 2.0. (The critique cites :40; the declaration is on :41, :38-40 are its doc comment.)",
+        "auto_clear_delay": "DroppyCode/App/AppModel+Hydra.swift:552-566 — when settings.hydraAutoClearFinished is on, finishHydraHead starts a @MainActor Task that sleeps for .seconds(HydraPanel.finishHold + 0.2) = 2.2 s, then re-checks thread(id) exists, head.isInPanel, and head.hydra?.isFinished == true before clearing.",
+        "verbatim_autoclear": "        // Opt-in: a finished head leaves the panel on its own, for the sidebar under its\n        // lead, instead of waiting for \"Clear finished heads\". Running heads stay put. It\n        // goes once its panel has played the head's finish (see `HydraPanel.finishHold`),\n        // not the instant it is done, and only if it is still there to clear.\n        if settings.hydraAutoClearFinished {\n            Task { @MainActor [weak self] in\n                try? await Task.sleep(for: .seconds(HydraPanel.finishHold + 0.2))\n                guard let self, let head = self.thread(id), head.isInPanel, head.hydra?.isFinished == true else { return }\n                self.updateThread(id) { $0.isInPanel = false }\n                if let parentID = head.parentThreadID {\n                    let leadRuntime = self.runtime(for: parentID)\n                    if leadRuntime.hydraSelectedHeadID == id { leadRuntime.hydraSelectedHeadID = nil }\n                    if leadRuntime.hydraPoppedHeadID == id { leadRuntime.hydraPoppedHeadID = nil }\n                    leadRuntime.hydraAutoPopHeld.remove(id)\n                    leadRuntime.hydraAutoPanelDocks[id] = nil\n                    leadRuntime.panelStackOrder.removeAll { $0 == .auto(id) }\n                }\n            }\n        }",
+        "cleanup_on_clear": "SOURCE FACT: the clear sets isInPanel = false and, on the lead's runtime, nils hydraSelectedHeadID and hydraPoppedHeadID when they point at this head, removes the id from hydraAutoPopHeld, nils hydraAutoPanelDocks[id], and removes .auto(id) from panelStackOrder.",
+        "stage_hold": "SOURCE FACT: HydraPanel.swift:89 separately sleeps .seconds(Self.finishHold) (2.0 s) to hold the finished head on stage."
+      },
+      "port_impact": "Auto-clear delay is exactly 2200 ms and the panel stage hold is exactly 2000 ms; derive the former as hold + 200 ms so they stay coupled. Re-check the three conditions after the sleep before clearing, and do the five-part runtime cleanup."
+    },
+    {
+      "id": "G1",
+      "kind": "gap",
+      "finding": "HydraRunMetricsView.swift (398 lines) is documented by R014 as shipped UI but may be unreachable.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "`grep -rn \"HydraRunMetrics\" --include=*.swift .` over the whole checkout returns 29 hits, every one of them inside DroppyCode/App/Views/Chat/HydraRunMetricsView.swift itself. No other file mentions HydraRunMetrics, HydraRunMetricsReader, HydraRunMetricsView or HydraRunMetricsCard. A broader `grep -rln \"Metrics\"` returns 9 files; the other 8 are TimelineMetrics / ScrollMetrics / unrelated.",
+        "compiled_but_unused": "project.yml targets.DroppyCode.sources is `- path: DroppyCode / type: syncedFolder`, so the file IS compiled into the app. There is no #if DEBUG, no feature flag and no environment gate in it; it is simply never constructed. DEAD_CODE_STRIPPING: YES is set in project.yml, so the SwiftUI view code is stripped from the shipped binary.",
+        "r014_error": "R014 left 'where it is instantiated' as an unresolved question; the checkout answers it definitively (nowhere)."
+      },
+      "port_impact": "Do NOT port HydraRunMetricsView.swift. Porting it would add a card the macOS app never shows, which is a parity violation in the other direction. Record it as dead in the port's inventory so a later reader does not re-queue it."
+    },
+    {
+      "id": "G2",
+      "kind": "gap",
+      "finding": "setHydra(_:for:) silently rewrites the chat's model and effort when Hydra is turned on.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/App/AppModel+Hydra.swift:193-215",
+        "verbatim": "    /// The per-chat Hydra switch: off kills heads for that chat only, on restores them\n    /// (with the app-wide switch on). Each flip also saves the choice as the default\n    /// new threads start with.\n    func setHydra(_ on: Bool, for id: UUID) {\n        guard let thread = thread(id) else { return }\n        guard on else {\n            updateThread(id) { $0.hydraEnabled = false }\n            settings.hydraDefaultEnabled = false\n            return\n        }\n        let pair = settings.hydraPair(for: thread.provider, model: thread.model)\n        updateThread(id) {\n            $0.hydraEnabled = true\n            $0.hydraPairID = pair?.id\n        }\n        settings.hydraDefaultEnabled = true\n        guard let pair else { return }\n        if let lead = pair.orchestratorModel, lead != thread.model, providers.model(lead, for: thread.provider) != nil {\n            updateThread(id) {\n                $0.model = lead\n                $0.effort = pair.orchestratorEffort ?? $0.effort\n            }\n        } else if let effort = pair.orchestratorEffort {\n            updateThread(id) { $0.effort = effort }\n        }\n    }",
+        "exact_behavior": [
+          "OFF branch (:195-199): updateThread sets hydraEnabled = false, then settings.hydraDefaultEnabled = false, then returns. It does NOT clear hydraPairID and does NOT touch model or effort.",
+          "ON branch: pair = settings.hydraPair(for: thread.provider, model: thread.model) (AppSettings.swift:805-810 — first pair on the provider whose orchestratorModel == thread.model, else first with orchestratorModel == nil, else the provider's first pair).",
+          "updateThread sets hydraEnabled = true and hydraPairID = pair?.id (nil when no pair matched).",
+          "settings.hydraDefaultEnabled = true is written on EVERY on-flip; this is the same UserDefaults key new threads seed from.",
+          "guard let pair else { return } — with no pair, model and effort are untouched.",
+          "If pair.orchestratorModel exists, differs from thread.model, AND providers.model(lead, for: thread.provider) != nil, then thread.model = lead and thread.effort = pair.orchestratorEffort ?? thread.effort.",
+          "ELSE IF pair.orchestratorEffort != nil, thread.effort = that effort alone (model untouched). This else-branch fires when the model already equals the pair's, when the pair names no model, and when the provider catalogue does not list the pair's model."
+        ],
+        "reachability": "Right-click the Hydra mark -> 'Turn Hydra on for this chat' (HydraButton.swift:219-222), and the Settings-off branch 'Turn Hydra on' (HydraButton.swift:212-216), both call setHydra(true, for:)."
+      },
+      "port_impact": "The per-chat Hydra toggle is not a pure toggle: it re-pins hydraPairID, writes the app-wide hydraDefaultEnabled, and can change the chat's model and effort. Reproduce the catalogue guard (providers.model(lead, for: provider) != nil) and the two-branch effort fallback exactly, including `?? existing effort` in the model branch."
+    },
+    {
+      "id": "G3",
+      "kind": "gap",
+      "finding": "keepsModel discards the pair's workerModel and workerEffort when the named worker provider is unavailable.",
+      "verdict": "PARTIALLY_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/App/AppModel+Hydra.swift:148-188",
+        "verbatim": "    /// What the heads run on while the chat leads, or nil with Hydra off. Without a pair\n    /// the heads inherit the chat's own model, and the effort as `hydraHeadsEffort`\n    /// tempers it, and go out without a cap.\n    func hydraLaunch(for thread: ChatThread) -> HydraLaunch? {\n        guard hydraIsOn(thread) else { return nil }\n        let refs = projects.map { HydraProjectRef(name: $0.name, path: $0.path) }\n        let ownRefs = refs.filter { $0.path == project(thread.projectID)?.path } + refs.filter { $0.path != project(thread.projectID)?.path }\n        let pair = hydraPair(for: thread)\n        let headsProvider = pair.map(hydraHeadsProvider) ?? thread.provider\n        let elsewhere = headsProvider != thread.provider\n        // A pair's heads' model and effort are its heads' provider's words: with the heads\n        // kept on the lead's provider because that one cannot run here, they mean nothing,\n        // and the heads inherit the chat's own model and effort instead.\n        let keepsModel = pair.map { !$0.sendsHeadsElsewhere || elsewhere } ?? true\n        var label: String?\n        if elsewhere {\n            let model = providers.model(pair?.workerModel, for: headsProvider) ?? providers.defaultModel(for: headsProvider)\n            label = \"\\(model?.shortName ?? pair?.workerModel ?? \"the default model\") on \\(headsProvider.displayName)\"\n        }\n        let pairEffort = keepsModel ? pair?.workerEffort : nil\n        let workerEffort: String?\n        if let pairEffort {\n            workerEffort = pairEffort\n        } else if settings.hydraTempersHeadEffort, !elsewhere {\n            workerEffort = Self.hydraHeadsEffort(leadEffort: thread.effort, scale: providers.model(thread.model, for: thread.provider)?.efforts ?? [])\n        } else {\n            workerEffort = nil\n        }\n        return HydraLaunch(\n            headsProvider: headsProvider,\n            runsNatively: !elsewhere && Self.hydraIsNative(thread.provider),\n            headsLabel: label,\n            workerModel: keepsModel ? pair?.workerModel : nil,\n            workerEffort: workerEffort,\n            // The lower of the pair's cap and the Hydra page's; with neither, the heads run uncapped.\n            maxHeads: [pair?.maxHeads, settings.hydraMaxHeads].compactMap { $0 }.min(),\n            headProfiles: pair?.headProfiles ?? [],\n            isolatesHeads: settings.hydraIsolateHeads,\n            autoMerges: settings.hydraAutoMerge,\n            reviewsHeads: settings.hydraReviewHeads,\n            projects: ownRefs,\n            antiSlopEnabled: settings.antiSlopEnabled\n        )\n    }",
+        "exact_behavior": [
+          "headsProvider = pair.map(hydraHeadsProvider) ?? thread.provider (:153). hydraHeadsProvider (:115-119) returns pair.workerProvider only when it differs from pair.provider AND providers.countsAsInstalled(it) AND settings.isEnabled(it); otherwise pair.provider.",
+          "elsewhere = headsProvider != thread.provider (:154).",
+          "keepsModel = pair.map { !$0.sendsHeadsElsewhere || elsewhere } ?? true (:158). With no pair it is true (moot, since pair?.workerModel is nil anyway).",
+          "workerModel = keepsModel ? pair?.workerModel : nil (:177). So yes: an unavailable worker provider DISCARDS the pair's workerModel and the heads inherit the lead's model at insertHydraHead (:410 falls through to parent.model since elsewhere is false).",
+          "workerEffort does NOT simply become nil. pairEffort = keepsModel ? pair?.workerEffort : nil (:164); then :166-172, if pairEffort is nil and settings.hydraTempersHeadEffort and !elsewhere, workerEffort = hydraHeadsEffort(leadEffort: thread.effort, scale: the lead model's efforts). Only with hydraTempersHeadEffort off does it end nil."
+        ],
+        "critic_overstatement": "The critic said both fields are 'set to nil'. workerModel is; workerEffort is replaced by the TEMPERED LEAD EFFORT under the default settings (hydraTempersHeadEffort defaults true), which is a different observable value.",
+        "user_visible_note": "DroppyCode/App/AppModel+Hydra.swift:124-128 hydraHeadsFallbackNote produces exactly \"The pair's heads run on <lead provider displayName> for now: <worker provider displayName> is switched off in Settings.\" or \"... is not installed on this Mac.\" The choice is providers.status(provider).isInstalled (note: .isInstalled, NOT countsAsInstalled, so the two predicates can disagree). ThreadRuntime.swift:2885-2888 prefixes it with \"Hydra: \" and posts it once per pair id per lead (hydraFallbackNoted)."
+      },
+      "port_impact": "On worker-provider fallback: drop workerModel, drop workerEffort, then run the tempering path as if the pair had set no effort. Emit the fallback note once per pair id per lead thread, with the 'Hydra: ' prefix and the exact two reason clauses. Keep the countsAsInstalled/isInstalled asymmetry."
+    },
+    {
+      "id": "G4",
+      "kind": "gap",
+      "finding": "Effort tempering is gated on settings.hydraTempersHeadEffort && !elsewhere; no report stated the gate.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/App/AppModel+Hydra.swift:164-172",
+        "verbatim": "        let pairEffort = keepsModel ? pair?.workerEffort : nil\n        let workerEffort: String?\n        if let pairEffort {\n            workerEffort = pairEffort\n        } else if settings.hydraTempersHeadEffort, !elsewhere {\n            workerEffort = Self.hydraHeadsEffort(leadEffort: thread.effort, scale: providers.model(thread.model, for: thread.provider)?.efforts ?? [])\n        } else {\n            workerEffort = nil\n        }",
+        "tempering_rule": "DroppyCode/App/AppModel+Hydra.swift:137-143 hydraHeadsEffort(leadEffort:scale:) — nil/empty lead effort gives nil; a lead effort NOT in the scale is returned unchanged; otherwise working = scale.firstIndex(of: \"medium\") ?? (scale.isEmpty ? nil : (scale.count - 1) / 2); nil working returns leadEffort; else lead > working ? scale[working] : leadEffort.",
+        "verbatim_tempering": "    /// The effort heads inherit from a lead when the pair leaves it open: a working\n    /// effort when the lead thinks above it, since a head's brief is a bounded task and\n    /// the lead keeps the judgement; the lead's own effort at the working rung or below,\n    /// or on a scale the lead's word is not on; nil when the lead has none. The working\n    /// rung is a literal medium when the model's scale has one, else the scale's own\n    /// middle rung — Z.ai's low/high/max works out at high, which its API counts as the\n    /// medium effort (see `ZaiSession.reasoningEffort`).\n    static func hydraHeadsEffort(leadEffort: String?, scale: [String]) -> String? {\n        guard let leadEffort, !leadEffort.isEmpty else { return nil }\n        guard let lead = scale.firstIndex(of: leadEffort) else { return leadEffort }\n        let working = scale.firstIndex(of: \"medium\") ?? (scale.isEmpty ? nil : (scale.count - 1) / 2)\n        guard let working else { return leadEffort }\n        return lead > working ? scale[working] : leadEffort\n    }",
+        "scale_source": "DroppyCode/App/AppModel+Hydra.swift:169 — the scale is providers.model(thread.model, for: thread.provider)?.efforts ?? [] , i.e. the LEAD model's effort ladder, not the head model's."
+      },
+      "port_impact": "Only temper when the setting is on AND the heads run on the lead's own provider. With heads elsewhere and no pair effort, send no effort at all. Use integer index (count - 1) / 2 for the middle rung, and the literal \"medium\" when the scale has it."
+    },
+    {
+      "id": "G5",
+      "kind": "gap",
+      "finding": "insertHydraHead's head-profile routing precedence (provider/model/effort/title) is undocumented.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/App/AppModel+Hydra.swift:346-451 (the critique's 387-405 is only part of it)",
+        "verbatim": "        let index = pinned ?? fallback\n        updateThread(parentID) { $0.hydraSpawnCount = max((pinned == nil ? index : sequential) + 1, parent.hydraSpawnCount + 1) }\n        let launch = hydraLaunch(for: parent)\n        // A delegation routed to one of the pair's head profiles runs on that profile's\n        // model, effort and provider instead of the pair's shared worker fields; an\n        // unknown profile name falls back to the shared fields, like an unrouted one.\n        let routed = profile.flatMap { launch?.profile(named: $0) }\n        let persona = HydraRoster.persona(at: index)\n        let resolved = hydraProject(named: project, for: parent)\n        let target = resolved ?? self.project(parent.projectID)\n        let sameProject = target?.id == parent.projectID\n        if let reference = project, !reference.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, resolved == nil {\n            let fallback = self.project(parent.projectID)?.name ?? \"this chat's project\"\n            runtime(for: parentID).appendHydraNote(\"Hydra: no project named \\(reference) is in the sidebar or on this Mac, so \\(persona.name) works in \\(fallback).\")\n        }\n\n        // A Droppy-run head goes out on the pair's heads' provider, which may not be the\n        // lead's: there it runs the pair's model or that provider's default, and the lead's\n        // model and effort mean nothing to it. A native head lives in the lead's session.\n        let headsProvider = kind == .droppy ? (routed?.provider ?? launch?.headsProvider ?? parent.provider) : parent.provider\n        let elsewhere = headsProvider != parent.provider\n        var head = ChatThread(\n            projectID: target?.id ?? parent.projectID,\n            provider: headsProvider,\n            model: native?.model ?? routed?.model ?? launch?.workerModel ?? (elsewhere ? providers.defaultModel(for: headsProvider)?.id : parent.model),\n            effort: routed?.effort ?? launch?.workerEffort ?? (elsewhere ? nil : parent.effort),\n            // A Droppy-run head works in its own copy under a brief that forbids git and\n            // build-output work, and its landing is a patch the lead reviews: nobody sits\n            // at its chat to answer a permission prompt, so it runs with full access. Left\n            // on the lead's supervised mode, a head stalled on its first gated tool until\n            // the watchdog stopped it. A native head lives in the lead's session and takes\n            // the lead's mode.\n            runtimeMode: kind == .droppy ? .fullAccess : parent.runtimeMode,\n            fastMode: false\n        )\n        head.parentThreadID = parentID\n        head.isInPanel = true\n        head.worktreePath = sameProject ? parent.worktreePath : nil\n        head.branch = sameProject ? parent.branch : nil\n        if task.isEmpty {\n            head.title = persona.name\n        } else if !sameProject, let target {\n            head.title = \"\\(persona.name) · \\(TextCleanup.singleLine(task, limit: 60)) · \\(target.name)\"\n        } else {\n            head.title = \"\\(persona.name) · \\(TextCleanup.singleLine(task, limit: 60))\"\n        }\n        // A routed head wears its profile in the title: \"Hank · audit the parser · deep\".\n        if let routed { head.title += \" · \\(routed.name)\" }\n        head.hasCustomTitle = true\n        var info = HydraHeadInfo(index: index, task: task, kind: kind, origin: origin)\n        info.profile = routed?.name\n        info.nativeID = native?.id\n        info.nativeTaskID = native?.taskID\n        info.toolUseID = native?.toolUseID\n        info.batchID = batchID\n        info.isBackground = native?.isBackground ?? true\n        info.canStop = kind == .droppy || native?.taskID != nil || parent.provider == .codex\n        head.hydra = info",
+        "precedence": [
+          "routed = profile.flatMap { launch?.profile(named: $0) } (:392). HydraLaunch.profile(named:) (Hydra.swift:177-179) is headProfiles.first { $0.matches(name) }; HydraHeadProfile.matches (Hydra.swift:46-50) trims whitespace on both sides and compares case-insensitively, OR compares against agentSlug. agentSlug (Hydra.swift:38-40) lowercases the name and maps every character that is not a letter or number to '-'. An unknown profile name yields nil and the head runs on the shared worker fields.",
+          "PROVIDER (:405): kind == .droppy ? (routed?.provider ?? launch?.headsProvider ?? parent.provider) : parent.provider. A native head ALWAYS takes the parent's provider regardless of routing.",
+          "elsewhere (:406) = headsProvider != parent.provider.",
+          "MODEL (:410): native?.model ?? routed?.model ?? launch?.workerModel ?? (elsewhere ? providers.defaultModel(for: headsProvider)?.id : parent.model).",
+          "EFFORT (:411): routed?.effort ?? launch?.workerEffort ?? (elsewhere ? nil : parent.effort). Note there is no native?.effort term.",
+          "TITLE (:425-433): empty task -> persona.name; else cross-project -> \"<persona> \\u00b7 <task, singleLine limit 60> \\u00b7 <target project name>\"; else \"<persona> \\u00b7 <task, singleLine limit 60>\". Then if routed, title += \" \\u00b7 <routed.name>\". hasCustomTitle = true.",
+          "info.profile = routed?.name (:436) — the PROFILE'S OWN name, not the string the lead wrote.",
+          "runtimeMode (:418): kind == .droppy ? .fullAccess : parent.runtimeMode. fastMode always false (:419).",
+          "canStop (:442): kind == .droppy || native?.taskID != nil || parent.provider == .codex. isBackground (:441): native?.isBackground ?? true.",
+          "worktreePath/branch (:423-424) are inherited from the parent only when sameProject.",
+          "Side effects (:447-449): the lead runtime's isHydraPanelHidden = false and hydraSelectedHeadID = the new head."
+        ],
+        "roster_index_rules": "DroppyCode/App/AppModel+Hydra.swift:358-387 — sequential = hydraTeam(of:).isEmpty ? 0 : parent.hydraSpawnCount (an empty team RESTARTS the roster at 0). taken = every index any non-archived head of the lead holds, finished ones included. With preferredIndex >= 0: candidate = base, and while taken.contains(candidate) AND that index's head isFinished, candidate += 25 (HydraRoster.personas.count); pinned only if the final candidate is untaken. fallback = sequential, incremented while taken. index = pinned ?? fallback. hydraSpawnCount = max((pinned == nil ? index : sequential) + 1, parent.hydraSpawnCount + 1).",
+        "unresolved_project_note": "DroppyCode/App/AppModel+Hydra.swift:397-400 — when a delegation named a project that resolved to nothing, the lead's timeline gets exactly: \"Hydra: no project named <reference> is in the sidebar or on this Mac, so <persona name> works in <fallback project name or 'this chat's project'>.\""
+      },
+      "port_impact": "Implement the four precedence chains exactly as written, including the native short-circuits (native head keeps the parent's provider; native?.model wins over the routed profile's model but there is no native effort term). Use U+00B7 MIDDLE DOT as the title separator. Persist the profile's canonical name, not the lead's spelling."
+    },
+    {
+      "id": "G6",
+      "kind": "gap",
+      "finding": "AppModel+HydraMerge title(_:) prefixes every merge note title and every HydraMergeRecord.detail with '<project.name>: ' when several projects merge.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/App/AppModel+HydraMerge.swift:180-184",
+        "verbatim": "    private func mergeHydraProject(of leadID: UUID, lead: ChatThread, project: Project, checkout: String, work: HydraWork, runtime: ThreadRuntime, several: Bool) async -> HydraProjectMerge {\n        func stage(_ name: String) -> String { several ? \"\\(project.name): \\(name)\" : name }\n        func title(_ name: String) -> String { several ? \"\\(project.name): \\(name)\" : name }\n        // The words carry the project's name with several projects, the step is the dot on the pill's track.\n        func advance(_ step: HydraMergeStage) { runtime.hydraMergeStage = stage(step.words); runtime.hydraMergeStep = step }",
+        "facts": [
+          "stage(_:) and title(_:) are byte-identical closures; stage feeds the pill via advance(_:), title feeds every note title and every failure detail.",
+          "`several` is passed in by the caller (mergeHydraProject signature :180) and is true when more than one project is in the merge.",
+          "Confirmed call sites of title(): :189, :190, :194, :195, :206, :207, :242, :243, :263, :264, :269, :270, :277, :278, :311, :316.",
+          "The success note is note(leadID, title(\"Hydra merged \\(link.label)\"), lines...) at :311, so with several projects the timeline title is literally \"gaze-site: Hydra merged !123\".",
+          "HydraMergeRecord.detail for failures is title(<sentence>) + \": \" + <explanation> (see :189, :194, :206, :242, :263, :277). The success record at :310 carries detail: nil.",
+          "The generic catch at :315 does NOT use title() for the record detail (\"Hydra could not merge the team's work: <error>\") but DOES use it for the note title at :316. That asymmetry is in the source."
+        ],
+        "parser_is_safe": "HydraMergePopover.parse (HydraMergePopover.swift:33-...) reads the BODY only, so the title prefix does not break the card. HydraMergePopover.swift:27-29 filesPattern is ^(\\d+) files? \\(\\+(\\d+) \\u2212(\\d+)\\) landed on `([^`]+)` from `([^`]+)`\\.$ and accepts ONLY U+2212, matching the writer AppModel+HydraMerge.swift:681-685 filesLine which emits U+2212. HydraMergePopover.swift:31 headPattern is ^- (.+?) \\((\\d+)\\): (.*?) \\u2014 (?:no files|(\\d+) files?: (.*))$ and uses U+2014 EM DASH, matching the writer at :288 and :290."
+      },
+      "port_impact": "Apply the project prefix to note titles and record details, not only to the pill's stage words. Keep U+2212 in the files line and U+2014 in the head lines; an ASCII hyphen or em dash silently degrades the popover to plain text. Reproduce the catch-branch asymmetry (record detail unprefixed, note title prefixed)."
+    },
+    {
+      "id": "G7",
+      "kind": "gap",
+      "finding": "Hydra.mergeStatus pending text is missing from R031.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/Core/Models/Hydra.swift:912-949",
+        "verbatim": "\n    /// The true merge state for the front of a lead's message, so it never promises a merge that already happened or claims one that failed.\n    static func mergeStatus(merges: [HydraMergeRecord], unmergedFiles: Int, now: Date = .now) -> String? {\n        func files(_ count: Int) -> String { count == 1 ? \"1 file\" : \"\\(count) files\" }\n        func when(_ date: Date) -> String { date.formatted(date: .omitted, time: .shortened) }\n        func merged(_ record: HydraMergeRecord) -> String {\n            let link = [record.label, record.url?.absoluteString].compactMap { $0 }.joined(separator: \" \")\n            let scope = record.project.map { \" in \\($0)\" } ?? \"\"\n            return \"the team's work already merged as \\(link)\\(scope) at \\(when(record.at)) (\\(files(record.files))).\"\n        }\n        func pendingLine(_ prefix: String) -> String {\n            let one = unmergedFiles == 1\n            return \"\\(prefix) \\(one ? \"is\" : \"are\") not merged yet; \\(one ? \"it goes\" : \"they go\") out by \\(one ? \"itself\" : \"themselves\") once you finish this answer with every head back.\"\n        }\n        let pending = unmergedFiles > 0\n            ? pendingLine(\"\\(files(unmergedFiles)) changed since then\")\n            : \"Nothing has changed since, so no merge is pending and none is coming.\"\n        guard let last = merges.last else {\n            guard unmergedFiles > 0 else { return nil }\n            return \"Merge state: \\(pendingLine(\"\\(files(unmergedFiles)) changed in this chat\"))\"\n        }\n        switch last.outcome {\n        case .merged:\n            return \"Merge state: \\(merged(last)) \\(pending)\"\n        case .failed:\n            return \"Merge state: the last merge failed at \\(when(last.at)): \\(last.detail ?? \"no reason recorded\"). The work is still in the checkout and is retried once you finish this answer; if the reason needs the user (a sign-in, a conflict), say exactly that.\"\n        case .stray:\n            // A stray note right after a merge is a footnote to it: the merge is the news.\n            var parts = [\"Merge state:\"]\n            if let landed = merges.last(where: { $0.outcome == .merged }) { parts.append(merged(landed)) }\n            parts.append(\"At \\(when(last.at)) \\(last.detail ?? \"files were changed outside every project\")\")\n            parts.append(pending)\n            return parts.joined(separator: \" \")\n        }\n    }\n\n    /// The user's enabled Hydra setting expressed alongside their request. Codex's\n    /// manual delegation mode needs a user/project/skill request, not only the standing",
+        "helpers": [
+          "files(count) = count == 1 ? \"1 file\" : \"<count> files\".",
+          "when(date) = date.formatted(date: .omitted, time: .shortened) — the user's locale short time. On Windows use the OS short-time format for the current locale, not a fixed pattern.",
+          "merged(record) = \"the team's work already merged as <link><scope> at <when> (<files>).\" where link = [record.label, record.url?.absoluteString].compactMap{$0}.joined(separator: \" \") and scope = record.project.map { \" in \\($0)\" } ?? \"\".",
+          "pendingLine(prefix) = \"<prefix> <is|are> not merged yet; <it goes|they go> out by <itself|themselves> once you finish this answer with every head back.\" (singular chosen by unmergedFiles == 1)."
+        ],
+        "outcomes": [
+          "pending (when unmergedFiles > 0) = pendingLine(\"<files> changed since then\"); otherwise the literal \"Nothing has changed since, so no merge is pending and none is coming.\"",
+          "No previous merge at all and unmergedFiles == 0 -> returns nil (no note at front of the message).",
+          "No previous merge and unmergedFiles > 0 -> \"Merge state: \" + pendingLine(\"<files> changed in this chat\").",
+          ".merged -> \"Merge state: \" + merged(last) + \" \" + pending.",
+          ".failed -> \"Merge state: the last merge failed at <when>: <detail or 'no reason recorded'>. The work is still in the checkout and is retried once you finish this answer; if the reason needs the user (a sign-in, a conflict), say exactly that.\" — NOTE the failed branch drops `pending` entirely.",
+          ".stray -> parts joined by \" \": \"Merge state:\", then merged(<last record whose outcome == .merged>) if one exists anywhere in the list, then \"At <when> <last.detail or 'files were changed outside every project'>\", then pending."
+        ],
+        "unmerged_count_source": "DroppyCode/App/AppModel+Hydra.swift:242-253 hydraUnmergedFileCount — union of the touchedPaths of the lead's non-running unmerged turns plus every head's landing files where mergedAt == nil and the landing has no patchPath and no error, skipping heads that finished before the last hydraMerged turn started, then filtered to paths that are not build output and are inside some sidebar project. It is a count of DISTINCT paths."
+      },
+      "port_impact": "Emit all six mergeStatus shapes verbatim, including the nil case. Keep the .failed branch's omission of the pending sentence (it is how the source reads, defect or not). Compute the unmerged count as a distinct-path set with the same three filters."
+    },
+    {
+      "id": "G8",
+      "kind": "gap",
+      "finding": "teamStatus emits '(working)' with no interval and '(done)' with no detail; R031 recorded only '(working for Nm)'.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/Core/Models/Hydra.swift:849-874",
+        "verbatim": "    /// The lead's team in a line, for the front of its messages: it should never have to\n    /// guess who is still out or what came back.\n    static func teamStatus(_ heads: [HydraHeadInfo], now: Date = .now) -> String? {\n        guard !heads.isEmpty else { return nil }\n        let parts = heads.map { info -> String in\n            let name = info.persona.name\n            switch info.status {\n            case .running:\n                let minutes = Int(now.timeIntervalSince(info.startedAt) / 60)\n                return \"\\(name) (working\\(minutes > 0 ? \" for \\(minutes)m\" : \"\"))\"\n            case .completed:\n                if let landing = info.landing {\n                    if landing.isEmpty { return \"\\(name) (done, changed nothing)\" }\n                    if landing.landed { return \"\\(name) (done, landed \\(landing.files.count == 1 ? \"1 file\" : \"\\(landing.files.count) files\"))\" }\n                    return \"\\(name) (done, patch kept)\"\n                }\n                return \"\\(name) (done)\"\n            case .failed: return \"\\(name) (failed)\"\n            case .stopped: return \"\\(name) (stopped)\"\n            }\n        }\n        return \"Your heads so far: \" + parts.joined(separator: \", \") + \".\"\n    }\n\n    /// The standing rules for a lead on a provider that runs no heads of its own: when to\n    /// delegate, how, and what the reports mean. An API session keeps this in its system",
+        "complete_string_set": {
+          "wrapper": "\"Your heads so far: \" + parts.joined(separator: \", \") + \".\"  — a plain comma join, NOT the Oxford `list()` helper used elsewhere in the file.",
+          "nil_case": "heads.isEmpty returns nil.",
+          "running": [
+            "<name> (working)  [when Int(elapsed/60) == 0]",
+            "<name> (working for <N>m)"
+          ],
+          "completed_with_landing": [
+            "<name> (done, changed nothing)  [landing.isEmpty]",
+            "<name> (done, landed 1 file)",
+            "<name> (done, landed <N> files)",
+            "<name> (done, patch kept)  [landing present, not empty, not landed]"
+          ],
+          "completed_without_landing": [
+            "<name> (done)"
+          ],
+          "failed": [
+            "<name> (failed)"
+          ],
+          "stopped": [
+            "<name> (stopped)"
+          ]
+        },
+        "minutes_math": "minutes = Int(now.timeIntervalSince(info.startedAt) / 60) — truncating integer division, so 0..59 s reads '(working)'. A clock change or a startedAt in the future yields a negative, which is not > 0, so it also reads '(working)'.",
+        "landing_predicates": "DroppyCode/Core/Models/Hydra.swift HydraLanding.isEmpty = files.isEmpty && patchPath == nil && error == nil; HydraLanding.landed = !files.isEmpty && patchPath == nil && error == nil."
+      },
+      "port_impact": "Ship all nine string shapes. Use truncating integer minutes and the plain ', ' join with a trailing period."
+    },
+    {
+      "id": "G9",
+      "kind": "gap",
+      "finding": "The prompt corpus (howToWork, howToReport, briefRule, verificationRule, projectRule, autoMergeRule, reviewRule, reportStyleRule, workerPrompt, scoutPrompt, policy(for:_:), fallbackPolicy) was paraphrased, not transcribed.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "note": "Transcribed verbatim below, each with its line range. These are the strings that go into provider system prompts and into the agent `prompt` field over the CLI protocol; any paraphrase is a protocol change.",
+        "corpus": {
+          "workplaceRules(_:) (private) DroppyCode/Core/Models/Hydra.swift:592-606": "    /// What a head is told about the checkout it works in and what it may do to it. The\n    /// shared case is what every head lives with on providers that run heads natively.\n    private static func workplaceRules(_ workplace: Workplace) -> String {\n        switch workplace {\n        case .ownCopy(let path):\n            \"\"\"\n            You have your own copy of the project at \\(path): a git worktree Droppy Code made for you from the project's checkout as it was when you were sent out, uncommitted work included. Work in it directly, on the files as they are; your tools already run there. When you report, Droppy Code carries your changes into that checkout itself. So never commit, branch, stash, push, check out, reset, restore or clean anything, and never make or remove worktrees, whatever the project's own guidelines say about agents and worktrees: this copy already is yours. Do not use git to check your work either.\n            Never build, test or verify anything in your copy: the lead runs every check itself, in its own checkout. Anything under the project folder that git does not ignore lands in the lead's checkout, so leave no build output there.\n            \"\"\"\n        case .shared(let path):\n            \"\"\"\n            You work in the lead's checkout at \\(path), alongside the lead and the other heads, who are changing other files at the same time. Changes you did not make are expected there: leave every one of them alone, never stash, check out, reset, restore or clean anything, and never move work into a branch or worktree, whatever the project's own guidelines say about agents and worktrees. Do not use git status or git diff to check your work: they show everyone's changes, and the lead does the verifying.\n            \"\"\"\n        }\n    }",
+          "howToWork DroppyCode/Core/Models/Hydra.swift:608-615": "    /// How a head goes about its task, whatever provider runs it.\n    private static let howToWork = \"\"\"\n    - Start on the task right away: read what you need and no more, then make the change.\n    - A brief that names the file, the line and the change needs no second reading: make that edit first, then the next. Think briefly between tool calls; if you find yourself weighing designs for minutes, take the simplest reading of the brief and do it, and mention the choice in your report.\n    - Do exactly this task and only this. Do not widen it, do not touch files it does not name unless it cannot be done otherwise, and never revert, reformat or clean up work that is not yours.\n    - Never run a build, a test, a lint, a type check or any other check of your work, and never wait on one: the lead runs every check itself, in its own checkout. Make the edits your brief names and report.\n    - If something blocks you, stop and say so instead of guessing or working around it.\n    \"\"\"",
+          "howToReport DroppyCode/Core/Models/Hydra.swift:617": "    private static let howToReport = \"Report the result, the files you changed and material blockers once, in a few lines the lead can act on: what changed, where, and anything still open or uncertain. Name the caveats and the unfinished work plainly rather than leaving them out. No preamble, no restating the brief, no logs. The lead handles validation.\"",
+          "briefRule DroppyCode/Core/Models/Hydra.swift:623": "    private static let briefRule = \"Write each brief as numbered, executable steps naming the file, symbol or line anchor, and exact change. Resolve design choices first; ask no questions and offer no alternatives. Give enough context to begin editing within a few tool calls.\"",
+          "verificationRule DroppyCode/Core/Models/Hydra.swift:627": "    private static let verificationRule = \"Heads edit or research and report; they never build, test, lint or verify. Do not assign checks or request pass reports. Run required validation yourself in the checkout after the heads return.\"",
+          "projectRule(_:) DroppyCode/Core/Models/Hydra.swift:629-638": "    /// Where heads work and where their work lands: this chat's project unless an entry\n    /// names another, any project in the sidebar or any repository on the Mac, with the\n    /// merge going out per project. The lead's own tools run in this chat's checkout, but\n    /// nothing keeps it to that project.\n    private static func projectRule(_ projects: [HydraProjectRef]) -> String {\n        let own = projects.first.map { \"this chat's project, \\($0.name) (`\\($0.path)`)\" } ?? \"this chat's project\"\n        let others = projects.dropFirst()\n        let named = others.isEmpty ? \"\" : \" The other projects in the sidebar: \" + others.map { \"\\($0.name) (`\\($0.path)`)\" }.joined(separator: \", \") + \".\"\n        return \"Heads may work in any project. A head works in \\(own) unless it is sent to another: an entry of the delegation block names it with \\\"project\\\" (a sidebar project's name or path, or the absolute path of any git repository on this Mac, which Droppy Code then adds to the sidebar), and a head spawned with your own agent tool is told the project's folder in its prompt.\\(named) Whatever a head changes lands in the checkout of the project it worked in, and the team's work is merged per project, one merge request each. Your own tools run in this chat's checkout, and you may read and edit files in any project all the same: what you change elsewhere is merged along with that project's work. Run your own checks in the checkout itself: never make a worktree or a copy of the project for them.\"\n    }",
+          "autoMergeRule DroppyCode/Core/Models/Hydra.swift:643": "    private static let autoMergeRule = \"Droppy Code handles branches, commits and merge requests after all heads return and you finish. Never run or delegate those operations. For merge/status questions, use only the current [Hydra] note: if merged, give its link; if files remain, say they land when your answer ends; if merging failed or files are outside every project, give the stated reason and required user action. If nothing is pending, promise no merge. Never claim a merge without the note confirming it.\"",
+          "reviewRule DroppyCode/Core/Models/Hydra.swift:648": "    private static let reviewRule = \"Read every changed file named in the reports and its affected callers. Correct integration issues yourself, run the narrowest required build in the checkout, and disclose your corrections. Never delegate this review.\"",
+          "reportStyleRule DroppyCode/Core/Models/Hydra.swift:653": "    private static let reportStyleRule = \"For each head, give one plain sentence starting with its name and describing the user-visible result; add the file details only when useful, and keep the whole account bounded to a line or two per head. Omit repeated summaries, audit jargon and decorative symbols. Say plainly what you still need from the user and what you settled or fixed yourself.\"",
+          "policy(for:_:) DroppyCode/Core/Models/Hydra.swift:657-726": "    static func policy(for provider: ProviderKind, _ launch: HydraLaunch) -> String {\n        let maxHeads = launch.maxHeads\n        let autoMerges = launch.autoMerges\n        let reviewsHeads = launch.reviewsHeads\n        let projects = launch.projects\n        // The pair's routable profiles, in the words the lead routes with: on Claude and\n        // Copilot the profile's agent variant, on Codex the model and effort to pass.\n        let profiles = nativeRoutableProfiles(of: launch)\n        let profileRule: String\n        if profiles.isEmpty {\n            profileRule = \"\"\n        } else {\n            switch provider {\n            case .claude, .copilot:\n                let variants = profiles.map { \"`\\(workerAgentName(for: $0))` for \\($0.name)\" }.joined(separator: \", \")\n                profileRule = \" Some heads are tuned for a purpose: route the task to \\(variants) instead of the plain `\\(workerAgentName)` when the work belongs to that purpose.\"\n            case .codex:\n                let routes = profiles.map { profile -> String in\n                    var parts: [String] = []\n                    if let model = profile.model { parts.append(\"`model` = \\(model)\") }\n                    if let effort = profile.effort { parts.append(\"`reasoning_effort` = \\(effort)\") }\n                    return \"\\(profile.name) (pass \\(parts.joined(separator: \" and \")))\"\n                }.joined(separator: \", \")\n                profileRule = \" Some heads are tuned for a purpose: route the task by passing the profile's own knobs in `spawn_agent` — \\(routes) — when the work belongs to that purpose.\"\n            default:\n                profileRule = \"\"\n            }\n        }\n        let howToSpawn: String\n        let howToWait: String\n        switch provider {\n        case .claude:\n            howToSpawn = \"Two agent types are yours: `\\(workerAgentName)` (edits files, runs commands) and `\\(scoutAgentName)` (read-only research). Spawn them with the Agent tool and prefer them over other agents while Hydra is on: they run on the model and effort the user chose for heads.\\(profileRule)\"\n            howToWait = \"Launch every head for a job in one message so they run in parallel, in the foreground\" + (maxHeads.map { \", and run at most \\($0) at once.\" } ?? \".\")\n        case .codex:\n            howToSpawn = \"Spawn heads with `spawn_agent`: the `worker` agent for anything that edits files or runs commands, the `explorer` agent for read-only research.\\(profileRule)\"\n            howToWait = \"Spawn every head for a job before waiting, so they run in parallel, and collect them with `wait_agent`; never leave a head running when you answer.\" + (maxHeads.map { \" Run at most \\($0) at once.\" } ?? \"\")\n        case .copilot:\n            howToSpawn = \"Two agents are yours: `\\(workerAgentName)` (edits files, runs commands) and `\\(scoutAgentName)` (read-only research). Start them with the task tool and prefer them over other agents while Hydra is on: they run on the model and effort the user chose for heads.\\(profileRule)\"\n            howToWait = \"Start every head for a job at once so they run in parallel\" + (maxHeads.map { \", and run at most \\($0) at a time.\" } ?? \".\")\n        default:\n            howToSpawn = \"\"\n            howToWait = maxHeads.map { \"Run at most \\($0) heads at once.\" } ?? \"Send every head for a job out at once so they run in parallel.\"\n        }\n        return \"\"\"\n        # Hydra\n\n        The user switched on Hydra for this chat: you lead a team of helper agents, called heads, that work in parallel in your checkout. Switching Hydra on is the user asking you to use them, so it overrides any standing rule that says not to spawn agents unless asked. \\(howToSpawn) The agents you spawn this way are the Hydra heads themselves: Droppy Code shows each one in the team's panel under a roster name and posts its outcome in the chat. There is no other launcher and no other kind of head, so never tell the user that Hydra heads cannot be started here; when the user asks for heads, spawn them this way.\n\n        Delegate first, work second. Anything bigger than a single obvious change to a single file is a job for heads: audits, reviews, a feature that spans files, a refactor, \"check everything\", research across many files or sources, several tasks in one message. In your first reply, look at the code only long enough to write good briefs, a minute and a handful of files rather than ten, then send out scouts for the reading and workers for the changes, all in that same message. Never spend minutes reading before you delegate, and never do inline what heads could be doing in parallel. Only a truly single-focus request, one file and one obvious change, is yours to do alone, and size the team to the work rather than to how many heads are free: a handful of independent pieces is a team, where three tiny steps that depend on each other are one head's task, or your own.\n\n        When you delegate:\n        - \\(howToWait)\n        - Give each head one self-contained task with the exact files, symbols and acceptance criteria it needs. Heads share the checkout but not your context, so write the task as if to a capable colleague who has read nothing yet.\n        - \\(briefRule)\n        - \\(verificationRule)\n        - \\(projectRule(projects))\n        - Split the work so no two heads edit the same file and no head's task rests on another head's unfinished changes: they run in parallel and never see each other's work. Keep integration, verification and the final answer for yourself: never send out a head to verify, redo or finish another head's work.\n        - Tell the user in one line which heads you sent out and what each one does. Droppy Code names the heads in roster order (Hank, Walter, Ada, Otto, Nova, Remy, Iris, Milo, Juno, Ezra, Lena, Bo, Kai, Vera, Finn, Mira, Odin, Suki, Rex, Zola, Pip, Ivo, Lux, Tova, Gus, then Hank 2 and so on): announce each head by its task and use exactly those names in that order, never invented ones. There is no head called Ives; the roster has Ivo.\n        - After delegating, yield until reports arrive.\n        - Heads go out through the tools above, never through a fenced hydra block: that is the delegation format for providers without agent tools of their own. If you end a reply with one anyway, Droppy Code still sends those heads out as threads of their own, but your turn ends there and their reports come back as a later message.\n\n        When they report back:\n        - The checkout changes under you while heads work, and the user may be editing too. Never use git status or git diff to check on a head, and never reconcile, revert, stash or move changes you did not make.\n        - Take a report as done work: read the files it names if something matters, but do not redo the task and do not start it over because the tree looks different from what you expected. A head that failed leaves its part to you: do it or send it out again. A head the user stopped leaves its part alone unless the user asks.\n        \\(reviewsHeads ? \"- \" + reviewRule + \"\\n\" : \"\")- Then finish the job: integrate, run one verification if it matters, and answer the user. \\(reportStyleRule)\n        \\(autoMerges ? \"\\n\" + autoMergeRule + \"\\n\" : \"\")\n        \"\"\"\n    }\n",
+          "workerPrompt DroppyCode/Core/Models/Hydra.swift:727-732": "    /// The system prompt a worker head runs with.\n    static let workerPrompt = \"\"\"\n    You are a Hydra head in Droppy Code: one of several helpers working in parallel for a lead agent, in the lead's own checkout, where the lead and the other heads are changing other files at the same time. Do exactly the task you were given, and only that: do not widen it, do not touch files it does not name unless the task cannot be done otherwise, and never revert, reformat or clean up work that is not yours. Changes you did not make are expected in the checkout: leave them alone, never stash, check out, reset, restore or clean anything, and never move work into a branch or worktree, whatever the project's own guidelines say about agents and worktrees. Do not use git status or git diff to check your work: they show everyone's changes. Never run a build, a test, a lint or any other check of your work: the lead runs every check itself. Make the edits your brief names and report. If something blocks you, say so instead of guessing.\n\n    \\(howToReport)\n    \"\"\"",
+          "scoutPrompt DroppyCode/Core/Models/Hydra.swift:734-739": "    /// The system prompt a scout head runs with.\n    static let scoutPrompt = \"\"\"\n    You are a Hydra head in Droppy Code: a read-only researcher working in parallel for a lead agent, in the lead's own checkout, where the lead and other heads are changing files at the same time; uncommitted changes there are theirs and expected. Answer exactly the question you were given, from the code and sources you can read. Change nothing.\n\n    Reply with a short report the lead can act on: the findings, with file paths and line references, and anything that contradicts what the lead assumed. No preamble.\n    \"\"\"",
+          "claudeAgents(_:) DroppyCode/Core/Models/Hydra.swift:741-774": "    /// Claude's `--agents` definitions: the two heads on the pair's model and effort.\n    static func claudeAgents(_ launch: HydraLaunch) -> JSONValue {\n        let antiSlop = AntiSlopPolicy.instructions(enabled: launch.antiSlopEnabled)\n        var worker: [String: JSONValue] = [\n            \"description\": \"Hydra head that implements one delegated task: edits files, runs commands. Use proactively when a request splits into independent pieces or touches several parts of the codebase.\",\n            \"prompt\": .string(workerPrompt + \"\\n\\n\" + antiSlop),\n            \"background\": false,\n        ]\n        var scout: [String: JSONValue] = [\n            \"description\": \"Hydra head for read-only research: finds files, reads code, gathers facts and reports back. Use proactively when a job needs many files or sources read.\",\n            \"prompt\": .string(scoutPrompt + \"\\n\\n\" + antiSlop),\n            \"tools\": [\"Read\", \"Grep\", \"Glob\", \"WebFetch\", \"WebSearch\"],\n            \"background\": false,\n        ]\n        if let model = launch.workerModel, model != \"default\" {\n            worker[\"model\"] = .string(model)\n            scout[\"model\"] = .string(model)\n        }\n        if let effort = launch.workerEffort, !effort.isEmpty {\n            worker[\"effort\"] = .string(effort)\n            scout[\"effort\"] = .string(effort)\n        }\n        var agents: [String: JSONValue] = [\"\\(workerAgentName)\": .object(worker), \"\\(scoutAgentName)\": .object(scout)]\n        // One worker variant per routable profile: the lead routes a task to the profile\n        // by spawning the variant, whose model and effort are the profile's own.\n        for profile in nativeRoutableProfiles(of: launch) {\n            var variant = worker\n            variant[\"description\"] = .string(\"Hydra head that implements one delegated task, tuned as the '\\(profile.name)' profile. Prefer it for work that belongs to '\\(profile.name)' over the plain \\(workerAgentName).\")\n            if let model = profile.model, model != \"default\" { variant[\"model\"] = .string(model) }\n            if let effort = profile.effort, !effort.isEmpty { variant[\"effort\"] = .string(effort) }\n            agents[workerAgentName(for: profile)] = .object(variant)\n        }\n        return .object(agents)\n    }",
+          "copilotAgents(_:) DroppyCode/Core/Models/Hydra.swift:776-823": "    /// Copilot's `customAgents`: the same two heads, in the CLI's own shape.\n    static func copilotAgents(_ launch: HydraLaunch) -> [JSONValue] {\n        let antiSlop = AntiSlopPolicy.instructions(enabled: launch.antiSlopEnabled)\n        func agent(name: String, display: String, description: String, prompt: String, tools: [String]?) -> JSONValue {\n            var object: [String: JSONValue] = [\n                \"name\": .string(name),\n                \"displayName\": .string(display),\n                \"description\": .string(description),\n                \"prompt\": .string(prompt),\n                \"infer\": true,\n            ]\n            if let tools { object[\"tools\"] = .array(tools.map(JSONValue.string)) }\n            if let model = launch.workerModel, model != \"auto\" { object[\"model\"] = .string(model) }\n            if let effort = launch.workerEffort, !effort.isEmpty { object[\"reasoningEffort\"] = .string(effort) }\n            return .object(object)\n        }\n        let worker = agent(\n            name: workerAgentName,\n            display: \"Hydra worker\",\n            description: \"Hydra head that implements one delegated task: edits files, runs commands. Use when a request splits into independent pieces.\",\n            prompt: workerPrompt + \"\\n\\n\" + antiSlop,\n            tools: nil\n        )\n        var agents = [\n            worker,\n            // The scout's prompt keeps it read-only; the CLI's tool names are not pinned\n            // here, since a name it does not know could refuse the whole session.\n            agent(\n                name: scoutAgentName,\n                display: \"Hydra scout\",\n                description: \"Hydra head for read-only research: finds files, reads code and reports back. Use when a job needs many files or sources read.\",\n                prompt: scoutPrompt + \"\\n\\n\" + antiSlop,\n                tools: nil\n            ),\n        ]\n        // One worker variant per routable profile, as on Claude: the lead routes a task\n        // to the profile by starting the variant.\n        for profile in nativeRoutableProfiles(of: launch) {\n            guard case .object(var variant) = worker else { continue }\n            variant[\"name\"] = .string(workerAgentName(for: profile))\n            variant[\"displayName\"] = .string(\"Hydra worker · \\(profile.name)\")\n            variant[\"description\"] = .string(\"Hydra head that implements one delegated task, tuned as the '\\(profile.name)' profile. Prefer it for work that belongs to '\\(profile.name)' over the plain \\(workerAgentName).\")\n            if let model = profile.model, model != \"auto\" { variant[\"model\"] = .string(model) }\n            if let effort = profile.effort, !effort.isEmpty { variant[\"reasoningEffort\"] = .string(effort) }\n            agents.append(.object(variant))\n        }\n        return agents\n    }",
+          "codexConfig(_:) DroppyCode/Core/Models/Hydra.swift:825-839": "    /// Codex's config overrides for the thread: the heads' model and effort, and how many\n    /// may run at once; uncapped, Codex keeps its own limit. With profiles to route to,\n    /// the spawn tool's model and effort knobs are exposed, so the lead can pass the\n    /// profile's own when it spawns the head (the session matches them back).\n    static func codexConfig(_ launch: HydraLaunch) -> [String: JSONValue] {\n        var agents: [String: JSONValue] = [:]\n        if let cap = launch.maxHeads { agents[\"max_concurrent_threads_per_session\"] = .int(cap) }\n        if let model = launch.workerModel, !model.isEmpty { agents[\"default_subagent_model\"] = .string(model) }\n        if let effort = launch.workerEffort, !effort.isEmpty { agents[\"default_subagent_reasoning_effort\"] = .string(effort) }\n        var features: [String: JSONValue] = [\"multi_agent\": true]\n        if !nativeRoutableProfiles(of: launch).isEmpty {\n            features[\"multi_agent_v2\"] = .object([\"expose_spawn_agent_model_overrides\": true])\n        }\n        return [\"agents\": .object(agents), \"features\": .object(features)]\n    }",
+          "fallbackPolicy(maxHeads:isolated:...) DroppyCode/Core/Models/Hydra.swift:873-904": "    /// The standing rules for a lead on a provider that runs no heads of its own: when to\n    /// delegate, how, and what the reports mean. An API session keeps this in its system\n    /// prompt, once; a CLI session gets it in front of every message.\n    static func fallbackPolicy(maxHeads: Int?, isolated: Bool, autoMerges: Bool = false, reviewsHeads: Bool = false, heads: String? = nil, projects: [HydraProjectRef] = [], profiles: [HydraHeadProfile] = []) -> String {\n        let whereHeadsWork = isolated\n            ? \"Each head works in a copy of its project of its own and Droppy Code lands its changes in that project's checkout when it reports\"\n            : \"The heads work in your checkout\"\n        let team = maxHeads.map { \"a team of up to \\($0) helper agents\" } ?? \"a team of helper agents\"\n        // Heads on another provider are a different model from the lead, chosen for speed\n        // more often than not: the lead hears what they are, so it briefs them as such and\n        // keeps the thinking, and it is told the block is the only way to them, since its own\n        // agent tools would run heads on its own model instead.\n        let whoTheHeadsAre = heads.map {\n            \" Your heads run on \\($0), a different model from yours: it is quick, so give each one a well-bounded task with everything it needs written down, and keep the design, the judgement calls and the integration for yourself. The block is the only way to send heads out: never use an agent, task or sub-agent tool of your own, which would run heads on your own model instead of the one the user chose.\"\n        } ?? \"\"\n        // Whatever the provider, a head can read, edit and run: on the API providers the\n        // app gives it those tools itself, so no head is ever a text-only researcher.\n        let whatHeadsCanDo = \" Every head, whatever its provider, can read files, edit files and run commands in its copy, with no permission prompts to wait on; brief it to do the work, not just to describe it.\"\n        // A pair in advanced mode tunes some heads for a purpose: the lead hears which,\n        // and routes a task to one by name. The profile's name is all the lead knows of\n        // the purpose, so the wording keeps the routing on the name's own meaning.\n        let profileRule = profiles.isEmpty ? \"\" : \" Some heads are tuned for a purpose: \\(profiles.map(\\.briefLabel).joined(separator: \", \")). Route a task to one with \\\"profile\\\", as in `{\\\"task\\\": \\\"...\\\", \\\"prompt\\\": \\\"...\\\", \\\"profile\\\": \\\"\\(profiles[0].name)\\\"}`; a task that fits none of them goes without a profile and runs on the heads' shared model, as does one whose profile names none of these.\"\n        return \"\"\"\n        [Hydra is on] You lead \\(team) (\"heads\"). Delegate first, work second: anything bigger than a single obvious change to a single file is a job for heads. Audits, reviews, a feature across several files, a refactor, \"check everything\", research across many files, several tasks in one message: in your first reply, look at the code only long enough to write good briefs, a minute and a handful of files rather than ten, and then send the heads out, all of them in that one block. Never spend minutes reading before you delegate, and never do inline what heads could be doing in parallel. Only a truly single-focus request, one file and one obvious change, is yours to do alone, and size the team to the work rather than to how many heads are free: a small job whose pieces depend on each other is one head's task, or your own, not a team of heads.         Finish your reply with one fenced block\n\n        ```hydra\n        [{\"task\": \"short title\", \"prompt\": \"complete, self-contained instructions with the exact files and acceptance criteria\"}]\n        ```\n\n        and stop there: do not wait, poll or verify anything after it. When a request is yours to do alone, do it and end with no block at all: an empty block sends no heads and is not needed. An entry may also carry its head's announced name, as in `{\"task\": \"...\", \"prompt\": \"...\", \"name\": \"Otto\"}`: the announced name is authoritative and the spawned head carries exactly it, so repeating the same block spawns the same names. An entry for work in another project carries `\"project\"` with that project's name or path, as in `{\"task\": \"...\", \"prompt\": \"...\", \"project\": \"gaze-site\"}`. Name new heads with the next roster names in order after the team listed above (Hank, Walter, Ada, Otto, Nova, Remy, Iris, Milo, Juno, Ezra, Lena, Bo, Kai, Vera, Finn, Mira, Odin, Suki, Rex, Zola, Pip, Ivo, Lux, Tova, Gus, then Hank 2 and so on), and omit the name when unsure: the next heads in order go out instead. Never invent names outside the roster: there is no head called Ives (the roster has Ivo), and an unknown name falls back to the next head in order rather than renaming anyone.\\(profileRule) Inside a prompt never open a fenced code block of your own (three backticks would end the hydra block early and no head would go out): describe code in words, quote identifiers with single backticks, or indent a snippet by four spaces. Each entry goes out to a head the moment its closing brace streams, before the block is finished, so write the entries in the order the heads should start and complete one entry before beginning the next. \\(whereHeadsWork); heads never see your context, so write every prompt for a capable colleague who has read nothing yet, with the exact files, symbols and acceptance criteria, give no two heads the same file, and give no head work that rests on another head's unfinished changes: they run in parallel and never see each other's work. Keep each brief bounded: one head, one task, one report you can act on. \\(briefRule) \\(verificationRule) \\(projectRule(projects)) A head can be sent to read and report as well as to change files, so the reading goes out in parallel too. Say in one line which heads you sent out and what each one does.\\(whoTheHeadsAre)\\(whatHeadsCanDo) The reports arrive as a later message with the work already in place: build on them, do not redo them, never send out heads to verify or redo other heads, and never use git status or git diff to check on heads, since the checkout changes under you while they work. A message that opens with [Hydra] is from Droppy Code, not the user.\\(reviewsHeads ? \" \" + reviewRule : \"\")\\(autoMerges ? \" \" + autoMergeRule : \"\") \\(reportStyleRule)\n        \"\"\"\n    }",
+          "delegationRequest(_:) DroppyCode/Core/Models/Hydra.swift:948-963": "    /// The user's enabled Hydra setting expressed alongside their request. Codex's\n    /// manual delegation mode needs a user/project/skill request, not only the standing\n    /// developer policy. Keep this out of automatic reports, which have their own limit.\n    static func delegationRequest(_ launch: HydraLaunch) -> String {\n        let route = launch.runsNatively\n            ? \"Use the configured Hydra agent tools and head profiles.\"\n            : \"Delegate through the final hydra block so Droppy Code runs the selected heads; do not use native agent tools.\"\n        return \"\"\"\n        [Hydra setting: enabled]\n        Use Hydra heads for this request when it involves multiple files, an audit, broad research, or independent tasks. Keep a single obvious change in one file with the lead. \\(route) Follow any explicit request below to work alone or limit delegation.\n\n        ---\n\n\n        \"\"\"\n    }",
+          "fallbackTurnNote / fallbackReportNote / preambles DroppyCode/Core/Models/Hydra.swift:965-990": "    /// In front of the user's own message: the team so far, when there is one.\n    static func fallbackTurnNote(team: String?, merge: String? = nil) -> String {\n        let parts = [team, merge].compactMap { $0 }\n        guard !parts.isEmpty else { return \"\" }\n        return \"[Hydra] \" + parts.joined(separator: \" \") + \"\\n\\n---\\n\\n\"\n    }\n\n    /// In front of a report message: the heads are back, and the lead's job is to\n    /// finish, not to send out more. `canDelegate` says a round of heads is still left\n    /// for what failed or turned out to be missing; otherwise the block is not offered.\n    static func fallbackReportNote(team: String?, merge: String? = nil, canDelegate: Bool) -> String {\n        let more = canDelegate\n            ? \"If the reports open up the next stage of the work, or a head failed, or a piece of the user's request is still undone, send heads out again for exactly that, with the same ```hydra block at the end of your reply; never for verifying, redoing or finishing what a head already did.\"\n            : \"Send out no more heads for this request; whatever is left, do yourself.\"\n        return \"[Hydra] Your heads reported back below.\" + (team.map { \" \" + $0 } ?? \"\") + (merge.map { \" \" + $0 } ?? \"\") + \" \" + more + \"\\n\\n---\\n\\n\"\n    }\n\n    /// Policy and note together, for a CLI provider with no system prompt to keep the\n    /// policy in.\n    static func fallbackPreamble(_ launch: HydraLaunch, team: String?, merge: String? = nil) -> String {\n        fallbackPolicy(launch) + \"\\n\\n\" + (fallbackTurnNote(team: team, merge: merge).isEmpty ? \"---\\n\\n\" : fallbackTurnNote(team: team, merge: merge))\n    }\n\n    static func fallbackReportPreamble(_ launch: HydraLaunch, team: String?, merge: String? = nil, canDelegate: Bool) -> String {\n        fallbackPolicy(launch) + \"\\n\\n\" + fallbackReportNote(team: team, merge: merge, canDelegate: canDelegate)\n    }",
+          "heldBackMessage(count:) DroppyCode/Core/Models/Hydra.swift:992-999": "    /// What the lead hears when its delegation block is refused: the request has had its\n    /// rounds of heads, and the rest is the lead's own.\n    static func heldBackMessage(count: Int) -> String {\n        \"\"\"\n        Hydra held back \\(count == 1 ? \"a head\" : \"\\(count) heads\").\n        None of the heads you asked for went out: this request has had all \\(maxDelegationRounds) of its rounds of heads already. Do the rest yourself now, without git status or git diff on the heads' work, and answer the user.\n        \"\"\"\n    }",
+          "unreadableBlockMessage(reason:) DroppyCode/Core/Models/Hydra.swift:1116-1124": "    /// What the lead hears when its block was there but could not be read: no heads went\n    /// out, how to write the block so it can be read, and that the attempt cost it nothing.\n    static func unreadableBlockMessage(reason: String?) -> String {\n        var message = \"[Hydra] Your delegation block could not be read, so no heads went out.\"\n        if let reason = reason?.trimmingCharacters(in: .whitespacesAndNewlines), !reason.isEmpty {\n            message += \" \" + reason + (reason.last.map { \".!?\".contains($0) } == true ? \"\" : \".\")\n        }\n        return message + \" Write the block again at the end of your reply: one fenced block whose info string is hydra, holding a JSON array of objects with a task string and a prompt string. Inside a prompt never open a fenced code block of your own (no three backticks): describe code in words, quote identifiers with single backticks, or indent snippets. This does not count as a round of heads.\"\n    }",
+          "delegatedHeadPrompt DroppyCode/Core/Models/Hydra.swift:1151-1168": "    /// What a Droppy-run head is sent for a task the lead delegated.\n    static func delegatedHeadPrompt(persona: HydraPersona, delegation: HydraDelegation, workplace: Workplace) -> String {\n        \"\"\"\n        You are \\(persona.name), a Hydra head in Droppy Code: one of several helpers working in parallel for a lead agent. The lead delegated this task to you.\n\n        ## Your task: \\(delegation.task)\n        \\(withoutVerificationSteps(delegation.prompt))\n\n        ## Where you work\n        \\(workplaceRules(workplace))\n\n        ## How to work\n        \\(howToWork)\n\n        ## Your report\n        \\(howToReport)\n        \"\"\"\n    }",
+          "queuedHeadPrompt DroppyCode/Core/Models/Hydra.swift:1170-1216": "    /// What the lead's chat looked like when a queued task was handed to a head, so the\n    /// head knows what is going on without the lead's context. Built from the timeline,\n    /// not from another model call, so a queued task costs nothing extra.\n    struct ChatContext {\n        var lastUserPrompt: String?\n        var lastReply: String?\n        var touchedPaths: [String] = []\n    }\n\n    /// What a Droppy-run head is sent for a task the user queued while the lead worked, or\n    /// sent straight to a head; `leadIsWorking` says which, so the head is told the truth\n    /// about the lead.\n    static func queuedHeadPrompt(persona: HydraPersona, task: String, context: ChatContext, workplace: Workplace, leadIsWorking: Bool = true) -> String {\n        var lines: [String] = []\n        if let prompt = context.lastUserPrompt, !prompt.isEmpty {\n            lines.append(\"- The user last asked the lead: \\(quoted(prompt, limit: 1_200))\")\n        }\n        if let reply = context.lastReply, !reply.isEmpty {\n            lines.append(\"- The lead's latest reply\\(leadIsWorking ? \" so far\" : \"\"): \\(quoted(reply, limit: 800))\")\n        }\n        if leadIsWorking, !context.touchedPaths.isEmpty {\n            let paths = context.touchedPaths.prefix(20).joined(separator: \", \")\n            lines.append(\"- Files the lead is changing in its current turn: \\(paths). Leave these alone; if your task cannot be done without touching one, keep the change minimal and say so in your report.\")\n        }\n        let contextBlock = lines.isEmpty ? \"The lead has not said anything yet.\" : lines.joined(separator: \"\\n\")\n        let handoff = leadIsWorking\n            ? \"The user queued this task for you while the lead works on something else.\"\n            : \"The user sent this task straight to you; the lead is idle and will hear your report.\"\n        return \"\"\"\n        You are \\(persona.name), a Hydra head in Droppy Code: a helper running in parallel with the lead agent. \\(handoff)\n\n        ## What is going on in the main chat\n        \\(contextBlock)\n\n        ## Your task\n        \\(task)\n\n        ## Where you work\n        \\(workplaceRules(workplace))\n\n        ## How to work\n        \\(howToWork)\n\n        ## Your report\n        \\(howToReport)\n        \"\"\"\n    }",
+          "reportMessage DroppyCode/Core/Models/Hydra.swift:1218-1304": "    /// The message the lead receives once heads have reported: one section per head, what\n    /// landed where, and what to do about it. `stillWorking` names the heads yet to report;\n    /// `reviewsHeads` has the lead audit the files listed before it finishes.\n    static func reportMessage(_ reports: [HydraReport], stillWorking: [String] = [], reviewsHeads: Bool = false) -> String {\n        let names = reports.map { HydraRoster.persona(at: $0.headIndex).name }\n        var opening = \"Hydra reports: \\(list(names)) finished.\"\n        if !stillWorking.isEmpty {\n            opening += \" \\(list(stillWorking)) \\(stillWorking.count == 1 ? \"is\" : \"are\") still at work; \\(stillWorking.count == 1 ? \"its report comes\" : \"their reports come\") as a later message.\"\n        }\n\n        var sections: [String] = []\n        for report in reports {\n            let persona = HydraRoster.persona(at: report.headIndex)\n            let outcome = switch report.status {\n            case .completed: \"\"\n            case .failed: \" (failed)\"\n            case .stopped: \" (stopped by the user before finishing)\"\n            case .running: \"\"\n            }\n            var effort: [String] = []\n            if let elapsed = report.elapsed, elapsed >= 1 { effort.append(duration(elapsed)) }\n            if report.toolCalls > 0 { effort.append(report.toolCalls == 1 ? \"1 tool\" : \"\\(report.toolCalls) tools\") }\n            let took = effort.isEmpty ? \"\" : \" (\" + effort.joined(separator: \", \") + \")\"\n            var lines = [\"## \\(persona.name): \\(report.task)\\(outcome)\\(took)\"]\n            if let landing = landingLine(for: report) { lines.append(landing) }\n            let body = report.text.trimmingCharacters(in: .whitespacesAndNewlines)\n            lines.append(body.isEmpty ? \"No report.\" : body)\n            sections.append(lines.joined(separator: \"\\n\"))\n        }\n\n        var closing: [String] = []\n        if reports.contains(where: { $0.landing?.landed == true }) {\n            closing.append(\"The changes listed above are in your checkout already; nothing needs applying.\")\n        }\n        if reports.contains(where: { $0.copyPath == nil && $0.status == .completed }) {\n            closing.append(\"The heads worked in your checkout, so their changes are there already.\")\n        }\n        if reports.contains(where: { !($0.landing?.conflicts.isEmpty ?? true) }) {\n            closing.append(\"A file listed with conflicts was merged three-way and keeps conflict markers: resolve those first, and tell the user in one line that you settled them, so the landing card above does not read as broken.\")\n        }\n        // Two heads on one file is the split the lead was told not to make; it hears\n        // which file, so it reads the result instead of trusting it.\n        var owners: [String: [String]] = [:]\n        for report in reports {\n            for file in report.landing?.files ?? [] {\n                owners[file.path, default: []].append(HydraRoster.persona(at: report.headIndex).name)\n            }\n        }\n        for (path, names) in owners.sorted(by: { $0.key < $1.key }) where names.count > 1 {\n            closing.append(\"\\(list(names)) both changed \\(path): read it as it is now before you build on it.\")\n        }\n        for report in reports {\n            guard let landing = report.landing, let path = landing.patchPath else { continue }\n            closing.append(\"\\(HydraRoster.persona(at: report.headIndex).name)'s changes would not apply on their own; the patch is at \\(path). Apply it with `git apply --3way \\(path)` and settle what conflicts.\")\n        }\n        if reports.contains(where: { $0.status == .failed }) {\n            closing.append(\"A head that failed leaves its part to you: do it yourself or send it out again.\")\n        }\n        if reports.contains(where: { $0.status == .stopped }) {\n            closing.append(\"A head the user stopped leaves its part alone unless the user asks for it.\")\n        }\n        if reports.contains(where: { $0.origin == .queued }) {\n            closing.append(\"The user queued that work for the heads while you were busy; take it into account and carry on with the main job.\")\n        }\n        if reports.contains(where: { $0.origin == .sent }) {\n            closing.append(\"The user sent that work straight to the heads instead of to you; take it into account, and reply to the user on it as if they had asked you.\")\n        }\n        // With the check on, the lead reads every file listed rather than only the ones\n        // that matter, and fixes what it finds itself.\n        if reviewsHeads {\n            closing.append(\"Do not check any of this with git status or git diff: the checkout changes under you while heads work, and the user may be editing too. Do not reconcile or revert anything. \" + reviewRule)\n        } else {\n            closing.append(\"Do not check any of this with git status or git diff: the checkout changes under you while heads work, and the user may be editing too. Do not reconcile, revert or redo anything. Build on the reports, read the files they name if something matters, run one verification if it matters, and finish the job.\")\n        }\n        closing.append(reportStyleRule)\n        if !stillWorking.isEmpty {\n            closing.append(\"Do not wait for \\(list(stillWorking)) and do not take over \\(stillWorking.count == 1 ? \"its\" : \"their\") tasks; tell the user \\(stillWorking.count == 1 ? \"it is\" : \"they are\") still at work and that you will hear from \\(stillWorking.count == 1 ? \"it\" : \"them\").\")\n        }\n\n        return \"\"\"\n        \\(opening)\n\n        \\(sections.joined(separator: \"\\n\\n\"))\n\n        \\(closing.joined(separator: \" \"))\n        \"\"\"\n    }",
+          "landingLine(for:) DroppyCode/Core/Models/Hydra.swift:1306-1325": "    /// One line on where a head's work went, for its section of the report. Nothing for\n    /// a head that worked in the checkout itself: its changes are simply there.\n    private static func landingLine(for report: HydraReport) -> String? {\n        guard let landing = report.landing else {\n            guard let path = report.copyPath else { return nil }\n            return report.status == .completed ? \"Changed nothing.\" : \"Nothing landed; its unfinished work is in its copy at \\(path).\"\n        }\n        if landing.isEmpty { return \"Changed nothing.\" }\n        let files = landing.files.prefix(25).map { file -> String in\n            var line = \"\\(file.path) (+\\(file.additions) −\\(file.deletions))\"\n            if landing.conflicts.contains(file.path) { line += \" with conflicts\" }\n            return line\n        }\n        let listed = files.joined(separator: \", \")\n            + (landing.files.count > 25 ? \", and \\(landing.files.count - 25) more\" : \"\")\n        let omitted = landing.droppedBuildOutputFiles == 0 ? \"\" : \"; \\(landing.droppedBuildOutputFiles) build-output file\\(landing.droppedBuildOutputFiles == 1 ? \" was\" : \"s were\") left out\"\n        if landing.patchPath != nil { return \"Did not land: \\(listed)\\(omitted).\" }\n        if let error = landing.error { return \"Did not land (\\(error)): \\(listed)\\(omitted).\" }\n        return \"Landed in your checkout: \\(listed)\\(omitted).\"\n    }",
+          "HydraBudget DroppyCode/Core/Models/Hydra.swift:182-201": "/// How much a Droppy-run head gets for one turn, on any provider: a nudge when it only\n/// reads, a word to wrap up, then a stop and one more turn for its report, so the lead\n/// always hears back. The API sessions pace themselves with these from inside the turn;\n/// every other provider gets the stop from the head's runtime.\nenum HydraBudget {\n    /// Tools without a change before the head is asked to act.\n    static let pacingTools = 24\n    /// The wrap-up and the hard stop are wide enough for a real piece of work: a head cut\n    /// off in the middle of a refactor costs the lead more than a slow head does.\n    static let wrapUpTools = 120\n    static let maxTools = 160\n    static let wrapUpSeconds: TimeInterval = 25 * 60\n    static let maxSeconds: TimeInterval = 35 * 60\n    /// What a stopped head gets to write its report in.\n    static let reportSeconds: TimeInterval = 3 * 60\n\n    static let pacingNote = \"[Droppy Code] You have run \\(pacingTools) tools without changing a file. If the task is research, reply with your findings now. Otherwise act on what you know: make the change, or reply with what blocks you.\"\n    static let wrapUpNote = \"[Droppy Code] Your budget is nearly spent. Finish now: complete the smallest correct version of the task, then reply with your report.\"\n    static let finalNote = \"[Droppy Code] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.\"\n}",
+          "HydraMergeStage.words DroppyCode/Core/Models/Hydra.swift:518-529": "    /// The stage in words, as the pill and the sidebar show it.\n    var words: String {\n        switch self {\n        case .gathering: \"Gathering the team's files\"\n        case .committing: \"Writing the commit\"\n        case .describing: \"Writing the commit message\"\n        case .pushing: \"Pushing the branch\"\n        case .opening: \"Opening the merge request\"\n        case .merging: \"Merging\"\n        case .syncing: \"Bringing the checkout up to date\"\n        }\n    }"
+        },
+        "interpolation_notes": [
+          "policy(for:_:) branches on provider for howToSpawn and howToWait: .claude, .codex, .copilot, and a `default` branch that yields an EMPTY howToSpawn and a howToWait of either \"Run at most <N> heads at once.\" or \"Send every head for a job out at once so they run in parallel.\" The default branch is reachable only if policy() is called for a non-native provider; AppModel.hydraIsNative restricts native launches to those three, so in shipped flow the default branch is not taken.",
+          "profileRule inside policy() has three shapes: empty when nativeRoutableProfiles is empty; a `droppy-worker-<slug>` variant list for .claude and .copilot; a model/reasoning_effort knob list for .codex; empty for any other provider.",
+          "nativeRoutableProfiles (Hydra.swift:575-582) keeps a profile only when (provider == nil || provider == launch.headsProvider) AND (model != nil || effort != nil). Exactly two conjuncts.",
+          "The reviewsHeads and autoMerges lines in policy() are spliced with literal newlines: `\\(reviewsHeads ? \"- \" + reviewRule + \"\\n\" : \"\")` and `\\(autoMerges ? \"\\n\" + autoMergeRule + \"\\n\" : \"\")`.",
+          "fallbackPolicy's fenced example block is part of the string and contains three backticks; it must survive the port's own template escaping.",
+          "workerPrompt and scoutPrompt are always concatenated with \"\\n\\n\" + AntiSlopPolicy.instructions(enabled: launch.antiSlopEnabled) before being handed to Claude or Copilot (Hydra.swift:743, 759, 796, 807)."
+        ]
+      },
+      "port_impact": "Store these as exact string resources, byte for byte, including the Unicode quotes in quoted(_:) (U+201C/U+201D), the U+2212 minus in landingLine, the U+00B7 middle dots, and the em dash in the merge note head lines. Do not reflow, do not fix grammar, do not localize."
+    },
+    {
+      "id": "G10",
+      "kind": "gap",
+      "finding": "fallbackReportNote's opener '[Hydra] Your heads reported back below.' and the two `more` variants are not quoted anywhere.",
+      "verdict": "PARTIALLY_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "line_correction": "The critique cites Hydra.swift:1259-1262 and :1255-1258; those lines are inside reportMessage's closing loop. fallbackReportNote is at DroppyCode/Core/Models/Hydra.swift:975-980, with the two `more` variants on :977 and :978. The content of the finding is right, the citation is not.",
+        "verbatim": "\n    /// In front of a report message: the heads are back, and the lead's job is to\n    /// finish, not to send out more. `canDelegate` says a round of heads is still left\n    /// for what failed or turned out to be missing; otherwise the block is not offered.\n    static func fallbackReportNote(team: String?, merge: String? = nil, canDelegate: Bool) -> String {\n        let more = canDelegate\n            ? \"If the reports open up the next stage of the work, or a head failed, or a piece of the user's request is still undone, send heads out again for exactly that, with the same ```hydra block at the end of your reply; never for verifying, redoing or finishing what a head already did.\"\n            : \"Send out no more heads for this request; whatever is left, do yourself.\"\n        return \"[Hydra] Your heads reported back below.\" + (team.map { \" \" + $0 } ?? \"\") + (merge.map { \" \" + $0 } ?? \"\") + \" \" + more + \"\\n\\n---\\n\\n\"\n    }",
+        "exact_strings": {
+          "opener": "[Hydra] Your heads reported back below.",
+          "assembly": "opener + (team.map { \" \" + $0 } ?? \"\") + (merge.map { \" \" + $0 } ?? \"\") + \" \" + more + \"\\n\\n---\\n\\n\"",
+          "more_canDelegate_true": "If the reports open up the next stage of the work, or a head failed, or a piece of the user's request is still undone, send heads out again for exactly that, with the same ```hydra block at the end of your reply; never for verifying, redoing or finishing what a head already did.",
+          "more_canDelegate_false": "Send out no more heads for this request; whatever is left, do yourself."
+        },
+        "sibling": "fallbackTurnNote (Hydra.swift:966-972) is \"[Hydra] \" + [team, merge].compactMap{$0}.joined(separator: \" \") + \"\\n\\n---\\n\\n\", and returns the EMPTY STRING when both are nil. fallbackPreamble (:984-986) therefore substitutes a bare \"---\\n\\n\" in that case."
+      },
+      "port_impact": "Reproduce the note assembly including the unconditional single space before `more` (so a nil team and nil merge give '[Hydra] Your heads reported back below. <more>'), and the \"\\n\\n---\\n\\n\" terminator. Reproduce fallbackTurnNote's empty-string case and fallbackPreamble's bare '---' substitution."
+    },
+    {
+      "id": "G11",
+      "kind": "gap",
+      "finding": "delegations(fromBody:) returns nil, not [], when the JSON parses but every entry is rejected.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "line_correction": "The critique cites Hydra.swift:1000-1005; the function is at DroppyCode/Core/Models/Hydra.swift:1066-1074.",
+        "verbatim": "    /// The heads a block body asks for: a JSON array of entries (or one bare entry),\n    /// read by `delegation(fromEntry:)`, which holds the rules for which entries are kept\n    /// and how they are titled and named.\n    /// An empty array is read as asking for nothing; entries with nothing usable in them\n    /// are not read at all.\n    private static func delegations(fromBody body: String) -> [HydraDelegation]? {\n        guard let json = JSONValue.parse(body) else { return nil }\n        if let array = json.array, array.isEmpty { return [] }\n        let entries: [JSONValue] = json.array ?? (json.object == nil ? [] : [json])\n        let parsed = entries.compactMap(delegation(fromEntry:))\n        return parsed.isEmpty ? nil : parsed\n    }\n",
+        "exact_rules": [
+          "JSONValue.parse(body) fails -> nil.",
+          "json is an array AND it is empty -> [] (a block that deliberately asks for nothing).",
+          "entries = json.array ?? (json.object == nil ? [] : [json]) — a bare object is wrapped as one entry; a bare string/number/bool/null yields [].",
+          "parsed = entries.compactMap(delegation(fromEntry:)); parsed.isEmpty ? nil : parsed. So a non-empty array whose every entry is rejected returns nil, indistinguishable from a parse failure."
+        ],
+        "consumer": "DroppyCode/Core/Models/Hydra.swift:1049-1060 delegations(in:) — ends = every line-start fence after the opener, reversed (last fence first), then text.endIndex appended. It returns the FIRST body that parses non-nil. Because an all-rejected array returns nil, the retry walks back over earlier fences and finally the whole tail; when none parses, delegations(in:) returns nil and the caller raises unreadableBlockMessage.",
+        "verbatim_delegations_in": "\n    /// The delegation block at the end of a reply, if the lead wrote one. The body up to\n    /// the last fence is tried first; when that does not parse, a prompt has most likely\n    /// quoted a fence of its own and the closer is somewhere else, so every earlier fence\n    /// is tried in turn, from the last back to the first, and lastly the end of the text\n    /// for a block whose closer never came. An empty array is a block that asks for no\n    /// heads (the lead did the work itself) and comes back as an empty list, not as nil.\n    /// While the reply streams, `streamedDelegations(in:)` reads the same block entry by entry.\n    static func delegations(in text: String) -> [HydraDelegation]? {\n        guard let opener = delegationOpener(in: text) else { return nil }\n        let bodyStart = opener.upperBound\n        var ends = lineStartFences(in: text, from: bodyStart).reversed().map(\\.lowerBound)\n        ends.append(text.endIndex)\n        for end in ends {\n            if let parsed = delegations(fromBody: String(text[bodyStart..<end])) { return parsed }\n        }\n        return nil\n    }",
+        "entry_rules": "DroppyCode/Core/Models/HydraDelegationStream.swift:110-120 delegation(fromEntry:) — rejected unless entry[\"prompt\"] is a string whose trimmed value is non-empty. task defaults to \"\" and is then replaced by TextCleanup.singleLine(prompt, limit: 60)."
+      },
+      "port_impact": "Return a three-state result (nil / empty list / non-empty list) from the body parser and drive the fence-walk retry off nil. Do not collapse 'all entries rejected' into an empty list: that would send the lead a silent no-op instead of unreadableBlockMessage."
+    },
+    {
+      "id": "G12",
+      "kind": "gap",
+      "finding": "A present-but-empty 'name' shadows the 'head' alias (and 'project' shadows 'repo'), leaving the field nil.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/Core/Models/HydraDelegationStream.swift:110-120",
+        "verbatim": "    /// One entry of a block read as a head's task: kept only with a prompt, titled from\n    /// the prompt when it has no task, and carrying the announced name (\"name\", or \"head\")\n    /// as-is when the lead gave one, for the spawner to resolve against the roster, and\n    /// the project (\"project\", or \"repo\") the head is sent to, for the spawner to resolve\n    /// against the sidebar. An entry may also name one of the pair's head profiles\n    /// (\"profile\"), which the spawner resolves the same way; an unknown profile runs on\n    /// the shared worker model.\n    static func delegation(fromEntry entry: JSONValue) -> HydraDelegation? {\n        guard let prompt = entry[\"prompt\"]?.string?.trimmingCharacters(in: .whitespacesAndNewlines), !prompt.isEmpty else { return nil }\n        let task = entry[\"task\"]?.string?.trimmingCharacters(in: .whitespacesAndNewlines) ?? \"\"\n        let name = entry[\"name\"]?.string?.trimmingCharacters(in: .whitespacesAndNewlines)\n            ?? entry[\"head\"]?.string?.trimmingCharacters(in: .whitespacesAndNewlines)\n        let announced = (name?.isEmpty == false) ? name : nil\n        let project = entry[\"project\"]?.string?.trimmingCharacters(in: .whitespacesAndNewlines)\n            ?? entry[\"repo\"]?.string?.trimmingCharacters(in: .whitespacesAndNewlines)\n        let profile = entry[\"profile\"]?.string?.trimmingCharacters(in: .whitespacesAndNewlines)\n        return HydraDelegation(task: task.isEmpty ? TextCleanup.singleLine(prompt, limit: 60) : task, prompt: prompt, name: announced, project: (project?.isEmpty == false) ? project : nil, profile: (profile?.isEmpty == false) ? profile : nil)\n    }",
+        "mechanism": "`entry[\"name\"]?.string?.trimmingCharacters(...) ?? entry[\"head\"]?.string?.trimmingCharacters(...)` — the ?? fires only when the LEFT side is nil. A present string \"\" trims to \"\", which is non-nil, so the right side is never evaluated. The emptiness is only checked afterwards by `(name?.isEmpty == false) ? name : nil`, which yields nil. Same construction for project/repo on :116-117.",
+        "non_shadowing_case": "If \"name\" is present but is NOT a string (number, object, bool, null), `.string` is nil and the \"head\" alias IS consulted. So the shadow is specific to a present empty-or-whitespace string.",
+        "fields": "The accepted keys are exactly: prompt (required, string, non-empty after trim), task (optional string), name with alias head, project with alias repo, profile. Five logical fields, seven key names."
+      },
+      "port_impact": "Reproduce the shadowing exactly: check the alias only when the primary key is absent or is not a string, never when it is an empty string. A port that falls through on emptiness would name heads the macOS app leaves unnamed."
+    },
+    {
+      "id": "G13",
+      "kind": "gap",
+      "finding": "AppSettings defaults for this family are stated nowhere.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/App/AppSettings.swift:740-776",
+        "verbatim": "        lastHydraPairID = defaults.string(forKey: Key.lastHydraPair).flatMap(UUID.init(uuidString:))\n        modelList = Self.load([ModelPin].self, forKey: Key.modelList) ?? []\n        modelPreferences = Self.load([String: ModelPreference].self, forKey: Key.modelPreferences) ?? [:]\n        hydraEnabled = defaults.object(forKey: Key.hydraEnabled) as? Bool ?? true\n        hydraDefaultEnabled = defaults.object(forKey: Key.hydraDefaultEnabled) as? Bool ?? true\n        hasSeenTour = defaults.object(forKey: Key.hasSeenTour) as? Bool ?? false\n        hasSeenHydraIntro = defaults.object(forKey: Key.hasSeenHydraIntro) as? Bool ?? false\n        if let stored = defaults.array(forKey: Key.panelSize) as? [Double], stored.count == 2 {\n            panelSize = CGSize(width: stored[0], height: stored[1])\n        }\n        hydraQueueHeads = defaults.object(forKey: Key.hydraQueueHeads) as? Bool ?? true\n        hydraAlwaysHeads = defaults.object(forKey: Key.hydraAlwaysHeads) as? Bool ?? false\n        hydraIsolateHeads = defaults.object(forKey: Key.hydraIsolateHeads) as? Bool ?? true\n        hydraMaxHeads = HydraPair.clampedCap(defaults.object(forKey: Key.hydraMaxHeads) as? Int)\n        hydraAutoMerge = defaults.object(forKey: Key.hydraAutoMerge) as? Bool ?? false\n        hydraReviewHeads = defaults.object(forKey: Key.hydraReviewHeads) as? Bool ?? false\n        hydraAutoClearFinished = defaults.object(forKey: Key.hydraAutoClearFinished) as? Bool ?? false\n        hydraAutoHidesIdleHeads = defaults.object(forKey: Key.hydraAutoHidesIdleHeads) as? Bool ?? false\n        hydraShowsHeadDetails = defaults.object(forKey: Key.hydraShowsHeadDetails) as? Bool ?? false\n        hydraAutoPopsHeads = defaults.object(forKey: Key.hydraAutoPopsHeads) as? Bool ?? false\n        hydraTempersHeadEffort = defaults.object(forKey: Key.hydraTempersHeadEffort) as? Bool ?? true\n        showsUsagePanel = defaults.object(forKey: Key.showsUsagePanel) as? Bool ?? false\n        sidebarFloats = defaults.object(forKey: Key.sidebarFloats) as? Bool ?? false\n        sidebarOnlyFloats = defaults.object(forKey: Key.sidebarOnlyFloats) as? Bool ?? false\n        if let stored = defaults.array(forKey: Key.sidebarPanelOrigin) as? [Double], stored.count == 2 {\n            sidebarPanelOrigin = CGPoint(x: stored[0], y: stored[1])\n        } else {\n            sidebarPanelOrigin = nil\n        }\n        if let stored = defaults.array(forKey: Key.sidebarPanelSize) as? [Double], stored.count == 2 {\n            sidebarPanelSize = CGSize(width: stored[0], height: stored[1])\n        } else {\n            sidebarPanelSize = nil\n        }\n        usagePanelDock = defaults.string(forKey: Key.usagePanelDock).flatMap(PanelDockCorner.init(rawValue:)) ?? .bottomLeading\n        usagePanelHeight = defaults.object(forKey: Key.usagePanelHeight).flatMap { $0 as? Double }.map { CGFloat($0) }\n        hydraPairs = Self.load([Lenient<HydraPair>].self, forKey: Key.hydraPairs)?.compactMap(\\.value) ?? []",
+        "defaults": {
+          "hydraEnabled": {
+            "key": "hydraEnabled",
+            "default": true,
+            "line": 743
+          },
+          "hydraDefaultEnabled": {
+            "key": "hydraDefaultEnabled",
+            "default": true,
+            "line": 744,
+            "note": "key constant comes from ChatThread.hydraDefaultKey; AppSettings.swift:113-115"
+          },
+          "hasSeenHydraIntro": {
+            "key": "hasSeenHydraIntro",
+            "default": false,
+            "line": 746
+          },
+          "hydraQueueHeads": {
+            "key": "hydraQueueHeads",
+            "default": true,
+            "line": 750,
+            "note": "MISSING FROM THE CRITIQUE; defaults TRUE"
+          },
+          "hydraAlwaysHeads": {
+            "key": "hydraAlwaysHeads",
+            "default": false,
+            "line": 751
+          },
+          "hydraIsolateHeads": {
+            "key": "hydraIsolateHeads",
+            "default": true,
+            "line": 752
+          },
+          "hydraMaxHeads": {
+            "key": "hydraMaxHeads",
+            "default": null,
+            "line": 753,
+            "note": "HydraPair.clampedCap(defaults.object(...) as? Int) — nil when absent, clamped to 1...8 when present. Setter removes the key when set to nil (AppSettings.swift:563-570)."
+          },
+          "hydraAutoMerge": {
+            "key": "hydraAutoMerge",
+            "default": false,
+            "line": 754
+          },
+          "hydraReviewHeads": {
+            "key": "hydraReviewHeads",
+            "default": false,
+            "line": 755
+          },
+          "hydraAutoClearFinished": {
+            "key": "hydraAutoClearFinished",
+            "default": false,
+            "line": 756
+          },
+          "hydraAutoHidesIdleHeads": {
+            "key": "hydraAutoHidesIdleHeads",
+            "default": false,
+            "line": 757,
+            "note": "MISSING FROM THE CRITIQUE"
+          },
+          "hydraShowsHeadDetails": {
+            "key": "hydraShowsHeadDetails",
+            "default": false,
+            "line": 758
+          },
+          "hydraAutoPopsHeads": {
+            "key": "hydraAutoPopsHeads",
+            "default": false,
+            "line": 759,
+            "note": "MISSING FROM THE CRITIQUE"
+          },
+          "hydraTempersHeadEffort": {
+            "key": "hydraTempersHeadEffort",
+            "default": true,
+            "line": 760
+          },
+          "lastHydraPairID": {
+            "key": "lastHydraPairID",
+            "default": null,
+            "line": 740,
+            "note": "stored as a UUID string"
+          },
+          "hydraPairs": {
+            "key": "hydraPairs",
+            "default": "[]",
+            "line": 776
+          }
+        },
+        "count": "16 persisted keys in this family (14 booleans/ints read at :743-760 plus lastHydraPairID and hydraPairs).",
+        "pattern": "Every boolean is read as `defaults.object(forKey:) as? Bool ?? <default>`, i.e. an absent key takes the default and a value of the wrong type also takes the default."
+      },
+      "port_impact": "Ship these exact defaults. Hydra ON by default (hydraEnabled true, hydraDefaultEnabled true) is the single most consequential one: a port that defaults it off silently removes the product. Keep hydraMaxHeads genuinely absent (not 0, not 8) when unset, and clamp on READ as well as on write."
+    },
+    {
+      "id": "G14",
+      "kind": "gap",
+      "finding": "ChatThread.hydraEnabled migration: hydraEnabledIsExplicit defaults false on decode and forces hydraEnabled true; a fresh thread seeds from UserDefaults directly.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/Core/Models/Library.swift:171-186, 194-202, 204-221, 256-263",
+        "verbatim_fields": "    /// Per-chat Hydra switch: off kills heads for this chat only, on restores them\n    /// (with the app-wide switch on). New threads start on the saved default\n    /// (see `hydraDefaultEnabled()`); flipping a chat's switch saves there too.\n    var hydraEnabled = true\n    /// Whether `hydraEnabled` above was saved by a build that has the per-chat switch.\n    /// Saves from before it carried an ignored false under the same key, so a thread\n    /// without this flag decodes as on whatever its stored value says; every save from\n    /// here on writes the flag, and its stored value is then the user's own choice.\n    var hydraEnabledIsExplicit = true\n    /// The pair an old thread picked while Hydra had per-chat switches. Kept for\n    /// decoding; new threads use the best fit for their provider and model.\n    var hydraPairID: UUID?\n    /// How many heads this chat has sent out so far: the next one's place in the roster.\n    var hydraSpawnCount = 0\n    /// Set on a head: the thread is one of its parent's team.\n    var hydra: HydraHeadInfo?\n\n    /// Spawned from another thread, whichever side of the panel it is on.\n    var isHelper: Bool { parentThreadID != nil }\n\n    /// A Hydra head, whichever side of the panel it is on.\n    var isHydraHead: Bool { hydra != nil }\n\n    /// Defaults key holding the per-chat Hydra default; `AppSettings` reads it from here.\n    static let hydraDefaultKey = \"hydraDefaultEnabled\"\n\n    /// The per-chat Hydra default new threads start with: the last per-chat switch\n    /// flip, or on until the user first switches a chat off.\n    static func hydraDefaultEnabled() -> Bool {\n        let defaults = CaptureRun.defaults ?? .standard\n        return defaults.object(forKey: hydraDefaultKey) as? Bool ?? true\n    }",
+        "verbatim_decode": "        // Threads saved while Hydra was app-wide only carry an ignored false and no\n        // explicit flag: they come back on. A save that wrote the flag holds a real choice.\n        let explicit = container.value(.hydraEnabledIsExplicit, default: false)\n        hydraEnabled = explicit ? container.value(.hydraEnabled, default: true) : true\n        hydraEnabledIsExplicit = true\n        hydraPairID = container.value(.hydraPairID, default: nil)\n        hydraSpawnCount = container.value(.hydraSpawnCount, default: 0)\n        hydra = container.value(.hydra, default: nil)",
+        "exact_rules": [
+          "In-memory defaults: hydraEnabled = true, hydraEnabledIsExplicit = true (Library.swift:174, 179).",
+          "Decode (Library.swift:258-260): explicit = container.value(.hydraEnabledIsExplicit, default: false); hydraEnabled = explicit ? container.value(.hydraEnabled, default: true) : true; hydraEnabledIsExplicit = true UNCONDITIONALLY afterwards.",
+          "So a record without the flag comes back ON no matter what its stored hydraEnabled says, and the next save writes the flag, upgrading the record permanently.",
+          "Fresh thread (Library.swift:220): hydraEnabled = Self.hydraDefaultEnabled(), which is Library.swift:199-202 — (CaptureRun.defaults ?? .standard).object(forKey: \"hydraDefaultEnabled\") as? Bool ?? true. A DIRECT UserDefaults read, not AppSettings.",
+          "AppSettings.hydraDefaultEnabledKey is defined as ChatThread.hydraDefaultKey (AppSettings.swift:113-115), so both sides share the one literal key \"hydraDefaultEnabled\"."
+        ]
+      },
+      "port_impact": "Add the explicit flag to the thread schema with a false decode default and the force-true migration, and set the flag true on load so it self-heals. Seed new chats from the raw settings key, reading it at thread-construction time (not from a cached AppSettings snapshot), so a flip made in another window is picked up."
+    },
+    {
+      "id": "G15",
+      "kind": "gap",
+      "finding": "hydraPairs is decoded as [Lenient<HydraPair>] and compacted, so a bad pair is dropped rather than failing the load.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/App/AppSettings.swift:776 — hydraPairs = Self.load([Lenient<HydraPair>].self, forKey: Key.hydraPairs)?.compactMap(\\.value) ?? []",
+        "lenient": "DroppyCode/Core/Support/Coding.swift:10-17 — struct Lenient<Element: Decodable> { var value: Element?; init(from decoder:) { value = try? Element(from: decoder) } }.",
+        "verbatim_lenient": "import Foundation\n\nextension KeyedDecodingContainer {\n    /// Decodes a value that older saves may not contain.\n    func value<T: Decodable>(_ key: Key, default fallback: @autoclosure () -> T) -> T {\n        ((try? decodeIfPresent(T.self, forKey: key)) ?? nil) ?? fallback()\n    }\n}\n\n/// Decodes an element without failing the surrounding collection.\nstruct Lenient<Element: Decodable>: Decodable {\n    var value: Element?\n\n    init(from decoder: Decoder) throws {\n        value = try? Element(from: decoder)\n    }\n}",
+        "what_can_fail": "HydraPair.init(from:) (Hydra.swift:80-93) decodes every field through container.value(_:default:) EXCEPT `provider`, which is `try container.decode(ProviderKind.self, forKey: .provider)`. A missing provider, or a provider string this build does not know, is the ONE way a stored pair fails and gets silently dropped.",
+        "verbatim_pair_decode": "    }\n\n    init(from decoder: Decoder) throws {\n        let container = try decoder.container(keyedBy: CodingKeys.self)\n        id = container.value(.id, default: UUID())\n        provider = try container.decode(ProviderKind.self, forKey: .provider)\n        orchestratorModel = container.value(.orchestratorModel, default: nil)\n        orchestratorEffort = container.value(.orchestratorEffort, default: nil)\n        workerProvider = container.value(.workerProvider, default: nil)\n        workerModel = container.value(.workerModel, default: nil)\n        workerEffort = container.value(.workerEffort, default: nil)\n        name = container.value(.name, default: nil)\n        maxHeads = Self.clampedCap(container.value(.maxHeads, default: nil))\n        headProfiles = container.value(.headProfiles, default: [])",
+        "outer_failure": "If the stored blob is not a JSON array at all, Self.load returns nil and hydraPairs becomes []; the whole list is lost rather than partially salvaged."
+      },
+      "port_impact": "Decode the pair list element-by-element, discarding failures, and make the provider field the only strict one. A strict whole-list decoder would wipe every pair when a newer build wrote an unknown provider; a fully-lenient one would resurrect pairs with no provider."
+    },
+    {
+      "id": "G16",
+      "kind": "gap",
+      "finding": "Cross-file defect: withoutLeadInstructions' nine leadPrefixes do not cover the two closing sentences that can come first when no head landed cleanly.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:188-201",
+        "verbatim": "    /// The closing paragraph the lead appends for itself is not the heads' report;\n    /// it leaves with the last head's final paragraph when it reads like instructions.\n    private static let leadPrefixes = [\n        \"The changes listed above\", \"The heads worked in your checkout\", \"A file listed with conflicts\",\n        \"Do not check any of this\", \"Do not wait for\", \"A head that failed\", \"A head the user stopped\",\n        \"The user queued\", \"The user sent\",\n    ]\n\n    private static func withoutLeadInstructions(_ body: String) -> String {\n        guard let range = body.range(of: \"\\n\\n\", options: .backwards) else { return body }\n        let tail = String(body[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)\n        guard leadPrefixes.contains(where: { tail.hasPrefix($0) }) else { return body }\n        return String(body[..<range.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)\n    }",
+        "prefix_count": 9,
+        "prefixes": [
+          "The changes listed above",
+          "The heads worked in your checkout",
+          "A file listed with conflicts",
+          "Do not check any of this",
+          "Do not wait for",
+          "A head that failed",
+          "A head the user stopped",
+          "The user queued",
+          "The user sent"
+        ],
+        "mechanism": "withoutLeadInstructions finds the LAST \"\\n\\n\" in the body, trims the tail, and drops that tail only if it hasPrefix one of the nine. reportMessage joins its whole closing array with a single space (Hydra.swift:1300-1306), so the closing is ONE paragraph and only its FIRST sentence is ever tested.",
+        "closing_order": "Hydra.swift:1248-1298 appends in this order: (1) 'The changes listed above...' if any landing.landed; (2) 'The heads worked in your checkout...' if any report has copyPath == nil && status == .completed; (3) 'A file listed with conflicts...' if any landing has conflicts; (4) per shared path '<A> and <B> both changed <path>: ...' (Hydra.swift:1267); (5) per patch '<Name>'s changes would not apply on their own; ...' (Hydra.swift:1271); (6) 'A head that failed...'; (7) 'A head the user stopped...'; (8) 'The user queued...'; (9) 'The user sent...'; (10) 'Do not check any of this...' ALWAYS; (11) reportStyleRule ALWAYS; (12) 'Do not wait for ...' if stillWorking.",
+        "the_hole": "Items (4) and (5) have no matching prefix, and (11) reportStyleRule ('For each head, give one plain sentence...') has none either. When items (1),(2),(3) are all absent but (4) or (5) is present, the closing paragraph begins with an uncovered sentence and the ENTIRE lead instruction block, including (10) and (11), is rendered inside the last head's report card.",
+        "reachability": "Items (1)(2)(3) are all absent exactly when no report landed cleanly, every report has a copyPath or is not .completed, and no landing has conflicts. Item (5) requires a landing with patchPath, which is precisely the did-not-apply case. So the defect fires on a realistic run where every head's patch was kept rather than landed."
+      },
+      "port_impact": "Reproduce the nine prefixes and the last-paragraph rule exactly, including the failure. Do not add prefixes for (4), (5) or reportStyleRule: fixing it changes what the popover shows."
+    },
+    {
+      "id": "G17",
+      "kind": "gap",
+      "finding": "'Clear finished heads' is the only heads-popover action that does not close the popover.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/App/Views/Chat/HydraPanel.swift:258-286",
+        "verbatim": "        .popover(isPresented: $isPresented, arrowEdge: .bottom) {\n            PopoverMenu {\n                let waiting = runtime.hydraWaitingCount\n                let header = running == 0 ? \"Heads\" : (running == 1 ? \"1 head working\" : \"\\(running) heads working\")\n                PopoverSectionHeader(waiting > 0 ? header + (waiting == 1 ? \", 1 waiting\" : \", \\(waiting) waiting\") : header)\n                ForEach(heads) { head in\n                    HydraHeadRow(head: head, isOnStage: head.id == runtime.hydraSelectedHeadID) {\n                        runtime.hydraSelectedHeadID = head.id\n                        isPresented = false\n                    }\n                }\n                if running > 1 || heads.contains(where: { $0.hydra?.isFinished == true }) {\n                    PopoverDivider()\n                }\n                if running > 1 {\n                    PopoverItem(\"Stop all heads\", symbol: \"stop.circle\") {\n                        model.stopAllHydraHeads(of: runtime.threadID)\n                        isPresented = false\n                    }\n                }\n                if heads.contains(where: { $0.hydra?.isFinished == true }) {\n                    PopoverItem(\"Clear finished heads\", symbol: \"checkmark.circle\") {\n                        withAnimation(Chrome.panelSlide) {\n                            model.clearFinishedHydraHeads(of: runtime.threadID)\n                        }\n                    }\n                }\n            }\n        }\n    }",
+        "facts": [
+          "Head row action (:264-267): sets runtime.hydraSelectedHeadID then isPresented = false.",
+          "'Stop all heads' (:272-277): model.stopAllHydraHeads then isPresented = false. Shown only when running > 1.",
+          "'Clear finished heads' (:278-284): withAnimation(Chrome.panelSlide) { model.clearFinishedHydraHeads(...) } and NO isPresented = false. Shown only when some head isFinished.",
+          "A PopoverDivider (:269-271) is drawn when running > 1 || any head isFinished.",
+          "Header text (:261-262): running == 0 -> \"Heads\"; running == 1 -> \"1 head working\"; else \"<N> heads working\"; then, when runtime.hydraWaitingCount > 0, append \", 1 waiting\" or \", <N> waiting\".",
+          "Button help and accessibility label (:254-256): heads.count == 1 ? \"1 head\" : \"<N> heads\"."
+        ]
+      },
+      "port_impact": "Keep the popover open after clearing finished heads and close it on the other two actions. Reproduce the header string including the waiting suffix, and gate the two items on running > 1 and any-finished respectively."
+    },
+    {
+      "id": "G18",
+      "kind": "gap",
+      "finding": "The Hydra right-click items carry checkmark state, and the Settings-off 'Turn Hydra on' item performs two writes.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/App/Views/Chat/HydraButton.swift:200-230",
+        "verbatim": "/// What a right-tap on the Hydra mark offers, in place: the per-chat switch, on or\n/// off for this chat only. Left-click keeps opening the panel; this only flips the chat.\nprivate struct HydraSwitchPopover: View {\n    @Environment(AppModel.self) private var model\n    let thread: ChatThread\n    let isOn: Bool\n    @Binding var isHydraSwitchShown: Bool\n\n    var body: some View {\n        PopoverMenu {\n            if !model.settings.hydraEnabled {\n                PopoverSectionHeader(\"Hydra is off in Settings\")\n                PopoverItem(\"Turn Hydra on\") {\n                    model.settings.hydraEnabled = true\n                    model.setHydra(true, for: thread.id)\n                    isHydraSwitchShown = false\n                }\n            } else {\n                PopoverSectionHeader(isOn ? \"Hydra is on for this chat\" : \"Hydra is off for this chat\")\n                PopoverItem(\"Turn Hydra on for this chat\", isChecked: isOn) {\n                    model.setHydra(true, for: thread.id)\n                    isHydraSwitchShown = false\n                }\n                PopoverItem(\"Turn Hydra off for this chat\", isChecked: !isOn) {\n                    model.setHydra(false, for: thread.id)\n                    isHydraSwitchShown = false\n                }\n            }\n        }\n    }\n}",
+        "exact_menu": [
+          "Branch A, when !model.settings.hydraEnabled: PopoverSectionHeader(\"Hydra is off in Settings\"); one PopoverItem(\"Turn Hydra on\") with NO isChecked, whose action is model.settings.hydraEnabled = true THEN model.setHydra(true, for: thread.id) THEN isHydraSwitchShown = false.",
+          "Branch B, otherwise: PopoverSectionHeader(isOn ? \"Hydra is on for this chat\" : \"Hydra is off for this chat\"); PopoverItem(\"Turn Hydra on for this chat\", isChecked: isOn) -> setHydra(true, ...); PopoverItem(\"Turn Hydra off for this chat\", isChecked: !isOn) -> setHydra(false, ...). Both then set isHydraSwitchShown = false.",
+          "The two-write action in branch A means the app-wide switch and the per-chat switch flip together, and setHydra additionally writes settings.hydraDefaultEnabled = true and may rewrite the chat's model and effort (see G2)."
+        ],
+        "trigger": "HydraButton.swift:232-... HydraRightTap is an NSViewRepresentable that watches the window's events and claims secondary clicks (right-click and control-click) inside its frame; left-click still opens the panel.",
+        "help_text": "HydraButton.swift:182-197 builds the tooltip as ' \\u00b7 '-joined parts: \"Hydra is on in Settings\" when off; else \"Hydra is on\", then either HydraPairSummary.workers(pair, registry:) or \"Heads run on this chat's model\", then \"<N> head(s) working\" when running > 0, then either \"No heads out yet\" (and stop) or \"Show the panel\"/\"Hide the panel\"."
+      },
+      "port_impact": "Render the two per-chat items as checkable radio-style items driven by isOn/!isOn, and keep the Settings-off branch's double write. Reproduce the tooltip assembly with the U+00B7 separator."
+    },
+    {
+      "id": "G19",
+      "kind": "gap",
+      "finding": "makeHydraCopy awaits the lead runtime's pending hydraLanding task before capturing the tree.",
+      "verdict": "CRITIC_CORRECT",
+      "truth": {
+        "label": "SOURCE FACT",
+        "evidence": "DroppyCode/App/AppModel+Hydra.swift:485-507; the await is on :489.",
+        "verbatim": "    /// A worktree for `head` holding the checkout exactly as it is, uncommitted and\n    /// untracked work included: a tree of the working files, committed on top of HEAD\n    /// where no branch will ever see it, and checked out detached. Nil where the project\n    /// cannot be copied (no git, no commits yet) or git refuses; the head then works in\n    /// the checkout itself.\n    private func makeHydraCopy(for head: ChatThread, of checkout: String) async -> (path: String, tree: String)? {\n        guard let info = head.hydra, let project = project(head.projectID) else { return nil }\n        // A head's work landing in the checkout right now finishes first, so the copy\n        // starts from the checkout whole rather than half-way through a patch.\n        if let parentID = head.parentThreadID { await existingRuntime(for: parentID)?.hydraLanding?.value }\n        let git = Git(checkout)\n        guard await git.isRepository(), await git.hasCommits() else { return nil }\n        let folder = project.name.replacingOccurrences(of: \" \", with: \"-\").lowercased()\n        let name = info.persona.name.replacingOccurrences(of: \" \", with: \"-\").lowercased()\n        let suffix = String(head.id.uuidString.lowercased().prefix(8))\n        let path = Storage.worktreesDirectory.appendingPathComponent(\"\\(folder)-\\(name)-\\(suffix)\").path\n        do {\n            // The heads of one delegation block start within milliseconds of each other\n            // and want the same checkout, so they share one capture of it (see\n            // `HydraTreeCache`); only the worktree itself is made per head.\n            let capture = try await HydraTreeCache.capture(of: checkout, with: git)\n            try await git.addDetachedWorktree(at: path, commit: capture.commit)\n            return (path, capture.tree)\n        } catch {\n            try? FileManager.default.removeItem(atPath: path)\n            return nil\n        }\n    }",
+        "ordering": [
+          ":486 requires head.hydra and a Project for head.projectID, else nil.",
+          ":489 `if let parentID = head.parentThreadID { await existingRuntime(for: parentID)?.hydraLanding?.value }` — the copy waits for any in-flight landing on the LEAD, so a worktree is never cut mid-patch. existingRuntime (not runtime) so no runtime is created just to wait.",
+          ":491 requires git.isRepository() AND git.hasCommits(); otherwise nil and the head works in the shared checkout.",
+          ":492-495 folder naming (see cross-cutting note on the sweeper).",
+          ":500 the tree/commit come from HydraTreeCache.capture, which coalesces concurrent requests per checkout and caches for 3 s (AppModel+Hydra.swift:36, :43-60). The shared commit's message is exactly \"Droppy Code: a Hydra head's starting point\" (:52).",
+          ":501 git.addDetachedWorktree(at: path, commit: capture.commit).",
+          ":503-505 on any throw the folder is removed with FileManager and nil is returned.",
+          "HydraTreeCache.invalidate(_:) (:63-65) throws the capture away when the checkout changes."
+        ]
+      },
+      "port_impact": "Serialize copy creation behind the lead's pending landing, and keep the 3 s per-checkout capture cache with in-flight coalescing, or a burst of heads will each pay for a full add -A + write-tree. Keep the exact starting-point commit message."
+    }
+  ],
+  "cross_cutting_verified": [
+    {
+      "id": "X1",
+      "claim": "Hydra is ON by default on a fresh install and new chats inherit it.",
+      "verdict": "CONFIRMED",
+      "truth": "AppSettings.swift:743 hydraEnabled default true; :744 hydraDefaultEnabled default true; Library.swift:199-202 hydraDefaultEnabled() reads \"hydraDefaultEnabled\" from UserDefaults with a true default; Library.swift:220 seeds a new ChatThread from it."
+    },
+    {
+      "id": "X2",
+      "claim": "Every Hydra persisted type decodes tolerantly with deliberate defaults.",
+      "verdict": "CONFIRMED_WITH_LINE_CORRECTIONS",
+      "truth": "Coding.swift:3-8 KeyedDecodingContainer.value(_:default:) swallows both a throw and a null. HydraHeadInfo.status default is .stopped at Hydra.swift:407 (the critique cites 404-406, which is the comment). HydraPair.maxHeads is clamped at Hydra.swift:92 (the critique cites 90). HydraHeadInfo.canStop defaults to `kind == .droppy` (Hydra.swift:426), not to a constant. HydraPair.provider is the only non-tolerant field in the family (Hydra.swift:83)."
+    },
+    {
+      "id": "X3",
+      "claim": "Concurrency ceiling of 8 is a hard product constraint.",
+      "verdict": "CONFIRMED_BUT_NARROWER",
+      "truth": "It binds Droppy-run heads only (both hasRoom call sites count runningDroppyHeads). Native heads are bounded by the provider, via the prompt sentence for Claude/Copilot and agents.max_concurrent_threads_per_session for Codex, which is OMITTED entirely when maxHeads is nil (Hydra.swift:830-831)."
+    },
+    {
+      "id": "X4",
+      "claim": "Scratch/path handling is heavily POSIX.",
+      "verdict": "CONFIRMED",
+      "truth": "DroppyCode/App/AppModel+HydraMerge.swift:158-174 isScratchPath. Roots, in order: Storage.worktreesDirectory.path, NSTemporaryDirectory(), \"/tmp\", \"/private/tmp\", \"/var/folders\", \"/private/var/folders\", then <home>/Library. Separately, any path directly under home whose first component starts with \".\" is scratch (:163-164). The /private double-spelling trick is :165-168 and exists because standardizingPath only drops a leading /private while the file still exists. hydraProject (DroppyCode/App/AppModel+Hydra.swift:278-300) requires expanded.hasPrefix(\"/\") before the repository walk (:288) and terminates the upward walk at \"/\" (:296), with an explicit dir.isEmpty -> \"/\" guard (:298).",
+      "port_impact_windows": "Windows needs a re-expressed root set (%TEMP%, %LOCALAPPDATA%\\Temp, the app's worktrees folder, %APPDATA%/%LOCALAPPDATA% in place of ~/Library) and a dotted-folder-under-profile rule. The absolute-path test must accept a drive-letter root and a UNC root instead of a leading '/', and the upward walk must terminate at the drive or share root. This is an ENGINEERING DECISION the port must make explicitly; the source offers no Windows form."
+    },
+    {
+      "id": "X5",
+      "claim": "Worktree copy folder naming is '<longest project slug>-<persona slug>[-<round>]-<8 lowercase hex of thread UUID>'.",
+      "verdict": "PARTIALLY_CORRECT",
+      "truth": "WRITER (DroppyCode/App/AppModel+Hydra.swift:492-495): folder = project.name with SPACES replaced by \"-\" then lowercased — nothing else is replaced, so dots, underscores and slashes survive. name = info.persona.name with spaces replaced by \"-\" then lowercased, so \"Tova 2\" becomes \"tova-2\" and the round is not a separate field. suffix = String(head.id.uuidString.lowercased().prefix(8)) — the first 8 characters of the UUID string, which are hex. path = Storage.worktreesDirectory / \"<folder>-<name>-<suffix>\". The writer uses the head's OWN project name, never a \"longest\" anything. SWEEPER (DroppyCode/App/AppModel+Hydra.swift:1029-1051): it is the sweeper that picks the LONGEST project slug that prefixes the folder name (:1038), then splits the remainder on \"-\", requires >= 2 parts, pops the last and requires it to be exactly 8 characters and all hex digits (:1041), drops a trailing all-digit round part when exactly 2 parts remain (:1042), requires the single remaining part to be a known persona slug (:1043), and skips folders younger than 600 seconds (:1044). A folder a live thread names is never touched (:1032, :1035). Removal is git worktree remove first, FileManager.removeItem as fallback (:1047-1049).",
+      "verbatim_writer": "        let folder = project.name.replacingOccurrences(of: \" \", with: \"-\").lowercased()\n        let name = info.persona.name.replacingOccurrences(of: \" \", with: \"-\").lowercased()\n        let suffix = String(head.id.uuidString.lowercased().prefix(8))\n        let path = Storage.worktreesDirectory.appendingPathComponent(\"\\(folder)-\\(name)-\\(suffix)\").path",
+      "verbatim_sweeper": "    private func sweepOrphanHydraCopies(of projects: [Project]) async {\n        let root = Storage.worktreesDirectory\n        guard let folders = try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: [.creationDateKey], options: [.skipsHiddenFiles]) else { return }\n        let named = Set(threads.compactMap { $0.worktreePath.map { URL(fileURLWithPath: $0).lastPathComponent } })\n        let slugs = projects.map { (project: $0, slug: $0.name.replacingOccurrences(of: \" \", with: \"-\").lowercased()) }\n        let personas = Set(HydraRoster.personas.map { $0.name.replacingOccurrences(of: \" \", with: \"-\").lowercased() })\n        for folder in folders where !named.contains(folder.lastPathComponent) {\n            let name = folder.lastPathComponent\n            // The longest project slug that opens the name is its project.\n            guard let owner = slugs.filter({ name.hasPrefix($0.slug + \"-\") }).max(by: { $0.slug.count < $1.slug.count }) else { continue }\n            // What follows the slug is \"<persona>-<8 hex>\", or \"<persona>-<round>-<8 hex>\".\n            var parts = name.dropFirst(owner.slug.count + 1).split(separator: \"-\").map(String.init)\n            guard parts.count >= 2, let suffix = parts.popLast(), suffix.count == 8, suffix.allSatisfy(\\.isHexDigit) else { continue }\n            if parts.count == 2, Int(parts[1]) != nil { parts.removeLast() }\n            guard parts.count == 1, personas.contains(parts[0]) else { continue }\n            if let born = try? folder.resourceValues(forKeys: [.creationDateKey]).creationDate, Date.now.timeIntervalSince(born) < 600 { continue }\n            // Git takes it out of its registry along with the folder; a folder git does\n            // not know (the app quit between making it and registering it) goes by hand.\n            if (try? await Git(owner.project.path).removeWorktree(at: folder.path)) == nil {\n                try? FileManager.default.removeItem(at: folder)\n            }\n        }\n    }",
+      "port_impact": "Keep both halves consistent: the writer's space-only slug and the sweeper's longest-prefix match, 8-hex suffix, optional numeric round, persona-set membership, and the 600 s grace period. On Windows a project name may contain characters that are legal in the name but illegal in a path; the source's slug does not sanitize them, and a port that adds sanitizing must add the same sanitizing to the sweeper or the sweep stops matching."
+    },
+    {
+      "id": "X6",
+      "claim": "Three code paths parse the same lead-authored strings; writers and readers must stay byte-identical.",
+      "verdict": "CONFIRMED",
+      "truth": "Pair 1: Hydra.swift:1306-1325 landingLine writes \"<path> (+<A> \\u2212<D>)\" and optionally \" with conflicts\"; HydraReportsPopover.swift:157-159 reads ^(\\S+) \\(\\+(\\d+) [\\u2212-](\\d+)\\)( with conflicts)?$ — this reader accepts BOTH U+2212 and ASCII hyphen. Pair 2: AppModel+HydraMerge.swift:681-685 filesLine writes \"<N> file(s) (+<A> \\u2212<D>)\" and :282 appends \" landed on `<target>` from `<branch>`.\"; HydraMergePopover.swift:27-29 reads it with U+2212 ONLY. Pair 3: the merge note head lines AppModel+HydraMerge.swift:288/290 use U+2014 EM DASH and HydraMergePopover.swift:31 requires U+2014. Pair 4: HydraPrompts.fallbackPolicy's ```hydra example -> HydraDelegationStream / delegations(in:)."
+    },
+    {
+      "id": "X7",
+      "claim": "The fence dialects diverge on purpose: delegationOpener accepts hydra, hydra-sent and hydra-leaving; the streaming readers accept only hydra and hydra-sent.",
+      "verdict": "CONFIRMED_WITH_LINE_CORRECTION",
+      "truth": "delegationOpener is Hydra.swift:1003-1005 (the critique cites 996-998): #/```[ \\t]*hydra(?:-sent|-leaving)?[ \\t]*\\r?\\n/#.ignoresCase(). hasDelegationOpener (Hydra.swift:1040-1042) uses the same regex over a Substring. streamedDelegations(in:) is HydraDelegationStream.swift:17 with #/```[ \\t]*hydra(?:-sent)?[ \\t]*\\r?\\n/#.ignoresCase(). The hand-written HydraDelegationStreamParser.readOpener (HydraDelegationStream.swift:157-189) has states 0 through 15 and accepts only the '-sent' suffix (state 8 takes '-' to state 9, states 9..12 expect s,e,n,t). hasSentDelegationBlock (Hydra.swift:1092-1094) matches hydra-(sent|leaving); hasLeavingDelegationBlock (:1097-1099) matches hydra-leaving only.",
+      "verbatim_state_machine": "    private func readOpener(_ byte: UInt8) {\n        let lower = byte >= 65 && byte <= 90 ? byte + 32 : byte\n        switch opener {\n        case 0...2:\n            opener = byte == 96 ? opener + 1 : 0\n        case 3:\n            if byte == 32 || byte == 9 || byte == 96 { return }\n            if lower == 104 { opener = 4; return }\n            opener = 0\n        case 4...7:\n            let expected: UInt8 = switch opener { case 4: 121; case 5: 100; case 6: 114; default: 97 }\n            opener = lower == expected ? opener + 1 : (byte == 96 ? 1 : 0)\n        case 8:\n            if byte == 45 { opener = 9 } else { readOpenerEnd(byte) }\n        case 9...12:\n            let expected: UInt8 = switch opener { case 9: 115; case 10: 101; case 11: 110; default: 116 }\n            opener = lower == expected ? opener + 1 : (byte == 96 ? 1 : 0)\n        case 13, 14:\n            readOpenerEnd(byte)\n        case 15:\n            if byte == 10 { inBody = true } else { opener = byte == 96 ? 1 : 0 }\n        default: break\n        }\n    }\n\n    private func readOpenerEnd(_ byte: UInt8) {\n        switch byte {\n        case 32, 9: opener = 14\n        case 13: opener = 15\n        case 10: inBody = true\n        default: opener = byte == 96 ? 1 : 0\n        }\n    }",
+      "port_impact": "Port both dialects and both readers, including the byte-level state machine's exact acceptance: three backticks (extra backticks at state 3 are tolerated), optional spaces/tabs, 'hydra' case-insensitive, optional '-sent', optional spaces/tabs, optional CR, then LF."
+    },
+    {
+      "id": "X8",
+      "claim": "Native-provider wiring is three different shapes from one HydraLaunch.",
+      "verdict": "CONFIRMED_WITH_ONE_CORRECTION",
+      "truth": "Claude (Hydra.swift:741-774): an object keyed by agent name; each agent object carries description, prompt, background(false), and for the SCOUT ONLY tools [\"Read\",\"Grep\",\"Glob\",\"WebFetch\",\"WebSearch\"]; model added only when workerModel != nil && != \"default\"; effort added only when workerEffort is non-empty. Profile variants clone the WORKER (so no tools) with a rewritten description and the profile's own model/effort. Copilot (Hydra.swift:776-825): an ARRAY of objects with name, displayName, description, prompt, infer(true); model only when != \"auto\"; reasoningEffort when non-empty; tools NEVER emitted for any Copilot agent. Codex (Hydra.swift:827-840): [\"agents\": {max_concurrent_threads_per_session when maxHeads != nil, default_subagent_model when workerModel non-empty, default_subagent_reasoning_effort when workerEffort non-empty}, \"features\": {multi_agent: true always, multi_agent_v2: {expose_spawn_agent_model_overrides: true} only when nativeRoutableProfiles is non-empty}]. Note 'agents' is emitted even when empty. The critique's list is right except that it omits Claude's scout tools array while listing 'tools' as a Claude key."
+    },
+    {
+      "id": "X9",
+      "claim": "GitLab merge requests bypass the shared forge layer with a specific glab argument vector and two retries.",
+      "verdict": "CONFIRMED",
+      "truth": "DroppyCode/App/AppModel+HydraMerge.swift:329-399. Gate (:330): only when await git.forge() == .gitlab AND LoginEnvironment.which(\"glab\") != nil; otherwise git.createPullRequest. Vector, in order: [\"mr\",\"create\",\"--title\",title,\"--description\",body,\"--yes\"], then [\"--repo\", <remoteWebURL with user and password stripped via URLComponents>] only when remoteWebURL() has a host, then [\"--source-branch\",source,\"--target-branch\",target]. Pre-check (:350-352): hydraGitLabAuthFailure runs [\"auth\",\"status\"] with timeout 30 in git.directory; a THROW from Shell.run is treated as \"no failure\" (nil) and a non-zero exit is a failure whose message, or the literal \"glab is not signed in to this GitLab host.\" when empty, is thrown as HydraMergeRequestError.gitLabAuth(host:branch:detail:). Main run (:354) timeout 300. Retry 1 (:356-366): only when isGitLabAuthFailure AND a fresh auth status now passes; same vector, timeout 300. Retry 2 (:370-374): when mentionsRecoverFile, the vector PLUS \"--recover\" appended at the end, timeout 300. isGitLabAuthFailure (:390-394) lowercases output + \"\\n\" + errorOutput and matches \"401\" OR \"unauthorized\" OR (\"authentication\" AND (\"failed\" OR \"expired\" OR \"invalid\" OR \"required\")). mentionsRecoverFile (:397-399) is a lowercased \"recover\" substring test. Squash and remove-source-branch are deliberately not passed.",
+      "port_impact": "Reproduce the vector order, the two timeouts (30 s and 300 s), the throw-means-nil quirk in the auth pre-check, both retry predicates, and the substring heuristics verbatim including the four authentication co-words."
+    },
+    {
+      "id": "X10",
+      "claim": "The auto-merge never checks out a branch.",
+      "verdict": "CONFIRMED",
+      "truth": "DroppyCode/App/AppModel+HydraMerge.swift:211-255. head = git.commitHash(); tree = git.captureTree(paths: sorted); if tree == git.treeHash(of: \"HEAD\") the merge returns .alreadyOnMain and says nothing. patch = git.diff(from: head, to: tree); files parsed off the main actor. ownBranch = current == nil || current == target, where current = git.status()?.branch and target = git.defaultBranch(); branch = ownBranch ? hydraBranchName(for: lead) : current!. commit = git.commitWork(tree, parent: head, message:). commitHash() is READ AGAIN (:241) and a mismatch aborts with \"Hydra did not merge: the checkout moved while it worked.\" Then git.updateRef(\"refs/heads/<branch>\", to: commit, expecting: ownBranch ? nil : head) (:248) — expecting nil means the ref must not exist. Only when !ownBranch does git.resetIndex(paths: sorted) run (:252). No checkout, no git commit, no stash anywhere in the path."
+    }
+  ],
+  "upstream_defects": [
+    {
+      "id": "D1",
+      "title": "The lead's whole closing instruction block can be rendered inside the last head's report card.",
+      "evidence": "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:190-201 vs DroppyCode/Core/Models/Hydra.swift:1266-1272.",
+      "what_happens": "reportMessage joins its closing array into one paragraph. withoutLeadInstructions drops that paragraph only when it starts with one of nine prefixes. When no head landed cleanly, the paragraph can start with '<A> and <B> both changed <path>: ...' (Hydra.swift:1267) or \"<Name>'s changes would not apply on their own; ...\" (Hydra.swift:1271), neither of which is a prefix, so the block including 'Do not check any of this...' and the report style rule is shown to the user as if the head had written it.",
+      "reproduce_do_not_fix": true
+    },
+    {
+      "id": "D2",
+      "title": "mergeStatus's .failed branch silently drops the pending-files sentence.",
+      "evidence": "DroppyCode/Core/Models/Hydra.swift:939-940.",
+      "what_happens": "The .merged and .stray branches both append `pending`; the .failed branch does not. After a failed merge the lead is never told how many files are still unmerged, even though the caller computed the number.",
+      "reproduce_do_not_fix": true
+    },
+    {
+      "id": "D3",
+      "title": "An empty-string 'name' or 'project' in a delegation entry shadows its alias instead of falling through.",
+      "evidence": "DroppyCode/Core/Models/HydraDelegationStream.swift:113-117.",
+      "what_happens": "`{\"name\": \"\", \"head\": \"Otto\"}` produces an unnamed head; `{\"project\": \"\", \"repo\": \"gaze-site\"}` produces a head in the chat's own project. The ?? is over the optional, not over emptiness.",
+      "reproduce_do_not_fix": true
+    },
+    {
+      "id": "D4",
+      "title": "Turning on the per-chat Hydra switch can silently change the chat's model and effort.",
+      "evidence": "DroppyCode/App/AppModel+Hydra.swift:200-214 reached from HydraButton.swift:212-222.",
+      "what_happens": "'Turn Hydra on for this chat' adopts the remembered pair's orchestratorModel and orchestratorEffort. Nothing in the menu says so and there is no undo.",
+      "reproduce_do_not_fix": true
+    },
+    {
+      "id": "D5",
+      "title": "A pair whose worker provider is unavailable silently loses its workerModel as well as falling back to the lead's provider.",
+      "evidence": "DroppyCode/App/AppModel+Hydra.swift:158, :164, :177.",
+      "what_happens": "The user-facing note says only that the heads run on the lead's provider for now; it does not say the pair's chosen head model was dropped and the lead's own model used instead.",
+      "reproduce_do_not_fix": true
+    },
+    {
+      "id": "D6",
+      "title": "'Clear finished heads' leaves the heads popover open while every other action closes it.",
+      "evidence": "DroppyCode/App/Views/Chat/HydraPanel.swift:278-284.",
+      "reproduce_do_not_fix": true
+    },
+    {
+      "id": "D7",
+      "title": "spawnWaitingHeads ignores the concurrency ceiling when the launch is nil.",
+      "evidence": "DroppyCode/App/Runtime/ThreadRuntime.swift:2889 — `launch?.hasRoom(running:) ?? true`.",
+      "what_happens": "If Hydra is switched off (app-wide or per chat) between a delegation block arriving and the waiting queue being swept, hydraLaunch returns nil and every queued head is dispatched in one loop with no ceiling.",
+      "reproduce_do_not_fix": true
+    },
+    {
+      "id": "D8",
+      "title": "hydraHeadsFallbackNote and hydraHeadsProvider disagree on what 'installed' means.",
+      "evidence": "DroppyCode/App/AppModel+Hydra.swift:117 uses providers.countsAsInstalled(provider); :126 uses providers.status(provider).isInstalled to choose the wording.",
+      "what_happens": "A provider that countsAsInstalled but is not isInstalled (or the reverse) can produce a note whose reason does not match why the fallback happened.",
+      "reproduce_do_not_fix": true
+    },
+    {
+      "id": "D9",
+      "title": "HydraMergePopover's files-line regex accepts only U+2212, while HydraReportsPopover's accepts U+2212 or a hyphen.",
+      "evidence": "HydraMergePopover.swift:28 vs HydraReportsPopover.swift:159.",
+      "what_happens": "Two readers of two very similar app-written lines have different tolerance. The merge card degrades to plain text on any minus variance; the report card does not.",
+      "reproduce_do_not_fix": true
+    },
+    {
+      "id": "D10",
+      "title": "delegations(fromBody:) cannot distinguish 'the JSON did not parse' from 'every entry was rejected'.",
+      "evidence": "DroppyCode/Core/Models/Hydra.swift:1069-1073.",
+      "what_happens": "A well-formed array of entries that all lack a prompt makes delegations(in:) walk back over every earlier fence and finally the whole message tail, which can accidentally parse something unrelated, before reporting the block unreadable.",
+      "reproduce_do_not_fix": true
+    }
+  ],
+  "dead_or_unreachable": [
+    {
+      "item": "DroppyCode/App/Views/Chat/HydraRunMetricsView.swift, all 398 lines (HydraRunMetrics, HydraRunMetrics.Scope/Group/HeadTiming/Phase, HydraRunMetricsReader, HydraRunMetricsView, HydraRunMetricsCard).",
+      "proof": "`grep -rn \"HydraRunMetrics\" --include=*.swift .` over the pinned checkout returns 29 hits, all inside that one file. No view, panel, settings page, preview or test constructs any of these types. project.yml compiles the whole DroppyCode folder as a syncedFolder, so the file builds; DEAD_CODE_STRIPPING: YES removes it from the shipped binary. There is no #if DEBUG, no feature flag and no environment variable guarding it.",
+      "port_action": "Do not port."
+    },
+    {
+      "item": "The `tools:` parameter of the local `agent(name:display:description:prompt:tools:)` helper in HydraPrompts.copilotAgents (DroppyCode/Core/Models/Hydra.swift:779-791).",
+      "proof": "The helper is called exactly twice, at :792-798 and :803-809, both with tools: nil. The `if let tools { object[\"tools\"] = ... }` branch at :787 is therefore never taken, and the profile-variant loop at :812-822 clones the worker object rather than calling the helper.",
+      "port_action": "Port the Copilot emitter without a tools parameter, or with one that is provably unused, to match."
+    },
+    {
+      "item": "The `default:` branch of the provider switch inside HydraPrompts.policy(for:_:) (DroppyCode/Core/Models/Hydra.swift:695-698).",
+      "proof": "policy(for:_:) is the native-provider policy. A launch only runs natively when HydraLaunch.runsNatively is true, which AppModel+Hydra.swift:175 sets as `!elsewhere && Self.hydraIsNative(thread.provider)`, and hydraIsNative (AppModel+Hydra.swift:100-102) admits exactly .claude, .codex and .copilot. The three are all handled by named cases, so the default branch is unreachable in shipped flow. It is not dead at compile time because the switch must be exhaustive over ProviderKind.",
+      "port_action": "Keep an equivalent unreachable fallback for exhaustiveness; do not build product behavior on it."
+    },
+    {
+      "item": "HydraHeadInfo.Status.running as an outcome in HydraPrompts.reportMessage's `outcome` switch (DroppyCode/Core/Models/Hydra.swift:1231-1236) and in AppModel.finishHydraHead's status mapping (DroppyCode/App/AppModel+Hydra.swift:529-534).",
+      "proof": "reportMessage is built from reports of heads that have reported; the .running case yields the same empty string as .completed, so it is behaviourally inert. finishHydraHead maps TurnStatus.running to .running but is guarded at :523 by `!info.isFinished` and is only called when a turn ends, so a .running outcome would leave the head running and is never produced in practice.",
+      "port_action": "Reproduce the mappings as written; they are harmless and removing them changes nothing observable."
+    },
+    {
+      "item": "The `stage(_:)` / `title(_:)` duplication in mergeHydraProject (DroppyCode/App/AppModel+HydraMerge.swift:181-182).",
+      "proof": "The two local functions have identical bodies. Not dead code, but a redundant definition: a port that collapses them into one is behaviourally identical.",
+      "port_action": "Either shape is fine; noted so a reviewer does not read the duplication as two different rules."
+    }
+  ],
+  "still_unresolved": []
+}

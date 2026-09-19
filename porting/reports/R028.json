@@ -1,0 +1,312 @@
+{
+  "bundle_id": "R028",
+  "reader": "R028-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift",
+      "sha256": "11ca0f913fed3fcced7c2327ab4b2bf4538cdb0d50b46441b5f287cca76acb76",
+      "lines_total": 112,
+      "ranges_read": [[1, 112]],
+      "purpose": "Wraps UsagePanel in a draggable, dismissible floating glass panel that sits across the column from the Hydra heads (left by default), sized by the placer to the content height it reports back, with a top strip that acts as the drag handle and carries the title and close button.",
+      "key_symbols": [
+        "struct UsageFloatingPanel: View",
+        "UsageFloatingPanel.body",
+        "UsageFloatingPanel.strip (private var, some View)",
+        "let runtime: ThreadRuntime",
+        "let provider: ProviderKind",
+        "let headsProvider: ProviderKind?",
+        "let size: CGSize",
+        "let onContentHeight: (CGFloat) -> Void",
+        "let onDrag: (CGSize) -> Void",
+        "let onDragEnd: () -> Void",
+        "let dismiss: () -> Void"
+      ],
+      "calls_into": [
+        "UsagePanel(usage:provider:headsProvider:fillsWidth:)",
+        "ThreadRuntime.usage (ContextUsage?)",
+        "ContextUsage.fraction",
+        "PlanLimitsReader.exposesLimits(_:)",
+        "CreditsReader.exposesCredits(_:)",
+        "HydraPanel.cornerRadius",
+        "HydraPanel.stripHeight",
+        "Chrome.secondaryText",
+        "Chrome.primaryText",
+        "Chrome.glassTint",
+        "Chrome.capsuleHorizontalPadding",
+        "Chrome.capsuleContentHeight",
+        "Chrome.capsuleVerticalPadding",
+        "Chrome.chromeTopPadding",
+        "Chrome.chromeHorizontalPadding",
+        "ProviderIcon(provider:size:)",
+        "PanelDragHandle(onDrag:onDragEnd:)",
+        "ChromeCircleButton(symbol:help:action:)",
+        "View.chromeGlassCapsule()",
+        "WindowLiveResize.isActive via @Environment(WindowLiveResize.self)",
+        "ProviderKind.displayName",
+        "WindowBackdrop (named in a comment only, as the precedent for letting glass supply the edge)"
+      ],
+      "state_owned": [
+        "@Environment(WindowLiveResize.self) private var liveResize (observed, not owned)",
+        "@Environment(\\.colorScheme) private var colorScheme",
+        "No @State of its own: the panel is entirely driven by its let properties and callback closures"
+      ],
+      "side_effects": [
+        "Calls onContentHeight(_:) from .onGeometryChange whenever the scrolled content height changes, passing measured height + HydraPanel.stripHeight + 8",
+        "Calls onContentHeight(HydraPanel.stripHeight + 44) once from .onAppear in the empty state",
+        "Calls onDrag(CGSize) / onDragEnd() from the two PanelDragHandle instances while the handle is dragged",
+        "Calls dismiss() from the xmark ChromeCircleButton",
+        "No file, network, process, keychain or timer work of its own"
+      ],
+      "platform_assumptions": [
+        "import AppKit alongside SwiftUI (macOS only)",
+        "glassEffect(.regular, in: shape) is the macOS 26 Liquid Glass modifier",
+        "RoundedRectangle(style: .continuous) continuous corner curve",
+        "onGeometryChange(for:of:action:) (macOS 15+ SwiftUI)",
+        "SF Symbol \"xmark\" for the close button",
+        "@Environment(ObservableType.self) macro-based environment (Observation framework)",
+        "Drop shadow and live-resize tracking assume an AppKit-hosted SwiftUI window exposing WindowLiveResize"
+      ],
+      "persisted_fields": [
+        "None. This view persists nothing; panel geometry and position are supplied by the caller through size, onDrag and onContentHeight."
+      ],
+      "ui_elements": [
+        "Panel shape: RoundedRectangle(cornerRadius: HydraPanel.cornerRadius, style: .continuous)",
+        "Content: ScrollView(.vertical) containing UsagePanel(usage:provider:headsProvider:fillsWidth: true)",
+        "Content insets: .padding(.top, HydraPanel.stripHeight) and .padding(.bottom, 8)",
+        "Reported content height: measured height + HydraPanel.stripHeight + 8",
+        "Empty state text (verbatim, interpolated): \"Nothing to show for \\(provider.displayName) yet.\" at .font(.system(size: 13)) in Chrome.secondaryText, padded .top by HydraPanel.stripHeight, .frame(maxWidth: .infinity, maxHeight: .infinity)",
+        "Empty state reports a fixed content height of HydraPanel.stripHeight + 44",
+        "Outer frame: .frame(width: size.width, height: size.height)",
+        ".animation(nil, value: liveResize.isActive) so the frame follows the pane every frame of a live resize",
+        "Glass background: shape.fill(.clear).glassEffect(.regular, in: shape) overlaid with shape.fill(Chrome.glassTint.opacity(isDark ? 0.22 : 0.16))",
+        ".clipShape(shape) with no hairline stroke (comment: glass supplies the edge, a hairline read as a second ring when the window was key)",
+        "Scrim background under the glass: shape.fill((isDark ? Color.black : Color.white).opacity(isDark ? 0.3 : 0.34)) with .shadow(color: .black.opacity(isDark ? 1 : 0.65), radius: 28, y: 10)",
+        "Strip: HStack(alignment: .top, spacing: 8) applied as .overlay(alignment: .top)",
+        "Title capsule: HStack(spacing: 6) with ProviderIcon(provider: provider, size: 12), an optional second ProviderIcon(provider: headsProvider, size: 12), then Text(\"Usage\") at .font(.system(size: 12.5, weight: .medium)) in Chrome.primaryText.opacity(0.92)",
+        "Title capsule chrome: .padding(.horizontal, Chrome.capsuleHorizontalPadding), .frame(height: Chrome.capsuleContentHeight), .padding(.vertical, Chrome.capsuleVerticalPadding), .fixedSize(), .chromeGlassCapsule()",
+        "Title capsule overlaid with a PanelDragHandle so the label drags the panel too; .padding(.top, Chrome.chromeTopPadding), .padding(.leading, Chrome.chromeHorizontalPadding)",
+        "Middle PanelDragHandle: .frame(maxWidth: .infinity), .frame(height: HydraPanel.stripHeight), .help(\"Drag to move\"), .accessibilityLabel(Text(\"Drag to move\"))",
+        "Close button: ChromeCircleButton(symbol: \"xmark\", help: \"Dismiss the usage panel; the usage popover opens it again\"), .padding(.top, Chrome.chromeTopPadding), .padding(.trailing, Chrome.chromeHorizontalPadding)"
+      ],
+      "feature_notes": [
+        "hasSomething gate: the scrolling content shows when usage?.fraction != nil OR PlanLimitsReader.exposesLimits(provider) OR CreditsReader.exposesCredits(provider) OR headsProvider.map { exposesLimits || exposesCredits } == true; otherwise the placeholder \"Nothing to show for <Provider> yet.\" shows",
+        "The heads provider's icon appears beside the lead's in the title capsule whenever headsProvider is non-nil; unlike UsagePanel, the strip does not additionally test headsProvider != provider, so an identical heads provider would draw a duplicate icon here",
+        "Closing is reversible and the help text says so: the usage popover opens the panel again",
+        "Panel visual recipe is exactly three layers: a scrim carrying the single shadow (radius 28, y 10), the glass, and the theme tint overlay",
+        "Dark mode differences: tint opacity 0.22 vs 0.16 light, scrim black 0.3 vs white 0.34, shadow opacity 1 vs 0.65"
+      ],
+      "unresolved_questions": [
+        "HydraPanel.cornerRadius and HydraPanel.stripHeight literal point values are defined outside this file",
+        "Chrome.capsuleHorizontalPadding, capsuleContentHeight, capsuleVerticalPadding, chromeTopPadding and chromeHorizontalPadding literals live in the Chrome namespace, not here",
+        "Which view computes and applies `size` and the drag offsets (the 'placer' named in the doc comment) is not in this file",
+        "No #available gate for .glassEffect appears here, so whether availability is handled upstream is not determinable from this file"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Usage/UsagePanel.swift",
+      "sha256": "70a18c8aefbd06234b32d8afadcb514997541d6ada989818f8d9678b856ed859",
+      "lines_total": 120,
+      "ranges_read": [[1, 120]],
+      "purpose": "Composes one chat's usage readout: the context-window row plus bar, then the provider's plan limits and credits, stacking the Hydra lead's and heads' providers as two labelled sections when a pair sends its heads out on a different provider. Used both in the composer popover at a fixed 360 points and inside UsageFloatingPanel with fillsWidth.",
+      "key_symbols": [
+        "struct UsagePanel: View",
+        "UsagePanel.init(usage:provider:headsProvider:fillsWidth:) with defaults headsProvider: nil, fillsWidth: false",
+        "UsagePanel.body",
+        "private @ViewBuilder func providerSection(_ p: ProviderKind, role: String, needsDivider: Bool) -> some View",
+        "static func tokens(_ count: Int) -> String",
+        "nested local func compact(_ value: Double, _ suffix: String) -> String"
+      ],
+      "calls_into": [
+        "AppModel.providers (the registry) via @Environment(AppModel.self)",
+        "ProviderRegistry.refreshPlanLimits(_:)",
+        "ProviderRegistry.refreshCredits(_:)",
+        "PlanLimitsReader.exposesLimits(_:)",
+        "CreditsReader.exposesCredits(_:)",
+        "PlanLimitsView(provider:)",
+        "CreditsView(provider:)",
+        "UsageBar(fraction:tint:label:)",
+        "ProviderIcon(provider:size:)",
+        "ContextUsage.fraction, ContextUsage.windowTokens, ContextUsage.usedTokens",
+        "ProviderKind.displayName",
+        "Chrome.secondaryText, Chrome.primaryText, Chrome.accent"
+      ],
+      "state_owned": [
+        "@Environment(AppModel.self) private var model (observed, not owned)",
+        "let usage: ContextUsage?",
+        "let provider: ProviderKind",
+        "let headsProvider: ProviderKind?",
+        "let fillsWidth: Bool",
+        "No @State: the view is a pure function of its inputs plus the registry"
+      ],
+      "side_effects": [
+        ".onAppear calls registry.refreshPlanLimits(provider) and registry.refreshCredits(provider), and the same pair for the heads provider when one applies",
+        "These are the only refresh triggers in the usage stack: PlanLimitsView and CreditsView only render"
+      ],
+      "platform_assumptions": [
+        "SwiftUI on macOS with the Observation @Environment(Type.self) form",
+        "Divider() and Spacer(minLength:) AppKit-backed layout",
+        ".monospacedDigit() for the token counts",
+        "String(format: \"%.1f\", value) uses Foundation/ICU locale-sensitive formatting"
+      ],
+      "persisted_fields": [
+        "None. Nothing is written to UserDefaults or disk here; plan limits and credits are read from the in-memory ProviderRegistry."
+      ],
+      "ui_elements": [
+        "Root: VStack(alignment: .leading, spacing: 0)",
+        "Context row: HStack with Text(\"Context window\") in Chrome.secondaryText, Spacer(minLength: 12), then Text(verbatim: \"\\(Self.tokens(usage.usedTokens)) / \\(Self.tokens(window)) (\\(Int((fraction * 100).rounded()))%)\") in Chrome.secondaryText with .monospacedDigit()",
+        "Context row font applied to the whole HStack: .font(.system(size: 13))",
+        "Context bar: UsageBar(fraction: fraction, tint: Chrome.accent, label: \"Context window\") with .padding(.top, 10)",
+        "Divider().padding(.vertical, 14) before PlanLimitsView and before CreditsView in the single-provider path, only when showsContext",
+        "Hydra path: providerSection(provider, role: \"Lead\", needsDivider: showsContext) then providerSection(heads, role: \"Heads\", needsDivider: showsContext || showsLimits || showsCredits)",
+        "Section header: HStack(spacing: 6) with ProviderIcon(provider: p, size: 13) and Text(verbatim: \"\\(role) · \\(p.displayName)\") at .font(.system(size: 12, weight: .semibold)) in Chrome.primaryText, then .padding(.bottom, 8)",
+        "Inside a section, Divider().padding(.vertical, 14) separates PlanLimitsView from CreditsView when both show",
+        "Outer padding: .padding(16)",
+        "Width: .frame(width: fillsWidth ? nil : 360) plus .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .leading)"
+      ],
+      "feature_notes": [
+        "Popover width is exactly 360 points; the floating-panel variant passes fillsWidth: true and takes the panel's width, left-aligned",
+        "The heads section is only drawn when headsProvider != nil AND headsProvider != provider; an identical heads provider collapses back to the single-provider layout",
+        "Role labels are the literal strings \"Lead\" and \"Heads\", joined to the display name with a spaced middle dot, e.g. \"Lead · <Provider>\"",
+        "The context block requires BOTH usage.fraction and usage.windowTokens non-nil (showsContext); the same pair also guards the if-let that draws it",
+        "A provider reporting neither limits nor credits gets no section at all, and the heads section's leading divider is suppressed when nothing preceded it",
+        "tokens(_:) thresholds: count >= 1_000_000_000 -> \"B\", >= 1_000_000 -> \"M\", >= 1_000 -> \"k\", otherwise the plain integer string",
+        "tokens(_:) formats one decimal with \"%.1f\" and strips a trailing \".0\", so 1000 -> \"1k\", 1500 -> \"1.5k\", 1_200_000 -> \"1.2M\"",
+        "Context percentage is Int((fraction * 100).rounded()), so a tiny non-zero fraction still rounds to 0% below 0.005",
+        "Refresh happens once per appearance, for the lead and, when applicable, the heads provider"
+      ],
+      "unresolved_questions": [
+        "ContextUsage's declaration is outside this file; usage here implies usedTokens: Int, windowTokens: Int?, fraction: Double?",
+        "Whether refreshPlanLimits/refreshCredits are async, debounced or cached inside the registry is not visible here",
+        "compact() uses String(format:) so the decimal separator is locale-dependent; whether the app pins a locale cannot be determined from this file"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Usage/UsageViews.swift",
+      "sha256": "003bd22d52ee3abcf253996fd98c8f281f7bf2f9d736d48c07d3c051324be321",
+      "lines_total": 396,
+      "ranges_read": [[1, 200], [200, 396]],
+      "purpose": "The shared building blocks behind every usage readout: PlanLimitsView (plan-name header, a LimitRow per rolling window, banked resets, and the problem or login note), CreditsView (pay-as-you-go balance with a Top up link), the private BankedResetsView and BankedResetRow pair that spends a reset credit through the registry, and the UsageBar capsule used by all of them.",
+      "key_symbols": [
+        "struct PlanLimitsView: View",
+        "struct CreditsView: View",
+        "private func note(for credits: ProviderCredits?, isLoading: Bool) -> String? on CreditsView",
+        "private struct LimitRow: View",
+        "private static func tint(for percent: Double) -> Color on LimitRow",
+        "static func resetText(_ date: Date, now: Date = .now) -> String on LimitRow",
+        "fileprivate struct BankedResetRowModel: Identifiable { var id: String; var credit: PlanLimits.ResetCredit? }",
+        "private struct BankedResetsView: View",
+        "fileprivate enum BankedResetsView.Phase: Equatable with cases idle, confirming(String), applying(String), done(PlanLimits.ResetOutcome), failed(String)",
+        "BankedResetsView.rows -> [BankedResetRowModel]",
+        "BankedResetsView.statusLine (@ViewBuilder private var)",
+        "BankedResetsView.countText (private var)",
+        "BankedResetsView.spend(_ row: BankedResetRowModel) (private func)",
+        "private struct BankedResetRow: View",
+        "BankedResetRow.expiryText (private var)",
+        "BankedResetRow.control (@ViewBuilder private var)",
+        "BankedResetRow.isApplying (private var)",
+        "struct UsageBar: View with let fraction: Double, let tint: Color, var label = \"Used\""
+      ],
+      "calls_into": [
+        "AppModel.providers via @Environment(AppModel.self)",
+        "ProviderRegistry.planLimits[ProviderKind] -> PlanLimits?",
+        "ProviderRegistry.loadingLimits (a set containing ProviderKind)",
+        "ProviderRegistry.credits[ProviderKind] -> ProviderCredits?",
+        "ProviderRegistry.loadingCredits (a set containing ProviderKind)",
+        "ProviderRegistry.consumeResetCredit(_:_:) async throws -> PlanLimits.ResetOutcome",
+        "PlanLimits.planName, PlanLimits.windows, PlanLimits.resetCredits, PlanLimits.problem",
+        "PlanLimits.Window.title, .resetsAt, .percent, .detail (Window is Identifiable)",
+        "PlanLimits.ResetCredits.credits, .availableCount",
+        "PlanLimits.ResetCredit.id, .title, .detail, .expiresAt",
+        "PlanLimits.ResetOutcome (.reset case and .message)",
+        "ProviderCredits.amountText, .isDepleted, .breakdownText",
+        "CreditsReader.topUpURL(_:) -> URL?",
+        "ProviderKind.isAPIKeyBased, .loginCommand, .displayName",
+        "Workspace.openTerminal(running:)",
+        "Chrome.primaryText, Chrome.secondaryText, Chrome.accent, Chrome.warning, Chrome.danger, Chrome.success, Chrome.overlay(_:), Chrome.panelSlide"
+      ],
+      "state_owned": [
+        "PlanLimitsView: @Environment(AppModel.self) private var model; let provider: ProviderKind (no @State)",
+        "CreditsView: @Environment(AppModel.self) private var model; let provider: ProviderKind (no @State)",
+        "LimitRow: let window: PlanLimits.Window",
+        "BankedResetsView: @Environment(AppModel.self) private var model; let provider: ProviderKind; let credits: PlanLimits.ResetCredits; @State private var phase: Phase = .idle; @State private var settle: Task<Void, Never>?",
+        "BankedResetRow: let row, index, several, phase plus onConfirm/onCancel/onUse closures, stateless",
+        "UsageBar: let fraction: Double; let tint: Color; var label = \"Used\""
+      ],
+      "side_effects": [
+        "Workspace.openTerminal(running: provider.loginCommand) launches a terminal running the provider's login command when the \"Login\" button is pressed",
+        "Link(\"Top up\", destination: topUpURL) opens the provider's dashboard top-up page",
+        "BankedResetsView.spend starts an unstructured Task that awaits model.providers.consumeResetCredit(provider, row.credit?.id), an app-server call that spends a banked reset",
+        "After the call the same Task sleeps with try? await Task.sleep(for: .seconds(4)) and then sets phase back to .idle unless cancelled",
+        "The previous settle Task is cancelled before a new spend and again on .onDisappear",
+        "No direct file writes, keychain access or notifications in this file"
+      ],
+      "platform_assumptions": [
+        "SwiftUI on macOS with the Observation @Environment(AppModel.self) form",
+        "SF Symbols \"exclamationmark.triangle.fill\", \"checkmark.circle.fill\", \"info.circle\"",
+        ".symbolEffect(.bounce, value:) symbol animation (macOS 14+)",
+        ".contentTransition(.numericText()) and .transition(.blurReplace)",
+        "buttonStyle(.glass) and buttonStyle(.glassProminent), the macOS 26 Liquid Glass button styles",
+        "ProgressView().controlSize(.mini) and .controlSize(.small) AppKit control sizing",
+        "Date.formatted(.dateTime.weekday(.abbreviated).hour().minute()) and .dateTime.month(.abbreviated).day() Foundation FormatStyle, locale-dependent",
+        "Workspace.openTerminal implies a macOS terminal launch for the login flow",
+        "Swift Concurrency Task, Task.sleep(for:) and Task.isCancelled"
+      ],
+      "persisted_fields": [
+        "None persisted by these views. State is either in-memory registry data (planLimits, credits, loadingLimits, loadingCredits) or the transient @State phase, which returns to .idle after 4 seconds."
+      ],
+      "ui_elements": [
+        "PlanLimitsView root: VStack(alignment: .leading, spacing: 0)",
+        "PlanLimitsView header: HStack(spacing: 8) with Text(verbatim: limits?.planName.map { \"Plan usage limits · \\($0)\" } ?? \"Plan usage limits\") at .font(.system(size: 13)) in Chrome.secondaryText, Spacer(minLength: 8), and ProgressView().controlSize(.mini) while loading",
+        "Each LimitRow gets .padding(.top, 14)",
+        "Divider().padding(.top, 14) before BankedResetsView only when limits.windows is non-empty; BankedResetsView itself gets .padding(.top, 14)",
+        "API-key problem note: HStack(alignment: .center, spacing: 6) with Image(systemName: \"exclamationmark.triangle.fill\") at .font(.system(size: 10, weight: .semibold)) in Chrome.warning, Text(verbatim: problem) at .font(.system(size: 11)) in Chrome.secondaryText with .lineLimit(2) and .fixedSize(horizontal: false, vertical: true), then Spacer(minLength: 8); whole row .padding(.top, 14)",
+        "Signed-in provider problem note: HStack(spacing: 8) with Text(verbatim: \"Click here to login again\") at .font(.system(size: 12)) in Chrome.secondaryText, Spacer(minLength: 8), Button(\"Login\") with .buttonStyle(.glass).controlSize(.small); whole row .padding(.top, 14)",
+        "No-limits fallback: Text(verbatim: \"\\(provider.displayName) did not report plan limits.\") at .font(.system(size: 12)) in Chrome.secondaryText with .padding(.top, 8)",
+        "PlanLimitsView animation: .animation(Chrome.panelSlide, value: limits)",
+        "CreditsView row: HStack(alignment: .center, spacing: 16); left VStack(alignment: .leading, spacing: 2) with Text(verbatim: \"Remaining credits\") at .font(.system(size: 13)) in Chrome.primaryText and the note at .font(.system(size: 11)) in Chrome.secondaryText with .fixedSize(horizontal: false, vertical: true)",
+        "CreditsView right side: Spacer(minLength: 12) then HStack(spacing: 10) with ProgressView().controlSize(.mini) while loading, Text(verbatim: credits.amountText) at .font(.system(size: 13, weight: .semibold)) with .monospacedDigit() coloured Chrome.danger when isDepleted else Chrome.primaryText and .lineLimit(1), then Link(\"Top up\", destination:) with .buttonStyle(.glass).controlSize(.small)",
+        "CreditsView animation: .animation(.easeOut(duration: 0.15), value: credits)",
+        "LimitRow: VStack(alignment: .leading, spacing: 8); top HStack(spacing: 12) with window.title at .font(.system(size: 13)) in Chrome.primaryText .lineLimit(1), Spacer(minLength: 8), optional Text(verbatim: \"Resets \\(Self.resetText(resetsAt))\") at .font(.system(size: 12)) in Chrome.secondaryText .lineLimit(1), and Text(verbatim: \"\\(Int(window.percent.rounded()))%\") at .font(.system(size: 12)) in Chrome.secondaryText with .monospacedDigit()",
+        "LimitRow detail line: .font(.system(size: 11)) in Chrome.secondaryText with .lineLimit(1)",
+        "LimitRow bar: UsageBar(fraction: window.percent / 100, tint: Self.tint(for: window.percent), label: window.title)",
+        "BankedResetsView header: HStack(spacing: 6) with Text(verbatim: \"Banked resets\") at .font(.system(size: 13)) in Chrome.primaryText and Text(verbatim: \"· \\(countText)\") at .font(.system(size: 12)) in Chrome.secondaryText with .contentTransition(.numericText()); .accessibilityElement(children: .combine) so VoiceOver reads it as one line, \"Banked resets, 2 available\"",
+        "Status line, done: HStack(spacing: 5) with Image(systemName: outcome == .reset ? \"checkmark.circle.fill\" : \"info.circle\") at .font(.system(size: 11, weight: .semibold)) tinted Chrome.success for .reset else Chrome.secondaryText, with .symbolEffect(.bounce, value: phase); Text(verbatim: outcome.message) at .font(.system(size: 11)) in the same tint; .padding(.top, 4); .transition(.blurReplace)",
+        "Status line, failed: Text(verbatim: message) at .font(.system(size: 11)) in Chrome.danger, .padding(.top, 4), .transition(.blurReplace)",
+        "Each BankedResetRow: .padding(.top, 12) and .transition(.opacity.combined(with: .move(edge: .top)))",
+        "BankedResetsView animations: .animation(Chrome.panelSlide, value: phase) and .animation(Chrome.panelSlide, value: credits)",
+        "BankedResetRow: HStack(alignment: .center, spacing: 12); left VStack(alignment: .leading, spacing: 2) with the title at .font(.system(size: 13)) in Chrome.primaryText .lineLimit(1) and the detail or expiry at .font(.system(size: 11)) in Chrome.secondaryText .lineLimit(1); Spacer(minLength: 12); then the control",
+        "Confirm control: HStack(spacing: 6) with Button(\"Cancel\").buttonStyle(.glass).controlSize(.small) and Button(\"Reset now\").buttonStyle(.glassProminent).controlSize(.small).tint(Chrome.accent); .transition(.blurReplace)",
+        "Applying control: HStack(spacing: 6) with ProgressView().controlSize(.mini) and Text(verbatim: \"Resetting…\") (U+2026 ellipsis) at .font(.system(size: 12)) in Chrome.secondaryText; .transition(.blurReplace)",
+        "Idle control: Button(\"Use reset\").buttonStyle(.glass).controlSize(.small) with .disabled(isApplying) and .transition(.blurReplace)",
+        "UsageBar: GeometryReader wrapping ZStack(alignment: .leading) of a background Capsule(style: .continuous).fill(Chrome.overlay(0.1)) and a foreground Capsule(style: .continuous).fill(tint); .frame(height: 5)"
+      ],
+      "feature_notes": [
+        "Plan header text is exactly \"Plan usage limits\" or \"Plan usage limits · <planName>\" with a spaced middle dot",
+        "LimitRow tint thresholds: percent >= 90 -> Chrome.danger, percent >= 75 -> Chrome.warning, otherwise Chrome.accent",
+        "resetText(_:now:): under 86_400 seconds it reads \"in \\(hours) hr \\(minutes) min\" when hours > 0, otherwise \"in \\(max(1, minutes)) min\" so it never says \"in 0 min\"; under 6 * 86_400 seconds it uses the abbreviated weekday with hour and minute; beyond that the abbreviated month and day",
+        "resetText clamps a past date with max(0, date.timeIntervalSince(now))",
+        "The divider between the windows and the banked resets is suppressed when limits.windows is empty; the comment records that a plan with no resets to bank used to end on a line to nothing",
+        "The problem note branches on provider.isAPIKeyBased: API-key providers get a warning triangle and the provider's own message capped at 2 lines; signed-in providers get \"Click here to login again\" plus a \"Login\" button that runs provider.loginCommand in a terminal",
+        "Credits note logic: no credits and not loading -> \"<Provider> did not report a balance.\"; no credits while loading -> no note at all; depleted -> \"<Provider> declines turns until the balance is topped up.\"; otherwise credits.breakdownText, described as the top-up and grant split",
+        "The \"Top up\" Link only appears when CreditsReader.topUpURL(provider) returns a URL",
+        "Banked reset rows are the listed credits followed by placeholders for any unlisted balance: (0..<max(0, credits.availableCount - listed.count)) with ids \"unlisted-0\", \"unlisted-1\" and so on and a nil credit",
+        "A placeholder row's title is \"Reset \\(index + 1)\" when rows.count > 1, otherwise plain \"Reset\"",
+        "expiryText: \"No expiry reported\" when no expiresAt, \"Expired\" when expiresAt <= .now, otherwise \"Expires \" + LimitRow.resetText(expiresAt)",
+        "countText: 0 -> \"None available yet\", 1 -> \"1 available\", otherwise \"\\(availableCount) available\"",
+        "Spending a reset is a two-step confirmation: \"Use reset\" -> \"Cancel\" / \"Reset now\" -> spinner with \"Resetting…\" -> a status line held for 4 seconds -> back to .idle",
+        "Phase carries the row id, so only the row being confirmed or applied swaps its control; other rows keep \"Use reset\" but are disabled while any row is applying, because isApplying tests the whole phase",
+        "The settle Task is cancelled on .onDisappear so a dismissed panel cannot flip its phase afterwards",
+        "UsageBar fill width: max(fraction > 0 ? 5 : 0, proxy.size.width * min(max(fraction, 0), 1)), so a non-zero fraction always shows at least a 5 point nub and a zero fraction shows nothing; the bar is 5 points tall",
+        "UsageBar accessibility: .accessibilityElement() with label from the `label` property (default \"Used\") and value \"\\(Int((clamped * 100).rounded()))% used\"",
+        "PlanLimitsView and CreditsView only render; refreshing is explicitly the caller's job per the file's doc comment, and UsagePanel is the caller that refreshes"
+      ],
+      "unresolved_questions": [
+        "Chrome.panelSlide's curve and duration, and the literal colour values of Chrome.overlay(_:), danger, warning, success and accent, are defined outside this file",
+        "PlanLimits.ResetOutcome's full case list is not visible here; only .reset is compared by name and .message is read, so the other cases and their copy live in the PlanLimits model file",
+        "ProviderCredits.amountText and breakdownText formatting, including currency and locale, is produced outside this file",
+        "provider.loginCommand's exact string and which terminal Workspace.openTerminal launches are not in this file",
+        "Whether passing nil as consumeResetCredit's second argument means 'spend any available reset' is implied by the unlisted placeholder rows but not confirmed here"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,366 @@
+{
+  "bundle_id": "R014",
+  "reader": "R014-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Chat/HydraReportsPopover.swift",
+      "sha256": "eac1f5139e62b9233137e20deae109efd33fd8d3c621c9903707a832c92dd946",
+      "lines_total": 662,
+      "ranges_read": [
+        [
+          1,
+          662
+        ]
+      ],
+      "purpose": "Parses a Hydra lead's aggregated heads-report markdown into a structured digest (intro, per-head outcome, effort, landing files, body) and renders it as a fixed-width 460pt SwiftUI popover with a sticky header and one card per head.",
+      "key_symbols": [
+        "struct HydraReportDigest",
+        "HydraReportDigest.Head (id, name, task, outcome, effort, landing, body; Identifiable)",
+        "enum HydraReportDigest.Outcome { done, failed, stopped }",
+        "enum HydraReportDigest.Landing { landed([LandedFile]), notLanded([LandedFile], error: String?), nothing, unfinished(copyPath: String?), none }",
+        "struct HydraReportDigest.LandedFile (path, additions, deletions, hasConflicts; id == path)",
+        "static HydraReportDigest.parse(_ text: String) -> HydraReportDigest",
+        "static isHeadHeader(_:) -> Bool",
+        "static parseHeader(_:) -> (name, task, outcome, effort)",
+        "static landingPrefix(_:) -> Bool",
+        "static parseLanding(_:) -> Landing",
+        "static filePattern: NSRegularExpression",
+        "static parseFiles(_:) -> [LandedFile]",
+        "static matchFile(_:) -> LandedFile?",
+        "static leadPrefixes: [String]",
+        "static withoutLeadInstructions(_:) -> String",
+        "struct HydraReportsPopover: View",
+        "HydraReportsPopover.init(title:text:personas:) (@MainActor)",
+        "HydraReportsPopover.width = 460",
+        "private var header / singleHeader(_:)",
+        "static outcomeCaption(for:) / outcomeColor(for:) / filesLine(for:)",
+        "static cleanedTitle(_:names:) (internal, not private)",
+        "static withoutNamePrefix(_:name:)",
+        "static totalsLine(for:)",
+        "static stillAtWorkSentence(in:)",
+        "persona(for:) / static status(_:)",
+        "headCard(_:index:collapsible:) / nameRow(_:) / hasReport(_:)",
+        "landingRows(_:) / fileRows(_:) / filePathText(_:) / reportBody(_:)"
+      ],
+      "calls_into": [
+        "HydraRoster.index(named:)",
+        "HydraRoster.persona(named:)",
+        "HydraRoster.persona(at: 0)",
+        "HydraPersona (.name, .color)",
+        "HydraGlyph(persona:size:status:)",
+        "HydraHeadInfo.Status (.completed, .failed, .stopped)",
+        "MarkdownView.blocks(for:)",
+        "MarkdownView.warm(_:) (async, throwing)",
+        "MarkdownBlock / MarkdownBlockView(block:).equatable()",
+        "PopoverScroll(maxHeight:width:)",
+        "Chrome.primaryText, Chrome.secondaryText, Chrome.danger, Chrome.warning, Chrome.success, Chrome.overlay(_:)",
+        "EnvironmentValues.chatZoom",
+        "EnvironmentValues.markdownPointSize, EnvironmentValues.markdownDimmed",
+        "NSRegularExpression (Foundation)"
+      ],
+      "state_owned": [
+        "@State private var expanded: Set<String> (head names whose report is open; seeded with the single head's name when digest.heads.count == 1, else empty)",
+        "@State private var blocks: [String: [MarkdownBlock]] (head name -> parsed markdown blocks; seeded with the single head's blocks, else empty)",
+        "let digest: HydraReportDigest computed once in init from `text`",
+        "static let filePattern NSRegularExpression cached on HydraReportDigest"
+      ],
+      "side_effects": [
+        ".task(id: text) parses missing heads' markdown off the main thread via `try? await MarkdownView.warm(...)`, then assigns `blocks` on the main actor; guarded by Task.isCancelled",
+        "No file, network, process or keychain access"
+      ],
+      "platform_assumptions": [
+        "SwiftUI on macOS: .popover-hosted content, `.help(...)` tooltips (macOS-only), `.textSelection(.enabled)`",
+        "AppKit popover sizing behavior: comment notes AppKit animates a height change again on top of a SwiftUI animated toggle, so the expand/collapse Button deliberately uses no animation",
+        "SF Symbols `chevron.right` with rotationEffect 90 degrees when expanded",
+        "Foundation NSRegularExpression and NSRange(_:in:) bridging",
+        "Unicode minus U+2212 used in lead-written diff counts and in the UI strings"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Popover fixed width 460 (HydraReportsPopover.width); .frame(width: 460)",
+        "PopoverScroll(maxHeight: 520, width: 460)",
+        "Outer VStack(spacing: 0): header, Divider(), scroll area",
+        "Cards VStack(alignment: .leading, spacing: 8), .padding(collapsible ? 10 : 0)",
+        ".environment(\\.chatZoom, 1) so the popover ignores conversation zoom",
+        "Multi-head header: HStack(alignment: .center, spacing: 10); overlapping glyph row HStack(spacing: -6) with HydraGlyph size 22, first 9 personas",
+        "Overflow badge text \"+\\(personas.count - 9)\" font size 11 semibold, secondaryText, .padding(.horizontal, 7)/.padding(.vertical, 3), Capsule fill Chrome.overlay(0.1), .padding(.leading, 10)",
+        "Header title font size 13 semibold primaryText lineLimit(2)",
+        "Totals line font size 11 secondaryText .monospacedDigit()",
+        "Still-at-work sentence font size 11 secondaryText lineLimit(2)",
+        "Header padding .horizontal 12, .vertical 10 (both single and multi variants)",
+        "Single-head header: HydraGlyph size 24 with status; name size 13 semibold; outcome caption size 11 in outcome color, monospacedDigit; files line prefixed with a middle dot and a space, size 11 secondaryText lineLimit(1); task size 12 primaryText lineLimit(3)",
+        "Outcome captions: \"Finished\", \"Failed\", \"Stopped\"; with effort appended as base + \" \\u00b7 \" + effort",
+        "Outcome colors: failed -> Chrome.danger, stopped -> Chrome.warning, done -> Chrome.secondaryText",
+        "headCard: VStack(alignment: .leading, spacing: 8), .padding(12), background RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Chrome.overlay(0.05)) only when collapsible",
+        "Disclosure chevron: Image(systemName: \"chevron.right\"), font size 10 semibold, secondaryText, rotationEffect 90 degrees when expanded; row HStack(spacing: 6), .contentShape(.rect), .buttonStyle(.plain)",
+        "nameRow: HStack(spacing: 8), HydraGlyph size 20 with status, name size 13 semibold in persona color, \"Failed\" size 11 Chrome.danger / \"Stopped\" size 11 Chrome.warning, Spacer(minLength: 8), effort size 11 secondaryText monospacedDigit lineLimit(1)",
+        "Collapsible task text size 12 primaryText lineLimit(2)",
+        "Landing rows: \"Did not land: <error>\" or \"Did not land\" size 11 Chrome.warning; \"Changed nothing.\" size 11 secondaryText; \"Nothing landed\" size 11 Chrome.warning with copy path size 11 monospaced secondaryText lineLimit(1) truncationMode(.middle); VStack spacings 4 and 2",
+        "fileRows: VStack(alignment: .leading, spacing: 3), row HStack(spacing: 8), counts HStack(spacing: 6) with \"+\\(additions)\" in Chrome.success and \"\\u2212\\(deletions)\" in Chrome.danger, monospacedDigit, layoutPriority(1); font size 11 design .monospaced; path lineLimit(1) truncationMode(.head)",
+        "fileRows container .padding(.horizontal, 8) .padding(.vertical, 6), RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Chrome.overlay(0.05))",
+        "File tooltip: \"<path> (with conflicts)\" when hasConflicts, else \"<path>\"",
+        "filePathText: directory part in Chrome.secondaryText, filename in Chrome.warning when hasConflicts else Chrome.primaryText",
+        "reportBody: \"No report.\" size 11 secondaryText when absent; else eager VStack(alignment: .leading, spacing: 8) of MarkdownBlockView, .padding(.top, 2), font size 12, markdownPointSize 12, markdownDimmed false, textSelection enabled; while blocks unparsed, ProgressView().controlSize(.small).padding(.vertical, 8)"
+      ],
+      "feature_notes": [
+        "Head section headers are markdown '## Name: task ...'; a '## ' line only starts a head when the text before its first colon resolves through HydraRoster.index(named:), so a head's own '## ' headings stay inside its body",
+        "Trailing parenthesised groups on a header are peeled right-to-left and treated as metadata only when: lowercased == \"failed\", lowercased hasPrefix \"stopped\", the group contains a decimal digit, or the group is in the effort set {\"low\", \"medium\", \"high\", \"xhigh\", \"max\", \"minimal\", \"fast\", \"default\"}; otherwise peeling stops and the rest is the task",
+        "Effort groups are joined with \" \\u00b7 \" and, inside a group, \", \" is replaced with \" \\u00b7 \"; efforts are inserted at index 0 so original left-to-right order is preserved",
+        "Landing line prefixes recognized: \"Landed in your checkout:\", \"Did not land\", \"Changed nothing.\", \"Nothing landed\"",
+        "\"Nothing landed ... in its copy at <path>\" yields .unfinished(copyPath:) with a trailing period stripped; the marker searched for is the literal \"in its copy at \"",
+        "\"Did not land (<error>): <files>\" parses the parenthesised error; an empty error becomes nil",
+        "File item regex literal: ^(\\\\S+) \\\\(\\\\+(\\\\d+) [\\u2212\\\\-](\\\\d+)\\\\)( with conflicts)?$ ; the lead writes U+2212 but ASCII hyphen also matches",
+        "Before splitting on \", \", these tails are stripped by regex, longest first: \"; \\\\d+ build-output files? (was|were) left out$\" then \", and \\\\d+ more$\"; a trailing \".\" is stripped first",
+        "The lead's closing instructions are dropped from the LAST head's body only: the final paragraph (after the last blank-line break) is removed if it starts with any of \"The changes listed above\", \"The heads worked in your checkout\", \"A file listed with conflicts\", \"Do not check any of this\", \"Do not wait for\", \"A head that failed\", \"A head the user stopped\", \"The user queued\", \"The user sent\"",
+        "One head: header carries the head, the card is not collapsible, its report is expanded and its blocks parsed synchronously in init; several heads: cards are collapsible, start collapsed, and bodies warm in the background",
+        "Totals line format: \"<N> head(s)\" and, when any files, \" \\u00b7 <F> file(s) \\u00b7 +<A> \\u2212<D>\"; files line for a single head: \"<F> file(s) \\u00b7 +<A> \\u2212<D>\"",
+        "The intro sentence containing the literal substring \"still at work\" is extracted from the character after the previous \".\" to the end of the intro and shown under the title",
+        "cleanedTitle removes repeated \"Name: \" or \"Name \" prefixes while at least two remain, leaving exactly one; withoutNamePrefix removes a single leading \"Name: \"",
+        "hasReport is false when the body is empty or exactly \"No report.\"",
+        "Persona lookup order for a head: match in the passed personas by name, else HydraRoster.persona(named:), else HydraRoster.persona(at: 0)",
+        "Outcome to HydraHeadInfo.Status mapping for the glyph: done -> .completed, failed -> .failed, stopped -> .stopped"
+      ],
+      "unresolved_questions": [
+        "Chrome.overlay(_:), PopoverScroll, MarkdownView.warm and the chatZoom environment key are defined in other files, so their exact semantics (scroll clamping, warm cache keying) are not established here",
+        "The exact lead prompt that generates these report strings is not in this file, so whether every landing phrasing is covered by landingPrefix cannot be confirmed from here"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/HydraRunMetricsView.swift",
+      "sha256": "0765a6a2d62ad68ef99a54dad849bb97421e026081bf2a026e4cb085c96fbba7",
+      "lines_total": 398,
+      "ranges_read": [
+        [
+          1,
+          398
+        ]
+      ],
+      "purpose": "Computes and renders a Hydra run's recorded token usage (split into Lead and Heads scopes with per provider+model groups) and per-head phase timings (queue, startup, run, landing) as an equatable card hung under the Hydra panel's strip.",
+      "key_symbols": [
+        "struct HydraRunMetrics: Equatable",
+        "HydraRunMetrics.Scope (turns, turnsWithUsage, hasUnloadedHistory, tokens: Int?, groups: [Group]; computed isPartial)",
+        "HydraRunMetrics.Group (id, provider: ProviderKind, model: String?, tokens: Int; Identifiable)",
+        "enum HydraRunMetrics.Phase { measured(TimeInterval), running, unavailable } with var text",
+        "HydraRunMetrics.HeadTiming (id: UUID, personaIndex, name, status, queue, startup, execution, landing: Phase?)",
+        "HydraRunMetrics.recordedTokens, isPartial, spansProviders, hasTimings",
+        "enum HydraRunMetricsReader (@MainActor)",
+        "HydraRunMetricsReader.snapshot(leadTurns:heads:headTurns:)",
+        "HydraRunMetricsReader.spend(in:)",
+        "HydraRunMetricsReader.merged(_:)",
+        "HydraRunMetricsReader.timing(of:)",
+        "HydraRunMetricsReader.phase(from:to:isRunning:)",
+        "struct HydraRunMetricsView: View",
+        "private struct HydraRunMetricsCard: View, Equatable (== compares metrics only)",
+        "HydraRunMetricsCard.headline / totalText / scopeRow / scopeText / groupRow / modelName / timingRow / phaseText / notes / note"
+      ],
+      "calls_into": [
+        "TurnRecord.tokenSpends (entry.provider, entry.model, entry.totalTokens)",
+        "ProviderKind (.rawValue, .displayName)",
+        "ChatThread (.id, .hydra)",
+        "HydraHeadInfo (.index, .persona.name, .status, .queuedAt, .startedAt, .executionStartedAt, .executionFinishedAt, .landingStartedAt, .landingFinishedAt)",
+        "HydraHeadInfo.Status (.running)",
+        "AppModel (@Environment) .runtime(for:), .existingRuntime(for:), .providers.model(_:for:)?.shortName",
+        "ThreadRuntime .ensureLoaded(), .turns, .isLoadingHistory",
+        "RelativeTime.duration(_:)",
+        "UsagePanel.tokens(_:)",
+        "ProviderIcon(provider:size:)",
+        "HydraGlyph(persona:size:isRunning:status:)",
+        "HydraRoster.persona(at:)",
+        "MiniSpinner()",
+        "Chrome.primaryText, Chrome.secondaryText, Chrome.panelControlFill(isDark:)"
+      ],
+      "state_owned": [
+        "HydraRunMetricsView: @Environment(AppModel.self) model; let runtime: ThreadRuntime; let heads: [ChatThread]; `snapshot` is a computed property (no stored state)",
+        "HydraRunMetricsCard: @Environment(AppModel.self) model; @Environment(\\.colorScheme) colorScheme; let metrics: HydraRunMetrics",
+        "HydraRunMetrics value type holds lead/heads Scope and a timings array"
+      ],
+      "side_effects": [
+        ".task(id: heads.map(\\.id)) awaits runtime.ensureLoaded() then awaits model.runtime(for: head.id).ensureLoaded() for every head, checking Task.isCancelled between heads (this can trigger history loading from storage)",
+        "No direct file, network, process or keychain access in this file"
+      ],
+      "platform_assumptions": [
+        "SwiftUI with the Observation framework (@Environment(AppModel.self)), macOS 14+ style",
+        "@MainActor enum with a @MainActor closure parameter headTurns",
+        "Swift 5.9+ if/switch expressions used as values (Phase.text, recordedTokens)",
+        "Foundation Date/TimeInterval arithmetic"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Card root VStack(alignment: .leading, spacing: 10), .padding(14), .frame(maxWidth: .infinity, alignment: .leading)",
+        "Background RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Chrome.panelControlFill(isDark: colorScheme == .dark))",
+        ".accessibilityElement(children: .contain) with label \"Recorded usage and timings\"",
+        "Headline VStack spacing 2: title size 12.5 semibold primaryText reading \"No usage recorded yet\" when recordedTokens == nil else \"Recorded usage and timings\"",
+        "Subtitle (verbatim): \"This conversation's lead and heads, as their turns reported it\" size 11 secondaryText, fixedSize vertical",
+        "Scope block VStack(alignment: .leading, spacing: 6) with scopeRow(\"Lead\", ...), scopeRow(\"Heads\", ...), Divider()",
+        "Total row HStack(spacing: 8): \"Total recorded\" size 12 medium primaryText, Spacer(minLength: 8), value size 12 medium monospacedDigit primaryText",
+        "Total text: \"Not recorded\" when nothing recorded; else \"<UsagePanel.tokens(n)> tokens\", plus \" or more\" when isPartial",
+        "Scope row: label size 12 secondaryText, Spacer(minLength: 8), value size 12 monospacedDigit, colored secondaryText when tokens == nil else primaryText",
+        "Scope text: \"Loading history\\u2026\" when hasUnloadedHistory; \"None yet\" when turns == 0; \"Not recorded\" otherwise when tokens nil; else \"<tokens> tokens\" plus \" \\u00b7 <turnsWithUsage> of <turns> turns\" when partial",
+        "Group row HStack(spacing: 6): ProviderIcon size 11 tinted secondaryText, model name size 11 secondaryText lineLimit(1) truncationMode(.middle), Spacer(minLength: 8), token count size 11 monospacedDigit secondaryText, .padding(.leading, 18); accessibility label \"<scope>, <model>, <tokens> tokens\"",
+        "\"Head timings\" section header size 12 medium primaryText preceded by a Divider(), shown only when hasTimings",
+        "Timing row: VStack(alignment: .leading, spacing: 3); HStack(spacing: 6) with HydraGlyph size 14 (isRunning when status == .running), name size 12 primaryText lineLimit(1), MiniSpinner() while running, Spacer(minLength: 8); phase text size 11 monospacedDigit secondaryText, .padding(.leading, 20); accessibility label \"<name>, <phase text>\"",
+        "Phase text format: \"Queue <t> \\u00b7 Startup <t> \\u00b7 Run <t>\" plus \" \\u00b7 Landing <t>\" when a landing phase exists",
+        "Phase text values: RelativeTime.duration(max(0, seconds)), \"in progress\", \"unavailable\"",
+        "Notes VStack(alignment: .leading, spacing: 3), each note size 10.5 secondaryText fixedSize vertical"
+      ],
+      "feature_notes": [
+        "Note always shown: \"Totals cover the conversation and its retained heads, not one run. Providers may omit usage for some requests.\"",
+        "Note when isPartial: \"Some turns recorded no usage, so the totals are lower bounds.\"",
+        "Note when spansProviders: \"Recorded across providers, so the total guides rather than bills.\"",
+        "Note when hasTimings: \"Heads work at the same time, so their durations overlap and are not added up.\"",
+        "Scope.isPartial is true when hasUnloadedHistory, or (tokens == nil ? turns > 0 : turnsWithUsage < turns)",
+        "recordedTokens is nil only when both lead and heads recorded nothing; otherwise the present side(s) are summed",
+        "spansProviders is true when the set of providers across lead.groups + heads.groups has more than one element",
+        "Group id is built as \"<provider.rawValue>|<model or empty string>\"; merging sums tokens per id",
+        "Groups sort biggest tokens first, ties broken by ascending id",
+        "A head whose runtime is missing or still loading history sets headScope.hasUnloadedHistory = true and contributes no turns",
+        "Head timing is read only from HydraHeadInfo boundaries: queue = startedAt - queuedAt (only when queuedAt exists); startup = executionStartedAt - startedAt; execution = phase(executionStartedAt -> executionFinishedAt); landing is nil unless landingStartedAt or landingFinishedAt exists",
+        "phase(from:to:isRunning:): nil start -> .unavailable; nil end -> .running when isRunning (status == .running) else .unavailable; both -> .measured(end - start)",
+        "Metrics are deliberately conversation-scoped, never per-run, because a continued request lands on a following turn (documented rationale in the file header comment)",
+        "Nothing here reads a live cumulative counter, so the text only changes when a turn records new usage rather than per streamed token",
+        "modelName falls back through: providers' shortName for the model, then the raw model string, then provider.displayName",
+        "The card is Equatable on metrics alone and used with .equatable(), so unrelated panel redraws do not rebuild it"
+      ],
+      "unresolved_questions": [
+        "UsagePanel.tokens(_:) formatting (thousand separators, k/M abbreviation) is defined elsewhere, so the exact rendered token strings are not established here",
+        "RelativeTime.duration(_:) output format is defined elsewhere",
+        "Chrome.panelControlFill(isDark:) exact color values are defined elsewhere",
+        "Where HydraRunMetricsView is instantiated (which panel, and whether it is gated by a setting) is not visible in this file"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/SubagentPanel.swift",
+      "sha256": "4af3917ec1b02b2609ef5dfc7650c43bae7b3159755b05e985fe43d1507ea6dc",
+      "lines_total": 738,
+      "ranges_read": [
+        [
+          1,
+          738
+        ]
+      ],
+      "purpose": "Defines the floating glass helper/head chat panel and the whole panel placement system: dock corners, stacked slots, the layout math that sizes and positions panels around the composer, drag and flick state, resize grips, and the AppKit-backed drag handle view.",
+      "key_symbols": [
+        "enum FloatingPanelID: Hashable { subagent, hydra, popped, usage, auto(UUID) }",
+        "enum PanelDockSide { leading, trailing }",
+        "enum PanelDockCorner: String { topLeading, topTrailing, bottomLeading, bottomTrailing } with side, isTop, make(side:isTop:), acrossTheColumn",
+        "struct PanelReserve (leading, trailing: CGFloat = 0)",
+        "struct PanelDocks (four CGPoints; init(layout:reserve:); subscript(corner:); stacked(_:below:slots:layout:); static corner(forSlot:of:side:))",
+        "struct SubagentPanelLayout: Equatable",
+        "SubagentPanelLayout.panelWidth / sitsBesideComposer / fitsBothSides / composerReserve / verticalRoom / panelHeight / panelSize / fitted(_:) / dockedOrigin(_:reserve:) / dockCorner(nearest:keeping:docks:) / slotIndex(at:slots:docks:) / clamped(_:)",
+        "struct SubagentPanel: View",
+        "SubagentPanel.cornerRadius = 22, handleHeight = Chrome.chromeTopPadding + Chrome.capsuleHeight + 6",
+        "private struct SubagentWorkingBox: View",
+        "private struct ClosePanelPopover: View",
+        "@Observable @MainActor final class PanelDragState (position, grab, velocity, lastMove, flickCarry, restBeforeDrop, move(by:from:in:), reclamp(in:), release())",
+        "struct PlacedPanel<Content: View>: View (drag, rest, size, content, resize: PanelResize?, isResizing)",
+        "private struct PanelPlacement: ViewModifier",
+        "struct PanelResizeAxes: OptionSet { width = 1, height = 2, both }",
+        "struct PanelResize (corner, onResize, onResizeEnd, onReset)",
+        "@Observable @MainActor final class PanelResizeState (start, liveSize, liveUsageHeight, isActive, begin(at:), end())",
+        "private struct PanelResizeGrips: View (edge = 6, corner = 16, cornerPosition(of:))",
+        "struct PanelDragHandle: NSViewRepresentable (onDrag, onDragEnd, cursor, dragCursor, onDoubleClick)",
+        "final class PanelDragHandleView: NSView (slop = 2)"
+      ],
+      "calls_into": [
+        "AppModel.runtime(for:), AppModel.settings.hydraShowsHeadDetails",
+        "WindowLiveResize (@Environment) .isActive",
+        "ChatThread (.id, .isHydraHead, .title)",
+        "HydraHeadProgress(head:runtime:)",
+        "ThreadTimeline(runtime:scrollChrome:scrollState:projectName:workingDirectory:supportsRewind:columnHeight:showsMinimap:)",
+        "ChromeScrollModel(), TimelineScrollState()",
+        "ComposerArea(runtime:workingDirectory:compactModelChip:takesFocusOnAppear:showsChanges:)",
+        "JumpToLatestButton(scrollState:)",
+        "PaneTopVeil(model:)",
+        "ChromeCircleButton(symbol:help:action:)",
+        "PopoverMenu / PopoverSectionHeader / PopoverNote / PopoverDivider / PopoverItem",
+        "MiniSpinner()",
+        "TextCleanup.singleLine(_:limit:)",
+        "Chrome.chromeTopPadding, Chrome.capsuleHeight, Chrome.capsuleContentHeight, Chrome.capsuleHorizontalPadding, Chrome.capsuleVerticalPadding, Chrome.chromeHorizontalPadding, Chrome.contentTopInset, Chrome.glassTint, Chrome.panelSlide",
+        ".chromeGlassCapsule(), .glassEffect(.regular, in:), .transition(.softAppear)",
+        "NSCursor.frameResize(position:directions:), NSCursor.FrameResizePosition, NSCursor.openHand/.closedHand, CACurrentMediaTime()"
+      ],
+      "state_owned": [
+        "SubagentPanel: @State private var scrollChrome = ChromeScrollModel(); @State private var scrollState = TimelineScrollState(); @State private var isConfirmingClose = false",
+        "SubagentWorkingBox: @State private var isSending = false",
+        "PanelDragState: private(set) var position: CGPoint?; @ObservationIgnored grab: CGPoint?; @ObservationIgnored velocity: CGVector; @ObservationIgnored lastMove: TimeInterval",
+        "PanelResizeState: private(set) var start: CGSize?; var liveSize: CGSize?; var liveUsageHeight: CGFloat?",
+        "PanelDragHandleView: onDrag/onDragEnd/onDoubleClick closures, cursor, dragCursor, pressOrigin: NSPoint, isDragging: Bool"
+      ],
+      "side_effects": [
+        "SubagentWorkingBox .task(id: isSending) sleeps try? await Task.sleep(for: .seconds(0.9)) then clears isSending, guarded by Task.isCancelled",
+        "PanelDragHandleView pushes/pops NSCursor (dragCursor.push() on drag start, NSCursor.pop() on mouseUp and on viewDidMoveToWindow when the view leaves the window mid-drag)",
+        "PanelDragHandle.update() calls view.window?.invalidateCursorRects(for: view) when the cursor identity changes",
+        "close() callback ends the helper chat and stops its running turn (invoked from the popover's destructive item or directly when not running)",
+        "No file, network, process or keychain access in this file"
+      ],
+      "platform_assumptions": [
+        "AppKit imported directly: NSView subclass, NSEvent, NSCursor, NSPoint, acceptsFirstMouse(for:), mouseDownCanMoveWindow, resetCursorRects/addCursorRect, viewDidMoveToWindow",
+        "NSCursor.frameResize(position:directions:) and NSCursor.FrameResizePosition for the resize grips",
+        "AppKit coordinate flip handled explicitly: travel height = pressOrigin.y - point.y because AppKit's y runs up while the panel offset runs down",
+        "CACurrentMediaTime() from QuartzCore for drag velocity timing",
+        "SwiftUI .glassEffect(.regular, in: shape) liquid-glass material",
+        "SwiftUI NSViewRepresentable bridging, .help() tooltips, .popover(isPresented:arrowEdge:)",
+        "Observation framework @Observable @MainActor classes",
+        "Swift 5.9+ switch expressions returning values"
+      ],
+      "persisted_fields": [
+        "AppSettings.panelSize is referenced in a comment as the store behind SubagentPanelLayout.preferred (the dragged panel size); this file does not read or write it directly",
+        "AppModel.settings.hydraShowsHeadDetails (Bool) gates whether a Hydra head panel shows its transcript or HydraHeadProgress"
+      ],
+      "ui_elements": [
+        "SubagentPanelLayout constants: width 400, minWidth 300, minHeight 220, gap 12, sideMargin 20, bottomMargin 14, minComposerWidth 360, composerMaxWidth 820, cornerSlack 56, compactHeight 280",
+        "panelHeight ideal when not compact and no preferred: min(520, max(300, pane.height * 0.5))",
+        "panelHeight share: (verticalRoom - (depth - 1) * gap) / depth, clamped to at least minHeight",
+        "verticalRoom = pane.height - Chrome.contentTopInset - (sitsBesideComposer ? bottomMargin : composerAreaHeight + gap)",
+        "clamped() inset: 8 points from every pane edge",
+        "SubagentPanel.cornerRadius 22; RoundedRectangle(cornerRadius: 22, style: .continuous)",
+        "handleHeight = Chrome.chromeTopPadding + Chrome.capsuleHeight + 6",
+        "Glass background: shape.fill(.clear).glassEffect(.regular, in: shape) overlaid with shape.fill(Chrome.glassTint.opacity(isDark ? 0.22 : 0.16))",
+        "Shadow scrim: shape.fill((isDark ? Color.black : Color.white).opacity(isDark ? 0.3 : 0.34)) with .shadow(color: .black.opacity(isDark ? 1 : 0.65), radius: 28, y: 10)",
+        "Top strip HStack(alignment: .top, spacing: 8): PanelDragHandle (help and accessibility label \"Drag to move\"), SubagentWorkingBox, ChromeCircleButton(symbol: \"xmark\")",
+        "Close button help text: \"Close this chat and stop its turn\" while running, else \"Close this chat\"",
+        "Working box and close button each get .padding(.top, Chrome.chromeTopPadding); the close button also .padding(.trailing, Chrome.chromeHorizontalPadding)",
+        "ComposerArea configured with compactModelChip: true, takesFocusOnAppear: false, showsChanges: false, inside .safeAreaInset(edge: .bottom, spacing: 0)",
+        "ThreadTimeline configured with supportsRewind: false, showsMinimap: false, columnHeight: size.height",
+        "SubagentWorkingBox: HStack(spacing: 6) of MiniSpinner + text size 12 secondaryText lineLimit(1) .contentTransition(.opacity); .padding(.horizontal, Chrome.capsuleHorizontalPadding), .frame(height: Chrome.capsuleContentHeight), .padding(.vertical, Chrome.capsuleVerticalPadding), .fixedSize(), .chromeGlassCapsule(), .transition(.softAppear)",
+        "Working box text: \"Sending\\u2026\" while isSending and not running, else \"<name> working\"; name = TextCleanup.singleLine(title, limit: 24) trimmed, or \"Helper\" when empty",
+        "Working box accessibility label: \"<name> working\" when running, else \"Sending\"",
+        "ClosePanelPopover: PopoverSectionHeader \"Stop this helper?\"; PopoverNote \"\\u201c<title>\\u201d is still working. Closing the panel stops its turn. What it has done so far stays, and its chat moves to the sidebar under this one.\"; PopoverItem \"Close and stop\" symbol \"stop.circle\" isDestructive true; PopoverItem \"Keep it working\" symbol \"arrow.uturn.backward\" with an empty action; .frame(width: 300)",
+        "PanelResizeGrips: edge strip thickness 6, corner square 16x16; help text \"Drag to resize \\u00b7 Double-click for the automatic size\"; accessibility label \"Drag to resize\"",
+        "PanelDragHandleView drag slop: 2 points before a press becomes a drag"
+      ],
+      "feature_notes": [
+        "A Hydra head panel shows HydraHeadProgress (task plus progress bar) instead of its transcript when thread.isHydraHead and settings.hydraShowsHeadDetails is false; a user's own helper always keeps its conversation",
+        "Closing a panel whose turn is running opens the confirmation popover first (arrowEdge .bottom); closing an idle panel calls close() immediately",
+        "sitsBesideComposer: pane.width - 2*20 - panelWidth - 12 >= 360; otherwise the panel docks above the composer and composerReserve is 0",
+        "fitsBothSides: pane.width - 2*20 - 2*(panelWidth + 12) >= 360; below that, panels dock on one side only (comment points at PanelScene.lockedSide)",
+        "dockedOrigin when beside the composer centres the composer in the row left after both reserves: row = pane.width - reserve.leading - reserve.trailing, composerWidth = min(820, row - 40), composerLeft = reserve.leading + (row - composerWidth)/2; leading panel at composerLeft - 12 - panelWidth, trailing at composerLeft + composerWidth + 12",
+        "dockedOrigin when not beside the composer: x = 20 for leading, pane.width - 20 - panelWidth for trailing",
+        "dockedOrigin y: Chrome.contentTopInset for a top corner, else pane.height - (sitsBesideComposer ? 14 : composerAreaHeight + 12) - panelHeight",
+        "dockCorner hysteresis: the centre must be more than 56 points past the pane middle on an axis to change side or top/bottom, otherwise the current corner is kept; the middle's y is (docks.topLeading.y + docks.bottomLeading.y + panelHeight)/2",
+        "PanelDocks.stacked spreads a side's slots evenly between the top and bottom docked y; step = (bottomLeading.y - topLeading.y)/(slots-1); a top-corner panel with below = b sits at slot b, a bottom-corner one at slot slots-1-b; x comes from the corner itself",
+        "PanelDocks.corner(forSlot:of:side:): slots with index <= (slots-1)/2 go to the side's top corner with below = index, the rest to the bottom corner with below = slots-1-index",
+        "slotIndex rounds (origin.y - topLeading.y)/step and clamps to 0...slots-1; returns 0 when step <= 0",
+        "Drag velocity is an exponential blend: velocity = 0.4*previous + 0.6*instant, and readings closer together than 0.004 s are ignored as same-frame events",
+        "Flick: release() returns position + velocity * 0.12 (flickCarry), unless at least 0.08 s (restBeforeDrop) has passed since the last move, in which case the panel drops exactly where it is; nil when never moved",
+        "PanelPlacement animates with Chrome.panelSlide only when settling: drag.position == nil, not resizing and not in a window live resize; otherwise animation is nil so the panel tracks the pointer and the live resize exactly; both origin and size are animated",
+        "SubagentPanel .animation(nil, value: liveResize.isActive) keeps the frame following the pane every live-resize frame",
+        "Resize grips sit on the two edges away from the dock corner; the free corner's cursor is the opposite of the dock corner (topLeading -> bottomRight, topTrailing -> bottomLeft, bottomLeading -> topRight, bottomTrailing -> topLeft)",
+        "Double-clicking a grip calls onReset (back to the automatic size); the double click fires in mouseDown on clickCount == 2",
+        "PanelDragHandleView.acceptsFirstMouse returns true so the first click takes hold even when the window is not key, and mouseDownCanMoveWindow is false so a press moves the panel rather than the window",
+        "The working box shows the sending pulse for about 0.9 s after isRunning turns true, then settles into \"<name> working\"; both state changes animate with Chrome.panelSlide unless a live resize is active",
+        "fitted(_:) clamps a dragged size: width through panelWidth's own clamp, height to max(minHeight, min(size.height, panelHeight computed at that width with unbounded preferred height))",
+        "compact mode forces the ideal height to 280 while still honouring the dragged width",
+        "PanelDragState.reclamp only writes when the stored position is actually outside the pane, so a live resize does not churn observation",
+        "PanelDockCorner.acrossTheColumn maps each corner to the one on the other side at the same edge"
+      ],
+      "unresolved_questions": [
+        "PanelScene (referenced in a comment as the owner of lockedSide and the stack/reserve computation) is not in this file, so how stackDepth, PanelReserve and FloatingPanelID.auto(UUID) are populated is not established here",
+        "AppSettings.panelSize's exact persisted key name, type and default are defined elsewhere; this file only names the property in a comment",
+        "Chrome.panelSlide's spring parameters, Chrome.contentTopInset, Chrome.capsuleHeight and the other Chrome constants are defined elsewhere, so the concrete numbers behind handleHeight and the dock insets are unknown from here",
+        "FloatingPanelID cases .popped and .auto(UUID) have no construction site in this file, so what creates them is unverified",
+        "PanelResizeState.liveUsageHeight is declared here but never read or written in this file, so the usage panel's own resize path lives elsewhere"
+      ]
+    }
+  ]
+}

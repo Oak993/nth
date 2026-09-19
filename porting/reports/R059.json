@@ -1,0 +1,202 @@
+{
+  "bundle_id": "R059",
+  "reader": "R059-reader",
+  "files": [
+    {
+      "path": "website/index.html",
+      "sha256": "57d7dd91f7c13ee7eba7113ad8548e460c596775bf9eb6c1f4e3ec13a54b0018",
+      "lines_total": 782,
+      "ranges_read": [[1, 782]],
+      "purpose": "The full marketing home page for getdroppycode.app: a single static, no-build-step HTML document (UTF-8, CRLF line endings) presenting Droppy Code as the supercharged coding agent for Mac. Its leading HTML comment states it is the dark sibling of getdroppy.app reusing the same notch dock, reveal motion, highlight rail, pinned wordscroll and footer, re-tokened for a code canvas, and that every picture and film of the app is the real app rendered by scripts/website_captures.py from the app's own capture mode with mock data, encoded at 2x and served from R2 under site-assets/droppy-code.",
+      "key_symbols": [
+        "svg symbol id='apple-mark' viewBox='0 0 16 19.81' - one shared Apple glyph reused by every Download for macOS pill via use href='#apple-mark'",
+        "nav.nav > .nav__pill with .nav__logo, .nav__links, .nav__menu (three spans, aria-expanded=false, aria-label=Menu), .btn.btn--sm.nav__cta",
+        "section.hero#hero: .hero__field canvas, .hero__kicker, .hero__title with .hero__charged + .hero__charged-sheen + .hero__charge-entry, .hero__subtitle, .hero__actions, .hero__media > .media-block.hero__film > img.hero__video",
+        "section#hydra with .tiles and four tiles (tile--full / tile--half, all tile--film)",
+        "section.section-tight#highlights > section.showcase-highlights[data-highlight-carousel], rail id='feature-highlights-rail'[data-highlight-rail], seven article.fcard.highlight-card[data-highlight-slide], .showcase-highlights__controls with [data-highlight-prev] and [data-highlight-next]",
+        "section#agents with .tile.tile--agents holding twelve .agent (.agent__mark svg + .agent__name) and p.agents__note",
+        "section#usage with .tile.tile--usage, .usage__copy, h3.tile__heading, ul.usage__list (five li), img.usage__shot",
+        "section.wordscroll#themes[data-wordscroll][data-wordscroll-glow='yours'] with .wordscroll__stage, __glow, __bits, __bloom, __copy (icon-wrap, two p[data-wordsplit]), __demo > div.themes[data-theme-picker]",
+        "section#features with .tiles: tile--full tile--film, tile--wide tile--film, tile--tall tile--visual (.tile__art / .tile__overlay), tile--wide tile--trio (three .trio__item), six tile--half tile--fade alternating tile--fade-right / tile--fade-left (.tile__copy + .tile__fade > img.tile__fade-img)",
+        "section#mac with .stats (five .stat: .stat__value + .stat__label) and .leftout with ul.leftout__list (five li)",
+        "section#download with .free, .free__app, .free__price, ul.free__lines (three li), a.btn--applepill, two a.btn--darkpill.free__source, p.free__foot",
+        "section#faq with h2.faq__title and .faq holding eleven .faq__item (button.faq__question[aria-expanded=false] + .faq__answer > .faq__answer-inner > p.faq__answer-content)",
+        "section.outro with .outro__field[data-binary-field][data-progress='viewport'][data-density='0.8'], .outro__icon-wrap, .outro__title, .outro__subtitle, reused .hero__actions",
+        "footer.footer with .container.footer__grid, .footer__brand and four nav.footer__col (Menu, Droppy, Open source, Connect), .footer__wordmark",
+        "script type='application/ld+json' SoftwareApplication block"
+      ],
+      "calls_into": [
+        "assets/css/site.css?v=14 (all layout and design tokens; not in this bundle)",
+        "assets/css/wordscroll.css?v=5",
+        "assets/js/site.js?v=5 (defer) - reveal, nav, faq, data-morph-glyph, data-current-year, data-download-link",
+        "assets/js/wordscroll.js?v=5 (defer) - [data-wordscroll] and [data-wordsplit]",
+        "assets/js/code.js?v=7 (defer) - [data-binary-field] canvases, [data-highlight-carousel] rail, [data-theme-picker]",
+        "changelog.html (nav link and footer Menu link)",
+        "/download/latest - the endpoint behind every [data-download-link]",
+        "assets/brand/favicon.ico, droppy-code-icon-96.png, droppy-code-icon-180.png, droppy-code-icon-256.webp, droppy-icon-64.png",
+        "assets/images/jordy.webp",
+        "assets/og/og-home.png?v=2",
+        "https://droppy-releases.jordylegrand.workers.dev/site-assets/droppy-code/tour/v5/{hero,hydra,pairs,slider,panels,question,queue,diff,palette,recipes,intro,threads,sidebar,window,plans,notify,slash,quote,themes}.webp and /usage/v1/limits.webp",
+        "https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&display=swap"
+      ],
+      "state_owned": [
+        "sessionStorage key 'droppyCodeNavIntro' - the inline head script reads it: if present it appends the class ' nav-intro-done' to documentElement, otherwise it sets the key to '1'. So the nav intro animation plays only once per browser session. The whole thing is wrapped in try/catch so blocked storage does not break the page.",
+        "documentElement class 'nav-intro-done' - the only DOM state this file itself mutates",
+        "Initial ARIA state the scripts later toggle: aria-expanded='false' on .nav__menu and on all eleven .faq__question buttons, aria-current='true' on the first highlight slide, disabled on the prev arrow"
+      ],
+      "side_effects": [
+        "sessionStorage.getItem and sessionStorage.setItem('droppyCodeNavIntro') in a render-blocking inline head script placed before the stylesheets",
+        "Cross-origin font fetches to fonts.googleapis.com and fonts.gstatic.com (two preconnects plus one stylesheet link)",
+        "Cross-origin media fetches to droppy-releases.jordylegrand.workers.dev for every product screenshot",
+        "Hero image loads with loading='eager' decoding='async' fetchpriority='high'; every other image uses loading='lazy' decoding='async'",
+        "No analytics, telemetry, cookie banner or third-party tracking script is present anywhere in the document"
+      ],
+      "platform_assumptions": [
+        "Markets a macOS-only product; title and og:title are 'Droppy Code. Supercharged coding agent for Mac'",
+        "JSON-LD operatingSystem is 'macOS 26', applicationCategory 'DeveloperApplication'",
+        "Requirement line: 'A Mac with Apple silicon running macOS 26 or later'; FAQ adds it is an Apple silicon binary only, signed with a Developer ID and notarized so it opens without any Gatekeeper workaround",
+        "Claims Liquid Glass, '100% Swift and SwiftUI', 'No web view, no Electron, one dependency' (SwiftTerm)",
+        "Every primary CTA reads 'Download for macOS' with the Apple logo glyph; the download is a disk image: 'Disk image, drag to Applications.'",
+        "Keychain is named as the store for DeepSeek, Meta and Z.ai API keys",
+        "Unix/CLI assumptions in copy: codex login, claude auth login, cmd login, pi then /login; git worktrees; gh or glab for pull requests",
+        "meta color-scheme is 'dark' only and theme-color is #0b0e14: the site ships no light mode"
+      ],
+      "persisted_fields": [
+        "sessionStorage 'droppyCodeNavIntro' : string '1' (presence-checked only; absent by default)"
+      ],
+      "ui_elements": [
+        "title / og:title / twitter:title: 'Droppy Code. Supercharged coding agent for Mac'",
+        "meta description, og:description and twitter:description (identical): 'Droppy Code is the supercharged coding agent for Mac. Hydra turns one chat into a team of heads working in parallel, on Codex, Claude, Cursor, OpenCode, Grok, Antigravity, Copilot, Command Code, Pi, DeepSeek, Meta and Z.ai, from one native Liquid Glass window. Free and open source.'",
+        "canonical and og:url https://getdroppycode.app/ ; og:type website ; og:site_name 'Droppy Code' ; og:locale en_US ; twitter:card summary_large_image",
+        "og:image and og:image:secure_url https://getdroppycode.app/assets/og/og-home.png?v=2, type image/png, width 1200, height 630, alt 'Droppy Code. The coding app by Droppy.'",
+        "meta theme-color '#0b0e14'; meta color-scheme 'dark'; lang='en'; viewport 'width=device-width, initial-scale=1.0'",
+        "Favicons: /assets/brand/favicon.ico sizes='any', /assets/brand/droppy-code-icon-96.png type image/png sizes 96x96, apple-touch-icon /assets/brand/droppy-code-icon-180.png sizes 180x180",
+        "noscript fallback style, verbatim: '.reveal { opacity: 1; transform: none; } .hero__field, .outro__field { display: none; }'",
+        "Nav logo img 24x24, label text 'Droppy Code', aria-label 'Droppy Code home', href index.html; links Hydra (#hydra), Features (#features), Changelog (changelog.html), FAQ (#faq); CTA button text 'Download' -> #download",
+        "Hero kicker anchor to https://getdroppy.app target=_blank rel=noopener, aria-label 'The coding app by Droppy, opens getdroppy.app in a new tab', text 'The coding app by Droppy', mark img droppy-icon-64.png 22x22, arrow svg viewBox '0 0 16 16' stroke-width 1.8 path 'M4 12 12 4M5 4h7v7'",
+        "Hero h1: 'Supercharged' inside .hero__charged with a duplicated .hero__charged-sheen span and a .hero__charge-entry svg viewBox '0 0 180 600' preserveAspectRatio='xMidYMax meet' containing seven identical bolt paths 'M12 2 4 30h9l-3 22 12-30h-9z' translated to (78,0),(78,84),(78,168),(78,252),(78,336),(78,420),(78,504) each scale(1.4), with class='dim' on the 2nd, 4th and 6th; then a br and 'coding agent for [apple-mark]Mac' in .hero__mac",
+        "Stagger on the hero via inline --reveal-delay: title 60ms, subtitle 120ms, actions 180ms, hero media 340ms; each carries data-reveal-on-load",
+        "Hero buttons: a.btn--applepill[data-download-link] href='/download/latest' text 'Download for macOS'; a.btn--darkpill href='#highlights' aria-label 'See the highlights, scrolls down' data-morph-glyph='arrow-down' text 'See what it does' with svg path 'M8 3v10M3.5 8.5 8 13l4.5-4.5'",
+        "Hero film img 1600x1000 tour/v5/hero.webp, alt 'Droppy Code with a Hydra team at work: the lead's chat with its heads, the team's panel floating, and the effort slider open at Max'",
+        "Hydra heading 'One chat, many heads.'; subtitle 'Hydra is on from your first chat. The lead writes the briefs, sends heads out in parallel, each in a copy of your project, checks their work when they report back and lands it as one merge.'",
+        "Hydra tile labels and captions: 'Meet Hydra.' (mentions Hank, Walter, Ada, badges in the chat, a wave along the top when they wait on you), 'Pair a strong lead with quick heads.', 'Effort, fused.', 'Panels that snap.'; films hydra.webp, pairs.webp, slider.webp, panels.webp all 1600x1000",
+        "Highlights: h2 'Just some of the highlights', sub 'The real app, mid-work: asking, queueing, reviewing, and the palette.'; rail role='region' aria-roledescription='carousel' aria-label='Droppy Code feature highlights' tabindex='0'",
+        "Seven slides, role='group' aria-roledescription='slide', aria-labels 'Questions, 1 of 7', 'Follow-ups, 2 of 7', 'Changes, 3 of 7', 'Command palette, 4 of 7', 'Recipes, 5 of 7', 'Intro, 6 of 7', 'Threads, 7 of 7'; fcard titles 'It asks.', 'Queue what's next.', 'A diff for every turn.', 'Every action, one keystroke away.', 'Recipes for a team', 'Hydra, explained where you switch it on', 'Threads, when you want them'; images question/queue/diff/palette/recipes/intro/threads.webp 1600x1000",
+        "Carousel arrows: svg viewBox '0 0 24 24', prev path 'm14.5 5-7 7 7 7' (rendered with the disabled attribute), next path 'm9.5 5 7 7-7 7'; both aria-controls='feature-highlights-rail'; labels 'Previous highlight' and 'Next highlight'; controls group aria-label 'Feature highlight controls'",
+        "Agents: h2 'Bring your own agent.', subtitle 'Droppy Code runs the command line tools you already have installed and signed in, on the subscriptions you already pay for. No keys to paste, no middleman, no markup.'",
+        "Twelve agent names in DOM order: Codex, Claude, Cursor, OpenCode, Grok, Antigravity, Copilot, DeepSeek, Command Code, Pi, Meta, Z.ai",
+        "Agents note: 'Sign in once in your terminal, for example codex login or claude auth login, and Droppy Code picks it up.' (the two commands are in code elements)",
+        "Usage: h2 'Every limit, one popover.', subtitle about clicking the ring beside the send button; tile heading 'See what you have left before you send.'; list items titled 'Plan limits', 'Credits', 'Lead and heads', 'Every account at once', 'Or keep it open'; img.usage__shot usage/v1/limits.webp 812x1146 with a long alt naming Claude on the Max plan with 5-hour and weekly limits, then Heads with Antigravity's Gemini, Claude and GPT windows and the AI credits left",
+        "Wordscroll bits, in order: 1 0 1 1 0 1 0 0 1 0 1 1 (twelve spans); icon droppy-code-icon-256.webp 96x96; text 'Make it yours. Twenty-six tinted-glass themes, from System to Catppuccin, Dracula, Claude and Codex.'; second line 'Which one are you going to pick?' on .wordscroll__ask; theme picker div aria-label 'Every Droppy Code theme'",
+        "Features: h2 'Everything a coding session needs.', subtitle 'Projects, threads, git and the little things, all in one window that feels like it shipped with the Mac.'",
+        "Feature tiles in order: 'Turn the thinking up.' (slider.webp), 'Switch the model.' (pairs.webp), sidebar tile--tall tile--visual with sidebar.webp 588x1236 and overlay h3 'Projects and threads', tile--trio with svg viewBox '0 0 56 56' items labelled 'Own<br>worktrees', 'Commit, push,<br>pull request', 'Project<br>scripts', 'A tour on first launch.' with window.webp 1408x1283 and caption 'Eight pages of real screenshots. The Help menu opens it again.', then six fade tiles 'Plans and to-dos' (written with the non-breaking hyphen entity &#8209;), 'Notifications<br>when work finishes', 'Slash commands', 'Reply quotes', 'Heads that pop into panels', 'Bundled follow-ups' with fade images plans/notify/slash/quote/panels/queue.webp all 2080x1300, and finally 'Make it yours.' with themes.webp 1600x1000 and caption 'Twenty-six themes, in real glass.'",
+        "Trio svg paths: worktrees 'M16 12v24' plus circles (16,9) r5, (16,45) r5, (40,20) r5 and 'M40 25c0 8-8 9-16 12'; commit 'M28 44V14' and 'M15 27l13-13 13 13'; scripts play triangle 'M19 12v32l26-16z' with class='fill'",
+        "Mac section: h2 'Built for the Mac. Only the Mac.', subtitle 'Written entirely in Swift and SwiftUI with Liquid Glass, for Apple silicon on macOS 26 and later. No web view, no Electron, one dependency.'; stats 100% / 'Swift and SwiftUI', 10 / 'agent providers', 26 / 'tinted-glass themes', 1 / 'dependency, SwiftTerm', 0 / 'telemetry, ever'",
+        "Left out block: h3 'Left out on purpose.' and ul aria-label='Not included' with 'No remote access', 'No mobile apps', 'No cloud sync', 'No telemetry', 'No web client'",
+        "Download: h2 'No price.', subtitle 'Droppy Code is free and open source under the AGPL. It drives the agents you already pay for, so there is nothing to pay for here.'; free__app icon 34x34 with 'Droppy Code for macOS' and small 'Version 1.5.3 - Signed and notarized' (middot separator); free__price 'Free' with small 'AGPL'; three checked lines each using svg viewBox '0 0 24 24' path 'm5 12 5 5L20 7'; buttons 'Download for macOS', 'View source on GitLab' (aria-label 'View the source on GitLab, opens in a new tab', data-morph-glyph='arrow-up-right'), 'Join the Discord'; foot 'Disk image, drag to Applications. The source is on GitLab under the AGPL-3.0 License.'",
+        "FAQ: h2 'Frequently asked<br>questions'; eleven questions in order 'What is Droppy Code?', 'Is it really free?', 'Is it open source?', 'Do I need an API key?', 'Which Mac do I need?', 'Does it send anything anywhere?', 'How is this related to Droppy?', 'What are checkpoints and worktrees?', 'What is Hydra?', 'Can I see my usage limits?', 'Where do I get help?'; every icon is the same plus svg viewBox '0 0 20 20' width 20 height 20 fill none stroke currentColor stroke-width 1.5 path 'M10 4v12M4 10h12'",
+        "Outro: h2 'Ready to give your agents a real Mac app?', subtitle 'Ten providers, one window, a diff for every turn and a terminal per thread. Free, open source, native.'; buttons 'Download for macOS', 'Join the Discord', 'Meet Droppy for Mac' (with an 18x18 droppy-icon-64.png styled inline border-radius:5px)",
+        "Footer brand: logo 48x48, tagline 'The coding app by Droppy.', description 'A native macOS app for your coding agents. Codex, Claude, Cursor, OpenCode, Grok, Antigravity, Copilot, Command Code, DeepSeek, Meta and Z.ai, in one Liquid Glass window on Apple silicon.', CTA 'Download for macOS', copyright '(c) [span data-current-year]2026[/span] getdroppy.app - All rights reserved', byline 'Built with (blue heart emoji) by [jordy.webp 28x28] Jordy Spruit', madeby 'Droppy Code is made by Droppy, the supercharged Dynamic Island for Mac.'",
+        "Footer Menu column: Home (index.html), Hydra, Highlights, Agents, Usage, Themes, Features, Download, FAQ, Changelog, Source. Droppy column: Droppy for Mac, Droppy for iPhone (/ios), Droplets (/droplets.html), Blog (/blog/), Docs (/docs.html), Privacy policy, Terms of service. Open source column: Source code, Releases, Merge requests, AGPL-3.0 License, Third-party notices, Trademark policy. Connect column: Discord, hi@getdroppy.app, The Trench (/trench.html), getdroppy.app. Footer wordmark text 'Droppy Code'."
+      ],
+      "feature_notes": [
+        "Cache-busting query strings pin asset versions: site.css?v=14, wordscroll.css?v=5, site.js?v=5, wordscroll.js?v=5, code.js?v=7, og-home.png?v=2",
+        "Screenshot generations are versioned in the CDN path: tour/v5/ for the app tour images and usage/v1/ for the limits shot",
+        "The advertised shipping version is 1.5.3, 'Signed and notarized'",
+        "The page states '10 agent providers' in the stats and 'Ten providers' in the outro, while the agents grid renders twelve marks and the footer description lists eleven (it omits Pi)",
+        "Theme count is 26, described as 'Twenty-six tinted-glass themes, from System to Catppuccin, Dracula, Claude and Codex'",
+        "Hydra pairing copy: 'a Claude lead over Gemini or OpenCode heads, picked straight from the model picker'; without a pair the heads take the chat's model at a working effort, so 'a Max lead sends out medium heads'",
+        "In a pair, the effort slider is the lead's and its track blends the lead's colour into the heads' (the slider alt text says 'its track blending the lead's orange into the heads' blue')",
+        "Panel docking limit stated as 'three a side on a 16-inch display, fewer on a smaller one'; panels can be dragged between slots to reorder or swap, and heads pop out on their own while there is room",
+        "The command palette shortcut is stated as the literal glyph CMD-K in 'Threads, projects and every command, from (CMD)K, over whatever you were doing.'",
+        "Plan limits are claimed for Codex, Claude, Antigravity, Copilot, Command Code and Z.ai; credits for DeepSeek and Command Code; Settings > Providers shows every signed-in provider on one page; the usage panel is switched on in General settings and can also be opened from the popover's expand button",
+        "API keys are needed only for DeepSeek, Meta and Z.ai and are 'stored in your Keychain'; all other providers use the terminal session",
+        "Right-clicking the Hydra mark switches Hydra off for a chat",
+        "The welcome tour is 'Eight pages of real screenshots' and the Help menu reopens it",
+        "Checkpoints: 'After every turn Droppy Code records a hidden git checkpoint of your project', giving each reply a diff and a revert button, and a thread can be rewound to any earlier turn",
+        "Links: source https://gitlab.com/droppyformac1/droppy-code, releases /-/releases, merge requests /-/merge_requests, LICENSE and TRADEMARK.md and THIRD_PARTY_NOTICES.md under /-/blob/main/, Discord https://discord.gg/2yAjDnVxgF, support mailto:hi@getdroppy.app",
+        "JSON-LD: name 'Droppy Code', description 'The coding app by Droppy. A native macOS app for your coding agents.', offers price '0' priceCurrency 'EUR', author Organization 'Droppy' url https://getdroppy.app, license https://www.gnu.org/licenses/agpl-3.0.html, sameAs https://gitlab.com/droppyformac1/droppy-code",
+        "Inline brand colours: Claude mark fill #D97757; DeepSeek mark fill #4D6BFE; Meta mark uses linearGradient id='meta-blue' x1=4.5 y1=12 x2=19.5 y2=12 userSpaceOnUse with stops #0064E0 at 0, #0082FB at 0.5, #0064E0 at 1, stroked at stroke-width 2.2 with round caps and joins",
+        "The OpenCode mark draws an inner square at fill-opacity 0.3; every other monochrome mark uses fill='currentColor'. Agent mark viewBoxes are individually tuned, e.g. Codex '-10.15 -7.77 276.06 276.06', Claude '-8.43 -7.43 272.6 272.6', Cursor '-49.92 -16.98 566.05 566.05', OpenCode '-5.3 -1.28 42.55 42.55', Grok '-0.74 -0.74 25.48 25.48', Copilot and DeepSeek '-0.77 -0.77 25.53 25.53', Meta '2.85 2.85 18.3 18.3'",
+        "Two canvas particle fields: the hero field has data-progress='pagetop' data-scroll-span='480'; the outro field has data-progress='viewport' data-density='0.8'. Both are aria-hidden and are hidden outright when JavaScript is off",
+        "Third-party JS is limited to Google Fonts CSS; all behavior scripts are first-party and deferred"
+      ],
+      "unresolved_questions": [
+        "All layout numbers (spacing, padding, radii, durations, opacities, font sizes and weights) live in assets/css/site.css?v=14 and assets/css/wordscroll.css?v=5, which are not in this bundle, so only inline SVG geometry and the --reveal-delay values could be captured from this file.",
+        "The runtime behavior of data-morph-glyph, data-reveal-on-load, data-highlight-carousel/rail/slide/prev/next, data-theme-picker, data-wordsplit, data-binary-field and data-download-link is defined in site.js, code.js and wordscroll.js (not in this bundle); this file only declares the hooks and their initial attribute state.",
+        "/download/latest is a server-side redirect whose target artifact and host are not visible from this file.",
+        "changelog.html is linked from the nav and the footer but is not part of this bundle, so its content cannot be confirmed here.",
+        "The page advertises 10 agent providers while rendering 12 agent marks; whether the stat is stale or deliberately counts only a subset cannot be determined from this file.",
+        "The theme picker div is empty in the markup and is filled at runtime by code.js, so the actual list of 26 theme names is not recoverable from this file."
+      ]
+    },
+    {
+      "path": "website/robots.txt",
+      "sha256": "3dd1d66e6e1c601424e9002f9b19dda6374810ac9fcc292f2797d9a3ac5b881d",
+      "lines_total": 4,
+      "ranges_read": [[1, 4]],
+      "purpose": "The crawler policy served at https://getdroppycode.app/robots.txt. It opens the entire site to every user agent with no exclusions and points crawlers at the site's sitemap. Four lines, ASCII, CRLF line terminators.",
+      "key_symbols": [
+        "User-agent: *",
+        "Allow: /",
+        "Sitemap: https://getdroppycode.app/sitemap.xml"
+      ],
+      "calls_into": [
+        "website/sitemap.xml, referenced by the absolute URL https://getdroppycode.app/sitemap.xml"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "None; a plain static text file with no macOS, AppKit or Unix dependency. It does hard-code the apex host getdroppycode.app."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Exact content line by line: line 1 'User-agent: *', line 2 'Allow: /', line 3 empty, line 4 'Sitemap: https://getdroppycode.app/sitemap.xml'",
+        "There is no Disallow directive and no Crawl-delay, so nothing on the site is excluded from indexing",
+        "There are no AI-crawler specific groups (no GPTBot, CCBot, ClaudeBot or similar sections): the single wildcard group covers everything",
+        "Every line uses CRLF terminators, matching the rest of the website directory"
+      ],
+      "unresolved_questions": [
+        "Whether the deploy pipeline rewrites the hard-coded host getdroppycode.app for preview or staging deployments cannot be determined from this file."
+      ]
+    },
+    {
+      "path": "website/sitemap.xml",
+      "sha256": "a9c67ff97831023186fd9504f9c4149d409913a60e87ad056596242b64581f98",
+      "lines_total": 15,
+      "ranges_read": [[1, 15]],
+      "purpose": "The two-entry XML sitemap for getdroppycode.app. It lists only the home page and the changelog page, each with a hand-written lastmod date, a changefreq and a priority. Fifteen lines, ASCII, CRLF line terminators.",
+      "key_symbols": [
+        "xml declaration version='1.0' encoding='UTF-8'",
+        "urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'",
+        "url entry for https://getdroppycode.app/",
+        "url entry for https://getdroppycode.app/changelog.html"
+      ],
+      "calls_into": [
+        "website/index.html, served at https://getdroppycode.app/",
+        "changelog.html, the site's only other listed page",
+        "Referenced back by website/robots.txt via its Sitemap directive"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "None; plain static XML. It assumes the apex host getdroppycode.app serves index.html at / and changelog.html beside it."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Entry 1: loc https://getdroppycode.app/, lastmod 2026-09-15, changefreq weekly, priority 1.0",
+        "Entry 2: loc https://getdroppycode.app/changelog.html, lastmod 2026-09-16, changefreq weekly, priority 0.8",
+        "The lastmod values are literal hand-written dates, not generated at deploy time, and the changelog's date is one day later than the home page's",
+        "Only two URLs are listed; the many in-page anchors of index.html (#hydra, #highlights, #agents, #usage, #themes, #features, #download, #faq) are deliberately not enumerated",
+        "Only the plain sitemaps 0.9 namespace is declared: no image, video or xhtml:link alternate extensions are used",
+        "Indentation is two spaces for url elements and four for their children"
+      ],
+      "unresolved_questions": [
+        "Whether the lastmod values are bumped by a release script or edited by hand cannot be determined from this file alone; there is no generator comment or tooling marker.",
+        "changelog.html is not in this bundle, so whether other pages exist under the site root but are intentionally omitted from the sitemap cannot be confirmed."
+      ]
+    }
+  ]
+}

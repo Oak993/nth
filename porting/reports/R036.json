@@ -1,0 +1,521 @@
+{
+  "bundle_id": "R036",
+  "reader": "R036-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/Git/DiffParser.swift",
+      "sha256": "d2ae692ca34ca19e667739dbe07debeb70ed89ac4dff3c4b7f5e010ddac9ed65",
+      "lines_total": 167,
+      "ranges_read": [
+        [
+          1,
+          167
+        ]
+      ],
+      "purpose": "Defines the app's in-memory unified-diff model (DiffFile / DiffHunk / DiffLine) and a hand-written parser that turns raw `git diff` text, or a provider's bare per-file hunks, into numbered, kind-tagged lines for the diff UI.",
+      "key_symbols": [
+        "struct DiffFile: Identifiable, Hashable, Sendable",
+        "DiffFile.Change enum: .added, .deleted, .modified, .renamed",
+        "DiffFile fields: path, oldPath: String?, change, isBinary, hunks: [DiffHunk], reportedAdditions: Int?, reportedDeletions: Int?",
+        "DiffFile.id == path; DiffFile.additions / .deletions (reported value wins, else counted from hunks); DiffFile.name == lastPathComponent; DiffFile.directory (parent + \"/\", empty string when at root)",
+        "struct DiffHunk: Identifiable, Hashable, Sendable { id: Int, header: String, lines: [DiffLine] }",
+        "struct DiffLine: Identifiable, Hashable, Sendable { id: Int, kind, text, oldNumber: Int?, newNumber: Int? }",
+        "DiffLine.Kind enum: .context, .addition, .deletion, .note",
+        "enum DiffParser",
+        "DiffParser.parse(_ patch: String) -> [DiffFile]",
+        "DiffParser.parseHunks(_ text: String, path: String) -> DiffFile",
+        "private DiffParser.headerPath(_:)",
+        "private DiffParser.stripPrefix(_:)",
+        "private DiffParser.hunkStarts(_:) -> (old: Int, new: Int)"
+      ],
+      "calls_into": [
+        "NSString.lastPathComponent",
+        "NSString.deletingLastPathComponent",
+        "Swift 6 Sequence.count(where:)",
+        "String.split(separator:omittingEmptySubsequences:)",
+        "String.range(of:options:.backwards)"
+      ],
+      "state_owned": [
+        "Parser-local mutable state inside parse(): files, current: DiffFile?, hunk: DiffHunk?, oldLine, newLine, lineID counters. No stored global state; the enum is a namespace with only static methods."
+      ],
+      "side_effects": [
+        "None. Pure text parsing, no I/O, no process launches."
+      ],
+      "platform_assumptions": [
+        "Foundation only; uses NSString path bridging (lastPathComponent / deletingLastPathComponent) and therefore Unix '/' path separators for the name and directory helpers."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "No views; supplies the model the diff views render. DiffFile.directory renders as a trailing-slash parent path, empty string at repository root."
+      ],
+      "feature_notes": [
+        "Line-prefix dispatch inside parse(): 'diff --git ' starts a new file (closes the previous file and hunk); 'new file mode' -> .added; 'deleted file mode' -> .deleted; 'rename from ' -> .renamed plus oldPath = remainder; 'rename to ' -> path = remainder; 'Binary files' or 'GIT binary patch' -> isBinary = true; '--- /dev/null' -> .added; '+++ /dev/null' -> .deleted, any other '+++ ' -> path = stripPrefix(dropFirst(4)); '@@' starts a hunk.",
+        "Header-block lines are only interpreted while hunk == nil or the line itself begins with '@@' (guard `if hunk == nil || line.hasPrefix(\"@@\")`), so text inside a hunk is never mistaken for a file header.",
+        "Body-line classification: '+' -> .addition with newNumber = newLine then newLine += 1; '-' -> .deletion with oldNumber = oldLine then oldLine += 1; '\\\\' (the '\\ No newline at end of file' marker) -> .note with text = String(line.dropFirst(2)), dropping backslash AND space; ' ' or empty -> .context with both oldNumber and newNumber, both counters advance.",
+        "A trailing empty line that is the very end of the patch is skipped: `if line.isEmpty, rawLine.endIndex == patch.endIndex { continue }` so a final newline does not become a spurious context line.",
+        "lineID is a single monotonically increasing counter shared by hunks and lines (incremented once per hunk header and once per body line), giving stable Identifiable ids within one parse.",
+        "parseHunks(_:path:) synthesizes a header when the text lacks one: \"diff --git a/\\(path) b/\\(path)\\n\" + text, parses it, falls back to DiffFile(path: path, change: .modified, isBinary: false, hunks: []) when parse returns nothing, then force-overwrites file.path = path.",
+        "headerPath() prefers the text after the LAST ' b/' occurrence in the 'diff --git ' line (range(of:options:.backwards)), so paths containing ' b/' still resolve; otherwise falls back to stripPrefix of the whole remainder.",
+        "stripPrefix() removes surrounding double quotes when both are present and count >= 2, then removes a leading 'a/' or 'b/' (exactly 2 characters).",
+        "hunkStarts() splits the '@@ -a,b +c,d @@' header on spaces, takes the first token beginning with '-' and the first beginning with '+', drops that sign character, splits on ',' and parses the first field; a missing token or unparsable digits default to 1.",
+        "Any line before the first 'diff --git ' header is discarded (`guard current != nil else { continue }`)."
+      ],
+      "unresolved_questions": [
+        "hunkStarts() picks the first space-separated token starting with '-' or '+'; for a '@@' header whose trailing section-heading text starts with '-' or '+' the real ranges still come first, so it is benign in practice, but nothing in this file guards it explicitly."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Git/FileChangeSummary+Diff.swift",
+      "sha256": "82d77d8271a0fb046ec322a3e0557c2510c9304ec7540d462ccbbd4750e6dc2c",
+      "lines_total": 19,
+      "ranges_read": [
+        [
+          1,
+          19
+        ]
+      ],
+      "purpose": "A single convenience initializer that rolls an array of parsed DiffFile values up into a FileChangeSummary: per-file entries plus the repository-wide addition and deletion totals shown on a turn's change badge.",
+      "key_symbols": [
+        "extension FileChangeSummary",
+        "init(files: [DiffFile])"
+      ],
+      "calls_into": [
+        "FileChangeSummary (declared elsewhere)",
+        "FileChangeSummary.File(path:additions:deletions:isBinary:)",
+        "FileChangeSummary.init(files:additions:deletions:)",
+        "DiffFile.additions",
+        "DiffFile.deletions",
+        "DiffFile.isBinary",
+        "DiffFile.path"
+      ],
+      "state_owned": [
+        "Local accumulators only: entries: [File] with reserveCapacity(files.count), additions, deletions."
+      ],
+      "side_effects": [
+        "None; pure value transformation."
+      ],
+      "platform_assumptions": [
+        "Foundation import only; no macOS-specific API in this file."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "No views; the resulting FileChangeSummary is the +/- counts model."
+      ],
+      "feature_notes": [
+        "Each DiffFile becomes exactly one FileChangeSummary.File(path: file.path, additions: file.additions, deletions: file.deletions, isBinary: file.isBinary); file order is preserved, nothing is filtered, and binary files contribute whatever counts DiffFile reports (0 unless reportedAdditions/reportedDeletions were set).",
+        "Totals are the plain sum of every file's additions and deletions: no cap, no de-duplication by path, no special handling for renames.",
+        "entries.reserveCapacity(files.count) is the only performance concession; the loop reads file.additions and file.deletions once each into locals before appending."
+      ],
+      "unresolved_questions": [
+        "The memberwise shape of FileChangeSummary and its nested File type is declared in another file outside this bundle, so I cannot confirm whether File carries further fields with defaults."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Git/Git.swift",
+      "sha256": "91a7e510740ec0fcdb04761e73e3557405b3489b2f56cb9af898b33dbd6dc107",
+      "lines_total": 723,
+      "ranges_read": [
+        [
+          1,
+          250
+        ],
+        [
+          250,
+          500
+        ],
+        [
+          500,
+          723
+        ]
+      ],
+      "purpose": "The whole git command-line wrapper for the app: a Sendable struct bound to one directory that shells out to git for status, branches, worktrees, commits, pushes, forge pull/merge requests, checkpoint refs, tree capture, diffing, revert preview and restore, and three-way patch application.",
+      "key_symbols": [
+        "struct GitStatus: Equatable, Sendable { branch: String?, upstream: String?, ahead = 0, behind = 0, changedFiles = 0 }",
+        "struct GitBranch: Identifiable, Hashable, Sendable { name, isCurrent, upstream: String?; id == name }",
+        "struct Git: Sendable { let directory: URL; init(_ path: String) }",
+        "private static var executable: URL { LoginEnvironment.git }",
+        "run(_:environment:input:timeout:) -> ShellResult, @discardableResult, default timeout 120",
+        "output(_:) -> String; static check(_ result: ShellResult) throws",
+        "isRepository(), repositoryRoot(), hasCommits(), status(), branches(), switchBranch(_:), createBranch(_:)",
+        "addWorktree(at:branch:base:), removeWorktree(at:), remoteURL(), remoteWebURL(), listFiles()",
+        "workingChanges() -> (summary: String, patch: String), commitAll(message:), push()",
+        "createPullRequest(title:body:source:target:) -> URL?, forge() -> MergeRequestLink.Forge, mergePullRequest(_:)",
+        "defaultBranch(), captureTree(paths:), treeHash(of:), commitHash(of:), commitWork(_:parent:message:)",
+        "updateRef(_:to:), updateRef(_:to:expecting:), pushBranch(_:), fetch(), isAncestor(_:of:)",
+        "changedPaths(from:to:), dirtyPaths(), ignoredPaths(among:), trackedPaths(among:), presentPaths(among:in:)",
+        "private static nulSeparated(_:) -> Data",
+        "hasOperationInProgress(), resetSoft(to:), resetIndex(paths:), checkoutPaths(from:_:), removePaths(_:), pullFastForward()",
+        "static checkpointRef(thread:turn:phase:) -> String",
+        "captureCheckpoint(_:), currentTree(), private captureTree(scratch:paths:), private watch(), captureTree()",
+        "struct GitFileStamp: Equatable { identifier: UInt64?, modified: Date?, size: Int?, overrides: String; init(gitFile:environment:) }",
+        "static let worktreeIndexPaths = Mutex<[String: (stamp: GitFileStamp, path: String?)]>([:])",
+        "private indexPath() -> String?",
+        "private static let diffPathChunk = 400",
+        "diff(from:to:binary:paths:) -> String",
+        "previewRestore(base:end:paths:) -> RevertPreview, restore(_:from:)",
+        "private blobs(in:at:root:) -> [String: String], private workingBlobs(at:root:) -> [String: String]",
+        "deleteCheckpoints(thread:)",
+        "private static let identity (GIT_AUTHOR_NAME/EMAIL, GIT_COMMITTER_NAME/EMAIL)",
+        "commitTree(_:message:), addDetachedWorktree(at:commit:), pruneWorktrees(), apply(_:) -> [String]",
+        "private extension Substring { func value(after prefix: String) -> String? }"
+      ],
+      "calls_into": [
+        "LoginEnvironment.git",
+        "LoginEnvironment.current",
+        "Shell.run(_:_:in:environment:input:timeout:)",
+        "Shell.run(tool:_:in:timeout:)",
+        "ShellResult (.output, .errorOutput, .succeeded, .status, .trimmedOutput, .failureMessage)",
+        "ShellError(_:)",
+        "MergeRequestLink (.number, .forge) and MergeRequestLink.Forge (.gitlab, .github, .gitea)",
+        "RevertPreview(files:) and RevertPreview(numstat:)",
+        "WorkingTreeWatch.shared(for:gitDirectory:)",
+        "WorkingTreeWatch.currentTree(indexPath:capture:)",
+        "WorkingTreeWatch.commit(of:)",
+        "WorkingTreeWatch.remember(commit:of:)",
+        "String.nilIfEmpty",
+        "Synchronization.Mutex",
+        "FileManager.default",
+        "CocoaError"
+      ],
+      "state_owned": [
+        "let directory: URL (the only instance state)",
+        "static let worktreeIndexPaths: Mutex<[String: (stamp: GitFileStamp, path: String?)]> - resolved worktree index paths keyed by working-directory path; cleared entirely (removeAll) once it reaches 64 entries",
+        "Temporary index files under FileManager.default.temporaryDirectory named \"droppy-code-index-<UUID>\" and \"droppy-code-apply-<UUID>\", each removed in a defer"
+      ],
+      "side_effects": [
+        "Launches the git executable for every operation (Shell.run) and the forge CLIs glab, gh and tea via Shell.run(tool:)",
+        "Writes and deletes temporary git index files in the system temporary directory",
+        "Mutates the repository: commit, add -A, push, fetch, pull --ff-only, reset --soft, reset by pathspec, checkout paths, rm, restore, update-ref, worktree add/remove/prune, apply",
+        "Deletes files from the working tree in restore(_:from:) for paths the ref does not have (FileManager.removeItem)",
+        "Network calls through git push/fetch/pull and through the forge CLIs (pull request creation and merging)",
+        "Creates and deletes hidden refs under refs/droppy-code/checkpoints/",
+        "Task.sleep for the GitLab merge retry backoff"
+      ],
+      "platform_assumptions": [
+        "Unix process execution and POSIX paths throughout; git is invoked as an executable URL from LoginEnvironment.git",
+        "A login-shell environment (LoginEnvironment.current) so gh, glab and tea are found the way they are in Terminal",
+        "FileManager.default.temporaryDirectory for the scratch index files",
+        "Swift 6 Synchronization.Mutex and structured concurrency (async/await, Task.sleep(for:))",
+        "Git-directory markers are checked with paths built by string concatenation with '/'",
+        "FileAttributeKey.systemFileNumber (an inode number) is part of GitFileStamp"
+      ],
+      "persisted_fields": [
+        "Checkpoint ref name: \"refs/droppy-code/checkpoints/<thread uuid lowercased>/<turn>-<phase>\" from Git.checkpointRef(thread:turn:phase:)",
+        "Checkpoint commit message literal: \"Droppy Code checkpoint\"",
+        "Checkpoint identity environment: GIT_AUTHOR_NAME=\"Droppy Code\", GIT_AUTHOR_EMAIL=\"droppy-code@localhost\", GIT_COMMITTER_NAME=\"Droppy Code\", GIT_COMMITTER_EMAIL=\"droppy-code@localhost\"",
+        "Environment always set on git: GIT_TERMINAL_PROMPT=\"0\", GIT_OPTIONAL_LOCKS=\"0\"; GIT_INDEX_FILE set per scratch-index call; GIT_DIR and GIT_INDEX_FILE read as overrides in GitFileStamp"
+      ],
+      "ui_elements": [
+        "No views. Supplies GitStatus (branch, upstream, ahead, behind, changedFiles) and [GitBranch] to the UI, and returns a URL from createPullRequest for opening the request page.",
+        "Error text surfaced to the user: \"The request could not be merged.\" and \"git hash-object answered for <n> of <m> files.\""
+      ],
+      "feature_notes": [
+        "Every git invocation is prefixed with `-c core.quotepath=false -c color.ui=false` before the caller's arguments; default timeout 120 s, 300 s for push, fetch, pull, worktree add, the forge CLIs, `add -A` and diff.",
+        "status() parses `status --porcelain=v2 --branch`: '# branch.head ' (value \"(detached)\" maps branch to nil), '# branch.upstream ', '# branch.ab ' with '+N'/'-N' tokens for ahead/behind; every non-'#' line increments changedFiles.",
+        "branches() uses `for-each-ref --sort=-committerdate --format=%(HEAD)%09%(refname:short)%09%(upstream:short) refs/heads`, splitting on tab; isCurrent when field 0 == \"*\"; an empty third field means no upstream.",
+        "switchBranch uses `switch <name>`, createBranch uses `switch -c <name>`, addWorktree uses `worktree add -b <branch> <path> [<base>]`, removeWorktree uses `worktree remove --force <path>`.",
+        "remoteWebURL() normalizes origin: strips a trailing \".git\", rewrites \"git@host:path\" to \"https://host/path\", rewrites an \"ssh://git@\" prefix to \"https://\", and returns nil unless the result begins with \"http\".",
+        "listFiles() runs `ls-files --cached --others --exclude-standard`.",
+        "workingChanges() returns `status --short` plus `diff HEAD --no-ext-diff`, with the patch truncated to the first 40_000 characters when its UTF-8 size exceeds 40_000 bytes.",
+        "commitAll(message:) does `add -A` then `commit -F -` with the message on stdin; push() is `push -u origin HEAD` at 300 s; pushBranch(name) is `push -u origin refs/heads/<name>:refs/heads/<name>` at 300 s.",
+        "forge() lowercases the origin URL: contains \"gitlab\" -> .gitlab, contains \"github\" -> .github, anything else -> .gitea (tea serves the Gitea family).",
+        "createPullRequest flags per forge: glab `mr create --title <t> --description <b> --yes [--source-branch <s>] [--target-branch <t>]`; gh `pr create --title <t> --body <b> [--head <s>] [--base <t>]`; tea `pulls create --title <t> --description <b> [--head <s>] [--base <t>]`. The returned URL is the first `https://\\S+` regex match in stdout + \"\\n\" + stderr.",
+        "mergePullRequest retries up to 6 attempts (attempt 0..<6) and only for GitLab, only when the combined lowercased output contains \"405\", \"not allowed\" or \"checking\"; backoff is .seconds(3 + attempt * 2), i.e. 3, 5, 7, 9, 11 s between the six tries. Merge commands: glab `mr merge <n> --yes`; gh `pr merge <n> --merge`; tea `pulls merge <n>`.",
+        "defaultBranch() resolves `symbolic-ref --short refs/remotes/origin/HEAD` (stripping an \"origin/\" prefix), then tries \"main\" then \"master\" via rev-parse of refs/remotes/origin/<name>, and finally returns \"main\".",
+        "captureTree(paths:) builds a throwaway index at temporaryDirectory/droppy-code-index-<UUID>, read-tree HEAD when there are commits, then `add -A --ignore-errors --pathspec-from-file=- --pathspec-file-nul` with NUL-separated paths on stdin at 300 s, then `write-tree`.",
+        "updateRef(_:to:expecting:) passes the expected old value as update-ref's third argument, using \"\" when old is nil (the ref must not yet exist), giving compare-and-swap semantics so a branch someone else moved is not run over.",
+        "dirtyPaths() parses `status --porcelain=v1 -z --untracked-files=all`, skipping records of 3 characters or fewer, taking the path from index 3 onward, and consuming an extra following record as the origin path when the two-character code contains 'R' or 'C', because both names of a rename or copy are dirty.",
+        "ignoredPaths(among:) runs `check-ignore -z --stdin` and accepts exit status 1 as success (nothing ignored).",
+        "presentPaths(among:in:) issues one `cat-file --batch-check=%(objecttype) -Z` with \"<ref>:<path>\\0\" per path and treats an answer ending in \" missing\" as absent; trackedPaths(among:) is presentPaths(among:in:\"HEAD\"). The comment records the motive: a branch that moved on by thousands of files used to mean thousands of sequential git processes.",
+        "hasOperationInProgress() resolves `rev-parse --path-format=absolute --git-dir` once, then checks six marker files by name: \"rebase-merge\", \"rebase-apply\", \"MERGE_HEAD\", \"CHERRY_PICK_HEAD\", \"REVERT_HEAD\", \"BISECT_LOG\". A directory git cannot answer for, or an empty answer, returns true (busy) by design.",
+        "resetSoft uses `reset --soft --quiet <commit>`; resetIndex uses `reset --quiet --pathspec-from-file=- --pathspec-file-nul`; checkoutPaths uses `checkout --quiet <ref> -- <paths>`; removePaths uses `rm --quiet -- <paths>`; pullFastForward uses `pull --ff-only --quiet` at 300 s. All of the pathspec variants return immediately for an empty path list.",
+        "currentTree() prefers the directory's WorkingTreeWatch: with an index path and a watch it calls watch.currentTree(indexPath:capture:), whose capture closure walks only the changed pathspecs into the shared scratch index; when scratch is nil or the incremental add fails it deletes the scratch, re-seeds by copying the real index (or read-tree HEAD) and runs `add -A -- .` at 300 s.",
+        "captureTree() (the full form) copies the real index first so git's stat cache avoids re-hashing unchanged files, else read-tree HEAD, then `add -A -- .` then `write-tree`.",
+        "indexPath(): when `.git` is a real directory and neither GIT_DIR nor GIT_INDEX_FILE is set it returns \"<dir>/.git/index\" with no git process at all; otherwise it stamps the `.git` file (systemFileNumber, modificationDate, size, plus GIT_DIR + \"\\0\" + GIT_INDEX_FILE) and reuses the cached answer while the stamp matches, resolving with `rev-parse --path-format=absolute --git-path index` when it does not. The cache is capped at 64 entries and wiped wholesale on reaching that. A subdirectory inside a repository with no `.git` of its own still asks every time.",
+        "diff(from:to:binary:paths:) prepends `--literal-pathspecs` whenever paths are given so a '?' or '[' in a name is a character rather than a pattern, always uses `diff --no-ext-diff -M`, appends `--binary` when binary is true, and chunks pathspecs at diffPathChunk = 400 per invocation, joining chunk outputs with a \"\\n\" separator when the accumulated text does not already end in one. Timeout 300 s.",
+        "previewRestore(base:end:paths:) returns an empty RevertPreview for empty paths; captures the end tree when none is given; runs `diff --numstat -z --no-renames --no-ext-diff <base> <end> -- <paths>`; then compares each file's blob in the end tree against its blob on disk and sets isKept = (left[path] != now[path]).",
+        "restore(_:from:) restores the paths the ref has with `restore --source <ref> --worktree --staged --pathspec-from-file=- --pathspec-file-nul` (absolute paths, NUL separated on stdin), and for paths the ref lacks runs `rm -q --cached --ignore-unmatch --pathspec-from-file=- --pathspec-file-nul` with errors ignored, then deletes each such file from disk with FileManager.removeItem.",
+        "blobs(in:at:root:) parses `ls-tree -r -z --full-name <ref> -- <absolute paths>` entries of the form \"<mode> <type> <hash>\\t<path>\", keeping field 2 (the hash) keyed by the path after the tab.",
+        "workingBlobs(at:root:) pipes newline-separated absolute paths of existing files to `hash-object --stdin-paths` and throws ShellError(\"git hash-object answered for \\(hashes.count) of \\(existing.count) files.\") when the reply count does not match.",
+        "deleteCheckpoints(thread:) lists refs under the thread's prefix with `for-each-ref --format=%(refname) <prefix>` and feeds \"delete <ref>\\n\" lines to `update-ref --stdin`.",
+        "commitTree(_:message:) adds `-p HEAD` only when the repository has commits, and runs under the Droppy Code identity environment; addDetachedWorktree uses `worktree add --detach <path> <commit>` at 300 s; pruneWorktrees uses `worktree prune` and ignores failure.",
+        "apply(_:) first tries `apply --binary --whitespace=nowarn -`; on failure it copies the real index (or read-tree HEAD) into temporaryDirectory/droppy-code-apply-<UUID>, runs `add -A -- .` into it at 300 s, then `apply --3way --binary --whitespace=nowarn -`; conflicts are the paths on stderr lines beginning \"U \" (trimmed of whitespace), and with no such lines it throws ShellError(merged.failureMessage).",
+        "captureCheckpoint(_:) reuses an existing checkpoint commit for the same tree via WorkingTreeWatch.commit(of:), else runs commit-tree with the message \"Droppy Code checkpoint\" under the Droppy Code identity, remembers it on the watch, and finishes with `update-ref <ref> <commit>`, so a turn starting on an untouched tree costs only the update-ref.",
+        "repositoryRoot() derives the root by deleting one path component per '/'-separated segment of `rev-parse --show-prefix`, so it stays on whatever form of the path the caller supplied rather than resolving symlinks."
+      ],
+      "unresolved_questions": [
+        "LoginEnvironment.git, Shell.run and ShellResult/ShellError live outside this bundle, so the exact failureMessage text, how timeouts are enforced, and PATH resolution for gh/glab/tea are not verifiable from this file.",
+        "MergeRequestLink and its Forge enum are declared elsewhere; whether more forge cases exist than the three handled here is not determinable here.",
+        "previewRestore takes `paths` described as relative to this directory but passes them straight into `git diff -- <paths>` and then keys blob lookups by the numstat paths, which are repository-relative; for a Git bound to a subdirectory of the repository the two spaces differ, and I could not confirm from this file whether callers always bind Git to the repository root."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Git/RevertPreview.swift",
+      "sha256": "50b9301243db70154a8819b44dabd3f2a11b1498e5543013bd6cf34716b9902d",
+      "lines_total": 42,
+      "ranges_read": [
+        [
+          1,
+          42
+        ]
+      ],
+      "purpose": "The model behind the 'undo this thread's changes' preview: the files a revert would put back, each with its add/delete counts, a binary flag and a kept flag for files the checkout has changed again since the thread last touched them, plus a parser for `git diff --numstat -z` output.",
+      "key_symbols": [
+        "struct RevertPreview: Sendable",
+        "RevertPreview.File: Identifiable, Sendable { let path: String; let additions: Int; let deletions: Int; let isBinary: Bool; var isKept = false; id == path }",
+        "var files: [File]",
+        "init(files: [File])",
+        "var restorable: [File] (files where !isKept)",
+        "var additions: Int and var deletions: Int (sums over restorable only)",
+        "init(numstat: String) throws"
+      ],
+      "calls_into": [
+        "CocoaError(.fileReadCorruptFile)",
+        "String.split(separator:maxSplits:omittingEmptySubsequences:)"
+      ],
+      "state_owned": [
+        "var files: [File] is the only stored property; File.isKept is the only mutable per-file field and defaults to false, every other File field is a let."
+      ],
+      "side_effects": [
+        "None; pure parsing and aggregation. The numstat text is produced by Git.previewRestore, not by this file."
+      ],
+      "platform_assumptions": [
+        "Foundation's CocoaError for the parse failure; no AppKit or macOS UI dependency."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "No views; supplies the preview list (path, additions, deletions, binary marker, kept marker) and the aggregate counts the revert sheet shows. Only non-kept files contribute to the totals."
+      ],
+      "feature_notes": [
+        "init(numstat:) splits the whole text on NUL ('\\0'), then splits each entry on tab with maxSplits: 2 and omittingEmptySubsequences: false, requiring exactly 3 fields with a non-empty third field, otherwise throwing CocoaError(.fileReadCorruptFile).",
+        "A binary file is recognised only when BOTH count fields are exactly \"-\"; its additions and deletions are then recorded as 0 and isBinary is true. A single \"-\" in one field alone fails Int parsing and throws.",
+        "Non-binary counts must parse as Int and be >= 0, otherwise the initializer throws CocoaError(.fileReadCorruptFile).",
+        "Documented semantics: 'A file the checkout has changed again since the thread last left it is somebody else's work now: it is listed, marked kept, and left alone.' Kept files stay visible in `files` but are excluded from `restorable`, `additions` and `deletions`.",
+        "Field order assumed from git numstat: added, removed, path.",
+        "The memberwise init(files:) is written out explicitly rather than synthesized, so RevertPreview(files: []) is the empty-preview value Git.previewRestore returns for an empty path list."
+      ],
+      "unresolved_questions": [
+        "Whether the numstat text ever arrives in the `-z` rename form (two extra NUL-separated path records); Git.previewRestore passes `--no-renames` so the three-field assumption holds inside this bundle, but a caller outside it using renames would fail the parse."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Git/TouchedPaths.swift",
+      "sha256": "36b32f0fd8a1a066225844cd0c5062bc87c47088b7931614dc80d0ce1f54b601",
+      "lines_total": 60,
+      "ranges_read": [
+        [
+          1,
+          60
+        ]
+      ],
+      "purpose": "Path hygiene for agent-reported edits: normalizes and repository-scopes the paths an agent says it touched, rejects paths outside the checkout, recognises build-output and tool-cache folders that must never be landed or merged, and matches a DiffFile against a set of touched paths.",
+      "key_symbols": [
+        "enum TouchedPaths",
+        "nonisolated static func normalize(_ path: String, root: String) -> String",
+        "nonisolated static func relative(_ path: String, root: String) -> String?",
+        "nonisolated static func isBuildOutput(_ path: String) -> Bool",
+        "private static let buildOutputNames: Set<String>",
+        "nonisolated static func matches(_ file: DiffFile, touched: Set<String>) -> Bool"
+      ],
+      "calls_into": [
+        "DiffFile.path and DiffFile.oldPath",
+        "URL(fileURLWithPath:isDirectory:).standardizedFileURL",
+        "URL(fileURLWithPath:relativeTo:)",
+        "NSString.standardizingPath",
+        "NSString.expandingTildeInPath",
+        "NSString.appendingPathComponent",
+        "String.nilIfEmpty"
+      ],
+      "state_owned": [
+        "Only the static Set<String> buildOutputNames; the enum is a stateless namespace and every method is nonisolated static."
+      ],
+      "side_effects": [
+        "None; no filesystem reads (standardizingPath and standardizedFileURL are lexical here), no process launches."
+      ],
+      "platform_assumptions": [
+        "Unix absolute paths (the '/' prefix test) and '/' as the component separator",
+        "Foundation NSString path bridging: expandingTildeInPath, standardizingPath, appendingPathComponent",
+        "macOS-specific entries in the ignore list: '.DS_Store', 'DerivedData', 'xcuserdata', '.swiftpm', 'ModuleCache', '-Xcc', and any component ending in '.noindex'"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "No views; feeds the diff and landing pipeline that decides which files a turn is credited with."
+      ],
+      "feature_notes": [
+        "normalize(_:root:) resolves the path against the root directory URL, standardizes it, and strips the root prefix (adding a trailing '/' to the root when it lacks one); an empty input returns \"\". A path not under the root comes back still absolute.",
+        "relative(_:root:) trims whitespace and newlines, returns nil for an empty path or any path containing \"://\" (a URL), expands a leading '~', standardizes root and the resolved absolute path, and returns nil unless the result begins with root + '/'. The remainder goes through nilIfEmpty, so the root itself yields nil.",
+        "Recorded rationale: 'A file written outside the checkout is not the thread's work, and git refuses to stage it, which used to take the whole merge down with it.'",
+        "isBuildOutput(_:) splits on '/' omitting empty subsequences and returns true when ANY component is '.DS_Store', ends with '.noindex', or appears in buildOutputNames.",
+        "buildOutputNames verbatim, 15 entries: \"-Xcc\", \"DerivedData\", \".build\", \"node_modules\", \"__pycache__\", \".pytest_cache\", \".mypy_cache\", \".ruff_cache\", \"xcuserdata\", \".swiftpm\", \"ModuleCache\", \".gradle\", \".turbo\", \".parcel-cache\", \".commandcode\".",
+        "Deliberate exclusion in the comment: a source folder called 'build' or 'dist' stays the project's business; only unmistakable caches count. '-Xcc' is listed because a head's build once left 2,700 compiler cache records under 'DroppyCode.xcodeproj/-Xcc' and every one rode into the lead's checkout and the merge. '.commandcode' is the folder Command Code writes its taste file into in every checkout it runs in, and it rode along into two repositories' history before it was listed.",
+        "matches(_:touched:) checks both file.path and file.oldPath (compactMapped, so nil oldPath is skipped) against the touched set: exact membership, or a suffix relationship in either direction ($0.hasSuffix(\"/\" + path) || path.hasSuffix(\"/\" + $0)), so a path reported relative to a subfolder still matches."
+      ],
+      "unresolved_questions": [
+        "normalize and relative overlap in intent but differ in tilde handling, URL rejection and out-of-root behaviour; which callers must use which is decided outside this file (TurnDiff uses normalize only), so the full policy is not statable from here.",
+        "isBuildOutput has no call site inside this bundle, so which stage of landing or merging consults it (and whether a hit is skipped silently or reported) cannot be established from the assigned files."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Git/TurnDiff.swift",
+      "sha256": "2371fcde103d2e54ebfae8f979cc784c449471ca83612277e2c2a086812ed9ef",
+      "lines_total": 65,
+      "ranges_read": [
+        [
+          1,
+          65
+        ]
+      ],
+      "purpose": "Merges the three sources of a turn's file changes into one diff: the checkpoint-to-checkpoint working-tree snapshot, the provider's own patch, and the agent's per-tool FileEdit records, filtering the snapshot down to the files the turn actually named and de-duplicating by path.",
+      "key_symbols": [
+        "enum TurnDiff",
+        "static func merge(snapshot: [DiffFile]?, providerPatch: String, edits: [FileEdit], touched: Set<String>?, root: String, repositoryRoot: String? = nil, providerFiles: [DiffFile]? = nil) -> [DiffFile]",
+        "private static func append(_ file: DiffFile, to files: inout [String: DiffFile])",
+        "local helper reportedPath(_:)"
+      ],
+      "calls_into": [
+        "DiffParser.parse(_:)",
+        "DiffParser.parseHunks(_:path:)",
+        "TouchedPaths.normalize(_:root:)",
+        "DiffFile",
+        "FileEdit (.path, .diff, .additions, .deletions)",
+        "URL(fileURLWithPath:isDirectory:)",
+        "URL(fileURLWithPath:relativeTo:).standardizedFileURL"
+      ],
+      "state_owned": [
+        "Local only: files: [String: DiffFile] keyed by path, known: Set<String>?, authoritative: Set<String>. No stored state; the enum is a namespace."
+      ],
+      "side_effects": [
+        "None; pure computation over already-collected diff text."
+      ],
+      "platform_assumptions": [
+        "Unix absolute paths (the hasPrefix(\"/\") tests), Foundation URL standardization, '/' separators."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "No views; produces the [DiffFile] the turn's diff view renders, sorted ascending by path ($0.path < $1.path)."
+      ],
+      "feature_notes": [
+        "repositoryRoot defaults to root when not supplied; reportedPath(_:) resolves a path against `root` and then normalizes it against `repositoryRoot`, so a path an agent reported relative to a subfolder lands repository-relative.",
+        "The `known` set exists only when `touched` is non-nil; it is seeded from the normalized touched paths and then grown with every reported file's path and oldPath and every non-empty edit path. With touched == nil no filtering happens at all.",
+        "Recorded rationale: 'The snapshot is the whole checkout between two checkpoints, so only files the chat's turns reported, the provider's own patch, or its tool edits name are taken from it.'",
+        "Snapshot files are normalized against repositoryRoot directly (TouchedPaths.normalize), while provider-patch files go through reportedPath (resolved against root first). A snapshot file is skipped when `known` exists and contains neither its path nor its oldPath.",
+        "`reported` is providerFiles when supplied, otherwise DiffParser.parse(providerPatch), so callers can pass pre-parsed provider files and skip a re-parse.",
+        "When a snapshot exists, provider-patch files are only added for paths that still begin with '/' (they did not resolve inside the repository root) and are not already present, so the snapshot stays authoritative for in-repository files.",
+        "Edits are only added when their normalized path is not already in `authoritative` (the keys after snapshot and provider merging) and, when a snapshot exists, only when the path begins with '/'. The edit's diff text is parsed with DiffParser.parseHunks(edit.diff ?? \"\", path:); when that yields no hunks, edit.additions and edit.deletions are written into reportedAdditions/reportedDeletions so the counts still show.",
+        "append(_:to:) de-duplicates by path: a first file for a path is stored as is; a second has its hunks appended with hunk.id = (existing.hunks.last?.id ?? 0) + 1 (recomputed per hunk as the array grows, so ids stay contiguous), its additions and deletions summed into reportedAdditions/reportedDeletions, and isBinary OR-ed in.",
+        "Because append sets reportedAdditions/reportedDeletions on any merge, a merged file's counts stop being derived from its hunks.",
+        "The result is files.values sorted by path ascending."
+      ],
+      "unresolved_questions": [
+        "FileEdit is declared outside this bundle, so the exact semantics of edit.diff (nil versus empty string) and whether additions/deletions are optional could not be verified here.",
+        "The `path.hasPrefix(\"/\")` conditions imply reportedPath can return an absolute path for work outside the repository root; whether any shipped caller relies on that branch or it is purely defensive is not determinable from this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Git/WorkingTreeWatch.swift",
+      "sha256": "d1625079ddf96001230158c17add97105e94aae55b6191052339e3ac6a33c191",
+      "lines_total": 353,
+      "ranges_read": [
+        [
+          1,
+          190
+        ],
+        [
+          190,
+          353
+        ]
+      ],
+      "purpose": "An FSEvents-backed watcher, one per working directory, that lets Git skip a full `git add -A` tree capture when nothing has been written since the last snapshot, and that tells a capture which directories changed so only those are walked into a persistent scratch index.",
+      "key_symbols": [
+        "final class WorkingTreeWatch: Sendable",
+        "private struct IndexStamp: Equatable { modified: Date?, size: Int?; init(path:) }",
+        "private struct Snapshot { tree: String, generation: UInt64, index: IndexStamp, commit: String? }",
+        "private struct State { generation: UInt64 = 1, changed: Set<String>? = [], cookiesWritten: UInt64 = 0, cookieSeen: UInt64 = 0, snapshot: Snapshot?, capture: (generation: UInt64, task: Task<String?, Never>)?, stream: Stream?, waiters: [(id: UInt64, cookie: UInt64, continuation: CheckedContinuation<Bool, Never>)], waitersAdded: UInt64 = 0 }",
+        "private struct Stream: @unchecked Sendable { let ref: FSEventStreamRef }",
+        "private enum Lookup { case tree(String), join(Task<String?, Never>), own(Task<String?, Never>), wait(Task<String?, Never>) }",
+        "private static let changedLimit = 64",
+        "private static let watches = Mutex<[(directory: String, watch: WorkingTreeWatch)]>([])",
+        "private static let limit = 32",
+        "static func shared(for directory: String, gitDirectory: String) -> WorkingTreeWatch?",
+        "let directory: String plus private rootPrefix, gitPrefix, cookiePrefix, rootPrefixBytes, cookiePrefixCharacters, scratch, queue, state",
+        "private static func real(_ path: String) -> String (realpath(3))",
+        "private init(directory:gitDirectory:)",
+        "private func tearDown()",
+        "private static let callback: FSEventStreamCallback",
+        "private func note(paths:flags:)",
+        "private static func pathspecs(_ changed: Set<String>) -> [String]",
+        "private static func topLevel(_ directory: String) -> String",
+        "private func settledGeneration() async -> UInt64?",
+        "private func expireWaiter(_ id: UInt64)",
+        "func currentTree(indexPath: String, capture: @escaping @Sendable (URL?, [String]?) async throws -> String) async throws -> String",
+        "func commit(of tree: String) -> String?",
+        "func remember(commit: String, of tree: String)"
+      ],
+      "calls_into": [
+        "CoreServices FSEvents: FSEventStreamCreate, FSEventStreamSetDispatchQueue, FSEventStreamStart, FSEventStreamStop, FSEventStreamInvalidate, FSEventStreamRelease, FSEventStreamContext, FSEventStreamCreateFlags, FSEventStreamEventId, FSEventStreamCallback",
+        "Unmanaged.passUnretained and Unmanaged.fromOpaque",
+        "Synchronization.Mutex",
+        "DispatchQueue(label:qos:)",
+        "FileManager.default (attributesOfItem, createFile, removeItem, temporaryDirectory)",
+        "URL.resourceValues(forKeys: [.volumeIsLocalKey])",
+        "realpath(3) via withCString",
+        "CocoaError(.fileReadUnknown)",
+        "Called by Git.watch(), Git.currentTree() and Git.captureCheckpoint()"
+      ],
+      "state_owned": [
+        "static watches: Mutex<[(directory: String, watch: WorkingTreeWatch)]> - an insertion-ordered registry of live watches capped at limit = 32, oldest removed first",
+        "instance state: Mutex(State()) holding generation, the changed set, cookiesWritten, cookieSeen, snapshot, the in-flight capture task, the stream handle, waiters and waitersAdded",
+        "let scratch: URL - FileManager.default.temporaryDirectory + \"droppy-code-index-<UUID>\", a persistent index reused across captures and deleted in tearDown()",
+        "let queue: DispatchQueue(label: \"droppy.working-tree-watch\", qos: .utility) - the FSEvents dispatch queue, also used to tear the stream down",
+        "precomputed rootPrefix, gitPrefix and cookiePrefix strings plus their lengths rootPrefixBytes and cookiePrefixCharacters, because a build reports thousands of paths per callback"
+      ],
+      "side_effects": [
+        "Creates and runs an FSEvents stream over the working directory, and over the git directory as a second root when it lies outside the working tree",
+        "Creates zero-byte cookie files at \"<gitRoot>/droppy-code-sync-<n>\" and deletes them in a defer",
+        "Deletes the scratch index file on tearDown",
+        "Spawns Task.detached(priority: .utility) capture tasks and a one-second timeout Task per settledGeneration call",
+        "Calls realpath(3) on the directory and git-directory paths at init"
+      ],
+      "platform_assumptions": [
+        "macOS CoreServices FSEvents is the entire mechanism: FSEventStreamCreate with kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagNoDefer | kFSEventStreamCreateFlagFileEvents, starting at kFSEventStreamEventIdSinceNow with latency 0",
+        "Dropped/coalesced event flags kFSEventStreamEventFlagMustScanSubDirs, kFSEventStreamEventFlagKernelDropped, kFSEventStreamEventFlagUserDropped",
+        "Local-volume requirement via URLResourceKey.volumeIsLocalKey; a non-local volume yields nil so every snapshot is taken fresh",
+        "FSEvents reports real paths (/var surfaces as /private/var) and Foundation's symlink resolution strips /private again, so paths are canonicalized with realpath(3) instead",
+        "POSIX '/' separators; Swift 6 Synchronization.Mutex; Unmanaged pointer bridging for the C callback context"
+      ],
+      "persisted_fields": [
+        "Cookie file path template: \"<git directory>/droppy-code-sync-<cookie number>\" (zero-byte files, deleted after the wait)",
+        "Scratch index file: \"<temporaryDirectory>/droppy-code-index-<UUID>\"",
+        "Dispatch queue label: \"droppy.working-tree-watch\", qos .utility"
+      ],
+      "ui_elements": [
+        "No views; a pure performance service behind the diff and checkpoint pipeline."
+      ],
+      "feature_notes": [
+        "Documented performance motive with verbatim figures: every snapshot is `git add -A` over the whole tree, '46 ms on a 4k-file repository and 200 ms at 60k', and most commands only read.",
+        "Correctness protocol: before trusting the change count a cookie file is written in the git directory and the answer waits for that cookie's own FSEvents event, because events arrive in order, so everything written before the cookie has been counted by the time it lands.",
+        "settledGeneration() waits at most 1 second (Task.sleep(for: .seconds(1))) for the cookie event. A cookie that never arrives tears the stream down permanently, after which every later snapshot is a fresh capture. It returns nil without a stream and when FileManager.createFile fails.",
+        "The waiter list is resumed exactly once: whichever of the event (note) or the timeout (expireWaiter) removes the waiter from state.waiters is the one that resumes its continuation, and continuations are resumed outside the lock. A cookie already seen before the continuation is installed resumes immediately with true.",
+        "note(paths:flags:) per event path: a lost-event flag sets both changed and everything; a path under cookiePrefix updates the cookie number (max) and is not counted as a change; a path under gitPrefix is skipped entirely because 'Git's own writes (objects, refs, the index) do not change the working files'; any other path marks changed, and unless it sits under rootPrefix with more bytes than rootPrefixBytes it means the whole tree (everything = true).",
+        "A changed path is recorded as the directory holding the entry, relative to the root, or as the entry itself when it sits at the root (relative.lastIndex(of: \"/\") split).",
+        "generation is bumped with &+= 1 (wrapping) once per callback that saw any change, not once per path.",
+        "changedLimit = 64: while inserting, once the set already holds 64 or more entries new entries are inserted as their top-level directory; after the loop, if the set exceeds 64 the whole set is collapsed with topLevel, so 'a build writing thousands of files costs one walk of its output'. changed == nil means the whole tree must be walked.",
+        "pathspecs(_:) sorts the changed set and drops any path nested inside the previously kept one (path.hasPrefix(last + \"/\")), producing minimal non-overlapping pathspecs.",
+        "shared(for:gitDirectory:) returns an existing watch for the directory, else requires volumeIsLocal == true, else nil. A race where two watches are built is resolved by keeping whichever reached the registry first and tearing down the loser; the registry is capped at 32 with the oldest torn down on its own queue after any callback in flight. The comment records the bug this fixed: tearing down the registered watch instead 'stopped its stream and deleted the scratch index a capture may be writing through'.",
+        "The stream roots are [root] when the git directory is inside the root, else [root, gitRoot], because a linked worktree's git directory lives outside the working tree and the cookies are written there.",
+        "A stream that fails to start is invalidated and released immediately and state.stream stays nil, so the watch degrades to fresh captures.",
+        "tearDown() nils the stream under the lock, then stops, invalidates and releases it on the watch's own queue and removes the scratch index, so no callback can be running when the stream goes.",
+        "currentTree(indexPath:capture:) short-circuits to capture(nil, nil) when there is no settled generation (no stream): the caller must then use a throwaway index of its own. Otherwise it loops over a Lookup decision: .tree returns the cached snapshot tree when its generation AND its IndexStamp both still match; .join awaits a capture at the same generation and retries the loop when that capture failed, because only the owner may rebuild the scratch index; .wait awaits a capture at a different generation and re-decides; .own runs the capture itself.",
+        "IndexStamp compares only the checkout index file's modificationDate and size, because the index's content is part of what write-tree produces for paths the capture does not walk, as when the user stages files outside the directory.",
+        "Incremental pathspecs are only passed when state.snapshot?.index == index (the real index has not moved since the last snapshot); otherwise nil forces a full walk. The changed set is reset to [] at that moment so writes during the walk accrue to the next capture.",
+        "On a successful own capture the snapshot is stored with commit: nil; on failure state.changed is set to nil (forcing a full walk next time) and CocoaError(.fileReadUnknown) is thrown. The capture slot is cleared only when it is still this task's.",
+        "commit(of:) returns the remembered checkpoint commit only when the current snapshot's tree matches exactly; remember(commit:of:) writes it only when the snapshot is still that tree, which is what makes a turn starting on an untouched tree cost only an `update-ref`."
+      ],
+      "unresolved_questions": [
+        "The FSEvents latency argument is 0 with kFSEventStreamCreateFlagNoDefer, so delivery timing is up to the OS; whether one second is always enough for the cookie on a busy volume is empirical and this file does not answer it, though the code degrades safely by tearing the stream down.",
+        "kFSEventStreamCreateFlagFileEvents yields per-file paths, but the code stores only the holding directory; whether any caller would benefit from file-level granularity is decided in Git.swift's capture closure, not here.",
+        "The registry cap of 32 and changedLimit of 64 are stated without a recorded measurement, unlike the 46 ms / 200 ms figures."
+      ]
+    }
+  ]
+}

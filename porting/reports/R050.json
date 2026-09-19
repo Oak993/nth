@@ -1,0 +1,701 @@
+{
+  "bundle_id": "R050",
+  "reader": "R050-reader",
+  "files": [
+    {
+      "path": "DroppyCode/UI/Common/AttachmentPreview.swift",
+      "sha256": "875fe61d1f550de0e4ea10f075bdf8ea13df9dc191e5d5179a459203be91633b",
+      "lines_total": 430,
+      "ranges_read": [
+        [
+          1,
+          430
+        ]
+      ],
+      "purpose": "Shared attachment/tool-output preview machinery: decides whether a tool row names an image file on disk (with a memoised path resolver), caches Finder icons and Attachment values per path, produces video poster frames, and defines the play badge, the 56pt video list thumbnail, the large popover preview body (photo/video/text/file-icon variants plus the name+size+Show in Finder/Open footer) and the full-width image preview shown inside an expanded read tool row.",
+      "key_symbols": [
+        "enum PreviewImages",
+        "PreviewImages.extensions (Set<String>)",
+        "PreviewImages.isImagePath(_:)",
+        "PreviewImages.resolvedPaths (RecentCache<String, String?>, limit 600)",
+        "PreviewImages.resolveToolImagePath(for:workingDirectory:)",
+        "PreviewImages.mentionsImage(_:)",
+        "PreviewImages.search(for:workingDirectory:)",
+        "PreviewImages.attachments ([String: Attachment])",
+        "PreviewImages.attachment(for:)",
+        "PreviewImages.sizeFormatter (ByteCountFormatter, countStyle .file)",
+        "PreviewImages.fileSize(_:)",
+        "enum FileIcons (@MainActor)",
+        "FileIcons.icon(for:)",
+        "FileIcons.iconKey(for:)",
+        "enum PreviewVideos",
+        "PreviewVideos.extensions",
+        "PreviewVideos.isVideoPath(_:)",
+        "PreviewVideos.thumbnail(for:pointSize:) async -> CGImage?",
+        "extension Attachment { var isVideo: Bool }",
+        "struct AttachmentPlayBadge",
+        "struct AttachmentVideoThumbnail",
+        "struct AttachmentLargePreview",
+        "AttachmentLargePreview.imageBounds (CGSize 480x360)",
+        "AttachmentLargePreview.imageDisplaySize(for:)",
+        "AttachmentLargePreview.videoDisplaySize(for:)",
+        "AttachmentLargePreview.textPreview(for:)",
+        "struct ToolImagePreview"
+      ],
+      "calls_into": [
+        "ToolCall (call.kind, ToolCall.Kind.read, call.status.rawValue, call.title, call.detail)",
+        "RecentCache<Key, Value>(limit:) with value(for:) / insert(_:for:)",
+        "Attachment (init(name:path:mimeType:), .url, .name, .path, .isImage, .mimeType, .id)",
+        "ThumbnailCache.shared.thumbnail(for:pointSize:)?.image",
+        "AttachmentThumbnail (named in doc comment as the photo counterpart of AttachmentVideoThumbnail)",
+        "UTType(filenameExtension:)?.preferredMIMEType",
+        "NSWorkspace.shared.icon(forFile:), NSWorkspace.shared.open(_:), NSWorkspace.shared.activateFileViewerSelecting(_:)",
+        "AVURLAsset, AVAssetImageGenerator.image(at:), CMTime",
+        "CGImageSourceCreateWithURL / CGImageSourceCopyPropertiesAtIndex, kCGImagePropertyPixelWidth/Height/Orientation",
+        "FileManager.default.fileExists(atPath:isDirectory:), attributesOfItem(atPath:)"
+      ],
+      "state_owned": [
+        "@MainActor static var PreviewImages.resolvedPaths: RecentCache<String, String?> limit 600, keyed by kind\\u{1}status\\u{1}title\\u{1}detail\\u{1}workingDirectory",
+        "@MainActor static var PreviewImages.attachments: [String: Attachment] keyed by absolute path (unbounded, so one Attachment identity per file)",
+        "@MainActor static let PreviewImages.sizeFormatter: ByteCountFormatter",
+        "@MainActor FileIcons.cache: [String: NSImage] plus FileIcons.order: [String], trimmed while order.count > 64 (FIFO oldest-first)",
+        "AttachmentVideoThumbnail: @State private var image: CGImage?",
+        "AttachmentLargePreview: @State image, @State videoFrame, @State textPreview",
+        "ToolImagePreview: @State private var image: CGImage?"
+      ],
+      "side_effects": [
+        "FileManager.fileExists disk probe per candidate path in search(for:workingDirectory:)",
+        "FileManager.attributesOfItem(atPath:)[.size] for the footer size string",
+        "URL.resourceValues(forKeys: [.contentTypeKey]) in FileIcons.iconKey and [.fileSizeKey] in textPreview",
+        "Reads file text: only when fileSize < 500_000, keeps String(text.prefix(8_000))",
+        "Detached Task at .userInitiated decoding a video frame via AVAssetImageGenerator",
+        "NSWorkspace.shared.activateFileViewerSelecting([attachment.url]) from the Show in Finder button",
+        "NSWorkspace.shared.open(attachment.url) / open(URL(fileURLWithPath: path)) from the Open buttons"
+      ],
+      "platform_assumptions": [
+        "AppKit NSWorkspace Finder icon lookup (NSImage) for arbitrary paths",
+        "ImageIO CGImageSource header read for pixel size and EXIF orientation without decoding",
+        "AVFoundation AVURLAsset/AVAssetImageGenerator for movie poster frames",
+        "UniformTypeIdentifiers UTType for extension -> MIME type",
+        "POSIX absolute paths ('/' prefix), file:// URLs and '~/' tilde expansion via NSString.expandingTildeInPath",
+        "SwiftUI Image(decorative:scale: 2) assumes 2x backing store",
+        "Buttons use .buttonStyle(.link), a macOS style"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "AttachmentPlayBadge: Circle fill .black.opacity(0.45), 30x30; Image(systemName: \"play.fill\") white, .system(size: 13, weight: .semibold), .offset(x: 1); accessibilityHidden(true)",
+        "AttachmentVideoThumbnail: default size 56; RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.quaternary.opacity(0.6)); clipShape rect radius 12 continuous; frame loads with withAnimation(.easeOut(duration: 0.15))",
+        "AttachmentLargePreview.imageBounds = CGSize(width: 480, height: 360)",
+        "Photo/video slot: ZStack with ProgressView placeholder, image clipShape rect radius 12 continuous, .frame(width: slot.width, height: slot.height).frame(maxWidth: .infinity, alignment: .center)",
+        "Text file variant: ScrollView with .font(.system(.caption, design: .monospaced)), .textSelection(.enabled), padding 10, .frame(width: 440, height: min(320, max(120, CGFloat(textPreview.count / 4)))), background .quaternary.opacity(0.45) in rect radius 10 continuous",
+        "Other-file variant: HStack(spacing: 10) with 32x32 Finder icon and name .font(.callout).lineLimit(2), .frame(width: 320, alignment: .leading), .padding(.vertical, 8)",
+        "Footer HStack(spacing: 8): name .font(.caption) .secondary .lineLimit(1) .truncationMode(.middle); size .font(.caption) .tertiary; Spacer(minLength: 12); Button(\"Show in Finder\"); Button(\"Open\") - both .buttonStyle(.link).font(.caption)",
+        "Panel body: .padding(12), .frame(maxWidth: 504)",
+        "ToolImagePreview: VStack(alignment: .leading, spacing: 6); RoundedRectangle(cornerRadius: 10, style: .continuous).fill(.quaternary.opacity(0.45)); .frame(maxWidth: .infinity, maxHeight: 420); clipShape radius 10 continuous; ProgressView().controlSize(.small); footer HStack(spacing: 8) with lastPathComponent caption/secondary/middle truncation, Spacer(minLength: 8) and Button(\"Open\")"
+      ],
+      "feature_notes": [
+        "Image extensions: png, jpg, jpeg, gif, webp, heic, heif, bmp, tif, tiff, avif, ico, svg",
+        "Video extensions: mov, mp4, m4v, mpg, mpeg, avi, mkv, webm",
+        "Tool image resolution: a .read call uses its title (and detail) whole, so paths with spaces survive; any other kind splits title/detail on whitespace-and-newlines plus the set \"'`()<>,; and tries each word",
+        "Relative candidates resolve against the thread working directory; only an existing file wins; the cache key includes call.status.rawValue so an in-flight command's negative answer expires when it finishes",
+        "attachment(for:) forces the MIME type to \"image/*\" whenever UTType's preferred MIME type is not an image/ type",
+        "Video poster frame taken at CMTime(seconds: 0.5, preferredTimescale: 600) with appliesPreferredTrackTransform = true and maximumSize = (pointSize * 2) rounded up, square",
+        "imageDisplaySize: default aspect fallback 4x3, orientation >= 5 swaps width/height, scale = min(480/w, 360/h), result floored",
+        "videoDisplaySize: naturalSize.applying(preferredTransform), abs()'d, same aspect fit into 480x360, falls back to imageBounds when no video track",
+        "Large preview loading: images through ThumbnailCache.shared at pointSize 480 (imageBounds.width); a video that yields no frame falls back to the text preview path; everything else goes straight to text preview",
+        "ToolImagePreview requests ThumbnailCache at pointSize 900",
+        "FileIcons keys by lowercased extension, else \"folder\" for a directory, else \"type:<UTType identifier>\", else \"file\""
+      ],
+      "unresolved_questions": [
+        "RecentCache's eviction policy and whether value(for:) refreshes recency is defined outside this file, so the exact behaviour of the 600-entry path cache cannot be stated from here",
+        "ThumbnailCache.shared.thumbnail(for:pointSize:) return type (it exposes .image) and its caching/downsampling rules live outside this bundle",
+        "SVG is listed in PreviewImages.extensions but nothing here proves ThumbnailCache can render SVG, so an .svg tool row may resolve and then show only a spinner"
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
+      "sha256": "9bcd97ca9db29385aa11b9f8bb968938d098a345f9fbe5b9a56ba3156dc9120a",
+      "lines_total": 366,
+      "ranges_read": [
+        [
+          1,
+          366
+        ]
+      ],
+      "purpose": "The AppKit-backed popover that shows AttachmentLargePreview: one shared NSPopover per thumbnail strip (SwiftUI .popover collapsed sibling presentations so only the last photo opened), with tap-point anchoring, its own dismissal monitors, up-front fixed sizing, a lazily built per-row slot, and a view-free window-rect anchor used where mounting an NSViewRepresentable would hang the key-view loop.",
+      "key_symbols": [
+        "final class AttachmentPreviewCoordinator: NSObject, NSPopoverDelegate (@MainActor)",
+        "AttachmentPreviewCoordinator.setAnchor(_ view: NSView)",
+        "AttachmentPreviewCoordinator.setAnchor(windowRect: CGRect)",
+        "AttachmentPreviewCoordinator.retire(except:)",
+        "AttachmentPreviewCoordinator.toggle(_:over:edge:)",
+        "AttachmentPreviewCoordinator.close()",
+        "AttachmentPreviewCoordinator.show(_:over:edge:)",
+        "AttachmentPreviewCoordinator.anchorTarget(thumbnailView:edge:)",
+        "popoverDidClose(_:)",
+        "startMonitors() / stopMonitors() / handleMouseDown(_:) / handleKeyDown(_:)",
+        "private enum Monitor { case event(Any), case observer(NSObjectProtocol) }",
+        "static contentSize(for:imageSize:) / static textSample(for:)",
+        "final class WeakView",
+        "final class AttachmentPreviewSlot (@MainActor)",
+        "enum WindowRectAnchor + WindowRectAnchor.target(for:)",
+        "extension View { func windowRectAnchor(_:) }",
+        "struct AttachmentAnchorCapture: NSViewRepresentable + private final class AnchorView"
+      ],
+      "calls_into": [
+        "AttachmentLargePreview(attachment:imageSize:), AttachmentLargePreview.imageBounds/.imageDisplaySize(for:)/.videoDisplaySize(for:)",
+        "Attachment (.id, .isImage, .isVideo, .url)",
+        "NSPopover.setFixedContent(_:size:) (a project extension; it deliberately keeps the hosting controller from publishing its own size)",
+        "NSEvent.addLocalMonitorForEvents(matching:handler:) / NSEvent.removeMonitor",
+        "NotificationCenter for NSWindow.didResignKeyNotification, NSWindow.willMoveNotification, NSWindow.didMoveNotification",
+        "NSApp.currentEvent / NSApp.keyWindow / NSApp.mainWindow",
+        "SwiftUI onGeometryChange(for:of:action:) with frame(in: .global)"
+      ],
+      "state_owned": [
+        "AttachmentPreviewCoordinator: let popover = NSPopover() (behavior .applicationDefined, animates true, delegate self)",
+        "AttachmentPreviewCoordinator: var anchor: WeakView?, var anchorRect: CGRect?, var currentID: Attachment.ID?, var monitors: [Monitor]",
+        "WeakView: weak var value: NSView?",
+        "AttachmentPreviewSlot: let anchor = WeakView(), private var anchorRect: CGRect?, private var coordinator: AttachmentPreviewCoordinator? (built lazily on first access to .panel)",
+        "AnchorView: var onResolve: ((NSView) -> Void)?"
+      ],
+      "side_effects": [
+        "Creates and shows an NSPopover window; performClose(nil) on dismissal",
+        "Installs two local NSEvent monitors (leftMouseDown/rightMouseDown, keyDown) and three NSWindow notification observers while open, removed in stopMonitors()",
+        "textSample(for:) reads the attachment file (only when fileSizeKey < 500_000) to measure the text panel height",
+        "Reads file size via URL.resourceValues(forKeys: [.fileSizeKey])"
+      ],
+      "platform_assumptions": [
+        "NSPopover with .applicationDefined behavior and preferredEdge NSRectEdge, and the note that .minY is below in these flipped views",
+        "AppKit event monitors and keyCode 53 for Escape",
+        "NSView/NSWindow coordinate conversion; content view flippedness handled explicitly in WindowRectAnchor.target",
+        "MainActor.assumeIsolated inside nonisolated delegate and notification callbacks",
+        "Documents a macOS 26 key-view-loop walk that never terminated inside the composer's follow-up queue tab (the 'Sept 15 2026 freezes'), which is why WindowRectAnchor exists instead of an NSViewRepresentable there"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "toggle(_:over:edge:) default edge = .maxY; above the anchor for a photo in a message, .minY (below) for a tool row whose chevron points down",
+        "contentSize chrome constant: 60 (outer padding + name/footer row + spacing)",
+        "Image/video panel size: NSSize(width: AttachmentLargePreview.imageBounds.width + 24 = 504, height: ceil(imageSize.height) + 60)",
+        "Text panel size: NSSize(width: 464, height: min(320, max(120, CGFloat(text.count / 4))) + 60), with measured overhead noted as padding 24 + spacing 10 + footer ~18",
+        "Fallback (icon-only) panel size: NSSize(width: 344, height: 100), measured content ~84",
+        "Tap-point anchor rect: NSRect(x: point.x - 1, y: strip.bounds.minY, width: 2, height: strip.bounds.height) - a 2pt hairline the strip's full height",
+        "Tap x clamped to [bounds.minX + 2, bounds.maxX - 2]; the strip anchor is only used when bounds.width >= 8 and bounds.height >= 8"
+      ],
+      "feature_notes": [
+        "Tapping the same thumbnail again closes the panel (toggle compares currentID and popover.isShown); tapping a different photo swaps content and re-shows at the new anchor",
+        "Anchor preference order: this click's tap point inside the strip anchor (only for a .leftMouseUp event in the strip's window) -> the tapped thumbnail's own bounds -> the strip's bounds -> WindowRectAnchor target (tap-point hairline if a left mouse up is at hand, else the whole rect) -> nil, which blocks showing",
+        "Re-show path: if already shown, show(relativeTo:of:preferredEdge:) again; if the content controller's view still has a window, animates is turned off for that one re-show and back on afterwards",
+        "Dismissal: click outside the panel and outside the strip/anchor rect, Escape (keyCode 53, event swallowed by returning nil), the anchor window resigning key, willMove or didMove of the anchor window, retire(except:) when the previewed attachment leaves the draft, and popoverDidClose clearing currentID",
+        "Clicks inside the popover window or inside the anchor view/rect are passed through unchanged so thumbnail buttons keep working",
+        "AttachmentPreviewSlot exists because SwiftUI rebuilds @State defaults per struct construction: a coordinator written as a default built an NSPopover for every tool row on every timeline rebuild; the slot is a pointer plus a weak pointer and builds the panel on first open",
+        "AttachmentAnchorCapture is mounted as the strip's background, overrides hitTest to return nil so it never takes clicks or cursor updates, and calls onResolve in viewDidMoveToWindow and in updateNSView",
+        "WindowRectAnchor converts a .global SwiftUI rect into the content view, flipping y (content.bounds.height - rect.maxY) when the content view is not flipped, and picks NSApp.currentEvent?.window ?? NSApp.keyWindow ?? NSApp.mainWindow"
+      ],
+      "unresolved_questions": [
+        "NSPopover.setFixedContent(_:size:) is defined outside this file, so exactly how it suppresses the hosting controller's preferredContentSize is not visible here",
+        "Which call sites pass edge .minY versus .maxY, and which strips use setAnchor(windowRect:) rather than setAnchor(_:), are not determinable from this file alone"
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Common/ChatZoom.swift",
+      "sha256": "c013a4ac7ec184d78facacc6809f92f85342d0c60432fbf52bf1b09622c9f92b",
+      "lines_total": 71,
+      "ranges_read": [
+        [
+          1,
+          71
+        ]
+      ],
+      "purpose": "Defines the conversation's text-size ladder used by Settings > General: seven percentage steps, clamping for values written by another build, a chatZoom environment value, and a Font.chat factory that reproduces the macOS point size of each text style multiplied by the zoom factor.",
+      "key_symbols": [
+        "enum ChatZoom",
+        "ChatZoom.percentages (private, [80, 90, 95, 100, 110, 125, 135])",
+        "ChatZoom.stepCount",
+        "ChatZoom.defaultIndex = 3",
+        "ChatZoom.clamped(_:)",
+        "ChatZoom.percentage(at:)",
+        "ChatZoom.scale(at:)",
+        "private struct ChatZoomKey: EnvironmentKey (defaultValue 1)",
+        "EnvironmentValues.chatZoom",
+        "Font.chatBaseSize(_:)",
+        "Font.chat(_:weight:design:zoom:)"
+      ],
+      "calls_into": [
+        "SwiftUI EnvironmentKey / EnvironmentValues",
+        "Font.system(_:design:) and Font.system(size:weight:design:)",
+        "Font.TextStyle, Font.Weight, Font.Design"
+      ],
+      "state_owned": [
+        "Static-only: the percentages table and defaultIndex; the live index is stored by Settings elsewhere and delivered through the chatZoom environment value"
+      ],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Written around macOS having no Dynamic Type, so the conversation scales its own fonts",
+        "chatBaseSize hard-codes the macOS point sizes of the SwiftUI text styles (13pt body), not the iOS ones"
+      ],
+      "persisted_fields": [
+        "None written here; the comment states Settings > General keeps the chosen index (the stored value is read back through ChatZoom.clamped, so an out-of-range stored index is tolerated)"
+      ],
+      "ui_elements": [
+        "Seven steps reading 80%, 90%, 95%, 100%, 110%, 125%, 135% of default",
+        "Settings > General steps through them with a sample of a chat drawn at the chosen one"
+      ],
+      "feature_notes": [
+        "defaultIndex 3 is the 100% step, so a fresh install reads exactly as before the setting existed",
+        "scale(at:) = percentage/100 as CGFloat",
+        "chatBaseSize: largeTitle 26, title 22, title2 17, title3 15, headline 13, body 13, callout 12, subheadline 11, footnote 10, caption 10, caption2 10, @unknown default 13",
+        "Font.chat at zoom == 1 returns the plain Font.system(style, design:) (optionally .weight()), so the default path is byte-identical to before; otherwise it returns Font.system(size: (base * zoom).rounded(), weight: resolvedWeight ?? .regular, design:)",
+        "headline defaults to .semibold when no weight is passed"
+      ],
+      "unresolved_questions": [
+        "The persisted key name and type for the chosen zoom index are not in this file (it only defines the ladder and clamping)"
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Common/Components.swift",
+      "sha256": "3e530391c8c393a6e5d9719b5e3bcd61ae56237250b3a36da5a6f2627a56e487",
+      "lines_total": 168,
+      "ranges_read": [
+        [
+          1,
+          168
+        ]
+      ],
+      "purpose": "Grab-bag of small shared chrome: the provider icon view, relative-time and duration formatting with a cached day string, the +/- diff stat label, the ChipButtonStyle used inside glass surfaces, and the Workspace helper that knows the supported external editors, opens files in them, caches their icons and writes a temporary .command script so an interactive CLI login gets a real Terminal shell.",
+      "key_symbols": [
+        "struct ProviderIcon (provider: ProviderKind, size default 14)",
+        "enum RelativeTime",
+        "RelativeTime.days (RecentCache<Date, String>, limit 256)",
+        "RelativeTime.short(_:now:)",
+        "RelativeTime.duration(_:)",
+        "struct DiffStatLabel",
+        "struct ChipButtonStyle: ButtonStyle (+ private struct ChipBody)",
+        "extension ButtonStyle where Self == ChipButtonStyle { .chip, .chip(active:) }",
+        "enum Workspace",
+        "Workspace.Editor (id == bundleID, name, bundleID)",
+        "Workspace.editors",
+        "Workspace.openTerminal(running:)",
+        "Workspace.installedEditors",
+        "Workspace.open(_:with:)",
+        "Workspace.icon(for:)",
+        "Workspace.finderIcon",
+        "Workspace.revealInFinder(_:)"
+      ],
+      "calls_into": [
+        "ProviderKind.iconName",
+        "RecentCache<Date, String>(limit:)",
+        "Chrome.success, Chrome.danger",
+        "NSWorkspace.shared.urlForApplication(withBundleIdentifier:), .icon(forFile:), .open(_:), .open(_:withApplicationAt:configuration:), .activateFileViewerSelecting(_:)",
+        "FileManager.default.temporaryDirectory / createDirectory / setAttributes",
+        "Date.formatted(.dateTime.month(.abbreviated).day())"
+      ],
+      "state_owned": [
+        "@MainActor private static var RelativeTime.days: RecentCache<Date, String> limit 256",
+        "@MainActor private static var Workspace.icons: [String: NSImage] keyed by bundle id (unbounded)",
+        "static let Workspace.installedEditors: [Editor] resolved once per launch",
+        "@MainActor static let Workspace.finderIcon: NSImage",
+        "ChipBody: @State private var isHovering"
+      ],
+      "side_effects": [
+        "openTerminal(running:) creates the directory <temporaryDirectory>/droppy-code-login/, writes a shell script there, chmods it 0o755 and opens it with NSWorkspace (launching Terminal)",
+        "Launch Services queries for every editor bundle id at launch (installedEditors) and on demand (icon(for:), open(_:with:))",
+        "NSWorkspace.activateFileViewerSelecting reveals a path in Finder",
+        "Loads application icons from disk"
+      ],
+      "platform_assumptions": [
+        "macOS bundle identifiers and Launch Services for editor discovery/launch",
+        "Terminal-based login: script shebang '#!/bin/zsh -l' and the .command extension, both macOS-specific",
+        "POSIX permissions 0o755 via FileManager.setAttributes",
+        "Hardcoded path /System/Library/CoreServices/Finder.app",
+        "NSImage sizing (image.size = 16x16) for menu icons"
+      ],
+      "persisted_fields": [
+        "Temp script paths (not preferences): <temporaryDirectory>/droppy-code-login/login.command, or login-<letters of the command's first word>.command"
+      ],
+      "ui_elements": [
+        "ProviderIcon: Image(provider.iconName).resizable().aspectRatio(contentMode: .fit).frame(width: size, height: size), default size 14",
+        "DiffStatLabel: HStack(spacing: 4) with Text(\"+\\(additions)\") in Chrome.success and Text(\"\\u{2212}\\(deletions)\") (a true minus sign U+2212) in Chrome.danger, font .caption.monospacedDigit()",
+        "ChipButtonStyle: font .callout, lineLimit 1, .padding(.horizontal, 9), .padding(.vertical, 5), foreground .tint when active else .secondary, Capsule fill, contentShape(.capsule), .animation(.easeOut(duration: 0.12), value: isHovering)",
+        "Chip fills: active pressed .tint.opacity(0.26), active .tint.opacity(0.16), pressed .primary.opacity(0.12), hovering .primary.opacity(0.07), otherwise .primary.opacity(0)"
+      ],
+      "feature_notes": [
+        "RelativeTime.short thresholds: < 60s -> \"now\"; < 3600 -> \"<m>m\"; < 86400 -> \"<h>h\"; < 604800 -> \"<d>d\"; otherwise the abbreviated month and day, memoised because every older sidebar row otherwise re-queried ICU per list evaluation",
+        "RelativeTime.duration: < 60 -> \"<n>s\"; < 3600 -> \"<m>m <s>s\"; otherwise \"<h>h <m>m\"; negative intervals clamp to 0",
+        "Supported editors in order: Visual Studio Code (com.microsoft.VSCode), Cursor (com.todesktop.230313mzl4w4u92), Zed (dev.zed.Zed), Xcode (com.apple.dt.Xcode), Terminal (com.apple.Terminal), Ghostty (com.mitchellh.ghostty), iTerm (com.googlecode.iterm2)",
+        "installedEditors filters that list by urlForApplication(withBundleIdentifier:) != nil, computed once per launch because the chat's controls rebuilt the list every render",
+        "openTerminal names the script after the command's first whitespace-separated word with non-letters stripped, so a second login for a different CLI cannot overwrite a script a running shell is still reading; if the write throws it returns without opening anything",
+        "Script contents are exactly \"#!/bin/zsh -l\\n\" + command + \"\\n\"",
+        "Workspace.icon(for:) resizes each cached NSImage to 16x16 for the Open in menu"
+      ],
+      "unresolved_questions": [
+        "ProviderKind.iconName and the asset catalog entries it names are outside this file",
+        "Chrome.success / Chrome.danger concrete colors are defined elsewhere",
+        "Nothing here deletes the droppy-code-login scripts, so whether they are cleaned up at all cannot be established from this file"
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Common/Genie.metal",
+      "sha256": "8b84d1a40fcfb51d442ad23975d605f749072666541637768d0265a6b65c611b",
+      "lines_total": 54,
+      "ranges_read": [
+        [
+          1,
+          54
+        ]
+      ],
+      "purpose": "The Metal stitchable distortion shader that reproduces the macOS Dock genie effect for archived rows: it maps each destination pixel back into the flying row's frame through a fixed funnel whose sides bend from the row's width down to a narrow neck at the target point.",
+      "key_symbols": [
+        "[[ stitchable ]] float2 genie(float2 position, float progress, float4 source, float2 target)",
+        "const float2 nothing = float2(-100000.0, -100000.0)",
+        "locals: t, pinch, slide, width, height, flip, x0, y0, targetY, positionY, travel, depth, bend, neck, left, right, u, sourceY"
+      ],
+      "calls_into": [
+        "metal_stdlib (clamp, smoothstep, mix, min, max)",
+        "Invoked from Swift as ShaderLibrary.genie(.float(progress), .float4(x, y, w, h), .float2(target.x, target.y)) in Genie.swift"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Metal Shading Language compiled into the app's default shader library",
+        "SwiftUI's [[stitchable]] distortionEffect convention: the function receives a destination position and returns the source position to sample"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "progress is animation progress 0...1, explicitly never a clock; source is the row's frame (x, y, width, height) and target the neck, both in the layer's coordinates",
+        "pinch = smoothstep(0.0, 0.45, t) controls how far the sides have bent in; slide = smoothstep(0.2, 1.0, t) controls how far the row has travelled",
+        "flip = 1.0 when target.y >= source.y + height * 0.5, else -1.0; the vertical axis is mirrored on the way in and out so a target above the row funnels upwards",
+        "travel = max(targetY - y0, height); depth = clamp((positionY - y0) / travel, 0, 1); bend = pinch * smoothstep(0.0, 1.0, depth)",
+        "neck = min(24.0, width): the funnel's narrow end is at most 24 points wide",
+        "left = mix(x0, target.x - neck * 0.5, bend), right = mix(x0 + width, target.x + neck * 0.5, bend), u = (position.x - left) / max(right - left, 0.0001)",
+        "Three discard conditions return 'nothing' (-100000, -100000), sampling nothing: positionY > targetY (past the neck), u outside [0, 1] (outside the funnel), and sourceY outside [y0, y0 + height] (past the row)",
+        "sourceY = positionY - slide * (targetY - y0); the returned sample is float2(x0 + u * width, flip * sourceY)"
+      ],
+      "unresolved_questions": [
+        "Whether the shader file is compiled into the default library automatically by the Xcode target (no build settings are visible from this file), though Genie.swift's use of ShaderLibrary.genie implies it is"
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Common/Genie.swift",
+      "sha256": "af48ab5aecde8ebe919e52f59420fc37b0a03c2901540339edfd441c1a16a934",
+      "lines_total": 214,
+      "ranges_read": [
+        [
+          1,
+          214
+        ]
+      ],
+      "purpose": "The Swift side of the genie effect: an observable window-level animator holding in-flight 'flights' (a rendered NSImage ghost distorted by the genie shader) and 'morphs' (a surface whose frame and corner radius animate together, used by the Hydra panel growing out of its button), plus the hit-test-free GenieLayer that draws both over the window.",
+      "key_symbols": [
+        "final class GenieAnimator (@MainActor, @Observable)",
+        "GenieAnimator.shared",
+        "GenieAnimator.coordinateSpace = \"droppy-code-window\"",
+        "GenieAnimator.duration = 0.58",
+        "struct Flight (id: UUID, image: NSImage, frame: CGRect, target: CGPoint?, isArrival: Bool)",
+        "struct Morph (id, from, fromRadius, to, toRadius, fadeIn, holdsFor, surface: (CGFloat) -> AnyView)",
+        "GenieAnimator.morphDuration = 0.5, morphCrossfade = 0.12, morphAnimation = .smooth(duration: morphDuration)",
+        "GenieAnimator.morph(from:radius:to:radius:fadeIn:holdsFor:surface:) -> Bool",
+        "GenieAnimator.finishMorph(_:)",
+        "GenieAnimator.launch(frame:colorScheme:target:arriving:ghost:) -> Bool",
+        "GenieAnimator.finish(_:)",
+        "private struct GenieGhost<Content: View>",
+        "struct GenieLayer",
+        "private struct GenieFlightView",
+        "private struct MorphView"
+      ],
+      "calls_into": [
+        "ShaderLibrary.genie(...) with .float/.float4/.float2 arguments (Genie.metal)",
+        "SwiftUI ImageRenderer(content:) -> nsImage, distortionEffect(_:maxSampleOffset:), keyframeAnimator(initialValue:trigger:content:keyframes:), CubicKeyframe",
+        "NSWorkspace.shared.accessibilityDisplayShouldReduceMotion",
+        "NSScreen.main?.backingScaleFactor",
+        "GeometryReader"
+      ],
+      "state_owned": [
+        "GenieAnimator.shared singleton with private(set) var flights: [Flight] and private(set) var morphs: [Morph] (observable)",
+        "GenieFlightView: @State private var hasStarted",
+        "MorphView: @State private var hasStarted, hasLanded, isFading"
+      ],
+      "side_effects": [
+        "ImageRenderer rasterizes the ghost view into an NSImage at NSScreen.main's backing scale (default 2)",
+        "Each flight and morph spawns a .task that sleeps and then removes itself from the animator",
+        "GPU distortion pass per flight frame"
+      ],
+      "platform_assumptions": [
+        "AppKit NSImage, NSScreen, NSWorkspace reduce-motion accessibility flag",
+        "SwiftUI Metal shader support (distortionEffect / ShaderLibrary) on macOS",
+        "A named coordinate space \"droppy-code-window\" installed at the window level for callers to measure frames in"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Default flight target when none is given: CGPoint(x: 24, y: canvas.height - 12) - the window's bottom-left archive corner",
+        "GenieLayer: GeometryReader + ZStack(alignment: .topLeading), .allowsHitTesting(false), .accessibilityHidden(true)",
+        "Flight opacity: 1 until progress > 0.9, then max(0, (1 - progress) / 0.1) - a fade over the last 10% of the animation",
+        "maxSampleOffset (reach) = CGSize(width: abs(target.x - frame.midX) + frame.width, height: abs(target.y - frame.midY) + frame.height), so the offscreen pass is padded by that instead of the whole window",
+        "GenieGhost adds no fill of its own and frames the content at the row's size with alignment .topLeading"
+      ],
+      "feature_notes": [
+        "duration 0.58s per flight, animated as a single CubicKeyframe from start to end; an arrival runs the same flight backwards ((start, end) = (1.0, 0.0) when isArrival, else (0.0, 1.0))",
+        "The flight view removes itself after GenieAnimator.duration - 0.03 seconds, just before the keyframes finish, so it never springs back",
+        "launch() and morph() both return false and animate nothing when the frame is 1pt or smaller in either dimension, when reduce motion is on, or (for launch) when ImageRenderer produces no image - the caller then shows the real thing",
+        "morph(): fadeIn is how long the surface takes to fade in over what it replaces, holdsFor how long it holds its first shape before setting off; shape change is .smooth(duration: 0.5) delayed by holdsFor",
+        "MorphView fades out over GenieAnimator.morphCrossfade = 0.12 starting at (holdsFor + 0.5 - 0.12) seconds, then removes itself 0.12 + 0.05 seconds later",
+        "The ghost is rendered with .environment(\\.colorScheme, colorScheme) passed by the caller, so a flight keeps the row's appearance"
+      ],
+      "unresolved_questions": [
+        "Call sites for launch(arriving: true) and for morph() (the Hydra panel) are outside this file, so the actual from/to rects and radii used in the app cannot be listed here",
+        "Where the \"droppy-code-window\" coordinate space is declared is not in this file"
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Common/HydraGlyph.swift",
+      "sha256": "1d10d54808c448e0565e321add5af3a7fa1666a65f87c497c36d780533145a1b",
+      "lines_total": 242,
+      "ranges_read": [
+        [
+          1,
+          242
+        ]
+      ],
+      "purpose": "The per-head Hydra mark and its status badge, the Core Animation 'breath' ring that pulses around a head still at work, the plain hydra-mark template image, and the helpers that render a head's name as Text in one colour.",
+      "key_symbols": [
+        "struct HydraGlyph (persona: HydraPersona, size default 20, isRunning default false, status: HydraHeadInfo.Status?)",
+        "HydraGlyph.badge(for:)",
+        "struct HydraBreathRing: NSViewRepresentable (color: CGColor, lineWidth: CGFloat)",
+        "final class HydraBreathRingView: NSView",
+        "HydraBreathRingView.animationKey = \"breath\", period = 1.6, restingScale = 1.05, swollenScale = 1.5, restingOpacity = 0.9",
+        "HydraBreathRingView.configure(color:lineWidth:), matchBackingScale(), placeRing(), installAnimation(), applicationDidBecomeActive()",
+        "struct HydraMarkImage",
+        "enum HydraNameStyle + HydraNameStyle.text(_:base:)",
+        "struct HydraNameText (size default 13, weight .medium, color Chrome.primaryText.opacity(0.92))"
+      ],
+      "calls_into": [
+        "HydraPersona (.color, .asset, .name)",
+        "HydraHeadInfo.Status (.completed, .failed, .isFinished, .rawValue)",
+        "Chrome.success, Chrome.danger, Chrome.secondaryText, Chrome.primaryText",
+        "QuartzCore CAShapeLayer, CABasicAnimation, CAAnimationGroup, CATransaction, CGPath(ellipseIn:transform:)",
+        "NSWorkspace.shared.accessibilityDisplayShouldReduceMotion",
+        "NSApplication.didBecomeActiveNotification",
+        "Asset catalog images: persona.asset and \"hydra-mark\""
+      ],
+      "state_owned": [
+        "HydraBreathRingView: private let ring = CAShapeLayer(), private var lineWidth: CGFloat = 0",
+        "HydraGlyph: @Environment(\\.colorScheme) only (no stored state)"
+      ],
+      "side_effects": [
+        "Registers for NSApplication.didBecomeActiveNotification in init and removes the observer in deinit",
+        "Adds a repeating CAAnimationGroup to the render server, keyed \"breath\", isRemovedOnCompletion = false",
+        "Reads window.backingScaleFactor to set the layer's contentsScale"
+      ],
+      "platform_assumptions": [
+        "AppKit NSViewRepresentable bridging into SwiftUI; NSView layer-backing with layerContentsRedrawPolicy = .never and masksToBounds = false so the ring can swell past its frame",
+        "Core Animation layer clock: beginTime = ring.convertTime(1, from: nil) pins every ring in the app to one shared origin",
+        "macOS reduce-motion accessibility flag; SF Symbols checkmark, xmark, stop.fill",
+        "Template rendering mode with asset catalog template images for the twenty-five head glyphs"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "HydraGlyph default size 20; running ring color NSColor(persona.color.opacity(0.55)).cgColor with lineWidth 1.5, .allowsHitTesting(false)",
+        "Glyph image: resizable, renderingMode(.template), aspectRatio .fit, foregroundStyle(persona.color), size x size",
+        "Badge (bottomTrailing overlay, only when status.isFinished): diameter = max(8, size * 0.5); filled Circle plus SF Symbol at .system(size: diameter * 0.55, weight: .heavy) in white",
+        "Badge symbols/colors: .completed -> (\"checkmark\", Chrome.success); .failed -> (\"xmark\", Chrome.danger); default -> (\"stop.fill\", Chrome.secondaryText)",
+        "Badge cut-out ring: Circle().strokeBorder(colorScheme == .dark ? Color.black.opacity(0.55) : Color.white.opacity(0.95), lineWidth: max(1, diameter * 0.12)), .offset(x: diameter * 0.3, y: diameter * 0.3), .transition(.scale.combined(with: .opacity))",
+        "Accessibility label: \"<persona.name>, <status.rawValue>\" when a status is present, else just persona.name",
+        "HydraNameText: .font(.system(size: 13, weight: .medium)) with color Chrome.primaryText.opacity(0.92) by default"
+      ],
+      "feature_notes": [
+        "One breath lasts 1.6s: the ring scales from 1.05 to 1.5 while its opacity goes from 0.9 to 0, easeOut, repeating forever",
+        "Under reduce motion the ring is left at its resting frame (opacity 0.9, scale 1.05) and no animation is installed",
+        "The animation is reinstalled in viewDidMoveToWindow (a ring built off screen or in a just-opened panel) and on NSApplication.didBecomeActive, because the render server drops animations for offscreen layers",
+        "Implicit actions are disabled for path, strokeColor, lineWidth, bounds, position, opacity, transform and contentsScale, so only the explicit breath animates",
+        "The ring path is an ellipse inset by lineWidth/2 in the view's bounds, centred so the swell scales about the glyph's middle",
+        "hitTest returns nil, so the ring never takes a click",
+        "HydraNameStyle.text renders the whole name in one colour on purpose, so \"Otto 2\" reads as a single name rather than picking out the number",
+        "The doc comment states the same glyph stands for a head in the panel, the popover, the tool row that sent it out and the report it hands back, and that the app has twenty-five heads"
+      ],
+      "unresolved_questions": [
+        "HydraPersona's twenty-five personas, their colors and asset names are defined outside this file, as is HydraHeadInfo.Status's full case list (only .completed and .failed are matched explicitly; everything else finished shows stop.fill)"
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Common/MCPGlyph.swift",
+      "sha256": "dc50f05711b9065eaa4494fec1e5072f625d87d56b4e7ae26c539a49654c3730",
+      "lines_total": 59,
+      "ranges_read": [
+        [
+          1,
+          59
+        ]
+      ],
+      "purpose": "The MCP connector's mark: a catalog entry's template icon in the entry's colour (or the primary text colour for monochrome entries), the same breathing ring as a Hydra head while a call is running, and a corner badge for failed or declined tool calls only.",
+      "key_symbols": [
+        "struct MCPGlyph (entry: MCPCatalogEntry, size default 20, isRunning default false, status: ToolCall.Status?)",
+        "MCPGlyph.badgeSymbol (computed (symbol: String, color: Color)?)",
+        "MCPGlyph.badgeView(symbol:color:)"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry (.color, .asset, .isMonochrome, .name)",
+        "ToolCall.Status (.failed, .declined)",
+        "HydraBreathRing (from HydraGlyph.swift)",
+        "Chrome.primaryText, Chrome.danger, Chrome.warning"
+      ],
+      "state_owned": [
+        "@Environment(\\.colorScheme) private var colorScheme (no stored state)"
+      ],
+      "side_effects": [],
+      "platform_assumptions": [
+        "AppKit NSColor bridging for the ring's CGColor: NSColor(entry.color.opacity(0.55)).cgColor",
+        "SF Symbols xmark and hand.raised.slash",
+        "Asset catalog template images named by entry.asset"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Default size 20; running ring lineWidth 1.5 at entry.color.opacity(0.55), .allowsHitTesting(false)",
+        "Icon: resizable, renderingMode(.template), aspectRatio .fit, foregroundStyle(entry.isMonochrome ? Chrome.primaryText : entry.color)",
+        "Badge: diameter max(8, size * 0.5), filled Circle, SF Symbol at .system(size: diameter * 0.55, weight: .heavy) in white, strokeBorder Color.black.opacity(0.55) in dark / Color.white.opacity(0.95) in light at lineWidth max(1, diameter * 0.12), .offset(x: diameter * 0.3, y: diameter * 0.3), .transition(.scale.combined(with: .opacity))",
+        "Accessibility label: \"<entry.name> tool\""
+      ],
+      "feature_notes": [
+        "Unlike HydraGlyph, a successful MCP call shows no badge at all: badgeSymbol only returns for .failed (\"xmark\", Chrome.danger) and .declined (\"hand.raised.slash\", Chrome.warning); every other status returns nil",
+        "The badge geometry and cut-out ring are duplicated verbatim from HydraGlyph.badge(for:), so the two marks read identically in a list",
+        "The running ring is shared code (HydraBreathRing), so an MCP call in flight breathes in step with working Hydra heads"
+      ],
+      "unresolved_questions": [
+        "MCPCatalogEntry's fields (which entries are isMonochrome, their colors and asset names) are defined outside this file",
+        "ToolCall.Status's full case list is outside this file; only .failed and .declined are handled here"
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Common/RenderBudget.swift",
+      "sha256": "20280c6548d82868de6b95832f79c7b8c19a9b63abf32c574f59a8711c01ce7d",
+      "lines_total": 99,
+      "ranges_read": [
+        [
+          1,
+          99
+        ]
+      ],
+      "purpose": "Two frame-budget mechanisms: a global ScrollActivity observable that unions every timeline's scrolling state (with a weak-reporter watchdog so a window closed mid-flick cannot leave the app stuck 'scrolling') so decorative motion can pause, and the isOnGlassPanel environment flag plus Chrome.panelControlFill that make controls on a floating glass panel draw as a flat tinted fill instead of a second Liquid Glass sampling pass.",
+      "key_symbols": [
+        "final class ScrollActivity (@MainActor, @Observable)",
+        "ScrollActivity.shared",
+        "ScrollActivity.isScrolling (private(set))",
+        "ScrollActivity.setScrolling(_:timeline:reporter:)",
+        "ScrollActivity.update()",
+        "private struct WeakReporter",
+        "protocol ScrollActivityReporter: AnyObject { var isScrollingNow: Bool { get } }",
+        "EnvironmentValues.isOnGlassPanel (@Entry, default false)",
+        "Chrome.panelControlFill(isDark:hovered:)"
+      ],
+      "calls_into": [
+        "Chrome.glassTint",
+        "Color.mix(with:by:)",
+        "SwiftUI @Entry environment macro, @Observable"
+      ],
+      "state_owned": [
+        "ScrollActivity.shared singleton: private(set) var isScrolling: Bool",
+        "@ObservationIgnored private var scrolling: Set<UUID> (one entry per timeline)",
+        "@ObservationIgnored private var reporters: [UUID: WeakReporter]",
+        "@ObservationIgnored private var watch: Task<Void, Never>?"
+      ],
+      "side_effects": [
+        "Starts a @MainActor Task that loops every 2 seconds while any timeline is scrolling, polling each reporter's isScrollingNow and dropping deallocated or resting ones; cancels/clears itself when nothing is scrolling"
+      ],
+      "platform_assumptions": [
+        "Liquid Glass material behaviour (glass sampling what lies behind it every frame content moves) is the stated reason for isOnGlassPanel",
+        "SwiftUI @Entry macro and Observation framework",
+        "MainActor isolation for the shared singleton"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Chrome.panelControlFill lift: hovered ? (isDark ? 0.24 : 0.12) : (isDark ? 0.12 : 0.04)",
+        "Fill = Chrome.glassTint.mix(with: isDark ? .white : .black, by: lift).opacity(isDark ? 0.55 : 0.42)"
+      ],
+      "feature_notes": [
+        "isScrolling covers the drag, the flick and the coast after it, and wheel ticks, until the content has been still for a beat; it is documented to flip at most twice per scroll so readers re-render at the start and the end, not per frame",
+        "Named consumers of the pause: a progress sweep, a shimmer, and the breathing ring",
+        "The watchdog interval is exactly 2 seconds; a reporter that is nil (deallocated) or reports isScrollingNow == false is removed from the set",
+        "isOnGlassPanel is true for everything inside a floating glass panel (a helper's, the team's, the usage panel); the comment records that a few open panels added up to twenty-odd glass sampling passes over a scrolling timeline"
+      ],
+      "unresolved_questions": [
+        "Chrome.glassTint's concrete color and Chrome's other members are defined outside this file",
+        "Which views call setScrolling and which conform to ScrollActivityReporter are not visible here"
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Common/WorkingIndicators.swift",
+      "sha256": "4bfe9bdd46da51dbb3f87556e2db429400f498d3308764c56f01c09f66646608",
+      "lines_total": 345,
+      "ranges_read": [
+        [
+          1,
+          345
+        ]
+      ],
+      "purpose": "The working indicators ported from Zeron: the opacity wave maths and accent-derived row tints, the 3x3 WorkingSpinner shown while a reply is written, the 2x3 MiniSpinner that snakes clockwise for working threads in lists (with a still, image-renderable variant), the layer-backed NSView that plays the pulse on the render server, and the rotating WorkingWords vocabulary seeded per thread.",
+      "key_symbols": [
+        "enum GradientSpin",
+        "GradientSpin.rowTints(accent:)",
+        "GradientSpin.dim = 0.1, GradientSpin.period = 0.75",
+        "GradientSpin.opacity(phase:)",
+        "struct SpinnerCell (row, column, lag)",
+        "struct WorkingSpinner (cellSize default 3.5) + WorkingSpinner.cells",
+        "struct MiniSpinner (cellSize default 2.4, isStill default false) + MiniSpinner.ring + MiniSpinner.cells",
+        "private struct StillSpinnerCells",
+        "private struct SpinnerCells: NSViewRepresentable (with sizeThatFits)",
+        "final class SpinnerLayerView: NSView",
+        "SpinnerLayerView.animationKey = \"pulse\", sampleCount = 40",
+        "SpinnerLayerView.contentSize / configure(cells:columns:cellSize:animated:theme:) / applyTints() / placeCells() / installAnimations() / themeDidChange()",
+        "enum WorkingWords (words, rotateSeconds, seed(_:), word(seed:elapsedSeconds:))"
+      ],
+      "calls_into": [
+        "ThemeManager.current and ThemeManager.didChange (notification name)",
+        "AppTheme (Equatable comparison for retinting)",
+        "Chrome.accentNSColor",
+        "QuartzCore CALayer, CAKeyframeAnimation, CATransaction",
+        "NSColor.usingColorSpace(.sRGB), NSColor.blended(withFraction:of:)",
+        "NSAppearance.performAsCurrentDrawingAppearance",
+        "@Environment(\\.accessibilityReduceMotion)"
+      ],
+      "state_owned": [
+        "SpinnerLayerView: cells, columns, cellSize, animated, theme: AppTheme?, cellLayers: [CALayer]",
+        "Static tables: WorkingSpinner.cells (9 cells), MiniSpinner.ring (6 positions), MiniSpinner.cells (6 cells), WorkingWords.words (22 words)"
+      ],
+      "side_effects": [
+        "Observes ThemeManager.didChange in init and removes the observer in deinit",
+        "Adds a repeating CAKeyframeAnimation per cell layer to the render server (isRemovedOnCompletion = false)",
+        "Re-resolves the dynamic system accent on viewDidChangeEffectiveAppearance and viewDidMoveToWindow"
+      ],
+      "platform_assumptions": [
+        "AppKit bottom-left layer coordinates: placeCells explicitly flips row order (rows - 1 - cell.row) so row 0 draws at the top",
+        "NSViewRepresentable hosting, and the note that ImageRenderer cannot capture AppKit views, which is why MiniSpinner(isStill: true) exists for the archive ghost",
+        "Dynamic macOS system accent colour resolved inside effectiveAppearance.performAsCurrentDrawingAppearance",
+        "Core Animation shared clock via layer.convertTime(1, from: nil)",
+        "Attribution header: ported from Zeron (https://github.com/zeronsh/zeron), MIT License, Copyright (c) 2026 Wing, from apps/ios/Zeron/Views/Loaders.swift and apps/ios/Zeron/Theme/Motion.swift"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "WorkingSpinner: 3x3 grid, default cellSize 3.5, cell gap = cellSize * 0.8",
+        "MiniSpinner: 2 columns x 3 rows, default cellSize 2.4, accessibilityLabel Text(\"Working\")",
+        "Row tints: accent blended 0.38 toward white (top row), the accent itself (middle), accent blended 0.22 toward black (bottom)",
+        "StillSpinnerCells: VStack/HStack of Rectangles at spacing cellSize * 0.8, each at GradientSpin.opacity(phase: -lag)",
+        "contentSize = (columns * cellSize + (columns - 1) * gap) x (rows * cellSize + (rows - 1) * gap); the grid is centred in the frame SwiftUI hands out with rounded origins"
+      ],
+      "feature_notes": [
+        "Opacity curve: full at phase 0, eases down to dim 0.1 by 45% via smoothstep (1 - 0.9 * t*t*(3-2t)), holds dim until 92%, then rises linearly back to full by 100%; the phase wraps and negative phases are normalised",
+        "Pulse period 0.75s, sampled at 41 points (sampleCount 40) into a linear CAKeyframeAnimation per cell, repeating forever",
+        "WorkingSpinner lag = sqrt(dx*dx + dy*dy) / 2.5 where dx = column - 1 and dy = 2 - row, i.e. distance from bottom-centre, so the wave travels upward",
+        "MiniSpinner lag = ring index / 6 over the clockwise perimeter order (0,0), (0,1), (1,1), (2,1), (2,0), (1,0)",
+        "Every animation starts at layer.convertTime(1, from: nil), so every spinner in the app pulses in step",
+        "Reduce motion (accessibilityReduceMotion) turns animated off, and each layer is frozen at GradientSpin.opacity(phase: -cell.lag)",
+        "The layers replaced a Canvas on a 30 Hz TimelineView that woke SwiftUI thirty times a second on the main thread for the whole length of a turn",
+        "configure() early-outs unless the layer count changed, the theme changed, or columns/cellSize/animated changed; a theme change retints via the ThemeManager.didChange notification because a row that never re-renders would keep the old colours",
+        "WorkingWords rotates every 7 seconds (rotateSeconds: Int64 = 7) through 22 words: Thinking, Pondering, Scheming, Brewing, Weaving, Tinkering, Musing, Composing, Sifting, Untangling, Distilling, Sketching, Plotting, Riffing, Combobulating, Percolating, Marinating, Noodling, Puzzling, Conjuring, Creating, Dancing",
+        "The word index is (FNV-1a seed of the thread identifier &+ elapsedSeconds / 7) % 22, with FNV-1a offset basis 0xcbf29ce484222325 and prime 0x100000001b3, so two threads working at once say different things"
+      ],
+      "unresolved_questions": [
+        "ThemeManager.current / AppTheme and Chrome.accentNSColor are defined outside this file, so what 'the theme's accent' resolves to for each named theme cannot be stated here",
+        "Which view draws the WorkingWords text beside the spinner (and how elapsedSeconds is measured) is outside this file"
+      ]
+    }
+  ]
+}

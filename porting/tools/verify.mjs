@@ -1,0 +1,265 @@
+#!/usr/bin/env node
+/**
+ * The port's single verification entrypoint (PORT_CONTRACT section 14).
+ *
+ *   node porting/tools/verify.mjs [--json] [--gate A|B|C|D|E|F]
+ *
+ * Exits NONZERO if any mandatory check for a claimed gate fails, and nonzero while any
+ * mandatory gate remains unimplemented. A gate that has not been built yet reports
+ * NOT_IMPLEMENTED and fails; it never reports success by omission.
+ *
+ * This file is written by the same agent that does the porting work and therefore proves
+ * nothing on its own (contract section 3: "Do not claim these controls prove comprehension
+ * or are tamper-proof while you have write access to them"). It is a mechanical consistency
+ * check over evidence that exists on disk, nothing more. Semantic review is separate.
+ */
+
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+
+const ROOT = process.cwd();
+const REF = 'E:/Droppy/reference/droppy-code';
+const PINNED_SHA = 'dd2b86efef9e77168f304a86e8a8411877578bbe';
+const PINNED_TREE = 'f761e5ef3745c4f68958ffa4014ab0b618c9d419';
+
+const args = process.argv.slice(2);
+const asJson = args.includes('--json');
+const onlyGate = (() => {
+  const i = args.indexOf('--gate');
+  return i >= 0 ? args[i + 1] : null;
+})();
+
+const results = [];
+let hardFail = false;
+
+function check(gate, name, fn) {
+  if (onlyGate && gate !== onlyGate) return;
+  let status = 'PASS';
+  let detail = '';
+  try {
+    const out = fn();
+    if (out && typeof out === 'object' && out.status) {
+      status = out.status;
+      detail = out.detail || '';
+    } else {
+      detail = out || '';
+    }
+  } catch (e) {
+    status = 'FAIL';
+    detail = e.message;
+  }
+  if (status === 'FAIL' || status === 'NOT_IMPLEMENTED') hardFail = true;
+  results.push({ gate, name, status, detail });
+}
+
+const rel = (p) => join(ROOT, p);
+const readJson = (p) => JSON.parse(readFileSync(rel(p), 'utf8'));
+
+// ---------------------------------------------------------------- Gate A
+
+check('A', 'reference checkout is at the pinned commit', () => {
+  const sha = execFileSync('git', ['-C', REF, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+  if (sha !== PINNED_SHA) throw new Error(`reference HEAD is ${sha}, expected ${PINNED_SHA}`);
+  return sha;
+});
+
+check('A', 'reference tree hash matches the pinned tree', () => {
+  const tree = execFileSync('git', ['-C', REF, 'rev-parse', 'HEAD^{tree}'], { encoding: 'utf8' }).trim();
+  if (tree !== PINNED_TREE) throw new Error(`tree is ${tree}, expected ${PINNED_TREE}`);
+  return tree;
+});
+
+check('A', 'reference working tree is unmodified', () => {
+  const st = execFileSync('git', ['-C', REF, 'status', '--porcelain'], { encoding: 'utf8' }).trim();
+  if (st) throw new Error(`reference has local modifications:\n${st}`);
+  return 'clean';
+});
+
+check('A', 'inventory reconciles against the pinned git tree', () => {
+  const inv = readJson('porting/source_inventory.json');
+  const tracked = execFileSync('git', ['-C', REF, 'ls-files'], { encoding: 'utf8' })
+    .split('\n').filter(Boolean);
+  const invPaths = new Set(inv.items.map((i) => i.path));
+  const missing = tracked.filter((p) => !invPaths.has(p));
+  const extra = [...invPaths].filter((p) => !tracked.includes(p));
+  if (missing.length) throw new Error(`${missing.length} tracked files absent from inventory: ${missing.slice(0, 5).join(', ')}`);
+  if (extra.length) throw new Error(`${extra.length} inventory entries not tracked: ${extra.slice(0, 5).join(', ')}`);
+  return `${tracked.length} files reconciled`;
+});
+
+check('A', 'every inventory sha256 matches the file on disk', () => {
+  const inv = readJson('porting/source_inventory.json');
+  const bad = [];
+  for (const i of inv.items) {
+    const buf = readFileSync(join(REF, i.path));
+    const sha = createHash('sha256').update(buf).digest('hex');
+    if (sha !== i.sha256) bad.push(i.path);
+  }
+  if (bad.length) throw new Error(`${bad.length} hash mismatches: ${bad.slice(0, 5).join(', ')}`);
+  return `${inv.items.length} digests verified`;
+});
+
+check('A', 'every first-party file is marked READ', () => {
+  const inv = readJson('porting/source_inventory.json');
+  const unread = inv.items.filter((i) => i.read_status !== 'READ');
+  if (unread.length) {
+    throw new Error(`${unread.length} unread: ${unread.slice(0, 8).map((u) => u.path).join(', ')}`);
+  }
+  return `${inv.items.length}/${inv.items.length} read`;
+});
+
+check('A', 'read ledger has exactly one record per inventory path', () => {
+  const inv = readJson('porting/source_inventory.json');
+  const lines = readFileSync(rel('porting/read_ledger.jsonl'), 'utf8').split('\n').filter(Boolean);
+  const byPath = new Map();
+  const dupes = [];
+  for (const l of lines) {
+    const r = JSON.parse(l);
+    if (byPath.has(r.path)) dupes.push(r.path);
+    byPath.set(r.path, r);
+  }
+  if (dupes.length) throw new Error(`${dupes.length} duplicate ledger records: ${dupes.slice(0, 5).join(', ')}`);
+  const invPaths = new Set(inv.items.map((i) => i.path));
+  const orphan = [...byPath.keys()].filter((p) => !invPaths.has(p));
+  const absent = [...invPaths].filter((p) => !byPath.has(p));
+  if (orphan.length) throw new Error(`${orphan.length} ledger records for unknown paths`);
+  if (absent.length) throw new Error(`${absent.length} inventory paths with no ledger record`);
+  return `${byPath.size} records, 1:1 with inventory`;
+});
+
+check('A', 'ledger digests match the pinned inventory digests', () => {
+  const inv = readJson('porting/source_inventory.json');
+  const byPath = new Map(inv.items.map((i) => [i.path, i]));
+  const lines = readFileSync(rel('porting/read_ledger.jsonl'), 'utf8').split('\n').filter(Boolean);
+  const bad = [];
+  for (const l of lines) {
+    const r = JSON.parse(l);
+    const item = byPath.get(r.path);
+    if (!item || r.sha256 !== item.sha256) bad.push(r.path);
+  }
+  if (bad.length) throw new Error(`${bad.length} ledger digest mismatches: ${bad.slice(0, 5).join(', ')}`);
+  return `${lines.length} ledger digests match`;
+});
+
+check('A', 'text-file coverage reaches the true last line', () => {
+  const inv = readJson('porting/source_inventory.json');
+  const byPath = new Map(inv.items.map((i) => [i.path, i]));
+  const lines = readFileSync(rel('porting/read_ledger.jsonl'), 'utf8').split('\n').filter(Boolean);
+  const bad = [];
+  for (const l of lines) {
+    const r = JSON.parse(l);
+    const item = byPath.get(r.path);
+    if (!item || item.kind === 'binary') continue;
+    const total = item.line_count || 0;
+    if (total === 0) continue;
+    const ranges = (r.ranges_read || []).map(([a, b]) => [Number(a), Number(b)]).sort((x, y) => x[0] - y[0]);
+    let reached = 0;
+    let gap = false;
+    for (const [a, b] of ranges) {
+      if (a > reached + 1) { gap = true; break; }
+      reached = Math.max(reached, b);
+    }
+    if (gap || reached < total) bad.push(`${r.path} (reached ${reached}/${total})`);
+  }
+  if (bad.length) throw new Error(`${bad.length} files with incomplete coverage: ${bad.slice(0, 5).join(', ')}`);
+  return 'all text files covered end to end';
+});
+
+check('A', 'binary assets carry an inspection record', () => {
+  const inv = readJson('porting/source_inventory.json');
+  const bins = inv.items.filter((i) => i.kind === 'binary');
+  const missing = bins.filter((i) => !i.asset_inspection || String(i.asset_inspection).trim().length < 20);
+  if (missing.length) throw new Error(`${missing.length} binaries without inspection: ${missing.slice(0, 5).map((m) => m.path).join(', ')}`);
+  return `${bins.length} binary assets inspected`;
+});
+
+check('A', 'no generic finding reused across different files', () => {
+  const lines = readFileSync(rel('porting/read_ledger.jsonl'), 'utf8').split('\n').filter(Boolean);
+  const seen = new Map();
+  const dupes = [];
+  for (const l of lines) {
+    const r = JSON.parse(l);
+    const key = String(r.purpose || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    if (!key) continue;
+    if (seen.has(key) && seen.get(key) !== r.path) dupes.push(`${r.path} == ${seen.get(key)}`);
+    seen.set(key, r.path);
+  }
+  if (dupes.length) throw new Error(`${dupes.length} duplicated purpose texts: ${dupes.slice(0, 3).join('; ')}`);
+  return 'every purpose is file-specific';
+});
+
+check('A', 'every critic finding has been adjudicated', () => {
+  const cPath = rel('porting/critiques/critiques.json');
+  if (!existsSync(cPath)) throw new Error('no critiques.json; the reconciliation pass has not run');
+  const crit = JSON.parse(readFileSync(cPath, 'utf8'));
+  const open = crit.reduce((n, f) => n + (f.gaps || []).length + (f.contradictions || []).length, 0);
+  const repairDir = rel('porting/reports/repair');
+  if (!existsSync(repairDir)) {
+    return { status: 'FAIL', detail: `${open} critic findings raised, repair pass has produced no output yet` };
+  }
+  const files = readdirSync(repairDir).filter((f) => f.endsWith('.json'));
+  let resolved = 0;
+  for (const f of files) {
+    try {
+      const doc = JSON.parse(readFileSync(join(repairDir, f), 'utf8'));
+      resolved += (doc.resolutions || []).length;
+    } catch { /* counted as unresolved */ }
+  }
+  if (files.length < crit.length) {
+    return { status: 'FAIL', detail: `${files.length}/${crit.length} families repaired, ${resolved} findings adjudicated of ${open}` };
+  }
+  if (resolved < open) {
+    return { status: 'FAIL', detail: `${resolved} adjudicated of ${open} raised` };
+  }
+  return `${resolved} findings adjudicated across ${files.length} families`;
+});
+
+// ------------------------------------------------- Gates B..F (not yet built)
+
+const PENDING = [
+  ['B', 'specification: architecture, parity matrix, UI contract, adaptations complete'],
+  ['C', 'no fake-success paths, dead controls or unapproved product changes'],
+  ['D', 'source-derived tests, interaction tests, visual comparison, persistence and cancellation'],
+  ['E', 'packaged artifact installs, launches, cleans up children, upgrades and uninstalls'],
+  ['F', 'independent parity review with no unresolved required discrepancy'],
+];
+for (const [gate, name] of PENDING) {
+  check(gate, name, () => ({
+    status: 'NOT_IMPLEMENTED',
+    detail: 'gate not built yet; it fails by design rather than passing by omission',
+  }));
+}
+
+// ---------------------------------------------------------------- report
+
+const counts = results.reduce((a, r) => { a[r.status] = (a[r.status] || 0) + 1; return a; }, {});
+
+if (asJson) {
+  console.log(JSON.stringify({
+    pinned_sha: PINNED_SHA,
+    pinned_tree: PINNED_TREE,
+    reference: REF,
+    counts,
+    ok: !hardFail,
+    results,
+  }, null, 2));
+} else {
+  console.log(`Droppy Code -> Windows port verification`);
+  console.log(`pinned source ${PINNED_SHA}`);
+  console.log(`reference     ${REF}`);
+  console.log('');
+  let gate = null;
+  for (const r of results) {
+    if (r.gate !== gate) { gate = r.gate; console.log(`Gate ${gate}`); }
+    const mark = r.status === 'PASS' ? 'PASS' : r.status === 'NOT_IMPLEMENTED' ? 'TODO' : 'FAIL';
+    console.log(`  [${mark}] ${r.name}`);
+    if (r.detail) console.log(`         ${r.detail}`);
+  }
+  console.log('');
+  console.log(Object.entries(counts).map(([k, v]) => `${k}=${v}`).join('  '));
+  console.log(hardFail ? 'RESULT: NOT ACCEPTABLE (mandatory checks unmet)' : 'RESULT: all implemented checks pass');
+}
+
+process.exit(hardFail ? 1 : 0);

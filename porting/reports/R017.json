@@ -1,0 +1,227 @@
+{
+  "bundle_id": "R017",
+  "reader": "R017-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Composer/QuestionTab.swift",
+      "sha256": "28b8d1828843331d7cd2d1972c2c2e2c6b6316439159791a744c9c266e5eb8b7",
+      "lines_total": 332,
+      "ranges_read": [[1, 332]],
+      "purpose": "Implements the agent question flow at the end of a thread: a ChatBadge row reading '1 question' / 'N questions' with caption 'to answer', and the paged QuestionSheet popover that collects per-question choice picks plus free text and hands them back to ThreadRuntime.answer. Also contains the private QuestionPage row renderer and the private QuestionAnswers collection/counting helper.",
+      "key_symbols": [
+        "QuestionBadgeRow (struct View; let request: QuestionRequest, let runtime: ThreadRuntime, @State isShowingQuestions)",
+        "QuestionSheet (struct View)",
+        "QuestionSheet.maxHeight (private static let CGFloat = 360)",
+        "QuestionSheet.width (private static let CGFloat = 460)",
+        "QuestionSheet.pageHeight (private let CGFloat, computed in init)",
+        "QuestionSheet.init(request:runtime:)",
+        "QuestionSheet.recommended(_:) -> [String] (private static)",
+        "QuestionSheet.advance(after:) (private, default delay 0)",
+        "QuestionSheet.send(_:) (private)",
+        "QuestionPage (private struct View)",
+        "QuestionPage.bareLabel(_:) -> (label: String, isRecommended: Bool) (private static)",
+        "QuestionPage.choiceRow(_:_:) (private)",
+        "QuestionPage.symbol(selected:multiple:) -> String (private)",
+        "QuestionAnswers (private enum)",
+        "QuestionAnswers.collect(_:selections:written:) -> [String: [String]]",
+        "QuestionAnswers.unansweredCount(_:answers:) -> Int"
+      ],
+      "calls_into": [
+        "ChatBadge(title:caption:needsAttention:isPresented:glyph:detail:) from DroppyCode/App/Views/Chat/ChatBadge.swift",
+        "QuestionRequest, QuestionRequest.Question (id, header, prompt, choices, allowsMultiple, allowsOther, isSecret), QuestionRequest.Choice (label, detail) from DroppyCode/Core/Models/Requests.swift",
+        "ThreadRuntime.answer(_:answers:) from DroppyCode/App/Runtime/ThreadRuntime.swift",
+        "Chrome.accent, Chrome.overlay(_:), Chrome.primaryText, Chrome.secondaryText, Chrome.panelSlide, Chrome.hover",
+        "EnvironmentValues.closePopover (BadgePopoverCoordinator, DroppyCode/UI/Chrome/Popovers.swift)",
+        "NSHostingView(rootView:).fittingSize (AppKit measuring)",
+        "SwiftUI ScrollView, SecureField, TextField, Capsule, RoundedRectangle, Divider, Button"
+      ],
+      "state_owned": [
+        "QuestionBadgeRow.@State isShowingQuestions: Bool = false (drives the ChatBadge isPresented binding)",
+        "QuestionSheet.@State selections: [String: [String]] (question.id -> picked choice labels; seeded in init with recommended labels)",
+        "QuestionSheet.@State written: [String: String] = [:] (question.id -> free text / secret text)",
+        "QuestionSheet.@State page: Int = 0 (current question page index)",
+        "QuestionSheet.pageHeight (immutable measured height, min(max(largestNaturalHeight, 120), 360))"
+      ],
+      "side_effects": [
+        "runtime.answer(request, answers:) sends the answers back to the agent runtime",
+        "closePopover?() dismisses the badge popover before answering",
+        "Task { @MainActor } with Task.sleep(for: .seconds(delay)) drives the 0.18 s auto-advance after a single-choice pick",
+        "init() constructs an NSHostingView per question purely to measure fittingSize (synchronous AppKit layout during view init)"
+      ],
+      "platform_assumptions": [
+        "AppKit NSHostingView(rootView:).fittingSize used at init time to measure SwiftUI content height (macOS only API)",
+        "NSPopover-backed badge detail presentation that freezes its content size at open time, which is why the height is premeasured",
+        "SF Symbols names: questionmark.bubble, chevron.left, checkmark.square.fill, square, checkmark.circle.fill, circle",
+        "macOS control styles: .bordered, .borderedProminent, .roundedBorder text field style, controlSize(.regular)",
+        "scrollBounceBehavior(.basedOnSize) (macOS 14+ SwiftUI)",
+        "keyboardShortcut(.defaultAction) mapping Return to the prominent button"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Badge title: '1 question' when count == 1, otherwise '\\(count) questions'; caption 'to answer'; needsAttention: true; glyph Image(systemName: \"questionmark.bubble\").foregroundStyle(.tint)",
+        "Sheet fixed width 460; page viewport height = min(max(tallest measured page, 120), 360)",
+        "Page indicator (only when count > 1): HStack spacing 5 of Capsule buttons, active capsule 18x6, inactive 6x6; fill = Chrome.accent when current, Chrome.accent.opacity(0.35) when answered, Chrome.overlay(0.18) otherwise",
+        "Page counter text: verbatim '\\(page + 1) of \\(count)', font .system(size: 11), monospacedDigit, Chrome.secondaryText",
+        "Indicator row padding: .horizontal 16, .top 12, .bottom 6; animation Chrome.panelSlide on page",
+        "Pages laid out in one HStack(spacing: 0), each a ScrollView(.vertical) with frame width 460 height pageHeight; the row uses .offset(x: -CGFloat(page) * 460), .clipped(), animated with Chrome.panelSlide",
+        "Divider between the pages and the footer",
+        "Footer HStack spacing 8, controlSize(.regular), padding .horizontal 16 / .vertical 10",
+        "Back button (count > 1): Image(systemName: \"chevron.left\"), .bordered, disabled when page == 0, help 'Previous question'",
+        "Remaining counter text: '1 question still to answer' or '\\(unanswered) questions still to answer', font .system(size: 11), .secondary, lineLimit(1)",
+        "Button 'Skip' (.bordered), help 'Sends no answers and lets the agent carry on'",
+        "Button 'Next' (.borderedProminent + keyboardShortcut(.defaultAction)) while page < count-1 and not complete; otherwise 'Next' as .bordered plus 'Send' as .borderedProminent with .defaultAction",
+        "'Next' help text 'Goes to the next question'",
+        "'Send' help text 'Sends your answers' when complete, else 'Answer the question to send' (count == 1) or 'Answer all \\(count) questions to send'",
+        "QuestionPage: VStack(alignment: .leading, spacing: 10), padding .horizontal 16 / .vertical 12",
+        "Question header: uppercase (textCase(.uppercase)), font .system(size: 11, weight: .medium), Chrome.secondaryText, shown only when non-empty",
+        "Question prompt: font .system(size: 13, weight: .semibold), Chrome.primaryText, fixedSize vertical, textSelection(.enabled)",
+        "Choice row: HStack(alignment: .top, spacing: 10); symbol font .system(size: 14), frame width 18, padding .top 1, tinted Chrome.accent when selected else Chrome.secondaryText",
+        "Choice label font .system(size: 13, weight: .semibold when selected else .regular), Chrome.primaryText",
+        "'Recommended' pill: Text(\"Recommended\"), font .system(size: 10, weight: .medium), Chrome.accent, padding .horizontal 6 / .vertical 2, background Capsule fill Chrome.accent.opacity(0.14)",
+        "Choice detail: font .system(size: 11), Chrome.secondaryText, fixedSize vertical; inner VStack spacing 2, label HStack spacing 6",
+        "Choice row chrome: padding .horizontal 12 / .vertical 9, background RoundedRectangle(cornerRadius: 10, style: .continuous) filled Chrome.accent.opacity(0.12) when selected else Chrome.overlay(0.06), contentShape(.rect), .buttonStyle(.plain), animation Chrome.hover on isSelected",
+        "Free-text field placeholders: SecureField 'Your answer' when question.isSecret; TextField 'Your answer' when there are no choices, otherwise 'Something else'; .roundedBorder, controlSize(.regular), onSubmit -> advance()"
+      ],
+      "feature_notes": [
+        "Choices whose label contains 'recommended' (case-insensitive) are preselected: all matches for a multiple-choice question, only the first match for a single-choice question",
+        "A trailing ' (Recommended)' suffix is stripped from the displayed label (case-insensitive suffix compare) and shown instead as a separate 'Recommended' pill; a label that merely contains 'recommended' elsewhere still gets the pill but keeps its full text",
+        "Picking a choice on a single-choice question that is not the last page auto-advances after 0.18 seconds",
+        "Tapping a selected single-choice option clears the selection (current = isSelected ? [] : [choice.label]); multiple-choice toggles membership and appends new picks in tap order",
+        "Choices are ForEach-keyed by enumerated offset so two identically worded choices both remain tappable",
+        "The free-text field appears when question.allowsOther is true or the question has no choices at all",
+        "Answers per question = picked labels plus, if non-empty after trimming .whitespacesAndNewlines, the written text appended as an extra value",
+        "unansweredCount counts questions whose collected answer array is empty; Send is disabled until it reaches 0",
+        "'Skip' sends an empty dictionary [:] as the answers, which lets the agent carry on",
+        "Return (defaultAction) is bound to Next while an answer is still missing and a later page exists; once everything is answered Return sends from any page",
+        "advance() on the last page sends automatically when nothing is unanswered, otherwise does nothing",
+        "send() closes the popover first, then calls runtime.answer, so the popover animates away from the badge rather than being torn down with it",
+        "The tallest page is measured once in init via NSHostingView at width 460 and the height is clamped into [120, 360]; nothing afterwards changes the sheet size",
+        "Tapping a page-indicator capsule jumps directly to that question, animated with Chrome.panelSlide"
+      ],
+      "unresolved_questions": [
+        "The exact values of Chrome.panelSlide, Chrome.hover, Chrome.accent, Chrome.overlay(_:), Chrome.primaryText and Chrome.secondaryText are defined in the UI/Chrome layer and were not read in this bundle",
+        "QuestionRequest / QuestionRequest.Question field semantics (for example whether isSecret also forbids choices) come from DroppyCode/Core/Models/Requests.swift, not read here",
+        "How ThreadRuntime.answer treats an empty answers dictionary versus a dictionary of empty arrays (the Skip path sends [:], the Send path sends an entry per question id) is decided in ThreadRuntime.swift",
+        "The precise popover size-freezing behavior of BadgePopoverCoordinator and the closePopover environment key is in UI/Chrome/Popovers.swift, not read here"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Composer/RequestCards.swift",
+      "sha256": "d9d474c1242bfd188aa75a6b14dcd350bdef37514a31e79b5edb0107b2c13855",
+      "lines_total": 66,
+      "ranges_read": [[1, 66]],
+      "purpose": "Defines ApprovalCard, the glass card shown for a pending ApprovalRequest: warning-tinted symbol and headline, a kind-specific body (monospaced command block, plan blurb, or plain title), optional detail and reason lines, and the trailing row of option buttons that resolve the request through ThreadRuntime.",
+      "key_symbols": [
+        "ApprovalCard (struct View; let request: ApprovalRequest, let runtime: ThreadRuntime)"
+      ],
+      "calls_into": [
+        "ApprovalRequest (id, symbol, headline, kind, title, detail, reason, options) and its option type (Identifiable, role, title) from DroppyCode/Core/Models/Requests.swift",
+        "ApprovalRequest kind cases .command and .plan (all other kinds fall to default)",
+        "option.role == .approve",
+        "ThreadRuntime.resolve(_:option:) and ThreadRuntime.approvals (first element used for shortcut ownership)",
+        "Chrome.warning"
+      ],
+      "state_owned": [],
+      "side_effects": [
+        "runtime.resolve(request, option: option) on any option button tap, which answers the approval request"
+      ],
+      "platform_assumptions": [
+        "SwiftUI .glassEffect(_:in:) plus .buttonStyle(.glass) / .buttonStyle(.glassProminent) (Liquid Glass styles, macOS 26 era SDK)",
+        "SF Symbol name supplied by request.symbol rendered with Image(systemName:)",
+        "Command-Return keyboard shortcut (KeyboardShortcut(.return, modifiers: .command)) as the approve chord",
+        "Design-family font .system(.callout, design: .monospaced) for command text",
+        "Hierarchical .quaternary shape style for the command block background"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Root VStack(alignment: .leading, spacing: 10), .padding(16)",
+        "Card background: .glassEffect(.regular.tint(Chrome.warning.opacity(0.1)), in: .rect(cornerRadius: 20, style: .continuous))",
+        "Header HStack(spacing: 8): Image(systemName: request.symbol).foregroundStyle(Chrome.warning) + Text(request.headline).font(.headline) + Spacer()",
+        ".command body: Text(request.title), font .system(.callout, design: .monospaced), textSelection(.enabled), lineLimit(8), padding 10, frame maxWidth .infinity alignment .leading, background .quaternary.opacity(0.5) in .rect(cornerRadius: 10, style: .continuous)",
+        ".plan body: literal text 'Approve the plan above to let the agent start building.', font .callout, foregroundStyle(.secondary)",
+        "default body: Text(request.title), font .callout, textSelection(.enabled)",
+        "detail line (when non-nil and non-empty): font .caption, .secondary, lineLimit(3)",
+        "reason line (when non-nil and non-empty): font .callout, .secondary",
+        "Button row: HStack(spacing: 8) with a leading Spacer, options iterated with request.options.reversed()",
+        "Approve-role option: .buttonStyle(.glassProminent) with Command-Return when the card owns the shortcut; other options: .buttonStyle(.glass)"
+      ],
+      "feature_notes": [
+        "Only the card whose request.id equals runtime.approvals.first?.id owns the Command-Return shortcut; other stacked cards pass nil so two cards never both claim the chord (the comment says two cards claiming it left neither reliably approving)",
+        "Options are drawn in reverse model order, so the last option in the model sits leftmost in the trailing-aligned row",
+        "Only .command gets the monospaced boxed treatment; .plan replaces the title entirely with the fixed sentence; every other kind shows the raw title as callout text",
+        "The card tint and the header symbol both use Chrome.warning (tint at opacity 0.1) so a theme recolours the whole card at once",
+        "Command text is selectable and clipped at 8 lines; the detail line is clipped at 3 lines; the reason line has no line limit",
+        "Both detail and reason are skipped when nil or empty, so the card collapses to headline plus body plus buttons"
+      ],
+      "unresolved_questions": [
+        "The full set of ApprovalRequest kind cases and the option role enum members besides .approve are defined in Core/Models/Requests.swift and were not read here",
+        "Whether request.symbol is always a valid SF Symbol name, and what headline/symbol defaults each kind uses, is decided in the model rather than this file",
+        "Chrome.warning's concrete colour value is in the UI/Chrome layer, not read here",
+        "The container that stacks several ApprovalCards and defines what 'top of the stack' means visually is outside this bundle"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Composer/ThreadChangesTab.swift",
+      "sha256": "5ccd9d2d70e6cbd1fedbf297b9bf5d74a2e5aee8d183caf4439403ea2e8b796d",
+      "lines_total": 46,
+      "ranges_read": [[1, 46]],
+      "purpose": "Defines ThreadChangesTab, the small glass tab that rises from the top edge of the chat box showing the thread's file-change summary (file count, additions, deletions) and, when clicked, opens the changes popover anchored to its own NSView.",
+      "key_symbols": [
+        "ThreadChangesTab (struct View)",
+        "ThreadChangesTab.overlap (static let CGFloat = 14)",
+        "ThreadChangesTab.stats (let FileChangeSummary)",
+        "ThreadChangesTab.anchor (let (NSView) -> Void)",
+        "ThreadChangesTab.action (let () -> Void)"
+      ],
+      "calls_into": [
+        "FileChangeSummary (files, additions, deletions) from DroppyCode/Core/Models/FileChangeSummary.swift",
+        "AttachmentAnchorCapture(onResolve:) from DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
+        "ShortcutStore.hint(for: .toggleChanges) from DroppyCode/Core/Models/Shortcuts.swift",
+        "Chrome.inlineIconFont, Chrome.primaryText, Chrome.secondaryText, Chrome.success, Chrome.danger",
+        "SwiftUI UnevenRoundedRectangle, glassEffect(_:in:)"
+      ],
+      "state_owned": [],
+      "side_effects": [
+        "action() closure invoked on tap to open the changes popover",
+        "anchor(NSView) callback fired by AttachmentAnchorCapture in the background layer, handing the underlying NSView out so a popover can anchor to it"
+      ],
+      "platform_assumptions": [
+        "imports AppKit; the anchor closure traffics in NSView so an NSPopover can be anchored to this SwiftUI view",
+        "SwiftUI .glassEffect(.regular.interactive(), in:) Liquid Glass material",
+        "SF Symbol 'plusminus'",
+        ".focusable(false) and .help(_:) tooltips are macOS behaviors",
+        "Uses the Unicode minus sign U+2212 rather than an ASCII hyphen for the deletions count"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Shape: UnevenRoundedRectangle(topLeadingRadius: 12, topTrailingRadius: 12, style: .continuous) (bottom corners square, hidden under the composer)",
+        "Content HStack(spacing: 7)",
+        "Image(systemName: \"plusminus\") with Chrome.inlineIconFont, Chrome.secondaryText",
+        "File count text: '1 file' when stats.files.count == 1, otherwise '\\(stats.files.count) files', in Chrome.primaryText.opacity(0.9)",
+        "Additions text: verbatim '+\\(stats.additions)' in Chrome.success",
+        "Deletions text: verbatim '\\u{2212}\\(stats.deletions)' (Unicode minus) in Chrome.danger",
+        "Whole row font: .system(size: 12, weight: .medium).monospacedDigit()",
+        "Padding: .horizontal 12, .top 7, .bottom 7 + Self.overlap (7 + 14 = 21)",
+        "contentShape(shape), .buttonStyle(.plain), .focusable(false), .fixedSize()",
+        "Background material: .glassEffect(.regular.interactive(), in: shape)",
+        "Hidden background layer: AttachmentAnchorCapture(onResolve: anchor)",
+        "Tooltip: 'Show this thread's changes' concatenated with ShortcutStore.hint(for: .toggleChanges)",
+        "Accessibility label: '\\(stats.files.count) files changed, \\(stats.additions) added, \\(stats.deletions) removed'"
+      ],
+      "feature_notes": [
+        "static overlap = 14 is the number of points the composer draws over the tab's lower edge, added as extra bottom padding so the visible tab height stays correct while the composer covers the bottom 14 points",
+        "The +/- hues deliberately match DiffStatLabel elsewhere in the app (Chrome.success / Chrome.danger) so a theme recolours the tab together with the diffs it stands for",
+        "Singular/plural is handled only for the file count; additions and deletions are always plain numbers with no pluralisation",
+        "The tab is not focusable, so keyboard focus traversal in the composer skips it",
+        "The keyboard shortcut for the same action is appended to the tooltip from ShortcutStore for the .toggleChanges action",
+        "Interactive glass is used, so the tab has a pressed/hover glass response rather than a custom highlight"
+      ],
+      "unresolved_questions": [
+        "FileChangeSummary.files element type and how additions/deletions are aggregated are defined in Core/Models/FileChangeSummary.swift, not read here",
+        "The exact format of ShortcutStore.hint(for:) output (leading space, parentheses, modifier glyphs) is in Core/Models/Shortcuts.swift, not read here",
+        "How AttachmentAnchorCapture resolves the NSView and when onResolve fires relative to layout is in UI/Common/AttachmentPreviewPanel.swift, not read here",
+        "The caller that supplies stats/anchor/action and positions the tab against the composer using Self.overlap is outside this bundle"
+      ]
+    }
+  ]
+}

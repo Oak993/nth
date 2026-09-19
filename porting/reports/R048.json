@@ -1,0 +1,560 @@
+{
+  "bundle_id": "R048",
+  "reader": "R048-reader",
+  "files": [
+    {
+      "path": "DroppyCode/UI/Chrome/Chrome.swift",
+      "sha256": "0c9511bea7ea024dabdd66741ba6f1ca20af0f28f5edc24e9187764a87a59ce0",
+      "lines_total": 1107,
+      "ranges_read": [[1, 1107]],
+      "purpose": "The app's shared design-token enum `Chrome` plus the family of chrome primitives built on it: window/traffic-light/capsule/sidebar/card metrics, theme-derived colours, the Liquid Glass surface modifiers, the window backdrop, chrome buttons/menus/search fields, the scroll-morph veil and compact title, sidebar rows, the soft-appear and settle-glide transitions, settings cards/sections/rows, and the two AppKit window-drag shim views.",
+      "key_symbols": [
+        "enum Chrome (namespace of static tokens)",
+        "Chrome.windowCornerRadius=26, sheetInset=0, sheetCornerRadius=16",
+        "Chrome.trafficLightDiameter=14, trafficLightSpacing=9, trafficLightPitch (14+9=23), trafficLightLeading=18, trafficLightTop=16, trafficLightsWidth (14*3+9*2=60), trafficLightClearance=10",
+        "Chrome.iconFont=.system(size:12,weight:.semibold), inlineIconFont=.system(size:11,weight:.semibold), chevronFont=.system(size:8,weight:.bold)",
+        "Chrome.chromeHorizontalPadding=14, chromeTopPadding=12, capsuleContentHeight=28, capsuleVerticalPadding=2, capsuleHorizontalPadding=12, iconCapsuleInnerPadding=3, dividerHeight=14, capsuleHeight (28+2*2=32)",
+        "Chrome.contentBreathBelowChrome=28, contentTopInset (12+32+28=72), veilHeight=72, titleStartOffset=10, titleEndOffset=44, progressQuantum=0.04",
+        "Chrome.rowHeight=28, rowCornerRadius=7, rowHorizontalPadding=8, iconSize=20, symbolSize=14, groupGap=10, listInset=10",
+        "Chrome.cardCornerRadius=16, sectionSpacing=20, sectionHeaderSpacing=10, contentHorizontalPadding=16, rowControlTrailingPadding=10, rowButtonLabelHeight=16",
+        "Chrome.overlay(_:) -> primaryText.opacity(_)",
+        "Chrome.primaryText = Color(nsColor: .labelColor); Chrome.secondaryText = Color(nsColor: .secondaryLabelColor); private systemAccent = Color(nsColor: .controlAccentColor)",
+        "Chrome.accent, Chrome.accentNSColor, Chrome.success, Chrome.warning, Chrome.danger, Chrome.glassTint",
+        "Chrome.hover = .easeOut(duration: 0.1); Chrome.panelSlide; Chrome.glideSpring = Spring(response: 0.6, dampingRatio: 0.86); Chrome.settleFlight",
+        "Chrome.gray = Color(red:0.556,green:0.557,blue:0.576); Chrome.blue = Color(red:0.040,green:0.478,blue:1.000); Chrome.orange = Color(red:1.000,green:0.584,blue:0.000)",
+        "View.chromeGlassCapsule(), View.chromeGlassFieldCapsule(), View.chromeGlassCircle(), View.detailSheet()",
+        "private struct ChromeGlassSurface: ViewModifier (enum Kind { case capsule, circle })",
+        "private struct DetailSheetModifier: ViewModifier",
+        "struct WindowBackdrop: View, with static func scrim(for:isDark:) -> Double",
+        "struct ChromeCapsule<Content: View>",
+        "struct ChromeDivider",
+        "struct ChromeIconLabel",
+        "struct ChromeIconButton",
+        "struct ChromeMenuButton<Content: View>",
+        "struct ChromeCircleButton",
+        "struct ChromeCircleMenu<Content: View>",
+        "struct ChromeTextMenu<Content: View>",
+        "struct ChromeTextButton",
+        "@MainActor @Observable final class ChromeScrollModel (progress, update(travel:))",
+        "struct PaneTopVeil (private static func fade(_:) -> LinearGradient)",
+        "struct ChromeCompactTitle",
+        "struct SidebarSymbol",
+        "struct SidebarIconBadge<Glyph: View>",
+        "struct SidebarRow<Icon: View, Accessory: View> plus extension where Accessory == EmptyView",
+        "struct RowAccessoryIcon",
+        "struct SidebarSearchField",
+        "struct ChromeSearchField (static width = 200)",
+        "struct GlassPickerButton<Value: Hashable>",
+        "struct SoftAppearModifier: ViewModifier",
+        "AnyTransition.softAppear; Animation.softAppear = .smooth(duration: 0.32)",
+        "private struct SettleGlideModifier: ViewModifier, Animatable (static smoothstep)",
+        "AnyTransition.settleGlide",
+        "struct ChromeCard<Content: View>",
+        "struct ChromeSection<Content: View>",
+        "struct ChromeRow<Control: View>",
+        "struct ChromeRowDivider",
+        "struct WindowDragArea: NSViewRepresentable / final class WindowDragView: NSView",
+        "struct NoWindowDragArea: NSViewRepresentable / final class NoWindowDragView: NSView"
+      ],
+      "calls_into": [
+        "ThemeManager.spec (.accent, .success, .warning, .danger, .surface)",
+        "Chrome.panelControlFill(isDark:hovered:) and EnvironmentValues.isOnGlassPanel, both defined in DroppyCode/UI/Common/RenderBudget.swift (lines 93 and 86)",
+        "PopoverMenu (DroppyCode/UI/Chrome/Popovers.swift), used by ChromeMenuButton, ChromeCircleMenu, ChromeTextMenu and GlassPickerButton",
+        "PopoverItem (Popovers.swift), used for GlassPickerButton's option rows",
+        "SwiftUI .glassEffect(.regular.tint(...).interactive(), in:) Liquid Glass API",
+        "NSWorkspace.shared.accessibilityDisplayShouldReduceMotion",
+        "NSColor.labelColor / .secondaryLabelColor / .controlAccentColor",
+        "NSView.performDrag(with:), NSEvent",
+        "RowGlideAnimator (named in comments as the sidebar ghost's animator)",
+        "WindowChrome.titlebarHeight (named in NoWindowDragArea's doc comment)"
+      ],
+      "state_owned": [
+        "ChromeScrollModel.progress: CGFloat = 0 (private(set), @Observable, @MainActor)",
+        "ChromeGlassSurface.@State isHovered = false",
+        "ChromeIconButton / ChromeCircleButton / ChromeTextButton: @State isHovering = false",
+        "ChromeMenuButton / ChromeCircleMenu / ChromeTextMenu / GlassPickerButton: @State isHovering, @State isPresented",
+        "SidebarRow.@State isHovering = false",
+        "SidebarSearchField: @Binding text; ChromeSearchField: @Binding query; GlassPickerButton: @Binding selection",
+        "@Environment(\\.isOnGlassPanel) and @Environment(\\.colorScheme) in ChromeGlassSurface, DetailSheetModifier, WindowBackdrop, PaneTopVeil"
+      ],
+      "side_effects": [
+        "WindowDragView.mouseDown calls window?.performDrag(with:), which moves the NSWindow",
+        "NoWindowDragView forwards mouseDown/mouseDragged/mouseUp/rightMouseDown/rightMouseUp to superview and reports mouseDownCanMoveWindow = false",
+        "No file writes, process launches, network calls, timers or keychain access in this file"
+      ],
+      "platform_assumptions": [
+        "AppKit: NSView subclassing, NSEvent, NSWindow.performDrag, NSImage for the wallpaper, NSColor dynamic system colours resolved at draw time",
+        "macOS 26-era SwiftUI Liquid Glass: .glassEffect(_:in:), .regular.tint(_).interactive()",
+        "NSWorkspace.shared.accessibilityDisplayShouldReduceMotion for the Reduce Motion setting",
+        "SwiftUI @Observable macro, Spring(response:dampingRatio:), .smooth(duration:), InsettableShape, .onKeyPress(.upArrow/.downArrow), .onExitCommand, .focusEffectDisabled(), .scrollBounceBehavior",
+        "macOS popovers with arrowEdge: .bottom",
+        "Traffic-light geometry assumes the macOS close/minimise/zoom trio"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "ChromeCapsule: HStack(spacing: 0), .padding(.horizontal, 3), .padding(.vertical, 2), glass capsule, NoWindowDragArea behind",
+        "ChromeDivider: RoundedRectangle(cornerRadius: 0.5) filled primaryText.opacity(0.22), 1 x 14, accessibilityHidden",
+        "ChromeIconLabel foreground: disabled = primaryText.opacity(0.32); active = primaryText; else primaryText.opacity(isHovering ? 1 : 0.92). Active draws Circle().fill(Chrome.overlay(0.12)).padding(1) behind; 28x28 frame",
+        "ChromeCircleButton / ChromeCircleMenu: 32x32 (capsuleHeight) circle, iconFont, opacity 1 hovered / 0.92 at rest",
+        "ChromeTextMenu label: HStack(spacing: 6) of inlineIconFont symbol, Text at .system(size: 12.5, weight: .medium) lineLimit(1), and \"chevron.down\" at chevronFont in secondaryText; horizontal padding 12, height 28, vertical padding 2",
+        "ChromeTextButton: same as ChromeTextMenu without the chevron; destructive foreground = Chrome.danger.opacity(isHovering ? 1 : 0.92); disabled = primaryText.opacity(0.32)",
+        "SidebarRow: HStack(spacing: 8), icon frame width 20, Text .system(size: 13, weight: selected||emphasized ? .medium : .regular), foreground primaryText.opacity(isSelected ? 1 : 0.92), lineLimit(1) truncationMode(.tail), Spacer(minLength: 4), leading padding 8, trailing padding 8 + accessoryWidth, height 28, RoundedRectangle(cornerRadius: 7) fill: selected = overlay(0.12), hovering = overlay(0.06), else clear; accessory overlaid trailing with .padding(.trailing, 6)",
+        "RowAccessoryIcon: inlineIconFont, secondaryText, 20x20",
+        "SidebarSearchField: \"magnifyingglass\" at .system(size: 12, weight: .medium) in secondaryText.opacity(0.85); TextField default prompt \"Search\" at .system(size: 13); clear button \"xmark.circle.fill\" at .system(size: 12) in secondaryText.opacity(0.75) labelled \"Clear search\"; horizontal padding 9, height 30, Capsule fill overlay(0.07); Escape clears",
+        "ChromeSearchField: fixed width 200, height 28 plus vertical padding 2, horizontal padding 10, HStack spacing 6, magnifyingglass at .system(size: 12, weight: .semibold), TextField at .system(size: 12.5) with .focusEffectDisabled(), clear button always laid out but opacity 0 / disabled / accessibilityHidden while empty, default prompt \"Search\", label \"Clear search\"",
+        "GlassPickerButton label: optional 14x14 asset image, optional symbol at .system(size: 12, weight: .medium) in secondaryText, title at .system(size: 12.5, weight: .medium) lineLimit(1) truncationMode(.tail), chevron.down at chevronFont",
+        "ChromeCard: LazyVStack(alignment: .leading, spacing: 0) on RoundedRectangle(cornerRadius: 16) filled Chrome.overlay(0.03)",
+        "ChromeSection header: HStack(spacing: 4), title at .system(size: 13, weight: .semibold) in .secondary, optional accessory, optional trailing after Spacer(minLength: 8); VStack spacing = sectionHeaderSpacing (10)",
+        "ChromeRow: HStack(alignment: .center, spacing: 16); title .system(size: 13) primaryText; detail .system(size: 11) secondaryText; Spacer(minLength: 12); leading padding 16, trailing padding 10, vertical padding 11",
+        "ChromeRowDivider: Divider().padding(.leading, 16)",
+        "ChromeCompactTitle: .system(size: 15, weight: .semibold), opacity = progress, offset y = (1 - progress) * 5, accessibilityHidden when progress < 0.5",
+        "PaneTopVeil: height 72, allowsHitTesting(false), overall opacity 0.08 + 0.92 * progress"
+      ],
+      "feature_notes": [
+        "Glass-on-glass avoidance: when isOnGlassPanel is true, capsules and circles draw a flat Chrome.panelControlFill instead of .glassEffect, brightening on hover with the Chrome.hover animation",
+        "chromeGlassFieldCapsule() is non-interactive glass for text fields, because interactive glass bounced on the same click that placed the caret",
+        "WindowBackdrop.scrim(for:isDark:): stock = isDark ? 0.26 : 0.18; for t <= 0.5 returns stock * (t / 0.5); above 0.5 returns stock + (1 - stock) * ((t - 0.5) / 0.5); t is opacity clamped to 0...1",
+        "WindowBackdrop treats opacity >= 0.98 as solid and then fills plain black (dark) or white (light) rather than running a full-window glass sample",
+        "WindowBackdrop wallpaper branch: Image(nsImage:) resizable, .interpolation(.high), aspectRatio(contentMode: .fill), .opacity(opacity), clipped to the window shape, with a bare glassEffect overlay while not solid; animated with .easeInOut(duration: 0.3) on wallpaper != nil",
+        "WindowBackdrop always overlays Chrome.glassTint.opacity(0.12) and a 1pt strokeBorder of Chrome.overlay(0.14) at cornerRadius 26",
+        "detailSheet(): Rectangle fill black.opacity(0.22) in dark / white.opacity(0.3) in light, plus Chrome.glassTint.opacity(0.22 dark / 0.16 light); deliberately square-cornered so the window clip owns the rounding",
+        "ChromeScrollModel.update(travel:): raw = (travel - 10) / (44 - 10), clamped to 0...1, quantized to multiples of 0.04, assigned only when the quantized value changes",
+        "PaneTopVeil scrim: isDark ? 0.14 + 0.18 * progress : 0.30 + 0.26 * progress; tint = Chrome.glassTint.opacity(isDark ? 0.30 : 0.18); the two LinearGradients are drawn only when progress > 0",
+        "PaneTopVeil.fade gradient stops: colour at 0, colour at 0.28, colour.opacity(0.45) at 0.62, colour.opacity(0) at 1, top to bottom",
+        "Chrome.panelSlide: Reduce Motion gives .easeOut(duration: 0.18), otherwise .spring(response: 0.32, dampingFraction: 0.9)",
+        "Chrome.settleFlight: Reduce Motion gives .easeOut(duration: 0.2), otherwise .spring(glideSpring)",
+        "AnyTransition.softAppear: insertion fades in from opacity 0 and offset y 4 on .smooth(duration: 0.32); removal is .opacity on .easeOut(duration: 0.12)",
+        "SettleGlideModifier: fade = Reduce Motion ? progress : smoothstep(0.45, 0.92, progress); offset y = 22 * progress; scaleEffect 1 - 0.04 * progress anchored .top; smoothstep is t*t*(3-2*t) on the clamped t",
+        "SidebarSearchField.onMove: up arrow calls onMove(-1), down arrow onMove(1), both returning .handled; with no onMove the key press is .ignored so the field keeps the arrows",
+        "NoWindowDragArea exists because SwiftUI-rendered controls in the titlebar region otherwise let AppKit drag the window; it takes the hit, refuses the drag, and forwards the event to the superview",
+        "Chrome.accent falls back to NSColor.controlAccentColor when ThemeManager.spec.accent is nil (the System/Light/Dark themes)"
+      ],
+      "unresolved_questions": [
+        "Chrome.gray, Chrome.blue and Chrome.orange are declared here but have no consumer visible within this file; their call sites live elsewhere in the tree.",
+        "Chrome.groupGap, listInset, sectionSpacing, contentHorizontalPadding, rowButtonLabelHeight, the trafficLight* tokens and sheetInset/sheetCornerRadius are consumed by files outside this bundle, so their exact layout use is not verifiable here."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift",
+      "sha256": "ac3f230d40ae2649ce169120dd420cde8848c234a9ad6190354fa758791f1300",
+      "lines_total": 82,
+      "ranges_read": [[1, 82]],
+      "purpose": "A settings-row segmented control: every option is a small capsule button inside one glass capsule strip, the chosen one filled with the theme accent. For rows whose options are a few short words or numbers and need no preview picture; an option may draw an SF Symbol in place of its word.",
+      "key_symbols": [
+        "struct ChromeSegmentedOption<Value: Hashable> { let value: Value; let title: String; var symbol: String? = nil }",
+        "struct ChromeSegmentedPicker<Value: Hashable>: View",
+        "init(options: [ChromeSegmentedOption<Value>], selection: Binding<Value>)",
+        "init(options: [(value: Value, title: String)], selection: Binding<Value>) convenience mapping tuples to options with symbol nil",
+        "private struct ChromeSegment: View"
+      ],
+      "calls_into": [
+        "Chrome.capsuleContentHeight (28), Chrome.hover, Chrome.primaryText, Chrome.secondaryText, Chrome.accent, Chrome.overlay(_:) from Chrome.swift",
+        "View.chromeGlassCapsule() from Chrome.swift",
+        "NoWindowDragArea from Chrome.swift"
+      ],
+      "state_owned": [
+        "ChromeSegmentedPicker: @Binding var selection: Value",
+        "ChromeSegment: @State private var isHovering = false"
+      ],
+      "side_effects": [],
+      "platform_assumptions": [
+        "SwiftUI on macOS: .onHover pointer tracking, the Liquid Glass capsule via chromeGlassCapsule(), SF Symbols via Image(systemName:)",
+        "NoWindowDragArea (an AppKit NSView) sits behind the strip so it never drags the window"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Strip: HStack(spacing: 2), .padding(.horizontal, 3), .frame(height: Chrome.capsuleContentHeight = 28), .chromeGlassCapsule(), .fixedSize(), .accessibilityElement(children: .contain), NoWindowDragArea background",
+        "Segment font: .system(size: 12, weight: isSelected ? .semibold : .medium)",
+        "Segment foreground: isSelected ? Chrome.primaryText : Chrome.secondaryText",
+        "Segment: .lineLimit(1), .padding(.horizontal, 9), .frame(minWidth: 26), .frame(height: 22)",
+        "Segment background: Capsule(style: .continuous) filled Chrome.accent.opacity(0.22) when selected, otherwise Chrome.overlay(isHovering ? 0.08 : 0)",
+        "Segment accessibility: .accessibilityAddTraits(isSelected ? .isSelected : []) and .accessibilityLabel(Text(verbatim: title)) so a symbol-only segment still reads its title",
+        "ForEach keyed by Array(options.enumerated()) id: \\.offset (index, not value)"
+      ],
+      "feature_notes": [
+        "Choosing a segment runs withAnimation(Chrome.hover) { selection = option.value }, so the fill crossfades on the 0.1s easeOut rather than snapping",
+        "A segment with a non-nil symbol draws Image(systemName:) instead of the title text, but the title remains the accessibility label",
+        "The strip is .fixedSize(), so it never stretches to fill a settings row"
+      ],
+      "unresolved_questions": [
+        "Which settings rows use ChromeSegmentedPicker, and with which option titles, is not determinable from this file; no call sites are present in this bundle."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Chrome/ChromeVisualPicker.swift",
+      "sha256": "9d3b81c95e248c40f1219b2d65f783ce284593af257ce7277090e3dccbfdec40",
+      "lines_total": 106,
+      "ranges_read": [[1, 106]],
+      "purpose": "A settings-row picker of two or three equal tiles, each showing a caller-supplied symbol on a stage with the option's name underneath, modelled on the macOS Appearance Light / Dark / Auto control; the chosen tile takes an accent ring and tints its symbol with the accent.",
+      "key_symbols": [
+        "enum ChromeVisualTileMetrics { height = 48, regularWidth = 76, denseWidth = 76, cornerRadius = 6, ringInset = 3, ringWidth = 2, spacing = 12, captionSpacing = 6 }",
+        "struct ChromeVisualPicker<Value: Hashable, Preview: View>: View",
+        "ChromeVisualPicker.init(options:selection:preview:)",
+        "private var tileWidth (denseWidth when options.count >= 3, else regularWidth)",
+        "struct ChromeVisualTile<Content: View>: View, with private caption and stage subviews"
+      ],
+      "calls_into": [
+        "Chrome.hover, Chrome.primaryText, Chrome.secondaryText, Chrome.accent, Chrome.overlay(_:) from Chrome.swift",
+        "NoWindowDragArea from Chrome.swift"
+      ],
+      "state_owned": [
+        "ChromeVisualPicker: @Binding var selection: Value",
+        "ChromeVisualTile: @State private var isHovering = false"
+      ],
+      "side_effects": [],
+      "platform_assumptions": [
+        "SwiftUI on macOS: .onHover pointer tracking, continuous-corner RoundedRectangle, the accent resolved through Chrome.accent (NSColor.controlAccentColor fallback)",
+        "NoWindowDragArea (AppKit) behind the row"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Row: HStack(alignment: .top, spacing: 12), .fixedSize(), NoWindowDragArea background",
+        "Tile: a Button whose label is VStack(spacing: 6) of stage then caption",
+        "Caption: Text at .system(size: 11), foreground isSelected ? Chrome.primaryText : Chrome.secondaryText, .multilineTextAlignment(.center), .lineLimit(2), .frame(width: tileWidth)",
+        "Stage: caller content at .font(.system(size: 17, weight: .medium)), foreground isSelected ? Chrome.accent : Chrome.secondaryText, frame width = tileWidth, height 48",
+        "Stage background: RoundedRectangle(cornerRadius: 6, style: .continuous) filled Chrome.overlay(isHovering || isSelected ? 0.10 : 0.06), clipped to that shape",
+        "Ring: .padding(3) then RoundedRectangle(cornerRadius: 6 + 3 = 9, style: .continuous).strokeBorder(isSelected ? Chrome.accent : Color.clear, lineWidth: 2)",
+        "Stage .contentShape(Rectangle())",
+        "Accessibility: .accessibilityLabel(Text(verbatim: title)) and .accessibilityAddTraits(isSelected ? .isSelected : [])",
+        "ForEach keyed by Array(options.enumerated()) id: \\.offset"
+      ],
+      "feature_notes": [
+        "regularWidth and denseWidth are both 76 in this revision, so two-option and three-option layouts currently produce identical tile widths; the tileWidth branch on options.count >= 3 is therefore presently a no-op kept as a seam for a narrower dense tile",
+        "Selecting a tile runs withAnimation(Chrome.hover) { selection = option.value } (0.1s easeOut)",
+        "The ring is drawn outside a 3pt inset so a selected tile is no larger than an unselected one; the unselected ring is Color.clear rather than absent, keeping layout stable"
+      ],
+      "unresolved_questions": [
+        "Which settings rows instantiate ChromeVisualPicker, and what symbols they pass as preview, cannot be determined from this file alone."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Chrome/HydraPairMark.swift",
+      "sha256": "c8b00e190a7a3fdb9a2923cc18ad8863dd69f05756a6c6d7bc99e2b2117191ed",
+      "lines_total": 23,
+      "ranges_read": [[1, 23]],
+      "purpose": "Draws a Hydra pair (a lead agent and its heads) as two provider marks separated by a right arrow, at fixed proportions derived from one leadSize, so every surface that shows a pair draws it identically.",
+      "key_symbols": [
+        "struct HydraPairMark: View { let lead: ProviderKind; let heads: ProviderKind; var leadSize: CGFloat = 16 }"
+      ],
+      "calls_into": [
+        "ProviderKind (its displayName)",
+        "ProviderIcon(provider:size:)",
+        "Chrome.primaryText, Chrome.secondaryText"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "SF Symbols: Image(systemName: \"arrow.right\")",
+        "SwiftUI accessibility element merging (.accessibilityElement(children: .ignore))"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "HStack spacing = (leadSize * 0.25).rounded(), which is 4 at the default leadSize of 16",
+        "Lead: ProviderIcon(provider: lead, size: leadSize) in Chrome.primaryText",
+        "Arrow: Image(systemName: \"arrow.right\") at .system(size: (leadSize * 0.5).rounded(), weight: .semibold), 8pt at the default, in Chrome.secondaryText",
+        "Heads: ProviderIcon(provider: heads, size: (leadSize * 0.75).rounded()), 12 at the default, in Chrome.primaryText.opacity(0.8)",
+        "Accessibility label string: \"\\(lead.displayName) lead, \\(heads.displayName) heads\""
+      ],
+      "feature_notes": [
+        "All three sizes and the spacing scale off the single leadSize parameter with .rounded(), so the mark stays pixel-aligned at any caller size",
+        "The whole mark is one accessibility element reading \"<lead> lead, <heads> heads\"; the literal provider names come from ProviderKind.displayName"
+      ],
+      "unresolved_questions": [
+        "ProviderKind.displayName values and ProviderIcon's rendering (asset image versus SF Symbol) are defined outside this bundle, so the exact text the accessibility label produces is not verifiable here."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Chrome/InfoHoverButton.swift",
+      "sha256": "5bfc0fc61e360b0e278bc8bc8f3bb2af461aa57976f332c4784f523eb7278e16",
+      "lines_total": 57,
+      "ranges_read": [[1, 57]],
+      "purpose": "An info.circle mark that opens an explainer popover on hover, keeps it open while the pointer moves onto the popover itself, and closes it 320ms after the pointer has left both; clicking the mark toggles the popover so it can be pinned open.",
+      "key_symbols": [
+        "struct InfoHoverButton<Content: View>: View { let help: String; var width: CGFloat = 360; @ViewBuilder let content: () -> Content }",
+        "private func scheduleClose()"
+      ],
+      "calls_into": [
+        "Chrome.secondaryText from Chrome.swift",
+        "SwiftUI .popover(isPresented:arrowEdge:)"
+      ],
+      "state_owned": [
+        "@State private var isHovering = false",
+        "@State private var isOverPopover = false",
+        "@State private var isPresented = false",
+        "@State private var closeTask: Task<Void, Never>?"
+      ],
+      "side_effects": [
+        "Creates and cancels a Swift Concurrency Task that sleeps 320 milliseconds before closing the popover; the task is cancelled whenever the pointer re-enters the mark or the popover"
+      ],
+      "platform_assumptions": [
+        "macOS hover semantics: .onHover on both the mark and the popover content, a pointer-driven interaction with no touch equivalent",
+        "macOS popover with arrowEdge: .bottom",
+        "SwiftUI .help(_:) tooltip",
+        "SF Symbol \"info.circle\""
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Image(systemName: \"info.circle\") at .system(size: 12, weight: .medium)",
+        "Foreground: Chrome.secondaryText.opacity(isHovering ? 1 : 0.6)",
+        "Frame 20x20 with .contentShape(.rect)",
+        "Not focusable: .focusable(false)",
+        ".help(help) and .accessibilityLabel(Text(help)) both use the caller's help string; .accessibilityAddTraits(.isButton)",
+        "Popover content framed to width, default 360"
+      ],
+      "feature_notes": [
+        "The close delay is exactly Task.sleep(for: .milliseconds(320)); the pending close re-checks !Task.isCancelled, !isHovering and !isOverPopover before dismissing, so a fast round trip between mark and popover never closes it",
+        "A tap on the mark toggles isPresented, so the explainer can also be pinned open by clicking",
+        "The popover's own hover state is tracked separately as isOverPopover, which is what lets the pointer cross the gap between mark and panel"
+      ],
+      "unresolved_questions": [
+        "Which callers pass what help text and explainer content is outside this file, so the shipped strings are not visible here."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Chrome/Popovers.swift",
+      "sha256": "fb488bbd815d28da187c3a03b228bba9f1807cc11da4d9983ed01807d8475833",
+      "lines_total": 401,
+      "ranges_read": [[1, 401]],
+      "purpose": "The app's whole popover-menu vocabulary: the presentedChrome() styling every SwiftUI-presented tree gets, NSPopover.setFixedContent for AppKit-hosted panels, PopoverScroll's pre-measured height, PopoverMenu with its section header, note and divider, the PopoverCloseBox environment plumbing that lets AppKit-hosted rows dismiss themselves, the PopoverItem row with its in-place confirmation, and the RowAction model shared between a sidebar row's ellipsis popover and its context menu.",
+      "key_symbols": [
+        "extension View { func presentedChrome() }",
+        "extension NSPopover { @MainActor func setFixedContent<Content: View>(_ content: Content, size: NSSize) }",
+        "struct PopoverScroll<Content: View>: View (maxHeight default 460, minHeight default 80, isPremeasured, static measuredHeight(of:width:))",
+        "struct PopoverMenu<Content: View>: View (maxHeight default 460, optional idealHeight)",
+        "struct PopoverSectionHeader",
+        "struct PopoverNote",
+        "struct PopoverDivider",
+        "final class PopoverCloseBox: Equatable (identity comparison)",
+        "EnvironmentValues.@Entry var closePopoverBox: PopoverCloseBox?; computed var closePopover: (@MainActor () -> Void)?",
+        "struct PopoverItem: View, with a full init and a styled-Text init",
+        "PopoverItem.confirmationHold: Duration = .milliseconds(650)",
+        "struct RowAction: Identifiable { title, symbol, isDestructive, startsGroup, confirms, action; id == title }",
+        "struct RowActionItems: View",
+        "struct RowActionMenuButtons: View",
+        "struct RowActionsButton: View"
+      ],
+      "calls_into": [
+        "ThemeManager.spec.accent (in presentedChrome)",
+        "Chrome.secondaryText, Chrome.primaryText, Chrome.danger, Chrome.success, Chrome.overlay(_:), Chrome.hover from Chrome.swift",
+        "RowAccessoryIcon(\"ellipsis\") from Chrome.swift",
+        "AppKit NSHostingController, NSHostingView, NSPopover, NSImage, NSSize",
+        "SwiftUI @Environment(\\.dismiss)"
+      ],
+      "state_owned": [
+        "PopoverScroll: @State private var contentHeight: CGFloat (seeded from measuredHeight when a width is given) and let isPremeasured: Bool",
+        "PopoverItem: @State private var isHovering = false, @State private var isConfirmed = false, @Environment(\\.dismiss), @Environment(\\.closePopoverBox)",
+        "RowActionsButton: @Binding var isPresented: Bool",
+        "EnvironmentValues.closePopoverBox holds the reference-identity close closure"
+      ],
+      "side_effects": [
+        "NSPopover.setFixedContent installs an NSHostingController as contentViewController and sets contentSize, changing the live AppKit panel",
+        "PopoverScroll.measuredHeight builds an off-screen NSHostingView to run one layout pass, a real view instantiation rather than a pure computation",
+        "PopoverItem spawns a @MainActor Task that sleeps 650ms before closing on a confirming row, and a Task { action() } after closing on an ordinary row",
+        "PopoverItem calls the caller's action closure, which may do anything"
+      ],
+      "platform_assumptions": [
+        "AppKit NSPopover; NSHostingController.sizingOptions = [] to stop preferredContentSize resizing the shown panel from its top edge; NSHostingView.fittingSize for off-screen measurement",
+        "macOS popover arrow anchoring (arrowEdge: .bottom)",
+        "SwiftUI @Entry environment macro, .buttonBorderShape(.capsule), .tint(_), .scrollBounceBehavior(.basedOnSize), .scrollIndicators(.automatic), .contentTransition(.numericText())",
+        "NSImage-backed row icons",
+        "Pointer hover (.onHover) for the row highlight"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "PopoverMenu: ScrollView over VStack(alignment: .leading, spacing: 0), .padding(6), .frame(minWidth: 210, maxWidth: 360, alignment: .leading), .frame(idealHeight: idealHeight, maxHeight: 460)",
+        "PopoverSectionHeader: .system(size: 11, weight: .semibold) in Chrome.secondaryText, padding horizontal 8, top 6, bottom 3, full width leading",
+        "PopoverNote: .system(size: 12) in Chrome.secondaryText, padding horizontal 8, vertical 5, full width leading",
+        "PopoverDivider: Divider with padding horizontal 8, vertical 5",
+        "PopoverItem row: HStack(spacing: 8), height 26, horizontal padding 8, background RoundedRectangle(cornerRadius: 6, style: .continuous) filled Chrome.overlay(0.1) while hovering and enabled",
+        "PopoverItem checkmark column: Image(systemName: \"checkmark\") at .system(size: 11, weight: .semibold), opacity 1 or 0, frame width 14, kept for every row in a choice list",
+        "PopoverItem leading slot: custom leading view 16x16, or asset Image 16x16, or NSImage 16x16 with .interpolation(.high), or the confirmed checkmark at .system(size: 12, weight: .semibold) in Chrome.success frame width 16, or symbol at .system(size: 12) frame width 16",
+        "PopoverItem title: .system(size: 13), .lineLimit(1), .truncationMode(.middle), .contentTransition(.numericText()); Spacer(minLength: 16); optional detail at .system(size: 12) in Chrome.secondaryText lineLimit(1)",
+        "PopoverItem foreground: isDestructive ? Chrome.danger : Chrome.primaryText; whole row .opacity(isEnabled ? 1 : 0.4)",
+        "PopoverItem accessibility label: detail.map { \"\\(title), \\($0)\" } ?? title",
+        "RowActionsButton: RowAccessoryIcon(\"ellipsis\") with .help(\"More\"), opening PopoverMenu { RowActionItems(actions:) } with arrowEdge .bottom",
+        "RowActionMenuButtons: Button(role: item.isDestructive ? .destructive : nil) with Label(title, systemImage:) when a symbol exists, otherwise plain Text; a Divider before any item with startsGroup"
+      ],
+      "feature_notes": [
+        "presentedChrome() applies .buttonBorderShape(.capsule) and .tint(ThemeManager.spec.accent) so a Save button inside a popover or sheet matches the window's capsules rather than the stock rounded rectangle",
+        "PopoverScroll opens at min(max(contentHeight, minHeight), maxHeight); a pre-measured instance (init given a width) never updates contentHeight afterwards, because the AppKit panel around it was sized once and cannot resize",
+        "PopoverScroll.measuredHeight rounds the fitting height up with .rounded(.up)",
+        "PopoverCloseBox exists because a bare closure in the environment compares unequal to itself and would invalidate every reader on every update; the box compares by === so only a new host invalidates rows",
+        "A confirming PopoverItem (confirmation != nil) runs the action immediately, animates isConfirmed with .snappy(duration: 0.22), swaps the leading glyph for a green checkmark and the title for the confirmation string such as \"Copied\", then closes 650ms later; while confirmed, further taps are ignored",
+        "A non-confirming PopoverItem closes the popover first and runs the action in a following @MainActor Task, so an action that presents a sheet or alert is not swallowed by the closing popover",
+        "PopoverItem closes through closePopoverBox?.close when present (AppKit-hosted popovers) and falls back to @Environment(\\.dismiss) for SwiftUI-presented ones",
+        "RowAction.id is its title, so two actions with the same title would collide in the ForEach",
+        "RowAction.startsGroup inserts a PopoverDivider in the popover list and a plain Divider in the context menu, keeping the two presentations of the same actions in step",
+        "Both the confirmed glyph and the symbol glyph use .transition(.scale(scale: 0.6).combined(with: .opacity))"
+      ],
+      "unresolved_questions": [
+        "Which call sites use NSPopover.setFixedContent, and at what NSSize, is not visible in this file; the hosted panels live elsewhere in the tree.",
+        "PopoverMenu.idealHeight has no default and no caller in this file, so the exact heights that force a scrolling menu open are not determinable here."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Chrome/ProjectIconPicker.swift",
+      "sha256": "f7343951623148d3630da1170c4b85f0ff2cbec456c0e3cdd4ecfe4309eabeeb",
+      "lines_total": 272,
+      "ranges_read": [[1, 272]],
+      "purpose": "Draws a project's chosen mark (emoji or SF Symbol, falling back to \"folder.fill\") and the popover picker that chooses it: a 131-emoji grid, a Popular shortlist of 56 filled symbols, every category from the generated symbol catalogue, a symbol search that can also offer the .fill form of a name the reader typed, and a Folder tile that clears the mark.",
+      "key_symbols": [
+        "struct ProjectIconMark: View { let icon: ProjectIcon?; var size: CGFloat = 13 }",
+        "struct ProjectIconButton: View { @Binding var icon: ProjectIcon?; var size: CGFloat = 13 }",
+        "struct ProjectIconPicker: View { @Binding var icon: ProjectIcon? }",
+        "ProjectIconPicker.emojis (131 entries, lines 61-77)",
+        "ProjectIconPicker.favourites (shortlist filtered by NSImage(systemSymbolName:accessibilityDescription:) != nil)",
+        "ProjectIconPicker.shortlist (56 names, lines 88-101)",
+        "ProjectIconPicker.groups = [Group(id: \"popular\", title: \"Popular\", names: favourites)] + ProjectSymbolCatalogue.groups",
+        "ProjectIconPicker.columns = Array(repeating: GridItem(.fixed(26), spacing: 4), count: 9)",
+        "private var matchingSymbols: [String]",
+        "private static func filledForm(of name: String) -> String?",
+        "private func symbolSection(_:), private var searchField, private var emojiGrid, private func symbolGrid(_:), private func section(_:content:)",
+        "private struct IconTile<Content: View>: View"
+      ],
+      "calls_into": [
+        "ProjectIcon (its .emoji and .symbolName accessors and the .emoji(_:) / .symbol(_:) cases), owned by Core",
+        "ProjectSymbolCatalogue.groups, ProjectSymbolCatalogue.all, ProjectSymbolCatalogue.Group",
+        "Chrome.primaryText, Chrome.secondaryText, Chrome.accent, Chrome.overlay(_:), Chrome.hover from Chrome.swift",
+        "AppKit NSImage(systemSymbolName:accessibilityDescription:) for availability checks",
+        "String.localizedCaseInsensitiveContains(_:)"
+      ],
+      "state_owned": [
+        "ProjectIconButton: @State private var isPresented = false",
+        "ProjectIconPicker: @State private var query = \"\" (line 58)",
+        "ProjectIconPicker static caches: emojis, shortlist, favourites (computed once at first access), groups, columns",
+        "IconTile: @State private var isHovering = false",
+        "Both ProjectIconButton and ProjectIconPicker write through @Binding var icon: ProjectIcon?"
+      ],
+      "side_effects": [
+        "NSImage(systemSymbolName:accessibilityDescription:) probes this Mac's SF Symbols catalogue when favourites is first read, and again for every typed search term via filledForm(of:)",
+        "Writing the binding changes the project's stored icon; the persistence itself lives in Core, not here"
+      ],
+      "platform_assumptions": [
+        "Availability of SF Symbols on the running Mac is probed at runtime with NSImage(systemSymbolName:); names the system lacks are silently dropped from Popular",
+        "SwiftUI popover with arrowEdge: .bottom",
+        "macOS emoji rendering, including ZWJ sequences such as the teacher emoji in the last row",
+        "Chrome.accent resolves through NSColor.controlAccentColor when no theme accent is set"
+      ],
+      "persisted_fields": [
+        "ProjectIcon? (the bound value the picker writes); its storage keys and encoding live in Core and are not defined in this file"
+      ],
+      "ui_elements": [
+        "ProjectIconMark: emoji as Text at .system(size: size), or Image(systemName: icon?.symbolName ?? \"folder.fill\") at .system(size: size); foreground Chrome.primaryText.opacity(0.9); default size 13",
+        "ProjectIconButton: the mark in a frame of size + 9 square (22x22 at the default), .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous)), .help(\"Choose this project's icon\"), .accessibilityLabel(Text(\"Project icon\"))",
+        "Picker panel: VStack(alignment: .leading, spacing: 10), .padding(12), .frame(width: 300, height: 420)",
+        "Header text: \"Project icon\" at .system(size: 12, weight: .medium) in Chrome.primaryText",
+        "Search field: HStack(spacing: 6) with \"magnifyingglass\" at .system(size: 11) in Chrome.secondaryText and TextField(\"Search symbols\", text: $query) at .system(size: 12); padding horizontal 8, vertical 5; background RoundedRectangle(cornerRadius: 6, style: .continuous) filled Chrome.overlay(0.10)",
+        "Body: ScrollView over LazyVStack(alignment: .leading, spacing: 14), .padding(.vertical, 1), .scrollIndicators(.never)",
+        "Grid: LazyVGrid with 9 fixed 26pt columns, spacing 4 between columns and 4 between rows",
+        "Section headers: \"Emoji\", \"Symbols\", \"Popular\" and each catalogue category title, at .system(size: 10, weight: .medium) in Chrome.secondaryText, inside VStack(alignment: .leading, spacing: 5)",
+        "Emoji tiles draw the emoji as Text at .system(size: 15); symbol tiles draw Image(systemName:) at .system(size: 12) in Chrome.primaryText.opacity(0.9)",
+        "Footer: Divider().overlay(Chrome.overlay(0.12)), then HStack(spacing: 8) with an IconTile showing \"folder.fill\" at .system(size: 12) in Chrome.secondaryText and the label \"Folder\" at .system(size: 12) in Chrome.secondaryText, plus Spacer(minLength: 0)",
+        "IconTile: 26x26, background RoundedRectangle(cornerRadius: 6, style: .continuous) filled Chrome.overlay(isHovering || isSelected ? 0.14 : 0), selected overlay strokeBorder(Chrome.accent, lineWidth: 1.5), .contentShape on the same shape"
+      ],
+      "feature_notes": [
+        "With an empty query the picker shows the emoji grid first, then every group in groups: Popular (the availability-filtered shortlist) followed by ProjectSymbolCatalogue.groups in the SF Symbols app's own category order",
+        "With a non-empty query, trimmed of whitespace, it shows a single \"Symbols\" grid of ProjectSymbolCatalogue.all filtered by localizedCaseInsensitiveContains, with the typed name's filled form inserted at index 0 when the catalogue does not already list it",
+        "filledForm(of:): a name already ending in \".fill\" or \".inverse\" is offered only if the system has it; otherwise name + \".fill\" is offered only if the system has that; anything else yields nil, so a search can never pick an outline mark",
+        "The Folder tile sets icon = nil, which is what makes ProjectIconMark fall back to \"folder.fill\"; its tile reads as selected while icon == nil",
+        "The emoji list is exactly 131 entries, starting with the rocket, hammer-and-wrench, package, artist-palette, test-tube, seedling, fire and puzzle-piece row and ending with the gold-medal, graduation-cap and teacher row",
+        "The shortlist is exactly 56 names beginning \"hammer.fill\" and ending \"theatermasks.fill\"; it includes one non-filled name, \"point.3.filled.connected.trianglepath.dotted\", which survives the availability filter but is not a \".fill\" mark",
+        "Selecting an emoji writes icon = .emoji(emoji); selecting a symbol writes icon = .symbol(name)",
+        "The popover is a fixed 300 x 420 panel regardless of content"
+      ],
+      "unresolved_questions": [
+        "ProjectIcon's definition, and how .emoji and .symbol are encoded and persisted, lives in Core outside this bundle, so the exact stored representation is not verifiable here.",
+        "Nothing guards against the Popular section being empty on a system missing all 56 shortlist symbols; whether that can happen in practice is not settled by this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Chrome/ProjectSymbolCatalogue.swift",
+      "sha256": "b7327b1a8b030c7134a1d90503f843f8e6b5d4184b2efb17a9b4ec181a92bf22",
+      "lines_total": 53,
+      "ranges_read": [[1, 53]],
+      "purpose": "A generated, checked-in catalogue of every SF Symbol the project-icon picker may offer, stored as one tab-and-space delimited multiline string literal and parsed at first access into named groups; the header states it was generated from this Mac's SF Symbols metadata with filled marks only, no localised variants, and nothing newer than the system the app requires.",
+      "key_symbols": [
+        "enum ProjectSymbolCatalogue",
+        "ProjectSymbolCatalogue.Group: Identifiable, Hashable { let id: String; let title: String; let names: [String] }",
+        "static let groups: [Group]",
+        "static let all: [String] = groups.flatMap(\\.names)",
+        "private static let raw (the multiline string literal, lines 24-52)"
+      ],
+      "calls_into": [
+        "Foundation only (String.split, String.init); no other project symbol is referenced",
+        "Consumed by ProjectIconPicker via groups, all and Group"
+      ],
+      "state_owned": [
+        "Two static lets, groups and all, lazily initialised once per process and then acting as in-memory caches; raw is the private backing string literal"
+      ],
+      "side_effects": [],
+      "platform_assumptions": [
+        "The names are Apple SF Symbol identifiers and only resolve on macOS; the file itself is pure Foundation with no AppKit or SwiftUI import",
+        "The header states the set is pinned to the SF Symbols metadata of the generating Mac and to the minimum system the app requires, so exact membership is macOS-version bound"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Group titles, used verbatim as picker section headers, in file order: Communication, Maps, Objects & Tools, Devices, Camera & Photos, Gaming, Connectivity, Transportation, Automotive, Accessibility, Privacy & Security, Human, Home, Fitness, Nature, Editing, Text Formatting, Media, Keyboard, Commerce, Time, Health, Shapes, Arrows, Indices, Math, Other"
+      ],
+      "feature_notes": [
+        "Parsing: raw.split(separator: \"\\n\"), then each line split on a single tab with maxSplits: 1 and omittingEmptySubsequences: false; a line without exactly two parts, or with an empty name list, is dropped; names are split on spaces",
+        "Group.id is set equal to Group.title, so ids are the human-readable category names rather than slugs",
+        "27 groups and 2630 symbol names in total, in this exact per-group order and count: Communication 88, Maps 20, Objects & Tools 283, Devices 140, Camera & Photos 45, Gaming 90, Connectivity 35, Transportation 15, Automotive 278, Accessibility 37, Privacy & Security 16, Human 87, Home 126, Fitness 120, Nature 109, Editing 34, Text Formatting 5, Media 31, Keyboard 17, Commerce 141, Time 1, Health 45, Shapes 17, Arrows 186, Indices 176, Math 24, Other 464",
+        "The Time group holds exactly one symbol, \"globe.badge.clock.fill\"",
+        "Text Formatting holds exactly five: character.circle.fill, character.square.fill, fleuron.fill, list.bullet.circle.fill, numbers.rectangle.fill",
+        "Shapes holds 17: app.fill capsule.fill capsule.portrait.fill circle.fill diamond.fill hexagon.fill octagon.fill oval.fill oval.portrait.fill pentagon.fill rectangle.fill rectangle.portrait.fill rhombus.fill square.fill star.hexagon.fill triangle.fill triangleshape.fill",
+        "Despite the filled-marks-only claim in the header, four names in the Other group are not filled variants: \"apple.logo\", \"curlybraces\", \"swift\", \"terminal\"",
+        "Raw line byte lengths, largest first: Other 12165, Automotive 9223, Arrows 6195, Objects & Tools 5573, Devices 4136, Commerce 3721, Fitness 3314"
+      ],
+      "unresolved_questions": [
+        "The generator script that produced raw is not in this bundle, so the exact SF Symbols metadata version and the filtering rules cannot be confirmed beyond the header comment.",
+        "Whether the four unfilled names in Other (apple.logo, curlybraces, swift, terminal) are a generator oversight or deliberate is not settled by anything in this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Chrome/RowDrag.swift",
+      "sha256": "a4cb8aa74f557c9708e2149aa09de79e5acbdb4017f7302fcb6c94e57318f531",
+      "lines_total": 62,
+      "ranges_read": [[1, 62]],
+      "purpose": "The pure-value state machine behind a live grip-drag reorder of rows in a vertical stack: it tracks pointer travel, subtracts the slot movement already applied so the grabbed row stays pinned under the pointer, and walks the row across every neighbour whose centre it has passed in a single call.",
+      "key_symbols": [
+        "struct RowDrag<ID: Hashable>",
+        "var id: ID?",
+        "var translation: CGFloat = 0",
+        "var settled: CGFloat = 0",
+        "var visualOffset: CGFloat { translation - settled }",
+        "mutating func settle(order:heights:fallbackHeight:pastCentre:move:) -> Bool"
+      ],
+      "calls_into": [
+        "Foundation only; the move closure is supplied by the caller, the list view that owns the order"
+      ],
+      "state_owned": [
+        "id: the grabbed row's identifier, nil when nothing is being dragged",
+        "translation: pointer travel since the grab",
+        "settled: accumulated slot compensation, mutated inside settle()"
+      ],
+      "side_effects": [
+        "None of its own; it calls the caller's move closure, which reorders the caller's model"
+      ],
+      "platform_assumptions": [
+        "None specific to macOS: pure Swift and Foundation, generic over a Hashable ID. It assumes a vertical stack whose per-row heights the caller can supply."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "visualOffset is the y offset the caller applies to the grabbed row",
+        "pastCentre defaults to 0; the doc comment records that the follow-up queue passes a quarter so a row held over the middle of a neighbour pairs with it instead of swapping"
+      ],
+      "feature_notes": [
+        "settle() guards on id being set and present in order, returning false otherwise",
+        "Downward branch (offset > 0 and current + 1 < order.count): swaps with order[current + 1] when offset > (own + slot) / 2 + slot * pastCentre and move(next, true) returns true, then settled += slot and current += 1",
+        "Upward branch (offset < 0 and current > 0): swaps with order[current - 1] when -offset > (own + slot) / 2 + slot * pastCentre and move(previous, false) returns true, then settled -= slot and current -= 1",
+        "The loop repeats so one fast flick crosses several rows in a single call; it breaks as soon as a threshold is not met or move returns false",
+        "A row's own height comes from heights[id] with fallbackHeight as the default, and each neighbour's slot height likewise",
+        "The doc comment explains that the compensation must be folded into settled here rather than inside move, because settle() mutates a copy of the caller's @State and a write from inside move would be invisible to the loop and clobbered when the copy is written back",
+        "move's placeAfter parameter is true when placing after the neighbour (downward) and false when placing before it (upward)"
+      ],
+      "unresolved_questions": [
+        "The caller that passes pastCentre = 0.25, described in the comment as the follow-up queue, is not in this bundle, so the pairing behaviour it enables is known only from the comment."
+      ]
+    }
+  ]
+}

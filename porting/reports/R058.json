@@ -1,0 +1,579 @@
+{
+  "bundle_id": "R058",
+  "reader": "R058-reader",
+  "files": [
+    {
+      "path": "website/assets/css/wordscroll.css",
+      "sha256": "1b9ebadd27bfafe6a7be8b8836f346fbcf8bc8f2c657a6640ff30dff9abfb407",
+      "lines_total": 209,
+      "ranges_read": [
+        [
+          1,
+          209
+        ]
+      ],
+      "purpose": "Stylesheet for the marketing site's pinned 'wordscroll' section: a 500vh tall dark slab whose sticky stage cross-fades scroll-lit headline copy into a product demo video, driven entirely by CSS custom properties that wordscroll.js writes. Carries three layouts in one file: a static no-JS base, the .ws-ready pinned treatment, and a .ws-reduced-motion fallback.",
+      "key_symbols": [
+        ".wordscroll",
+        ".wordscroll.ws-ready",
+        ".wordscroll.ws-reduced-motion",
+        ".wordscroll__stage",
+        ".wordscroll__stage.ws-demo-active",
+        ".wordscroll__glow",
+        ".wordscroll__bloom",
+        ".wordscroll__copy",
+        ".wordscroll__icon-wrap",
+        ".wordscroll__icon",
+        ".wordscroll__demo",
+        ".wordscroll__demo-video",
+        ".wordscroll__demo-frame",
+        ".wordscroll__text",
+        ".wordscroll__ask",
+        ".wordscroll__text .w",
+        ".wordscroll__text .w-lit",
+        ".wordscroll__text .w-glo",
+        ".wordscroll__sparks",
+        ".wordscroll__sparks span:nth-child(1..10)",
+        "@keyframes ws-twinkle",
+        "@media (prefers-reduced-motion: reduce)",
+        "@media (max-width: 720px)"
+      ],
+      "calls_into": [
+        "CSS custom properties written by website/assets/js/wordscroll.js: --ws-enter, --ws-glow, --ws-copy, --ws-demo, --ws-bloom (also --ws-media and --ws-field-shift in split layout, declared only by the JS)",
+        "site.css variables: var(--ink), var(--border-subtle), var(--text-primary), var(--font-display)",
+        "Classes toggled by JS: .ws-ready, .ws-reduced-motion, .ws-demo-active, and word spans .w / .w-dim / .w-lit / .w-glo created by wordscroll.js"
+      ],
+      "state_owned": [
+        "Stage-local custom property defaults declared on .wordscroll__stage: --ws-enter: 1, --ws-glow: 0.6, --ws-copy: 1, --ws-demo: 1, --ws-bloom: 0",
+        "Pinned overrides on .wordscroll.ws-ready .wordscroll__stage: --ws-enter: 0, --ws-glow: 0, --ws-copy: 1, --ws-demo: 0, --ws-bloom: 0",
+        "Reduced-motion overrides: --ws-enter: 1, --ws-copy: 1, --ws-demo: 1, --ws-glow: 0.6"
+      ],
+      "side_effects": [
+        "Runs the infinite CSS animation ws-twinkle (4.5s ease-in-out infinite) on ten spark dots; disabled under prefers-reduced-motion"
+      ],
+      "platform_assumptions": [
+        "Assumes modern browser support for position: sticky, 100dvh, overflow-x: clip, aspect-ratio, clamp(), vmax units and CSS custom properties in calc()",
+        "Not macOS-specific; it is plain web CSS for the product site and has no AppKit/SwiftUI dependency"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Section background: linear-gradient(180deg, rgba(5,7,11,0) 0%, var(--ink) 12%, var(--ink) 88%, rgba(5,7,11,0) 100%)",
+        "Section overflow-x: clip so the 140vmax bloom cannot widen the page",
+        "Static stage: min-height 100vh / 100dvh, display flex column, gap 48px, padding 96px 0",
+        ".ws-ready section height: 500vh (420vh under max-width: 720px); stage becomes position: sticky, top: 0, height 100vh/100dvh, overflow hidden, display block, padding 0",
+        "Glow layer: radial-gradient(46% 36% at 50% 8%, rgba(79,156,255,0.16), rgba(79,156,255,0) 70%), opacity var(--ws-enter, 0)",
+        "Bloom layer: left 50%, top 52%, 140vmax square, border-radius 50%, transform translate(-50%,-50%) scale(calc(0.62 + 0.38 * var(--ws-bloom,0))), background radial-gradient(closest-side, rgba(79,156,255,0.12), rgba(79,156,255,0) 62%)",
+        "Copy block: padding 0 24px, flex column centered, gap clamp(24px, 3.4vh, 36px); pinned variant is absolute inset 0 with transform scale(calc(0.96 + 0.04 * var(--ws-copy)))",
+        "Icon: 96px x 96px (72px x 72px under 720px), border-radius 24px, opacity calc(0.3 + 0.7 * var(--ws-enter,0)), transform scale(calc(0.94 + 0.06 * var(--ws-enter,0)))",
+        "Demo layer padding clamp(16px, 4vw, 48px); pinned variant absolute inset 0, transform scale(calc(0.955 + 0.045 * var(--ws-demo))), pointer-events none until .ws-demo-active",
+        "Demo media box: width min(1040px, 86vw, calc(76vh * 2400 / 1646)), max-height 76vh, aspect-ratio 2400 / 1646, object-fit contain, border-radius clamp(14px, 1.8vw, 24px), background var(--ink); under 720px width becomes min(92vw, calc(76vh * 16 / 9))",
+        ".wordscroll__demo-frame adds 1px solid var(--border-subtle) and box-shadow 0 40px 120px -40px rgba(0,0,0,0.9)",
+        "Headline text: font-family \"Inter Tight\", var(--font-display); font-weight 700; letter-spacing -0.02em; font-size clamp(30px, 4.7vw, 58px); line-height 1.16; max-width 20ch; centered",
+        ".wordscroll__ask variant: font-size clamp(24px, 3.4vw, 42px), max-width 24ch",
+        "Unlit headline color when pinned or reduced-motion: rgba(140, 196, 255, 0.16); lit word color var(--text-primary)",
+        "Glow word layer .w-glo: color transparent, text-shadow 0 0 10px rgba(140,196,255,0.75), 0 0 26px rgba(79,156,255,0.5)",
+        "Sparks container inset: 0 0 55% 0; each spark 2px x 2px (3px for children 2, 5 and 9), background #fff, border-radius 50%",
+        "Spark positions/delays: (1) top 12% left 22% 0.1s, (2) top 28% left 68% 0.6s, (3) top 8% left 52% 1.1s, (4) top 34% left 40% 1.6s, (5) top 18% left 78% 2.1s, (6) top 40% left 16% 2.6s, (7) top 6% left 34% 3.1s, (8) top 24% left 88% 3.6s, (9) top 44% left 60% 4s, (10) top 15% left 8% 0.9s",
+        "ws-twinkle keyframes: 0%/100% opacity 0 scale(0.8), 50% opacity 0.5 scale(1.15)"
+      ],
+      "feature_notes": [
+        "The file header states the palette is the only change from getdroppy.app's wordscroll: same pin, same thresholds, same responsive behavior; the slab is the site's deepest ink and every glow is the blue of the Droppy Code icon",
+        "Without JavaScript the static base stays readable: stage is position static, copy and demo are both fully opaque, video controls are usable",
+        "Under prefers-reduced-motion the section collapses to height: auto, the stage returns to a 96px-padded flex column with 48px gap, sparks stop animating and are hidden, and every .w-lit is forced to opacity 1 !important so all words read lit",
+        "Pointer events on the demo are off while pinned until JS adds .ws-demo-active to the stage, so the video cannot be clicked mid-transition"
+      ],
+      "unresolved_questions": [
+        "--ws-glow, --ws-media and --ws-field-shift are written by wordscroll.js but no rule in this file consumes them; the consumers must live in site.css or a page-specific stylesheet outside this bundle",
+        "The .w-dim span that wordscroll.js creates has no rule here, so its styling also comes from a stylesheet outside this bundle"
+      ]
+    },
+    {
+      "path": "website/assets/js/changelog.js",
+      "sha256": "cc012cba75df6f852d7f4b1a704719fc7c1c6086556e032fc2b15683d15c356e",
+      "lines_total": 527,
+      "ranges_read": [
+        [
+          1,
+          527
+        ]
+      ],
+      "purpose": "IIFE that populates #changelog-root on changelog.html: fetches changelog.json with cache: 'no-cache', sorts releases newest-first by numeric version segments, and builds every card with createElement/textContent (never innerHTML) so release-note strings cannot inject HTML. Also owns the loading/error/empty states, the per-group 'Show N more' collapse, the @handle linkifier for the thanks list, and the single floating app icon that glides between release cards as the reader scrolls.",
+      "key_symbols": [
+        "VISIBLE_ITEMS_PER_GROUP (5)",
+        "GROUP_LABELS map",
+        "setState(kind, buildInner)",
+        "showLoading()",
+        "showError()",
+        "showEmpty()",
+        "formatDate(raw)",
+        "displayTitle(version)",
+        "dropletGlyph()",
+        "channelBadge()",
+        "groupLabel(title)",
+        "buildGroup(section)",
+        "buildThanks(items)",
+        "buildEntry(release, index)",
+        "compareVersions(a, b)",
+        "sortedReleases(releases)",
+        "wireRevealOnScroll(elements)",
+        "renderReleases(data)",
+        "initEntryIcon(root)",
+        "activeSlot()",
+        "handoff()",
+        "requestHandoff()",
+        "loadChangelog()"
+      ],
+      "calls_into": [
+        "document.getElementById('changelog-root') declared in website/changelog.html",
+        "fetch('changelog.json') -> website/changelog.json (fields: releases[].version, .date, .summary, .sections[].title, .sections[].items[], .thanks[])",
+        "Asset paths: assets/images/changelog-icons/new-features.png, bug-fixes.png, refinements.png and assets/brand/droppy-code-icon-256.webp",
+        "CSS classes defined in assets/css/changelog.css (changelog-entry, changelog-group, clog-float-icon, ...) and the shared .reveal/.is-visible convention from site.css",
+        "IntersectionObserver, window.matchMedia('(prefers-reduced-motion: reduce)'), Element.replaceChildren, requestAnimationFrame"
+      ],
+      "state_owned": [
+        "root: the #changelog-root element, cleared with replaceChildren on every state change",
+        "Per-group closure state in buildGroup: visible = items.slice(0, 5), hidden = items.slice(5), and the 'Show N more' button that removes itself after appending the hidden items",
+        "initEntryIcon closure: slots[], entries[], the single .clog-float-icon node cv, current slot, gliding flag, handoffFrame rAF handle, reduceMotion snapshot taken once at init",
+        "No persisted storage of any kind"
+      ],
+      "side_effects": [
+        "Network: fetch('changelog.json', { cache: 'no-cache' }) on load and again on every 'Try again' click",
+        "console.error('[changelog] failed to load changelog.json:', err) on a failed load",
+        "Registers passive window scroll and resize listeners for the floating icon hand-off",
+        "window.setTimeout(..., 680) after each glide to clear the transition and re-check the hand-off",
+        "Sets aria-busy on #changelog-root ('true' only while loading)",
+        "Creates outbound links to https://gitlab.com/<handle> with target=_blank rel=noopener"
+      ],
+      "platform_assumptions": [
+        "Browser-only: no macOS API use. Assumes fetch, IntersectionObserver (with a non-observer fallback that just shows everything), Element.replaceChildren, closest(), and Intl date formatting via toLocaleDateString('en-US')",
+        "Runs from the same directory as changelog.json (relative fetch), so it assumes the page is served, not opened as file://"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Loading state: div.changelog-state[data-changelog-state=\"loading\"] with div.changelog-spinner (aria-hidden) and p.changelog-state__text reading \"Loading release notes...\"",
+        "Error state: title \"Couldn't load the changelog\", text \"Check your connection and try again.\", button.btn.btn--sm labelled \"Try again\" wired to loadChangelog",
+        "Empty state: title \"No releases yet\", text \"Check back soon, new releases will show up here first.\"",
+        "Group headings normalized through GROUP_LABELS: \"new features\" -> \"New features\", \"bug fixes\" -> \"Bug fixes\", \"refinements\" -> \"Refinements\", \"updates\" -> \"Updates\"; any other non-empty title passes through trimmed, an empty title becomes \"Updates\"",
+        "Group icon <img class=\"changelog-group__icon\"> width 15 height 15 alt=\"\", src assets/images/changelog-icons/{new-features|bug-fixes|refinements}.png; no icon for \"Updates\" or custom titles",
+        "Channel pill: span.changelog-entry__channel.changelog-entry__channel--stable containing the droplet SVG plus the text node \"Stable\"",
+        "Droplet glyph: <svg class=\"changelog-entry__channel-glyph\" viewBox=\"0 0 16 16\" aria-hidden focusable=\"false\"> with path d=\"M8 1.9C8 1.9 3.4 7.7 3.4 10.6a4.6 4.6 0 0 0 9.2 0C12.6 7.7 8 1.9 8 1.9Z\" fill=\"currentColor\"",
+        "Entry card: article.changelog-entry.reveal.is-stable with inline --reveal-delay = min(index * 70, 350) + \"ms\"",
+        "Entry aside: div.changelog-entry__aside > div.changelog-entry__pin holding p.changelog-entry__date (formatted date then the Stable badge), h2.changelog-entry__title, p.changelog-entry__version and an empty aria-hidden div.changelog-entry__islot",
+        "Entry body: p.changelog-entry__summary, then each div.changelog-group (h3.changelog-group__label + ul.changelog-item-list > li.changelog-item), then the thanks block",
+        "Thanks block: div.changelog-thanks with p.changelog-thanks__label reading \"Thanks\" and ul.changelog-thanks-list > li.changelog-thanks-item",
+        "Show-more button: button.changelog-more with text \"Show \" + hidden.length + \" more\"",
+        "Floating icon: div.clog-float-icon, inline width and height both \"84px\", aria-hidden, containing img.clog-float-icon__face.is-front with src assets/brand/droppy-code-icon-256.webp, alt=\"\", decoding=\"async\"; .is-on is added on the next animation frame"
+      ],
+      "feature_notes": [
+        "Title text is \"Droppy Code \" + version, falling back to \"New release\" when the version is missing or blank",
+        "formatDate only rewrites a strict /^(\\d{4})-(\\d{2})-(\\d{2})$/ string, builds a local Date(year, month-1, day) to avoid a timezone day shift, and renders it as en-US { month: 'long', day: 'numeric', year: 'numeric' } (so \"2026-07-06\" -> \"July 6, 2026\"); anything else is passed through unchanged, and a non-string returns \"\"",
+        "Sorting is numeric per dot-separated segment with missing or NaN segments treated as 0, newest first, on a copy of the array (slice) so the fetched data is not mutated",
+        "Every entry is drawn as a stable release: the code comments say every entry on this page wears the one blue pill with the droplet glyph and the Stable label; release.platform is never read",
+        "Thanks strings are split on /@([A-Za-z0-9_.-]+)/g and each captured handle becomes an <a class=\"changelog-thanks__handle\"> with text \"@handle\" pointing at https://gitlab.com/<handle>",
+        "Reveal observer uses rootMargin \"0px 0px -5% 0px\" and threshold 0 (deliberately, so very long release cards reveal as soon as they start entering the viewport) and unobserves each card once revealed",
+        "The floating icon picks its host slot by the entry whose rect straddles a line at 42% of the viewport height (vh * 0.42), otherwise the nearest entry by distance to that line",
+        "The hand-off is a FLIP glide: measure, reparent, then transform translate3d(dx,dy,0) with transition \"transform 640ms cubic-bezier(0.22, 0.61, 0.36, 1)\" back to zero, re-armed after 680ms; under prefers-reduced-motion the icon reparents with no animation",
+        "initEntryIcon bails if there are no islots or a .clog-float-icon already exists, so the icon is created exactly once",
+        "Entries that are not objects are skipped; if nothing renders, the empty state shows"
+      ],
+      "unresolved_questions": [
+        "The one-of-a-kind cross-dissolve the comment mentions is gone: only a single face image is used, so there is no second face element to fade between; whether a second channel (beta) ever existed is not determinable from this file",
+        "release.platform is present in changelog.json but never consumed here, so its purpose on the website is unclear from this file alone"
+      ]
+    },
+    {
+      "path": "website/assets/js/code.js",
+      "sha256": "d92b93266217d8b606ce4e348bcf1b58b3ad7e651fa4f8ce7fa10302ec9ac926",
+      "lines_total": 391,
+      "ranges_read": [
+        [
+          1,
+          391
+        ]
+      ],
+      "purpose": "Page script for the Droppy Code marketing page: draws the scroll-scrubbed binary (0/1) canvas field behind the hero and outro, runs the horizontal highlight rail carousel (drag, arrows, keyboard, aria-current), and builds the theme picker that swaps one large real-app capture across 26 named themes on a 2600ms auto-cycle. Also keeps a deliberately empty initFilms() stub because the page is stills only now.",
+      "key_symbols": [
+        "reducedMotion (matchMedia('(prefers-reduced-motion: reduce)'))",
+        "initBinaryField(host)",
+        "resize()/progress()/draw(p)/tick()/requestDraw()/scheduleResize()/onScroll()",
+        "initHighlightRail(root)",
+        "pageGutter()/targetLeft(index)/nearestIndex()/setActive(index)/syncFromScroll()/goTo(index, behavior)/finishDrag(event)/resync()",
+        "THEMES (26-entry array of [id, name, detail])",
+        "THEME_BASE",
+        "buildThemePicker(host)",
+        "image(id)/show(id)/cycle()",
+        "initFilms() (no-op)",
+        "onReady(callback)"
+      ],
+      "calls_into": [
+        "DOM hooks: [data-binary-field] with a child <canvas>, [data-highlight-carousel] containing [data-highlight-rail], [data-highlight-slide], [data-highlight-prev], [data-highlight-next], and [data-theme-picker]",
+        "Attributes read: data-progress ('pagetop' or 'viewport'), data-scroll-span, data-density",
+        "Remote asset host https://droppy-releases.jordylegrand.workers.dev/site-assets/droppy-code/tour/v5/themes/<id>.webp",
+        "Canvas 2D API, IntersectionObserver, ResizeObserver, document.fonts.ready, Element.scrollTo, Pointer Events with setPointerCapture",
+        "Mirrors the app's AppTheme.swift theme identifiers"
+      ],
+      "state_owned": [
+        "Binary field per host: mode, span (default 480), density (default 1), CELL=22, FONT, TRAIL=9, cols, rows, dpr, bits[] (one seeded '0'/'1' per cell), heads[] ({start, travel} per column), frame rAF handle, lastProgress, resizeTimer, lastSize, active flag",
+        "Highlight rail per root: activeIndex, scrollFrame, dragPointer, dragStartX, dragStartScroll",
+        "Theme picker per host: images{} cache keyed by theme id, chips{} keyed by theme id, current theme id, timer (setInterval handle), order[] of theme ids"
+      ],
+      "side_effects": [
+        "Canvas painting on scroll via requestAnimationFrame; ResizeObserver (or window resize/load) triggers a debounced 80ms re-seed",
+        "Network: lazily loads <img> for each theme from the remote worker host, only when that theme is about to show",
+        "window.setInterval(cycle, 2600) started/stopped by an IntersectionObserver at threshold 0.4",
+        "Passive window scroll and resize listeners; rail scrollTo with 'smooth' behavior (or 'auto' under reduced motion)",
+        "Pointer capture on the rail during a mouse drag"
+      ],
+      "platform_assumptions": [
+        "Browser-only; no macOS APIs. Assumes devicePixelRatio (clamped to 2), Canvas 2D, Pointer Events, ResizeObserver/IntersectionObserver with graceful fallbacks, and scrollTo with a behavior option",
+        "Font stack \"500 13px ui-monospace, 'SF Mono', Menlo, monospace\" leans on Apple system monospace faces first, so the intended rendering is a Mac browser",
+        "The theme detail 'Follows your Mac' and the THEMES list mirror the macOS app's AppTheme enum"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Binary field: cell size 22px, font \"500 13px ui-monospace, 'SF Mono', Menlo, monospace\", textBaseline 'top', glyph drawn at (c*22 + 4, r*22 + 3)",
+        "Trail length 9 cells; base alpha 0.045 + 0.035 * (((c*7 + r*3) % 11) / 10); alpha capped at 0.6",
+        "Trail digit color rgba(140, 196, 255, alpha), resting digit color rgba(120, 165, 230, alpha), both to 3 decimal places",
+        "Column activation probability 0.55 * density; inactive columns get start = Infinity; active start = -random * rows * 0.6; travel = rows * (1.1 + random * 0.9)",
+        "Redraw threshold: skip when |p - lastProgress| < 0.002; resize debounce 80ms and skipped unless the rounded WxH string changed",
+        "Highlight rail: prev disabled when rail.scrollLeft <= 2, next disabled when scrollLeft >= scrollWidth - clientWidth - 2; active card gets aria-current=\"true\"",
+        "Rail keyboard: Home -> first card, End -> last card, ArrowLeft/ArrowRight -> step one card, each with preventDefault",
+        "Rail drag: only pointerType 'mouse' with button 0, ignored when the target is inside button, a, input, select or textarea; adds/removes class 'is-dragging' and snaps to the nearest card on release",
+        "Theme picker DOM: div.themes__stage, div.themes__names[role=tablist] of button.themes__name[role=tab] (text = theme display name), and p.themes__caption",
+        "Theme image: <img> width 2080 height 1300 decoding=\"async\", src THEME_BASE + id + \".webp\", alt \"Droppy Code in the \" + id + \" theme\"; active image and chip carry class 'is-current' and the chip gets aria-selected true/false",
+        "Caption text format: theme name + \" \\u00b7 \" + detail, e.g. \"Tokyo Night · Dark · Blue\"",
+        "THEMES list (id, name, detail): system/System/Follows your Mac; light/Light/Light · System accent; dark/Dark/Dark · System accent; catppuccinMocha/Catppuccin Mocha/Dark · Mauve; catppuccinLatte/Catppuccin Latte/Light · Mauve; dracula/Dracula/Dark · Purple; tokyoNight/Tokyo Night/Dark · Blue; nord/Nord/Dark · Frost; gruvbox/Gruvbox/Dark · Orange; gruvboxLight/Gruvbox Light/Light · Rust; oneDark/One Dark/Dark · Blue; everforest/Everforest/Dark · Green; kanagawa/Kanagawa/Dark · Wave blue; rosePine/Rosé Pine/Dark · Rose; solarizedDark/Solarized Dark/Dark · Blue; solarizedLight/Solarized Light/Light · Blue; githubDark/GitHub Dark/Dark · Blue; githubLight/GitHub Light/Light · Blue; ayu/Ayu/Dark · Amber; nightOwl/Night Owl/Dark · Blue; monokai/Monokai/Dark · Pink; claude/Claude/Dark · Terracotta; claudeLight/Claude Light/Light · Terracotta; codex/Codex/Dark · Magenta; cursor/Cursor/Dark · Frost; matrix/Matrix/Dark · Green"
+      ],
+      "feature_notes": [
+        "Binary field modes: 'pagetop' (the default) maps window.scrollY / data-scroll-span (default 480px) to progress, 'viewport' maps (viewportHeight - rect.top) / (viewportHeight + rect.height) while the host crosses the viewport; under prefers-reduced-motion progress() returns a constant 0 so nothing moves",
+        "The trail digit is computed from position, not the seeded cell: ((r*7 + c*13 + yi) & 1) ? '1' : '0', so the streaming head shows a deterministic pattern while resting cells keep their seeded bit",
+        "document.fonts.ready resets lastProgress to -1 and redraws, so the field repaints once the monospace font is available",
+        "Rail arrows are re-synced on window 'load' and by a ResizeObserver, because deferred scripts can run before the stylesheet and fonts have laid the cards out",
+        "Theme picker starts on 'dark' and eagerly warms 'claude', 'catppuccinMocha' and 'codex' so the first cycles never show an empty stage; each cycle also preloads the theme two steps ahead",
+        "Clicking any theme chip clears the interval permanently (timer set to 0 and never restarted by the click path), so a visitor's choice stops the auto-cycle",
+        "The cycle only runs while the picker is at least 40% visible and stops when it leaves; it is never started under prefers-reduced-motion",
+        "Section 4 is explicitly dead: initFilms() is an empty function kept because the page is stills only, and the header comment records that film playback was removed"
+      ],
+      "unresolved_questions": [
+        "The header comment says theme stills live under site-assets/droppy-code/themes while THEME_BASE actually points at site-assets/droppy-code/tour/v5/themes/, and the comment adds that the tour prefix has no per-theme stills; which path the deployed assets use cannot be settled from this file",
+        "Whether the theme cycle restarts after a chip click when the picker scrolls out and back in: the IntersectionObserver would restart it because timer is 0 and reducedMotion is false, which appears to contradict the 'until the visitor picks one' comment; no other guard exists in this file"
+      ]
+    },
+    {
+      "path": "website/assets/js/site.js",
+      "sha256": "8a5d9d2f4a87ae77488ea44c5c55849b8bfec42ffc6bec3d7861c910e5dad13d",
+      "lines_total": 402,
+      "ranges_read": [
+        [
+          1,
+          402
+        ]
+      ],
+      "purpose": "Shared script for every page of the marketing site, in two IIFEs. The first owns reveal-on-load/reveal-on-scroll, the FAQ accordion, the injected skip link, the phone notch menu, the active nav link, the footer year, the footer wordmark parallax and an anti-copy guard. The second builds the button 'morph hover' DOM: it wraps each button's children in a rest face and adds a hover face carrying a glyph, chosen from data-morph-glyph, a leading icon child, or a label regex table.",
+      "key_symbols": [
+        "initReveal()",
+        "settleReveal(el)/show(el)",
+        "REVEAL_RATIO (0.12)",
+        "initFaq()",
+        "markActiveNavLink()",
+        "setCurrentYear()",
+        "initSkipLink()",
+        "initNotchMenu()",
+        "isPhoneDock()/syncInteractivity(open)/close()",
+        "initWordmarkParallax()",
+        "initGuard()",
+        "onReady(callback)",
+        "SELECTOR",
+        "GLYPH_HEAD",
+        "GLYPHS (arrow-down, arrow-right, arrow-up-right, arrow-left, check, house, envelope, question)",
+        "LABEL_GLYPHS",
+        "glyphNode(name)",
+        "findMark(btn, label)",
+        "prepare(btn)",
+        "TAP_CLASS ('is-tapmorph')",
+        "tapMorph(btn)",
+        "onClick(event)",
+        "start()"
+      ],
+      "calls_into": [
+        "CSS classes/vars defined in assets/css/site.css: .reveal/.is-visible/.is-settled, .faq__item/.faq__question/.is-open, .skip-link, .nav__pill/.nav__links/.nav__menu/.nav__link/.is-active, .footer__wordmark, .btn-morph, .btn-morph__face--rest, .btn-morph__face--hover, .btn-morph__mark, .btn-morph--icon, .btn-morph--label, .is-tapmorph",
+        "Markup hooks: [data-reveal-on-load], [data-current-year], data-morph-glyph, data-morph=\"off\"",
+        "IntersectionObserver, matchMedia, requestAnimationFrame/cancelAnimationFrame, Element.closest, :scope selector support"
+      ],
+      "state_owned": [
+        "initReveal: loadElements[] and scrollElements[] partitions, plus the IntersectionObserver instance",
+        "initNotchMenu: pill/btn/links references and the .is-open class as the single source of open state",
+        "initWordmarkParallax: frame (rAF handle) and active (listener-attached) flags",
+        "Morph IIFE: per-button DOM state only, plus the TAP_CLASS marker during a tap morph; no module-level mutable state besides the constant tables",
+        "No storage, no cookies"
+      ],
+      "side_effects": [
+        "Inserts an <a class=\"skip-link\"> as the first child of <body> and gives <main> an id ('main' if missing) and tabindex=\"-1\"",
+        "window.setTimeout(..., 1100) per revealed element to add .is-settled; a transitionend listener does the same",
+        "Global preventDefault listeners for contextmenu, copy, cut, dragstart and selectstart, plus a keydown handler that blocks Cmd/Ctrl+S, Cmd/Ctrl+U and Cmd/Ctrl+C (when Shift is not held)",
+        "Passive scroll/resize listeners for the wordmark parallax, attached and removed by an IntersectionObserver with rootMargin '100% 0px'",
+        "A capture-phase document click listener for the touch tap morph, plus window.setTimeout(..., 700) as the tap-morph fallback clear",
+        "Sets aria-expanded on the nav menu button and the FAQ questions, and the inert attribute on the nav links while the phone dock is closed",
+        "Mutates button DOM: moves all existing children into a rest face span and sets aria-label from the trimmed label"
+      ],
+      "platform_assumptions": [
+        "Browser-only; no macOS APIs. The keyboard guard checks event.metaKey || event.ctrlKey so it covers both Command on macOS and Control elsewhere",
+        "Uses the :scope selector, the inert attribute and Element.closest, so it assumes an evergreen browser",
+        "matchMedia('(hover: hover) and (pointer: fine)') is used to decide that a pointer device gets the CSS hover morph and a touch device gets the tap morph"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Skip link text: \"Skip to content\", href '#' + main.id",
+        "Reveal observer options: root null, rootMargin \"0px 0px -8% 0px\", threshold [0, 0.005, 0.01, 0.02, 0.04, 0.08, 0.12]; ready when intersectionRatio >= 0.12, or when the element is taller than the root, when intersectionRect.height >= rootHeight * 0.12",
+        "Reveal settle delay: 1100ms",
+        "Phone dock breakpoint: matchMedia(\"(max-width: 720px)\")",
+        "Nav links container gets id 'site-navigation-links' when it has none, and the menu button gets aria-controls pointing at it",
+        "Wordmark parallax: progress = clamp((viewportHeight - rect.top) / (rect.height + viewportHeight * 0.25)), drift = (1 - progress) * 24, applied as transform translateY(calc(0.06em + <drift>px)) with one decimal",
+        "Morph selector: \".btn, .btn--applepill, .btn--darkpill, .footer__cta\"",
+        "Glyph SVG head: viewBox \"0 0 16 16\", fill none, stroke currentColor, stroke-width 1.7, stroke-linecap round, stroke-linejoin round, aria-hidden, focusable=false",
+        "Glyph paths: arrow-down \"M8 2.75v10\" + \"M3.75 8.75 8 13l4.25-4.25\"; arrow-right \"M2.75 8h10\" + \"M8.75 3.75 13 8l-4.25 4.25\"; arrow-up-right \"M6.5 9.5 13 3\" + \"M5.75 3H13v7.25\"; arrow-left \"M13.25 8h-10\" + \"M7.25 3.75 3 8l4.25 4.25\"; check \"m3 8.7 3.3 3.3L13 4.4\"; house \"m2.7 7.7 5.3-5 5.3 5\" + \"M4.3 6.5v6.6h7.4V6.5\"; envelope rect x=2.2 y=3.6 w=11.6 h=8.8 rx=1.6 + \"m2.8 4.6 5.2 4.2 5.2-4.2\"; question \"M5.9 5.5a2.2 2.2 0 1 1 3.1 2c-.7.4-1 .9-1 1.7\" + \"M8 12.3h.01\"",
+        "LABEL_GLYPHS regex table in order: /^back to home\\b|^home\\b/ -> house; /^back\\b/ -> arrow-left; /^continue\\b/ -> arrow-right; /^what is\\b|\\?$/ -> question; /^(download|get droppy)\\b/ -> arrow-down; /^(view source|open source|source|gitlab|github|meet)\\b/ -> arrow-up-right; /^(see what it does|see how it works|show more)\\b/ -> arrow-down",
+        "Tap morph fallback clear at 700ms, also cleared on the first animationend"
+      ],
+      "feature_notes": [
+        "Reveal-on-load uses a double requestAnimationFrame so the browser paints the opacity: 0 state first and the transition actually runs",
+        "Without IntersectionObserver every scroll-reveal element is shown immediately",
+        "The FAQ toggle flips .is-open on the closest .faq__item and mirrors it into aria-expanded on the question; multiple items can be open at once (no accordion close of siblings)",
+        "markActiveNavLink only runs when there is a location.hash and adds .is-active to every .nav__link whose href equals that hash exactly",
+        "The notch menu closes on a nav-link click, on any document click outside the pill, on Escape (returning focus to the button) and on any window resize; when the phone dock is active and closed the links get the inert attribute so they are unfocusable",
+        "Section 5 is titled \"Nothing on the page is for taking\": selection, copy, cut, drag and the context menu are all suppressed, and Save-as / view-source / copy keyboard shortcuts are preventDefault-ed",
+        "Morph mark priority: data-morph-glyph=\"<name>\" (with \"none\" opting out to a plain label dissolve), else a leading <svg>/<img> child cloned into the hover face, else a LABEL_GLYPHS match on the lowercased label, else the label itself dissolves and reforms",
+        "prepare() is idempotent: it returns early when a :scope > .btn-morph__face--rest already exists, when data-morph=\"off\", or when the button has no children",
+        "The accessible name is pinned by setting aria-label to the trimmed label (only when neither aria-label nor aria-labelledby is already present), so the name is identical at rest and on hover",
+        "A button with a mark gets class btn-morph--icon, one without gets btn-morph--label, and both get btn-morph",
+        "The tap morph is added in a capture-phase click listener so it can never gate the click, and it is skipped entirely on hover-capable fine-pointer devices"
+      ],
+      "unresolved_questions": [
+        "The 'check' and 'envelope' glyphs are defined but unreachable through LABEL_GLYPHS; they can only be selected via data-morph-glyph on a page outside this bundle, so their real use sites are unknown here",
+        "The anti-copy guard (initGuard) fires unconditionally on every page including the changelog, but whether any page opts out is not determinable from this file"
+      ]
+    },
+    {
+      "path": "website/assets/js/wordscroll.js",
+      "sha256": "d781ff0e7fdf63c788f0bcba291ae6e471170c4583b087b92d6c026be78f84ea",
+      "lines_total": 249,
+      "ranges_read": [
+        [
+          1,
+          249
+        ]
+      ],
+      "purpose": "Drives every [data-wordscroll] section: splits each [data-wordsplit] paragraph into per-word spans, then on scroll writes --ws-* custom properties on the stage so words light one by one, a glow word pulses, the copy fades out and the demo video fades in, and the section's videos are played, paused and preloaded according to scroll progress and visibility.",
+      "key_symbols": [
+        "initWordscroll(section)",
+        "clamp(value, min, max)",
+        "setVariable(name, value)",
+        "playDemo()/pauseDemo()",
+        "update()",
+        "requestUpdate()",
+        "section.__droppyWordscroll guard flag",
+        "hlEntries (glow word records: word, index, span, lastHighlight)"
+      ],
+      "calls_into": [
+        "Markup hooks: [data-wordscroll], [data-wordscroll-split], [data-wordscroll-glow], [data-wordscroll-marks], [data-wordsplit], .wordscroll__stage, .wordscroll__demo, .wordscroll__demo-video, and the legacy .social-benchmark__infinities span selector",
+        "Video attribute data-remote, swapped into video.src off localhost",
+        "CSS in website/assets/css/wordscroll.css (.ws-ready, .ws-reduced-motion, .ws-demo-active, .w/.w-dim/.w-lit/.w-glo and the --ws-* properties)",
+        "IntersectionObserver, matchMedia, requestAnimationFrame, HTMLMediaElement play()/pause(), the inert property"
+      ],
+      "state_owned": [
+        "Per-section closure: stage, demo, videos[], splitLayout, infinityMarks[], reduceMotion, paragraphs[], lits[], wraps[], glow[] (normalized words), hlEntries[]",
+        "active (visibility), ticking (rAF in flight), lastValues[] (one per word, initialized to -1), variables map { enter, glow, copy, demo, bloom, media, field-shift } all initialized to -1",
+        "preloadHinted (one-shot) and videoPlaying flags",
+        "section.__droppyWordscroll = true as the re-init guard"
+      ],
+      "side_effects": [
+        "Rewrites each [data-wordsplit] paragraph's DOM: clears textContent and rebuilds it as .w wrappers with .w-dim, .w-lit and optional .w-glo children plus single-space text nodes",
+        "Sets video.src from data-remote when the hostname is neither 'localhost' nor '127.0.0.1' (so local development keeps the local file)",
+        "Media playback: video.play() / video.pause(); a rejected play promise resets videoPlaying to false",
+        "Sets video.preload = 'auto' once past the preload threshold",
+        "Sets demo.inert true/false and toggles the stage class 'ws-demo-active'",
+        "Writes inline styles: --ws-* on the stage, opacity on lit and glow spans, transform on word wrappers and drifting marks",
+        "Adds classes 'ws-ready' and (under reduced motion) 'ws-reduced-motion' to the section",
+        "Registers a document visibilitychange listener plus passive window scroll and resize listeners"
+      ],
+      "platform_assumptions": [
+        "Browser-only; no macOS APIs. Uses the inert DOM property, IntersectionObserver with a plain always-active fallback, and matchMedia guarded by a feature check",
+        "Assumes location.hostname is checked to distinguish local development from production asset hosting"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Word markup produced per word: <span class=\"w\"><span class=\"w-dim\">word</span><span class=\"w-lit\" aria-hidden=\"true\">word</span>[<span class=\"w-glo\" aria-hidden=\"true\">word</span>]</span>, separated by a literal space text node except after the last word",
+        "Default glow word: \"your\"; data-wordscroll-glow takes a space-separated list, each entry stripped to [a-z] and lowercased, matched on its first occurrence only",
+        "Enter ramp: --ws-enter = clamp(progress / 0.10, 0, 1)",
+        "Word sweep window: startProgress 0.10 (0.08 in split layout), endProgress 0.40 (0.66 in split layout); per-word span = (end - start) / count * 2.4",
+        "Per-word transform while lighting: translateY of 0.12 * (1-value)^2 - 0.04 * sin(PI * value) em, to 4 decimals; cleared to \"\" once value reaches 1",
+        "--ws-copy = 1 - clamp((progress - 0.47) / 0.08, 0, 1) (constant 1 in split layout)",
+        "--ws-demo = clamp((progress - 0.52) / 0.08, 0, 1) (constant 1 in split layout)",
+        "--ws-bloom = clamp(1 - |progress - 0.53| / 0.11, 0, 1); split layout uses clamp(1 - |progress - 0.48| / 0.42, 0, 1)",
+        "Split layout also writes --ws-media = progress and --ws-field-shift = (progress - 0.5) * 9",
+        "Glow word highlight: peak at (its lit point + 0.02) with a half-width of 0.05, i.e. clamp(1 - |progress - (highlightLit + 0.02)| / 0.05, 0, 1)",
+        "Drifting marks (split layout): grouped six at a time with group starts [0, 0.18, 0.36, 0.56], peak = start + 0.16, end = min(1, start + 0.4); opacity = phase * (0.5 + (index % 4) * 0.08) to 3 decimals; transform translate3d(direction * (progress - peak) * 5 px, -direction * (progress - peak) * 7 px, 0) scale(0.92 + phase * 0.08), direction alternating by index parity",
+        "Preload threshold: progress > 0.25 (0.02 in split layout); play threshold: progress > 0.5 (0.1 in split layout)",
+        "IntersectionObserver rootMargin \"20% 0px\"",
+        "Property write epsilon: values are only written when they differ by more than 0.001"
+      ],
+      "feature_notes": [
+        "Progress is computed from the section rect: clamp(-rect.top / (rect.height - window.innerHeight)); if that denominator is <= 0 the update bails, so an unpinned section never scrubs",
+        "The demo slot may be the video itself (homepage shelf demo) or a card that wraps a video (creators page), and several such cards may exist; the section owns play/pause for every media element so an off-screen stage never decodes frames",
+        "Under prefers-reduced-motion the section still gets .ws-ready but also .ws-reduced-motion, demo.inert is set false, every video gains a controls attribute, and the function returns before any scroll wiring, so nothing scrubs",
+        "In the non-split layout .ws-demo-active is only added once --ws-demo reaches 0.99, gating pointer events on the demo; in split layout the demo is always active",
+        "Videos swap to their data-remote source only off localhost/127.0.0.1, keeping local development on the local file",
+        "Pausing is driven both by scroll progress and by IntersectionObserver leaving and by document.hidden, so a hidden tab stops playback",
+        "The re-entrancy guard __droppyWordscroll means a section is only initialized once even if the script runs twice",
+        "The legacy .social-benchmark__infinities span selector is kept only so the social license page keeps working; new pages opt in with [data-wordscroll-marks]"
+      ],
+      "unresolved_questions": [
+        "The 'glow' variable computed as sweep is written to --ws-glow but no rule in wordscroll.css reads it; its visual effect must come from another stylesheet not in this bundle",
+        "The entry-lookup loop that walks hlEntries backwards duplicates the push that immediately precedes it, so a second, independent path to attach a .w-glo span exists; whether it can ever match a different entry than the one just pushed is not determinable from this file alone",
+        "data-wordscroll-split pages (the creators / social license pages) are not in this bundle, so the split-layout mark markup and its stylesheet could not be confirmed"
+      ]
+    },
+    {
+      "path": "website/changelog.html",
+      "sha256": "de89ec2d3819496d1ccb147b3d9c7d85e665433d6846c18b7675cc1b593af12e",
+      "lines_total": 178,
+      "ranges_read": [
+        [
+          1,
+          178
+        ]
+      ],
+      "purpose": "The site's changelog page shell: full <head> SEO/Open Graph/Twitter/favicon/font boilerplate kept identical with index.html by hand, an inline sessionStorage nav-intro gate, the shared Apple-mark SVG symbol, the notch nav, a hero, an empty #changelog-root that changelog.js fills at runtime, and the shared five-column footer with wordmark.",
+      "key_symbols": [
+        "#changelog-root (aria-live=\"polite\", aria-busy=\"true\")",
+        "<symbol id=\"apple-mark\" viewBox=\"0 0 16 19.81\">",
+        "nav.nav > .nav__pill (.nav__logo, .nav__links, .nav__menu, .nav__cta)",
+        "section.changelog-hero / .changelog-hero__inner.stack-center.scrub-frost",
+        "section.changelog-section.section-tight",
+        "footer.footer > .footer__grid (.footer__brand and four .footer__col navs) + .footer__wordmark"
+      ],
+      "calls_into": [
+        "assets/css/site.css?v=14 and assets/css/changelog.css?v=2",
+        "assets/js/site.js?v=5 (defer) and assets/js/changelog.js?v=3 (defer)",
+        "assets/brand/favicon.ico, droppy-code-icon-96.png, droppy-code-icon-180.png, assets/images/jordy.webp, assets/og/og-home.png?v=2",
+        "Google Fonts css2 for Instrument Sans 400;500;600;700, Inter 400;500;600;700 and Inter Tight 500;600;700 with display=swap",
+        "index.html anchors: #hydra, #features, #highlights, #agents, #usage, #themes, #download, #faq",
+        "/download/latest via the [data-download-link] footer CTA"
+      ],
+      "state_owned": [
+        "sessionStorage key \"droppyCodeNavIntro\": read in an inline head script; when already set the class \"nav-intro-done\" is appended to document.documentElement, otherwise it is set to \"1\". Wrapped in try/catch so blocked storage is ignored"
+      ],
+      "side_effects": [
+        "Writes sessionStorage.droppyCodeNavIntro = \"1\" on the first page view of a session",
+        "Preconnects to https://fonts.googleapis.com and https://fonts.gstatic.com (crossorigin) and loads a remote Google Fonts stylesheet",
+        "Loads two deferred scripts which then fetch changelog.json"
+      ],
+      "platform_assumptions": [
+        "The page markets a macOS-only app: the footer CTA reads \"Download for macOS\" and the description says \"A native macOS app for your coding agents\"",
+        "Browser-only page; assumes sessionStorage, deferred scripts and SVG <use href> support"
+      ],
+      "persisted_fields": [
+        "sessionStorage \"droppyCodeNavIntro\": string \"1\", absent by default; presence adds the html class \"nav-intro-done\""
+      ],
+      "ui_elements": [
+        "<title>Changelog, Droppy Code</title>; meta description \"Every feature, fix and refinement shipped to Droppy Code, newest release first, with thanks to the people who contributed.\"",
+        "canonical https://getdroppycode.app/changelog.html; theme-color #0b0e14; color-scheme dark",
+        "Open Graph: og:type website, og:site_name \"Droppy Code\", og:locale en_US, og:title \"Changelog, Droppy Code\", og:url https://getdroppycode.app/changelog.html, og:image (and secure_url) https://getdroppycode.app/assets/og/og-home.png?v=2, type image/png, width 1200, height 630, alt \"Droppy Code. The coding app by Droppy.\"",
+        "Twitter: card summary_large_image, matching title, description, image and image:alt",
+        "Favicons: /assets/brand/favicon.ico sizes=any, /assets/brand/droppy-code-icon-96.png 96x96, apple-touch-icon /assets/brand/droppy-code-icon-180.png 180x180",
+        "<noscript><style>.reveal { opacity: 1; transform: none; }</style></noscript>",
+        "Apple mark symbol id \"apple-mark\", viewBox \"0 0 16 19.81\", single path filled currentColor, hosted in a 0x0 absolutely positioned aria-hidden svg",
+        "Nav: logo image droppy-code-icon-96.png 24x24 with label \"Droppy Code\" and aria-label \"Droppy Code home\"; links Hydra (index.html#hydra), Features (index.html#features), Changelog (changelog.html, aria-current=\"page\"), FAQ (index.html#faq); a three-span hamburger button with aria-expanded=\"false\" aria-label=\"Menu\"; CTA a.btn.btn--sm.nav__cta \"Download\" -> index.html#download",
+        "Hero: kicker with droppy-code-icon-96.png height 20 and text \"Release notes\"; h1.section-heading \"Changelog\"; subtitle \"Every feature, fix and refinement shipped to Droppy Code, newest release first.\"; reveal delays --reveal-delay 70ms (h1) and 140ms (subtitle), all three marked data-reveal-on-load",
+        "Server-rendered loading state inside #changelog-root: div.changelog-state[data-changelog-state=\"loading\"] with div.changelog-spinner and \"Loading release notes...\"",
+        "Footer brand: logo 48x48, tagline \"The coding app by Droppy.\", description \"A native macOS app for your coding agents. Codex, Claude, Cursor, OpenCode, Grok, Antigravity, Copilot, Command Code, DeepSeek, Meta and Z.ai, in one Liquid Glass window on Apple silicon.\"",
+        "Footer CTA a.footer__cta[data-download-link] href /download/latest, Apple mark <use href=\"#apple-mark\"> and text \"Download for macOS\"",
+        "Footer copyright \"© <span data-current-year>2026</span> getdroppy.app - All rights reserved\"; byline \"Built with 💙 by\" + jordy.webp 28x28 + \"Jordy Spruit\"; madeby line \"Droppy Code is made by Droppy, the supercharged Dynamic Island for Mac.\"",
+        "Footer column Menu: Home, Hydra, Highlights, Agents, Usage, Themes, Features, Download, FAQ, Changelog, Source (https://gitlab.com/droppyformac1/droppy-code)",
+        "Footer column Droppy: Droppy for Mac, Droppy for iPhone (getdroppy.app/ios), Droplets, Blog, Docs, Privacy policy, Terms of service",
+        "Footer column Open source: Source code, Releases, Merge requests, AGPL-3.0 License, Third-party notices, Trademark policy, all under https://gitlab.com/droppyformac1/droppy-code",
+        "Footer column Connect: Discord (https://discord.gg/2yAjDnVxgF), hi@getdroppy.app, The Trench (getdroppy.app/trench.html), getdroppy.app",
+        "Footer wordmark: <div class=\"footer__wordmark\" aria-hidden=\"true\"><span>Droppy Code</span></div>"
+      ],
+      "feature_notes": [
+        "The header comment states there is no build step and that head, nav and footer must be kept identical with index.html by hand",
+        "Release notes render at runtime from changelog.json fetched relative to this page, newest release first",
+        "The inline nav-intro script runs before the stylesheet link so the nav intro animation only plays once per browser session",
+        "Every outbound link uses target=\"_blank\" rel=\"noopener\"",
+        "Cache-busting query strings are pinned per asset: site.css?v=14, changelog.css?v=2, site.js?v=5, changelog.js?v=3",
+        "The static loading block duplicates what showLoading() builds, so the page reads correctly before changelog.js runs and with JavaScript off it stays on that state"
+      ],
+      "unresolved_questions": [
+        "The page links to /download/latest via [data-download-link], but no script in this bundle reads that attribute, so which script rewrites the download href is unknown",
+        "The hero uses classes stack-center, scrub-frost, section-tight, hero__kicker and section-heading whose definitions live in site.css, which is not in this bundle"
+      ]
+    },
+    {
+      "path": "website/changelog.json",
+      "sha256": "34ae38bdc4712f30a90b8594f9ffdbe5ae94d968c86eaabaf0131cf2599e9594",
+      "lines_total": 541,
+      "ranges_read": [
+        [
+          1,
+          541
+        ]
+      ],
+      "purpose": "The data file changelog.js fetches: a generated manifest of all 16 shipped Droppy Code releases, 1.0.0 through 1.6.0, each with version, date, platform, a prose summary and grouped note items, plus the contributor thanks list for 1.6.0. It doubles as the authoritative public feature history of the macOS app.",
+      "key_symbols": [
+        "generated_at",
+        "releases[]",
+        "releases[].version",
+        "releases[].date",
+        "releases[].platform",
+        "releases[].summary",
+        "releases[].sections[].title",
+        "releases[].sections[].items[]",
+        "releases[].thanks[]"
+      ],
+      "calls_into": [
+        "Consumed only by website/assets/js/changelog.js (fetch('changelog.json', { cache: 'no-cache' }))"
+      ],
+      "state_owned": [
+        "generated_at: \"2026-09-18T17:57:43.854565+00:00\" (ISO 8601 with microseconds and +00:00 offset, the signature of a Python datetime.isoformat())"
+      ],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Every release carries \"platform\": \"mac\" and nearly every summary ends \"Apple silicon, macOS 26 or later. Signed and notarized.\"",
+        "Content is macOS-specific throughout: Keychain, AppKit layout passes, Liquid Glass, SF Symbols, the menu bar, ⌘ chords, disk image with drag-to-Applications window, traffic lights, notarization"
+      ],
+      "persisted_fields": [
+        "generated_at: string, ISO 8601 timestamp",
+        "releases: array of 16 objects, each with version: string, date: string \"YYYY-MM-DD\", platform: string \"mac\", summary: string, sections: array, thanks: array of strings",
+        "sections[].title: only ever \"New features\", \"Bug fixes\" or \"Refinements\" across the whole file"
+      ],
+      "ui_elements": [
+        "Release list newest-first in the file as well: 1.6.0 (2026-09-18), 1.5.6, 1.5.5, 1.5.4, 1.5.3, 1.5.2, 1.5.1 (all 2026-09-17), 1.5.0, 1.4.1, 1.4.0, 1.3.1, 1.3.0 (all 2026-09-16), 1.2.0 (2026-09-15), 1.1.1 and 1.1.0 (2026-09-14), 1.0.0 (2026-09-13)",
+        "Item counts per release: 1.6.0 = 10, 1.5.6 = 2, 1.5.5 = 15, 1.5.4 = 8, 1.5.3 = 17, 1.5.2 = 2, 1.5.1 = 9, 1.5.0 = 6, 1.4.1 = 12, 1.4.0 = 2, 1.3.1 = 3, 1.3.0 = 50, 1.2.0 = 22, 1.1.1 = 5, 1.1.0 = 24, 1.0.0 = 11",
+        "1.6.0 is the only release with a non-empty thanks array (3 entries: René (@diazdesandi), Bryan Galdámez (@JosueGalRe), Nikita Tsyganov (@nik1tsyganov)), each naming GitLab merge requests !283, !285, !293, !304, !306, !307, !308",
+        "Exact user-visible strings quoted in the notes include \"Worked for …\", \"No cap\", \"Heads at once\", \"Auto-hide heads in the sidebar\", \"One panel\", \"A panel each\", \"The chat's last pair\", \"Banked resets · 2 available\", \"Update & restart\", \"Show activity while working\", \"Chronological order\", \"Heads work at a working effort\", \"No conversation found with session ID\", \"Claude no longer has this conversation. It starts a new one here\", \"gitlab.com didn't answer its MCP address (404), try again in a few minutes\", \"Edited Edit file\", \"MCP server disabled\"",
+        "Settings paths named: Settings › Conversation, Settings › About › Licenses, Settings, General, Projects; Settings, Hydra, Heads; Settings, Providers; the Hydra page and its Head profiles section"
+      ],
+      "feature_notes": [
+        "1.6.0 (2026-09-18): Netlify joins the MCP catalog; projects get an emoji or SF Symbol mark chosen in Settings, General, Projects with a compact activity list default for new installs; a usage-limit stop offers Cancel and New thread with a hand-off; Auto-hide heads in the sidebar (off by default); a finished turn folds behind its \"Worked for …\" line; the Chronological order switch was removed from Settings › Conversation",
+        "1.5.6: a first message no longer reports a lost Claude conversation; the uncapped Heads at once choice draws as an infinity sign reading \"No cap\" to VoiceOver",
+        "1.5.5: head profiles per pair (\"quick\", \"deep\", \"visual\" or any word), a global Heads at once cap of Off or 1 to 8, custom pair names with fused provider icons, plus fixes for OpenCode reasoning levels, resumed-session token totals and merges swamped by build output; the disk image gains a styled drag-to-Applications window",
+        "1.5.4: heads start the moment their brief is written; a lead can send heads to any project in the sidebar or any git repository by path; older Claude Code CLIs are probed for supported flags; the source is rearranged into four layers, Core, Services, UI and App",
+        "1.5.3: Escape stops and rewinds a running turn, ⌘B toggles the sidebar, ⌘1 to ⌘9 switch threads, ⌘W archives with Return/Escape/Delete choices, drag-select across a whole reply; at most eight heads stream at a time with the rest queued",
+        "1.5.2: fixes a crash when a reply is rewritten shorter mid-fade, which happened the moment a lead's heads went out",
+        "1.5.1: per-chat Hydra merges from a shared checkout, Settings toggle rows become picker tiles",
+        "1.5.0: streamed text fades in where it lands; per-project default Hydra pair via sidebar right-click (contributed by nik1tsyganov); the Providers refresh reloads OpenCode, Cursor, Grok and Devin model lists (naming Union Alpha as the example model)",
+        "1.4.1: every finished turn folds into its \"Worked for\" summary; Z.ai GLM heads at Max fall to the scale's middle rung; head progress bars cache their staves (three six-second hangs came from that walk)",
+        "1.4.0: banked resets for Z.ai Coding Plan accounts for the 5-hour and weekly limits; whole-reply drag selection (reverted in 1.4.1)",
+        "1.3.0 is the largest release at 50 items: Hydra pair recipes and cookbook, Pi and Z.ai providers, slash commands, reply quotes, bundled follow-ups, banked resets for Codex, ⌘W archive / ⌘S settle, an eight-page welcome tour, AGPL v3 with attribution, and a Debug build running as Droppy Code Dev with its own library and settings",
+        "1.2.0: Hydra itself (one chat, many heads, one merge), Command Code provider, settle a thread, six-page welcome tour, floating usage panel, and API keys moved to the Keychain alone with old plaintext copies cleared at launch",
+        "1.1.0: in-app self-update from GitLab via About with Update & restart, GitHub Copilot CLI, Antigravity, DeepSeek and Meta (Muse Spark) providers, 26 tinted-glass themes plus a window transparency setting, follow-up queue and token activity heatmap",
+        "1.0.0 (2026-09-13): the first release, listing Codex, Claude, Cursor, OpenCode, Grok, DeepSeek, Meta, Devin and Antigravity, the command palette, the effort slider, a worktree per thread and a terminal under every thread"
+      ],
+      "unresolved_questions": [
+        "The \"platform\": \"mac\" field is never read by changelog.js, so whether it exists for a future non-mac channel or only for the generator is not determinable from these files",
+        "generated_at is not rendered anywhere in changelog.js either, so it appears to be provenance metadata for the generator only",
+        "The generator that produces this file is not in this bundle, so the source of truth for these notes (the repository CHANGELOG or release tooling) could not be inspected"
+      ]
+    }
+  ]
+}

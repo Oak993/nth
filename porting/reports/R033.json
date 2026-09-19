@@ -1,0 +1,804 @@
+{
+  "bundle_id": "R033",
+  "reader": "R033-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Core/Support/CaptureRun.swift",
+      "sha256": "1537532d8aa6f58a958d10304acb25ce344b029192cc0e30d4e27320be0a5afb",
+      "lines_total": 41,
+      "ranges_read": [
+        [
+          1,
+          41
+        ]
+      ],
+      "purpose": "Declares the CaptureRun enum: a launch-argument gate that puts the app into a self-capture mode (stills and films of itself for the website or the guided tour), redirecting storage and UserDefaults into a scratch folder and forbidding Keychain reads, so the store, settings and provider adapters consult it before touching real user data.",
+      "key_symbols": [
+        "enum CaptureRun",
+        "CaptureRun.outputDirectory (nonisolated static let URL?)",
+        "CaptureRun.isTourRun (nonisolated static var Bool)",
+        "CaptureRun.isEnabled (nonisolated static var Bool)",
+        "CaptureRun.storageRoot (nonisolated static var URL?)",
+        "CaptureRun.defaults (nonisolated static var UserDefaults?)",
+        "CaptureRun.suiteName (nonisolated static let String)"
+      ],
+      "calls_into": [
+        "CommandLine.arguments",
+        "URL(fileURLWithPath:isDirectory:)",
+        "UserDefaults(suiteName:)",
+        "WebsiteCaptures (app layer, named in the doc comment as the driver)",
+        "TourCaptures (app layer, named in the doc comment as the driver)"
+      ],
+      "state_owned": [
+        "outputDirectory: lazily initialized static let (computed once from CommandLine.arguments at first access)",
+        "suiteName: static let constant string"
+      ],
+      "side_effects": [
+        "Reads process launch arguments",
+        "Creates/opens a UserDefaults suite named iordv.droppycode.website-captures (doc comment states a run starts by wiping it; the wipe itself is not in this file)"
+      ],
+      "platform_assumptions": [
+        "macOS app bundle launched with command-line arguments (CommandLine.arguments)",
+        "Foundation UserDefaults suite storage (~/Library/Preferences plist per suite name)",
+        "Swift 6 nonisolated static members readable from any actor"
+      ],
+      "persisted_fields": [
+        "UserDefaults suite name \"iordv.droppycode.website-captures\" (String literal; the whole capture-run defaults domain)",
+        "storage subfolder name \"storage\" under the capture output directory (directory)"
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "Two accepted launch flags, checked in this order: \"--website-captures\" then \"--tour-captures\"; each must be followed by a path argument or the flag is ignored",
+        "isTourRun is true only for \"--tour-captures\" with a following argument, so the tour run is a distinguishable sub-mode of the same capture machinery",
+        "isEnabled == (outputDirectory != nil); in a normal launch outputDirectory is nil and every accessor returns nil",
+        "storageRoot = <output>/storage as a directory URL; library and thread files of the run live there",
+        "defaults returns nil when not enabled, so callers fall back to the app's own UserDefaults"
+      ],
+      "unresolved_questions": [
+        "Which concrete call sites consult CaptureRun.defaults / storageRoot (store, settings, provider adapters) is stated only in the doc comment; those files are not in this bundle.",
+        "The claim that a run starts by wiping the suite is asserted in the comment but the wiping code lives elsewhere (WebsiteCaptures/TourCaptures), outside this bundle."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Support/Coding.swift",
+      "sha256": "3e7c5b1cff76f2f77cfb72dd633a465e5133b9bca57f97da6f67520e4b8890ab",
+      "lines_total": 34,
+      "ranges_read": [
+        [
+          1,
+          34
+        ]
+      ],
+      "purpose": "Codable leniency and the two shared JSON coders for on-disk storage: a KeyedDecodingContainer helper that supplies a default for keys older saves lack, a Lenient<Element> wrapper that swallows a bad element instead of failing its collection, and JSONEncoder.storage / JSONDecoder.storage configured with ISO8601 dates and sorted keys.",
+      "key_symbols": [
+        "extension KeyedDecodingContainer.value(_:default:) -> T",
+        "struct Lenient<Element: Decodable>: Decodable",
+        "Lenient.value: Element?",
+        "Lenient.init(from decoder: Decoder)",
+        "JSONEncoder.storage (static let)",
+        "JSONDecoder.storage (static let)"
+      ],
+      "calls_into": [
+        "KeyedDecodingContainer.decodeIfPresent(_:forKey:)",
+        "JSONEncoder.dateEncodingStrategy / outputFormatting",
+        "JSONDecoder.dateDecodingStrategy"
+      ],
+      "state_owned": [
+        "Lenient.value: Element? (nil when the element failed to decode)",
+        "JSONEncoder.storage: process-wide shared encoder instance",
+        "JSONDecoder.storage: process-wide shared decoder instance"
+      ],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Foundation Codable, JSONEncoder/JSONDecoder with .iso8601 date strategies",
+        "@autoclosure default so the fallback is only built on a miss"
+      ],
+      "persisted_fields": [
+        "Date encoding strategy for all storage JSON: .iso8601 (encode and decode)",
+        "JSONEncoder.storage outputFormatting: [.sortedKeys] (deterministic key order on disk; note pretty-printing is NOT enabled)"
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "value(_:default:) double-unwraps: ((try? decodeIfPresent(T.self, forKey: key)) ?? nil) ?? fallback() so both a throw and an explicit null fall back to the default, which makes missing keys in older saves non-fatal",
+        "Lenient never throws from init(from:); it sets value = try? Element(from: decoder), so a corrupt element inside an array becomes a Lenient with value == nil rather than aborting the whole decode",
+        "Storage JSON writes keys in sorted order, which keeps file diffs stable across saves"
+      ],
+      "unresolved_questions": [
+        "Which model types adopt Lenient and KeyedDecodingContainer.value(_:default:) is not visible from this file alone."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Support/HangWatchdog.swift",
+      "sha256": "44453936c0183e38fa3e8f4e2931acd76d5092d42f28df7307ab5252bb0b8463",
+      "lines_total": 131,
+      "ranges_read": [
+        [
+          1,
+          131
+        ]
+      ],
+      "purpose": "A self-hosted main-thread hang detector: a dedicated background Thread pings the main queue every 0.5 s, and when no pong arrives for 4 s it shells out to /usr/bin/sample against its own pid and writes every thread's stack to a timestamped report under ~/Library/Logs/Droppy Code, keeping the 10 newest reports.",
+      "key_symbols": [
+        "enum HangWatchdog",
+        "HangWatchdog.log (Logger subsystem \"iordv.droppycode\", category \"hang\")",
+        "HangWatchdog.stallThreshold (TimeInterval = 4)",
+        "HangWatchdog.sampleSeconds (Int = 2)",
+        "HangWatchdog.keptReports (Int = 10)",
+        "HangWatchdog.state (OSAllocatedUnfairLock<State>)",
+        "private struct State { lastPong: Date; reportedThisStall: Bool; started: Bool }",
+        "HangWatchdog.start()",
+        "HangWatchdog.ping()",
+        "HangWatchdog.check()",
+        "HangWatchdog.writeReport(stalledFor:)",
+        "HangWatchdog.reportsFolder()",
+        "HangWatchdog.trimReports(in:)"
+      ],
+      "calls_into": [
+        "os.Logger",
+        "OSAllocatedUnfairLock",
+        "Thread / Thread.sleep(forTimeInterval:)",
+        "DispatchQueue.main.async",
+        "Foundation Process running /usr/bin/sample",
+        "Pipe / FileHandle.readDataToEndOfFile",
+        "ISO8601DateFormatter",
+        "Bundle.main.infoDictionary CFBundleShortVersionString / CFBundleVersion",
+        "FileManager.default createDirectory / contentsOfDirectory / removeItem"
+      ],
+      "state_owned": [
+        "state.lastPong: Date (last time the main queue answered)",
+        "state.reportedThisStall: Bool (one report per stall)",
+        "state.started: Bool (start() is idempotent)"
+      ],
+      "side_effects": [
+        "Spawns a never-ending background Thread named \"hang-watchdog\" at .utility QoS with a 0.5 s sleep loop",
+        "Enqueues a block on DispatchQueue.main every 0.5 s",
+        "Launches the external process /usr/bin/sample with arguments [pid, \"2\", \"-mayDie\"]",
+        "Creates ~/Library/Logs/Droppy Code and writes hang-<ISO8601 stamp with ':' replaced by '-'>.txt atomically in UTF-8",
+        "Deletes the oldest report files beyond 10",
+        "Emits os_log error lines on subsystem iordv.droppycode / category hang"
+      ],
+      "platform_assumptions": [
+        "macOS only: /usr/bin/sample exists and can sample the calling process",
+        "~/Library/Logs as the user log location (FileManager .libraryDirectory, fallback NSHomeDirectory() + \"/Library\")",
+        "os.Logger and OSAllocatedUnfairLock (Darwin os framework)",
+        "Doc comment reasoning about Dock/spindump declining for development builds and the crash reporter not seeing force-killed processes"
+      ],
+      "persisted_fields": [
+        "Log folder path component \"Logs/Droppy Code\" under the user Library directory",
+        "Report file name pattern \"hang-<stamp>.txt\" where stamp is an ISO8601 date string with ':' replaced by '-'",
+        "Trim rule: files matching prefix \"hang-\" and suffix \".txt\", sorted ascending by name, all but the newest 10 removed"
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "Ping cadence 0.5 s; stall threshold 4 s (TimeInterval); sample duration 2 s; 10 reports kept",
+        "The watchdog stays enabled in every build (doc comment: costs only a background timer plus a main-queue block every half second)",
+        "Exactly one report per stall: reportedThisStall is set under the lock before sampling and cleared by the next successful ping",
+        "Report header lines, verbatim shape: \"Droppy Code main thread unresponsive for %.1fs\", then \"Version <CFBundleShortVersionString or ?> (<CFBundleVersion or ?>)\", then \"Sampled at <Date>\" followed by a blank line",
+        "If sample exits non-zero, the body is prefixed with \"sample exited with status <n>\\n\\n\"; if it cannot launch, the body is \"sample could not run: <localizedDescription>\\n\"",
+        "Log lines: \"Main thread unresponsive for <x.x>s, sampling\" (precision 1) and \"Hang report written to <path>\" with the path marked privacy: .public",
+        "writeReport runs on the watchdog thread, never the main thread, so a wedged main thread cannot block the report"
+      ],
+      "unresolved_questions": [
+        "Where HangWatchdog.start() is called from (app launch) is not in this file; no call site is visible here."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Support/JSONRPC.swift",
+      "sha256": "4b31038c5d01ec0113f718ff03a18b8e75b62f595c625a3773f5f646139c47e6",
+      "lines_total": 157,
+      "ranges_read": [
+        [
+          1,
+          157
+        ]
+      ],
+      "purpose": "JSON-RPC 2.0 client/server over a StdioProcess: RPCID (int or string), RPCError, and the @MainActor JSONRPCConnection that pumps parsed JSONValue messages, matches responses to pending continuations, dispatches incoming notifications and requests, and fails everything outstanding with the process's stderr tail when stdout closes.",
+      "key_symbols": [
+        "enum RPCID: Hashable, Sendable { case int(Int); case string(String) }",
+        "RPCID.init?(_ value: JSONValue)",
+        "RPCID.json: JSONValue",
+        "RPCID.key: String",
+        "struct RPCError: LocalizedError, Sendable { code: Int; message: String; data: JSONValue? }",
+        "RPCError.errorDescription",
+        "RPCError.init(code:message:) convenience (data: nil)",
+        "@MainActor final class JSONRPCConnection",
+        "JSONRPCConnection.onNotification / onRequest / onClose closures",
+        "JSONRPCConnection.isClosed",
+        "JSONRPCConnection.init(process:sendsVersion:)",
+        "JSONRPCConnection.start()",
+        "JSONRPCConnection.request(_:_:) async throws -> JSONValue",
+        "JSONRPCConnection.notify(_:_:)",
+        "JSONRPCConnection.respond(to:result:)",
+        "JSONRPCConnection.respond(to:errorCode:message:)",
+        "JSONRPCConnection.close()",
+        "JSONRPCConnection.write(_:)",
+        "JSONRPCConnection.handle(_:)",
+        "JSONRPCConnection.didClose()"
+      ],
+      "calls_into": [
+        "StdioProcess.start() / .messages / .send(_:) / .terminate() / .errorTail",
+        "JSONValue (.object, .string, .int, .null subscripts and accessors)",
+        "withCheckedThrowingContinuation / withTaskCancellationHandler / Task.checkCancellation"
+      ],
+      "state_owned": [
+        "isClosed: Bool (private(set))",
+        "nextID: Int, starting at 1 and incremented per request",
+        "pending: [RPCID: CheckedContinuation<JSONValue, Error>]",
+        "readTask: Task<Void, Never> draining process.messages",
+        "sendsVersion: Bool (whether to add the jsonrpc member)",
+        "onNotification / onRequest / onClose callbacks"
+      ],
+      "side_effects": [
+        "Starts the child process (process.start() can throw)",
+        "Writes JSON messages to the child's stdin via StdioProcess.send",
+        "Terminates the child process on close()",
+        "Resumes suspended continuations, including with CancellationError on task cancellation"
+      ],
+      "platform_assumptions": [
+        "@MainActor isolation for the whole connection; callbacks fire on the main actor",
+        "Swift structured concurrency (AsyncStream from StdioProcess, checked continuations)",
+        "Unix child process over stdio pipes"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Protocol dialect switch: `sendsVersion` controls whether \"jsonrpc\": \"2.0\" is added to every outgoing message. Doc comment states Codex omits the jsonrpc member while ACP agents require it",
+        "Outgoing messages omit \"params\" entirely when the params value is .null",
+        "Request frames carry \"id\", \"method\", \"params\"; notifications carry \"method\" and \"params\" only; responses carry \"id\" and either \"result\" or \"error\"",
+        "Error responses this side sends use the object shape {\"code\": <int>, \"message\": <string>}",
+        "Exact error codes: -32000 \"The agent process is not running.\" when requesting on a closed connection; -32601 \"Method not found\" when an incoming request arrives with no onRequest handler; -32603 as the default code when an inbound error object has no code; -32000 on close with message = trimmed stderr tail or \"The agent process exited.\" when the tail is empty",
+        "Default inbound error message when the peer sends no message field: \"The agent returned an error.\"",
+        "RPCID.init accepts .int, .double (truncated via Int(id)) and .string; anything else fails, so such a message is treated as a notification or ignored",
+        "Cancellation removes the pending entry and resumes it with CancellationError, hopping to the main actor to do so",
+        "A response whose id has no pending continuation is silently dropped",
+        "Request ids are integers only, starting at 1 and monotonically increasing per connection"
+      ],
+      "unresolved_questions": [
+        "Which providers construct the connection with sendsVersion true vs false is asserted only in the doc comment; the adapter files are not in this bundle."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Support/JSONValue.swift",
+      "sha256": "2341ca77aa2734c12937f3653121b713a600bbd57e31d650a0ee9fa58d5b8b9b",
+      "lines_total": 165,
+      "ranges_read": [
+        [
+          1,
+          165
+        ]
+      ],
+      "purpose": "The app's Sendable, Hashable JSON tree used for every provider protocol payload: seven cases, bridging to and from Foundation objects via JSONSerialization, compact and pretty serialization, typed accessors with coercions, subscripts, a displayText rendering, and the full set of ExpressibleBy*Literal conformances so JSON can be written as Swift literals.",
+      "key_symbols": [
+        "enum JSONValue: Sendable, Hashable (cases null, bool, int, double, string, array, object)",
+        "JSONValue.parse(_ data: Data) -> JSONValue?",
+        "JSONValue.parse(_ string: String) -> JSONValue?",
+        "JSONValue.init(foundation object: Any)",
+        "JSONValue.foundationObject: Any",
+        "JSONValue.data(pretty:) -> Data",
+        "JSONValue.compactString / prettyString",
+        "subscript(key: String) -> JSONValue?",
+        "subscript(index: Int) -> JSONValue?",
+        "JSONValue.string / .int / .double / .bool / .array / .object / .isNull",
+        "JSONValue.displayText",
+        "JSONValue.optional(_ value: String?) -> JSONValue",
+        "ExpressibleByNilLiteral / BooleanLiteral / IntegerLiteral / FloatLiteral / StringLiteral / ArrayLiteral / DictionaryLiteral conformances"
+      ],
+      "calls_into": [
+        "JSONSerialization.jsonObject(with:options:) and .data(withJSONObject:options:)",
+        "CFGetTypeID / CFBooleanGetTypeID / CFNumberIsFloatType (to tell bool and float apart inside NSNumber)",
+        "NSNull"
+      ],
+      "state_owned": [
+        "The enum payloads only; no stored globals or caches"
+      ],
+      "side_effects": [],
+      "platform_assumptions": [
+        "CoreFoundation number/boolean type IDs to distinguish NSNumber-wrapped Bool from numeric values (CFGetTypeID(number) == CFBooleanGetTypeID(), CFNumberIsFloatType)",
+        "Foundation JSONSerialization options .fragmentsAllowed and .withoutEscapingSlashes"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Parsing always uses [.fragmentsAllowed], so a bare scalar at the top level parses",
+        "Serialization uses [.fragmentsAllowed, .withoutEscapingSlashes]; pretty adds [.prettyPrinted, .sortedKeys]",
+        "On a serialization failure data() returns the literal bytes \"null\" rather than throwing",
+        "Number bridging: CFBoolean becomes .bool, a float-typed NSNumber becomes .double, everything else becomes .int; unrecognized Foundation objects collapse to .null",
+        "int accessor coerces: .int returns as is, .double returns Int(value) only when the value isFinite, .string parses with Int(value), anything else nil",
+        "double accessor coerces .int to Double but does NOT parse strings",
+        "bool, string, array, object accessors are strict (no coercion)",
+        "displayText renders \"\" for null, the raw string for .string, \"true\"/\"false\" for .bool, String(value) for numbers, and prettyString for arrays and objects",
+        "Dictionary literal init resolves duplicate keys by keeping the last one (uniquingKeysWith: { _, last in last })",
+        "JSONValue.optional(nil) is .null, so an absent optional string becomes a JSON null rather than a missing key"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Core/Support/ObservedValue.swift",
+      "sha256": "31088c74db1026dcde3a4f0083429f96f04501f015c58d9245ff0cb50de2c143",
+      "lines_total": 14,
+      "ranges_read": [
+        [
+          1,
+          14
+        ]
+      ],
+      "purpose": "A one-property @Observable box (@MainActor final class ObservedValue<Value>) that gives a single model item its own observation scope, so a SwiftUI view reading one thread or project through its cell re-renders only when that item changes and not when any sibling changes.",
+      "key_symbols": [
+        "@MainActor @Observable final class ObservedValue<Value>",
+        "ObservedValue.value: Value",
+        "ObservedValue.init(_ value: Value)"
+      ],
+      "calls_into": [
+        "Observation (@Observable macro)",
+        "Foundation"
+      ],
+      "state_owned": [
+        "value: Value (the single observed stored property)"
+      ],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Swift Observation framework (@Observable macro, macOS 14+/Swift 5.9+) with SwiftUI's per-property dependency tracking",
+        "@MainActor isolation, so the box is only mutated and read on the main actor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "The granularity rule it encodes: a view depends on exactly one item, so a change to any other item never re-renders it (stated verbatim in the doc comment)"
+      ],
+      "unresolved_questions": [
+        "Which list/cell views wrap their items in ObservedValue is not determinable from this 14-line file."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Support/RecentCache.swift",
+      "sha256": "3b3dcfad27f45e89355590052da4fb62838290ffa0d91fbbd962940d532c3dcb",
+      "lines_total": 57,
+      "ranges_read": [
+        [
+          1,
+          57
+        ]
+      ],
+      "purpose": "A generic two-generation (current/previous) cost-bounded cache struct used for thumbnails and other recent-item memories: hits in the previous generation are promoted into the current one, and when the current generation exceeds its count limit or cost budget it is demoted wholesale to previous and a fresh current is started.",
+      "key_symbols": [
+        "struct RecentCache<Key: Hashable, Value>",
+        "private struct Entry { value: Value; cost: Int }",
+        "RecentCache.init(limit:costLimit:) (costLimit defaults to .max)",
+        "RecentCache.value(for:) -> Value? (mutating)",
+        "RecentCache.contains(_:) -> Bool",
+        "RecentCache.removeValue(for:) -> Value? (@discardableResult, mutating)",
+        "RecentCache.insert(_:for:cost:) (cost defaults to 1, mutating)"
+      ],
+      "calls_into": [
+        "Swift Dictionary with reserveCapacity",
+        "Foundation (import only)"
+      ],
+      "state_owned": [
+        "current: [Key: Entry] and previous: [Key: Entry] (the two generations)",
+        "currentCost: Int and previousCost: Int (running cost sums)",
+        "limit: Int (max entries in the current generation, clamped to at least 1)",
+        "costLimit: Int (clamped to at least 0)"
+      ],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Pure Swift value type; no Apple framework dependency beyond importing Foundation"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Generational eviction rather than LRU: when current.count >= limit or currentCost > costLimit - cost, the whole current map becomes previous (dropping the old previous) and current is emptied and re-reserved to limit",
+        "A read that hits `previous` removes it from previous, subtracts its cost from previousCost, and re-inserts it into current, so recently used items survive the next rotation",
+        "An entry whose cost exceeds costLimit is rejected outright (guard cost <= costLimit else { return }), after the existing entry for that key has already been removed",
+        "insert() always calls removeValue(for:) first, so re-inserting a key never double-counts cost",
+        "init clamps: limit = max(1, limit), costLimit = max(0, costLimit); insert clamps cost = max(0, cost)",
+        "contains() checks both generations; value(for:) has the promotion side effect and is therefore mutating",
+        "Effective capacity is up to 2x limit in terms of what can still be found, since previous entries remain readable"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Core/Support/Shell.swift",
+      "sha256": "bfb7edaf6eff0e1745e8f189a0a7414695ac7458d30ce99d98854d68d7b14121",
+      "lines_total": 458,
+      "ranges_read": [
+        [
+          1,
+          160
+        ],
+        [
+          161,
+          320
+        ],
+        [
+          321,
+          458
+        ]
+      ],
+      "purpose": "The process-running foundation: ShellResult/ShellError, Shell.run with timeout, cancellation, stdin feeding and tail-bounded output collection; ShellCommandKind's read-vs-write classifier for agent shell commands; OnceContinuation; the private OutputCollector; and LoginEnvironment, which captures the user's login shell environment once and resolves `which` and the developer git binary.",
+      "key_symbols": [
+        "struct ShellResult: Sendable { status: Int32; stdout: Data; stderr: Data }",
+        "ShellResult.succeeded / output / errorOutput / trimmedOutput / failureMessage",
+        "struct ShellError: LocalizedError, Sendable (init(_ message: String))",
+        "enum Shell",
+        "@concurrent Shell.run(_:_:in:environment:input:timeout:outputLimit:) async throws -> ShellResult",
+        "Shell.terminate(_ process: Process)",
+        "Shell.run(tool:_:in:environment:input:timeout:)",
+        "enum ShellCommandKind",
+        "ShellCommandKind.readers / gitReaders / searchActions (Set<String>)",
+        "ShellCommandKind.mayWriteFiles(_:) -> Bool",
+        "ShellCommandKind.parts(of:) / onlyReads(_:)",
+        "final class OnceContinuation<Value: Sendable>: @unchecked Sendable",
+        "private final class OutputCollector (Stream enum .stdout/.stderr, reader(for:), append(_:to:), finished(within:), close(_:))",
+        "enum LoginEnvironment",
+        "LoginEnvironment.current / isLoaded / homeDirectory / load() / read() / git / developerGit(environment:) / which(_:in:) / userShell() / augmentedPath(_:) / fallback()"
+      ],
+      "calls_into": [
+        "Foundation Process, Pipe, FileHandle.nullDevice",
+        "Synchronization.Mutex",
+        "Task.sleep(for:), withTaskCancellationHandler, withCheckedThrowingContinuation",
+        "kill(2), getpgid(2), getpwuid(3), getuid(2), SIGKILL",
+        "/usr/bin/env -0 through the user's login shell",
+        "/usr/bin/xcode-select -p",
+        "FileManager.isExecutableFile(atPath:), homeDirectoryForCurrentUser"
+      ],
+      "state_owned": [
+        "LoginEnvironment.cached: Mutex<[String: String]?> (the resolved login environment)",
+        "LoginEnvironment.loading: Mutex<Task<Void, Never>?> (single-flight load task)",
+        "LoginEnvironment.fallbackEnvironment: static let built once from ProcessInfo",
+        "LoginEnvironment.resolvedGit: Mutex<URL?>",
+        "OutputCollector.stdout/stderr Data buffers, closed: Set<Stream>, waiters: [OnceContinuation<Void>]",
+        "OnceContinuation.continuation (nil after the first resume)",
+        "Shell.run local: cancelled Mutex<Bool>, deadline Task"
+      ],
+      "side_effects": [
+        "Launches arbitrary child processes with a given executable, arguments, working directory and environment",
+        "Writes `input` Data to the child's stdin on a global .userInitiated queue and closes it",
+        "SIGTERM on timeout or cancellation, then SIGKILL after 1 second to the process group when getpgid(pid) == pid, otherwise to the pid",
+        "Runs the user's login shell as `<shell> -l -i -c \"printf '__DROPPY_CODE_ENVIRONMENT__'; /usr/bin/env -0; printf '__DROPPY_CODE_ENVIRONMENT__'\"` at launch, which executes the user's shell rc/profile files",
+        "Runs /usr/bin/xcode-select -p to find the developer git"
+      ],
+      "platform_assumptions": [
+        "macOS/Unix: POSIX signals, process groups, getpwuid for the login shell, /usr/bin/env, /usr/bin/xcode-select, /usr/bin/git as Apple's shim",
+        "Finder-launched apps inherit a minimal PATH, which is the stated reason for the login-shell capture",
+        "Homebrew paths /opt/homebrew/bin and /opt/homebrew/sbin (Apple silicon) in the augmented PATH",
+        "Swift 6 Synchronization.Mutex and @concurrent functions"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Shell.run defaults: timeout 120 seconds, outputLimit nil (keep everything), stdin FileHandle.nullDevice when no input is supplied",
+        "outputLimit keeps only the tail: the buffer is trimmed to its last `limit` bytes once it exceeds limit * 2, giving O(limit) memory and amortized O(1) per byte",
+        "After the process exits, output collection is awaited with a 3-second grace (collector.finished(within: 3)); on timeout both streams are force-closed",
+        "Termination ladder: process.terminate() then, 1 second later on a .utility global queue, kill(-pid or pid, SIGKILL)",
+        "ShellResult.failureMessage prefers trimmed stderr, falls back to trimmed stdout, and finally to \"The command failed with exit code <status>.\"",
+        "Shell.run(tool:) throws ShellError(\"<name> was not found on your PATH.\") when LoginEnvironment.which fails; note it does not forward outputLimit",
+        "ShellCommandKind.mayWriteFiles treats any command containing \">\", \"$(\" or a backtick as a writer outright",
+        "Command splitting replaces the separators \"&&\", \"||\", \";\", \"|\", \"\\n\" and \"&\" with U+0001 and splits on it; quoting is deliberately not parsed (a quoted separator just yields unfamiliar tools, which is the safe answer)",
+        "Reader tool allowlist (51 entries): ls, cat, bat, head, tail, wc, grep, egrep, fgrep, rg, tree, pwd, echo, printf, which, command, type, stat, file, du, df, ps, printenv, date, whoami, hostname, uname, basename, dirname, realpath, readlink, column, uniq, cut, tr, nl, diff, cmp, jq, yq, xxd, od, md5, shasum, cksum, man, true, false, sleep, cd, pushd, popd",
+        "git reader subcommands: log, status, diff, show, branch, rev-parse, rev-list, ls-files, ls-tree, blame, remote, describe, shortlog, cat-file, tag, config, grep, whatchanged, reflog, for-each-ref, symbolic-ref, count-objects, var, version, help; the first non-dash argument is taken as the subcommand and a bare `git` counts as a reader",
+        "Per-tool rules: sed reads only with a short -n flag and no -i/--in-place; awk/gawk/mawk read unless the text contains \"system(\"; find/fd write if any of -delete, -exec, -execdir, -ok, -okdir, -x, -X appears; sort writes if any argument starts with -o; xcodebuild reads only with -showBuildSettings, -list, -version or -showsdks; swift, swiftc, node, npm, python, python3 read only when the whole argument list is exactly [\"--version\"], [\"-version\"] or [\"-v\"]; env reads only when every argument starts with a dash",
+        "The tool name is matched on its last path component, so /usr/bin/ls still classifies as ls",
+        "LoginEnvironment marker string is \"__DROPPY_CODE_ENVIRONMENT__\", printed before and after `/usr/bin/env -0`; entries are split on NUL and on the first '=' ",
+        "Login-shell read timeout is 8 seconds; the same 8 seconds bounds xcode-select -p",
+        "Excluded environment keys (13): _, SHLVL, PWD, OLDPWD, TERM, TERM_PROGRAM, TERM_PROGRAM_VERSION, TERM_SESSION_ID, COLORTERM, ITERM_SESSION_ID, XPC_SERVICE_NAME, __CFBundleIdentifier, CLAUDECODE, CLAUDE_CODE_ENTRYPOINT, CLAUDE_CODE_SSE_PORT",
+        "augmentedPath appends, in order and only when absent: /opt/homebrew/bin, /opt/homebrew/sbin, /usr/local/bin, ~/.local/bin, ~/.bun/bin, ~/.cargo/bin, ~/.npm-global/bin, ~/.volta/bin, /usr/bin, /bin, /usr/sbin, /sbin",
+        "fallback() also sets LANG to \"en_US.UTF-8\" when unset",
+        "userShell() prefers $SHELL if executable, then getpwuid(getuid()).pw_shell if executable, finally \"/bin/zsh\"",
+        "git resolution: if PATH git is exactly /usr/bin/git, xcode-select -p is consulted and <developer>/usr/bin/git is used when executable; the doc comment cites measured 11.5 ms per shim call against 4.5 ms for the real binary",
+        "which() with a name containing \"/\" expands a tilde and checks executability directly instead of scanning PATH",
+        "LoginEnvironment.load() is single-flight: concurrent callers await the same Task, so a codex under nvm is never reported missing"
+      ],
+      "unresolved_questions": [
+        "Shell.run(tool:) has no outputLimit parameter, so callers that need a bounded tail must use the URL overload; whether any caller wanted a limit here is not determinable from this file.",
+        "Who calls LoginEnvironment.load() at launch is not in this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Support/StdioFramer.swift",
+      "sha256": "2e33d55653ba15500e3ab71c9934aa6cf4d9f6995a476f93c03b4076146676f6",
+      "lines_total": 81,
+      "ranges_read": [
+        [
+          1,
+          81
+        ]
+      ],
+      "purpose": "The incremental byte framer for child-process stdio, supporting two wire framings: newline-delimited messages and LSP-style Content-Length headers separated by CRLFCRLF, with a scan cursor so re-scanning is bounded and a finish() that flushes a trailing unterminated line.",
+      "key_symbols": [
+        "struct StdioFramer",
+        "StdioFramer.Framing: Sendable enum { case lines; case contentLength }",
+        "StdioFramer.separator (static let Data(\"\\r\\n\\r\\n\"))",
+        "StdioFramer.init(framing:)",
+        "StdioFramer.append(_ data: Data) -> [Data] (mutating)",
+        "StdioFramer.finish() -> Data? (mutating)",
+        "StdioFramer.contentLength(in header: String) -> Int?"
+      ],
+      "calls_into": [
+        "Foundation Data ranges, Data.range(of:)",
+        "String(decoding:as: UTF8.self)"
+      ],
+      "state_owned": [
+        "buffer: Data (bytes not yet framed)",
+        "scanned: Int (how far past the message start has already been searched)",
+        "bodyLength: Int? (the pending Content-Length body size, nil while a header is expected)"
+      ],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Foundation Data slicing semantics; no macOS-specific API"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Line framing splits on the single byte 0x0A (LF); the delimiter itself is not included in the returned message",
+        "Content-Length framing: the header block ends at the exact bytes \\r\\n\\r\\n; the header is UTF-8 decoded and scanned for a line whose name, trimmed of whitespace and lowercased, equals \"content-length\"",
+        "A header without a usable Content-Length (unparseable or negative) is skipped: contentLength returns nil and the loop continues past that header without emitting a message",
+        "The partial-header rewind is `search = max(start, buffer.endIndex - 3)`, so a separator split across reads is still found (3 bytes of the 4-byte separator may remain unscanned)",
+        "finish() returns the leftover buffer only in .lines framing and only when non-empty; in .contentLength framing a truncated body is dropped. It always resets buffer, scanned and bodyLength",
+        "After each append pass the buffer is re-based to `start` only when start moved, and `scanned` records the unsearched distance so bytes are not re-scanned from the beginning each read"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Core/Support/StdioProcess.swift",
+      "sha256": "60bab2dac297a41777846e09a9fec906594f915e2161b88c4812832fc990398a",
+      "lines_total": 180,
+      "ranges_read": [
+        [
+          1,
+          180
+        ]
+      ],
+      "purpose": "The long-lived child process used by JSON-RPC and agent CLIs: owns Process plus three Pipes, reads stdout through readabilityHandler into a StdioFramer, parses each frame into JSONValue and yields it on an AsyncStream, keeps a bounded stderr tail, writes framed or raw bytes on a private serial queue, and offers terminate/waitForExit.",
+      "key_symbols": [
+        "final class StdioProcess: @unchecked Sendable",
+        "StdioProcess.Framing typealias = StdioFramer.Framing",
+        "StdioProcess.messages: AsyncStream<JSONValue>",
+        "StdioProcess.init(executable:arguments:directory:environment:framing:) (framing defaults to .lines)",
+        "StdioProcess.isRunning",
+        "StdioProcess.errorTail: String",
+        "StdioProcess.start() throws",
+        "StdioProcess.send(_ message: JSONValue)",
+        "StdioProcess.write(_ data: Data)",
+        "StdioProcess.closeInput()",
+        "StdioProcess.terminate()",
+        "StdioProcess.waitForExit() async -> Int32",
+        "StdioProcess.consume / deliver / finishOutput / appendError / didExit"
+      ],
+      "calls_into": [
+        "StdioFramer(framing:) / append(_:) / finish()",
+        "JSONValue.parse(_ data:) and JSONValue.data()",
+        "Foundation Process, Pipe, FileHandle.readabilityHandler / availableData / write(contentsOf:)",
+        "AsyncStream.makeStream(of:)",
+        "NSLock, DispatchQueue",
+        "kill(2) with SIGKILL"
+      ],
+      "state_owned": [
+        "process: Process, stdin/stdout/stderr: Pipe",
+        "framer: StdioFramer (guarded by lock)",
+        "errorBuffer: Data (bounded stderr tail)",
+        "exitStatus: Int32? and exitWaiters: [CheckedContinuation<Int32, Never>]",
+        "continuation: AsyncStream<JSONValue>.Continuation",
+        "writeQueue: DispatchQueue(label: \"droppycode.stdio.write\")",
+        "lock: NSLock"
+      ],
+      "side_effects": [
+        "Launches the child process with the given executable, arguments, current directory and environment",
+        "Installs readabilityHandlers on the stdout and stderr read handles (background dispatch reads)",
+        "Writes to the child's stdin on the private serial queue droppycode.stdio.write",
+        "terminate() closes stdin, sends SIGTERM via Process.terminate(), then SIGKILL after 3 seconds if still running",
+        "Schedules a 1-second delayed finishOutput after exit on a global queue"
+      ],
+      "platform_assumptions": [
+        "macOS/Unix Foundation Process with pipes and terminationHandler",
+        "kill(pid, SIGKILL) from Darwin",
+        "@unchecked Sendable with manual NSLock discipline, handlers firing on Foundation's private read queues"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Default framing is .lines; .contentLength is opt-in per process",
+        "send() serializes the message compactly and appends a single 0x0A for .lines, or prefixes \"Content-Length: <count>\\r\\n\\r\\n\" for .contentLength",
+        "errorTail returns the last 4,000 bytes of stderr decoded as UTF-8",
+        "The stderr buffer is trimmed to its last 16,000 bytes once it exceeds 64,000 bytes",
+        "deliver() strips trailing 0x0D (CR) and 0x20 (space) bytes, drops empty frames, and silently drops frames that do not parse as JSON",
+        "finishOutput() flushes the framer's remainder through deliver() and then finishes the AsyncStream, which is what ends the JSONRPCConnection read loop",
+        "terminate() always closes stdin first, then returns early if the process is not running",
+        "After exit, the stdout readabilityHandler is cleared and finishOutput is called 1 second later, because a grandchild can inherit stdout and hold it open past the provider's own exit",
+        "waitForExit() resolves immediately when the status is already known, otherwise parks a continuation woken by the termination handler",
+        "write(_:) and closeInput() exist for one-shot CLIs that read a prompt from stdin until EOF",
+        "If process.run() throws, both readability handlers are cleared and the message stream is finished before rethrowing"
+      ],
+      "unresolved_questions": [
+        "The AsyncStream buffering policy is the default (unbounded) since makeStream is called without a bufferingPolicy; the consequence for a very chatty agent is not addressed in this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Support/SwitchLatency.swift",
+      "sha256": "1220e10c9e93ff7bf4f7da546bb25fe778b7922b0ba42e06c3577e99fd362356",
+      "lines_total": 58,
+      "ranges_read": [
+        [
+          1,
+          58
+        ]
+      ],
+      "purpose": "A development-build-only main-run-loop instrument that measures how long the main thread stays busy after a thread selection: a CFRunLoopObserver on afterWaiting/beforeWaiting accumulates the first blocked span and the total busy time over the following second, logs them to os_log category \"switch\", and emits a points-of-interest signpost per switch for Instruments.",
+      "key_symbols": [
+        "@MainActor enum SwitchLatency",
+        "SwitchLatency.log (Logger subsystem \"iordv.droppycode\", category \"switch\")",
+        "SwitchLatency.pointsOfInterest (OSLog subsystem \"iordv.droppycode\", category .pointsOfInterest)",
+        "SwitchLatency.start()",
+        "SwitchLatency.note(_ message: String)",
+        "SwitchLatency.noteSwitch(to title: String)"
+      ],
+      "calls_into": [
+        "AppInfo.isDevelopment (Text.swift)",
+        "CFRunLoopObserverCreateWithHandler / CFRunLoopAddObserver / CFRunLoopGetMain",
+        "CFAbsoluteTimeGetCurrent",
+        "os_signpost(.event, log:name:\"switch\")",
+        "os.Logger"
+      ],
+      "state_owned": [
+        "switchStart: CFAbsoluteTime (0 when no switch is being measured)",
+        "busySince: CFAbsoluteTime",
+        "firstSpan: Double? (the first blocked span in ms)",
+        "busyTotal: Double (accumulated busy ms)",
+        "label: String (the switch title, truncated)",
+        "observer: CFRunLoopObserver? (nil until start() installs it; also the enabled flag)"
+      ],
+      "side_effects": [
+        "Installs a repeating CFRunLoopObserver on the main run loop in .commonModes",
+        "Emits os_log notice lines and os_signpost point-of-interest events"
+      ],
+      "platform_assumptions": [
+        "CoreFoundation run-loop activities afterWaiting and beforeWaiting on the main run loop",
+        "os_signpost with OSLog category .pointsOfInterest, so Instruments can cut a trace at each switch",
+        "Developer workflow documented in the comment: log stream --predicate 'subsystem == \"iordv.droppycode\" && category == \"switch\"'"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Debug-only by construction: start() returns immediately unless AppInfo.isDevelopment (bundle identifier iordv.droppycode.dev) and the observer is not already installed; note() and noteSwitch() are no-ops while observer is nil, so shipping builds pay nothing but the guard",
+        "The observer is created with order 0 and repeats: true, for the mask afterWaiting | beforeWaiting",
+        "Spans are computed in milliseconds as (now - max(busySince, switchStart)) * 1000 and reported as Int",
+        "Measurement window is 1 second: once now - switchStart >= 1 it logs \"switch to <label>: blocked <n> ms, busy <m> ms in 1 s\" and clears switchStart",
+        "A second selection inside the window logs \"switch to <label>: blocked <n> ms, busy <m> ms before the next switch\" before restarting the measurement",
+        "The signpost name is \"switch\" and the title is passed as a %{public}s argument",
+        "The label is truncated to the first 24 characters of the title",
+        "All log interpolations are marked privacy: .public"
+      ],
+      "unresolved_questions": [
+        "Call sites of noteSwitch(to:) and note(_:) (presumably the thread selection path) are outside this bundle."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Support/Text.swift",
+      "sha256": "2f487fb6f188ce01af834c916c06d5486a2c5e2228f5f63e505fb075d776b535",
+      "lines_total": 129,
+      "ranges_read": [
+        [
+          1,
+          129
+        ]
+      ],
+      "purpose": "Bundle identity plus the text utilities every model string passes through: AppInfo (name, dev detection, state directory, version, build), TextCleanup (ANSI stripping, last lines of process output, single-line truncation, and the em-dash removal with its fast UTF-8 pre-check), SimpleDiff's capped unified hunk generator, and the FileEdit.Stats convenience initializer.",
+      "key_symbols": [
+        "enum AppInfo { name, isDevelopment, stateDirectoryName, version, build }",
+        "enum TextCleanup",
+        "TextCleanup.stripANSI(_:)",
+        "TextCleanup.lastLines(_:count:) -> String?",
+        "TextCleanup.singleLine(_:limit:) -> String",
+        "TextCleanup.withoutEmDashes(_:)",
+        "TextCleanup.mayContainEmDash(_:) (private)",
+        "TextCleanup.isEmDash(_:) (private)",
+        "enum SimpleDiff { diffLimit; unified(old:new:) }",
+        "extension FileEdit.Stats { diff: String?; additions: Int; deletions: Int }",
+        "FileEdit.init(path:old:new:)",
+        "extension String.nilIfEmpty"
+      ],
+      "calls_into": [
+        "Bundle.main.object(forInfoDictionaryKey:) for CFBundleDisplayName, CFBundleShortVersionString, CFBundleVersion",
+        "Bundle.main.bundleIdentifier",
+        "Swift regex literal #/\\x1B\\[[0-9;?]*[ -/]*[@-~]/# with String.replacing",
+        "FileEdit(path:diff:additions:deletions:) from the model layer"
+      ],
+      "state_owned": [
+        "AppInfo static lets computed once from the bundle (name, isDevelopment, stateDirectoryName, version, build)",
+        "SimpleDiff.diffLimit static let"
+      ],
+      "side_effects": [],
+      "platform_assumptions": [
+        "macOS app bundle Info.plist keys CFBundleDisplayName, CFBundleShortVersionString, CFBundleVersion",
+        "Development build is identified by the bundle identifier \"iordv.droppycode.dev\"",
+        "Swift 5.7+ regex literals"
+      ],
+      "persisted_fields": [
+        "stateDirectoryName: \".droppy-code-dev\" in a development build, otherwise \".droppy-code\" (per-project state folder name)",
+        "Fallback app name \"Droppy Code\", fallback version \"1.0.0\", fallback build \"1\""
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "stripANSI removes CSI escapes matching \\x1B\\[[0-9;?]*[ -/]*[@-~]",
+        "lastLines defaults to count 4: strips ANSI, splits on newlines, trims whitespace, drops empty lines, and joins the last 4 with \"\\n\"; returns nil when nothing remains",
+        "singleLine defaults to limit 120: skips leading newlines, takes up to the next newline, trims whitespace, and when longer than the limit returns the first (limit - 1) characters plus the ellipsis character \"…\"",
+        "withoutEmDashes replaces U+2014 EM DASH, U+2015 HORIZONTAL BAR, U+2E3A TWO-EM DASH and U+2E3B THREE-EM DASH each with a single ASCII hyphen \"-\", keeping surrounding spacing, so \"works — every time\" becomes \"works - every time\" and \"ships—sometimes\" becomes \"ships-sometimes\"; the en dash U+2013 is deliberately kept for ranges such as \"lines 10–20\"",
+        "The em-dash fast path scans UTF-8 bytes for 0xE2 followed by 0x80 with third byte 0x94 or 0x95, or 0xB8 with third byte 0xBA or 0xBB, so curly quotes, ellipses and en dashes never reach the grapheme walk; every streamed delta and stored message goes through it",
+        "Doc comment names the scope: streamed and landed replies, thinking, plans, generated titles and commit messages",
+        "SimpleDiff.diffLimit = 200_000 bytes (old.utf8.count + new.utf8.count); above it the hunk is dropped and only additions/deletions counts are returned; the same cap bounds command diffs in ThreadRuntime.fileEdits",
+        "unified() trims the common prefix and suffix, keeps up to 3 lines of leading context and up to 3 lines of trailing context, and emits a single header \"@@ -<oldStart>,<leading+removed+trailing> +<oldStart>,<leading+added+trailing> @@\" where oldStart = prefix - leading.count + 1",
+        "Hunk body lines are prefixed \" \" for context, \"-\" for removed and \"+\" for added, joined with \"\\n\"; removals are emitted before additions",
+        "An empty old or new string yields an empty line array rather than one empty line",
+        "String.nilIfEmpty returns nil for \"\" and self otherwise"
+      ],
+      "unresolved_questions": [
+        "FileEdit's own declaration (path, diff, additions, deletions) lives in the model layer outside this bundle, so the exact memberwise initializer signature is inferred from the call here."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Support/ThumbnailCache.swift",
+      "sha256": "83e6d4a95c8af371751d62b65986ee884a1b2172ebe99d06da7d628a892d7795",
+      "lines_total": 83,
+      "ranges_read": [
+        [
+          1,
+          83
+        ]
+      ],
+      "purpose": "Image attachment thumbnailing: a shared actor that downsamples files with ImageIO off the main actor, coalesces concurrent requests for the same key into one detached decode, and caches results by cost; plus ThumbnailMemory, a main-actor RecentCache of already-decoded CGImages so a row scrolling back into view draws its photos in the same pass.",
+      "key_symbols": [
+        "actor ThumbnailCache",
+        "ThumbnailCache.shared",
+        "struct Thumbnail: @unchecked Sendable { let image: CGImage }",
+        "ThumbnailCache.thumbnails (RecentCache<String, Thumbnail>)",
+        "ThumbnailCache.inFlight ([String: Task<Thumbnail?, Never>])",
+        "ThumbnailCache.decodes (private(set) Int)",
+        "ThumbnailCache.thumbnail(for:pointSize:fillingSquare:) async -> Thumbnail?",
+        "ThumbnailCache.decode(_:pixels:fillingSquare:) (nonisolated static)",
+        "@MainActor enum ThumbnailMemory",
+        "ThumbnailMemory.images (RecentCache<String, CGImage>)",
+        "ThumbnailMemory.key(_:pointSize:)",
+        "ThumbnailMemory.image(for:pointSize:)",
+        "ThumbnailMemory.store(_:for:pointSize:)"
+      ],
+      "calls_into": [
+        "RecentCache (Support/RecentCache.swift)",
+        "ImageIO: CGImageSourceCreateWithURL, CGImageSourceCopyPropertiesAtIndex, CGImageSourceCreateThumbnailAtIndex",
+        "CoreGraphics CGImage (bytesPerRow, height)",
+        "Task.detached(priority: .userInitiated), Task.isCancelled"
+      ],
+      "state_owned": [
+        "thumbnails: RecentCache<String, Thumbnail> with limit 120 and costLimit 32 * 1_024 * 1_024 (32 MB)",
+        "inFlight: [String: Task<Thumbnail?, Never>] (decodes under way, for later callers to join)",
+        "decodes: Int (count of started decodes, exposed for tests of the sharing)",
+        "ThumbnailMemory.images: RecentCache<String, CGImage> with limit 120 and costLimit 16 * 1_024 * 1_024 (16 MB)"
+      ],
+      "side_effects": [
+        "Reads image files from disk via CGImageSourceCreateWithURL on a detached task",
+        "Spawns detached decode tasks at .userInitiated priority"
+      ],
+      "platform_assumptions": [
+        "ImageIO and CoreGraphics (CGImageSource thumbnail creation), macOS/Apple platforms only",
+        "kCGImageProperty / kCGImageSource CFString option keys",
+        "Swift actors and @MainActor isolation; Thumbnail is @unchecked Sendable because CGImage is not Sendable"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Cache key format \"<path>#<pixels>#<fillingSquare>\" where pixels = max(1, Int((pointSize * 2).rounded(.up))), i.e. a fixed 2x point-to-pixel scale",
+        "ThumbnailMemory key format \"<path>#<Int((pointSize * 2).rounded(.up))>\" (no fillingSquare component)"
+      ],
+      "feature_notes": [
+        "A 2x scale factor is assumed for every request: pixels = max(1, Int((pointSize * 2).rounded(.up)))",
+        "fillingSquare mode enlarges the requested max pixel size by the aspect ratio max(w,h)/min(w,h), clamped to 2048 pixels, so a square crop is still filled at full resolution",
+        "Decode options: kCGImageSourceCreateThumbnailFromImageAlways true, kCGImageSourceCreateThumbnailWithTransform true (EXIF orientation applied), kCGImageSourceShouldCacheImmediately true, kCGImageSourceThumbnailMaxPixelSize = pixels",
+        "Request coalescing: concurrent callers for the same key await the same Task; a caller giving up waits the decode out rather than cancelling it for the others (comment is explicit about this)",
+        "The in-flight entry is only cleared and the result only cached when inFlight[key] is still that same task, so a superseded decode does not evict a newer one",
+        "Cancellation: an early return of nil if Task.isCancelled on entry, and the result is discarded (returns nil) if the caller was cancelled by the time the decode finished",
+        "Cache cost is image.bytesPerRow * image.height in both caches, so the byte budgets are real decoded-bitmap bytes",
+        "The stated motivation is 15 thumbnails for the downloads popover decoding side by side instead of serially"
+      ],
+      "unresolved_questions": [
+        "Who writes into ThumbnailMemory (the view that stores a decoded CGImage after drawing it) is outside this bundle."
+      ]
+    }
+  ]
+}

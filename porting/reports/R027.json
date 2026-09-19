@@ -1,0 +1,251 @@
+{
+  "bundle_id": "R027",
+  "reader": "R027-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Tour/TourPages.swift",
+      "sha256": "0c38f7edfc84fb42dd4cc68e0e80c644e3ab262612cb5c70ab12d9ce3ea8f791",
+      "lines_total": 29,
+      "ranges_read": [
+        [
+          1,
+          29
+        ]
+      ],
+      "purpose": "Declares the eight-page content script of the first-run welcome tour as a static array of TourPage values (asset image name, title, description) inside enum Tour, derives the spelled-out theme count from AppTheme.allCases so the themes page copy cannot drift, and exposes Tour.present(model:) which hands the pages to TourWindowController.shared and sets settings.hasSeenTour = true on both finish and close.",
+      "key_symbols": [
+        "enum Tour",
+        "static let Tour.pages: [TourPage]",
+        "private static var Tour.themeCount: String",
+        "@MainActor static func Tour.present(model: AppModel)"
+      ],
+      "calls_into": [
+        "TourPage(imageName:title:description:) from TourView.swift",
+        "TourWindowController.shared.present(pages:onFinish:onClose:)",
+        "AppTheme.allCases (DroppyCode/UI/Theme/AppTheme.swift)",
+        "AppModel.settings.hasSeenTour (DroppyCode/App/AppSettings.swift)",
+        "NumberFormatter",
+        "NSNumber",
+        "Locale(identifier:)"
+      ],
+      "state_owned": [
+        "Tour.pages: static let array of exactly 8 TourPage values; each TourPage init mints a fresh UUID, so ids are per-process, not stable literals",
+        "Tour.themeCount: computed on each access, no storage"
+      ],
+      "side_effects": [
+        "Sets model.settings.hasSeenTour = true in both the onFinish and the onClose closure, which AppSettings persists to UserDefaults",
+        "Opens the borderless floating tour window through TourWindowController.shared.present"
+      ],
+      "platform_assumptions": [
+        "SwiftUI import and @MainActor isolation on present(model:)",
+        "Foundation NumberFormatter with numberStyle .spellOut, pinned to Locale(identifier: \"en_US\") so the spelled number stays English whatever the user's locale is; falls back to the decimal string if spelling returns nil",
+        "The eight imageName strings resolve through the macOS asset catalog at DroppyCode/Resources/Assets.xcassets/tour-*.imageset"
+      ],
+      "persisted_fields": [
+        "hasSeenTour: Bool, written true here; the UserDefaults key string \"hasSeenTour\" and its default false are declared in DroppyCode/App/AppSettings.swift (Key.hasSeenTour, read as defaults.object(forKey:) as? Bool ?? false)"
+      ],
+      "ui_elements": [
+        "Page 1: image \"tour-welcome\", title \"Welcome to Droppy Code\", body \"One native macOS window for every coding agent you use. Claude, Codex, Gemini, Copilot and more, each in its own thread, on the same Liquid Glass.\"",
+        "Page 2: image \"tour-hydra\", title \"Meet Hydra\", body \"One chat, many heads. The lead writes the briefs, sends helper agents out in parallel, each in a copy of your project, and their work lands back in your checkout.\"",
+        "Page 3: image \"tour-pairs\", title \"Pair a strong lead with quick heads\", body \"Put a Claude lead over Gemini or OpenCode heads. Pick the pair from the model picker, cap how many heads run at once, and give each side its own effort.\"",
+        "Page 4: image \"tour-slider\", title \"Effort, on a slider\", body \"Drag from low to max on any model. In a pair the track blends the lead's colour into the heads', fast mode streaks toward the knob, and the title opens the model picker.\"",
+        "Page 5: image \"tour-threads\", title \"Threads, when you want them\", body \"Hide the sidebar and the chat has the whole window. The Threads button brings the list back as a floating panel: the same search, the same rows, and it goes away as soon as you pick one.\"",
+        "Page 6: image \"tour-recipes\", title \"Recipes for a team\", body \"Hydra's cookbook holds ready-made pairs: a lead, its heads and the effort each side gets, from the providers you have signed in. Pick one in Settings and every new chat starts on it.\"",
+        "Page 7: image \"tour-panels\", title \"Panels that float\", body \"Changes, the terminal and the team's panel dock to any corner and can pop out on their own. The conversation makes room, and everything stays in one window.\"",
+        "Page 8: image \"tour-themes\", title \"Make it yours\", body \"<themeCount> themes, from Catppuccin to Kanagawa, in real Liquid Glass. Built in Swift, so it scrolls at 120 frames a second and starts in a blink.\""
+      ],
+      "feature_notes": [
+        "The tour is exactly 8 pages, in this fixed order: welcome, hydra, pairs, slider, threads, recipes, panels, themes.",
+        "themeCount spells out AppTheme.allCases.count with NumberFormatter .spellOut in en_US, then uppercases only the first character: spelled.prefix(1).uppercased() + spelled.dropFirst(). At commit dd2b86e AppTheme declares 26 cases (system, light, dark, catppuccinMocha, catppuccinLatte, dracula, tokyoNight, nord, gruvbox, gruvboxLight, oneDark, everforest, kanagawa, rosePine, solarizedDark, solarizedLight, githubDark, githubLight, ayu, nightOwl, monokai, claude, claudeLight, codex, cursor, matrix), so page 8 reads \"Twenty-six themes, from Catppuccin to Kanagawa, ...\".",
+        "The doc comment explains why this is computed rather than literal: the copy said twenty-five after the twenty-sixth theme was added.",
+        "Both finishing the tour (Done) and closing it with the checkmark mark it seen: onFinish and onClose each set hasSeenTour = true, so the tour is not shown again after either path.",
+        "Tour.present passes no width/continueButtonTitle/finishButtonTitle, so the controller's defaults apply (width 660, \"Continue\", \"Done\").",
+        "Caller: DroppyCode/App/AppDelegate.swift line 18 gates on \"if !windows.model.settings.hasSeenTour\" before showing the tour on first run."
+      ],
+      "unresolved_questions": [
+        "Whether anything else calls Tour.present besides the first-run check in AppDelegate.swift (for example a Help menu item that replays the tour) is not determinable from this file alone.",
+        "TourPage ids are fresh UUIDs per array construction; whether any consumer relies on stable ids across rebuilds is not visible here."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Tour/TourView.swift",
+      "sha256": "b9ceb3dc4ddde6965c9fdbd1e1cbe4b2535e497dd27f55b20dc9b656673f9606",
+      "lines_total": 299,
+      "ranges_read": [
+        [
+          1,
+          299
+        ]
+      ],
+      "purpose": "Defines the TourPage model struct and the SwiftUI slideshow card itself: a 16:10 artwork section with a bottom-anchored gradient seat, the capsule page indicator, back and close icon buttons over the image, a centred title plus description block, and one prominent glass action button; also defines TourPageIndicator. Ported from TourKit by Ram Patra (MIT) onto the app's Liquid Glass chrome.",
+      "key_symbols": [
+        "struct TourPage: Identifiable, Hashable (id: UUID, imageName, title, description; init mints the UUID)",
+        "struct TourView: View",
+        "TourView.init(pages:width:height:initialPageIndex:continueButtonTitle:finishButtonTitle:onFinish:onClose:)",
+        "TourView.imageHeight",
+        "TourView.body",
+        "TourView.emptyState",
+        "static let TourView.imageAspectRatio: CGFloat = 16.0 / 10.0",
+        "static let TourView.emptyStateHeight: CGFloat = 220",
+        "TourView.imageSection",
+        "TourView.bottomPanel",
+        "TourView.topControls",
+        "TourView.primaryActionButton",
+        "TourView.iconButton(systemName:action:)",
+        "TourView.isLastPage",
+        "static func TourView.clamped(_:pageCount:)",
+        "TourView.advance()",
+        "TourView.goBack()",
+        "TourView.artwork(for:)",
+        "struct TourPageIndicator: View"
+      ],
+      "calls_into": [
+        "Chrome.glassTint",
+        "Chrome.overlay(_:)",
+        "Chrome.primaryText",
+        "Chrome.secondaryText",
+        ".glassEffect(.regular, in:) Liquid Glass modifier",
+        ".buttonStyle(.glassProminent)",
+        ".chromeGlassCircle() app chrome modifier",
+        ".presentedChrome() app chrome modifier",
+        "NSImage(named:) from AppKit",
+        "Environment(\\.dismiss)",
+        "Environment(\\.colorScheme)",
+        "RoundedRectangle, Capsule, LinearGradient, ZStack, VStack, HStack, ForEach"
+      ],
+      "state_owned": [
+        "@State var currentIndex: Int, seeded in init with Self.clamped(initialPageIndex, pageCount: pages.count)",
+        "let pages, width, height (optional), continueButtonTitle, finishButtonTitle, onFinish, onClose stored on the view",
+        "@Environment(\\.dismiss) private var dismiss",
+        "@Environment(\\.colorScheme) private var colorScheme"
+      ],
+      "side_effects": [
+        "Calls the onFinish / onClose closures supplied by the caller (which persist hasSeenTour) or falls back to the SwiftUI dismiss action; no file, network or process work of its own"
+      ],
+      "platform_assumptions": [
+        "imports AppKit purely for NSImage(named:) to test whether the artwork exists in the asset catalog before drawing it",
+        "SwiftUI Liquid Glass APIs: .glassEffect(.regular, in: shape) and .buttonStyle(.glassProminent)",
+        "SF Symbols names \"rectangle.stack\", \"chevron.left\", \"checkmark\", \"photo\"",
+        "Asset catalog Image(name) lookup by string",
+        "keyboardShortcut(.defaultAction) binds Return to the primary button"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Card shape: RoundedRectangle(cornerRadius: 20, style: .continuous), used for the glass background, the clipShape and the hairline overlay",
+        "Glass stack: shape.fill(.clear) plus .glassEffect(.regular, in: shape), overlaid with shape.fill(Chrome.glassTint.opacity(isDark ? 0.22 : 0.16)); border shape.strokeBorder(Chrome.overlay(0.14), lineWidth: 1); beneath the glass a scrim shape.fill((isDark ? Color.black : Color.white).opacity(isDark ? 0.3 : 0.34))",
+        "Whole-card animation: .animation(.easeInOut(duration: 0.25), value: currentIndex)",
+        "Default width 660; imageHeight = (width / (16.0/10.0)).rounded()",
+        "Empty state: Image(systemName: \"rectangle.stack\") at .font(.title) in Chrome.secondaryText above Text(\"No tour pages\") at .font(.headline) in Chrome.primaryText, VStack(spacing: 12), .frame(maxWidth: .infinity) and .frame(height: 220)",
+        "Image section: artwork .frame(width: width, height: imageHeight).clipped().id(currentIndex).transition(.opacity)",
+        "Indicator seat gradient: LinearGradient stops .clear at location 0, Color(white: 0.08).opacity(0.28) at 0.55, Color(white: 0.08).opacity(0.55) at 1.0, startPoint .top, endPoint .bottom, .frame(height: 96), bottom-aligned, allowsHitTesting(false)",
+        "TourPageIndicator with .padding(.bottom, 14), bottom-aligned, allowsHitTesting(false)",
+        "Page indicator dots: HStack(spacing: 7) of Capsule(style: .continuous); active fill Color.white.opacity(0.95), inactive Color.white.opacity(0.32); active frame 24x8, inactive 8x8; .accessibilityElement(children: .ignore) with accessibilityLabel \"Page N of M\" built as \"Page \\(currentIndex + 1) of \\(max(totalPages, 1))\"",
+        "Top controls: HStack with a back iconButton (SF Symbol \"chevron.left\") whose .opacity is 1 when currentIndex > 0 else 0, a Spacer, and a close iconButton (SF Symbol \"checkmark\"); .padding(.horizontal, 14), .padding(.top, 12)",
+        "iconButton: Image(systemName:) at .font(.system(size: 13, weight: .semibold)), .frame(width: 32, height: 32), .contentShape(Circle()), .buttonStyle(.plain), .chromeGlassCircle()",
+        "Bottom panel: outer VStack(spacing: 0); inner VStack(spacing: 0) holds Spacer(minLength: 12), title Text(verbatim:) at .font(.system(size: 28, weight: .bold)) centred in Chrome.primaryText with .fixedSize(horizontal: false, vertical: true), description Text(verbatim:) at .font(.body) centred in Chrome.secondaryText with the same fixedSize and .padding(.top, 6), then Spacer(minLength: 12); panel padding .horizontal 32, .top 12, .bottom 24; .id(currentIndex) and .transition(.opacity)",
+        "Primary button: Text(verbatim: isLastPage ? finishButtonTitle : continueButtonTitle) at .font(.system(size: 15, weight: .semibold)), .frame(width: 220, height: 42), .buttonStyle(.glassProminent), .keyboardShortcut(.defaultAction)",
+        "Default button titles: continueButtonTitle \"Continue\", finishButtonTitle \"Done\"",
+        "Missing-artwork placeholder: LinearGradient from Color(red: 0.16, green: 0.12, blue: 0.40) at top to Color(red: 0.05, green: 0.05, blue: 0.10) at bottom, overlaid with Image(systemName: \"photo\") at .font(.system(size: 40)) in Color.white.opacity(0.25)"
+      ],
+      "feature_notes": [
+        "TourPage.id is a fresh UUID per init, so two TourPage values with identical text are still distinct for Identifiable and Hashable purposes.",
+        "The card's height is supplied by the caller (the window controller pre-measures the tallest page) so the card never grows or shrinks between pages; height: nil sizes to the current page and the comment says that is for previews and the empty state.",
+        "frame(width:height:) is applied twice: once on the non-empty branch's VStack and once on the enclosing Group, so the empty state also picks up the caller's frame.",
+        "advance(): on the last page it calls onFinish, else onClose, else the SwiftUI dismiss; otherwise it does currentIndex += 1. There is no wrap-around from the last page to the first.",
+        "goBack(): newIndex = max(0, currentIndex - 1) with an early return when unchanged, so pressing back on page 0 is a no-op; the back button is hidden by .opacity(0) on page 0 but is not disabled or removed, so its 32x32 hit area is still clickable there (a harmless no-op).",
+        "The close control (checkmark) calls onClose when provided, otherwise dismiss(); it never calls onFinish. In the shipped wiring both closures set hasSeenTour, so closing early still counts as seen.",
+        "clamped(_:pageCount:) returns 0 when pageCount is 0, else max(0, min(index, pageCount - 1)); it guards only the initial index, not later mutation.",
+        "artwork(for:) probes NSImage(named: page.imageName) first and only then draws Image(page.imageName).resizable().scaledToFill(); otherwise it draws the purple-to-near-black gradient placeholder with a photo glyph, so a missing asset degrades visibly instead of crashing. All eight referenced assets exist as tour-*.imageset in the catalog at this commit, so the placeholder branch is a safety net, not a shipped visual.",
+        "Both the image and the bottom panel carry .id(currentIndex) with .transition(.opacity), and the enclosing .animation(.easeInOut(duration: 0.25), value: currentIndex) drives the 0.25s crossfade between pages.",
+        "Return/Enter activates the primary button via keyboardShortcut(.defaultAction); this file defines no arrow-key paging and no Escape handling.",
+        "The gradient seat is deliberately only 96pt tall and bottom-anchored: the comment says it is a seat for the page indicator only, so the scrim never reaches into the picture.",
+        "Header comment records provenance: a port of TourKit by Ram Patra (https://github.com/rampatra/TourKit, MIT License), the slideshow card, its page indicator and its controls, credited in THIRD_PARTY_NOTICES.md."
+      ],
+      "unresolved_questions": [
+        "Chrome.glassTint, Chrome.overlay(_:), Chrome.primaryText, Chrome.secondaryText, .chromeGlassCircle() and .presentedChrome() are defined in files outside this bundle, so their exact colors and effects are not established here.",
+        "The exact rounded imageHeight at width 660 depends on Swift's .rounded() rule applied to 412.5; I could not execute Swift here to confirm the shipped integer.",
+        "Whether any caller passes initialPageIndex other than the default 0 is not visible from this file; TourWindowController does not pass it."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Tour/TourWindowController.swift",
+      "sha256": "e4fd08cc03fac858f8bf7bbd1889cbd2618afb6571ce66af63b3c3ff3ed7cb3d",
+      "lines_total": 186,
+      "ranges_read": [
+        [
+          1,
+          186
+        ]
+      ],
+      "purpose": "Owns the single borderless floating AppKit window that hosts TourView: it pre-measures the tallest bottom panel across all pages with throwaway NSHostingViews so the card height is fixed, builds a transparent shadowed HostWindow at the computed content size, centres it on the visible window titled \"Droppy Code\" (or on screen), wires a WindowDelegate that clears the stored references on close, and exposes close(). Also defines the measurement-only TourBottomPanelSizingView.",
+      "key_symbols": [
+        "@MainActor final class TourWindowController",
+        "static let TourWindowController.shared",
+        "private final class HostWindow: NSWindow with canBecomeKey and canBecomeMain overridden to true",
+        "@discardableResult func present(pages:width:continueButtonTitle:finishButtonTitle:onFinish:onClose:) -> NSWindow",
+        "private static func maxBottomPanelHeight(pages:width:continueButtonTitle:finishButtonTitle:) -> CGFloat",
+        "func close()",
+        "private final class WindowDelegate: NSObject, NSWindowDelegate",
+        "private struct TourBottomPanelSizingView: View"
+      ],
+      "calls_into": [
+        "TourView(pages:width:height:continueButtonTitle:finishButtonTitle:onFinish:onClose:)",
+        "TourView.imageAspectRatio",
+        "TourView.emptyStateHeight",
+        "TourPage",
+        "Chrome.primaryText",
+        "Chrome.secondaryText",
+        "NSHostingView",
+        "NSWindow, NSApp.windows, NSApp.activate(ignoringOtherApps:)",
+        "NSWindowDelegate.windowWillClose(_:)",
+        "layoutSubtreeIfNeeded(), fittingSize"
+      ],
+      "state_owned": [
+        "static let shared: the process-wide singleton controller",
+        "private var window: NSWindow?, the live tour window, nil when closed",
+        "private var windowDelegate: WindowDelegate?, a strong reference keeping the delegate alive because NSWindow.delegate is weak"
+      ],
+      "side_effects": [
+        "Creates and orders front an NSWindow via makeKeyAndOrderFront(nil) and calls NSApp.activate(ignoringOtherApps: true), which pulls focus to the app",
+        "Instantiates throwaway NSHostingViews during measurement and forces layout with layoutSubtreeIfNeeded()",
+        "Closes the window in close(); windowWillClose clears both stored references",
+        "No file, network, timer or keychain work"
+      ],
+      "platform_assumptions": [
+        "AppKit NSWindow with styleMask [.borderless, .fullSizeContentView], isOpaque = false, backgroundColor = .clear, hasShadow = true (the comment notes AppKit shapes the shadow to the window's alpha so it follows the rounded card), isMovableByWindowBackground = true, isReleasedWhenClosed = false",
+        "window.level = .floating and collectionBehavior [.managed, .participatesInCycle, .fullScreenAuxiliary]",
+        "Borderless windows cannot become key by default, hence the HostWindow subclass overriding canBecomeKey and canBecomeMain to true",
+        "NSHostingView.sizingOptions = [] to stop SwiftUI resizing the window per page, plus an explicit hosting.frame",
+        "Finds the main window by matching NSWindow.title == \"Droppy Code\" and isVisible",
+        "@MainActor isolation for all AppKit work"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Defaults: width 660, continueButtonTitle \"Continue\", finishButtonTitle \"Done\"",
+        "imageHeight = (width / TourView.imageAspectRatio).rounded()",
+        "totalHeight = pages.isEmpty ? TourView.emptyStateHeight (220) : max(imageHeight + maxPanelHeight, 1)",
+        "contentSize = CGSize(width: width, height: totalHeight); hosting.frame = NSRect(origin: .zero, size: contentSize); window contentRect the same",
+        "TourBottomPanelSizingView mirrors TourView.bottomPanel for measurement: VStack(spacing: 0) with Spacer(minLength: 12), title at .font(.system(size: 28, weight: .bold)) centred in Chrome.primaryText with fixedSize, description at .font(.body) centred in Chrome.secondaryText with fixedSize and .padding(.top, 6), Spacer(minLength: 12), then a plain Text of the button title at .font(.system(size: 15, weight: .semibold)) framed 220x42; padding .horizontal 32, .top 12, .bottom 24",
+        "Window origin: NSPoint(x: mainFrame.midX - contentSize.width / 2, y: mainFrame.midY - contentSize.height / 2) when a visible window titled \"Droppy Code\" exists, otherwise window.center()"
+      ],
+      "feature_notes": [
+        "present() is idempotent: when a window already exists it only calls makeKeyAndOrderFront(nil), activates the app and returns that same NSWindow, so a second call's pages and callbacks are ignored.",
+        "Height is measured once before the window appears: for each page it builds a TourBottomPanelSizingView with the finish title on the last page and the continue title otherwise, frames it to the width, hosts it in an NSHostingView, calls layoutSubtreeIfNeeded() and takes fittingSize.height, then takes .max() across pages (?? 0).",
+        "maxBottomPanelHeight returns 0 early for an empty page list, and the empty case then sizes the whole window to TourView.emptyStateHeight = 220.",
+        "The comment explains the fix this encodes: left to its defaults the hosting view resized the window to each page's own ideal height, so the card grew and shrank with the length of the description as the user paged.",
+        "The window is borderless with no titlebar controls: dismissal is only through TourView's checkmark, the Done button, or TourWindowController.close().",
+        "The onFinish closure handed to TourView falls back to the caller's onClose when onFinish is nil and always calls dismiss() (self.close()) afterwards; the onClose closure calls the caller's onClose then dismiss(). Tour.present supplies both, so either path persists hasSeenTour and then closes the window.",
+        "The dismiss closure captures self weakly, as does the WindowDelegate callback, which nils out both window and windowDelegate.",
+        "isReleasedWhenClosed = false together with windowWillClose clearing the references is what lets a later present() build a fresh window rather than resurrect a dead one.",
+        "isMovableByWindowBackground = true means the user drags the glass card itself to move the borderless window anywhere on screen.",
+        "collectionBehavior [.managed, .participatesInCycle, .fullScreenAuxiliary] keeps the card in window cycling and lets it appear over a full-screen space.",
+        "TourBottomPanelSizingView is private and used only for measurement: it renders a plain Text where the live view renders a Button, so the measured height assumes the glassProminent button occupies exactly the 220x42 frame."
+      ],
+      "unresolved_questions": [
+        "The main window is located by the literal title string \"Droppy Code\"; whether that title is ever localized or changed elsewhere (which would silently fall back to window.center()) is not determinable from this file.",
+        "Whether measuring with throwaway NSHostingViews yields exactly the same height as the live TourView (which adds glass background, clip and border around, but no extra padding inside, the bottom panel) is implied by the mirrored layout but not verifiable without running the app.",
+        "Chrome.primaryText and Chrome.secondaryText are defined outside this bundle, so the exact text colors used during measurement and display are not established here."
+      ]
+    }
+  ]
+}

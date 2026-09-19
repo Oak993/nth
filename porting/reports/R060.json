@@ -1,0 +1,1165 @@
+{
+  "bundle_id": "R060",
+  "reader": "R060-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Resources/AppIcon.icon/Assets/SVG Image.svg",
+      "sha256": "52eb379e10e01fe3a2cbfab216a87e4f964632a36533e0f38cb39f9ad145b1d6",
+      "lines_total": 1262,
+      "ranges_read": [
+        [
+          1,
+          1262
+        ]
+      ],
+      "purpose": "Vector artwork layer inside the Icon Composer app-icon bundle AppIcon.icon: a 1024x1024 field of white binary digits (45 zeros and 45 ones) that sits behind the mascot and shadow PNG layers declared by the sibling icon.json. It is the only vector asset in AppIcon.icon/Assets; the other four are \"mascot (3).png\", \"mascot dark.png\", \"shadow dark.png\" and \"shadow def.png\".",
+      "key_symbols": [
+        "svg root: width=\"1024\" height=\"1024\" viewBox=\"0 0 1024 1024\"",
+        "xmlns:c2pa=\"http://c2pa.org/manifest\"",
+        "<metadata><c2pa:manifest> base64 JUMBF/C2PA manifest, about 7.7 KB, all on line 1 (line 1 is 7865 characters)",
+        "135 <path> elements, every one fill=\"#FFFFFF\"",
+        "45 paths with fill-rule=\"evenodd\" (the \"0\" glyph: outer capsule plus inner counter)",
+        "90 paths with no fill-rule attribute (the \"1\" glyph: 45 stems plus 45 flag/serif bars)"
+      ],
+      "calls_into": [
+        "AppIcon.icon/icon.json, the .icon manifest that composes this SVG with the mascot and shadow PNG layers (not in this bundle)"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode 26 / macOS 26 Icon Composer \".icon\" bundle format (an AppIcon.icon directory holding icon.json plus an Assets folder)",
+        "Relies on the Apple icon pipeline rasterizing SVG layers; SVG is not a native macOS image format outside Icon Composer",
+        "Geometry deliberately bleeds outside the 0..1024 viewBox so the pattern keeps going under the icon mask (squircle / Liquid Glass crop)"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Glyph grid: 10 columns with centres at x = -60, 60, 180, 300, 420, 540, 660, 780, 900, 1020 (pitch 120)",
+        "Glyph grid: 9 rows with top edges at y = -114, 18, 150, 282, 414, 546, 678, 810, 942 (pitch 132)",
+        "\"0\" glyph: rounded rect x = cx-29.76 to cx+29.76 (width 59.52), y = ty to ty+96 (height 96), corner radius 29.76; inner counter x = cx-9.76 to cx+9.76 (width 19.52), y = ty+20 to ty+76 (height 56), radius 9.76; uniform ring thickness 20 on all four sides",
+        "\"1\" glyph stem: rounded rect x = cx-2.32 to cx+17.68 (width 20, centre cx+7.68), y = ty to ty+96 (height 96), corner radius 10",
+        "\"1\" glyph flag/serif: rounded bar x = cx-21.12 to cx+3.84 (width 24.96), y = ty+12 to ty+32 (height 20), radius 10 so it is a full stadium; it overlaps the stem by 6.16 units",
+        "Bezier control offsets use the circle constant 0.5523 (16.44 on radius 29.76; 5.52 on radius 10)",
+        "Single colour #FFFFFF, no strokes, no gradients, no opacity attributes, no transforms and no <g> wrapper"
+      ],
+      "feature_notes": [
+        "Exact digit map, top row first, columns left to right (x = -60 through 1020): y=-114 \"0110001100\"; y=18 \"1010010110\"; y=150 \"0110000000\"; y=282 \"0000001110\"; y=414 \"1100111011\"; y=546 \"0111110010\"; y=678 \"0111001110\"; y=810 \"0001110011\"; y=942 \"1110111001\"",
+        "The whole first row (y = -114 to -18) sits above the viewBox and the whole first column (x = -89.76 to -30.24) sits left of it, so 18 of the 90 glyphs are authored but never rendered; they exist so the pattern reads as continuous at the crop edges",
+        "The bottom row (y = 942 to 1038) is clipped at y=1024 and the right column (reaching x=1049.76) is clipped at x=1024",
+        "Embedded C2PA content credential: claim_generator_info name \"Anthropic Files\", version \"1.0.0\", specVersion \"2.4.0\"; assertion c2pa.actions.v2 records action \"com.anthropic.claude.provided\" with parameter \"com.anthropic.origin-confidence\": \"unknown\", description \"Claude provided this file at the request of a user and may have created or modified the file contents.\" and softwareAgent name \"Claude\"; assertion c2pa.ingredient.v3 carries dc:format \"image/svg+xml\", instanceID \"xmp:iid:ebd2b4a6-53dc-4d98-ab9a-207fdd245e92\", relationship \"parentOf\"; claim instanceID \"xmp:iid:9b36ca9e-c7f7-477b-8eb6-f6ff80aa543f\"; manifest URN \"urn:c2pa:a7054e25-9723-4f10-bca5-dc303387ef47\"; hash alg \"sha256\"; signature chain \"Anthropic, PBC\" / \"Anthropic Content Credentials Root CA\" / \"Anthropic Claude Content Signing\", certificate validity 260807184356Z to 280806194356Z",
+        "Line endings are LF with no trailing newline; the final line 1262 is exactly \"</svg>\". Body formatting is two spaces of indent for each <path> and six spaces for its continuation segments"
+      ],
+      "unresolved_questions": [
+        "Whether the 90-bit sequence encodes a message: 90 is not a multiple of 8 so it does not chunk into ASCII, and row-wise 10-bit reads do not map to text either, so it looks decorative, but that is inference rather than evidence",
+        "How this layer is translated, scaled, blended or tinted in the finished icon: that is declared in AppIcon.icon/icon.json, which is not part of this bundle",
+        "The pinned inventory records has_crlf:true for this file, but the bytes on disk are LF only (line 2 ends 0x0a) while the sha256 and byte size match the inventory exactly, so the flag looks like an inventory artefact rather than a property of the file"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/badge-edit.imageset/badge-edit.svg",
+      "sha256": "91ce10a554cb96c12c59a2f778b9541014483c9e70f9b84f5a3f4776efd20e3e",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "The 18x18 stroked \"edited files\" badge glyph, a rounded square with a plus inside, used as the leading icon of the file-changes card in the chat timeline beside the \"Edited N files\" label.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 18 18\" width=\"18\" height=\"18\"",
+        "<g fill=\"none\" stroke=\"#000000\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\">",
+        "<rect x=\"2\" y=\"2\" width=\"14\" height=\"14\" rx=\"4.5\"/>",
+        "<path d=\"M9 5.75v6.5M5.75 9h6.5\"/>"
+      ],
+      "calls_into": [
+        "DroppyCode/App/Views/Chat/TimelineRows.swift line 2763: Image(\"badge-edit\").renderingMode(.template).resizable().frame(width: 18, height: 18).foregroundStyle(Chrome.secondaryText)",
+        "Sibling badge-edit.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset consumed through SwiftUI Image(\"badge-edit\") by catalog key, never by filename",
+        "Depends on Asset Catalog template rendering so the authored #000000 stroke is recoloured by foregroundStyle",
+        "preserves-vector-representation makes AppKit keep the vector and rasterize per scale factor instead of baking a 1x bitmap"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Rounded square: x=2, y=2, width=14, height=14, corner radius rx=4.5, leaving a 2 unit margin inside the 18x18 box",
+        "Plus sign: vertical stroke at x=9 running y=5.75 to y=12.25; horizontal stroke at y=9 running x=5.75 to x=12.25, both 6.5 long and centred on (9,9)",
+        "stroke-width 1.5, stroke-linecap round, stroke-linejoin round, fill none, all set once on the enclosing <g>",
+        "Rendered at exactly 18x18 points in the timeline row and tinted Chrome.secondaryText"
+      ],
+      "feature_notes": [
+        "This is the only stroked (fill=\"none\") SVG in the bundle; every other asset here is a filled silhouette",
+        "The plus is written as a single compact path with relative commands (\"M9 5.75v6.5M5.75 9h6.5\"), the only use of v/h shorthand among the 25 files",
+        "Sits beside the exact label text \"Edited 1 file\" (singular) or \"Edited \\(files.count) files\" (plural) in an HStack(spacing: 8)",
+        "Ends with a trailing newline byte 0x0a, unlike the 23 hydra-head SVGs which have none; that is why wc -l reports 1 here and 0 for them"
+      ],
+      "unresolved_questions": [
+        "Whether anything other than TimelineRows.swift line 2763 uses the \"badge-edit\" key; that was the only Swift reference found"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-10.imageset/hydra-head-10.svg",
+      "sha256": "f8bed9f6ec7d8fbea043457222b2a53a1d9ff1c971d2569cbfcb5166845a4b06",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 10 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Ezra\", drawn as one filled path and tinted at runtime with that persona colour 0x4FD1A1.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Ezra\", \"hydra-head-10\", 0x4FD1A1) inside HydraRoster.personas",
+        "Sibling hydra-head-10.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-10\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (63.00,43.00), radius 4.60"
+      ],
+      "feature_notes": [
+        "Artwork: Three frill notches down the neck ((17,82) to (10,74), (19,68) to (11,60), (21,54) to (15,46)) combined with the single long back-swept horn reaching a tip at (16,7). The crown carries a run of small barbs: (89,70) (84,70) (82,76) (80,70) (71,68) (74,76) (78,74) (80,80) (82,79) (88,86).",
+        "Round eye, centre (63.00,43.00), radius 4.60. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Ezra\" with tint 0x4FD1A1 in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 9.",
+        "File size 1720 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-11.imageset/hydra-head-11.svg",
+      "sha256": "e8c3602d16cebd753baa1d96b2f0cbd7976071f0c83d10fec08a843caaa569bb",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 11 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Lena\", drawn as one filled path and tinted at runtime with that persona colour 0x2FB8E6.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Lena\", \"hydra-head-11\", 0x2FB8E6) inside HydraRoster.personas",
+        "Sibling hydra-head-11.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-11\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Vertical slit pupil: ellipse centre (62.00,43.00), rx 3.00, ry 6.00"
+      ],
+      "feature_notes": [
+        "Artwork: One hooked horn through the brow at (34,31) to a tip at (28,8) via (25,20), returning through (41,23). Plain neck and belly. The jaw runs (66.67,73) (64,75) (57.67,81.5) (56,84) and a wisp drops to (52,100) before returning through (46,92).",
+        "Vertical slit pupil: ellipse centre (62.00,43.00), rx 3.00, ry 6.00. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Lena\" with tint 0x2FB8E6 in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 10.",
+        "File size 1205 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-12.imageset/hydra-head-12.svg",
+      "sha256": "6108d97a753485c0747432a0c0ff9a1b137e4f37d4174b0bb1604ad3de245c37",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 12 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Bo\", drawn as one filled path and tinted at runtime with that persona colour 0xB0784A.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Bo\", \"hydra-head-12\", 0xB0784A) inside HydraRoster.personas",
+        "Sibling hydra-head-12.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-12\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (63.00,43.00), radius 4.60"
+      ],
+      "feature_notes": [
+        "Artwork: Rounded chest and belly profile (13,80) (9,68) (11,56) (19,48) (26,44) with a smooth hornless brow (30,34) (42,26) to (54,25). The jaw carries a chain of barbels: (71,68) (73,74) (79,73) (85,75) (87,78) (83,80) (90,88), then chin (78,91) (66,88) (58,80).",
+        "Round eye, centre (63.00,43.00), radius 4.60. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Bo\" with tint 0xB0784A in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 11.",
+        "File size 1386 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-13.imageset/hydra-head-13.svg",
+      "sha256": "dd627edb1ac55589788cb16330b24b116a360fa9dec7372eaf5a7412aa0a4732",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 13 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Kai\", drawn as one filled path and tinted at runtime with that persona colour 0x8FD14F.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "3 subpaths: body outline, eye and nostril dot"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Kai\", \"hydra-head-13\", 0x8FD14F) inside HydraRoster.personas",
+        "Sibling hydra-head-13.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-13\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (63.00,43.00), radius 4.60"
+      ],
+      "feature_notes": [
+        "Artwork: The twin back-swept horns of head 02 (tips at (7,17) and (20,5)) combined with the deeper beard jaw of head 05: (71,68) (74,76) (80,80) (88,86) then chin (78,90) (66,88) (58,80).",
+        "Round eye, centre (63.00,43.00), radius 4.60. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Nostril dot, centre (87.00,63.00), radius 1.80.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Kai\" with tint 0x8FD14F in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 12.",
+        "File size 1621 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-14.imageset/hydra-head-14.svg",
+      "sha256": "7a3f5f765d1f6c8d3d89533c9cec4331e8ea989320cf49b51f646132e8fbb343",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 14 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Vera\", drawn as one filled path and tinted at runtime with that persona colour 0xD946EF.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Vera\", \"hydra-head-14\", 0xD946EF) inside HydraRoster.personas",
+        "Sibling hydra-head-14.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-14\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (63.00,43.00), radius 4.60"
+      ],
+      "feature_notes": [
+        "Artwork: Triple saw-tooth crest with peaks at (43,16) and (53,18) from (33,20), plus the dorsal ridge (94,52) (96,58) (92,64) on the crown and a downward tail flick off the jaw: (54,86) (53,96) (46,98) back to (40,94).",
+        "Round eye, centre (63.00,43.00), radius 4.60. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Vera\" with tint 0xD946EF in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 13.",
+        "File size 1242 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-15.imageset/hydra-head-15.svg",
+      "sha256": "d1f0270a61a7aa707ee378f2bd1afe5609d6b349455aeb816eb34a8e6c774773",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 15 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Finn\", drawn as one filled path and tinted at runtime with that persona colour 0xF97316.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Finn\", \"hydra-head-15\", 0xF97316) inside HydraRoster.personas",
+        "Sibling hydra-head-15.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-15\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (63.00,43.00), radius 4.60"
+      ],
+      "feature_notes": [
+        "Artwork: The four-step serrated neck frill of head 07 ((15,84) to (6,78), (16,72) to (7,64), (18,58) to (9,50), (24,46)) combined with the two tall crest spikes of head 06 (tips at (30,8) and (48,4)) and the beard bar jaw (73,77) (80,80) (88,83) then chin (78,87) (66,86).",
+        "Round eye, centre (63.00,43.00), radius 4.60. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Finn\" with tint 0xF97316 in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 14.",
+        "File size 1634 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-16.imageset/hydra-head-16.svg",
+      "sha256": "3a194b461b16547632619d74e2db31485f05721ad07fa9afba901df49e7dad9a",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 16 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Mira\", drawn as one filled path and tinted at runtime with that persona colour 0xC084FC.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Mira\", \"hydra-head-16\", 0xC084FC) inside HydraRoster.personas",
+        "Sibling hydra-head-16.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-16\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (62.00,42.00), radius 5.00"
+      ],
+      "feature_notes": [
+        "Artwork: Left-pointing whiskers/barbels out from (29,36) through (18,30) to (8,26) and back through (20,30) (30,30) to (50,24), with the goatee chin loop of head 08: (58,82) (63,90) (57,97) (48,97) (42,94).",
+        "Round eye, centre (62.00,42.00), radius 5.00. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Mira\" with tint 0xC084FC in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 15.",
+        "File size 1239 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-17.imageset/hydra-head-17.svg",
+      "sha256": "ca9600450b68fc8336b99cbc702c7e4300ddebb9890d7025d461576ea8d777bc",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 17 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Odin\", drawn as one filled path and tinted at runtime with that persona colour 0xB45309.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Odin\", \"hydra-head-17\", 0xB45309) inside HydraRoster.personas",
+        "Sibling hydra-head-17.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-17\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (63.00,43.00), radius 4.60"
+      ],
+      "feature_notes": [
+        "Artwork: The most elaborate head in the set and the longest path (2053 bytes): three neck frill notches ((17,82) to (10,74), (19,68) to (11,60), (21,54) to (15,46)), the curled ram horn (12,14) (20,5) (33,7) (37,14) then back through (31,14) (24,15) (20,20) (23,26) (32,30), the dorsal wing spike (77,40) up to (82,30) then (88,46) (94,58), the crown barb run (84,70) (82,76) (80,70) (71,68) (74,76) (78,74) (80,80) (82,79) (88,86), and a wisp dropping to (52,100).",
+        "Round eye, centre (63.00,43.00), radius 4.60. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Odin\" with tint 0xB45309 in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 16.",
+        "File size 2053 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-18.imageset/hydra-head-18.svg",
+      "sha256": "9fd2bebf585c0e516b4da0469f3fcd0df8f1a289db8eae682ad068cda25da270",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 18 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Suki\", drawn as one filled path and tinted at runtime with that persona colour 0xF472B6.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Suki\", \"hydra-head-18\", 0xF472B6) inside HydraRoster.personas",
+        "Sibling hydra-head-18.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-18\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Vertical slit pupil: ellipse centre (62.00,43.00), rx 3.00, ry 6.00"
+      ],
+      "feature_notes": [
+        "Artwork: The smallest head in the set at 1201 bytes: rounded chest and belly (13,80) (9,68) (11,56) (19,48) (26,44), low ruffled brow bumps (35,27) (38,31) (46,25) (50,29) to (64,29), and the dorsal ridge (94,52) (96,58) (92,64) on the crown.",
+        "Vertical slit pupil: ellipse centre (62.00,43.00), rx 3.00, ry 6.00. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Suki\" with tint 0xF472B6 in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 17.",
+        "File size 1201 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-19.imageset/hydra-head-19.svg",
+      "sha256": "9149edea5c276388be9db32b5304fbf5edd6e5b9671236edc73c86ff6dcb7c2a",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 19 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Rex\", drawn as one filled path and tinted at runtime with that persona colour 0x2563EB.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Rex\", \"hydra-head-19\", 0x2563EB) inside HydraRoster.personas",
+        "Sibling hydra-head-19.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-19\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (63.00,43.00), radius 4.60"
+      ],
+      "feature_notes": [
+        "Artwork: The three thin needle spines of head 09 (tips at (12,14), (21,10), (30,7)) combined with the deeper beard jaw of head 05: (71,68) (74,76) (80,80) (88,86) then chin (78,90) (66,88) (58,80). Identical byte length to head 09 (1461) but a different path.",
+        "Round eye, centre (63.00,43.00), radius 4.60. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Rex\" with tint 0x2563EB in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 18.",
+        "File size 1461 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-20.imageset/hydra-head-20.svg",
+      "sha256": "7c464196c8cb534bb439084caf7d312a280ccb32af82f1372fe3a40e67280caa",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 20 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Zola\", drawn as one filled path and tinted at runtime with that persona colour 0x65A30D.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "3 subpaths: body outline, eye and nostril dot"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Zola\", \"hydra-head-20\", 0x65A30D) inside HydraRoster.personas",
+        "Sibling hydra-head-20.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-20\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (63.00,43.00), radius 4.60"
+      ],
+      "feature_notes": [
+        "Artwork: The four-step serrated neck frill of head 07 combined with the single long back-swept horn reaching a tip at (16,7) and a downward jaw flick (54,86) (53,96) (46,98) back to (40,94).",
+        "Round eye, centre (63.00,43.00), radius 4.60. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Nostril dot, centre (80.00,63.00), radius 1.80, sitting 6 to 7 units further back on the snout than the (86,63) and (87,63) dots of heads 01, 07 and 13.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Zola\" with tint 0x65A30D in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 19.",
+        "File size 1504 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-21.imageset/hydra-head-21.svg",
+      "sha256": "269283ebd58617f648e1059d5e4c4258895ef87bd371012e9d9b2dd86baf75dd",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 21 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Pip\", drawn as one filled path and tinted at runtime with that persona colour 0x94A3B8.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Pip\", \"hydra-head-21\", 0x94A3B8) inside HydraRoster.personas",
+        "Sibling hydra-head-21.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-21\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (62.00,42.00), radius 5.40, the largest eye of the 23 heads"
+      ],
+      "feature_notes": [
+        "Artwork: Smooth hornless brow (30,34) (42,26) to (54,25) with the dorsal ridge (94,52) (96,58) (92,64) on the crown and the beard bar jaw (73,77) (80,80) (88,83) then chin (78,87) (66,86).",
+        "Round eye, centre (62.00,42.00), radius 5.40, the largest eye of the 23 heads. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Pip\" with tint 0x94A3B8 in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 20.",
+        "File size 1242 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-22.imageset/hydra-head-22.svg",
+      "sha256": "3e3c1434363aaa55f6dbefbf73bec3403adfbe69d50e698c284bee463b4a5897",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 22 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Ivo\", drawn as one filled path and tinted at runtime with that persona colour 0x0D9488.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Ivo\", \"hydra-head-22\", 0x0D9488) inside HydraRoster.personas",
+        "Sibling hydra-head-22.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-22\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (63.00,43.00), radius 4.60"
+      ],
+      "feature_notes": [
+        "Artwork: Three neck frill notches ((17,82) to (10,74), (19,68) to (11,60), (21,54) to (15,46)) with the hooked horn through the brow at (34,31) to a tip at (28,8) via (25,20), and a crown that rises to (96,66) then pinches at (92,74) and (89,70).",
+        "Round eye, centre (63.00,43.00), radius 4.60. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Ivo\" with tint 0x0D9488 in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 21.",
+        "File size 1387 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-23.imageset/hydra-head-23.svg",
+      "sha256": "a64f9848e3a3b3d533363ca6aec916dabc9736f6990842f06f752478c1302841",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 23 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Lux\", drawn as one filled path and tinted at runtime with that persona colour 0xFACC15.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Lux\", \"hydra-head-23\", 0xFACC15) inside HydraRoster.personas",
+        "Sibling hydra-head-23.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-23\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (63.00,43.00), radius 4.60"
+      ],
+      "feature_notes": [
+        "Artwork: Triple saw-tooth crest with peaks at (43,16) and (53,18) from (33,20), the dorsal wing spike (77,40) up to a tip at (82,30) then (88,46) (94,58), and a wisp dropping off the jaw to (52,100) via (57.67,81.5) (56,84) before returning through (46,92).",
+        "Round eye, centre (63.00,43.00), radius 4.60. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Lux\" with tint 0xFACC15 in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 22.",
+        "File size 1319 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-01.imageset/hydra-head-01.svg",
+      "sha256": "dda00072e38f13b1dbf416ec6fe011e47ce87f1e6a32182098660991d781b0e6",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 1 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Hank\", drawn as one filled path and tinted at runtime with that persona colour 0xFF8A3D.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "3 subpaths: body outline, eye and nostril dot"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Hank\", \"hydra-head-01\", 0xFF8A3D) inside HydraRoster.personas",
+        "Sibling hydra-head-01.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-01\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (63.00,43.00), radius 4.60"
+      ],
+      "feature_notes": [
+        "Artwork: One long back-swept horn: the crest leaves the brow at (28,36), sweeps up through (23,26.83) and (21,22) to the tip at (16,7), then returns down through (27,18) and (37,26) to meet the muzzle at (50,24). Smooth unbroken neck line (17,74 / 21,56 / 26,44) and a plain lower jaw running (72,72) (64,75) (52,86) (44,92) to (40,94).",
+        "Round eye, centre (63.00,43.00), radius 4.60. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Nostril dot, centre (86.00,63.00), radius 1.80.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Hank\" with tint 0xFF8A3D in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 0.",
+        "File size 1291 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-02.imageset/hydra-head-02.svg",
+      "sha256": "fed154187237b95e45b8845dfd98064bf3d2e7a16ac57edb58f13dd73f09b6dd",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 2 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Walter\", drawn as one filled path and tinted at runtime with that persona colour 0x3D8BFF.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Walter\", \"hydra-head-02\", 0x3D8BFF) inside HydraRoster.personas",
+        "Sibling hydra-head-02.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-02\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (63.00,43.00), radius 4.60"
+      ],
+      "feature_notes": [
+        "Artwork: Two back-swept horns: the lower runs (24,36) (13,27) to a tip at (7,17) and back via (20,27) (28,32); the upper runs (23,20) to a tip at (20,5) and back via (31,16) (41,25). The jaw carries a beard bar (73,77) (80,80) to (88,83) then a chin sweep (78,87) (66,86) (58,80), and a wisp drops to (52,100) before returning through (46,92).",
+        "Round eye, centre (63.00,43.00), radius 4.60. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Walter\" with tint 0x3D8BFF in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 1.",
+        "File size 1535 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-03.imageset/hydra-head-03.svg",
+      "sha256": "7762d8a10db7f12d1b0ccda7c2a743f96d7841fffaef575264d53012d814d78c",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 3 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Ada\", drawn as one filled path and tinted at runtime with that persona colour 0x34C46A.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Ada\", \"hydra-head-03\", 0x34C46A) inside HydraRoster.personas",
+        "Sibling hydra-head-03.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-03\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (62.00,42.00), radius 5.00"
+      ],
+      "feature_notes": [
+        "Artwork: Rounded chest and belly profile down the left: (13,80) (9,68) (11,56) (19,48) (26,44). One hooked horn through the brow at (34,31) up to a tip at (28,8) via (25,20), returning through (41,23). Dorsal ridge bump on the crown at (94,52) (96,58) (92,64) before the (92,70) crest point.",
+        "Round eye, centre (62.00,42.00), radius 5.00. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Ada\" with tint 0x34C46A in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 2.",
+        "File size 1235 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-04.imageset/hydra-head-04.svg",
+      "sha256": "3783b8b906cbda324e01f16a9f749d4e13072c5a45f5614a6a2aa928c8047f4d",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 4 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Otto\", drawn as one filled path and tinted at runtime with that persona colour 0xA35BE0.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Otto\", \"hydra-head-04\", 0xA35BE0) inside HydraRoster.personas",
+        "Sibling hydra-head-04.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-04\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (63.00,43.00), radius 4.60"
+      ],
+      "feature_notes": [
+        "Artwork: Curled ram horn: out from (16,28) through (12,14) (20,5) (33,7) to (37,14), then back inside through (31,14) (24,15) (20,20) (23,26) (32,30) to (40,26), forming a closed spiral loop. The jaw trails into a downward flick (54,86) (53,96) (46,98) before returning to (40,94).",
+        "Round eye, centre (63.00,43.00), radius 4.60. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Otto\" with tint 0xA35BE0 in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 3.",
+        "File size 1421 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-05.imageset/hydra-head-05.svg",
+      "sha256": "2021936fcacecc7f7d629c59a04d86c7256ef5e5f19f6b1caf827410e90286a5",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 5 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Nova\", drawn as one filled path and tinted at runtime with that persona colour 0xF25C9A.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Nova\", \"hydra-head-05\", 0xF25C9A) inside HydraRoster.personas",
+        "Sibling hydra-head-05.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-05\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (63.00,43.00), radius 4.60"
+      ],
+      "feature_notes": [
+        "Artwork: Three frill notches down the neck: (17,82) to (10,74), (19,68) to (11,60), (21,54) to (15,46), then (24,44). Triple saw-tooth crest with peaks at (43,16) and (53,18) and troughs at (38,28) and (48,26), starting from (33,20). Jaw beard (71,68) (74,76) (80,80) (88,86) then chin (78,90) (66,88) (58,80).",
+        "Round eye, centre (63.00,43.00), radius 4.60. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Nova\" with tint 0xF25C9A in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 4.",
+        "File size 1538 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-06.imageset/hydra-head-06.svg",
+      "sha256": "689f5eeef5e28e44c5ce900c0412ba01fcd00f54c690d5be823cff127e8e5016",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 6 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Remy\", drawn as one filled path and tinted at runtime with that persona colour 0x2BB5B0.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Remy\", \"hydra-head-06\", 0x2BB5B0) inside HydraRoster.personas",
+        "Sibling hydra-head-06.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-06\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Vertical slit pupil: ellipse centre (62.00,43.00), rx 3.00, ry 6.00"
+      ],
+      "feature_notes": [
+        "Artwork: Two tall straight crest spikes: the first from (31,22) to a tip at (30,8) and down through (36,24) (38,30); the second from (46,26) (47,16) to a tip at (48,4) and down through (52,18) (54,26) to (64,29). The crown rises to (96,66) then pinches at (92,74) and (89,70) before the jaw.",
+        "Vertical slit pupil: ellipse centre (62.00,43.00), rx 3.00, ry 6.00. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Remy\" with tint 0x2BB5B0 in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 5.",
+        "File size 1347 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-07.imageset/hydra-head-07.svg",
+      "sha256": "5ad6f3b7969ce3c933fa82f7a43b478d50e2287bb82f47819a8de4c7dee93463",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 7 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Iris\", drawn as one filled path and tinted at runtime with that persona colour 0xE8B430.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "3 subpaths: body outline, eye and nostril dot"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Iris\", \"hydra-head-07\", 0xE8B430) inside HydraRoster.personas",
+        "Sibling hydra-head-07.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-07\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (63.00,43.00), radius 4.60"
+      ],
+      "feature_notes": [
+        "Artwork: Four-step serrated neck frill: (15,84) to (6,78), (16,72) to (7,64), (18,58) to (9,50), then (24,46). Left-pointing whiskers/barbels run out from (29,36) through (18,30) to (8,26) and back through (20,30) (30,30) to (50,24).",
+        "Round eye, centre (63.00,43.00), radius 4.60. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Nostril dot, centre (87.00,63.00), radius 1.80.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Iris\" with tint 0xE8B430 in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 6.",
+        "File size 1467 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-08.imageset/hydra-head-08.svg",
+      "sha256": "3a2b4009bd24147a12313760f013fd2d536d6f718db85e25fa08bd36f18f8616",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 8 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Milo\", drawn as one filled path and tinted at runtime with that persona colour 0xE84F4F.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Milo\", \"hydra-head-08\", 0xE84F4F) inside HydraRoster.personas",
+        "Sibling hydra-head-08.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-08\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (63.00,43.00), radius 4.60"
+      ],
+      "feature_notes": [
+        "Artwork: Low ruffled brow bumps from (30,34) through (35,27) (38,31) (46,25) (50,29) to (64,29). A dorsal wing spike rises from (77,40) to a tip at (82,30) and falls through (88,46) (94,58). The chin curls into a goatee loop: (58,82) (63,90) (57,97) (48,97) (42,94).",
+        "Round eye, centre (63.00,43.00), radius 4.60. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Milo\" with tint 0xE84F4F in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 7.",
+        "File size 1279 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-09.imageset/hydra-head-09.svg",
+      "sha256": "53d0fc417f17ddf1adf9bbf551857c08529876f773e523fed405141cdbf04ba4",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Dragon-head silhouette number 9 of the 25-strong hydra persona roster: the avatar glyph shown for the helper agent named \"Juno\", drawn as one filled path and tinted at runtime with that persona colour 0x6A5CFF.",
+      "key_symbols": [
+        "svg root: viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\">",
+        "2 subpaths: body outline and eye"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/Hydra.swift: HydraPersona(\"Juno\", \"hydra-head-09\", 0x6A5CFF) inside HydraRoster.personas",
+        "Sibling hydra-head-09.imageset/Contents.json, which sets template-rendering-intent \"template\" and preserves-vector-representation true"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset-catalog imageset addressed by the catalog key \"hydra-head-09\"; the SVG filename itself is never referenced from Swift",
+        "Template rendering intent means the authored #000000 fill is a stencil, and the visible colour comes from the persona hex applied by the view",
+        "preserves-vector-representation keeps the vector at runtime so the head stays crisp at any avatar size and scale factor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "100x100 user-space coordinate box; the artwork spans roughly x 6 to 96 and y 4 to 100",
+        "Fill authored as #000000 (stencil), fill-rule nonzero, no stroke, no gradient, no opacity, no transform, no <g> wrapper",
+        "Path uses only M, C and Z commands and every coordinate is written with exactly two decimal places",
+        "Round eye, centre (63.00,43.00), radius 4.60"
+      ],
+      "feature_notes": [
+        "Artwork: Three thin needle spines off the neck: (22,26) up to (12,14), then (21,23) up to (21,10), then (26,20) up to (30,7), rejoining through (32,22) (40,25). Jaw beard bar (73,77) (80,80) (88,83) then chin (78,87) (66,86) (58,80).",
+        "Round eye, centre (63.00,43.00), radius 4.60. The eye subpath winds counter-clockwise against the clockwise body outline, so under fill-rule=\"nonzero\" it is knocked out as a transparent hole rather than painted over, which matters because the image renders as a flat template tint.",
+        "Shared silhouette: like all 23 heads the outline opens at \"M16.00 94.00\" and closes with \"... C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z\"; only the crest, neck, jaw and eye segments differ between heads.",
+        "Assigned to helper-agent persona \"Juno\" with tint 0x6A5CFF in HydraRoster.personas (DroppyCode/Core/Models/Hydra.swift), roster index 8.",
+        "File size 1461 bytes, one line, no trailing newline (last byte is \">\")."
+      ],
+      "unresolved_questions": [
+        "The exact SwiftUI view that renders the head (frame size, clip shape, how HydraPersona.hex becomes a foregroundStyle) is not in this bundle; only the roster declaration in Hydra.swift was visible from here",
+        "Whether the head numbers carry meaning beyond roster order: the 23 shapes recombine a fixed vocabulary of crests, neck frills, jaws and eyes rather than forming any ordered sequence"
+      ]
+    }
+  ]
+}

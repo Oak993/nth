@@ -1,0 +1,495 @@
+{
+  "bundle_id": "R009",
+  "reader": "R009-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Chat/ChatBadge.swift",
+      "sha256": "6a4236f43687a1bf0c146a2c7c83584e088b66eda9310dab0ca84f737b6c6e8d",
+      "lines_total": 201,
+      "ranges_read": [[1, 201]],
+      "purpose": "Defines the reusable timeline pill ChatBadge used for the Hydra-style badges in the conversation, the .badgePopover view modifier for pills that draw themselves, and BadgePopoverCoordinator, an AppKit NSPopover wrapper that anchors the badge detail popover to the pill's window rect with a frozen content size.",
+      "key_symbols": [
+        "struct ChatBadge<Glyph: View, Detail: View>: View",
+        "ChatBadge fields: title, caption (nil), showsChevron (true), needsAttention (false), isEnabled (true), @Binding isPresented, @ViewBuilder glyph, @ViewBuilder detail",
+        "extension View.badgePopover(isPresented:detail:)",
+        "private struct BadgePopoverModifier: ViewModifier",
+        "@MainActor final class BadgePopoverCoordinator: NSObject, NSPopoverDelegate",
+        "BadgePopoverCoordinator.setAnchor(windowRect:), isShown, show(_:), close(), popoverDidClose(_:), startMonitors(), handleMouseDown(_:), stopMonitors(), onClose"
+      ],
+      "calls_into": [
+        "Chrome.primaryText",
+        "Chrome.secondaryText",
+        "Chrome.accentNSColor",
+        "TimelineMetrics.pillLeading",
+        "TimelineMetrics.pillTrailing",
+        "TimelineMetrics.pillVertical",
+        "TimelineMetrics.pillRadius",
+        "Font.chat(_:weight:zoom:)",
+        "EnvironmentValues.chatZoom",
+        "EnvironmentValues.closePopover",
+        "DotFieldLayerView.Representable(color:animated:)",
+        "View.windowRectAnchor(_:)",
+        "WindowRectAnchor.target(for:)",
+        "View.presentedChrome()",
+        "NSPopover.setFixedContent(_:size:)",
+        "NSHostingView",
+        "NSEvent.addLocalMonitorForEvents",
+        "NSEvent.removeMonitor"
+      ],
+      "state_owned": [
+        "@State private var coordinator = BadgePopoverCoordinator() (once in ChatBadge, again in BadgePopoverModifier)",
+        "@Environment(\\.accessibilityReduceMotion) private var reduceMotion",
+        "@Environment(\\.chatZoom) private var zoom",
+        "BadgePopoverCoordinator: private let popover = NSPopover(); private var anchorRect: CGRect?; private var monitors: [Any] = []; private weak var shownIn: NSWindow?; private var shownRect: NSRect = .zero; var onClose: (() -> Void)?"
+      ],
+      "side_effects": [
+        "Installs two NSEvent local monitors while the popover is shown: one matching .keyDown and one matching [.leftMouseDown, .rightMouseDown]; both removed in stopMonitors()",
+        "Shows and closes an NSPopover via popover.show(relativeTo:of:preferredEdge:) and popover.performClose(nil)",
+        "Constructs an NSHostingView purely to read fittingSize before showing",
+        "No disk, network or process work"
+      ],
+      "platform_assumptions": [
+        "AppKit NSPopover with behavior = .applicationDefined and animates = true, plus NSPopoverDelegate.popoverDidClose",
+        "NSEvent.addLocalMonitorForEvents for Escape (keyCode 53) and mouse-down dismissal",
+        "NSView.isFlipped decides preferredEdge: .minY when flipped, else .maxY",
+        "NSHostingView.fittingSize to measure SwiftUI content",
+        "NSWindow identity comparison so Escape only applies in the popover's window or the chat window it hangs from",
+        "macOS accessibilityReduceMotion environment value"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Button label is HStack(spacing: 8)",
+        "glyph() .frame(width: 18, height: 18)",
+        "Title: Text(verbatim: title), .font(.chat(.callout, weight: .medium, zoom: zoom)), Chrome.primaryText.opacity(0.9), lineLimit(1), truncationMode(.tail)",
+        "Caption: Text(verbatim: caption), .font(.chat(.caption, zoom: zoom)), Chrome.secondaryText, lineLimit(1), truncationMode(.tail)",
+        "Chevron: Image(systemName: \"chevron.right\"), .font(.chat(.caption2, weight: .semibold, zoom: zoom)), .foregroundStyle(.tertiary)",
+        "Padding: .leading TimelineMetrics.pillLeading, .trailing TimelineMetrics.pillTrailing, .vertical TimelineMetrics.pillVertical",
+        "Background: .tint.opacity(0.1) in RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous); clipShape uses the same radius and style",
+        ".buttonStyle(.plain), .disabled(!isEnabled), .contentShape(.rect)",
+        "Attention overlay at .top: DotFieldLayerView.Representable(color: Chrome.accentNSColor, animated: !reduceMotion).scaleEffect(y: -1).frame(height: proxy.size.height * 0.25), .allowsHitTesting(false), .accessibilityHidden(true)",
+        ".frame(maxWidth: .infinity, alignment: .leading) then .padding(.trailing, 96)",
+        "accessibilityLabel(Text(title)); accessibilityValue(Text(needsAttention ? \"Needs your attention\" : \"\"))",
+        "Popover fallback size when fittingSize is non-positive: NSSize(width: 460, height: 320)"
+      ],
+      "feature_notes": [
+        "needsAttention runs an accent dot-field wave along the badge's top quarter, exactly proxy.size.height * 0.25, flipped vertically with scaleEffect(y: -1), animated only when reduce motion is off",
+        "Tapping the pill toggles isPresented; the coordinator only shows when !coordinator.isShown, and closing goes through popover.performClose so the close animation runs, with onClose firing once from popoverDidClose",
+        "Opening again while a previous popover is still fading closes the old one immediately with popover.close()",
+        "Popover content size is measured once and frozen via setFixedContent, so it can never resize off the badge while shown",
+        "Escape (keyCode 53) closes the popover only when the event window is the chat window it hangs from or the popover's own window; another window's Escape is returned untouched",
+        "A left or right mouse-down in the anchor window outside the frozen shownRect closes the popover, and the event is still returned so it passes through",
+        "The popover content is handed a closePopover closure through the environment so the detail view can dismiss itself",
+        "onDisappear closes the popover, so a pill leaving the timeline takes its popover with it",
+        "Comment records the reason for the AppKit popover: a SwiftUI .popover on the same pill came in from the top edge instead of growing out of the pill"
+      ],
+      "unresolved_questions": [
+        "Numeric values of TimelineMetrics.pillLeading, pillTrailing, pillVertical and pillRadius are defined in a file outside this bundle",
+        "Whether Chrome.accentNSColor follows the system accent or a theme setting is declared elsewhere",
+        "The exact semantics of the app's NSPopover.setFixedContent(_:size:) extension are outside this file"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/ChatView.swift",
+      "sha256": "f56f1c6eb3af8f34ea69e834a1b92120bb014baa6b9bc8a00f925f6d2b20377a",
+      "lines_total": 1734,
+      "ranges_read": [[1, 1734]],
+      "purpose": "The entire chat detail column: ThreadTimeline with the ComposerArea as a bottom safe-area inset, the sticky glass chrome row (threads button, new thread, Hydra, permissions, branch menu, title, open-in/scripts/git menus, terminal and changes toggles), the floating panel system (helper, Hydra team, popped head, auto-popped heads, usage) with docking, stacking, live reordering and grip resizing, the ReserveSlide that makes room for docked panels, GitStatusModel with its shared per-directory snapshot cache, and the commit and project-scripts sheets.",
+      "key_symbols": [
+        "struct ChatView: View with body, subagentPanel, hydraPanel, poppedPanel, autoPoppedPanel, usagePanel, resizer(for:scene:), usageResizer(for:scene:size:minimum:), commitPanelResize, livePreferredSize, panelTransition, dock(_:_:nearest:scene:), dockUsage(nearest:scene:), dockAuto(_:nearest:scene:), reorder(_:at:corner:scene:), setCorner(_:_:), rest(for:scene:), isMovingAPanel, panelsHeld, hydraMinimumPresence",
+        "private struct ChatView.HydraCaptureFrame: ViewModifier",
+        "private struct HydraPresence: Equatable { threadID: UUID; present: Bool }",
+        "extension EnvironmentValues { @Entry var reserveSlideLeading: CGFloat = 0; @Entry var reserveSlideOffset: CGFloat = 0 }",
+        "private struct ReserveSlide: ViewModifier with reserve, slides, animatesWidth and @State offset",
+        "@MainActor private struct PanelMembers with subagent, isDocked, heads, popped, isHydraHidden, usage",
+        "struct PanelUsage: Equatable { provider: ProviderKind; headsProvider: ProviderKind? }",
+        "@MainActor private struct PanelScene with nested PanelSlot and Geometry, usageMinimumHeight, lockedSide(excluding:), geometry(...), order(_:by:), flippedVertically(_:)",
+        "struct JumpToLatestButton: View",
+        "private struct ChatChromeRow: View",
+        "private struct ChatChromeTitle: View",
+        "private struct ThreadsButton: View",
+        "@MainActor @Observable final class GitStatusModel with nested Snapshot, static snapshots cache, static freshness, refresh(_:force:), apply(_:), perform(_:_:)",
+        "private struct PermissionMenu: View",
+        "private struct BranchMenu: View",
+        "private struct OpenInMenu: View",
+        "private struct ScriptsMenu: View",
+        "private struct GitActionsMenu: View",
+        "private struct CommitSheet: View",
+        "private struct ScriptsEditor: View with static isIncomplete(_:)"
+      ],
+      "calls_into": [
+        "AppModel: thread(_:), project(_:), projects, settings, sidebar, newThread(in:), rename(_:to:), updateThread(_:_:), updateProject(_:_:), closeSubagent(_:), dismissHydraHeads(of:), spawnSubagent(from:title:prompt:), panelSubagent(of:), panelHeads(of:), hydraIsOn(_:), hydraPair(for:), hydraHeadsProvider(of:), createWorktree(for:), runScript(_:threadID:), textEngine(preferring:), alert",
+        "ThreadRuntime: threadID, thread, turns, isRunning, isTerminalVisible, isTerminalResizing, isDiffVisible, toggleDiff(), diffRevision, subagentPanelDock, hydraPanelDock, hydraPoppedPanelDock, hydraPoppedHeadID, hydraSelectedHeadID, hydraAutoPanelDocks, hydraAutoPopHeld, isHydraPanelHidden, panelStackOrder",
+        "ThreadTimeline, ComposerArea, TerminalPanel, PaneTopVeil, SubagentPanel, HydraPanel and HydraPanel.stripHeight, UsageFloatingPanel, HydraButton, SidebarView, ProjectIconMark",
+        "ChromeScrollModel, TimelineScrollState (noteComposerAreaGrowth, showsJumpButton, jumpToLatest), WindowLiveResize (isActive, isPaneResizing)",
+        "PanelDragState (move(by:from:in:), release(), reclamp(in:), position), PanelResizeState (begin(at:), liveSize, liveUsageHeight, isActive, end()), PanelResize, PlacedPanel, PanelReserve, PanelDocks (stacked(_:below:slots:layout:), corner(forSlot:of:side:)), PanelDockCorner (.make(side:isTop:), .acrossTheColumn, .side, .isTop), PanelDockSide, FloatingPanelID (.subagent, .hydra, .popped, .usage, .auto(UUID))",
+        "SubagentPanelLayout(pane:composerAreaHeight:stackDepth:preferred:compact:), .panelHeight, .panelSize, .verticalRoom, .composerReserve, .fitsBothSides, .fitted(_:), .dockCorner(nearest:keeping:docks:), .slotIndex(at:slots:docks:), static gap, minHeight, compactHeight",
+        "Chrome.panelSlide, Chrome.primaryText, Chrome.secondaryText, Chrome.danger, Chrome.overlay(_:), Chrome.trafficLightsWidth, Chrome.trafficLightClearance, Chrome.chromeHorizontalPadding, Chrome.chromeTopPadding, Chrome.windowCornerRadius",
+        "ChromeCircleButton, ChromeCircleMenu, ChromeTextMenu, ChromeMenuButton, ChromeCapsule, ChromeDivider, ChromeIconButton, ChromeCard, PopoverMenu, PopoverSectionHeader, PopoverItem, PopoverDivider, PopoverNote, WindowBackdrop, GlassEffectContainer, .presentedChrome(), .detailSheet(), .softAppear",
+        "Git(directory): isRepository(), status(), branches(), remoteWebURL(), switchBranch(_:), createBranch(_:), push(), commitAll(message:), createPullRequest(title:body:), workingChanges(), output([String])",
+        "TextGeneration.commitMessage(summary:patch:instructions:engine:directory:)",
+        "ShortcutStore.hint(for:) with .newThread, .toggleTerminal, .toggleChanges",
+        "Workspace.finderIcon, Workspace.installedEditors, Workspace.icon(for:), Workspace.open(_:with:)",
+        "WebsiteCaptures.isEnabled, WebsiteCaptures.hydraPanelFrames, WebsiteCaptures.threadsButtonFrame",
+        "LoginEnvironment.homeDirectory, ChatZoom.scale(at:), MergeRequestTarget(chatID:_:), RuntimeMode.allCases, AppAlert(title:message:), ProjectScript, GitStatus, GitBranch, ChatThread.provider.supportsRewind, ChatThread.isHydraHead, ChatThread.worktreePath"
+      ],
+      "state_owned": [
+        "ChatView @State: git = GitStatusModel(), scrollChrome = ChromeScrollModel(), scrollState = TimelineScrollState(), columnHeight: CGFloat = 0, paneSize: CGSize = .zero, composerAreaHeight: CGFloat = 0",
+        "ChatView @State drag states: subagentDrag, hydraDrag, poppedDrag, usageDrag, autoDrag (all PanelDragState) and autoDrags: [UUID: PanelDragState] = [:]",
+        "ChatView @State: usageContentHeight: CGFloat?, panelResize = PanelResizeState(), hydraShownSince: Date?, hydraLingers = false, hydraLingerTask: Task<Void, Never>?, sceneThreadID: UUID?",
+        "private static let hydraMinimumPresence: TimeInterval = 1.6",
+        "ReserveSlide: @State private var offset: CGFloat = 0",
+        "ChatChromeTitle @State: isPresented = false, isRenaming = false, renameText = \"\"",
+        "ThreadsButton @State: isPresented = false",
+        "GitStatusModel: private(set) isRepository = false, status: GitStatus?, branches: [GitBranch] = [], remoteURL: URL?, activity: String?; private static var snapshots: [String: Snapshot] shared by every chat; private static let freshness: TimeInterval = 30; Snapshot has isRepository, status, branches, remoteURL, fetchedAt = Date.now",
+        "BranchMenu @State: isNamingBranch = false, branchName = \"\"",
+        "ScriptsMenu @State: isEditing = false",
+        "GitActionsMenu @State: isCommitting = false",
+        "CommitSheet @State: message = \"\", summary = \"\", isGenerating = false, isCommitting = false, pushesAfterCommit = false",
+        "ScriptsEditor @State: scripts: [ProjectScript] = []"
+      ],
+      "side_effects": [
+        "Runs git subprocesses through Git(directory): isRepository, status, branches, remoteWebURL, switchBranch, createBranch, push, commitAll, createPullRequest, workingChanges, and raw output([\"log\", \"-1\", \"--pretty=%s\"]) and output([\"log\", \"-1\", \"--pretty=%b\"])",
+        "Opens apps and URLs: NSWorkspace.shared.open(URL(fileURLWithPath: directory)) for Finder, Workspace.open(directory, with: editor), NSWorkspace.shared.open(git.remoteURL), NSWorkspace.shared.open(pull request URL)",
+        "Writes NSPasteboard.general (clearContents then setString) for Copy title and Copy path",
+        "Calls TextGeneration.commitMessage, which reaches a model engine, to write the commit message",
+        "Writes AppSettings: panelSize, usagePanelHeight, usagePanelDock, showsUsagePanel",
+        "Writes ThreadRuntime panel docks, hydraAutoPanelDocks, hydraAutoPopHeld, hydraPoppedHeadID, hydraSelectedHeadID and panelStackOrder",
+        "Creates a worktree via model.createWorktree(for:) and runs project scripts via model.runScript",
+        "Schedules a Task with Task.sleep(for: .seconds(remaining)) for the Hydra panel linger, cancelled on a thread switch or when the panel is hidden",
+        "Records geometry into WebsiteCaptures.hydraPanelFrames[threadID] and WebsiteCaptures.threadsButtonFrame when captures are enabled"
+      ],
+      "platform_assumptions": [
+        "AppKit: NSPasteboard.general, NSWorkspace.shared.open, and native window traffic lights the chrome row pads clear of",
+        "macOS SwiftUI: GlassEffectContainer, .buttonStyle(.glass) and .glassProminent, .toggleStyle(.checkbox) and .switch, .presentationCornerRadius, .presentationBackground, .popover(arrowEdge:), .safeAreaInset(edge: .bottom), .onGeometryChange(for:of:)",
+        "Comment states macOS ignores Dynamic Type, so the timeline scales its own fonts through ChatZoom and Font.chat",
+        "Unix-style paths used directly: URL(fileURLWithPath:), the git CLI, LoginEnvironment.homeDirectory",
+        "Performance claim tied to NSHostingView: a spin report taken mid-drag spends 326 of 364 samples under NSHostingView.layout(), most in ViewGraphRootValueUpdater.render reached from EventBindingManager.enqueueHoverUpdateIfNeeded",
+        "Window live-resize tracking through WindowLiveResize, plus sidebar drag/slide and terminal divider drag folded into one isPaneResizing signal"
+      ],
+      "persisted_fields": [
+        "AppSettings.chatZoom, fed to ChatZoom.scale(at:) for the timeline only",
+        "AppSettings.panelSize: CGSize? (nil resets to the default; reset action sets nil)",
+        "AppSettings.usagePanelHeight: CGFloat? (nil means fit the rows)",
+        "AppSettings.usagePanelDock: PanelDockCorner, shared by every chat",
+        "AppSettings.showsUsagePanel: Bool, set false when the usage panel is dismissed",
+        "AppSettings.hydraEnabled: Bool, gates the HydraButton in the chrome row",
+        "AppSettings.hydraShowsHeadDetails: Bool, false plus a progress-showing helper puts panels in compact mode",
+        "AppSettings.hydraAutoPopsHeads: Bool, auto-pops extra heads into their own panels",
+        "AppSettings.sidebarFloats and AppSettings.sidebarOnlyFloats, which together hide the ThreadsButton",
+        "AppSettings.backdropOpacity, used by the ScriptsEditor sheet backdrop",
+        "AppSettings.commitInstructions, passed to TextGeneration.commitMessage",
+        "ThreadRuntime: subagentPanelDock, hydraPanelDock, hydraPoppedPanelDock, hydraPoppedHeadID, hydraSelectedHeadID, hydraAutoPanelDocks: [UUID: PanelDockCorner], hydraAutoPopHeld: Set<UUID>, panelStackOrder: [FloatingPanelID]",
+        "Project.scripts: [ProjectScript] with name, command, runOnWorktreeCreate and symbol; also read from droppy-code.json per the ScriptsEditor note",
+        "ChatThread.runtimeMode: RuntimeMode, written by the permissions menu"
+      ],
+      "ui_elements": [
+        "Chrome row help strings: \"New thread\" + ShortcutStore.hint(for: .newThread) on symbol \"square.and.pencil\"; \"Terminal\" + hint(.toggleTerminal) on symbol \"terminal\"; \"Changes\" + hint(.toggleChanges) on symbol \"plusminus\"; \"Open in another app\" on \"arrow.up.forward.app\"; \"Run a project script\" on \"play\"; \"Branch\" on \"arrow.triangle.branch\"",
+        "ThreadsButton: symbol \"list.bullet\", help \"Show the sidebar\" when sidebarFloats else \"Threads\"; popover hosts SidebarView(inPopover: true, dismiss:) at .frame(width: model.sidebar.width, height: 560)",
+        "ChatChromeTitle: Text is the title or \"New thread\" when empty, .font(.system(size: 15, weight: .semibold)), Chrome.secondaryText when empty else Chrome.primaryText, lineLimit(1), truncationMode(.tail), .padding(.vertical, 6); help \"Thread title \\u2014 click to copy or rename\"; accessibilityLabel \"Thread title\"; popover header \"Thread title\" with \"Copy title\" (\"doc.on.doc\") and \"Rename\\u2026\" (\"pencil\"); alert \"Rename thread\" with TextField \"Title\" and buttons \"Rename\" and \"Cancel\"",
+        "PermissionMenu: ChromeCircleMenu with thread.runtimeMode.symbol and help \"\\(title) \\u00b7 \\(summary)\", section header \"Permissions\", one item per RuntimeMode.allCases with a check on the current mode",
+        "BranchMenu: title is git.activity ?? git.status?.branch ?? \"Detached\"; header \"Switch branch\"; git.branches.prefix(25), each disabled when current or while runtime.isRunning; \"New branch\\u2026\" (\"plus\"); \"Use a new worktree for this thread\" (\"square.stack.3d.up\") only when worktreePath is nil and runtime.turns is empty; alert \"New branch\" with TextField \"Branch name\" and buttons \"Create\" and \"Cancel\"",
+        "OpenInMenu: header \"Open in\", item \"Finder\" with Workspace.finderIcon, one item per Workspace.installedEditors with symbol \"chevron.left.forwardslash.chevron.right\", divider, \"Copy path\" (\"doc.on.doc\")",
+        "ScriptsMenu: header \"Scripts\" when the project has scripts, one item per script with script.symbol, divider, then \"Add a script\\u2026\" (\"plus\") or \"Edit scripts\\u2026\" (\"pencil\")",
+        "GitActionsMenu: help \"Commit, push and open pull requests\" at 0 changes else \"\\(changed) changed files\"; PopoverNote \"1 changed file\" or \"\\(changed) changed files\"; items \"Commit\\u2026\" (\"checkmark.circle\", enabled only when changed > 0), \"Push\" (\"arrow.up.circle\"), \"Create pull request\" (\"arrow.triangle.pull\"), and \"Open repository\" (\"safari\") when a remote URL exists",
+        "Alert titles: \"Could not switch branch\", \"Could not create branch\", \"Push failed\", \"Could not open a pull request\", \"Commit failed\"",
+        "CommitSheet: heading \"Commit changes\" at .system(size: 17, weight: .semibold); summary ScrollView at .system(size: 11, design: .monospaced) with .frame(maxHeight: 110), .padding(10), Chrome.overlay(0.05) in .rect(cornerRadius: 12, style: .continuous); TextEditor at .system(size: 13) with .padding(8), placeholder \"Commit message\" or \"Writing a message\\u2026\" at .padding(.horizontal, 13) and .padding(.vertical, 8), .frame(minHeight: 130); \"Write for me\" button with \"sparkles\" icon and help \"Write a commit message from these changes\" or \"Turn on text generation in Settings > Source control\"; Toggle \"Push after committing\" (.checkbox); \"Cancel\" (.glass) and \"Commit\" (.glassProminent); outer VStack(alignment: .leading, spacing: 14), .padding(20), .frame(width: 560), button row HStack(spacing: 12)",
+        "ScriptsEditor: heading \"Project scripts\" at .system(size: 17, weight: .semibold); note \"Scripts run in a terminal at the project root. Droppy Code also picks up scripts from droppy-code.json.\" at .system(size: 12) in Chrome.secondaryText; rows in ChromeCard with TextField \"Name\" and TextField \"Command\" (.system(size: 12, design: .monospaced)), a destructive \"trash\" button, Toggle \"Run when a worktree is created\" (.checkbox), inner VStack spacing 8, card padding 14, list spacing 10; incomplete command overlay RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(Chrome.danger.opacity(0.65), lineWidth: 1); ScrollView .frame(minHeight: 220); \"Add script\" appends ProjectScript(name: \"New script\", command: \"\"); \"Cancel\" and \"Save\" with Save disabled when incomplete and help \"Every script needs a command.\" else \"Save these scripts\"; outer .padding(20), .frame(width: 580, height: 460)",
+        "JumpToLatestButton: ChromeCircleButton(symbol: \"arrow.down\", help: \"Jump to latest\"), .padding(.bottom, 10), .frame(height: 0, alignment: .bottom), insertion .scale(scale: 0.6) + opacity + offset(y: 10), removal .scale(scale: 0.85) + opacity + offset(y: 6)",
+        "Chrome row layout: GlassEffectContainer(spacing: 2), outer HStack(alignment: .center, spacing: 10), trailing capsule group HStack(spacing: 8), .padding(.leading, sidebarVisible ? 0 : Chrome.trafficLightsWidth + Chrome.trafficLightClearance), .padding(.horizontal, Chrome.chromeHorizontalPadding), .padding(.top, Chrome.chromeTopPadding), .animation(Chrome.panelSlide, value: sidebarVisible)",
+        "Minimap shown only when no panel is docked on .leading and paneSize.width - reserve.leading - reserve.trailing >= 900 (the column reads at up to 820 points, so below about 900 the rail would overlap)",
+        "Panel transition: insertion .scale(scale: 0.92) combined with opacity, removal .scale(scale: 0.96) combined with opacity",
+        "Panel width while a grip is held is stepped to 12 points: (live.width / 12).rounded() * 12"
+      ],
+      "feature_notes": [
+        "hydraMinimumPresence = 1.6 seconds: once the team panel has been shown it stays at least that long so heads that leave instantly do not make it flash; the linger is dropped outright on a thread switch and when the reader hides the panel with the Hydra button",
+        "The timeline stops answering hit tests whenever any panel drag state has a position (isMovingAPanel), because each hover during a drag re-renders the whole timeline",
+        "panelsHeld is true while a grip is held, the sidebar is dragging or sliding, or the terminal divider is being resized; panels then follow the pointer with no spring",
+        "Composer growth of more than oldValue + 0.5 points, outside a live resize and after the first measurement (oldValue > 0), calls scrollState.noteComposerAreaGrowth()",
+        "A thread switch resets scrollChrome, scrollState, all five drag states, autoDrags and panelResize, but keeps the measured columnHeight, paneSize and composerAreaHeight; the column carries .transition(.identity) so the swapped timeline never slides or fades",
+        "Popping a head out sets hydraPoppedPanelDock = hydraPanelDock.acrossTheColumn and clears hydraSelectedHeadID when it was that head",
+        "A popped panel's dismiss sets hydraSelectedHeadID back to that head and clears hydraPoppedHeadID; an auto-popped panel's dismiss inserts the head into hydraAutoPopHeld and selects it",
+        "Usage panel height = min(max(usageMinimumHeight, room), max(usageMinimumHeight, wanted)), where wanted is the live grip override, else AppSettings.usagePanelHeight, else the measured content height, else one slot height; usageMinimumHeight = HydraPanel.stripHeight + 44",
+        "Slots per side: natural = min(3, max(1, Int((single.verticalRoom + gap) / (smallest + gap)))), where smallest is SubagentPanelLayout.compactHeight in compact mode else minHeight",
+        "Compact mode = !settings.hydraShowsHeadDetails && (subagent?.isHydraHead ?? true) && (showsHydra || subagent != nil)",
+        "When the pane cannot fit panels on both sides, every panel moves to the team panel's side, else the fuller side with ties going to .leading, each keeping its top or bottom",
+        "reorder() moves a held panel into the slot it is over live: a free slot is taken; a taken slot on a full side swaps with the panel's old slot; otherwise the occupant cascades one slot forward or backward and the last displaced panel falls into the first free slot",
+        "Stack depth per side comes from the closest two occupied slot indices: depth = Int((Double(n - 1) / Double(max(1, closest))).rounded(.up)) + 1, taking the larger of the two sides",
+        "ReserveSlide snaps the padding and glides the content by ((new.leading - new.trailing) - (old.leading - old.trailing)) / 2, applying the snap inside a Transaction with disablesAnimations then withAnimation(Chrome.panelSlide) back to 0; the composer variant animates its padding width instead",
+        "GitStatusModel keeps a process-wide per-directory cache and only re-runs git when forced, when the snapshot is older than 30 seconds, or when runtime.diffRevision changes; status, branches and remote URL are fetched concurrently with async let",
+        "The pull request flow pushes first, reads the last commit subject and body with git log -1 --pretty=%s and --pretty=%b, and falls back to title \"Update\" and body \"Opened from Droppy Code.\"",
+        "createBranch trims whitespace and newlines and replaces every space with a hyphen before creating",
+        "The environment carries a MergeRequestTarget(chatID: runtime.threadID) whose action spawns a helper from this thread with the link's title and prompt",
+        "HydraCaptureFrame only attaches its geometry reader when WebsiteCaptures.isEnabled, and skips writes while the window is live-resizing",
+        "CommitSheet fetches Git(directory).workingChanges() on appear and, when the message is empty, immediately generates one; the Write for me button is disabled when model.textEngine(preferring:) is nil"
+      ],
+      "unresolved_questions": [
+        "Exact numeric values of Chrome.trafficLightsWidth, Chrome.trafficLightClearance, Chrome.chromeHorizontalPadding, Chrome.chromeTopPadding, Chrome.windowCornerRadius and the Chrome.panelSlide spring are defined outside this bundle",
+        "SubagentPanelLayout's gap, minHeight, compactHeight, composerReserve and fitsBothSides threshold, and HydraPanel.stripHeight, are declared in other files",
+        "reorder() force-unwraps occupancy[previous!] in the 'full' branch; whether previous can be a stale index when a side's slot count changes between frames cannot be settled from this file alone",
+        "Whether AppSettings.panelSize is persisted as one CGSize value or as separate width and height keys is not visible here"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/LimitResumeBadge.swift",
+      "sha256": "3d194904d642b0cff6a0805062cd15360fe4cee77892f2ae52e3661ee449c24f",
+      "lines_total": 61,
+      "ranges_read": [[1, 61]],
+      "purpose": "The timeline pill shown when a thread has hit a usage limit and is waiting to continue itself: it renders the notice text plus Cancel and New thread escape hatches while the wait is live, and swaps to a past-tense outcome sentence once the wait has ended.",
+      "key_symbols": [
+        "struct LimitResumeBadge: View",
+        "LimitResumeBadge.notice: Notice",
+        "LimitResumeBadge.threadID: UUID",
+        "private func words(waiting: Bool) -> String"
+      ],
+      "calls_into": [
+        "AppModel.autoContinue.resumesAt[threadID]",
+        "AppModel.autoContinue.cancel(_:)",
+        "AppModel.autoContinue.handOff(_:)",
+        "AppModel.autoContinue.outcomes[threadID]",
+        "Notice.message",
+        "Chrome.primaryText",
+        "Chrome.secondaryText",
+        "TimelineMetrics.pillLeading, pillTrailing, pillVertical, pillRadius",
+        "Font.chat(_:weight:zoom:)",
+        "EnvironmentValues.chatZoom"
+      ],
+      "state_owned": [
+        "@Environment(\\.chatZoom) private var zoom",
+        "@Environment(AppModel.self) private var model",
+        "No @State of its own: the waiting flag is derived per body from model.autoContinue.resumesAt[threadID] != nil"
+      ],
+      "side_effects": [
+        "Cancel calls model.autoContinue.cancel(threadID), stopping the scheduled automatic continue",
+        "New thread calls model.autoContinue.handOff(threadID), stopping the continue and picking the work up in a new thread"
+      ],
+      "platform_assumptions": [
+        "SwiftUI on macOS with .help(_:) tooltips on plain buttons",
+        "SF Symbol \"info.circle\"",
+        "Uses the app's chat zoom environment because macOS ignores Dynamic Type"
+      ],
+      "persisted_fields": [
+        "Reads, never writes, the auto-continue store keyed by thread UUID: resumesAt: [UUID: Date] and outcomes: [UUID: outcome] whose cases are .cancelled, .handedOff and .resumed"
+      ],
+      "ui_elements": [
+        "HStack(spacing: 8)",
+        "Image(systemName: \"info.circle\") at .font(.chat(.callout, zoom: zoom)) in .secondary",
+        "Main text: Text(verbatim: words(waiting:)) at .font(.chat(.callout, weight: .medium, zoom: zoom)) in Chrome.primaryText.opacity(0.9)",
+        "Button \"Cancel\": .font(.chat(.caption, weight: .semibold, zoom: zoom)), Chrome.secondaryText, .contentShape(.rect), .buttonStyle(.plain), help \"Stop the automatic continue\"",
+        "Button \"New thread\": same styling, help \"Stop the automatic continue and pick the work up in a new thread, where you can choose another model\"",
+        "Padding: .leading TimelineMetrics.pillLeading, .trailing TimelineMetrics.pillTrailing, .vertical TimelineMetrics.pillVertical",
+        "Background: .tint.opacity(0.1) in RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous)",
+        ".frame(maxWidth: .infinity, alignment: .leading) then .padding(.trailing, 96)",
+        ".accessibilityElement(children: .contain) with accessibilityLabel set to the same words"
+      ],
+      "feature_notes": [
+        "While model.autoContinue.resumesAt[threadID] is non-nil the pill shows notice.message verbatim and both buttons; once the wait ends both buttons disappear",
+        "After the wait the text comes from the recorded outcome: .cancelled gives \"Usage limit reached. Auto-continue cancelled.\", .handedOff gives \"Usage limit reached. Continuing in a new thread.\", .resumed gives \"Usage limit reached. Continued automatically.\"",
+        "With no recorded outcome the pill falls back to the stored notice.message",
+        "Padding, radius, tint background, left alignment and the fixed 96 point trailing gutter match ChatBadge exactly, so the two pill kinds line up in the timeline"
+      ],
+      "unresolved_questions": [
+        "The Notice type's full shape, and where a usage-limit notice is created, are outside this bundle",
+        "The concrete value type of autoContinue.resumesAt (Date inferred from the name) and the declaration of the outcome enum are elsewhere",
+        "Numeric values of the TimelineMetrics pill constants are declared in another file"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/MessageEditor.swift",
+      "sha256": "5ced941d6cf9656d509ec4890c580f7cdbdd10a43db01da59326bfad7a912fc7",
+      "lines_total": 176,
+      "ranges_read": [[1, 176]],
+      "purpose": "The editor for a message that was already sent: it reuses the PromptEditor shell with the message's text and attachments, previews what the thread changed on disk since that message, offers a switch to undo those file changes, and on Send rewinds the thread to just before the message and resends it from there.",
+      "key_symbols": [
+        "struct MessageEditor: View",
+        "private enum MessageEditor.Changes with cases checking, found(RevertPreview) and unavailable(String), plus init(_ result: Result<RevertPreview, Error>?)",
+        "MessageEditor.init(edit:runtime:)",
+        "private var canSend: Bool",
+        "@ViewBuilder private var fileChanges: some View",
+        "@ViewBuilder private func fileList(_ files: [RevertPreview.File]) -> some View",
+        "private func send()",
+        "private func cancel()"
+      ],
+      "calls_into": [
+        "PromptEdit: id, text, attachments, isEmpty",
+        "ThreadRuntime.cachedRevertPreview(for:), ThreadRuntime.revertPreview(for:) awaited then .value, ThreadRuntime.resend(_:text:attachments:restoreFiles:), ThreadRuntime.messageEdit, ThreadRuntime.isRunning",
+        "RevertPreview with files, restorable, additions and deletions; RevertPreview.File with id, path, isKept, isBinary, additions and deletions",
+        "PromptEditor(title:text:attachments:onSubmit:onCancel:content:actions:)",
+        "DiffStatLabel(additions:deletions:)",
+        "Chrome.danger, Chrome.overlay(_:)"
+      ],
+      "state_owned": [
+        "@Bindable var edit: PromptEdit, which lives on the thread as ThreadRuntime.messageEdit so the editor closing and reopening shows it as it was left",
+        "let runtime: ThreadRuntime",
+        "@State private var changes: Changes, seeded in init from runtime.cachedRevertPreview(for: edit.id)",
+        "@State private var restoresFiles = true",
+        "@State private var error: String?",
+        "@State private var isSending = false"
+      ],
+      "side_effects": [
+        "A .task(id: edit.id) awaits runtime.revertPreview(for: edit.id).value, which inspects the working tree for what the thread changed since the message",
+        "send() calls runtime.resend(...), which rewinds the thread past this message, optionally restores files, and sends the edited prompt",
+        "On success sets runtime.messageEdit = nil, closing the editor; on failure stores error.localizedDescription and leaves the editor open",
+        "cancel() sets runtime.messageEdit = nil"
+      ],
+      "platform_assumptions": [
+        "macOS SwiftUI: .buttonStyle(.glass) and .buttonStyle(.glassProminent), .toggleStyle(.switch), .controlSize(.small)",
+        "SF Symbols \"exclamationmark.triangle\", \"checkmark.circle\", \"hand.raised\" and \"doc\"",
+        "A multi-line .help() tooltip carrying an embedded newline",
+        "Assumes a git-style working-tree comparison behind RevertPreview with per-file additions, deletions and a binary flag"
+      ],
+      "persisted_fields": [
+        "ThreadRuntime.messageEdit: PromptEdit? holds the in-progress edit for the thread",
+        "PromptEdit.text and PromptEdit.attachments are edited in place through the @Bindable binding"
+      ],
+      "ui_elements": [
+        "PromptEditor title: \"Edit message\"",
+        "Fixed note \"Sending replaces this message and everything after it.\" at .font(.callout) in .secondary",
+        "Error line: Label(error, systemImage: \"exclamationmark.triangle\") at .font(.callout) in Chrome.danger",
+        "Actions: Button(\"Cancel\", role: .cancel) with .buttonStyle(.glass); Button(\"Send\") with .buttonStyle(.glassProminent), disabled when !canSend",
+        "Checking state: ProgressView().controlSize(.small) with \"Checking for file changes\\u2026\" in .secondary",
+        "Unavailable state: Label(reason, systemImage: \"exclamationmark.triangle\") in .secondary",
+        "No files: Label(\"This thread changed no files since this message\", systemImage: \"checkmark.circle\")",
+        "Nothing restorable: \"The file it changed has changed again since, so it stays as it is\" for one file, else \"The \\(count) files it changed have changed again since, so they stay as they are\", with systemImage \"hand.raised\"",
+        "Restore toggle label \"Undo the file changes this thread made\" with Spacer(minLength: 8), count \"1 file\" or \"\\(count) files\" in .secondary, and a DiffStatLabel for preview.additions and preview.deletions; .toggleStyle(.switch), .controlSize(.small)",
+        "fileChanges box: VStack(alignment: .leading, spacing: 10), .font(.callout), .padding(12), Chrome.overlay(0.05) in .rect(cornerRadius: 12, style: .continuous)",
+        "File rows: LazyVStack(alignment: .leading, spacing: 6), HStack(spacing: 8), icon \"hand.raised\" when kept else \"doc\", path Text(verbatim:) with lineLimit(1) and truncationMode(.middle), Spacer(minLength: 4), trailing \"Kept\" or \"Binary\" or a DiffStatLabel, .font(.caption)",
+        "Row opacity: 1 when restoresFiles && !file.isKept, otherwise 0.45",
+        "Row help: kept rows show \"\\(path)\\nChanged again since this thread last touched it, so it is left alone.\", other rows just the path",
+        "More than 5 files: rows go inside a ScrollView with .frame(height: 110); 5 or fewer render inline"
+      ],
+      "feature_notes": [
+        "The editor opens already complete when hovering the pencil had prefetched a preview (cachedRevertPreview), so nothing grows into place a moment later",
+        "Send is blocked while the preview is still .checking, because sending then would silently keep the files; it is also blocked when the edit is empty, while sending, and while runtime.isRunning",
+        "restoresFiles defaults to true, but restore is only passed as true when changes is .found and preview.files is non-empty",
+        "Files that something else changed after the thread touched them are listed as Kept and never restored; when every file is in that state the toggle is not offered at all",
+        "The whole PromptEditor is .disabled(isSending) while the resend is in flight",
+        "The .task is keyed to edit.id and returns early on Task.isCancelled, so switching to another message cannot write a stale preview"
+      ],
+      "unresolved_questions": [
+        "The exact return type of runtime.revertPreview(for:), which is awaited and then has .value read, is declared elsewhere",
+        "How RevertPreview.restorable relates to files and isKept is computed outside this file",
+        "PromptEditor's own layout and what PromptEdit.isEmpty counts (text only, or text plus attachments) are in other files"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/MessagePopoverMenu.swift",
+      "sha256": "49e06c0ca9d51f03e42fc2f6bc8301a5ece14bb998a423e78df8a183c457067e",
+      "lines_total": 83,
+      "ranges_read": [[1, 83]],
+      "purpose": "Gives any view a right-click or control-click context menu rendered as the app's own PopoverMenu at the pointer, using a transparent AppKit overlay that claims only secondary clicks so text selection, links, buttons and drags in the SwiftUI content underneath behave exactly as if it were absent.",
+      "key_symbols": [
+        "private struct RightClickPopoverModifier: ViewModifier",
+        "extension View.rightClickPopover(actions:)",
+        "private struct RightClickCatcher: NSViewRepresentable",
+        "private final class RightClickCatcherView: NSView with hitTest(_:), rightMouseDown(with:), mouseDown(with:), rightMouseUp(with:), isFlipped, mouseDownCanMoveWindow, acceptsFirstMouse(for:)"
+      ],
+      "calls_into": [
+        "PopoverMenu",
+        "RowActionItems(actions:)",
+        "RowAction",
+        "NSApp.currentEvent",
+        "NSEvent.type and NSEvent.modifierFlags"
+      ],
+      "state_owned": [
+        "RightClickPopoverModifier: @State private var anchor: CGPoint?, where nil means the popover is closed",
+        "RightClickCatcherView: var onRightClick: (CGPoint) -> Void, refreshed in updateNSView"
+      ],
+      "side_effects": [
+        "Presents a SwiftUI popover; no disk, network, process, timer or notification work"
+      ],
+      "platform_assumptions": [
+        "AppKit NSView subclass bridged through NSViewRepresentable",
+        "NSApp.currentEvent inspected inside hitTest to decide whether the overlay claims the click at all",
+        "isFlipped = true so the reported point is in top-left coordinates matching SwiftUI",
+        "mouseDownCanMoveWindow = false so a secondary click here never drags the window",
+        "acceptsFirstMouse(for:) = true so the menu opens on the first click into an inactive window",
+        "macOS convention that control plus left click is a secondary click"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Popover presented with attachmentAnchor: .rect(.rect(CGRect(origin: anchor ?? .zero, size: CGSize(width: 1, height: 1)))) and arrowEdge: .top, so it hangs off a 1 by 1 rect at the pointer",
+        "Popover content is PopoverMenu { RowActionItems(actions: actions()) }",
+        "The catcher is attached with .overlay { RightClickCatcher { point in anchor = point } }, covering the whole view",
+        "init?(coder:) is marked @available(*, unavailable) and returns nil"
+      ],
+      "feature_notes": [
+        "hitTest returns nil for every event that is not a right mouse-down or a control plus left mouse-down, and also nil when the converted point is outside bounds, so the overlay is invisible to normal interaction",
+        "The presentation binding closes the popover by setting anchor back to nil when SwiftUI reports dismissal",
+        "rightMouseDown converts event.locationInWindow into the catcher's flipped coordinates before calling onRightClick",
+        "mouseDown only intercepts when .control is held; otherwise it calls super.mouseDown",
+        "rightMouseUp is overridden to do nothing, suppressing AppKit's own handling on mouse up",
+        "actions is an escaping closure evaluated when the popover is built, so the menu reflects state at the moment of the click"
+      ],
+      "unresolved_questions": [
+        "RowAction's fields and how RowActionItems renders them (titles, symbols, destructive roles) are defined outside this bundle",
+        "Which views actually apply .rightClickPopover is not visible from this file alone",
+        "Whether the 1 by 1 anchor rect shifts the popover arrow noticeably near a view's edges cannot be determined without running the app"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/NewThreadPrompt.swift",
+      "sha256": "ce895025a2d655203679f6cc9c2fc26264297f611063636f5234c924554450fc",
+      "lines_total": 81,
+      "ranges_read": [[1, 81]],
+      "purpose": "The empty-state a thread shows before its first message: the application icon above the question \"What should we build in <project>?\", where the project name is a dotted-underline button that opens a popover to move this empty thread to another project or to add one from a file panel.",
+      "key_symbols": [
+        "struct NewThreadPrompt: View",
+        "NewThreadPrompt.threadID: UUID",
+        "NewThreadPrompt.projectName: String?",
+        "private var projectChoices: some View",
+        "private func move(to project: Project)"
+      ],
+      "calls_into": [
+        "AppModel.thread(_:), AppModel.projects, AppModel.addProjectsFromPanel(), AppModel.moveThread(_:toProject:)",
+        "NSApp.applicationIconImage",
+        "PopoverMenu, PopoverSectionHeader, PopoverItem, PopoverDivider",
+        "ProjectIconMark(icon:size:)",
+        "Chrome.primaryText, Chrome.secondaryText, Chrome.panelSlide",
+        "Project with id, name and icon; ChatThread.projectID"
+      ],
+      "state_owned": [
+        "@State private var isVisible = false, which drives the fade and scale in",
+        "@State private var isChoosingProject = false",
+        "@State private var isHoveringName = false",
+        "@Environment(AppModel.self) private var model"
+      ],
+      "side_effects": [
+        "\"Add project\\u2026\" calls model.addProjectsFromPanel(), which opens a file picker, and the returned project immediately receives this thread",
+        "move(to:) calls model.moveThread(threadID, toProject:) inside withAnimation(Chrome.panelSlide)",
+        "Reads the running app's icon through NSApp.applicationIconImage"
+      ],
+      "platform_assumptions": [
+        "AppKit NSApp.applicationIconImage rendered through Image(nsImage:)",
+        "A macOS open panel behind addProjectsFromPanel()",
+        "SwiftUI .onHover, .help and .popover(arrowEdge: .bottom)",
+        "Text underline with pattern: .dot"
+      ],
+      "persisted_fields": [
+        "ChatThread.projectID, changed when the thread is moved",
+        "Project.icon, rendered by ProjectIconMark at size 12"
+      ],
+      "ui_elements": [
+        "VStack(spacing: 26)",
+        "App icon: Image(nsImage: NSApp.applicationIconImage).resizable().interpolation(.high).frame(width: 72, height: 72).accessibilityHidden(true)",
+        "HStack(spacing: 0) holding the exact strings \"What should we build in \" (with its trailing space), the project name button, and \"?\"; with no project name the single string \"What should we build?\"",
+        "Question font .system(size: 28, weight: .regular) in Chrome.primaryText, with lineLimit(1) and minimumScaleFactor(0.6)",
+        "Project name button: Text(verbatim: projectName) with .underline(true, pattern: .dot, color: isHoveringName ? Chrome.primaryText : Chrome.secondaryText), .contentShape(.rect), .buttonStyle(.plain), help \"Choose another project\"",
+        "Outer: .padding(.horizontal, 40), .frame(maxWidth: .infinity, maxHeight: .infinity)",
+        "Entrance: opacity 0 to 1 and scaleEffect 0.97 to 1 under withAnimation(.easeOut(duration: 0.3)) on appear",
+        "Popover menu: PopoverSectionHeader(\"Projects\"), one PopoverItem per model.projects with ProjectIconMark(icon:size: 12) leading and isChecked on the thread's current projectID, then PopoverDivider() and PopoverItem(\"Add project\\u2026\", symbol: \"plus\")"
+      ],
+      "feature_notes": [
+        "The prompt fades and scales in over 0.3 seconds with .easeOut each time it appears",
+        "An empty projectName string is treated like nil, so the plain \"What should we build?\" is shown",
+        "move(to:) is a no-op when the thread is already in the chosen project; otherwise it closes the popover first, then animates the move with Chrome.panelSlide",
+        "\"Add project\\u2026\" is one gesture: the panel's result, when there is one, immediately becomes the thread's project",
+        "The question stays on one line and shrinks to 60 percent of 28 points before it would truncate"
+      ],
+      "unresolved_questions": [
+        "Whether NewThreadPrompt is shown only while the thread has no turns is decided at its call site, which is not in this bundle",
+        "addProjectsFromPanel() returns a single optional project here, so whether the panel can add several at once cannot be confirmed from this file",
+        "Chrome.panelSlide's spring parameters are defined elsewhere"
+      ]
+    }
+  ]
+}

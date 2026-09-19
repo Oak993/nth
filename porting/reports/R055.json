@@ -1,0 +1,306 @@
+{
+  "bundle_id": "R055",
+  "reader": "R055-reader",
+  "files": [
+    {
+      "path": "release/dmg/README.md",
+      "sha256": "1ce4c22c5f29335b240ddc8ede718ed96b59a1dfa590b56d30ad85dff30e9d67",
+      "lines_total": 63,
+      "ranges_read": [[1, 63]],
+      "purpose": "Maintainer documentation for the three pre-baked assets that style the Finder window shown when a Droppy Code DMG is mounted; it records the load-bearing name and geometry invariants baked into the .DS_Store and gives the exact shell recipe for re-rendering the background art and re-baking the .DS_Store with dmgbuild.",
+      "key_symbols": [
+        "Heading '# Droppy Code installer (DMG) window styling'",
+        "Section '## Load-bearing invariants'",
+        "Section '## Changing the design'",
+        "Asset table rows: installer-background.tiff, installer-DS_Store.base64, built app's AppIcon.icns"
+      ],
+      "calls_into": [
+        "scripts/package_dmg.sh (stages the assets into every release DMG; also runs the /Volumes/Droppy Code alias check and refuses an asset that fails it)",
+        "release/dmg/generate_installer_background.swift (run as: swift release/dmg/generate_installer_background.swift /tmp/dmg-art \"/Applications/Droppy Code.app/Contents/Resources/AppIcon.icns\")",
+        "release/dmg/dmgbuild_settings.py (passed to dmgbuild with -s)",
+        "dmgbuild from https://pypi.org/project/dmgbuild/",
+        "tiffutil -cathidpicheck, hdiutil attach -nobrowse -readonly -mountpoint, hdiutil detach, base64 -b 76, base64 -d, strings, grep, python3 -m venv, open"
+      ],
+      "state_owned": [],
+      "side_effects": [
+        "Documents commands that write to /tmp/dmg-art, /tmp/dmgvenv, /tmp/dmgbake and /tmp/droppy-code.dmg",
+        "Documents commands that attach and detach a disk image at /tmp/dmgbake/mnt",
+        "Documents overwriting release/dmg/installer-background.tiff and release/dmg/installer-DS_Store.base64 in the repository"
+      ],
+      "platform_assumptions": [
+        "macOS Finder window styling driven by a .DS_Store baked on an HFS+ volume",
+        "Finder resolves background aliases by volume name plus path, so an alias baked against a throwaway volume keeps working for every future DMG even though it carries that volume's creation date",
+        "Finder silently falls back to a default window if any referenced name changes",
+        "macOS-only tooling: tiffutil, hdiutil, open, swift used as a script interpreter, /Applications, /Volumes",
+        "HiDPI TIFF built by combining the 1x and 2x PNGs with tiffutil -cathidpicheck"
+      ],
+      "persisted_fields": [
+        "/.background.tiff (staged path of the HiDPI background on the mounted volume)",
+        "/.DS_Store (decoded from installer-DS_Store.base64)",
+        "/.VolumeIcon.icns (copied from the built app's Contents/Resources/AppIcon.icns at package time so it always matches the shipped icon)"
+      ],
+      "ui_elements": [
+        "Volume name must stay 'Droppy Code' because the background image alias stores it",
+        "App bundle must be 'Droppy Code.app' and the symlink 'Applications'; icon positions are keyed by those names",
+        "Window content is 660x370 with icon centers at (165, 208) and (495, 208); WindowBounds is 660x398 to account for the titlebar"
+      ],
+      "feature_notes": [
+        "Explicit statement that nothing in release/dmg runs at release time: the assets are pre-baked and only staged by scripts/package_dmg.sh",
+        "installer-DS_Store.base64 is deliberately kept as base64 text so git and reviews treat it as source rather than an opaque binary",
+        "Re-baking the .DS_Store is required only if geometry changed: window size, icon positions, icon size, or any renamed path",
+        "Any mounted 'Droppy Code' volume must be ejected before baking, otherwise the bake volume mounts as 'Droppy Code 1' and the alias records that name",
+        "Verification command: base64 -d < release/dmg/installer-DS_Store.base64 | strings | grep Volumes must print /Volumes/Droppy Code",
+        "Render step also produces /tmp/dmg-art/preview-mock.png, opened to judge the design with icons composited",
+        "Bake recipe: dmgbuild -s /tmp/dmgbake/dmgbuild_settings.py -D here=/tmp/dmgbake \"Droppy Code\" /tmp/dmgbake/baked.dmg, then base64 -b 76 < /tmp/dmgbake/mnt/.DS_Store > release/dmg/installer-DS_Store.base64",
+        "Bake stub is created at /tmp/dmgbake/stub/Droppy Code.app/Contents/MacOS",
+        "Final verification step: scripts/package_dmg.sh --app \"/Applications/Droppy Code.app\" --output /tmp/droppy-code.dmg"
+      ],
+      "unresolved_questions": [
+        "The exact flags and checks inside scripts/package_dmg.sh are only described here, not shown; that script is outside this bundle.",
+        "installer-background.tiff itself is not in this bundle, so its actual pixel dimensions (expected 660x430 at 1x given the 60pt export bleed) are not verified here."
+      ]
+    },
+    {
+      "path": "release/dmg/dmgbuild_settings.py",
+      "sha256": "951d71361688868909968c30b2ed9847c68730961af66b2ec6f3a8a4b4400130",
+      "lines_total": 42,
+      "ranges_read": [[1, 42]],
+      "purpose": "The dmgbuild settings module used only when re-baking release/dmg/installer-DS_Store.base64; it declares the volume name, image format, filesystem, window rectangle, icon-view options and icon coordinates that get frozen into the baked volume's .DS_Store.",
+      "key_symbols": [
+        "HERE = os.path.abspath(defines.get(\"here\", \".\"))  # noqa: F821 - injected by dmgbuild",
+        "volume_name",
+        "format",
+        "filesystem",
+        "files",
+        "symlinks",
+        "background",
+        "window_rect",
+        "default_view",
+        "show_status_bar",
+        "show_tab_view",
+        "show_toolbar",
+        "show_pathbar",
+        "show_sidebar",
+        "icon_size",
+        "text_size",
+        "show_icon_preview",
+        "arrange_by",
+        "icon_locations"
+      ],
+      "calls_into": [
+        "os.path.abspath and os.path.join (import os.path)",
+        "dmgbuild's injected 'defines' global; the file is exec()'d without __file__, so -D here=<this directory> must be passed",
+        "release/dmg/installer-background.tiff, referenced as os.path.join(HERE, \"installer-background.tiff\")",
+        "<HERE>/stub/Droppy Code.app, a throwaway stub whose NAME is the only thing baked"
+      ],
+      "state_owned": [
+        "HERE: absolute path of the bake directory, default \".\"",
+        "volume_name = \"Droppy Code\"",
+        "format = \"UDZO\"",
+        "filesystem = \"HFS+\"",
+        "files = [os.path.join(HERE, \"stub\", \"Droppy Code.app\")]",
+        "symlinks = {\"Applications\": \"/Applications\"}",
+        "background = os.path.join(HERE, \"installer-background.tiff\")",
+        "window_rect = ((420, 240), (660, 398))",
+        "default_view = \"icon-view\"",
+        "show_status_bar = False, show_tab_view = False, show_toolbar = False, show_pathbar = False, show_sidebar = False",
+        "icon_size = 128, text_size = 12, show_icon_preview = False, arrange_by = None",
+        "icon_locations = {\"Droppy Code.app\": (165, 208), \"Applications\": (495, 208)}"
+      ],
+      "side_effects": [
+        "None directly; when exec()'d by dmgbuild it drives creation of a UDZO/HFS+ disk image and copies installer-background.tiff onto the volume as /.background.tiff"
+      ],
+      "platform_assumptions": [
+        "HFS+ filesystem and UDZO compressed disk image, both macOS-only concepts",
+        "/Applications symlink target",
+        "Finder icon-view window attributes (status bar, tab view, toolbar, pathbar, sidebar, icon preview, arrange-by) are Finder concepts with no Windows equivalent",
+        "dmgbuild's exec() model provides no __file__, hence the -D here=<dir> define"
+      ],
+      "persisted_fields": [
+        "volume_name: str = \"Droppy Code\"",
+        "format: str = \"UDZO\"",
+        "filesystem: str = \"HFS+\"",
+        "window_rect: ((420, 240), (660, 398)) meaning origin (420, 240) and size 660x398",
+        "default_view: str = \"icon-view\"",
+        "icon_size: int = 128",
+        "text_size: int = 12",
+        "show_status_bar / show_tab_view / show_toolbar / show_pathbar / show_sidebar / show_icon_preview: bool = False",
+        "arrange_by: None",
+        "icon_locations: {\"Droppy Code.app\": (165, 208), \"Applications\": (495, 208)}",
+        "symlinks: {\"Applications\": \"/Applications\"}"
+      ],
+      "ui_elements": [
+        "Finder window at screen origin (420, 240), outer size 660x398 (content 660x370 plus roughly 28pt of titlebar)",
+        "Icon view with 128pt icons and 12pt label text; no status bar, tab view, toolbar, pathbar or sidebar; no icon preview; no arrange-by",
+        "Disk item 'Droppy Code.app' centered at (165, 208) and the 'Applications' symlink centered at (495, 208)"
+      ],
+      "feature_notes": [
+        "Header comment states the file is 'Not used at release time' and only (re)bakes the checked-in .DS_Store base64",
+        "Comment: 'Geometry must stay in lockstep with generate_installer_background.swift: window content: 660x370 (WindowBounds adds ~28pt of titlebar)'",
+        "Comment: 'Any minimal stub named Droppy Code.app works: only the NAME is baked into .DS_Store.'",
+        "Comment: dmgbuild copies the background to /.background.tiff and the baked alias points there, so scripts/package_dmg.sh must keep staging it at that path"
+      ],
+      "unresolved_questions": [
+        "dmgbuild's version is not pinned here (the README installs it unpinned with pip), so which dmgbuild release produced the checked-in .DS_Store cannot be determined from these files."
+      ]
+    },
+    {
+      "path": "release/dmg/generate_installer_background.swift",
+      "sha256": "38fc423325e2cc130470b3ede9ed70a4e02d92a58bdc466406d143174719d907",
+      "lines_total": 168,
+      "ranges_read": [[1, 168]],
+      "purpose": "A standalone '#!/usr/bin/env swift' script that renders the DMG window background artwork at 1x and 2x plus a Finder-like preview composite, drawing a flat near-black canvas, an accent radial glow, a notch silhouette hanging from the top edge, the 'Droppy Code' wordmark, a drag arrow and a 'Drag to install' caption.",
+      "key_symbols": [
+        "canvasW: CGFloat = 660",
+        "canvasH: CGFloat = 370",
+        "exportBleed: CGFloat = 60",
+        "appIconCenter = CGPoint(x: 165, y: 208)",
+        "applicationsIconCenter = CGPoint(x: 495, y: 208)",
+        "iconSize: CGFloat = 128",
+        "backgroundColor, textPrimary, accent (NSColor srgb brand tokens)",
+        "wordmark = \"Droppy Code\"",
+        "outputStem = \"installer-background\"",
+        "func notchPath(centerX:width:height:cornerRadius:filletRadius:) -> CGPath",
+        "func drawText(_:font:color:center:)",
+        "func drawBackground(into context: CGContext)",
+        "func render(scale:height:drawExtras:) -> NSBitmapImageRep",
+        "func writePNG(_:to:)",
+        "func drawIcon(_:center:label:in:)",
+        "previewIconPath, appIcon, applicationsIcon, preview"
+      ],
+      "calls_into": [
+        "AppKit: NSColor(srgbRed:green:blue:alpha:), NSColor(white:alpha:), NSColor.black, NSFont.systemFont(ofSize:weight:), NSAttributedString.draw(at:), NSBitmapImageRep(cgImage:), NSBitmapImageRep.representation(using: .png, properties:), NSGraphicsContext(cgContext:flipped:), NSImage(contentsOfFile:), NSImage.draw(in:from:operation:fraction:respectFlipped:hints:), NSWorkspace.shared.icon(forFile:)",
+        "CoreGraphics: CGContext(data:width:height:bitsPerComponent:bytesPerRow:space:bitmapInfo:), CGMutablePath (move/addLine/addQuadCurve/addArc(tangent1End:tangent2End:radius:)/closeSubpath), CGGradient, CGColorSpace(name: CGColorSpace.sRGB), drawRadialGradient, setLineWidth, setLineCap(.round), setLineJoin(.round), makeImage()",
+        "Foundation: FileManager.default.createDirectory(at:withIntermediateDirectories:), FileHandle.standardError.write, URL(fileURLWithPath:isDirectory:), appendingPathComponent, Data.write(to:), CommandLine.arguments, exit(64)"
+      ],
+      "state_owned": [
+        "Top-level immutable layout and brand constants: canvasW, canvasH, exportBleed, appIconCenter, applicationsIconCenter, iconSize, backgroundColor, textPrimary, accent, wordmark, outputStem",
+        "outputDir: URL built from CommandLine.arguments[1]",
+        "previewIconPath, appIcon, applicationsIcon, preview"
+      ],
+      "side_effects": [
+        "Creates the output directory with createDirectory(withIntermediateDirectories: true)",
+        "Writes <outputDir>/installer-background.png at scale 1 and height canvasH + exportBleed",
+        "Writes <outputDir>/installer-background@2x.png at scale 2 and height canvasH + exportBleed",
+        "Writes <outputDir>/preview-mock.png at scale 2 and height canvasH",
+        "Writes the usage line to stderr and exits with code 64 when CommandLine.arguments.count < 2",
+        "Reads an .icns from the optional third argument, else /Applications/Droppy Code.app/Contents/Resources/AppIcon.icns, else NSWorkspace.shared.icon(forFile: \"/Applications/Droppy Code.app\")",
+        "Reads NSWorkspace.shared.icon(forFile: \"/Applications\") for the Applications folder icon",
+        "Prints 'Rendered installer background + preview into <outputDir.path>' on success",
+        "fatalError(\"Could not create bitmap context\"), fatalError(\"Could not snapshot bitmap context\"), fatalError(\"PNG encode failed\") on failure"
+      ],
+      "platform_assumptions": [
+        "macOS AppKit plus CoreGraphics; executed with the Swift toolchain as a script",
+        "NSWorkspace icon lookup for /Applications and /Applications/Droppy Code.app",
+        ".icns icon format for the app icon",
+        "macOS system font (San Francisco) at weights .semibold, .medium and default; text metrics depend on the system font",
+        "sRGB color space, CGImageAlphaInfo.premultipliedLast bitmap, NSGraphicsContext(flipped: true) plus a manual translate/scale flip to get a top-left origin"
+      ],
+      "persisted_fields": [
+        "installer-background.png: 1x, 660x430 px (canvasH 370 plus exportBleed 60)",
+        "installer-background@2x.png: 2x, 1320x860 px",
+        "preview-mock.png: rendered at scale 2 with height canvasH, so 1320x740 px"
+      ],
+      "ui_elements": [
+        "Canvas 660x370pt, exported at 660x430pt; the 60pt flat-color bleed exists so no interpretation of Finder's WindowBounds can expose an unpainted strip that would render white in light mode, and Finder anchors backgrounds top-left",
+        "backgroundColor = NSColor(srgbRed: 0x0b/255, green: 0x0e/255, blue: 0x14/255, alpha: 1), the site's near-black canvas",
+        "textPrimary = NSColor(srgbRed: 0xe8/255, green: 0xea/255, blue: 0xed/255, alpha: 1)",
+        "accent = NSColor(srgbRed: 0x4f/255, green: 0x9c/255, blue: 0xff/255, alpha: 1)",
+        "Accent glow: radial gradient with stops accent at alpha 0.16 and accent at alpha 0, locations [0, 1], context translated to (canvasW/2, 4), scaled by (1, 0.42), startRadius 0, endRadius 210",
+        "Notch silhouette in NSColor.black: centerX canvasW/2, width 150, height 27, cornerRadius 10, filletRadius 7, outward quad-curve fillets at the top edge",
+        "Wordmark 'Droppy Code' in systemFont ofSize 31 weight .semibold, color textPrimary, centered at (canvasW/2, 88)",
+        "Arrow: NSColor(white: 1, alpha: 0.32), lineWidth 2.5, round cap and join, arrowY = 208, arrowStart = 250.75, arrowEnd = 400.75, chevron legs at (arrowEnd - 11, arrowY - 9) and (arrowEnd - 11, arrowY + 9)",
+        "Caption 'Drag to install' in systemFont ofSize 12 weight .medium, color NSColor(white: 1, alpha: 0.40), centered at (canvasW/2, 246)",
+        "Preview icon labels 'Droppy Code' and 'Applications' in systemFont ofSize 12, color textPrimary, centered at icon center y + iconSize/2 + 12",
+        "Preview icons drawn into a 128x128 rect centered at (165, 208) and (495, 208)"
+      ],
+      "feature_notes": [
+        "Usage string written to stderr: 'usage: generate_installer_background.swift <output-directory> [path/to/AppIcon.icns]' followed by exit(64)",
+        "Header comment declares this file the single source of truth for the geometry shared with the pre-baked .DS_Store: window content 660x370, icon centers (165, 208) and (495, 208), icon size 128, and says the .DS_Store must be re-baked if any of those change",
+        "Shaft and chevron are stroked as ONE path in ONE operation because with a translucent stroke color separate strokes would double the alpha at the vertex and render a brighter blob on the tip",
+        "Arrow clearance comment: painted-pixel clearance is an equal 34pt on both sides, measured against the app icon case right edge x = 215.5 and the folder body left edge x = 431 + 5 = 436, with the 1.25pt round-cap overhang accounted for",
+        "The optional icon argument is chosen as CommandLine.arguments.dropFirst(2).first { $0.hasSuffix(\".icns\") }, so it can appear anywhere after the output directory",
+        "render() flips the context with translateBy(x: 0, y: pixelH) and scaleBy(x: scale, y: -scale) so layout constants read naturally in a top-left origin",
+        "Comment notes the 1x and 2x PNGs are combined into a hidpi TIFF by the caller (tiffutil), not by this script"
+      ],
+      "unresolved_questions": [
+        "The measured edges in the arrow comment (app icon case right edge 215.5, folder body left edge 436) come from the specific macOS icon artwork and cannot be re-derived from this file alone.",
+        "Whether the preview composite's respectFlipped: true icon draw matches Finder's own icon rendering exactly is not verifiable from source."
+      ]
+    },
+    {
+      "path": "release/dmg/installer-DS_Store.base64",
+      "sha256": "0f8ea777eccc8ea652faf34695a18cea0b03d82e618696b50176c35713e91a4f",
+      "lines_total": 288,
+      "ranges_read": [[1, 288]],
+      "purpose": "The pre-baked Finder .DS_Store for the release DMG volume, stored base64-encoded at 76 columns so it lives in git as reviewable text; package_dmg.sh decodes it to /.DS_Store on every DMG so Finder shows the designed window geometry, icon-view options, background image and icon positions.",
+      "key_symbols": [
+        "Buddy allocator container: 4-byte magic 0x00000001 followed by 'Bud1'; decoded payload is 16388 bytes",
+        "'DSDB' directory entry inside the allocator",
+        "Record '.' / 'bwsp' / 'blob', 237 bytes of bplist00",
+        "Record '.' / 'icvl' / 'type' with value 'icnv'",
+        "Record '.' / 'icvp' / 'blob', 803 bytes of bplist00",
+        "Record '.' / 'vSrn' / 'long' with value 1",
+        "Record 'Applications' / 'Iloc' / 'blob', 16 bytes",
+        "Record 'Droppy Code.app' / 'Iloc' / 'blob', 16 bytes"
+      ],
+      "calls_into": [
+        "Consumed by scripts/package_dmg.sh, which decodes it onto the DMG as /.DS_Store and checks it contains /Volumes/Droppy Code",
+        "Produced by release/dmg/dmgbuild_settings.py through dmgbuild",
+        "The icvp backgroundImageAlias resolves /Volumes/Droppy Code/.background.tiff, i.e. the staged installer-background.tiff"
+      ],
+      "state_owned": [
+        "bwsp blob, a bplist dict of 9 keys: ContainerShowSidebar=false, PreviewPaneVisibility=false, ShowPathbar=false, ShowSidebar=false, ShowStatusBar=false, ShowTabView=false, ShowToolbar=false, SidebarWidth=180, WindowBounds='{{420, 240}, {660, 398}}'",
+        "icvp blob, a bplist dict of 17 keys: arrangeBy='none', backgroundColorBlue=1.0, backgroundColorGreen=1.0, backgroundColorRed=1.0, backgroundImageAlias=<338-byte alias>, backgroundType=2, gridOffsetX=0.0, gridOffsetY=0.0, gridSpacing=100.0, iconSize=128.0, labelOnBottom=true, scrollPositionX=0.0, scrollPositionY=0.0, showIconPreview=false, showItemInfo=false, textSize=12.0, viewOptionsVersion=1",
+        "icvl type code 'icnv' (icon view)",
+        "vSrn long 1",
+        "Iloc for 'Applications': x = 0x000001ef (495), y = 0x000000d0 (208), then six 0xff bytes and 0x0000 padding",
+        "Iloc for 'Droppy Code.app': x = 0x000000a5 (165), y = 0x000000d0 (208), then six 0xff bytes and 0x0000 padding"
+      ],
+      "side_effects": [
+        "None by itself; it is data. Decoded onto a mounted volume as /.DS_Store, Finder reads it and applies the window styling."
+      ],
+      "platform_assumptions": [
+        "macOS Finder .DS_Store binary format: Bud1 buddy allocator plus a B-tree of records keyed by a UTF-16BE filename, a 4-character structure id and a 4-character type",
+        "Apple binary property lists (bplist00) inside the bwsp and icvp blobs",
+        "A Carbon-era alias record for the background image containing the volume name 'Droppy Code', the filename '.background.tiff', the HFS-style path 'Droppy Code:.background.tiff', the POSIX path '/.background.tiff' and the mount point '/Volumes/Droppy Code'",
+        "The alias carries the throwaway bake volume's creation timestamp (0xe6d1a6f2 for the volume, 0xe6d1a6f3 for the file), and Finder still resolves it by volume name plus path",
+        "A record filename of '.' means the settings apply to the volume root folder itself"
+      ],
+      "persisted_fields": [
+        "WindowBounds: string '{{420, 240}, {660, 398}}'",
+        "SidebarWidth: integer 180",
+        "ContainerShowSidebar / PreviewPaneVisibility / ShowPathbar / ShowSidebar / ShowStatusBar / ShowTabView / ShowToolbar: boolean false",
+        "arrangeBy: string 'none'",
+        "backgroundType: integer 2 (image background)",
+        "backgroundImageAlias: 338 bytes of alias data",
+        "iconSize: real 128.0",
+        "textSize: real 12.0",
+        "gridSpacing: real 100.0",
+        "gridOffsetX / gridOffsetY / scrollPositionX / scrollPositionY: real 0.0",
+        "labelOnBottom: boolean true",
+        "showIconPreview / showItemInfo: boolean false",
+        "viewOptionsVersion: integer 1",
+        "backgroundColorRed / backgroundColorGreen / backgroundColorBlue: real 1.0 each, unused while backgroundType is 2",
+        "Iloc blob layout: 4-byte x, 4-byte y, then 0xffff 0xffff 0xffff and 0x0000"
+      ],
+      "ui_elements": [
+        "Mounted DMG window placed at (420, 240) with outer size 660x398",
+        "Icon view with 128pt icons, 12pt labels below icons, an image background, and no toolbar, status bar, tab bar, pathbar or sidebar",
+        "'Droppy Code.app' icon centered at (165, 208); 'Applications' symlink icon centered at (495, 208)"
+      ],
+      "feature_notes": [
+        "Exactly 6 B-tree records, in this order: '.'/bwsp/blob, '.'/icvl/type, '.'/icvp/blob, '.'/vSrn/long, 'Applications'/Iloc/blob, 'Droppy Code.app'/Iloc/blob",
+        "The literal string '/Volumes/Droppy Code' is present, which is exactly what the README's verification grep requires and what package_dmg.sh enforces",
+        "Encoded at 76 base64 characters per line (base64 -b 76) over 288 lines; the decoded payload is 16388 bytes and the last line ends with 'AAA='",
+        "The alias also stores UTF-16 forms of '.background.tiff' and 'Droppy Code' plus the HFS-style path 'Droppy Code:.background.tiff'",
+        "Most of the file is zero padding from the 16 KiB buddy-allocator container, which is why 288 lines of base64 carry only six records"
+      ],
+      "unresolved_questions": [
+        "The working-tree copy in this Windows checkout has CRLF line terminators (git ls-files --eol reports i/lf w/crlf for all four text files in release/dmg), so the sha256 recorded here is of the CRLF working-tree bytes; the upstream macOS file is LF and would hash differently.",
+        "The six 0xff bytes trailing each Iloc record are the conventional undocumented fields of the Iloc structure; their meaning cannot be established from this file.",
+        "The alias's embedded volume creation date 0xe6d1a6f2 identifies the throwaway bake volume, but it cannot be converted to a calendar date with certainty from these files alone."
+      ]
+    }
+  ]
+}

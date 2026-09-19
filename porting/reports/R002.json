@@ -1,0 +1,268 @@
+{
+  "bundle_id": "R002",
+  "reader": "R002-reader",
+  "files": [
+    {
+      "path": "DroppyCode.xcodeproj/project.pbxproj",
+      "sha256": "76073e0c9073e72ba70325bda68dff2540042a8c57d1d793c1a3f3f7e5c77996",
+      "lines_total": 375,
+      "ranges_read": [[1, 375]],
+      "purpose": "The XcodeGen-generated Xcode project file for the single macOS app target DroppyCode: it declares the app product, the SwiftTerm SPM dependency, the three resource files copied into the bundle, and the four XCBuildConfiguration blocks (project Debug/Release and target Debug/Release) that hold every literal build setting the shipped app is compiled with.",
+      "key_symbols": [
+        "archiveVersion = 1",
+        "objectVersion = 77",
+        "preferredProjectObjectVersion = 77",
+        "PBXProject 32D783F101A2C316C4AD2D96 (Project object)",
+        "PBXNativeTarget D15F2F8750A508AD043EC141 /* DroppyCode */ (productType com.apple.product-type.application)",
+        "PBXFileSystemSynchronizedRootGroup D316607E993AEB4CB4FF2F06 /* DroppyCode */ (path DroppyCode, empty explicitFileTypes and explicitFolders)",
+        "PBXGroup E79E0F24BD6C0E578BFB5406 (mainGroup)",
+        "PBXGroup D704310475EAFAAE7FA6AD13 /* Products */",
+        "PBXSourcesBuildPhase 6FB0B0F54C3B5B2B02EA0E7E (files list EMPTY; sources come from the synchronized folder)",
+        "PBXResourcesBuildPhase BE9E6EB86C22850C1861BB64",
+        "PBXFrameworksBuildPhase 0FEDA1B3D9EF0C27157128ED",
+        "XCBuildConfiguration 159D9F131CCC81DDCD5A09EA /* Debug */ (project level)",
+        "XCBuildConfiguration 1A191CE045894F543A4BC4B6 /* Release */ (project level)",
+        "XCBuildConfiguration E1E513E524E933F3C8C16C09 /* Debug */ (target level)",
+        "XCBuildConfiguration 20740E6438C47C1B239165BE /* Release */ (target level)",
+        "XCConfigurationList 45C29B052842130283C38DF5 (target DroppyCode, defaultConfigurationName = Debug)",
+        "XCConfigurationList 6E93EAC4B95FA531E37D24A6 (project DroppyCode, defaultConfigurationName = Debug)",
+        "XCRemoteSwiftPackageReference DA7BAC145AD453FC5EB71BFD /* SwiftTerm */",
+        "XCSwiftPackageProductDependency 46198FD9B910732AD71A6686 /* SwiftTerm */",
+        "PBXFileReference BF08528FE4987FB150391D97 /* DroppyCode.app */ (wrapper.application, BUILT_PRODUCTS_DIR)",
+        "PBXFileReference AE8B6A92FB544EA3A8C2FF3A /* LICENSE */",
+        "PBXFileReference F27C3C109E48B14D114F56CA /* THIRD_PARTY_NOTICES.md */ (net.daringfireball.markdown)",
+        "PBXFileReference 407374162B673FE1CFDB0507 /* TRADEMARK.md */ (net.daringfireball.markdown)"
+      ],
+      "calls_into": [
+        "https://github.com/migueldeicaza/SwiftTerm at exactVersion 1.20.0; the SwiftTerm product is linked in PBXFrameworksBuildPhase",
+        "DroppyCode/App/Window/DroppyCode-Bridging-Header.h via SWIFT_OBJC_BRIDGING_HEADER on both target configs",
+        "AppIcon asset catalog entry via ASSETCATALOG_COMPILER_APPICON_NAME on both target configs",
+        "LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md at the repo root, copied as bundle resources",
+        "project.yml, the XcodeGen spec this file is generated from"
+      ],
+      "state_owned": [
+        "objects dictionary keyed by 24-hex XcodeGen-deterministic object ids",
+        "rootObject = 32D783F101A2C316C4AD2D96",
+        "developmentRegion = en; knownRegions = (Base, en)",
+        "TargetAttributes: D15F2F8750A508AD043EC141 = { DevelopmentTeam = NARHG44L48 }",
+        "BuildIndependentTargetsInParallel = YES; LastUpgradeCheck = 1430; minimizedProjectReferenceProxies = 1; hasScannedForEncodings = 0",
+        "Both build phases use buildActionMask = 2147483647 and runOnlyForDeploymentPostprocessing = 0"
+      ],
+      "side_effects": [
+        "Resources build phase copies LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md into the built DroppyCode.app bundle",
+        "Frameworks build phase links the SwiftTerm SPM product, which triggers a package fetch and resolve at build time",
+        "Release target config signs with CODE_SIGN_IDENTITY = \"Developer ID Application\" and CODE_SIGN_STYLE = Manual (Developer ID distribution, not the App Store)",
+        "ENABLE_HARDENED_RUNTIME = YES on both target configs, a notarization prerequisite",
+        "GENERATE_INFOPLIST_FILE = YES synthesizes Info.plist from the INFOPLIST_KEY_* settings at build time",
+        "Release project config emits a dSYM because DEBUG_INFORMATION_FORMAT = \"dwarf-with-dsym\""
+      ],
+      "platform_assumptions": [
+        "SDKROOT = macosx on project and target configs; macOS only, no iOS or Catalyst slice",
+        "MACOSX_DEPLOYMENT_TARGET = 26.0 in both project configs; requires macOS 26 APIs",
+        "ARCHS = arm64 with EXCLUDED_ARCHS = x86_64; Apple Silicon only, no Intel and no universal binary",
+        "SWIFT_VERSION = 6.0 with SWIFT_APPROACHABLE_CONCURRENCY = YES (Swift 6 strict concurrency in approachable mode)",
+        "SWIFT_OBJC_BRIDGING_HEADER implies AppKit/Objective-C interop in DroppyCode/App/Window",
+        "COMBINE_HIDPI_IMAGES = YES, a classic macOS-only TIFF HiDPI image combining setting",
+        "LD_RUNPATH_SEARCH_PATHS includes @executable_path/../Frameworks, the macOS .app bundle layout",
+        "objectVersion 77 and preferredProjectObjectVersion 77 require Xcode 16 or newer for file-system-synchronized groups",
+        "Metal toolchain assumed present (MTL_ENABLE_DEBUG_INFO, MTL_FAST_MATH = YES)",
+        "DEVELOPMENT_TEAM = NARHG44L48 is an Apple Developer team identifier"
+      ],
+      "persisted_fields": [
+        "MARKETING_VERSION = 1.6.0 (both project configs), becomes CFBundleShortVersionString",
+        "CURRENT_PROJECT_VERSION = 19 (both project configs), becomes CFBundleVersion",
+        "PRODUCT_BUNDLE_IDENTIFIER = iordv.droppycode (Release target config)",
+        "PRODUCT_BUNDLE_IDENTIFIER = iordv.droppycode.dev (Debug target config)",
+        "PRODUCT_MODULE_NAME = DroppyCode (both target configs)",
+        "PRODUCT_NAME = \"Droppy Code\" (Release target), \"Droppy Code Dev\" (Debug target), \"$(TARGET_NAME)\" (both project configs)",
+        "INFOPLIST_KEY_LSApplicationCategoryType = \"public.app-category.developer-tools\"",
+        "ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon"
+      ],
+      "ui_elements": [
+        "INFOPLIST_KEY_CFBundleDisplayName = \"Droppy Code\" (Release target config), the name shown in Finder, the Dock and the menu bar",
+        "INFOPLIST_KEY_CFBundleDisplayName = \"Droppy Code Dev\" (Debug target config), so dev builds are visibly distinct",
+        "INFOPLIST_KEY_NSHumanReadableCopyright = \"Droppy Code, the coding app by Droppy. MIT License.\", the copyright line in the standard About panel",
+        "LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md shipped as resources so the app can display them in-app"
+      ],
+      "feature_notes": [
+        "Debug and Release differ by identity, not only optimization: Debug installs as iordv.droppycode.dev named \"Droppy Code Dev\" with CODE_SIGN_STYLE = Automatic; Release installs as iordv.droppycode named \"Droppy Code\" with CODE_SIGN_STYLE = Manual and CODE_SIGN_IDENTITY = \"Developer ID Application\"",
+        "Project Debug config literals: GCC_OPTIMIZATION_LEVEL = 0, SWIFT_OPTIMIZATION_LEVEL = \"-Onone\", SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG, GCC_PREPROCESSOR_DEFINITIONS = (\"$(inherited)\", \"DEBUG=1\"), ENABLE_TESTABILITY = YES, ONLY_ACTIVE_ARCH = YES, DEBUG_INFORMATION_FORMAT = dwarf, MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE, GCC_DYNAMIC_NO_PIC = NO",
+        "Project Release config literals: SWIFT_OPTIMIZATION_LEVEL = \"-O\", SWIFT_COMPILATION_MODE = wholemodule, ENABLE_NS_ASSERTIONS = NO, DEBUG_INFORMATION_FORMAT = \"dwarf-with-dsym\", MTL_ENABLE_DEBUG_INFO = NO; Release carries no ENABLE_TESTABILITY and no ONLY_ACTIVE_ARCH key at all",
+        "DEAD_CODE_STRIPPING = YES on BOTH target configs including Debug, so debug builds do not keep unreferenced symbols",
+        "No test target, no test bundle and no PBXTargetDependency appears anywhere in the file; the project builds exactly one product",
+        "The Sources build phase files list is literally empty; all Swift sources arrive via fileSystemSynchronizedGroups pointing at the DroppyCode folder, so adding a .swift file needs no project edit",
+        "Warning posture is Apple template defaults with three escalated to errors: CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR, CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR, GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR; plus CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE, GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE and CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE",
+        "CLANG_CXX_LANGUAGE_STANDARD = \"gnu++14\", CLANG_CXX_LIBRARY = \"libc++\", GCC_C_LANGUAGE_STANDARD = gnu11 are boilerplate; no C or C++ source belongs to the target",
+        "COPY_PHASE_STRIP = NO in BOTH project configs, so the Release binary is not stripped during the copy phase",
+        "SwiftTerm is pinned with requirement kind = exactVersion, version = 1.20.0, not a range, so the terminal emulator version is locked",
+        "CLANG_ENABLE_MODULES, CLANG_ENABLE_OBJC_ARC and CLANG_ENABLE_OBJC_WEAK are all YES in both project configs, and ENABLE_STRICT_OBJC_MSGSEND = YES, ALWAYS_SEARCH_USER_PATHS = NO, GCC_NO_COMMON_BLOCKS = YES"
+      ],
+      "unresolved_questions": [
+        "Whether DroppyCode.app is ever built as a universal binary for release: this pinned file hard-excludes x86_64, but a CI script outside this bundle could override ARCHS",
+        "LastUpgradeCheck = 1430 is stale relative to objectVersion 77 and a macOS 26 deployment target; it looks like XcodeGen boilerplate with no observable effect, but I cannot confirm that from this file alone",
+        "Where the shipped LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md resources are read and displayed; only the project.yml comment names an About Licenses screen and the reading code is not in this bundle"
+      ]
+    },
+    {
+      "path": "DroppyCode.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
+      "sha256": "ac28b35c2b940210bec0fff8e424b07fd0efe9112ab178a10533583f251a386c",
+      "lines_total": 7,
+      "ranges_read": [[1, 7]],
+      "purpose": "The implicit workspace embedded inside DroppyCode.xcodeproj, declaring exactly one FileRef pointing at the project itself (location = \"self:\"); it exists so Xcode has a workspace to hang the shared SwiftPM Package.resolved off.",
+      "key_symbols": [
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+        "<Workspace version = \"1.0\">",
+        "<FileRef location = \"self:\">"
+      ],
+      "calls_into": [
+        "DroppyCode.xcodeproj itself, referenced as location = \"self:\"",
+        "the sibling xcshareddata/swiftpm/Package.resolved that lives under this workspace"
+      ],
+      "state_owned": [
+        "Workspace version attribute \"1.0\"",
+        "a single FileRef entry whose only attribute is location = \"self:\""
+      ],
+      "side_effects": [
+        "None; it is a declarative XML manifest Xcode reads when opening the project"
+      ],
+      "platform_assumptions": [
+        "Xcode-specific workspace format, meaningless outside Apple's toolchain and with no Windows equivalent"
+      ],
+      "persisted_fields": [
+        "version = \"1.0\" (string attribute on Workspace)",
+        "location = \"self:\" (string attribute on FileRef)"
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "There is no separate .xcworkspace at the repo root; the only workspace is this auto-generated in-project one, so the app is opened via DroppyCode.xcodeproj directly",
+        "Because only self: is listed, no sibling projects and no local Swift packages participate in the build",
+        "Written in Xcode's own style: 3-space indentation and spaced attribute assignment (location = \"self:\"), and FileRef uses an explicit closing tag rather than self-closing"
+      ],
+      "unresolved_questions": [
+        "Whether this file is regenerated by XcodeGen or preserved verbatim from Xcode; project.yml does not mention it and nothing in this bundle lists it as an XcodeGen output"
+      ]
+    },
+    {
+      "path": "DroppyCode.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
+      "sha256": "009ac396420734921cca3bbdf07079d29d0731b4db0bd9e61a141f5715dba58b",
+      "lines_total": 24,
+      "ranges_read": [[1, 24]],
+      "purpose": "The checked-in SwiftPM resolution lockfile for the Xcode project: it pins the exact git revisions of the two packages in the dependency graph, SwiftTerm and its transitive swift-argument-parser, so every build of Droppy Code links identical terminal-emulator code.",
+      "key_symbols": [
+        "originHash = \"4d9d9af82f23f3c708bdd502fed3939413b4f2a95a79ae568364cc92bca1527e\"",
+        "\"version\" : 3 (Package.resolved format version 3)",
+        "pin identity \"swift-argument-parser\"",
+        "pin identity \"swiftterm\""
+      ],
+      "calls_into": [
+        "https://github.com/apple/swift-argument-parser (kind remoteSourceControl)",
+        "https://github.com/migueldeicaza/SwiftTerm (kind remoteSourceControl)",
+        "XCRemoteSwiftPackageReference \"SwiftTerm\" in project.pbxproj, whose exactVersion 1.20.0 requirement this resolution satisfies"
+      ],
+      "state_owned": [
+        "pins array with 2 entries, ordered by identity",
+        "a per-pin state object holding revision and version"
+      ],
+      "side_effects": [
+        "Drives git clones and checkouts of both GitHub repositories into DerivedData during resolution, so a build on a machine without them cached needs network access"
+      ],
+      "platform_assumptions": [
+        "Apple SwiftPM and Xcode resolution format; Windows has no equivalent, so the port must substitute a Windows terminal backend for SwiftTerm rather than translate this file"
+      ],
+      "persisted_fields": [
+        "originHash: string \"4d9d9af82f23f3c708bdd502fed3939413b4f2a95a79ae568364cc92bca1527e\"",
+        "version: integer 3",
+        "pins[].identity: \"swift-argument-parser\" and \"swiftterm\" (lowercased identities)",
+        "pins[].kind: \"remoteSourceControl\" for both entries",
+        "pins[].location: \"https://github.com/apple/swift-argument-parser\" and \"https://github.com/migueldeicaza/SwiftTerm\"",
+        "pins[].state.revision: \"6a52f3251125d74daf04fcbd5e6f08a75d074382\" (swift-argument-parser), \"5d14406844143538cd8f8851d2d8a67c1fe443e5\" (SwiftTerm)",
+        "pins[].state.version: \"1.8.2\" (swift-argument-parser), \"1.20.0\" (SwiftTerm)"
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "SwiftTerm 1.20.0 is the only direct third-party dependency of the app; everything else is Apple system frameworks",
+        "swift-argument-parser 1.8.2 is transitive, pulled in through SwiftTerm; project.pbxproj declares no XCSwiftPackageProductDependency on it",
+        "Both pins carry an explicit semver version string, so neither is a branch pin or a bare-revision pin",
+        "Formatting is Xcode's JSON writer style: 2-space indentation, a space before every colon, and keys in the order originHash, pins, version"
+      ],
+      "unresolved_questions": [
+        "Whether any swift-argument-parser code ends up inside the shipped .app: it is resolved and pinned, but only the SwiftTerm product is listed in PBXFrameworksBuildPhase, and SwiftTerm's own Package.swift target graph is not in this bundle"
+      ]
+    },
+    {
+      "path": "project.yml",
+      "sha256": "506f28144e8dfd2e08696d015756976a7ba73843a09155cac3aeb6c275220568",
+      "lines_total": 59,
+      "ranges_read": [[1, 59]],
+      "purpose": "The XcodeGen specification that is the real source of truth for the Droppy Code build: it declares the single macOS application target, the synced-folder source layout, the SwiftTerm package, the shared base settings and the Debug/Release overrides from which DroppyCode.xcodeproj/project.pbxproj is generated.",
+      "key_symbols": [
+        "name: DroppyCode",
+        "options.bundleIdPrefix: iordv",
+        "options.deploymentTarget.macOS: \"26.0\"",
+        "options.developmentLanguage: en",
+        "packages.SwiftTerm (url + exactVersion)",
+        "settings.base (project-wide)",
+        "targets.DroppyCode (type: application, platform: macOS)",
+        "targets.DroppyCode.sources (synced folder plus three resource paths)",
+        "targets.DroppyCode.dependencies (- package: SwiftTerm)",
+        "targets.DroppyCode.settings.base",
+        "targets.DroppyCode.settings.configs.Debug",
+        "targets.DroppyCode.settings.configs.Release"
+      ],
+      "calls_into": [
+        "the DroppyCode/ source folder, declared with type: syncedFolder",
+        "LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md, each with buildPhase: resources",
+        "package SwiftTerm at https://github.com/migueldeicaza/SwiftTerm, exactVersion 1.20.0",
+        "DroppyCode/App/Window/DroppyCode-Bridging-Header.h",
+        "the AppIcon entry in the asset catalog"
+      ],
+      "state_owned": [
+        "settings.base: MARKETING_VERSION \"1.6.0\", CURRENT_PROJECT_VERSION \"19\", ARCHS arm64, EXCLUDED_ARCHS x86_64, SWIFT_VERSION \"6.0\", SWIFT_APPROACHABLE_CONCURRENCY YES, DEVELOPMENT_TEAM NARHG44L48, MACOSX_DEPLOYMENT_TARGET \"26.0\"",
+        "target settings.base: PRODUCT_NAME, PRODUCT_MODULE_NAME, PRODUCT_BUNDLE_IDENTIFIER, GENERATE_INFOPLIST_FILE, three INFOPLIST_KEY_* values, ASSETCATALOG_COMPILER_APPICON_NAME, ENABLE_HARDENED_RUNTIME, CODE_SIGN_STYLE, DEAD_CODE_STRIPPING, SWIFT_OBJC_BRIDGING_HEADER"
+      ],
+      "side_effects": [
+        "Running xcodegen rewrites DroppyCode.xcodeproj/project.pbxproj wholesale from this spec",
+        "buildPhase: resources entries cause LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md to be copied into the app bundle",
+        "Declaring the SwiftTerm package makes Xcode resolve and fetch it over the network"
+      ],
+      "platform_assumptions": [
+        "platform: macOS with options.deploymentTarget.macOS \"26.0\", so macOS 26 is the minimum",
+        "ARCHS: arm64 plus EXCLUDED_ARCHS: x86_64, Apple Silicon only",
+        "SWIFT_VERSION \"6.0\" with SWIFT_APPROACHABLE_CONCURRENCY, the Swift 6 concurrency model",
+        "CODE_SIGN_IDENTITY: Developer ID Application together with ENABLE_HARDENED_RUNTIME: YES means Apple notarized direct distribution outside the Mac App Store",
+        "XcodeGen's syncedFolder source type requires a recent XcodeGen and the Xcode 16+ project format",
+        "SWIFT_OBJC_BRIDGING_HEADER presupposes AppKit/Objective-C interop"
+      ],
+      "persisted_fields": [
+        "MARKETING_VERSION: \"1.6.0\" (quoted string)",
+        "CURRENT_PROJECT_VERSION: \"19\" (quoted string)",
+        "bundleIdPrefix: iordv",
+        "PRODUCT_BUNDLE_IDENTIFIER: iordv.droppycode (base), overridden to iordv.droppycode.dev in the Debug config",
+        "PRODUCT_MODULE_NAME: DroppyCode, constant across configs so the Swift module name never changes",
+        "developmentLanguage: en",
+        "DEVELOPMENT_TEAM: NARHG44L48"
+      ],
+      "ui_elements": [
+        "INFOPLIST_KEY_CFBundleDisplayName: \"Droppy Code\" in base, overridden to \"Droppy Code Dev\" in Debug",
+        "PRODUCT_NAME: \"Droppy Code\" in base, overridden to \"Droppy Code Dev\" in Debug; note the space in the product name versus the spaceless DroppyCode module name",
+        "INFOPLIST_KEY_NSHumanReadableCopyright: \"Droppy Code, the coding app by Droppy. MIT License.\"",
+        "INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools, written unquoted here and quoted in the generated pbxproj"
+      ],
+      "feature_notes": [
+        "The only prose in the file is the comment above the three resource entries: \"The license, the third-party notices and the trademark policy travel with every copy of the app; About shows them under Licenses.\" It states an in-app About requirement the port must honor",
+        "The Debug config overrides exactly three keys (PRODUCT_NAME, PRODUCT_BUNDLE_IDENTIFIER, INFOPLIST_KEY_CFBundleDisplayName) so a dev build coexists with the release build on one Mac",
+        "The Release config overrides exactly two keys (CODE_SIGN_STYLE: Manual, CODE_SIGN_IDENTITY: Developer ID Application); base CODE_SIGN_STYLE is Automatic, which therefore applies to Debug",
+        "DEAD_CODE_STRIPPING: YES sits in the target's settings.base, so it applies to Debug as well as Release; it is not a release-only optimization",
+        "The spec declares no test target, no app extension, no helper tool and no scheme customization; the entire product is one app",
+        "sources uses type: syncedFolder for DroppyCode, which is exactly why the generated Sources build phase has an empty files list",
+        "Only this file carries MARKETING_VERSION 1.6.0 and CURRENT_PROJECT_VERSION 19 as authored values; the app version is bumped by editing project.yml, not the pbxproj",
+        "Settings present in the generated pbxproj but absent from this spec (COMBINE_HIDPI_IMAGES, LD_RUNPATH_SEARCH_PATHS, SDKROOT, the entire CLANG_/GCC_ warning block, MTL_*, SWIFT_COMPILATION_MODE, DEBUG_INFORMATION_FORMAT, COPY_PHASE_STRIP) are XcodeGen defaults rather than authored choices"
+      ],
+      "unresolved_questions": [
+        "Whether an XcodeGen version is pinned anywhere (Makefile, Brewfile, CI workflow); nothing in this bundle records which XcodeGen produced the committed pbxproj",
+        "Whether project.yml or the committed project.pbxproj is treated as canonical day to day, since both are checked in and can drift",
+        "The file has CRLF line endings in this checkout, which may be a Windows git autocrlf artifact rather than the upstream committed form; I cannot tell from the working tree alone"
+      ]
+    }
+  ]
+}

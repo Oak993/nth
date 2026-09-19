@@ -1,0 +1,953 @@
+{
+  "bundle_id": "R062",
+  "reader": "R062-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-playwright.imageset/mcp-playwright.svg",
+      "sha256": "7e9e889581ca63cd1328158b58d04c2f96077d5c58b88d0642912f5f122582ef",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Vector logo for the Playwright entry of the built-in MCP connector catalog; 975 bytes of minified simple-icons style markup shown next to the \"Playwright\" row in the MCP connector list.",
+      "key_symbols": [
+        "svg[role=\"img\"]",
+        "viewBox=\"0 0 24 24\"",
+        "single <path> element (no id, no fill attribute)"
+      ],
+      "calls_into": [
+        "MCPCatalog.swift line 43: asset: \"mcp-playwright\" for entry id: \"playwright\", name: \"Playwright\""
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Sibling Contents.json sets \"template-rendering-intent\": \"template\", so AppKit strips the artwork color and tints with the current foreground/control tint"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "24x24 user-space icon (viewBox 0 0 24 24); no explicit width/height so the consumer sizes it"
+      ],
+      "feature_notes": [
+        "Artwork is the Playwright theatre-mask mark: a large mask body starting \"M23.996 7.462c-.056.837-.257 2.135-.716 3.85-.995 3.715-4.27 10.874-10.42 9.227-6.15-1.65-5.407-9.487-4.412-13.201\", two eye subpaths (\"s-.127-1.819-1.773-2.286c-1.644-.467-2.613 1.04-2.613 1.04Z\" and the mirrored \"-.13-1.818-1.773-2.286\" eye), a mouth sweep \"m4.058 4.539-7.769-2.172s.446 2.306 3.338 3.153c2.862.836 4.43-.98 4.43-.981Z\", plus a second smaller mask at left (\"M8.57 18.23c-4.749 1.279-7.261-4.224-8.021-7.08\") with its own eye ending \"1.363-1.631l-3.374.888s.745 1.076 2.01.743Z\"",
+        "No fill attribute anywhere, so the shape paints with the inherited tint color; the reversed eye and mouth subpaths punch holes under the default nonzero fill rule",
+        "Attribute order is role, viewBox, xmlns (simple-icons export order), unlike the hand-authored icons in this bundle which start with xmlns",
+        "File has no trailing newline (wc -l reports 0 for its single content line)"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-postgres.imageset/mcp-postgres.svg",
+      "sha256": "bdb71861b6cee8fd1f034ec3090dc83781f0d22bd7187a968e465f32982724fd",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Vector logo for the PostgreSQL entry of the MCP connector catalog; at 5180 bytes it is by far the largest and most detailed SVG in this bundle (the Slonik elephant-head mark).",
+      "key_symbols": [
+        "svg[role=\"img\"]",
+        "viewBox=\"0 0 24 24\"",
+        "single very long <path> (about 5 KB of path data, no fill attribute)"
+      ],
+      "calls_into": [
+        "MCPCatalog.swift line 373: asset: \"mcp-postgres\" for entry id: \"postgres\", name: \"PostgreSQL\""
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Sibling Contents.json sets \"template-rendering-intent\": \"template\", so AppKit strips the artwork color and tints with the current foreground/control tint"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "24x24 user-space icon (viewBox 0 0 24 24); no width/height attributes"
+      ],
+      "feature_notes": [
+        "Artwork is the PostgreSQL elephant head. The trunk/tusk highlight starts \"M23.5594 14.7228a.5269.5269 0 0 0-.0563-.1191c-.139-.2632-.4768-.3418-1.0074-.2321-1.6533.3411-2.2935.1312-2.5256-.0191\" and the body subpath begins \"M2.371 11.8765c-.7435-2.4358-1.1779-4.8851-1.2123-5.5719-.1086-2.1714.4171-3.6829 1.5623-4.4927 1.8367-1.2986 4.8398-.5408 6.108-.13\"",
+        "Later subpaths add the ear crease \"M11.58 18.168c-2.088-1.642-3.101-2.183-3.52-2.16\" and two tiny round eye shapes, one of which is \"m12.581 11.728a.306.306 0 0 1 .415-.287.3.3 0 0 1 .113.074.3.3 0 0 1 .086.214c0 .17-.136.307-.308.307a.303.303 0 0 1-.306-.307\"",
+        "Coordinates carry four decimal places (23.5594, 14.7228, 11.8765, 18.1768-scale values) whereas the other simple-icons assets in this bundle use two or three; it is the highest-precision path here",
+        "No fill attribute, so the whole elephant paints in the tint color as a flat silhouette with nonzero-rule holes",
+        "File has no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-resend.imageset/mcp-resend.svg",
+      "sha256": "ec72a1f953dbe08c9cb1b2d2045279850a2ba9ef6f008dcdb124d545b9d59a64",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Vector logo for the Resend transactional-email entry of the MCP connector catalog; 323 bytes drawing a single-stroke geometric letter R.",
+      "key_symbols": [
+        "svg[role=\"img\"]",
+        "viewBox=\"0 0 24 24\"",
+        "single <path> (no fill attribute)"
+      ],
+      "calls_into": [
+        "MCPCatalog.swift line 360: asset: \"mcp-resend\" for entry id: \"resend\", name: \"Resend\""
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Sibling Contents.json sets \"template-rendering-intent\": \"template\", so AppKit strips the artwork color and tints with the current foreground/control tint"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "24x24 user-space icon (viewBox 0 0 24 24); no width/height attributes"
+      ],
+      "feature_notes": [
+        "Exact path data: \"M14.679 0c4.648 0 7.413 2.765 7.413 6.434s-2.765 6.434-7.413 6.434H12.33L24 24h-8.245l-8.88-8.44c-.636-.588-.93-1.273-.93-1.86 0-.831.587-1.565 1.713-1.883l4.574-1.224c1.737-.465 2.936-1.81 2.936-3.572 0-2.153-1.761-3.4-3.939-3.4H0V0z\"",
+        "The glyph is a blocky R: a bowl of radius 6.434 at the top right, a diagonal leg reaching the bottom-right corner at exactly (24,24), and a top bar that runs back to H0V0, so the mark touches all four edges of the 24x24 box",
+        "After the initial M it uses only absolute uppercase commands (c/s are relative curves but H, L and V are absolute), and it closes with the bare \"z\"",
+        "No fill attribute, tinted by the template rendering intent; file has no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-sentry.imageset/mcp-sentry.svg",
+      "sha256": "587d44de6280d81709bf8aed9bbabfb3da1e0ee60614c1d00cd6d561780a56f8",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Vector logo for the Sentry error-monitoring entry of the MCP connector catalog; 665 bytes drawing the nested-chevron \"mountain\" mark.",
+      "key_symbols": [
+        "svg[role=\"img\"]",
+        "viewBox=\"0 0 24 24\"",
+        "single <path> (no fill attribute)"
+      ],
+      "calls_into": [
+        "MCPCatalog.swift line 287: asset: \"mcp-sentry\" for entry id: \"sentry\", name: \"Sentry\""
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Sibling Contents.json sets \"template-rendering-intent\": \"template\", so AppKit strips the artwork color and tints with the current foreground/control tint"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "24x24 user-space icon (viewBox 0 0 24 24); no width/height attributes"
+      ],
+      "feature_notes": [
+        "Path starts \"M13.91 2.505c-.873-1.448-2.972-1.448-3.844 0L6.904 7.92a15.478 15.478 0 0 1 8.53 12.811h-2.221A13.301 13.301 0 0 0 5.784 9.814l-2.926 5.06a7.65 7.65 0 0 1 4.435 5.848H2.194a.365.365 0 0 1-.298-.534l1.413-2.402a5.16 5.16 0 0 0-1.614-.913L.296 19.275\"",
+        "Nested arcs of decreasing radius form the concentric peaks: the distinctive radius literals are 15.478, 13.301, 11.47, 9.322, 7.65 and 5.16, with rounded joins at 2.182, 2.24 and 2.206",
+        "The apex peak is a rounded fork \"M13.91 2.505c-.873-1.448-2.972-1.448-3.844 0\" and the mark closes on \"2.297a2.206 2.206 0 0 0 1.922-3.31z\" at the right edge",
+        "Includes the flatness note \"029c.029.612.029 1.223 0 1.831\" giving the 1.831-unit inner ring thickness",
+        "No fill attribute; file has no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-sequential-thinking.imageset/mcp-sequential-thinking.svg",
+      "sha256": "c4e7b29b5012cf499568bcc013dfc1705e7fab319c24be66c030f963f5a0aa33",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Hand-authored placeholder icon for the Sequential Thinking MCP reference server, which has no brand logo: three linked nodes drawn from primitive shapes rather than a path, 263 bytes.",
+      "key_symbols": [
+        "svg (xmlns first, then viewBox=\"0 0 24 24\")",
+        "three <circle> elements",
+        "two <rect> elements",
+        "no <path> element at all"
+      ],
+      "calls_into": [
+        "MCPCatalog.swift line 122: asset: \"mcp-sequential-thinking\" for entry id: \"sequential-thinking\", name: \"Sequential Thinking\""
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Sibling Contents.json sets \"template-rendering-intent\": \"template\", so AppKit strips the artwork color and tints with the current foreground/control tint"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "circle cx=\"4\" cy=\"12\" r=\"2.6\"",
+        "circle cx=\"12\" cy=\"12\" r=\"2.6\"",
+        "circle cx=\"20\" cy=\"12\" r=\"2.6\"",
+        "rect x=\"6.2\" y=\"11.2\" width=\"3.6\" height=\"1.6\"",
+        "rect x=\"14.2\" y=\"11.2\" width=\"3.6\" height=\"1.6\""
+      ],
+      "feature_notes": [
+        "Full markup: <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><circle cx=\"4\" cy=\"12\" r=\"2.6\"/><circle cx=\"12\" cy=\"12\" r=\"2.6\"/><circle cx=\"20\" cy=\"12\" r=\"2.6\"/><rect x=\"6.2\" y=\"11.2\" width=\"3.6\" height=\"1.6\"/><rect x=\"14.2\" y=\"11.2\" width=\"3.6\" height=\"1.6\"/></svg>",
+        "Three dots of radius 2.6 spaced exactly 8 units apart along the vertical centre line y=12, joined by two 3.6 x 1.6 connector bars centred on y=12 (y=11.2 plus half of 1.6)",
+        "Each bar starts 0.4 units inside the neighbouring circle edge (circle edge x=6.6 versus bar x=6.2), so the bars tuck under the dots and leave no seam",
+        "No role=\"img\" and no fill attribute on any element, so every shape paints in the tint color",
+        "One of only two assets in the bundle built from geometric primitives rather than a brand path (the other is mcp-tavily.svg)",
+        "File has no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-slack.imageset/mcp-slack.svg",
+      "sha256": "13044f91773c564315759d4ad91bf1a1f9ca93203457a810e218c54ae5c4301d",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Vector logo for the Slack entry of the MCP connector catalog; 1103 bytes drawing the four-lozenge octothorpe mark as eight subpaths inside one <path>.",
+      "key_symbols": [
+        "svg[role=\"img\"]",
+        "viewBox=\"0 0 24 24\"",
+        "single <path> containing 8 \"M\" subpaths"
+      ],
+      "calls_into": [
+        "MCPCatalog.swift line 221: asset: \"mcp-slack\" for entry id: \"slack\", name: \"Slack\""
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Sibling Contents.json sets \"template-rendering-intent\": \"template\", so AppKit strips the artwork color and tints with the current foreground/control tint"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "24x24 user-space icon (viewBox 0 0 24 24); no width/height attributes"
+      ],
+      "feature_notes": [
+        "Every lozenge cap uses the same arc radius family 2.528 / 2.527 / 2.526, for example \"M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52z\"",
+        "Eight subpaths: four short caps starting at 5.042/8.834/18.956/15.165 and four long bars starting at 6.313/8.834/17.688/15.165; the recurring bar length literal is 6.313 (and 6.312 in two places)",
+        "The four arms are flattened into one path with no fill attribute, so the mark renders as a single tinted silhouette rather than the four Slack brand colours",
+        "File has no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-sqlite.imageset/mcp-sqlite.svg",
+      "sha256": "0fb0506fc5ecf88a7b25fb1c1623af9a23bcf888551f08d627a87dc918197c5d",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Vector logo for the SQLite entry of the MCP connector catalog; 1399 bytes drawing the feather-over-rounded-panel mark.",
+      "key_symbols": [
+        "svg[role=\"img\"]",
+        "viewBox=\"0 0 24 24\"",
+        "single <path> with two top-level \"M\" subpaths (feather, then panel)"
+      ],
+      "calls_into": [
+        "MCPCatalog.swift line 388: asset: \"mcp-sqlite\" for entry id: \"sqlite\", name: \"SQLite\""
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Sibling Contents.json sets \"template-rendering-intent\": \"template\", so AppKit strips the artwork color and tints with the current foreground/control tint"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "24x24 user-space icon (viewBox 0 0 24 24); no width/height attributes"
+      ],
+      "feature_notes": [
+        "Subpath 1 is the quill: \"M21.678.521c-1.032-.92-2.28-.55-3.513.544a8.71 8.71 0 0 0-.547.535c-2.109 2.237-4.066 6.38-4.674 9.544\" continuing through the shaft detail \"1.723-4.55 4.113-8.201 6.3-9.945-1.993 1.8-4.692 7.63-5.5 9.788\"",
+        "Subpath 2 is the rounded container: \"m-18.573.543A1.842 1.842 0 0 0 1.27 2.9v16.608a1.84 1.84 0 0 0 1.835 1.834h9.418\" - corner radius 1.842/1.84/1.835 and an interior height of 16.608 starting at y=2.9",
+        "The quill overlaps the top-right corner of the panel rather than nesting inside it, which is why the two subpaths intersect",
+        "Contains a long run of fine feather-barb curves with 3-decimal coordinates (0.521, 2.237, 9.544, 16.608)",
+        "No fill attribute; file has no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-stripe.imageset/mcp-stripe.svg",
+      "sha256": "2dd8789371b4fb94f7f6c4ca367d17020a90e8530403dfba0453196383b7efb4",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Vector logo for the Stripe payments entry of the MCP connector catalog; 567 bytes drawing the single Stripe \"S\" glyph.",
+      "key_symbols": [
+        "svg[role=\"img\"]",
+        "viewBox=\"0 0 24 24\"",
+        "single <path> (no fill attribute)"
+      ],
+      "calls_into": [
+        "MCPCatalog.swift line 348: asset: \"mcp-stripe\" for entry id: \"stripe\", name: \"Stripe\""
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Sibling Contents.json sets \"template-rendering-intent\": \"template\", so AppKit strips the artwork color and tints with the current foreground/control tint"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "24x24 user-space icon (viewBox 0 0 24 24); no width/height attributes"
+      ],
+      "feature_notes": [
+        "Path begins \"M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0\"",
+        "The glyph spans the full height of the box: it reaches y=0 at \"12.165 0\" and y=24 at \"3.329 0 6.539 1.01 ... 2.641 0 4.843-.624 6.328-1.813\"",
+        "The two highlight bars carry the exact literals \".89-5.494\" (top) and \"-.9 5.555\" (bottom), the Stripe wordmark ticks",
+        "Ends with the unusual closing sequence \"h.003z\", a 0.003-unit horizontal nudge before the close",
+        "No fill attribute; file has no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-supabase.imageset/mcp-supabase.svg",
+      "sha256": "4464b87a7785980037961233fe4d762acb9836e8400282d47e367ef46601d447",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Vector logo for the Supabase entry of the MCP connector catalog; 280 bytes drawing the lightning-bolt mark as one continuous path.",
+      "key_symbols": [
+        "svg[role=\"img\"]",
+        "viewBox=\"0 0 24 24\"",
+        "single <path> (no fill attribute)"
+      ],
+      "calls_into": [
+        "MCPCatalog.swift line 336: asset: \"mcp-supabase\" for entry id: \"supabase\", name: \"Supabase\""
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Sibling Contents.json sets \"template-rendering-intent\": \"template\", so AppKit strips the artwork color and tints with the current foreground/control tint"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "24x24 user-space icon (viewBox 0 0 24 24); no width/height attributes"
+      ],
+      "feature_notes": [
+        "Full path data: \"M11.9 1.036c-.015-.986-1.26-1.41-1.874-.637L.764 12.05C-.33 13.427.65 15.455 2.409 15.455h9.579l.113 7.51c.014.985 1.259 1.408 1.873.636l9.262-11.653c1.093-1.375.113-3.403-1.645-3.403h-9.642z\"",
+        "Two point-symmetric halves: the upper wedge ends on the horizontal break at y=15.455 after a 9.579-wide bar, and the lower wedge rises from the \"h-9.642z\" bar to the tip near (11.9, 1.036)",
+        "The bolt slightly overshoots the left edge of the box: the curve \"C-.33 13.427\" uses a negative x control point",
+        "The two mirrored 11.653-unit diagonals and the 7.51 notch offset are the distinguishing literals",
+        "No fill attribute; file has no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-tavily.imageset/mcp-tavily.svg",
+      "sha256": "b0f159004467d54dd396a2736f8bc29f29a5c18cb7664b9633a36247e7a2cf8b",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Hand-authored placeholder icon for the Tavily search MCP server: a four-pointed sparkle star, and at 135 bytes the second-smallest asset in this bundle.",
+      "key_symbols": [
+        "svg (xmlns first, then viewBox=\"0 0 24 24\")",
+        "single <path>",
+        "no role=\"img\""
+      ],
+      "calls_into": [
+        "MCPCatalog.swift line 163: asset: \"mcp-tavily\" for entry id: \"tavily\", name: \"Tavily\""
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Sibling Contents.json sets \"template-rendering-intent\": \"template\", so AppKit strips the artwork color and tints with the current foreground/control tint"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "24x24 user-space icon (viewBox 0 0 24 24); no width/height attributes"
+      ],
+      "feature_notes": [
+        "Full markup: <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z\"/></svg>",
+        "Perfectly symmetric four-point star centred at (12,12) with tips at (12,2), (22,12), (12,22) and (2,12); each concave waist point sits 2.2 units off-axis and 7.8 units along-axis",
+        "Uses relative lowercase \"l\" segments only, unlike every brand-logo asset in this bundle which uses curve commands",
+        "No fill attribute; file has no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-vercel.imageset/mcp-vercel.svg",
+      "sha256": "cc15be5edd5f241ece94eb4f4cf7a9263583c2e7de8193e9f7bab3eaf1937f3f",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Vector logo for the Vercel entry of the MCP connector catalog; at 111 bytes it is the smallest file in the whole bundle, a single filled triangle.",
+      "key_symbols": [
+        "svg[role=\"img\"]",
+        "viewBox=\"0 0 24 24\"",
+        "single <path> describing a 3-point triangle"
+      ],
+      "calls_into": [
+        "MCPCatalog.swift line 299: asset: \"mcp-vercel\" for entry id: \"vercel\", name: \"Vercel\""
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Sibling Contents.json sets \"template-rendering-intent\": \"template\", so AppKit strips the artwork color and tints with the current foreground/control tint"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "24x24 user-space icon (viewBox 0 0 24 24); no width/height attributes"
+      ],
+      "feature_notes": [
+        "Full markup: <svg role=\"img\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"m12 1.608 12 20.784H0Z\"/></svg>",
+        "The apex sits at (12, 1.608) and the base runs from (24, 22.392) back to (0, 22.392), so the wedge is inset exactly 1.608 from the top and bottom of the box and spans the full width",
+        "Only three path commands in total: a relative \"m\" move, a relative line \"12 20.784\", and \"H0Z\"",
+        "No fill attribute; file has no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/provider-antigravity.imageset/antigravity.svg",
+      "sha256": "278ea4b5feac255a6919943e57056cf297f945a55cad35f5b3a2ea28d9e12704",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Provider icon for the Antigravity agent CLI (ProviderKind.antigravity, executableName \"agy\", displayName \"Antigravity\"); 417 bytes drawing a swooping double-arch mark.",
+      "key_symbols": [
+        "svg with width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"",
+        "single <path> fill=\"#000000\""
+      ],
+      "calls_into": [
+        "ProviderKind.iconName in DroppyCode/Core/Models/Provider.swift line 56 computes \"provider-\\(rawValue)\", which resolves to this imageset name \"provider-antigravity\" for case antigravity"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Contents.json sets \"template-rendering-intent\": \"template\", so the hardcoded #000000 is discarded and the glyph takes the SwiftUI foreground tint, which is what keeps it visible in dark mode"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Intrinsic 24x24 (width and height attributes present and equal to the viewBox extent)"
+      ],
+      "feature_notes": [
+        "Exact path data: \"M20.5324 21.2328C21.7048 22.1122 23.4635 21.526 21.8514 19.9138C17.015 15.224 18.0409 2.32715 12.0321 2.32715C6.02333 2.32715 7.04921 15.224 2.21288 19.9138C0.45421 21.6725 2.35942 22.1122 3.53188 21.2328C8.07512 18.1552 7.782 12.7326 12.0321 12.7326C16.2822 12.7326 15.9891 18.1552 20.5324 21.2328Z\"",
+        "Mirror-symmetric about x=12.0321: apex at (12.0321, 2.32715), outer feet sweeping out to y=21.2328/22.1122, and the inner notch bottoming out at y=12.7326",
+        "Colour literal is the 6-digit form #000000 (not #000), matching codex.svg, commandcode.svg, copilot.svg, cursor.svg, devin.svg, grok.svg and opencode.svg in this bundle",
+        "Coordinates run to 4-6 decimal places (2.32715, 6.02333, 0.45421, 8.07512), unlike the 2-3 decimal simple-icons assets",
+        "File ends with a trailing newline (wc -l reports 1)"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/provider-claude.imageset/claude.svg",
+      "sha256": "fb21ac9bfce821e7badcfcec81cc706ba8a5c73a690da112d416855e0821cf72",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Provider icon for Claude Code (ProviderKind.claude, executableName \"claude\", loginCommand \"claude auth login\"); 1986 bytes drawing the Anthropic sunburst glyph, one of only three assets in the bundle that keeps its brand colour.",
+      "key_symbols": [
+        "svg with width=\"272.6\" height=\"272.6\" viewBox=\"-8.43 -7.43 272.6 272.6\"",
+        "single <path> fill=\"#D97757\""
+      ],
+      "calls_into": [
+        "ProviderKind.iconName in DroppyCode/Core/Models/Provider.swift line 56 computes \"provider-\\(rawValue)\", which resolves to this imageset name \"provider-claude\" for case claude (displayName \"Claude\")"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Contents.json sets \"template-rendering-intent\": \"original\", so AppKit keeps the #D97757 clay colour instead of tinting it; this is the only provider imageset in the bundle that is both coloured and single-path"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Intrinsic 272.6x272.6 with a negative viewBox origin (-8.43, -7.43) that pads the artwork on the left and top"
+      ],
+      "feature_notes": [
+        "Brand colour is the exact literal fill=\"#D97757\" (Anthropic clay orange); it is the only warm-coloured asset in the bundle",
+        "Path begins \"m50.228 170.321 50.357-28.257.843-2.463-.843-1.361h-2.462l-8.426-.518-28.775-.778-24.952-1.037-24.175-1.296-6.092-1.297L0 125.796l.583-3.759 5.12-3.434\" and ends \"...2.463-2.593 20.35-13.999-.064.065Z\"",
+        "The glyph is the many-armed asterisk/sunburst; arm tips reach the literals 125.796 (left), 198.125 (bottom left), 170.321 and 77.448 (the \"7.194 77.448\" spoke), all radiating from roughly the centre of the 256-unit canvas",
+        "Notably the file uses no separate subpath per spoke: it is one continuous outline that zig-zags between the tips and the hub",
+        "width and height are 272.6 while the visible mark is a 256-unit logo, so the negative origin supplies the 8.43/7.43 bleed",
+        "File ends with a trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/provider-codex.imageset/codex.svg",
+      "sha256": "b78b0eb753b20027a4a5eb105b993d7af9230a186f5fbca5061024a7aa88461e",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Provider icon for the OpenAI Codex CLI (ProviderKind.codex, executableName \"codex\", loginCommand \"codex login\", installURL https://developers.openai.com/codex/cli); 1697 bytes drawing the OpenAI interlocking-knot mark.",
+      "key_symbols": [
+        "svg with width=\"276.06\" height=\"276.06\" viewBox=\"-10.15 -7.77 276.06 276.06\"",
+        "single <path> fill=\"#000000\""
+      ],
+      "calls_into": [
+        "ProviderKind.iconName in DroppyCode/Core/Models/Provider.swift line 56 computes \"provider-\\(rawValue)\", which resolves to this imageset name \"provider-codex\" for case codex (displayName \"Codex\")"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Contents.json sets \"template-rendering-intent\": \"template\", so the #000000 knot is re-tinted and stays visible on a dark background"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Intrinsic 276.06x276.06 with viewBox origin (-10.15, -7.77): the largest negative padding of any provider icon in the bundle"
+      ],
+      "feature_notes": [
+        "Path begins \"M239.184 106.203a64.716 64.716 0 0 0-5.576-53.103C219.452 28.459 191 15.784 163.213 21.74A65.586 65.586 0 0 0 52.096 45.22a64.716 64.716 0 0 0-43.23 31.36c-14.31 24.602-11.061 55.634 8.033 76.74a64.665 64.665 0 0 0 5.525 53.102\"",
+        "The six lobes all reuse the radius literals 64.716 / 65.586 / 64.665 / 48.6 / 48.601 / 48.652, and the mark closes on the central hexagon \"m11.868-25.58 28.138-16.217 28.188 16.218v32.434l-28.086 16.218-28.188-16.218-.052-32.434Z\"",
+        "Two comment-like coordinate artefacts appear as literal degenerate segments: \"in .256\" (\"66.405v.256Z\") and \"in .205\" (\"50.391v.205Z\") close two lobes with a sub-unit jog",
+        "Interior holes rely on reversed subpath winding under the default nonzero rule; no fill-rule is declared",
+        "File ends with a trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/provider-commandcode.imageset/commandcode.svg",
+      "sha256": "eb70177b06d7ad6d16bda8f8277332923493f528d0696c258e7e963d0b766869",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Provider icon for Command Code (ProviderKind.commandcode, executableName \"cmd\", displayName \"Command Code\", loginCommand \"cmd login\"); 485 bytes drawing the Apple Command key glyph.",
+      "key_symbols": [
+        "svg with width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"",
+        "single <path> fill=\"#000000\" fill-rule=\"evenodd\""
+      ],
+      "calls_into": [
+        "ProviderKind.iconName in DroppyCode/Core/Models/Provider.swift line 56 computes \"provider-\\(rawValue)\", which resolves to this imageset name \"provider-commandcode\" for case commandcode"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Contents.json sets \"template-rendering-intent\": \"template\", so the #000000 glyph is tinted by the control colour"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Intrinsic 24x24; every feature sits on a 1.5 / 3 / 4.5-unit grid"
+      ],
+      "feature_notes": [
+        "Exact path data: \"M6 1.5A4.5 4.5 0 0 1 10.5 6v1.5h3V6A4.5 4.5 0 1 1 18 10.5h-1.5v3H18A4.5 4.5 0 1 1 13.5 18v-1.5h-3V18A4.5 4.5 0 1 1 6 13.5h1.5v-3H6A4.5 4.5 0 0 1 6 1.5Zm0 3A1.5 1.5 0 0 0 6 7.5h1.5V6A1.5 1.5 0 0 0 6 4.5Zm12 0A1.5 1.5 0 0 0 16.5 6v1.5H18A1.5 1.5 0 0 0 18 4.5Zm-7.5 6v3h3v-3h-3ZM6 16.5A1.5 1.5 0 1 0 7.5 18v-1.5H6Zm12 0h-1.5V18A1.5 1.5 0 1 0 18 16.5Z\"",
+        "Four corner loops of outer radius 4.5 and inner radius 1.5 surround a 3x3 centre square whose top-left corner is (10.5, 10.5)",
+        "This is the ONLY asset in the bundle that declares fill-rule=\"evenodd\"; the four loop holes and the centre square depend on it, so a port must preserve the even-odd rule rather than defaulting to nonzero",
+        "Three of the four corner arcs use the large-arc flag form \"A4.5 4.5 0 1 1\" while the first and last use \"A4.5 4.5 0 0 1\"",
+        "File ends with a trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/provider-copilot.imageset/copilot.svg",
+      "sha256": "2512f516d8bed535da470d2da42f2d7a3759fbc6ab6c96a342ab9c58d7920a29",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Provider icon for the GitHub Copilot CLI (ProviderKind.copilot, executableName \"copilot\", loginCommand \"copilot login\"); 1739 bytes, built from two separate <path> elements (the goggled head shell plus the two eyes).",
+      "key_symbols": [
+        "svg with width=\"25.53\" height=\"25.53\" viewBox=\"-0.77 -0.77 25.53 25.53\"",
+        "two <path> elements, both fill=\"#000000\""
+      ],
+      "calls_into": [
+        "ProviderKind.iconName in DroppyCode/Core/Models/Provider.swift line 56 computes \"provider-\\(rawValue)\", which resolves to this imageset name \"provider-copilot\" for case copilot (displayName \"Copilot\")"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Contents.json sets \"template-rendering-intent\": \"template\"; both paths are tinted together, which is why the eyes are a separate additive shape drawn on top rather than holes knocked out of the head"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Intrinsic 25.53x25.53 with viewBox origin (-0.77, -0.77): a 24-unit icon bled by 0.77 on every side, identical framing to deepseek.svg"
+      ],
+      "feature_notes": [
+        "Path 1 (helmet and head) begins \"M23.922 16.992c-.861 1.495-5.859 5.023-11.922 5.023-6.063 0-11.061-3.528-11.922-5.023A.641.641 0 0 1 0 16.736v-2.869a.841.841 0 0 1 .053-.22c.372-.935 1.347-2.292 2.605-2.656\" and includes the visor band \"M4 11.741v6.585c1.435.779 4.514 2.179 8 2.179 3.486 0 6.565-1.4 8-2.179v-6.585\"",
+        "Path 2 is exactly the two eyes: \"M14.5 14.25a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0v-2a1 1 0 0 1 1-1Zm-5 0a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0v-2a1 1 0 0 1 1-1Z\" - two capsules 2 units wide and 2 units tall with radius 1, at x=14.5 and x=9.5, both starting at y=14.25",
+        "The head path contains the degenerate sequence \"h-.016.016\" just before its final \"Z\" (in \"a4.323 4.323 0 0 1-.355-.508h-.016.016\"), a zero-net 0.016-unit jog left by the exporter",
+        "Unlike every other provider asset in this bundle, this file has NO trailing newline (wc -l reports 0), matching the mcp-* files instead",
+        "The side goggle lobes repeat the radius literals 2.319, 2.361 and 2.497 on both sides, mirrored about x=12"
+      ],
+      "unresolved_questions": [
+        "The \"h-.016.016\" jog appears to be an export artefact rather than deliberate geometry, but nothing in the repository documents the export pipeline, so I cannot confirm it is safe to drop in a port."
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/provider-cursor.imageset/cursor.svg",
+      "sha256": "be26226b74a1cd8c4568fc80aea8877aa73b0e53ca910072dcf51cf5254c2663",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Provider icon for the Cursor agent CLI (ProviderKind.cursor, executableName \"cursor-agent\", loginCommand \"cursor-agent login\", installURL https://cursor.com/cli); 585 bytes drawing the Cursor isometric cube with its sliced interior face.",
+      "key_symbols": [
+        "svg with width=\"566.05\" height=\"566.05\" viewBox=\"-49.92 -16.98 566.05 566.05\"",
+        "single <path> fill=\"#000000\" with two subpaths"
+      ],
+      "calls_into": [
+        "ProviderKind.iconName in DroppyCode/Core/Models/Provider.swift line 56 computes \"provider-\\(rawValue)\", which resolves to this imageset name \"provider-cursor\" for case cursor (displayName \"Cursor\")"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Contents.json sets \"template-rendering-intent\": \"template\""
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Intrinsic 566.05x566.05 with viewBox origin (-49.92, -16.98) - the widest and most asymmetric padding of any asset in the bundle"
+      ],
+      "feature_notes": [
+        "Outer hexagonal shell: \"M457.43,125.94L244.42,2.96c-6.84-3.95-15.28-3.950-22.12,0L9.3,125.94c-5.75,3.32-9.3,9.46-9.3,16.11v247.99c0,6.65,3.55,12.79,9.3,16.11l213.01,122.98c6.84,3.95,15.28,3.95,22.12,0l213.01-122.98c5.75-3.320,9.3-9.46,9.3-16.11v-247.99c0-6.65-3.55-12.79-9.3-16.11h-.01Z\"",
+        "Inner cut face: \"M444.05,151.99l-205.63,356.16c-1.39,2.4-5.06,1.42-5.06-1.36v-233.21c0-4.66-2.49-8.97-6.53-11.31L24.87,145.67c-2.4-1.39-1.42-5.06,1.36-5.06h411.26c5.84,0,9.49,6.33,6.57,11.39h-.01Z\"",
+        "This is the only asset in the bundle that uses comma-separated coordinate pairs (\"457.43,125.94\"); all the others separate with spaces",
+        "It also keeps minifier-hostile trailing zeros: \"-3.950\" and \"3.320\", plus two \"h-.01\" nudges immediately before each close",
+        "Corner rounding is expressed through the repeated 6.84 / 3.95 / 5.75 / 3.32 / 9.46 control-point literals rather than arcs",
+        "File ends with a trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/provider-deepseek.imageset/deepseek.svg",
+      "sha256": "f3da303c33d9ec378567d290660886ca5cdd835bb12db8972741137be0c33f39",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Provider icon for DeepSeek (ProviderKind.deepseek, an API-key provider whose executableName is the empty string and whose loginCommand is the literal \"DEEPSEEK_API_KEY=sk-...\"); 2112 bytes, the largest provider asset here, drawing the DeepSeek whale in brand blue.",
+      "key_symbols": [
+        "svg with width=\"25.53\" height=\"25.53\" viewBox=\"-0.77 -0.77 25.53 25.53\"",
+        "single <path> fill=\"#4D6BFE\""
+      ],
+      "calls_into": [
+        "ProviderKind.iconName in DroppyCode/Core/Models/Provider.swift line 56 computes \"provider-\\(rawValue)\", which resolves to this imageset name \"provider-deepseek\" for case deepseek (displayName \"DeepSeek\")"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Contents.json sets \"template-rendering-intent\": \"original\", so the #4D6BFE blue survives tinting",
+        "Its Contents.json also uses the compact \"key\": value JSON spacing, whereas most provider imagesets in this bundle use the Xcode \"key\" : value spacing"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Intrinsic 25.53x25.53 with viewBox origin (-0.77, -0.77), the same 24-unit-plus-bleed framing as copilot.svg"
+      ],
+      "feature_notes": [
+        "Brand colour is the exact literal fill=\"#4D6BFE\" (DeepSeek indigo)",
+        "Path begins \"M23.748 4.651c-.254-.124-.364.113-.512.233-.051.04-.094.09-.137.137-.372.397-.806.657-1.373.626-.829-.046-1.537.214-2.163.848-.133-.782-.575-1.248-1.247-1.548-.352-.155-.708-.311-.955-.65-.172-.24-.219-.509-.305-.774\"",
+        "Includes a separate tail subpath \"m11.58 18.168c-2.088-1.642-3.101-2.183-3.52-2.16-.39.024-.32.472-.234.763\" and a round eye \"m12.581 11.728a.306.306 0 0 1 .415-.287.3.3 0 0 1 .113.074.3.3 0 0 1 .086.214c0 .17-.136.307-.308.307a.303.303 0 0 1-.306-.307\"",
+        "Also carries a fin subpath \"m3.11 1.596c-.2.081-.4.151-.591.16a1.25 1.25 0 0 1-.798-.254c-.274-.23-.47-.358-.551-.758a1.7 1.7 0 0 1 .015-.588\"",
+        "One of only three coloured assets in the bundle, alongside claude.svg (#D97757) and meta.svg (a gradient)",
+        "File ends with a trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/provider-devin.imageset/devin.svg",
+      "sha256": "67942743807cc606a77c23920237fc1737c6a7f85e13f21add9918cce7d23f45",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Provider icon for Devin (ProviderKind.devin, executableName \"devin\", loginCommand \"devin auth login\"); 1400 bytes and the only asset in this bundle whose canvas is not square.",
+      "key_symbols": [
+        "svg with width=\"312.5\" height=\"356\" viewBox=\"57 35 312.5 356\"",
+        "single <path> fill=\"#000000\""
+      ],
+      "calls_into": [
+        "ProviderKind.iconName in DroppyCode/Core/Models/Provider.swift line 56 computes \"provider-\\(rawValue)\", which resolves to this imageset name \"provider-devin\" for case devin (displayName \"Devin\")"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Contents.json sets \"template-rendering-intent\": \"template\""
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Intrinsic 312.5 wide by 356 tall with a POSITIVE viewBox origin (57, 35), so the artwork is cropped in from the top-left of its authoring canvas; every other provider asset here uses a zero or negative origin"
+      ],
+      "feature_notes": [
+        "Path begins \"M70 159.333V91.3471C70 88.3592 71.594 85.5983 74.1816 84.1044L133.043 50.1205C135.631 48.6265 138.819 48.6265 141.407 50.1205L200.269 84.1044C202.856 85.5983 204.45 88.3592 204.45 91.3471V126.068\"",
+        "The mark is a chain of rounded parallelogram nodes linked by bridges; the repeated half-width is 58.861/58.862 (133.043 back to 74.1816) and the repeated half-height is 33.984 (84.1044 up to 50.1205)",
+        "The node joints reuse the curve triples \"221.531 161.117 244.942 160.834 255.063 155.289\" (upper right) and \"205.008 183.545 194.283 177.353 181.597 177.636\" (lower centre)",
+        "Corner radius is expressed as the repeated 2.988-unit inset literals \"C70 88.3592 71.594 85.5983\" and \"C356.538 250.111 354.944 252.872\"",
+        "Aspect ratio is 312.5 : 356 (about 0.878), so a caller that forces a square frame will letterbox or distort it - the port must not assume 1:1",
+        "File ends with a trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/provider-grok.imageset/grok.svg",
+      "sha256": "0b9fa569f6f89cc86fe738e1f3dc5fa5b52df339e96e36a1579b2b2436661a79",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Provider icon for Grok (ProviderKind.grok, executableName \"grok\", loginCommand \"grok login\"); 972 bytes drawing the xAI Grok two-blade slash mark.",
+      "key_symbols": [
+        "svg with width=\"25.48\" height=\"25.48\" viewBox=\"-0.74 -0.74 25.48 25.48\"",
+        "two <path> elements, both fill=\"#000000\""
+      ],
+      "calls_into": [
+        "ProviderKind.iconName in DroppyCode/Core/Models/Provider.swift line 56 computes \"provider-\\(rawValue)\", which resolves to this imageset name \"provider-grok\" for case grok (displayName \"Grok\")"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Contents.json sets \"template-rendering-intent\": \"template\""
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Intrinsic 25.48x25.48 with viewBox origin (-0.74, -0.74): a 24-unit mark with 0.74 bleed, marginally tighter than the 0.77 used by copilot.svg and deepseek.svg"
+      ],
+      "feature_notes": [
+        "Path 1 (upper-right blade) begins \"M9.26905 15.284L17.2479 9.36086C17.6391 9.07047 18.1981 9.18374 18.3845 9.63478C19.3655 12.0135 18.9272 14.8721 16.9755 16.8349C15.0238 18.7976 12.3082 19.228 9.8261 18.2477L7.1146 19.5102\" and finishes \"20.6987 3.74866V3.73836L9.267 15.2861\"",
+        "Path 2 (lower-left blade) begins \"M7.62249 16.7237C4.83113 14.0422 5.3124 9.89222 7.69417 7.49905C9.45541 5.72786 12.341 5.00497 14.86 6.06768L17.5653 4.81138\" and finishes \"1.08337 22.2699 0.483318 22.9022 0 23.5716L7.62045 16.7257\"",
+        "BOTH paths end WITHOUT a Z close command, relying on the implicit close that filling performs; this is unique in the bundle and a port that requires explicit closure must add it",
+        "Path 1 also contains a near-degenerate vertical \"V3.73836\" immediately after \"3.74866\", a 0.0103-unit step",
+        "Coordinates carry five to six decimal places (9.26905, 18.3845, 0.483318), the highest precision of any provider asset here",
+        "File ends with a trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/provider-meta.imageset/meta.svg",
+      "sha256": "1cb5e3801b638fbc9ba5a4aeac937825adce2d314690bf43faff49d902d349fb",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Provider icon for Meta models (ProviderKind.meta, an API-key provider whose executableName is empty and whose loginCommand is the literal \"MODEL_API_KEY=...\"); 583 bytes, and the only asset in the bundle that is stroked and gradient-filled instead of being a filled silhouette.",
+      "key_symbols": [
+        "svg with width=\"18.3\" height=\"18.3\" viewBox=\"2.85 2.85 18.3 18.3\"",
+        "<defs><linearGradient id=\"meta-blue\">",
+        "three <stop> elements",
+        "single <path> with fill=\"none\" and stroke=\"url(#meta-blue)\""
+      ],
+      "calls_into": [
+        "ProviderKind.iconName in DroppyCode/Core/Models/Provider.swift line 56 computes \"provider-\\(rawValue)\", which resolves to this imageset name \"provider-meta\" for case meta (displayName \"Meta\")"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Contents.json sets \"template-rendering-intent\": \"original\", which is required here: a template intent would flatten both the gradient and the stroke into one solid tint",
+        "Relies on the macOS SVG rasterizer honouring <linearGradient gradientUnits=\"userSpaceOnUse\"> referenced through stroke=\"url(#meta-blue)\", and on stroke geometry surviving rasterization at small point sizes"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Intrinsic 18.3x18.3 with a POSITIVE viewBox origin (2.85, 2.85) - the tightest crop and the smallest intrinsic size of any provider icon here",
+        "stroke-width=\"2.2\"",
+        "stroke-linecap=\"round\"",
+        "stroke-linejoin=\"round\""
+      ],
+      "feature_notes": [
+        "Gradient definition verbatim: <linearGradient id=\"meta-blue\" x1=\"4.5\" y1=\"12\" x2=\"19.5\" y2=\"12\" gradientUnits=\"userSpaceOnUse\"> with <stop offset=\"0\" stop-color=\"#0064E0\"/>, <stop offset=\"0.5\" stop-color=\"#0082FB\"/> and <stop offset=\"1\" stop-color=\"#0064E0\"/> - a horizontal dark-light-dark blue sweep spanning x=4.5 to x=19.5",
+        "Path data: \"M4.5 12c0-2.5 2-4.5 4.5-4.5 3.6 0 4.2 9 6 9 2.5 0 4.5-2 4.5-4.5S17.5 7.5 15 7.5c-3.6 0-4.2 9-6 9-2.5 0-4.5-2-4.5-4.5Z\" - the Meta infinity loop as two 4.5-radius lobes centred at x=9 and x=15 on the line y=12, crossing in the middle",
+        "It is the only asset in the bundle with a <defs> block, the only one with an element id (\"meta-blue\"), and the only one whose visible ink comes from a stroke rather than a fill",
+        "Because the artwork is a 2.2-wide stroke, scaling it non-uniformly would distort line weight in a way the filled icons would not suffer",
+        "File ends with a trailing newline"
+      ],
+      "unresolved_questions": [
+        "The id \"meta-blue\" is document-global. In an .xcassets imageset each SVG is rasterized in isolation so there is no collision today, but if a port inlines several of these SVGs into one HTML/DOM document the id would need namespacing."
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/provider-opencode.imageset/opencode.svg",
+      "sha256": "c6b7b5b6d93b8ba54064b490ec623910cfe3b4af8fc4c3e484198ee7eb4665d2",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Provider icon for OpenCode (ProviderKind.opencode, executableName \"opencode\", loginCommand \"opencode auth login\"); 234 bytes of pure axis-aligned rectangles and the only asset in the bundle that uses partial opacity.",
+      "key_symbols": [
+        "svg with width=\"42.55\" height=\"42.55\" viewBox=\"-5.3 -1.28 42.55 42.55\"",
+        "two <path> elements: one fill=\"#000000\" fill-opacity=\"0.3\", one fill=\"#000000\""
+      ],
+      "calls_into": [
+        "ProviderKind.iconName in DroppyCode/Core/Models/Provider.swift line 56 computes \"provider-\\(rawValue)\", which resolves to this imageset name \"provider-opencode\" for case opencode (displayName \"OpenCode\")"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Contents.json sets \"template-rendering-intent\": \"template\"; the fill-opacity=\"0.3\" layer has to survive template tinting for the two-tone block effect to read, so the tint must be applied as an alpha-preserving mask"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Intrinsic 42.55x42.55 with viewBox origin (-5.3, -1.28) around a 32-wide by 40-tall artwork, so the horizontal padding (5.3 each side) is far larger than the vertical padding (1.28)"
+      ],
+      "feature_notes": [
+        "Full markup: <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"42.55\" height=\"42.55\" viewBox=\"-5.3 -1.28 42.55 42.55\"><path fill=\"#000000\" fill-opacity=\"0.3\" d=\"M24 32H8V16H24V32Z\"/><path fill=\"#000000\" d=\"M24 8H8V32H24V8ZM32 40H0V0H32V40Z\"/></svg>",
+        "Layer 1 is the 16x16 lower inner block spanning (8,16) to (24,32), drawn at 30% opacity - the only translucent ink anywhere in this bundle",
+        "Layer 2 combines the 16x24 inner block (8,8) to (24,32) with the 32x40 outer frame (0,0) to (32,40) in a single path",
+        "The underlying artwork is 32 wide by 40 tall (not square) and is padded by the viewBox into a square 42.55 box, so the glyph sits slightly high inside its frame",
+        "All eight corners are hard right angles; there is no curve command in the file",
+        "File ends with a trailing newline"
+      ],
+      "unresolved_questions": [
+        "No fill-rule is declared on layer 2, so whether the inner 8..24 by 8..32 block renders as a knocked-out hole in the frame depends on the rasterizer honouring reversed subpath winding under the nonzero default. I could not confirm the rendered result without rasterizing the file."
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/provider-pi.imageset/pi.svg",
+      "sha256": "8986776df2945964a397b29ce49ee7dd3e659e08b9c6e041380e73812301acd4",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Provider icon for Pi (ProviderKind.pi, executableName \"pi\", loginCommand \"pi\"); 371 bytes building a rounded pi glyph entirely from four <rect> elements with no <path> at all.",
+      "key_symbols": [
+        "svg with viewBox=\"0 0 24 24\" declared BEFORE width=\"24\" height=\"24\" (the reverse of every other provider asset here)",
+        "four <rect> elements, each fill=\"#000000\""
+      ],
+      "calls_into": [
+        "ProviderKind.iconName in DroppyCode/Core/Models/Provider.swift line 56 computes \"provider-\\(rawValue)\", which resolves to this imageset name \"provider-pi\" for case pi (displayName \"Pi\")"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Contents.json sets \"template-rendering-intent\": \"template\""
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "rect x=\"3\" y=\"4.5\" width=\"18\" height=\"3.5\" rx=\"1.5\" fill=\"#000000\" (top crossbar)",
+        "rect x=\"6\" y=\"7\" width=\"3.5\" height=\"12.5\" rx=\"1.5\" fill=\"#000000\" (left leg)",
+        "rect x=\"14.5\" y=\"7\" width=\"3.5\" height=\"12.5\" rx=\"1.5\" fill=\"#000000\" (right leg)",
+        "rect x=\"14.5\" y=\"16\" width=\"6\" height=\"3.5\" rx=\"1.5\" fill=\"#000000\" (foot flaring right off the right leg)"
+      ],
+      "feature_notes": [
+        "Every rectangle uses the identical corner radius rx=\"1.5\" and an identical bar thickness of 3.5; there is no ry attribute, so ry defaults to rx",
+        "The legs overlap the crossbar by 1 unit (crossbar ends at y=8, legs start at y=7) so the joins read as solid",
+        "The right leg and the foot share x=14.5 and both end at y=19.5, making an L shape; that asymmetric foot is what distinguishes the mark from a plain pi character",
+        "No <path> element at all - among all 24 files in this bundle only this one and mcp-sequential-thinking.svg avoid <path>",
+        "File ends with a trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/provider-zai.imageset/zai.svg",
+      "sha256": "40d8b40fb7c9035a6744092c0ebf35ea8e2cdfd98f5d3c9d3c489ed79216d766",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Provider icon for Z.ai (ProviderKind.zai, an API-key provider whose executableName is empty and whose loginCommand is the literal \"ZAI_API_KEY=...\"); 145 bytes drawing a blocky letter Z, and the only asset in the bundle that uses fill=\"currentColor\".",
+      "key_symbols": [
+        "svg with viewBox=\"0 0 24 24\" and NO width/height attributes",
+        "single <path> fill=\"currentColor\""
+      ],
+      "calls_into": [
+        "ProviderKind.iconName in DroppyCode/Core/Models/Provider.swift line 56 computes \"provider-\\(rawValue)\", which resolves to this imageset name \"provider-zai\" for case zai (displayName \"Z.ai\")"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (.xcassets) imageset consumed on macOS via SwiftUI Image(\"<asset>\") / NSImage(named:)",
+        "Sibling Contents.json sets \"preserves-vector-representation\": true so AppKit rasterizes the vector at any point size instead of using a fixed bitmap",
+        "Contents.json sets \"template-rendering-intent\": \"template\", so AppKit takes the alpha mask and applies the tint regardless of what currentColor resolved to",
+        "currentColor has no CSS cascade in a standalone .svg rasterized by AppKit: it falls back to the SVG initial value (black) before the template mask is taken"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "24x24 user space with no intrinsic width/height, so the consumer must supply the frame size"
+      ],
+      "feature_notes": [
+        "Full markup: <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path fill=\"currentColor\" d=\"M4 4h16v3.2L9.6 17.6H20V20H4v-3.2L14.4 6.4H4z\"/></svg>",
+        "The Z is drawn with 3.2-unit thick bars: the top bar covers y=4 to 7.2 across x=4 to 20, the bottom bar covers y=16.8 to 20, and the diagonal runs from (14.4, 6.4) down to (9.6, 17.6)",
+        "Uses only absolute h/v/L style segments on a 0.2-unit grid (3.2, 6.4, 9.6, 14.4, 17.6), so it is clearly hand-authored rather than a vendor export",
+        "It is the only asset here whose fill is a keyword rather than a hex literal or an omitted attribute",
+        "File ends with a trailing newline"
+      ],
+      "unresolved_questions": []
+    }
+  ]
+}

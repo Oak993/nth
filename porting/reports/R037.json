@@ -1,0 +1,508 @@
+{
+  "bundle_id": "R037",
+  "reader": "R037-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/MCP/MCPBridgeSource.swift",
+      "sha256": "ea745c50864a2f9d9cebde713b6258af3cfe12bc04767d9efddb0c229259de9a",
+      "lines_total": 252,
+      "ranges_read": [[1, 252]],
+      "purpose": "Holds, as one Swift raw string literal (#\"\"\"...\"\"\"#), the complete ESM JavaScript MCP client bridge that Droppy Code installs on disk so the Pi extension and the Command Code mod can dynamic-import it and call loadMCPTools(); also the installer that writes it into Application Support and returns its URL.",
+      "key_symbols": [
+        "enum MCPBridge",
+        "MCPBridge.mcpBridgeSource (static let String, raw literal)",
+        "MCPBridge.installBridge() throws -> URL",
+        "JS const PROTOCOL_VERSION",
+        "JS const CONNECT_TIMEOUT_MS",
+        "JS configServers()",
+        "JS errorText(error)",
+        "JS contentText(content)",
+        "JS describe(entry, fallback)",
+        "JS schemaOf(entry)",
+        "JS withTimeout(promise)",
+        "JS wrapTools(server, entries, callTool)",
+        "JS connectStdio(server, entry)",
+        "JS postMessage(url, headers, payload, sessionId)",
+        "JS connectRemote(server, entry)",
+        "JS export async function loadMCPTools()"
+      ],
+      "calls_into": [
+        "AppInfo.name (directory component \"<AppInfo.name>/MCP\")",
+        "LoginEnvironment.homeDirectory (fallback base when applicationSupportDirectory lookup fails)",
+        "FileManager.default.urls(for:.applicationSupportDirectory, in:.userDomainMask)",
+        "FileManager.default.createDirectory(at:withIntermediateDirectories:)",
+        "node:fs, node:child_process spawn, global fetch (inside the embedded JS)"
+      ],
+      "state_owned": [
+        "mcpBridgeSource: the immutable static source text of the bridge",
+        "JS connectStdio per-connection state: id counter from 0, pending Map<id, resolver>, buffer string, settled flag",
+        "JS connectRemote per-connection state: sessionId (null initially), id counter from 0"
+      ],
+      "side_effects": [
+        "Writes ~/Library/Application Support/<AppInfo.name>/MCP/droppy-mcp-bridge.mjs atomically, and only when the bytes on disk differ from the current source ((try? Data(contentsOf: file)) != data)",
+        "Creates the <AppInfo.name>/MCP directory if missing",
+        "At runtime the JS reads the file named by env DROPPY_CODE_MCP_CONFIG, spawns child processes for stdio servers, and does fetch POSTs for http servers",
+        "JS logs to console.error: \"droppy mcp: could not read config: \" + errorText(error) and \"droppy mcp: skipping \" + server + \": \" + errorText(error)"
+      ],
+      "platform_assumptions": [
+        "macOS Application Support layout: FileManager .applicationSupportDirectory / .userDomainMask, falling back to URL(fileURLWithPath: home) + \"Library/Application Support\"",
+        "Swift raw string literal with # delimiters so the embedded JS quotes and backslashes pass through verbatim",
+        "The JS half assumes Node 18+ (global fetch, node: import prefixes) and POSIX-style spawn with stdio [\"pipe\", \"pipe\", \"ignore\"]"
+      ],
+      "persisted_fields": [
+        "File name on disk: droppy-mcp-bridge.mjs (inside Application Support/<AppInfo.name>/MCP)",
+        "Env var read by the bridge: DROPPY_CODE_MCP_CONFIG (path to a JSON file)",
+        "Config JSON shape: {\"mcpServers\": { id: {command, args, env} | {type: \"http\", url, headers} }}",
+        "Tool object fields produced by wrapTools: server, name, description, inputSchema, call"
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "PROTOCOL_VERSION = \"2025-06-18\"; CONNECT_TIMEOUT_MS = 15000, applied per server as a Promise.race rejecting with Error(\"timed out\")",
+        "clientInfo on initialize is { name: \"Droppy Code\" } only, with no version field (MCPHub and MCPProbe add version \"1.0\")",
+        "initialize params { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: {...} }, then notification \"notifications/initialized\" with params {}",
+        "tools/list pages by cursor with no iteration cap: loops until nextCursor is falsy (MCPHub and MCPProbe cap at 10 pages)",
+        "tools/call params { name, arguments }, arguments defaulting to {} when the caller passes a non-object",
+        "contentText maps items with type === \"text\" and a string text to that text, everything else to the literal \"[image]\", joined with \"\\n\"",
+        "An isError result returns the string \"Error: \" + (contentText(result.content) || \"tool failed\"); a thrown error returns \"Error: \" + errorText(error), so a tool call never rejects",
+        "describe() falls back to the tool's own name when description is missing or empty; schemaOf() falls back to { type: \"object\" }",
+        "stdio transport: newline-delimited JSON-RPC over a pipe, stderr \"ignore\"; env is { ...process.env, ...entry.env }; child \"error\" and \"exit\" both fail all pending requests, exit producing Error(\"process exited\")",
+        "HTTP transport: POST with Content-Type application/json and Accept \"application/json, text/event-stream\"; session carried in the \"mcp-session-id\" request header and re-read from the response header of the same name",
+        "SSE parsing splits on \"\\n\", keeps lines starting with \"data:\", skips empty payloads and the literal \"[DONE]\", and takes the first parsed object containing \"result\" or \"error\"",
+        "An empty HTTP reply throws Error(\"empty response (status \" + response.status + \")\")",
+        "connectRemote's notify() swallows any error from the notifications/initialized POST",
+        "loadMCPTools dispatch: entry.type === \"http\" with a string url goes to connectRemote, else a string command goes to connectStdio, anything else is silently ignored; a failing server is logged and skipped while the rest still load",
+        "Servers are connected sequentially in Object.keys order (the config JSON's insertion order), not concurrently"
+      ],
+      "unresolved_questions": [
+        "AppInfo.name's literal value, and therefore the exact Application Support subdirectory, is defined outside this bundle",
+        "The code that puts DROPPY_CODE_MCP_CONFIG into the Pi / Command Code child environment is not in this file"
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/MCP/MCPExternalSync.swift",
+      "sha256": "57161e660c12700c51c42a753f0e6657fb07c3e13a1f00d1ce7240f5002fb1f5",
+      "lines_total": 64,
+      "ranges_read": [[1, 64]],
+      "purpose": "One-shot migration cleanup that un-writes MCP server entries an earlier build injected into third-party CLI config files (Cursor, OpenCode, Gemini), driven by a managed.json manifest of the ids it had added, then deletes that manifest.",
+      "key_symbols": [
+        "enum MCPExternalSync",
+        "MCPExternalSync.sync(_ servers: [MCPResolvedServer])",
+        "private static func remove(ids:at:rootKey:)",
+        "private static let managedURL",
+        "private static func readManaged() -> [String: [String]]"
+      ],
+      "calls_into": [
+        "MCPResolvedServer (parameter type only; the argument is never used in the body)",
+        "MCPPaths.directory (managed.json lives there)",
+        "LoginEnvironment.homeDirectory",
+        "FileManager.default.fileExists(atPath:) / removeItem(at:)",
+        "JSONSerialization.jsonObject(with:) and data(withJSONObject:options:)"
+      ],
+      "state_owned": [
+        "managedURL = MCPPaths.directory + \"managed.json\" (the only persistent state this file owns)"
+      ],
+      "side_effects": [
+        "Rewrites ~/.cursor/mcp.json, ~/.config/opencode/opencode.json and ~/.gemini/settings.json atomically, but only when an entry was actually removed",
+        "Deletes MCPPaths.directory/managed.json at the end of sync()"
+      ],
+      "platform_assumptions": [
+        "Unix home-relative dotfile paths for the three CLIs",
+        "Uses the login-shell home from LoginEnvironment.homeDirectory rather than NSHomeDirectory"
+      ],
+      "persisted_fields": [
+        "managed.json: JSON object with keys \"cursor\", \"opencode\", \"gemini\", each an array of server-id strings; a missing key reads as []",
+        "~/.cursor/mcp.json root key \"mcpServers\"",
+        "~/.config/opencode/opencode.json root key \"mcp\"",
+        "~/.gemini/settings.json root key \"mcpServers\""
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "sync() returns immediately unless managed.json exists, so the cleanup runs at most once per machine",
+        "The doc comment states the shipped behavior: connected servers now reach the CLIs (Claude, Codex, Copilot, OpenCode) at launch, never through their config files",
+        "remove() is a no-op for an empty id list, a missing file, invalid JSON, a missing or non-object rootKey, or when none of the ids were present",
+        "Only exactly the listed ids are deleted; every other key in the file is preserved",
+        "The rewrite uses JSONSerialization options [.prettyPrinted, .sortedKeys], so surviving keys come back alphabetically sorted and reformatted",
+        "Every failure path is silent (try?): a failed write leaves the file as-is with no user-visible error"
+      ],
+      "unresolved_questions": [
+        "The servers parameter is accepted but unused; whether that is deliberate signature parity with an earlier syncing implementation or a leftover cannot be settled from this file",
+        "MCPPaths.directory's literal path is defined outside this bundle",
+        "Who calls sync(), and at what point during launch, is not visible here"
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/MCP/MCPHub.swift",
+      "sha256": "6567d4a5a63e4be6b744098261ced9bc674b1d6e3f53e4fe104676a44b3e06f8",
+      "lines_total": 554,
+      "ranges_read": [[1, 200], [201, 400], [401, 554]],
+      "purpose": "The in-app MCP client used by Droppy Code's own model sessions: an actor that reads the generated Claude config, keeps one long-lived MCPClient per server (stdio child process or streamable HTTP), lists their tools under mcp__<server>__<tool> names, calls them, and terminates every spawned child when the app quits.",
+      "key_symbols": [
+        "enum MCPHubError: LocalizedError, Sendable (unknownTool(String), server(String))",
+        "actor MCPHub, MCPHub.shared",
+        "MCPHub.Tool (Sendable, Hashable: server, name, description, inputSchema; computed callName)",
+        "MCPHub.Result (text, isError)",
+        "MCPHub.tools() async -> [Tool]",
+        "MCPHub.call(_:arguments:) async throws -> Result",
+        "MCPHub.reload()",
+        "nonisolated static MCPHub.track(_:) and MCPHub.terminateAll()",
+        "nonisolated static MCPHub.parse(callName:) -> (server: String, tool: String)?",
+        "nonisolated private static MCPHub.readSpecs() -> [String: MCPServerSpec]",
+        "private enum MCPServerSpec (.stdio(command:args:env:), .http(url:headers:))",
+        "private actor MCPClient (stop, listTools, callTool, rpc, initializeParams, request, notification, checkReply, terminate, stdioRPC, ensureStdio, startStdio, waitStdio, httpRPC, post, firstSSEMessage)",
+        "private final class HubConversation: @unchecked Sendable (appendStdout, setExit, takeLines, exitCode)",
+        "private final class MCPLiveProcesses: @unchecked Sendable (add, terminateAll)"
+      ],
+      "calls_into": [
+        "MCPPaths.claudeConfigURL (the only config it reads)",
+        "JSONValue (.parse, .object/.array/.string/.int/.bool, .data(), .isNull, subscripts)",
+        "LoginEnvironment.which(_:in:) and LoginEnvironment.current",
+        "Foundation Process / Pipe / FileHandle, URLSession.shared.data(for:)",
+        "Darwin kill, getpgid, SIGKILL"
+      ],
+      "state_owned": [
+        "MCPHub.specs: [String: MCPServerSpec]? (nil means not yet read; re-read lazily)",
+        "MCPHub.clients: [String: MCPClient]",
+        "MCPHub.toolCache: [String: [Tool]]",
+        "MCPHub.failed: Set<String> (servers whose listTools threw this run)",
+        "static MCPHub.liveProcesses: MCPLiveProcesses (lock-guarded [Process])",
+        "MCPClient: process, conversation, stdinHandle, nextID (starts at 1), initialized, didRestart, dead, sessionID, replies: [Int: JSONValue]",
+        "HubConversation: buffer Data, pending [Data], exitStatus Int32?"
+      ],
+      "side_effects": [
+        "Spawns MCP server child processes (Process.run) with currentDirectoryURL = FileManager.default.homeDirectoryForCurrentUser",
+        "Writes newline-terminated JSON-RPC to the child's stdin and installs readabilityHandlers on stdout and stderr",
+        "Terminates children: terminate() then, one second later on a .utility global queue, kill(getpgid(pid) == pid ? -pid : pid, SIGKILL)",
+        "Network POSTs through URLSession.shared for http servers",
+        "print(\"MCPHub: \\(id): \\(error.localizedDescription)\") when a server fails to list tools",
+        "terminateAll() is documented as being called from applicationWillTerminate, where nothing asynchronous would get to run"
+      ],
+      "platform_assumptions": [
+        "Foundation Process with pipes and terminationHandler (macOS/Unix); no Windows equivalent",
+        "POSIX process-group kill via getpgid/kill and SIGKILL",
+        "Swift concurrency actors plus @unchecked Sendable NSLock classes bridging the readability-handler threads",
+        "Resolving a bare command name through the user's login PATH with LoginEnvironment.which"
+      ],
+      "persisted_fields": [
+        "Reads MCPPaths.claudeConfigURL, key \"mcpServers\"; per-entry keys \"command\", \"args\", \"env\" (stdio) or \"url\", \"headers\" (http)",
+        "HTTP headers: \"Mcp-Session-Id\" (sent and read back), \"MCP-Protocol-Version\": \"2025-06-18\", Content-Type application/json, Accept \"application/json, text/event-stream\""
+      ],
+      "ui_elements": [
+        "Error strings surfaced through LocalizedError: \"Unknown tool: \\(name).\", \"The server quit.\", \"The server quit (exit \\(code)).\", \"The server didn't answer in time.\", \"The server sent something unexpected: missing result.\", \"The server sent something unexpected: empty reply.\", \"The server sent something unexpected: invalid reply.\", \"The server address is invalid.\", \"The server answered \\(http.statusCode).\", \"\\(command) isn't installed.\"",
+        "Tool result placeholders: \"[image]\" and \"[resource: <uri>]\""
+      ],
+      "feature_notes": [
+        "Tool call naming: callName = \"mcp__\" + server + \"__\" + name; parse() requires the \"mcp__\" prefix, a \"__\" separator, and non-empty server and tool halves",
+        "tools() returns the union sorted by server then name; a cached server is reused, a previously failed server is skipped entirely, and a newly failing server is added to failed and has its client stopped",
+        "listTools pages with cursor at most 10 times (for _ in 0..<10) and truncates each description to the first 400 characters (String(rawDescription.prefix(400)))",
+        "A missing or non-object inputSchema is replaced with .object([\"type\": \"object\", \"properties\": {}])",
+        "Timeouts: tools/call 120 s, tools/list 60 s, stdio initialize 60 s, http initialize 60 s, http notifications/initialized 30 s",
+        "call() throws unknownTool when that server's tool cache exists and does not contain the tool; an uncached server is attempted anyway",
+        "tools/call arguments: a null JSONValue is replaced with an empty object",
+        "Result text joins content items: text items verbatim, type \"image\" as \"[image]\", type \"resource\" as \"[resource: <resource.uri>]\", separated by \"\\n\"; isError reads result.isError defaulting to false",
+        "reload() clears specs, clients, toolCache and failed and stops the old clients in detached Tasks",
+        "stdio restart policy: a dead client throws at once; exactly one automatic restart is allowed (didRestart), and a second failure sets dead = true permanently",
+        "waitStdio polls every 10 ms (Task.sleep(for: .milliseconds(10))) against a wall-clock deadline, parking out-of-order replies in replies[id] so two concurrent calls on one server do not steal each other's answers",
+        "initialize sends protocolVersion \"2025-06-18\", capabilities {} and clientInfo { name: \"Droppy Code\", version: \"1.0\" }",
+        "A non-2xx HTTP status becomes \"The server answered <status>.\"",
+        "firstSSEMessage takes the first \"data:\" line that parses to an object containing an \"id\" key",
+        "HubConversation drains stderr and discards it, unlike MCPProbe's StdioConversation which keeps stderr for error text",
+        "MCPLiveProcesses.add prunes non-running processes before appending; terminateAll sends terminate() to all running processes, then SIGKILLs any still running, with no wait in between"
+      ],
+      "unresolved_questions": [
+        "MCPPaths.claudeConfigURL's literal path is defined outside this bundle",
+        "JSONValue's exact parsing and serialization semantics (for example whether .data() is compact) come from another file",
+        "The call sites of MCPHub.shared.tools() and call() (which model session drives them) are outside this bundle"
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/MCP/MCPKeychain.swift",
+      "sha256": "b4b0c8d1de672b235c86ca1c1cbf47e60e8666edd26ef3d8b2a4b356e5fbff9e",
+      "lines_total": 68,
+      "ranges_read": [[1, 68]],
+      "purpose": "Thin Security.framework wrapper that keeps MCP secret field values (API keys, plus the OAuth session and client blobs written by MCPOAuth) in the macOS Keychain as generic passwords so mcp.json holds only the non-secret values.",
+      "key_symbols": [
+        "enum MCPKeychain",
+        "private static func account(server:field:) -> String",
+        "MCPKeychain.value(server:field:) -> String?",
+        "@discardableResult MCPKeychain.set(_:server:field:) -> Bool",
+        "MCPKeychain.delete(server:field:)",
+        "MCPKeychain.deleteAll(server entry: MCPCatalogEntry)"
+      ],
+      "calls_into": [
+        "Security: SecItemCopyMatching, SecItemUpdate, SecItemAdd, SecItemDelete, kSecClassGenericPassword, kSecAttrService, kSecAttrAccount, kSecReturnData, kSecMatchLimit/kSecMatchLimitOne, kSecValueData, kSecAttrAccessible, kSecAttrAccessibleWhenUnlocked",
+        "AppInfo.name (used as the keychain service)",
+        "CaptureRun.isEnabled (read gate)",
+        "MCPCatalogEntry and its fields array (each field's .key)"
+      ],
+      "state_owned": [
+        "No in-process state; everything lives in the login keychain under service AppInfo.name"
+      ],
+      "side_effects": [
+        "Reads, adds, updates and deletes macOS Keychain generic-password items",
+        "May trigger a keychain access prompt on read or write"
+      ],
+      "platform_assumptions": [
+        "Apple Security framework Keychain Services with CFDictionary bridging",
+        "kSecAttrAccessibleWhenUnlocked accessibility class",
+        "Items are scoped by kSecAttrService = AppInfo.name, so renaming the app would orphan them"
+      ],
+      "persisted_fields": [
+        "Keychain service: AppInfo.name",
+        "Keychain account format: \"MCP \" + server + \" \" + field (space separated, e.g. \"MCP github oauth\")",
+        "Field names used by MCPOAuth: \"oauth\" (session JSON) and \"oauth-client\" (registered client JSON)",
+        "Stored value: UTF-8 string data, whitespace and newline trimmed on both write and read"
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "value() returns nil outright when CaptureRun.isEnabled, so screenshot/capture runs never surface real secrets",
+        "value() also treats a stored value that trims to empty as nil, and otherwise returns the trimmed string",
+        "set(\"\") or whitespace-only deletes the item and returns true, so clearing a field is the same call as setting one",
+        "set() tries SecItemUpdate first; only errSecItemNotFound falls through to SecItemAdd with kSecAttrAccessibleWhenUnlocked, and any other status returns false",
+        "deleteAll takes the MCPCatalogEntry rather than an id, with an explicit comment that a custom server is not in the catalog so an id lookup would silently delete nothing; it iterates entry.fields deleting each field.key",
+        "deleteAll does not remove the \"oauth\" and \"oauth-client\" items unless the entry declares them as fields; MCPOAuth.signOut handles those separately"
+      ],
+      "unresolved_questions": [
+        "MCPCatalogEntry's field model (what .fields and .key contain) is defined outside this bundle",
+        "What turns CaptureRun.isEnabled on (a launch flag or a build condition) is defined outside this bundle",
+        "SecItemUpdate is called without kSecReturnData in the query; whether any caller depends on the returned Bool is not visible in this file"
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/MCP/MCPOAuth.swift",
+      "sha256": "42475995d5ae5dc3433a70f810824540e7071e92b5b7ba97c193cabe7b653918",
+      "lines_total": 929,
+      "ranges_read": [[1, 190], [191, 400], [401, 620], [621, 800], [801, 929]],
+      "purpose": "Complete OAuth 2.1 client for remote MCP servers: protected-resource and authorization-server metadata discovery, dynamic client registration, a loopback NWListener HTTP callback server on 127.0.0.1 with branded success and failure pages, PKCE S256 authorization-code exchange, single-flight refresh, and Keychain-backed session storage.",
+      "key_symbols": [
+        "enum MCPOAuthError: LocalizedError (discoveryFailed, metadataFailed, registrationUnsupported, registrationFailed, tokenFailed, callbackFailed, stateMismatch, timedOut, cancelled, signedOut, network)",
+        "private struct AuthServerMetadata (issuer, authorizationEndpoint, tokenEndpoint, registrationEndpoint, resource, resourceScopes)",
+        "private struct RegisteredClient (clientID, clientSecret)",
+        "private actor OAuthRefreshGate.token(for:refresh:)",
+        "private struct CallbackResult (code, redirectURI, client)",
+        "private final class CallbackState: @unchecked Sendable (store, current)",
+        "private final class CallbackWait: @unchecked Sendable (finish, isFinished)",
+        "enum MCPOAuth: signIn(serverID:serverName:url:), accessToken(serverID:), isSignedIn(serverID:), signOut(serverID:), refreshIfNeeded(serverID:)",
+        "discover(url:), protectedResourceMetadataURL(baseURL:), resourceMetadataURL(from:), challengeParameter(_:in:), challengeScopes(from:), fetchAuthorizationServerMetadata(issuer:resource:resourceScopes:)",
+        "clientRegistration(serverID:metadata:redirectURI:)",
+        "runCallbackServer(serverName:expectedState:onReady:), receiveRequest(...), handleRequest(...), sendHTML(_:status:statusText:on:done:)",
+        "authorizationURL(metadata:clientID:redirectURI:state:challenge:), exchangeCode(...), performRefresh(serverID:stored:refreshToken:), storeSession(...)",
+        "fetchJSON(url:), post(url:body:), postForm(url:fields:), oauthErrorMessage(data:), origin(of:)",
+        "randomToken(byteCount:), pkceChallenge(for:), base64url(_:)",
+        "successPage(serverName:), failurePage(serverName:message:), page(headTitle:heading:message:), escapeHTML(_:)"
+      ],
+      "calls_into": [
+        "MCPKeychain.value / set / delete, fields \"oauth\" and \"oauth-client\"",
+        "JSONValue.parse and its subscripts (.string, .double, .int, .array)",
+        "CryptoKit SHA256",
+        "Network framework: NWListener, NWParameters.tcp, NWEndpoint.hostPort, NWConnection",
+        "AppKit NSWorkspace.shared.open(_:) on the MainActor",
+        "Foundation URLSession.shared, URLComponents, URLQueryItem, JSONSerialization"
+      ],
+      "state_owned": [
+        "MCPOAuth.refreshGate: OAuthRefreshGate, an actor holding flights: [String: Task<String, Error>] keyed by serverID",
+        "MCPOAuth.callbackTimeout: TimeInterval = 300",
+        "CallbackState: the redirectURI and RegisteredClient handed from the listener-ready path to the request handler",
+        "CallbackWait: a finished flag guarding a single continuation resume plus the listener cancel",
+        "All durable state lives in the Keychain, not in memory"
+      ],
+      "side_effects": [
+        "Opens the system browser with NSWorkspace.shared.open(authorizationURL) on the MainActor",
+        "Binds a TCP listener on 127.0.0.1 with an OS-assigned port and serves HTTP responses to the browser",
+        "Network: GET metadata documents, POST JSON for dynamic client registration, POST form-encoded token and refresh requests",
+        "Writes and deletes Keychain items through MCPKeychain (fields \"oauth\", \"oauth-client\")",
+        "Schedules the callback timeout on a DispatchQueue labeled \"MCPOAuth.callback\""
+      ],
+      "platform_assumptions": [
+        "Apple Network.framework NWListener / NWConnection for the loopback callback server rather than a portable socket API",
+        "AppKit NSWorkspace for opening the default browser",
+        "CryptoKit SHA256 for the PKCE challenge",
+        "macOS Keychain through MCPKeychain",
+        "URLSession's HTTPURLResponse.allHeaderFields iteration for a case-insensitive WWW-Authenticate lookup"
+      ],
+      "persisted_fields": [
+        "Keychain field \"oauth\" (JSON, sortedKeys): access_token (String), refresh_token (String, optional), expires_at (Double, absolute Unix seconds = now + expires_in), token_endpoint (String), client_id (String), client_secret (String, optional), resource (String, optional)",
+        "Keychain field \"oauth-client\" (JSON, sortedKeys): client_id (String), issuer (String), client_secret (String, optional)",
+        "Registration request body: client_name = \"Droppy Code\", redirect_uris = [redirectURI], grant_types = [\"authorization_code\", \"refresh_token\"], response_types = [\"code\"], token_endpoint_auth_method = \"none\", optional scope (space joined)",
+        "Token request form fields: grant_type=authorization_code, code, redirect_uri, client_id, code_verifier, optional client_secret, optional resource",
+        "Refresh form fields: grant_type=refresh_token, refresh_token, client_id, optional client_secret, optional resource"
+      ],
+      "ui_elements": [
+        "Error strings: \"Couldn't find the sign-in page.\", \"The server's sign-in details didn't make sense.\", \"This server doesn't let apps sign in on their own.\", \"Sign-in setup failed.\", \"Couldn't finish signing in.\", \"Sign-in didn't finish.\", \"Sign-in didn't finish. Try again.\", \"Sign-in timed out. Try again and complete it in the browser.\", \"Sign-in was cancelled.\", \"You're signed out. Sign in again to continue.\", \"The network didn't answer.\", \"That address doesn't look like a URL.\", \"That address isn't valid.\", \"The server didn't answer properly.\", \"The server answered <status>.\", \"It's missing the addresses needed to sign in.\", \"The server didn't hand back a token.\", \"The sign-in expired.\", \"Couldn't listen for the sign-in reply.\", \"The connection to the browser broke.\", \"The browser didn't send back a code.\", \"The sign-in was refused (<error>).\", \"The server refused to set things up (<status>).\", \"The server only signs in apps it has approved (403), so this one can't yet.\", \"The authorization address isn't valid.\"",
+        "Callback pages: success head title and heading \"Signed in to <serverName>\", body \"You can close this tab and head back to Droppy Code.\"; failure head title \"Sign-in didn't finish \\u{2014} <serverName>\" (em dash), heading \"Sign-in didn't finish\"; wordmark \"Droppy Code\"",
+        "Page CSS: body background #0B0B0F, color #F5F5F7, font-family -apple-system, \"SF Pro Text\", \"Helvetica Neue\", Helvetica, sans-serif, min-height 100vh, flex centered",
+        "Card: width 420px, max-width calc(100vw - 48px), padding 40px, border-radius 22px, background rgba(255, 255, 255, 0.06), text-align center",
+        "h1: font-size 22px, font-weight 600, color #F5F5F7, margin 20px 0 8px. p: font-size 14px, color rgba(255, 255, 255, 0.62), line-height 1.5, margin 0 0 24px. .wordmark: font-size 12px, color rgba(255, 255, 255, 0.4), letter-spacing 0.04em",
+        "Inline logo SVG: width 56, height 56, viewBox \"0 0 100 100\", opacity 0.9, one path with fill #FFFFFF and fill-rule nonzero, a sprout/leaf mark plus two round dots (circle near 63,43 radius 5 and a small one near 86,63 radius 1.8)",
+        "Head includes <meta name=\"color-scheme\" content=\"dark\"> and the body ends with <script>setTimeout(() => window.close(), 1500);</script>",
+        "Non-callback responses from the loopback listener: \"<html><body>Method not allowed.</body></html>\" with status 405 Method Not Allowed, and \"<html><body>Not found.</body></html>\" with status 404 Not Found"
+      ],
+      "feature_notes": [
+        "PKCE: verifier = base64url of 32 random bytes, challenge = base64url(SHA256(verifier)), code_challenge_method = S256; state = base64url of 24 random bytes",
+        "Random bytes come from UInt8.random(in: UInt8.min...UInt8.max) per byte, not SecRandomCopyBytes",
+        "base64url strips \"=\" and maps + to - and / to _",
+        "Redirect URI is always \"http://127.0.0.1:<ephemeral port>/callback\"; the listener asks for NWEndpoint.hostPort(host: \"127.0.0.1\", port: .any)",
+        "Callback timeout is 300 seconds scheduled on the callback queue; the request read gives up if the head grows past 1024 * 1024 bytes without a CRLF CRLF terminator",
+        "Only GET /callback or /callback?... is accepted; other methods get 405, other paths 404",
+        "Callback validation order: provider error, then missing code, then state mismatch, then success; every branch still serves a branded 200 page before resolving or rejecting",
+        "Discovery uses an unauthenticated GET of the server URL only to read WWW-Authenticate on a 401; resource_metadata may be quoted or bare (the comment names Stripe as sending it bare, ended by a comma or space), and a bare scope is split on spaces",
+        "Without a 401 challenge it probes <origin>/.well-known/oauth-protected-resource<path> then <origin>/.well-known/oauth-protected-resource, accepting only a document with authorization_servers or resource",
+        "Issuer falls back to the origin of the server URL, and trailing slashes are trimmed from the issuer",
+        "Authorization-server metadata candidates in order: for an issuer with a non-empty path other than \"/\", <origin>/.well-known/oauth-authorization-server<path> and <origin>/.well-known/openid-configuration<path> (the comment cites Stripe's https://access.stripe.com/mcp), then <issuer>/.well-known/oauth-authorization-server and <issuer>/.well-known/openid-configuration",
+        "A cached oauth-client is reused only when its stored issuer equals the discovered issuer; otherwise dynamic registration runs, and a missing registration_endpoint throws registrationUnsupported",
+        "Registration 403 gets the dedicated approved-apps message, but the server's own error_description (or error) wins through oauthErrorMessage",
+        "The authorization URL preserves any query items already on the authorization endpoint and appends response_type=code, client_id, redirect_uri, code_challenge, code_challenge_method=S256, state, plus resource and a space-joined scope when known",
+        "accessToken refreshes when Date().timeIntervalSince1970 >= expires_at - 90 (a 90-second skew) and throws signedOut when nothing is stored, the access token is empty, or a refresh is needed with no refresh_token",
+        "OAuthRefreshGate de-duplicates concurrent refreshes per serverID by sharing one detached Task",
+        "A refresh response without a new refresh_token keeps the old one (json[\"refresh_token\"]?.string ?? refreshToken)",
+        "signOut deletes both \"oauth\" and \"oauth-client\"; isSignedIn is merely the presence of the \"oauth\" item; refreshIfNeeded swallows every error (_ = try? await accessToken)",
+        "All HTTP helpers use timeoutInterval 30 and Accept: application/json; postForm sends application/x-www-form-urlencoded built from URLComponents.percentEncodedQuery",
+        "escapeHTML covers &, <, >, \" and ' (as &#39;) for the server name and message interpolated into the callback pages",
+        "Task cancellation during the callback wait cancels the NWListener through withTaskCancellationHandler"
+      ],
+      "unresolved_questions": [
+        "OAuthRefreshGate removes the flight with defer as soon as the first caller returns rather than strictly when the task completes; whether a late second caller can therefore start a second refresh is a real race whose practical impact cannot be judged from this file alone",
+        "The `_ = data` in protectedResourceMetadataURL discards the 401 body deliberately, but nothing here says whether a future use was intended",
+        "Who calls signIn / signOut (presumably the settings UI) and how serverName is chosen is outside this bundle"
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/MCP/MCPProbe.swift",
+      "sha256": "e868b55231c204b191f184ce15f5c24266ace6fe8178eba1ede19260b6fa7cad",
+      "lines_total": 426,
+      "ranges_read": [[1, 220], [221, 426]],
+      "purpose": "One-shot connectivity check for a configured MCP server: runs a full initialize, notifications/initialized and paged tools/list handshake over stdio or streamable HTTP, returns the server name, version and tool summaries, and turns failures into user-facing messages including a GitLab-specific setup guide.",
+      "key_symbols": [
+        "enum MCPProbeError: LocalizedError (commandMissing, exited(code:stderr:), timedOut, http(status:body:), unauthorizedOAuth, needsSetup(MCPSetupGuide), unavailable(host:), malformed)",
+        "enum MCPProbe, @concurrent MCPProbe.probe(_:)",
+        "initializeParams(), request(id:method:params:), notification(method:), checkReply(_:), firstLine(_:), toolSummaries(from:)",
+        "probeStdio(_:), exitError(code:isOAuth:stderr:), terminate(_:)",
+        "probeRemote(_:_:), postJSON(to:headers:sessionID:payload:), firstSSEMessage(_:)",
+        "MCPProbe.isGitLabMCP(_:), MCPProbe.gitLabServerDisabled(upstream:)",
+        "private final class StdioConversation: @unchecked Sendable (appendStdout, appendStderr, setExit, takeLines, stderrText, exitCode)"
+      ],
+      "calls_into": [
+        "MCPResolvedServer (.command, .args, .env, .url, .headers, .oauthUpstream)",
+        "MCPProbeResult(serverName:serverVersion:tools:), MCPToolSummary(name:summary:), MCPSetupGuide(title:reason:steps:pageLabel:pageURL:note:)",
+        "LoginEnvironment.which(_:in:), LoginEnvironment.current",
+        "JSONValue (.parse, .data(), subscripts)",
+        "Foundation Process / Pipe / FileHandle, URLSession.shared, Darwin kill / getpgid / SIGKILL"
+      ],
+      "state_owned": [
+        "Per-probe locals only: a StdioConversation (stdout line buffer, pending lines, capped stderr Data, exitStatus), sessionID for the HTTP path, and nextID starting at 2 after the id-1 initialize",
+        "No cached or long-lived state; each probe spawns and tears down its own process"
+      ],
+      "side_effects": [
+        "Spawns the server command as a child Process with currentDirectoryURL = home directory and the merged login environment",
+        "Writes JSON-RPC lines to the child's stdin and reads stdout and stderr through readabilityHandlers",
+        "Tears the child down in a defer: terminate() sends SIGTERM and, one second later on a .utility queue, SIGKILL to the process group when getpgid(pid) == pid, then stdin is closed",
+        "POSTs to the remote MCP URL through URLSession.shared"
+      ],
+      "platform_assumptions": [
+        "Foundation Process / Pipe child-process model and POSIX signals (kill, getpgid, SIGKILL)",
+        "PATH lookup through the user's login environment (LoginEnvironment.which)",
+        "The uvx error text instructs `brew install uv` in Terminal, a macOS and Homebrew assumption",
+        "Swift's @concurrent attribute on the entry point"
+      ],
+      "persisted_fields": [
+        "Writes nothing; reads only the in-memory MCPResolvedServer",
+        "Wire names: methods \"initialize\", \"notifications/initialized\", \"tools/list\"; headers Content-Type application/json, Accept \"application/json, text/event-stream\", MCP-Protocol-Version \"2025-06-18\", Mcp-Session-Id"
+      ],
+      "ui_elements": [
+        "Error messages: \"npx isn't installed. Install Node.js from nodejs.org, then try again.\", \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\", \"<name> isn't installed. Install it, then try again.\", \"The server quit (exit <code>). <last non-empty stderr line>\", \"The server quit (exit <code>).\", \"The server didn't answer in time.\", \"That key was refused. Press Try again and paste a new one.\" (401 and 403), \"Nothing answered at that address. Check the address and try again.\" (404), \"The server answered <status>.\", \"Sign-in was rejected. Sign in again in your browser.\", \"<host> didn't answer (404). If the address is right, try again in a few minutes.\", \"The server sent something unexpected: <detail>\"",
+        "GitLab setup guide title: \"Turn on GitLab's MCP server\"",
+        "GitLab guide reason: \"You're signed in, but GitLab keeps its MCP server off until a group owner turns it on. Until then, the address answers not found.\"",
+        "GitLab guide steps, exactly four: \"Open your groups and pick the top-level group your projects live in\", \"Go to Settings \\u{203A} General and expand Permissions and group features\", \"Under MCP client access, tick Allow connection to GitLab and save\", \"Come back here and press Check again\"",
+        "GitLab guide pageLabel \"Open my groups\", pageURL <origin> + \"/dashboard/groups\" (origin defaults to \"https://gitlab.com\"), note \"GitLab can take a minute to apply the change.\""
+      ],
+      "feature_notes": [
+        "Dispatch: a non-nil command probes stdio, otherwise a non-nil url probes HTTP, otherwise malformed(\"missing command or URL\")",
+        "The stdio deadline is 240 seconds when server.args contains \"mcp-remote\" (the OAuth path that may need a browser round trip) and 90 seconds otherwise",
+        "The stdio reply poll interval is 5 ms (Task.sleep(for: .milliseconds(5))); MCPHub uses 10 ms for the same loop",
+        "JSON-RPC ids: initialize is id 1, tools/list starts at id 2 and increments; tools/list pages by cursor at most 10 times",
+        "Tool summaries keep only the first non-empty line of the description (firstLine), and nil when the description is missing or blank",
+        "An OAuth stdio server that exits with \"Unauthorized\" or \"invalid_grant\" anywhere in stderr is reported as unauthorizedOAuth rather than an exit code",
+        "The exited message appends the last non-empty stderr line; stderr is capped at 64,000 bytes and truncated to the trailing 16,000 when it exceeds that",
+        "A remote 401 or 403 with a non-nil server.oauthUpstream becomes unauthorizedOAuth, except a 403 whose body case-insensitively contains \"MCP server disabled\", which becomes the GitLab needsSetup guide",
+        "A remote 404 with a non-nil oauthUpstream is the GitLab setup guide when isGitLabMCP(upstream) (the path ends with \"/api/v4/mcp\", lowercased), otherwise unavailable(host:) using the upstream's host or the literal \"The server\"",
+        "A comment records the version detail: GitLab 19.4 and earlier answer 404 instead of 403 'MCP server disabled' for a namespace that does not allow its MCP server, so a 404 is treated as the setup case rather than a hiccup",
+        "Non-2xx HTTP bodies are kept for the error, trimmed and truncated to the first 2000 characters",
+        "The notifications/initialized POST on the remote path is best-effort: every error is swallowed except CancellationError, which is rethrown",
+        "SSE handling takes the first \"data:\" line that parses to an object containing \"id\"; an empty 2xx body yields a nil message, which nearest() turns into malformed(\"empty reply\")",
+        "initialize sends clientInfo { name: \"Droppy Code\", version: \"1.0\" }, protocolVersion \"2025-06-18\" and capabilities {}"
+      ],
+      "unresolved_questions": [
+        "MCPResolvedServer, MCPProbeResult, MCPToolSummary and MCPSetupGuide are declared outside this bundle, so their full field sets and how the guide is rendered are not established here",
+        "Whether the 240-second mcp-remote deadline is ever reached in practice cannot be determined from this file"
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/MCP/MCPProviderConfig.swift",
+      "sha256": "f563e93b9f6d6b2edc8881d8710763f565579e7c4a942bf23d62793c83b1308e",
+      "lines_total": 252,
+      "ranges_read": [[1, 252]],
+      "purpose": "Translates the app's resolved MCP server list into each CLI provider's own config dialect (Claude, Codex, Copilot, Gemini, ACP), writes those files under the app's MCP directory, and reads them back for the paths, JSON and overrides a launched provider needs, including muting the user's own Codex servers for the session.",
+      "key_symbols": [
+        "enum MCPProviderConfig",
+        "claude(_:), codex(_:), copilot(_:), gemini(_:) -> JSONValue",
+        "acpServers(allowsHTTP:) -> JSONValue",
+        "writeAll(_:)",
+        "codexUserServerNames() -> [String]",
+        "codexOverrides() -> JSONValue?",
+        "claudeConfigPath() -> String?, copilotConfigJSON() -> String?, geminiSettingsPath() -> String?",
+        "connectedIDs() -> [String]",
+        "private static let geminiSettingsURL",
+        "private static func write(_:to:), private static func serversPresent(in:key:)"
+      ],
+      "calls_into": [
+        "MCPResolvedServer (.id, .isRemote, .url, .headers, .command, .args, .env)",
+        "MCPPaths.claudeConfigURL, MCPPaths.codexConfigURL, MCPPaths.copilotConfigURL, MCPPaths.directory",
+        "LoginEnvironment.homeDirectory (for ~/.codex/config.toml)",
+        "JSONValue (.object, .array, .string, .bool, .parse, .data(pretty:), .compactString)",
+        "FileManager.default.createDirectory / removeItem"
+      ],
+      "state_owned": [
+        "geminiSettingsURL = MCPPaths.directory + \"gemini-settings.json\" (the only path this file owns; the other three come from MCPPaths)"
+      ],
+      "side_effects": [
+        "writeAll writes four config files atomically and pretty printed, or deletes all four when the server list is empty",
+        "Creates the containing directory before each write",
+        "Reads ~/.codex/config.toml to collect the user's own server names"
+      ],
+      "platform_assumptions": [
+        "Unix home-relative path ~/.codex/config.toml resolved from LoginEnvironment.homeDirectory",
+        "Provider CLIs behaving as their macOS builds do (Codex TOML config-override semantics, Copilot taking its config as a JSON string)"
+      ],
+      "persisted_fields": [
+        "Claude config: root \"mcpServers\"; remote {type: \"http\", url, headers?}; local {command, args, env?}",
+        "Codex config: root \"mcp_servers\"; remote {url, http_headers?}; local {command, args, env?}",
+        "Copilot config: root \"mcpServers\"; remote {type: \"http\", url, headers, tools: [\"*\"]}; local {type: \"local\", command, args, env, tools: [\"*\"]}",
+        "Gemini config: root \"mcpServers\"; remote {httpUrl, headers}; local {command, args, env?}; file name gemini-settings.json inside MCPPaths.directory",
+        "ACP array entries: http form {type: \"http\", name, url, headers: [{name, value}]}; stdio form {name, command, args, env: [{name, value}]}",
+        "Codex override object: per server name {\"enabled\": false}"
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "Claude, Codex and Gemini omit an empty env or headers object entirely; Copilot always emits headers, env and tools: [\"*\"]",
+        "Copilot marks local servers with \"type\": \"local\" while Claude gives local servers no type and remote ones \"http\"; Codex uses \"http_headers\" rather than \"headers\"; Gemini uses \"httpUrl\" rather than \"url\"",
+        "acpServers reads back the written Claude config rather than the resolved list, iterates ids sorted, and treats an entry as remote when type == \"http\" or a url string exists",
+        "acpServers with allowsHTTP == false rewrites a remote server as a stdio launch: command \"npx\", args [\"-y\", \"mcp-remote\", url] followed, per header in sorted key order, by \"--header\" and \"<key>: <value>\"",
+        "ACP env and headers are emitted as arrays of {name, value} objects in sorted key order rather than as objects",
+        "writeAll with an empty array deletes claudeConfigURL, codexConfigURL, copilotConfigURL and gemini-settings.json",
+        "codexUserServerNames parses ~/.codex/config.toml line by line for headers starting \"[mcp_servers.\", requiring the text after the closing \"]\" to be empty or start with \"#\"",
+        "Name extraction: a leading ' or \" takes the quoted literal in either TOML quote; otherwise the name is the segment before the first dot, so [mcp_servers.imap-email.env] yields \"imap-email\"",
+        "A name containing whitespace, [, ], ', \", a comma or a dot is dropped entirely, with an in-file comment explaining that a dotted or quoted name is read as a config path and mints the very entry that made Codex reject its whole configuration and fail every turn at once",
+        "codexOverrides returns nil unless the written codex config has a non-empty mcp_servers object; it then adds {\"enabled\": false} for every user server name not already present, described in comments as a config override that never touches the user's own file",
+        "claudeConfigPath and geminiSettingsPath return the path only when the file parses and its servers object is non-empty, otherwise nil",
+        "copilotConfigJSON returns the whole parsed config as a compact string (JSONValue.compactString) rather than a path",
+        "connectedIDs returns the sorted keys of the Claude config's mcpServers",
+        "Everything observable is sorted (ids, header keys, env keys, names), which keeps the written files stable between runs"
+      ],
+      "unresolved_questions": [
+        "MCPPaths.claudeConfigURL, codexConfigURL, copilotConfigURL and directory literal paths are defined outside this bundle",
+        "MCPResolvedServer.isRemote's exact definition (url presence versus an explicit flag) is outside this bundle",
+        "Which provider consumes acpServers(allowsHTTP:) and how allowsHTTP is decided is not visible here",
+        "JSONValue.compactString and .data(pretty:) formatting details come from another file"
+      ]
+    }
+  ]
+}

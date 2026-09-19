@@ -1,0 +1,247 @@
+{
+  "bundle_id": "R054",
+  "reader": "R054-reader",
+  "files": [
+    {
+      "path": "docs/anti-slop.md",
+      "sha256": "2461e3ea844d9256db7687f2bf6c146a309cd88300487e277d4ac267ebe53fd9",
+      "lines_total": 31,
+      "ranges_read": [[1, 31]],
+      "purpose": "User- and porter-facing documentation of Droppy Code's built-in anti-slop system guidance: what the guidance asks the model for, which Settings switch controls it, when it is delivered to each provider class, that it also covers Hydra heads, and the licensing/attribution position toward the upstream anti-slop project it was inspired by.",
+      "key_symbols": [
+        "AntiSlopPolicy (named as DroppyCode/Core/Models/AntiSlopPolicy.swift, the file holding the guidance text)",
+        "Document headings: '# Anti-slop guidance', '## Default on, and what the setting does', '## All providers, including Hydra heads', '## A compact authored adaptation, not upstream tooling'"
+      ],
+      "calls_into": [
+        "DroppyCode/Core/Models/AntiSlopPolicy.swift (location of the guidance value handed to a provider)",
+        "Settings > General > Conversation section (the 'Concise AI replies' switch)",
+        "Provider session start/resume path for providers with system-instruction support",
+        "Hydra head/lead delegation machinery (guidance is stated to apply to delegated work)"
+      ],
+      "state_owned": [],
+      "side_effects": [
+        "Documents that the app attaches an extra guidance block to the provider request; states the app 'installs nothing, runs no audit, and requires no external binary'"
+      ],
+      "platform_assumptions": [
+        "Swift source layout under DroppyCode/Core/Models/ (macOS Swift app)",
+        "macOS-style Settings navigation naming with chevron separators: 'Settings > General > Conversation'"
+      ],
+      "persisted_fields": [
+        "The 'Concise AI replies' toggle is the only persisted item implied; this document does not name its UserDefaults key or storage type, only that it defaults to on"
+      ],
+      "ui_elements": [
+        "Settings location path written with chevrons: 'Settings › General › Conversation'",
+        "Toggle label, bold in the source: 'Concise AI replies'",
+        "Documented absence of any token-saving claim anywhere in the UI"
+      ],
+      "feature_notes": [
+        "Guidance is ON by default; turning the switch off does not merely omit the block, it sends a matching 'off' block that 'tells the model to disregard the earlier app-provided guidance and to keep following user requests and project requirements'",
+        "The guidance asks for: the shortest complete answer, leading with the result, skipping filler and hype, comments only where they explain a non-obvious reason, focused edits instead of unrelated cleanup, product-fitting UI structure, and reusing evidence rather than re-reading it",
+        "Delivery timing: 'The setting takes effect on the next message.' A message already in flight is not changed; toggling does not rewrite the current conversation or thread history",
+        "Delivery per provider class: providers with system-instruction support receive it when their session starts or resumes; other providers receive it with the first ordinary message of a session and again after explicit compaction; slash commands defer delivery until that ordinary message; automatic history changes inside those providers are not observable by the app",
+        "Explicit non-promise: 'Nothing is promised about token savings.' No fixed saving is guaranteed and no such claim is made in the UI",
+        "Coverage: the block is attached to the provider request so it reaches every provider Droppy Code runs; Hydra heads are covered because the block itself asks that the guidance apply to delegated work, with the intent that a head answers under the same policy as its lead",
+        "Attribution: upstream inspiration is miqdadbadjuber/anti-slop at revision 743735248fbaefd76bb56619615687dfa8b3bc1e, MIT licensed, copyright 2026 Miqdad Badjuber; the upstream LICENSE applies to that work",
+        "Intentionally left out of Droppy Code, as a three-item bulleted list: 'The upstream wizard and its interactive setup.', 'Mandatory audit reports.', 'External executables or scripts the upstream project may invoke.'"
+      ],
+      "unresolved_questions": [
+        "The literal wording of the on and off guidance blocks is not quoted here; only AntiSlopPolicy.swift holds the exact strings and it is outside this bundle",
+        "The persisted UserDefaults key name and type behind 'Concise AI replies' is not stated in this document",
+        "The path 'DroppyCode/Core/Models/AntiSlopPolicy.swift' carries a 'Core' directory level that the sibling audit doc does not use (it writes 'Models/Hydra.swift'); whether the on-disk path really contains 'Core' cannot be settled from this file alone"
+      ]
+    },
+    {
+      "path": "docs/audit-2026-09-15.md",
+      "sha256": "448674c67bab3969c406630cd5dbb0e09b9367f800f3d4e4d516996a5598b200",
+      "lines_total": 167,
+      "ranges_read": [[1, 167]],
+      "purpose": "A dated whole-app audit report (15 September 2026) over 99 Swift files and about 36k lines, enumerating 39 numbered findings across Hydra, chat/sending, CPU-GPU-energy, memory/disk, startup, security/privacy, design/UX and code health, each with an exact file:line pointer and a P0-P3 priority, plus a record of what the audit branch fixed and a second-pass log of a Hydra team's follow-up work.",
+      "key_symbols": [
+        "Finding identifiers: H1-H9 (Hydra), C1-C7 (chat/sending), E1-E6 (CPU/GPU/energy), M1-M4 (memory/disk), S1-S3 (startup), P1-P4 (security/privacy), D1-D7 (design/UX), K1-K3 (code health)",
+        "App symbols named: autoMergeHydraWork, HydraLanding.conflicts, pathsWithConflictMarkers, hydraHeadTurnFinished, landHydraHead, touchedPaths, TouchedPaths.relative, hydraTouched, TurnRecord.hydraMerged, appendNotice(.warning, ...), finishHydraHead, releaseHydraCopy, hydraHeadFinished, copyPath, DiffParser.parse(patch), applyHydraHead, ThreadRuntime.parseDiff, Self.parseDiff, HydraPanelGhost, reportMessage, hydraSpawnCount, PlacedPanel, visibleCount, hiddenCount, armBlankWatch, repairLayout, stackGeneration, startTurn, isRepository, captureCheckpoint, ensureSession, send, finishTurn, settleCommand, watchCommand, FileEdit, StripLog, WindowBackdrop, backdropOpacity, saveNow, Git.executable, isExecutableFile, Storage.sweepOrphanedAttachments, bootstrap, DocumentPrefetch, LoginEnvironment.load, WebsiteCaptures, AppSettings.setAPIKey, FaviconCache, Chrome.warning, Chrome.danger, subagent(of:), hydraHeads(of:), helpers(of:), helpersByParent, FrameHolder, RowGlide.smoothstep, AppModel.setHydra(_:for:), ChatThread.hydraEnabled, hydraPairID, handleLocalCommand, commandSuggestions, ProviderKind.supportsCompact, supportsRewind, deleteCheckpoints, dirtyPaths, Git.apply"
+      ],
+      "calls_into": [
+        "App/AppModel+HydraMerge.swift:43 (autoMergeHydraWork)",
+        "App/AppModel+Hydra.swift:46, :140, :263, :273, :303, :340, :342",
+        "Runtime/ThreadRuntime.swift:258, :270, :505, :573-:583, :1136, :1140, :1146, :1152, :1639, :1649, :1678, :1721, :1730",
+        "Views/Chat/ThreadTimeline.swift:90, :413, :766, :818",
+        "Views/Chat/HydraPanel.swift:96, :529",
+        "Views/Chat/HydraButton.swift and :19",
+        "Views/Chat/ChatView.swift (old lines 160, 206, 247; also :278)",
+        "Views/Chat/TimelineRows.swift:256, :893, :901",
+        "Views/Composer/ComposerView.swift:240, :379, :464, :532",
+        "Views/Composer/FollowUpQueueTab.swift:449",
+        "Views/Common/AttachmentPreviewPanel.swift:8",
+        "Views/Chrome/Chrome.swift:204, :500",
+        "Views/Sidebar/SidebarView.swift:135, :188, :893",
+        "Views/Settings/TokenActivitySection.swift:75",
+        "Views/Markdown/MarkdownView.swift:422, :510",
+        "Models/Hydra.swift:666",
+        "Providers/ClaudeSession.swift:156, :583; Providers/ACPSession.swift:127; Providers/DeepSeekSession.swift:802; Providers/MetaSession.swift:824; Providers/ProviderRegistry.swift:163; Providers/DeepSeekKeychain.swift; Providers/MetaKeychain.swift",
+        "Git/Git.swift:27",
+        "Store/Storage.swift; App/AppModel.swift:133, :295",
+        "App/AppSettings.swift; App/AppUpdater.swift:237",
+        "Support/Shell.swift:208; Support/WebsiteCaptures.swift",
+        "Popovers.swift:98; RowGlide.swift"
+      ],
+      "state_owned": [
+        "Owns no code state; it documents state it criticises: ThreadRuntime.entries held in memory for the whole session, hydraSpawnCount never reset per chat, ThreadTimeline's visibleCount/hiddenCount window, SidebarView per-row measured heights kept in @State, Codex history fingerprints in UserDefaults, and the new TurnRecord.hydraMerged flag"
+      ],
+      "side_effects": [
+        "Records measured on-disk state: the attachments folder held 315 files, 363 MB, of which 41 were referenced by any thread; the sweep dry run gave 41 referenced, 110 would go now, 164 wait a day",
+        "Records plaintext API keys written to ~/Library/Preferences/iordv.droppycode.plist alongside the Keychain",
+        "Records network egress to google.com/s2/favicons?domain=<host> for every link host in a reply, including internal hostnames from tool output",
+        "Records process launches: four git processes inside startTurn, two 'git add -A' snapshots per shell tool call, a PATH scan per git call, and 16 CLI probe processes at launch with eight CLIs installed",
+        "Records thread-file writes: saveNow rewrites the whole file 800 ms after every tool event; a 1.6 MB thread x 300 tool calls is about 480 MB written per turn plus 300 encodes on the disk-writer actor",
+        "States the audit branch itself launched nothing and merged nothing from the worktree; verified only by a Debug build ('BUILD SUCCEEDED', no new warnings in the files touched) and a dry run of the sweep rules"
+      ],
+      "platform_assumptions": [
+        "macOS app measured on 'this Mac' with a Debug Xcode build",
+        "SwiftUI Liquid Glass surfaces, with a behind-window NSVisualEffectView proposed as the cheaper static backdrop",
+        "AppKit specifics: an NSFont captured in a @Sendable closure, AppKit anchors for tool-row popovers, a CA layer for the working spinner",
+        "macOS Keychain plus the UserDefaults plist at ~/Library/Preferences/iordv.droppycode.plist",
+        "Updater verifies Developer ID team, bundle identifier, version and Gatekeeper; hardened runtime on; no App Sandbox because the CLIs need none",
+        "Unified log with privacy: .public annotations",
+        "Unix login shell flags '-l -i' versus '-l -c'; git CLI worktrees; FSEvents-era working-tree watching implied",
+        "Swift concurrency: main-actor isolation, @concurrent functions, nonisolated statics; SwiftUI @Entry environment values"
+      ],
+      "persisted_fields": [
+        "~/Library/Preferences/iordv.droppycode.plist (the UserDefaults domain; held DeepSeek and Meta API keys in the clear before the P1 fix)",
+        "Codex history fingerprints: one UserDefaults entry per session file, recommended to move to a JSON file under Application Support (second pass says M3 was done)",
+        "ChatThread.hydraEnabled and hydraPairID (decoded thread fields flagged as removable with the dead AppModel.setHydra)",
+        "TurnRecord.hydraMerged (flag so the merge counts only turns not yet merged)",
+        "attachments/<uuid>.<ext> file naming inside the attachment folder, matched as text inside thread files by the sweep",
+        "Turn checkpoint git refs: about 1 MB across 199 refs, removed by deleteCheckpoints with the thread"
+      ],
+      "ui_elements": [
+        "Conflict-marker strings scanned for: '<<<<<<< ' and '>>>>>>> ' (merge-hunk forms '<<<<<<< ours' and '>>>>>>> theirs')",
+        "Hydra panel row text quoted: 'landed 3 files, 1 conflict'",
+        "Hydra report section heading criticised: '## Hank — task' with an em dash, the mark the app strips from every model reply; recommended replacements ' - ' or ':'",
+        "Persona overflow naming: 'Hank 2' past the 25-persona roster",
+        "Proposed composer placeholder and send-button help while 'Every message goes to a head' is on: 'Goes to a head'",
+        "Setting names quoted: 'Merge when the team is done', 'Clear finished heads automatically', 'Every message goes to a head'",
+        "Sidebar relative age example '3m'; suggested a shared one-minute tick or Text(date, style: .relative)",
+        "Colors: notices use system .orange and .red instead of Chrome.warning / Chrome.danger; the context meter turns .orange past 85 %",
+        "Timeline block ids: 'turn-<uuid>', 'work-...', 'working-...', entry.id",
+        "Edit caps: command-derived edits capped at 200 KB (ThreadRuntime.swift:1678); provider Write edits uncapped",
+        "Image downscale recommendation: 2000 px longest side, JPEG"
+      ],
+      "feature_notes": [
+        "P0: three unresolved three-way merge hunks sat in ChatView.swift at old lines 160, 206 and 247, left when a head's landing (Git.apply with --3way) could not settle the panel refactor; the 'ours' side referenced origin, panelDrag and layout.panelHeight, none of which exist any more; the 'theirs' side is the PlacedPanel call; fixed by taking the PlacedPanel version",
+        "H1 fixed (P0): auto-merge committed every touched path as-is; now it scans the team's files for conflict-marker lines off the main actor and, finding any, leaves a Hydra note naming them instead of merging",
+        "H2 (P1): a head's patch lands the moment the head finishes even while the lead is mid-turn; recommendation is to hold a landing whose paths intersect the lead's touchedPaths until phase == .idle and land the rest at once",
+        "H3 (P1): after a conflicted landing the only signs are the panel row and a line in the report; add a warning Notice row naming the files and a count on the Hydra button badge",
+        "H4 (P2): finishHydraHead releases the head's worktree via releaseHydraCopy before the report is relayed with copyPath, so a stopped or failed head's report points at a just-deleted folder when auto-clear is on",
+        "H5 (P2): DiffParser.parse(patch) runs on the main actor inside applyHydraHead and a --binary patch can be large",
+        "H6 fixed (P1): the Hydra charge ring and glow now move only while a head is working; otherwise the ring stands still, and reduced motion keeps it still too",
+        "H7 (P2): the Hydra panel is a glass surface over a streaming transcript showing a second streaming transcript; swap the glass for the HydraPanelGhost scrim while either streams",
+        "H9 (P3): hydraSpawnCount is never reset for a chat, so a long-lived lead's heads drift into second-round names",
+        "C1 (P1): the timeline window is a fixed-length suffix, hidden = blocks.count - visibleCount at line 90; sending appends two blocks (the prompt and the working line) and evicts the two oldest rows in the same pass while the bottom anchor tries to hold; track hiddenCount instead while a turn runs",
+        "C2 (P1): the turn fold swaps N identities for one 'turn-<uuid>' block at line 818, dropping every measured height at once; armBlankWatch / repairLayout / stackGeneration exist to cover the aftermath; give the running turn the same block id so the fold becomes an in-place content change",
+        "C3 (P2): startTurn runs isRepository and captureCheckpoint (four git processes) before ensureSession and send; run the checkpoint with async let so a cold session start of 1-3 s overlaps the snapshot",
+        "C4 (P1): finishTurn parses the turn's patch and the provider diff twice on the main actor; settleCommand parses every command's patch in a main-actor Task",
+        "C5 (P2): a photo is read and base64-encoded on the main actor at full size; a Retina screenshot is 5-10 MB, 13 MB as base64 through the pipe",
+        "C6 (P2): Write tool calls store the whole written file as an uncapped FileEdit diff in the timeline and thread file",
+        "C7 (P2): the debug StripLog logger still writes attachment names at notice level on every thumbnail tap and removal; delete it",
+        "E1 (P1): the whole window is one Liquid Glass surface (WindowBackdrop) with a glass veil while scrolled, glass capsules in the chrome row, a glass composer and glass floating panels; when backdropOpacity == 1 the backdrop still renders glass under a solid scrim",
+        "E3 (P1): saveNow encodes all items and writes the file atomically 800 ms after every tool event, so a tool-heavy turn rewrites the file about once per tool call; save at most every 5 s while a turn runs, always at turn end",
+        "E4 (P2): two 'git add -A' snapshots per shell tool call, 25 ms on this 225-file repo but seconds per command in a monorepo; skip for commands that cannot write: ls, cat, grep, rg, find, git log|status|diff|show, head, tail, wc, sed -n",
+        "E5 (P3): Git.executable resolves git with a PATH scan (isExecutableFile per entry) on every git call; cache it once",
+        "E6 (P3): launch probes every installed CLI twice ('--version' and an auth probe), 16 processes at once with eight CLIs installed, each under 0.6 s",
+        "M1 fixed (P1): Storage.sweepOrphanedAttachments runs at the end of bootstrap off the main actor, scans thread files as text for attachments/<uuid>.<ext>, and deletes only UUID-named files no thread references that are at least a day old",
+        "M2 (P2): a ThreadRuntime keeps its whole history in memory for the rest of the session; only the provider process is released after ten minutes idle; drop entries for a runtime idle for an hour with no session and reload from disk, keeping draft, followUps and panel state",
+        "M4 marked no action: turn checkpoints add about 1 MB across 199 refs, delta-compressed",
+        "S1 (P3): the 100 KB library decodes on the main thread in AppModel.init and em-dash cleaning of every opened thread's text runs on the main thread in ThreadRuntime.init",
+        "S2 (P3): LoginEnvironment.load runs the interactive login shell ('-l -i') before any provider is probed; try non-interactive '-l -c' first and fall back to '-i' if PATH is still missing the CLIs",
+        "S3 (P3): WebsiteCaptures is 900 lines of ScreenCaptureKit and AVFoundation shipped in every build for a '--website-captures' flag; compile it under a build flag",
+        "P1 fixed: setAPIKey now reports whether the Keychain took the key; the defaults copy is written only when it did not, removed once the Keychain holds it, and a copy left by earlier builds is removed at launch when the Keychain has the key",
+        "P2 (P1): FaviconCache fetches google.com/s2/favicons?domain=<host> per host; make favicons opt-in or fetch /favicon.ico from the host and skip localhost, .local, .internal, RFC 1918 addresses and single-label names",
+        "P4 marked OK: updater verifies Developer ID team, bundle identifier, version and Gatekeeper before installing; hardened runtime on; no sandbox because the CLIs need it off",
+        "D6 marked OK: accessibility well covered (labels, values, hints, reduced motion honoured everywhere that animates) but text sizes are fixed points with no response to the system's larger-text preference",
+        "D7 (P3): all copy is English string literals with no localization tables",
+        "K1 (P2): 21 compiler warnings, all real, including RowGlide.swift calling main-actor statics from a keyframe closure (make smoothstep and the insets nonisolated), MarkdownView.swift:510 capturing an NSFont in a @Sendable closure, Popovers.swift:98 storing a closure in an @Entry, two var that never mutate, one deprecated 'Text +'",
+        "K2 (P3): AppModel.setHydra(_:for:) is dead, commented 'legacy per-chat switch, now unused'",
+        "K3 (P3): handleLocalCommand and commandSuggestions each list the providers that support /compact; put supportsCompact on ProviderKind beside supportsRewind",
+        "Branch change list: ChatView.swift conflict hunks resolved, AppModel+HydraMerge.swift pathsWithConflictMarkers refusal, Storage.swift plus AppModel.swift sweepOrphanedAttachments, AppSettings.swift plus DeepSeekKeychain.swift plus MetaKeychain.swift key handling, HydraButton.swift charge gating, and this document",
+        "Second pass, later on 15 September: a Hydra team of six workers and two scouts worked one checkout with disjoint file ownership; everything builds with zero warnings and none of it had been run live",
+        "Second pass fixed: H2, H3, H4 (a stopped or failed head keeps its copy until cleared and its unlanded diff is kept as a patch before removal), H5, H8, H9, C3, C4, C6, C7, E3 (one save per 5 s while a turn runs, with per-file write revisions so saves never land out of order), E4 (no tree snapshots for read-only commands, one snapshot chain per runtime), E5, E6, P2, D1, D2, D3, D4 (per-parent child cells), D5, K1 (all 21 warnings), M2, M3; K3 not done, S1 to S3 not done",
+        "Second pass Hydra policy: the lead policy now says delegate first and that Hydra being on is the user asking for heads; three delegation rounds; a wider head budget of 35 min and 160 tools; one tree capture shared by a batch of heads; queued or sent heads report as soon as the lead is idle; a delegation block past 32 tasks leaves a note; a replaced session can no longer feed events into the next turn; a stop pressed while a turn is starting takes effect at once; revert works on every provider; auto-merge moves the branch with an expected old value and refuses when the checkout moved; dirtyPaths parses renames correctly",
+        "Second pass composer: the model picker lists every pair on an installed provider above the models; a tap enters the pair (lead model and effort, pinned, Hydra on) and the chip wears the mark",
+        "Second pass timeline: tool rows mount no AppKit anchor until hovered, allocate no popover until opened, and hit the disk at most once per distinct image candidate; the working spinner is a CA layer; display blocks are cached across body runs that change nothing; the Hydra button and panel no longer morph into each other, the panel fades in place",
+        "Auto-merge post-mortem: the first live landing failed because a file the lead had written outside the checkout was among a turn's touched paths and 'git add -A -- <path>' refused it, and it would also have taken only the lead's own five files because a native head's edits arrive as agent events and were never part of the lead's touched paths; fixed by TouchedPaths.relative excluding out-of-repository paths, hydraTouched folding a native head's reported edits and the tree diffs around its writing commands into the lead's turn, and the merge counting only turns not yet merged (TurnRecord.hydraMerged) while unioning the heads' reported edits with everything changed since the job's first checkpoint that was not already dirty before it: 56 files for that job, not 5"
+      ],
+      "unresolved_questions": [
+        "All cited line numbers come from the audit-branch checkout of 15 September 2026 and drift against the pinned commit dd2b86e, so they cannot be treated as current offsets without re-checking each file",
+        "The second pass states 'none of it has been run live yet', so which of those follow-up fixes actually survived into the pinned commit cannot be determined from this document",
+        "'Bug scout findings fixed: see the merge request description for the numbered list' points outside the repository, so those findings are unrecoverable here",
+        "The document never gives the exact user-visible text of the Hydra conflict note, the Hydra button badge count format, or the proposed H3 Notice row copy"
+      ]
+    },
+    {
+      "path": "docs/performance-2026-09-15.md",
+      "sha256": "35450ca90a039850d4f8b51d97b446ec82658816acfd29b0fde090da50f77c82",
+      "lines_total": 46,
+      "ranges_read": [[1, 46]],
+      "purpose": "A dated performance-pass report (15 September 2026) tabulating, area by area, the concrete optimisations landed across process I/O, transport, git, turn diffs, runtime, storage, the native DeepSeek/Meta providers, sidebar, composer, markdown, diff inspector, energy and text handling, then listing the measured before/after numbers with their benchmark scripts and an explicit 'Not done' section.",
+      "key_symbols": [
+        "Table rows naming the areas: Process I/O, Transport, Git, Turn diffs, Runtime, Storage, 'DeepSeek, Meta', Sidebar, Composer, Markdown, Diff inspector, Energy, Text",
+        "Work sites: Support/Shell.swift, Support/StdioFramer.swift, JSONRPC.swift, Git/Git.swift, Git/WorkingTreeWatch.swift, Git/TurnDiff.swift, Git/RevertPreview.swift, Models/FileChangeSummary.swift, Runtime/ThreadRuntime.swift, Store/Storage.swift, Providers/NativeFileTools.swift, App/AppModel.swift, Views/Composer/ComposerView.swift, Views/Markdown/MarkdownView.swift, MarkdownParser.swift, Views/Diff/DiffInspector.swift, Views/Composer/EffortSlider.swift, Views/Chat/ThreadTimeline.swift, App/AppUpdater.swift, Support/ThumbnailCache.swift, Support/Text.swift",
+        "Test and benchmark entry points: scripts/run_tests.sh, scripts/benchmark_performance.sh, scripts/benchmark_file_matcher.sh, Tests/RuntimePerformanceTests.swift, test case boundedReadRejectsOversizedSparseFiles"
+      ],
+      "calls_into": [
+        "scripts/run_tests.sh (builds the dev app and runs all seven suites, 117 tests)",
+        "scripts/benchmark_performance.sh and scripts/benchmark_file_matcher.sh",
+        "Tests/RuntimePerformanceTests.swift",
+        "docs/audit-2026-09-15.md, linked as 'See E1 in [the audit](audit-2026-09-15.md)'",
+        "git plumbing: rev-parse (now avoided per ask) and 'update-ref --stdin' (batched)",
+        "The FSEvents cookie, waited on by Git/WorkingTreeWatch.swift instead of a 1 ms poll"
+      ],
+      "state_owned": [
+        "Documents caches and bounds introduced: the worktree index path cached while its .git file stands, size-bounded thumbnail caches in Support/ThumbnailCache.swift, prefetch bounded by count and by bytes, a bounded window of markdown history parsed ahead of the scroll, only the top eight file-search results kept, and a sidebar index of thread positions, projects and children rebuilt once per library change instead of scanned per row"
+      ],
+      "side_effects": [
+        "A cancelled shell command stops its child process; timeouts escalate to the process group; a finished command releases its pipes and its deadline task at once",
+        "Checkpoint refs are deleted in one 'update-ref --stdin' batch",
+        "One serial writer owns saves, the final save and deletion, so a queued write cannot undo a delete; a thread already on disk as it is in memory is not written again at quit",
+        "Shared file tools read at most 1,000,001 bytes before refusing a large file",
+        "Attachments are read and base64-encoded off the main actor",
+        "The update progress creep ends at its ceiling instead of ticking forever"
+      ],
+      "platform_assumptions": [
+        "Measured on Apple M2 Pro, 16 GiB, macOS 27.0, Xcode 27.0",
+        "macOS FSEvents cookie for the working-tree watch",
+        "Swift main-actor isolation and the cooperative thread pool (file search scores on the cooperative pool)",
+        "Unix process groups for timeout escalation and POSIX pipes/descriptors for stdio (open-descriptor benchmark)",
+        "git CLI worktrees whose .git is a file rather than a directory",
+        "Sparse-file behaviour for the 128 MiB rejection benchmark and RSS measurement"
+      ],
+      "persisted_fields": [
+        "No settings keys are named; the persistence discussed is thread files on disk written by the serial writer in Store/Storage.swift and the checkpoint git refs deleted in one batch"
+      ],
+      "ui_elements": [
+        "Diff inspector: the collapsed view stops at its 200-line budget before grouping",
+        "Composer file search keeps only the top eight results",
+        "The effort slider's track effect pauses while nothing can see it (Views/Composer/EffortSlider.swift)",
+        "The running turn's elapsed-time clock pauses while nothing can see it (Views/Chat/ThreadTimeline.swift)"
+      ],
+      "feature_notes": [
+        "Three passes over the whole app, split into small merge requests each with the tests that pin it; scripts/run_tests.sh builds the dev app and runs all seven suites (117 tests) and 'no suite launches the app or calls a paid provider'",
+        "Stdio frames are parsed incrementally for both line and Content-Length framing so a fragmented message is scanned once, not once per chunk; cancelled JSON-RPC calls give their continuation back",
+        "A turn's files come from one change list, the checkpoint diff plus what its tools reported outside the checkout, and the revert preview and the file cards read the same summary",
+        "A turn is finalised once, by the first of its completion and exit; a queued completion cannot finish a replacement turn; only the session observed last is listened to; stopping a session ends its turn as interrupted",
+        "The DeepSeek and Meta tool loop is one cancellable task so a stop reaches a running command and a waiting approval",
+        "The composer discovers slash commands and Codex skills per project directory before the first prompt, and scores ASCII paths on their bytes",
+        "Em-dash cleanup rejects a string by its UTF-8 bytes before walking graphemes; the first line of a command's output is found without splitting the rest",
+        "Measured, medians of 30 runs after warm-up with other apps running, explicitly 'not app-wide numbers': open descriptors after 100 short commands 203 before and 3 after; one 256 KiB JSON message delivered in 128-byte chunks about 1 s before and 3.5 ms after; rejecting a 128 MiB sparse file 21.8 ms and 144 MB peak RSS before and 1.1 ms and 13 MB after; fuzzy file match over 20,000 paths x 10 taking 0.60 s on graphemes and 0.14 s on ASCII bytes with the same answers on 28,985 fixtures; unchanged-worktree snapshot of 4,000 files 23.5 ms before and 11.3 ms after with the cached index path; draft emptiness on an 8 KB draft x 1,000 0.39 ms before and 0.05 ms after",
+        "Unmeasured, by reasoning only: SSE parsing off the main actor, attachment encoding, the slider and clock pausing, the Genie sample bound, the bounded Markdown warm-up",
+        "A reverted experiment is recorded: 'Rebuilding em-dash-free strings by per-character append measured slower and was reverted.'",
+        "Not done: no Instruments capture of launch, scrolling, GPU or wakeups, so the source-level work is explicitly not evidence of a measured battery gain; Liquid Glass surfaces (window backdrop, veil, panels) still resample every frame a reply streams, cross-referenced to audit finding E1; retained runtimes keep their history and the idle timer stops sessions only"
+      ],
+      "unresolved_questions": [
+        "'the Genie sample bound' appears once in the unmeasured list with no file pointer, so which subsystem it belongs to cannot be determined from this file",
+        "The seven test suites are counted but not named, so the 117-test figure cannot be mapped to specific test files from here",
+        "JSONRPC.swift and MarkdownParser.swift are written without a directory prefix, so their exact paths are only inferable from the siblings listed beside them"
+      ]
+    }
+  ]
+}

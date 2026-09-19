@@ -1,0 +1,994 @@
+{
+  "bundle_id": "R061",
+  "reader": "R061-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-24.imageset/hydra-head-24.svg",
+      "sha256": "aaebc0cbdb4df44f463ecbd51108f016a1eb836186248f1c11c9bd660fd2fb63",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Vector glyph for Hydra persona head 24 (\"Tova\", accent 0x059669) in the 25-head HydraPersona.all roster; a spiky-crested dragon head drawn as one filled path.",
+      "key_symbols": [
+        "asset catalog name \"hydra-head-24\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\">",
+        "head outline subpath (M16.00 94.00 ... Z)",
+        "eye subpath (M63.00 38.40 ... Z)"
+      ],
+      "calls_into": [
+        "HydraPersona(\"Tova\", \"hydra-head-24\", 0x059669) in DroppyCode/Core/Models/Hydra.swift:255",
+        "SwiftUI Image(persona.asset) rendering in DroppyCode/UI/Common/HydraGlyph.swift"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode .xcassets imageset consumed by NSImage/SwiftUI Image(_:) by catalog name, not by file path",
+        "Contents.json sets \"preserves-vector-representation\": true so AppKit keeps the vector at any size",
+        "Contents.json sets \"template-rendering-intent\": \"template\" so the black fill is replaced by the tint colour"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "viewBox \"0 0 100 100\" with explicit width=\"100\" height=\"100\"",
+        "artwork fill literal \"#000000\", fill-rule \"nonzero\"",
+        "crest spikes reaching (7.00,17.00) and (20.00,5.00); right flank apex at (96.00,58.00); lower jaw runs through (90.00,88.00) and (78.00,91.00)",
+        "eye: closed 4-arc circle centre (63.00,43.00) radius 4.60, bezier offset 2.54",
+        "baseline foot runs (16.00,94.00) to (40.00,94.00)"
+      ],
+      "feature_notes": [
+        "No second dot subpath: head-24 has exactly two subpaths (body + eye), unlike hydra-head-25 and hydra-mark which add a small 1.80-radius dot",
+        "All coordinates are written to exactly two decimal places, suggesting generated rather than hand-authored path data",
+        "File is 1676 bytes on one line with no trailing newline"
+      ],
+      "unresolved_questions": [
+        "Whether the 25 head SVGs were produced by a generator (the uniform two-decimal formatting hints at it); no generator is present in the assigned files"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-25.imageset/hydra-head-25.svg",
+      "sha256": "45e8bac8d8e312fcae642d63aac130bc7e09fdee59807c166ff36734f78f84fa",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Vector glyph for Hydra persona head 25 (\"Gus\", accent 0x7DD3FC), the last entry of HydraPersona.all; a smooth-backed dragon head with an eye and a nostril dot.",
+      "key_symbols": [
+        "asset catalog name \"hydra-head-25\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\">",
+        "head outline subpath (M16.00 94.00 ... Z)",
+        "eye subpath (M63.00 38.40 ... Z)",
+        "dot subpath (M88.00 62.20 ... Z)"
+      ],
+      "calls_into": [
+        "HydraPersona(\"Gus\", \"hydra-head-25\", 0x7DD3FC) in DroppyCode/Core/Models/Hydra.swift:256",
+        "SwiftUI Image(persona.asset) rendering in DroppyCode/UI/Common/HydraGlyph.swift"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode .xcassets imageset referenced by catalog name \"hydra-head-25\"",
+        "\"preserves-vector-representation\": true keeps it crisp at arbitrary glyph sizes",
+        "\"template-rendering-intent\": \"template\" makes the #000000 fill take the persona tint"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "viewBox \"0 0 100 100\", width=\"100\", height=\"100\"",
+        "fill \"#000000\", fill-rule \"nonzero\"",
+        "back rises through (17.00,74.00) with no crest spikes; left muzzle sweeps out to (8.00,26.00); right apex (96.00,66.00); tail of path overshoots the box at (46.00,98.00)",
+        "eye: circle centre (63.00,43.00) radius 4.60, bezier offset 2.54",
+        "dot: circle centre (88.00,64.00) radius 1.80, bezier offset 0.99"
+      ],
+      "feature_notes": [
+        "Three subpaths total (body, eye, dot) versus two in hydra-head-24",
+        "The body curve passes through y=98.00, only two units above the 100-unit viewBox floor, so the shape nearly touches the bottom right edge",
+        "File is 1402 bytes on one line with no trailing newline"
+      ],
+      "unresolved_questions": [
+        "Whether the (46.00,98.00) control excursion is intentional artwork or an artefact of the path generator"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/hydra-mark.imageset/hydra-mark.svg",
+      "sha256": "26c998a5e343e9bc0e8110be443fcb5b716dec0c705f4a52a2b5066d5d3d8f72",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "The single \"Hydra mark\" logo head used by HydraMarkImage: one clean dragon head that combines head-24 crest spikes with a head-25 style smooth back, plus eye and dot.",
+      "key_symbols": [
+        "asset catalog name \"hydra-mark\"",
+        "single <path fill=\"#000000\" fill-rule=\"nonzero\">",
+        "head outline subpath",
+        "eye subpath (M63.00 38.00 ... Z)",
+        "dot subpath (M86.00 61.20 ... Z)"
+      ],
+      "calls_into": [
+        "Image(\"hydra-mark\") in DroppyCode/UI/Common/HydraGlyph.swift:219 inside struct HydraMarkImage",
+        ".resizable().renderingMode(.template).aspectRatio(contentMode: .fit) applied by HydraMarkImage"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "SwiftUI renderingMode(.template) plus the catalog \"template-rendering-intent\": \"template\" means the mark takes whatever foreground colour it is given",
+        "\"preserves-vector-representation\": true so the mark stays sharp when the SwiftUI frame resizes it"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "viewBox \"0 0 100 100\", width=\"100\", height=\"100\"",
+        "fill \"#000000\", fill-rule \"nonzero\"",
+        "crest spikes to (7.00,17.00) and (20.00,5.00) as in head-24, but a smooth back from (17.00,74.00) as in head-25",
+        "right apex (95.00,66.00), snout region through (92.00,70.00), chin through (52.00,86.00)",
+        "eye: circle centre (63.00,43.00) radius 5.00 (larger than the 4.60 used by head-24 and head-25), bezier offset 2.76",
+        "dot: circle centre (86.00,63.00) radius 1.80"
+      ],
+      "feature_notes": [
+        "This is the only one of the three hydra glyphs referenced directly by a named SwiftUI view (HydraMarkImage); the numbered heads are picked up indirectly through HydraPersona.asset",
+        "Carries no intrinsic point size beyond the 100x100 viewBox; the HydraGlyph.swift comment says it is \"Sized by its frame\"",
+        "File is 1436 bytes on one line with no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-atlassian.imageset/mcp-atlassian.svg",
+      "sha256": "bfc96e09ac5b3c7553ea422e67fc00ce636a97b26ddb9a361d0af780cb24c910",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Monochrome Atlassian chevron logo used as the catalog icon for the \"atlassian\" MCP connector entry (Jira issues and Confluence pages).",
+      "key_symbols": [
+        "asset catalog name \"mcp-atlassian\"",
+        "two <path> elements, neither carrying a fill attribute"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"atlassian\", asset: \"mcp-atlassian\", colorValue: 0x0052CC) in DroppyCode/Core/Models/MCPCatalog.swift:263"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Template rendering intent means the AppKit tint supplies the colour; the SVG itself sets none",
+        "Simple Icons style markup: role=\"img\", no width/height, sized by the SwiftUI frame"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "role=\"img\" viewBox \"0 0 24 24\"",
+        "path 1: small lower-left chevron starting \"M7.12 11.084a.683.683 0 00-1.16.126L.075 22.974a.703.703 0 00.63 1.018h8.19\"",
+        "path 2: larger upper chevron starting \"M11.434.386a15.515 15.515 0 00-.906 15.317l3.95 7.9\" and closing \"...L12.63.38a.664.664 0 00-1.196.006z\"",
+        "both feet are 8.19 units wide and sit on the y 22.974 to 23.992 baseline"
+      ],
+      "feature_notes": [
+        "No fill colour is declared anywhere, so an untinted render falls back to the default black",
+        "Paired brand colour lives in Swift as colorValue 0x0052CC, not in the SVG",
+        "File is 354 bytes on one line with no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-aws-docs.imageset/mcp-aws-docs.svg",
+      "sha256": "6765b58d698176b8d2bce7bc4c520a7f36b95cb5a3f6ae531ec39a380028a5d9",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Hand-drawn cloud-plus-document glyph for the \"aws-docs\" MCP connector (searches and reads the AWS documentation); not the official AWS wordmark.",
+      "key_symbols": [
+        "asset catalog name \"mcp-aws-docs\"",
+        "single <path> with three subpaths: cloud, document rectangle, page corner"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"aws-docs\", asset: \"mcp-aws-docs\", colorValue: 0xFF9900) in DroppyCode/Core/Models/MCPCatalog.swift:449"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset catalog template rendering supplies the colour; the markup declares no fill",
+        "No role=\"img\": this is bespoke artwork, not a Simple Icons import"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "viewBox \"0 0 24 24\", no width/height",
+        "cloud subpath \"M6.5 19a4.5 4.5 0 0 1-.42-8.98 6.5 6.5 0 0 1 12.66.8A4 4 0 0 1 18 19H6.5z\" with arc radii 4.5, 6.5 and 4",
+        "document subpath \"M14 8h4.5v9H14z\" (4.5 wide, 9 tall, top-left at 14,8)",
+        "page-corner triangle \"M14.7 9.4h3.1L14.7 12z\""
+      ],
+      "feature_notes": [
+        "Smallest cloud glyph in the bundle at 188 bytes on one line with no trailing newline",
+        "Document rectangle overlaps the cloud body and no fill-rule is set, so with nonzero filling the page merges into the cloud rather than knocking out"
+      ],
+      "unresolved_questions": [
+        "Whether the overlapping document was meant to knock out of the cloud; no fill-rule=\"evenodd\" is present to make that happen"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-brave-search.imageset/mcp-brave-search.svg",
+      "sha256": "7038d3d9a08e044f8575b7afbd49762c3639265368e908f5bc64cd79badac6b7",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Brave lion-in-shield brand mark for the \"brave-search\" MCP connector entry (searches the web, local places and news).",
+      "key_symbols": [
+        "asset catalog name \"mcp-brave-search\"",
+        "one long <path> covering shield outline, muzzle and both mane halves"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"brave-search\", asset: \"mcp-brave-search\", colorValue: 0xFB542B) in DroppyCode/Core/Models/MCPCatalog.swift:146"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Template-tinted asset catalog image; the SVG declares no fill",
+        "Simple Icons markup with role=\"img\" and no intrinsic size"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "role=\"img\" viewBox \"0 0 24 24\"",
+        "shield outline begins \"M15.68 0l2.096 2.38s1.84-.512 2.709.358c.868.87 1.584 1.638 1.584 1.638l-.562 1.381.715 2.047\" and closes across the top edge with \"h7.36z\"",
+        "muzzle subpath begins \"M12.001 14.936c-.14 0-1.038.317-1.758.69-.72.373-1.242.637-1.409.742\"",
+        "mane subpath begins \"M12.001 3.658s-.409.001-1.022.206-1.278.46-1.584.46c-.307 0-2.581-.434-2.581-.434\"",
+        "recurring 2.581 and 2.695 offsets drive the symmetric mane halves"
+      ],
+      "feature_notes": [
+        "At 2094 bytes this is the second-largest SVG in the bundle after mcp-huggingface (3000 bytes)",
+        "All three logical shapes are filled by one path with no fill-rule, so the muzzle and mane read as cutouts only where winding cancels",
+        "One line, no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-chrome-devtools.imageset/mcp-chrome-devtools.svg",
+      "sha256": "55c2c0d61699cf71e9dda8039c533bf29a3279f40d46c8a01ad3bb4e3698dad1",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Google Chrome tri-lobe logo used for the \"chrome-devtools\" MCP connector (inspects pages, console messages and performance traces).",
+      "key_symbols": [
+        "asset catalog name \"mcp-chrome-devtools\"",
+        "single <path> with four subpaths: three outer lobes and the centre disc"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"chrome-devtools\", asset: \"mcp-chrome-devtools\", colorValue: 0x4285F4) in DroppyCode/Core/Models/MCPCatalog.swift:55"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Template rendering flattens the four Chrome brand colours to one tint; the SVG ships colourless",
+        "Simple Icons markup, role=\"img\", sized by the SwiftUI frame"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "role=\"img\" viewBox \"0 0 24 24\"",
+        "top lobe \"M12 0C8.21 0 4.831 1.757 2.632 4.501l3.953 6.848A5.454 5.454 0 0 1 12 6.545h10.691A12 12 0 0 0 12 0z\"",
+        "left lobe starts \"M1.931 5.47A11.943 11.943 0 0 0 0 12c0 6.012 4.42 10.991 10.189 11.864l3.953-6.847a5.45 5.45 0 0 1-6.865-2.29z\"",
+        "right lobe starts \"M15.273 7.636a5.446 5.446 0 0 1 1.45 7.09\" and contains the literal fragment \"(.002.001h-.002h-.002)\" followed by the 5.344-unit 9.257 leg",
+        "centre disc \"M12 16.364a4.364 4.364 0 1 1 0-8.728 4.364 4.364 0 0 1 0 8.728Z\" — radius 4.364 centred (12,12)"
+      ],
+      "feature_notes": [
+        "Mixed-case close commands: the centre disc uses uppercase Z while the lobes use lowercase z, carried over from the Simple Icons source",
+        "507 bytes, one line, no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-cloudflare.imageset/mcp-cloudflare.svg",
+      "sha256": "e03d51e40d6149bacfaaa77601e2d982a8c3e39435f984493b17144df2e442b0",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Cloudflare double-cloud brand mark for the \"cloudflare\" MCP connector entry (Workers, storage buckets and databases).",
+      "key_symbols": [
+        "asset catalog name \"mcp-cloudflare\"",
+        "single <path> holding the large left cloud and the smaller right cloud"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"cloudflare\", asset: \"mcp-cloudflare\", colorValue: 0xF38020) in DroppyCode/Core/Models/MCPCatalog.swift:312"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Asset catalog template tinting; no fill declared in the markup",
+        "Simple Icons role=\"img\" markup with 4-decimal coordinates"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "role=\"img\" viewBox \"0 0 24 24\"",
+        "main cloud starts \"M16.5088 16.8447c.1475-.5068.0908-.9707-.1553-1.3154c-.2246-.3164-.6045-.499-1.0615-.5205\" and its base spans x 0 to about 16 near y 17.4",
+        "secondary cloud starts \"M19.2656 11.2813c-.0771 0-.1611 0-.2383.0112\" and closes with a 6.5977-wide right shoulder",
+        "the 8.6592-unit and 8.7359-unit spans set the wide flat top of the main cloud",
+        "coordinates carry 4 decimal places, for example 16.8447, .5068, 1.3154"
+      ],
+      "feature_notes": [
+        "The second cloud subpath has no explicit close command; the data ends at \"4.727\" before the closing quote",
+        "1153 bytes, one line, no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-context7.imageset/mcp-context7.svg",
+      "sha256": "a1fb2afa42fea60d11a7b57cbdda4a0016d36e72dc82caf6aaf0dc651d3dea08",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Bespoke rounded-square-with-7 glyph for the \"context7\" MCP connector (fresh docs and examples for the libraries you use).",
+      "key_symbols": [
+        "asset catalog name \"mcp-context7\"",
+        "path 1 with fill-rule=\"evenodd\" (the frame)",
+        "path 2 (the numeral 7)"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"context7\", asset: \"mcp-context7\", colorValue: 0x5B8DEF) in DroppyCode/Core/Models/MCPCatalog.swift:67"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Relies on evenodd fill support to punch the inner square out of the rounded frame",
+        "Template-tinted asset catalog image; no fill colour declared"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "viewBox \"0 0 24 24\", no width/height, no role attribute",
+        "frame: \"M8 3h8a5 5 0 0 1 5 5v8a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5z\" — corner radius 5, inset 3 on each side",
+        "knockout: \"M6.5 6.5v11h11v-11h-11z\" — an 11x11 square at (6.5,6.5), leaving a 3.5-thick ring at the flats",
+        "numeral 7: crossbar \"M9 9h6v2.4H9z\" and diagonal leg \"M15 11.4h-2.4L10.4 17.2h2.4z\""
+      ],
+      "feature_notes": [
+        "fill-rule=\"evenodd\" on the frame path is load-bearing: without it the inner square would not knock out and the icon would be a solid rounded block",
+        "243 bytes, one line, no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-deepwiki.imageset/mcp-deepwiki.svg",
+      "sha256": "bd9a7d251af2e0c6f8fbad8af624b95a3fe3d36dd4da5b937593fa9a51c1f141",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Bespoke open-book glyph for the \"deepwiki\" MCP connector (reads docs and answers questions about repos), drawn as two mirrored page paths.",
+      "key_symbols": [
+        "asset catalog name \"mcp-deepwiki\"",
+        "left page <path>",
+        "right page <path>"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"deepwiki\", asset: \"mcp-deepwiki\", colorValue: 0x1D1D1F, isMonochrome: true) in DroppyCode/Core/Models/MCPCatalog.swift:436"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Template rendering intent; the two paths carry no fill of their own",
+        "No role attribute: bespoke artwork rather than a brand import"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "viewBox \"0 0 24 24\", no width/height",
+        "left page \"M12 5.5C10 4.2 7.2 3.6 4 3.6v14.8c3.2 0 6 .6 8 1.9V5.5z\"",
+        "right page \"M12 5.5c2-1.3 4.8-1.9 8-1.9v14.8c-3.2 0-6 .6-8 1.9V5.5z\"",
+        "pages meet on the spine at x=12; outer edges at x=4 and x=20; top at y=3.6, page height 14.8"
+      ],
+      "feature_notes": [
+        "The two pages are exact mirrors about x=12 and share the spine edge, so a single tint renders as one solid book with no visible gutter",
+        "200 bytes, one line, no trailing newline"
+      ],
+      "unresolved_questions": [
+        "Whether the spine was meant to show as a hairline; as shipped the mirrored halves abut with no separating stroke or gap"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-exa.imageset/mcp-exa.svg",
+      "sha256": "c0b2c677808e660a38c579824e52f21bded72d26ebcba545b11341e7628a6505",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Bespoke magnifying-glass glyph for the \"exa\" MCP connector (searches the web and reads pages, with code-focused answers).",
+      "key_symbols": [
+        "asset catalog name \"mcp-exa\"",
+        "single <path fill-rule=\"evenodd\"> with outer lens, inner lens knockout and handle"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"exa\", asset: \"mcp-exa\", colorValue: 0x1F4FFF) in DroppyCode/Core/Models/MCPCatalog.swift:175"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Needs evenodd fill so the inner circle leaves a ring rather than a disc",
+        "Template-tinted asset catalog image"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "viewBox \"0 0 24 24\", no width/height",
+        "outer lens \"M10 3.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13z\" — radius 6.5 centred (10,10)",
+        "inner lens \"M10 5.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z\" — radius 4.5, so the ring is 2 units thick",
+        "handle \"M13.6 15.4l1.4-1.4 5.2 5.2-1.4 1.4z\" — a 45-degree bar running to (20.2,20.6)"
+      ],
+      "feature_notes": [
+        "Lens is offset up and left of centre (10,10 in a 24-unit box) to leave room for the handle in the lower right",
+        "223 bytes, one line, no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-fetch.imageset/mcp-fetch.svg",
+      "sha256": "9185d8f63a64dd56c77318882c2e0e3d9e0476a1f2d3b1baf7f30a3db3f8a397",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Bespoke wire-globe glyph for the \"fetch\" MCP connector (downloads web pages as plain text to read).",
+      "key_symbols": [
+        "asset catalog name \"mcp-fetch\"",
+        "single <path fill-rule=\"evenodd\"> with outer disc, two latitude bands and a meridian half"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"fetch\", asset: \"mcp-fetch\", colorValue: 0x0A84FF) in DroppyCode/Core/Models/MCPCatalog.swift:98"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Depends on evenodd fill to knock the latitude bands and the meridian out of the disc",
+        "Template-tinted asset catalog image; no fill colour in markup"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "viewBox \"0 0 24 24\", no width/height",
+        "globe \"M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z\" — radius 9 centred (12,12)",
+        "lower band \"M4.5 12h15a7 7 0 0 1-1.4 4.2h-12.2A7 7 0 0 1 4.5 12z\"",
+        "upper band \"M5.9 7.8h12.2A7 7 0 0 1 12 5a7 7 0 0 1-6.1 2.8z\"",
+        "meridian \"M12 5.5v13a6.5 6.5 0 0 0 0-13z\" — a half-lens on the right of the vertical axis"
+      ],
+      "feature_notes": [
+        "Both bands use a 7-unit arc radius against the 9-unit outer circle, so the rim stays 2 units thick where they cut",
+        "263 bytes, one line, no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-figma.imageset/mcp-figma.svg",
+      "sha256": "fe6b827450992549f7041f1beb7dc8e32394b7010e6c4a8d5258e2eec537c960",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Figma five-shape brand mark for the \"figma\" MCP connector entry (design details and screenshots from files).",
+      "key_symbols": [
+        "asset catalog name \"mcp-figma\"",
+        "single <path> containing all five Figma shapes, each written as an outer contour immediately followed by its inner contour"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"figma\", asset: \"mcp-figma\", colorValue: 0xF24E1E) in DroppyCode/Core/Models/MCPCatalog.swift:275"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Template tinting flattens the five Figma brand colours to one; the SVG ships colourless",
+        "Simple Icons role=\"img\" markup"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "role=\"img\" viewBox \"0 0 24 24\"",
+        "top-right shape \"M15.852 8.981h-4.588V0h4.588c2.476 0 4.49 2.014 4.49 4.49s-2.014 4.491-4.49 4.491z\"",
+        "recurring geometry: 4.49 outer capsule radius, 3.019 inner radius, 4.588 shape width, 1.471 contour gap",
+        "bottom-left circle-with-tail \"M8.172 24c-2.489 0-4.515-2.014-4.515-4.49s2.014-4.49 4.49-4.49h4.588v4.441c0 2.503-2.047 4.539-4.563 4.539z\"",
+        "right disc \"M15.852 16.49h-.098c-2.476 0-4.49-2.014-4.49-4.49s2.014-4.49 4.49-4.49h.098c2.476 0 4.49 2.014 4.49 4.49s-2.014 4.49-4.49 4.49z\""
+      ],
+      "feature_notes": [
+        "No fill-rule is declared, so the outer/inner contour pairs rely on nonzero winding to read as rings",
+        "The bottom-left shape is the only one whose height (4.441 plus the 4.539 lobe) differs from the uniform 8.981 stack height",
+        "1073 bytes, one line, no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-filesystem.imageset/mcp-filesystem.svg",
+      "sha256": "f38056c9f99f483da6c4b3285ea09de54cea42e5a560c58d5c948b37f4a222b9",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Bespoke rounded folder glyph for the \"filesystem\" MCP connector (reads, writes and searches files in one folder).",
+      "key_symbols": [
+        "asset catalog name \"mcp-filesystem\"",
+        "single <path> tracing one closed folder outline with no holes"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"filesystem\", asset: \"mcp-filesystem\", colorValue: 0x8E8E93) in DroppyCode/Core/Models/MCPCatalog.swift:83"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Template-tinted asset catalog image; no fill in markup",
+        "No role attribute: bespoke artwork"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "viewBox \"0 0 24 24\", no width/height",
+        "path \"M2 6c0-1.1.9-2 2-2h4l2 2h8c1.1 0 2 .9 2 2v10c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6z\"",
+        "corner radius 2 on all four corners (expressed as the 1.1/0.9 bezier pair)",
+        "tab notch made by \"h4l2 2\" giving a 4-wide tab and a 2x2 diagonal riser",
+        "body spans x 2 to 20 and y 4 to 20, so the folder is 18 wide and 16 tall"
+      ],
+      "feature_notes": [
+        "At 158 bytes this is the smallest file in the bundle and the only asset whose whole artwork is a single closed contour",
+        "One line, no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-firecrawl.imageset/mcp-firecrawl.svg",
+      "sha256": "2ed412419856d3483bf80231ba4931785657258b93a0438ed040d9e4f095208d",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Bespoke flame glyph for the \"firecrawl\" MCP connector (scrapes, searches and maps whole websites).",
+      "key_symbols": [
+        "asset catalog name \"mcp-firecrawl\"",
+        "single <path> with an outer flame subpath and an inner flame-core subpath"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"firecrawl\", asset: \"mcp-firecrawl\", colorValue: 0xFF6B1A) in DroppyCode/Core/Models/MCPCatalog.swift:187"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Template-tinted asset catalog image; no fill declared",
+        "No role attribute: bespoke artwork whose geometry matches the Material \"whatshot\" flame family"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "viewBox \"0 0 24 24\", no width/height",
+        "outer flame starts \"M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73\" and rests on \"C4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8\"",
+        "inner flame \"M11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z\"",
+        "flame tip starts at y=0.67; base circle centred (12,14) with radius 8"
+      ],
+      "feature_notes": [
+        "No fill-rule is declared, so whether the inner flame reads as a hole depends on its winding direction",
+        "383 bytes, one line, no trailing newline"
+      ],
+      "unresolved_questions": [
+        "Whether the inner flame is intended as a knockout; the data alone does not make the winding direction obvious"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-git.imageset/mcp-git.svg",
+      "sha256": "92e8ed3dda4bdc880d12e73543f1811e964519ad87d84cff91187e7c2465e31d",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Git lozenge brand mark (rotated square with branch nodes) for the \"git\" MCP connector (status, diffs, history and commits for a repo).",
+      "key_symbols": [
+        "asset catalog name \"mcp-git\"",
+        "single <path> combining the rotated-square outline with the commit-node circles and the branch stem"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"git\", asset: \"mcp-git\", colorValue: 0xF05032) in DroppyCode/Core/Models/MCPCatalog.swift:134"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Template-tinted asset catalog image; no fill in markup",
+        "Simple Icons role=\"img\" markup"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "role=\"img\" viewBox \"0 0 24 24\"",
+        "path starts \"M13.09 23.549a1.54 1.54 0 0 1-2.18 0L.451 13.089a1.54 1.54 0 0 1 0-2.179l7.191-7.19l2.733 2.733\"",
+        "lozenge corner radius 1.54; each diagonal side spans 10.459 to 10.46 units",
+        "node radius 1.85 for the commit dots, 1.849 for the vertical branch stem, stem height 6.66",
+        "branch elbow at \"2.508 2.508\" leading into the upper-right node"
+      ],
+      "feature_notes": [
+        "The whole mark, outline plus nodes plus stem, is one continuous path expression rather than separate elements",
+        "408 bytes, one line, no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-github.imageset/mcp-github.svg",
+      "sha256": "3629791d9f13ef7a51c2b0a9706b366d264a2c1e9a06bb2b77c3598bc99bd6b6",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "GitHub Octocat brand mark for the \"github\" MCP connector entry (issues, pull requests and code across your repositories).",
+      "key_symbols": [
+        "asset catalog name \"mcp-github\"",
+        "single <path> tracing the whole Octocat silhouette"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"github\", asset: \"mcp-github\", colorValue: 0x24292F, isMonochrome: true) in DroppyCode/Core/Models/MCPCatalog.swift:11"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Template-tinted asset catalog image; the artwork ships colourless",
+        "Simple Icons role=\"img\" markup"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "role=\"img\" viewBox \"0 0 24 24\"",
+        "path begins \"M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385c.6.113.82-.258.82-.577\"",
+        "ends \"...C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12\"",
+        "circle is effectively centred (12,12.297) with radius 12; the tail hook starts at the \"M12 .297\" move",
+        "recurring 5.466/5.475 values set the two arm hollows"
+      ],
+      "feature_notes": [
+        "The path has no explicit close command; the final \"c0-6.627-5.373-12-12-12\" returns to the start point implicitly",
+        "This is the classic pre-2022 Octocat outline rather than the newer invertocat cut",
+        "801 bytes, one line, no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-gitlab.imageset/mcp-gitlab.svg",
+      "sha256": "6c895649b78119e5167eccaa36c2a4c45bca20728deea4f0c2647828ce156a7a",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "GitLab tanuki (fox-face) brand mark for the \"gitlab\" MCP connector (issues, merge requests, pipelines and code across your projects).",
+      "key_symbols": [
+        "asset catalog name \"mcp-gitlab\"",
+        "single <path> forming the six-segment tanuki"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"gitlab\", asset: \"mcp-gitlab\", colorValue: 0xFC6D26) in DroppyCode/Core/Models/MCPCatalog.swift:28"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Template-tinted asset catalog image; the multi-orange original is reduced to one tint",
+        "Simple Icons role=\"img\" markup with 4-decimal coordinates"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "role=\"img\" viewBox \"0 0 24 24\"",
+        "path begins \"M23.6004 9.5927l-.0337-.0862L20.3.9814a.851.851 0 0 0-.3362-.405.8748.8748 0 0 0-.9997.0539\"",
+        "shoulder spikes use the 2.2055 and 2.2057 offsets against the 6.748 top-edge bar on both sides",
+        "the fan uses 6.0657 and 6.0682 arc radii for the two blur passes",
+        "apex leg pairs 1.4995 and 2.4619/2.462 drive the symmetric lower V",
+        "ends \"...a6.0682 6.0682 0 0 0 2.0094-7.003z\""
+      ],
+      "feature_notes": [
+        "One of only two files in the bundle that end with a newline (wc -l reports 1); the other is mcp-netlify.svg",
+        "555 bytes total"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-huggingface.imageset/mcp-huggingface.svg",
+      "sha256": "5c9441068746b8212292a5e6df93367aab9ed15d98427ff011ffec3dc89c5c39",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Hugging Face smiling-face-with-hands brand mark for the \"huggingface\" MCP connector (searches models, datasets and papers).",
+      "key_symbols": [
+        "asset catalog name \"mcp-huggingface\"",
+        "single <path> with head, two eyes, two cheeks, mouth and both hands as subpaths"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"huggingface\", asset: \"mcp-huggingface\", colorValue: 0xFFB000) in DroppyCode/Core/Models/MCPCatalog.swift:420"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Template-tinted asset catalog image; the original yellow face and pink hands collapse to one tint",
+        "Simple Icons role=\"img\" markup"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "role=\"img\" viewBox \"0 0 24 24\"",
+        "head begins \"M12.025 1.13c-5.77 0-10.449 4.647-10.449 10.378 0 1.112.178 2.181.503 3.185\" — head radius 10.449 centred near (12.025,11.508)",
+        "left eye \"M8.327 6.583a1.5 1.5 0 0 1 .713.174 1.487 1.487 0 0 1 .617 2.013c-.183.343-.762-.214-1.102-.094\"",
+        "right eye \"M15.813 6.583a1.487 1.487 0 0 1 .689 2.803c-.385.204-.536-.576-.916-.71\"",
+        "cheeks: two 0.96-radius circles written as \"a.96.96 0 1 1 0 1.921\" and \"a.96.96 0 1 1 0 1.92\"",
+        "mouth begins \"M8.489 11.458c.588.01 1.965 1.157 3.572 1.164 1.607-.007 2.984-1.155 3.572-1.164\"",
+        "left hand \"M9.325 21.812c.824-1.19.766-2.082-.365-3.194-1.13-1.112-1.789-2.738-1.789-2.738\" and mirrored right hand \"M14.674 21.812c-.824-1.19-.766-2.082.365-3.194\""
+      ],
+      "feature_notes": [
+        "Largest file in the bundle at 3000 bytes on one line with no trailing newline",
+        "The only asset here that uses the quadratic shorthand \"q\" command (for example \"q-.011.001-.02.006\" and \"q.049.088.11.19\"); every other icon stays on c/l/a commands"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-linear.imageset/mcp-linear.svg",
+      "sha256": "54938d1eab5b1c629d6c49ba20ee27c99554bfd3113b28ab4c0323508e5ccac3",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Linear brand mark (four nested diagonal slabs clipped to a disc) for the \"linear\" MCP connector (issues and projects in your Linear teams).",
+      "key_symbols": [
+        "asset catalog name \"mcp-linear\"",
+        "single <path> with four parallel diagonal subpaths"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"linear\", asset: \"mcp-linear\", colorValue: 0x5E6AD2) in DroppyCode/Core/Models/MCPCatalog.swift:251"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Template-tinted asset catalog image; no fill in markup",
+        "Simple Icons role=\"img\" markup, every subpath closed with uppercase Z"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "role=\"img\" viewBox \"0 0 24 24\"",
+        "slab 1 \"M2.886 4.18A11.982 11.982 0 0 1 11.99 0C18.624 0 24 5.376 24 12.009c0 3.64-1.62 6.903-4.18 9.105L2.887 4.18Z\"",
+        "slab 2 \"M1.817 5.626l16.556 16.556c-.524.33-1.075.62-1.65.866L.951 7.277c.247-.575.537-1.126.866-1.65Z\"",
+        "slab 3 \"M.322 9.163l14.515 14.515c-.71.172-1.443.282-2.195.322L0 11.358a12 12 0 0 1 .322-2.195Z\"",
+        "slab 4 \"M.152 14.025l9.823 9.824a12.02 12.02 0 0 1-9.824-9.824Z\""
+      ],
+      "feature_notes": [
+        "The four slabs are clipped by a 12-radius circle at (12,12), which is why each carries a slightly different arc radius (11.982, 12, 12.02)",
+        "432 bytes, one line, no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-memory.imageset/mcp-memory.svg",
+      "sha256": "c51a875465cf80cd3af37bd092989ac07cd32ca9d8ac1c5a13a9db5d3b7927ec",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Bespoke stacked-cards glyph for the \"memory\" MCP connector (remembers people, facts and how they connect).",
+      "key_symbols": [
+        "asset catalog name \"mcp-memory\"",
+        "three <rect> elements"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"memory\", asset: \"mcp-memory\", colorValue: 0xAF52DE) in DroppyCode/Core/Models/MCPCatalog.swift:110"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Template-tinted asset catalog image; no fill in markup",
+        "Relies on the renderer honouring <rect rx> rather than path data, unlike every other asset in this bundle"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "viewBox \"0 0 24 24\", no width/height, no role attribute",
+        "rect 1 x=\"2\" y=\"9\" width=\"13\" height=\"11\" rx=\"2\"",
+        "rect 2 x=\"5.5\" y=\"6.5\" width=\"13\" height=\"11\" rx=\"2\"",
+        "rect 3 x=\"9\" y=\"4\" width=\"13\" height=\"11\" rx=\"2\"",
+        "uniform 13x11 card size with rx 2, a fixed 3.5 right and 2.5 up offset between cards; overall bounds x 2 to 22, y 4 to 20"
+      ],
+      "feature_notes": [
+        "The only asset in the bundle built from <rect> elements instead of <path> data",
+        "Because all three cards take the same tint and none is stroked, a flat render merges them into one stepped silhouette rather than three distinct cards",
+        "Document order puts the lowest card first, so the top-right card paints last",
+        "217 bytes, one line, no trailing newline"
+      ],
+      "unresolved_questions": [
+        "Whether the cards were meant to be outlined or separated so the stack reads as layers; no stroke or background fill is present"
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-mongodb.imageset/mcp-mongodb.svg",
+      "sha256": "9196da9755289d0afb9928fceb4a304032060ee1214d181390ea7bb56c89aa82",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "MongoDB leaf brand mark for the \"mongodb\" MCP connector (finds and changes documents in your collections).",
+      "key_symbols": [
+        "asset catalog name \"mcp-mongodb\"",
+        "single <path> with the leaf body and the central vein subpath"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"mongodb\", asset: \"mcp-mongodb\", colorValue: 0x47A248) in DroppyCode/Core/Models/MCPCatalog.swift:403"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Template-tinted asset catalog image; the three-tone green original reduces to one tint",
+        "Simple Icons role=\"img\" markup"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "role=\"img\" viewBox \"0 0 24 24\"",
+        "leaf begins \"M17.193 9.555c-1.264-5.58-4.252-7.414-4.573-8.115-.28-.394-.53-.954-.735-1.44-.036.495-.055.685-.523 1.184\"",
+        "right flank uses the 11.342 arc radius and the \"-.282 5.912 4.27 9.435 4.888 9.884\" sweep; stem flare uses a 73.49 arc",
+        "vein \"M11.857 17.75s0-8.291.275-8.29c.213 0 .49 10.695.49 10.695-.381-.045-.765-1.76-.765-2.405z\"",
+        "leaf tip near (12,0), foot at y=24 with the 0.481 offset for the stem base"
+      ],
+      "feature_notes": [
+        "The vein subpath is a very thin sliver (its width is driven by the 0.275 offset), so once tinted it can disappear entirely at small sizes",
+        "505 bytes, one line, no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-netlify.imageset/mcp-netlify.svg",
+      "sha256": "ad6d8fb1d1d463603b834ecf87f67082b05a27a6fd6104fb7b22b0af60d4237b",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Netlify brand mark (the diamond and rays glyph) for the \"netlify\" MCP connector (sites, deploys, forms and environment variables).",
+      "key_symbols": [
+        "asset catalog name \"mcp-netlify\"",
+        "single <path> made of eight subpaths: two ray arms, the central N, two horizontal bars and two vertical spokes"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"netlify\", asset: \"mcp-netlify\", colorValue: 0x00C7B7) in DroppyCode/Core/Models/MCPCatalog.swift:324"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Template-tinted asset catalog image; no fill in markup",
+        "Simple Icons role=\"img\" markup, subpaths closed with uppercase Z"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "role=\"img\" viewBox \"0 0 24 24\"",
+        "lower-left arm \"M6.49 19.04h-.23L5.13 17.9v-.23l1.73-1.71h1.2l.15.15v1.2L6.5 19.04Z\"",
+        "upper-left arm \"M5.13 6.31V6.1l1.13-1.13h.23L8.2 6.68v1.2l-.15.15h-1.2L5.13 6.31Z\"",
+        "central N \"M15.09 15.4h-1.65l-.14-.13v-3.83c0-.68-.27-1.2-1.1-1.23-.42 0-.9 0-1.43.02l-.07.08v4.96l-.14.14H8.9l-.13-.14V8.73l.13-.14h3.7a2.6 2.6 0 0 1 2.61 2.6v4.08l-.13.14Z\"",
+        "left bar \"M6.72 12.96H.14L0 12.82v-1.64l.14-.14h6.58l.14.14v1.64l-.14.14Z\"; right bar mirrors it out to x=24",
+        "top spoke \"M11.05 6.55V1.64l.14-.14h1.65l.14.14v4.9l-.14.14h-1.65l-.14-.13Z\"; bottom spoke runs y 17.46 to 22.36",
+        "uniform 0.14/0.15 bevel inset and 1.64/1.65 bar thickness throughout; the N body uses a 2.6 corner radius"
+      ],
+      "feature_notes": [
+        "One of only two files in the bundle ending with a newline (wc -l reports 1); the other is mcp-gitlab.svg",
+        "Every subpath repeats the same 0.14-unit mitre bevel, which is what gives the mark its cut-corner look at large sizes",
+        "636 bytes total"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-notion.imageset/mcp-notion.svg",
+      "sha256": "9653926ee5ac181204e2e352f2b09e79d0e6ba800f95458c30bbbe6348649b63",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Notion brand mark (the N inside a tilted page) for the \"notion\" MCP connector (finds and edits pages in your workspace).",
+      "key_symbols": [
+        "asset catalog name \"mcp-notion\"",
+        "single <path> with four subpaths: page top bevel, page body, inner N, and outer frame"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"notion\", asset: \"mcp-notion\", colorValue: 0x000000, isMonochrome: true) in DroppyCode/Core/Models/MCPCatalog.swift:238"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Template-tinted asset catalog image; the Swift entry marks it isMonochrome: true with colorValue 0x000000",
+        "Simple Icons role=\"img\" markup"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "role=\"img\" viewBox \"0 0 24 24\"",
+        "top bevel \"M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466z\"",
+        "page body \"M5.252 7.288v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933z\"",
+        "inner N \"M19.589 8.033c.093.42 0 .84-.42.888l-.7.14v10.264\" with the 4.577-unit and 7.186-unit diagonal that forms the N stroke",
+        "outer frame \"M1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934...\""
+      ],
+      "feature_notes": [
+        "No fill-rule is declared, so the page interior and the N counter rely on winding direction to read as knockouts",
+        "957 bytes, one line, no trailing newline"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/mcp-perplexity.imageset/mcp-perplexity.svg",
+      "sha256": "e05c84d7b222e6ee9efd1dab6fb005752d900841aedf669b2dc672d04d479abb",
+      "lines_total": 1,
+      "ranges_read": [
+        [
+          1,
+          1
+        ]
+      ],
+      "purpose": "Perplexity brand mark (the angular split-page glyph) for the \"perplexity\" MCP connector (asks the web and answers with sources).",
+      "key_symbols": [
+        "asset catalog name \"mcp-perplexity\"",
+        "single <path> with the outer frame subpath and four inner diagonal panel subpaths"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id: \"perplexity\", asset: \"mcp-perplexity\", colorValue: 0x20808D) in DroppyCode/Core/Models/MCPCatalog.swift:204"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Template-tinted asset catalog image; no fill declared",
+        "Simple Icons role=\"img\" markup with 4-decimal coordinates"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "role=\"img\" viewBox \"0 0 24 24\"",
+        "outer shape \"M22.3977 7.0896h-2.3106V.0676l-7.5094 6.3542V.1577h-1.1554v6.1966L4.4904 0v7.0896H1.6023v10.3976h2.8882V24l6.932-6.3591v6.2005h1.1554v-6.0469l6.9318 6.1807v-6.4879h2.8882V7.0896z\"",
+        "inner panel \"M18.9318 2.5586v4.531h-5.355l5.355-4.531z\"",
+        "inner panel \"M5.6458 2.6262l4.8691 4.4634H5.6458V2.6262z\"",
+        "inner panels \"M2.7576 16.332V8.245h7.8476l-6.1149 6.1147v1.9723H2.7576z\" and \"M20.4098 16.3968h-1.733v-1.9723L13.3948 8.245h7.8478v8.087z\"",
+        "vertical hairlines are 1.1554 units wide; the side rails are 2.8882 units wide; the inner panel field is 10.3976 tall"
+      ],
+      "feature_notes": [
+        "The mark is built entirely from axis-aligned segments and 45-degree diagonals, with no arc commands anywhere in the path",
+        "593 bytes, one line, no trailing newline"
+      ],
+      "unresolved_questions": []
+    }
+  ]
+}

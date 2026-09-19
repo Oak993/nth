@@ -1,0 +1,125 @@
+{
+  "bundle_id": "R011",
+  "reader": "R011-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Chat/TimelineMinimap.swift",
+      "sha256": "c37079ee185315f32e87a7173914152dd65f536b7a5689a2ada493f58406954b",
+      "lines_total": 449,
+      "ranges_read": [[1, 449]],
+      "purpose": "Implements the chat timeline minimap: the slim vertical rail on the left edge of the chat column that draws one small tick per message the user sent, lights the tick for the block currently on screen, shows a Liquid Glass preview card on hover, and lets the reader tap or drag-scrub to jump to a message. Contains the outline model (TimelineMinimapEntry), the outline builder with its title/snippet/weight heuristics (enum TimelineMinimap), three layered views for render-cost isolation (TimelineMinimapColumn, MinimapSelection, TimelineMinimapRail), the pure geometry struct (MinimapRailMetrics) and a fixed-rect hit-test Shape (RailHitArea).",
+      "key_symbols": [
+        "struct TimelineMinimapEntry: Identifiable, Hashable { let id: String; let title: String; let snippet: String; let weight: Double }",
+        "enum TimelineMinimap (namespace-only enum, no cases)",
+        "@MainActor static func TimelineMinimap.entries(for blocks: [DisplayBlock]) -> [TimelineMinimapEntry]",
+        "@MainActor private static func TimelineMinimap.entry(for block: DisplayBlock) -> TimelineMinimapEntry?",
+        "@MainActor private static var TimelineMinimap.entryCache = RecentCache<String, TimelineMinimapEntry>(limit: 400)",
+        "@MainActor private static func TimelineMinimap.userEntry(id:message:) -> TimelineMinimapEntry",
+        "private static func TimelineMinimap.userTitle(for message: UserMessage) -> String",
+        "@MainActor private static func TimelineMinimap.userMessage(of entry: TimelineEntry) -> UserMessage?",
+        "private static func TimelineMinimap.firstWords(_ text: String, limit: Int) -> String",
+        "private static func TimelineMinimap.preview(_ text: String, limit: Int = 160) -> String",
+        "private static func TimelineMinimap.weight(of text: String) -> Double",
+        "struct TimelineMinimapColumn: View, Equatable (blocks, tracking, centerHeight, onNavigate)",
+        "nonisolated static func == for TimelineMinimapColumn (blocks ==, tracking ===, centerHeight ==)",
+        "private struct MinimapOutlineBlock: Equatable { let id: String; let hasUserMessage: Bool }",
+        "private struct MinimapSelection: View (entries, outline, tracking, centerHeight, onNavigate; private var activeID)",
+        "struct TimelineMinimapRail: View, Equatable (entries, centerHeight, selectedID, onNavigate)",
+        "nonisolated static func == for TimelineMinimapRail (entries, centerHeight, selectedID)",
+        "TimelineMinimapRail private computed: isExpanded, baseOpacity, hoverAnimation, hoveredEntry",
+        "TimelineMinimapRail private funcs: releaseCursor(), ticks(metrics:), tick(for:), tickWidth(for:isHovered:isSelected:), previewCard(for:metrics:railHeight:), estimatedCardHeight(_:), indexOf(_:), scrubGesture(metrics:)",
+        "private static let TimelineMinimapRail.cardWidth: CGFloat = 300",
+        "private struct MinimapRailMetrics (static tickHeight = 2, private static roomySpacing = 8, private static tightestSpacing = 2, let spacing, let topInset, init(centeringHeight:count:), private var pitch, centerY(for:), entryID(at:entries:), private static var chromeClearance, hitRect(count:railSize:))",
+        "private struct RailHitArea: Shape { let rect: CGRect; func path(in _: CGRect) -> Path }"
+      ],
+      "calls_into": [
+        "DisplayBlock enum and its cases: .turn(id, _, entries, _, _), .group(.single(entry), _, _), .group(.work, _, _), .group(.heads, _, _), .working, .merging, .headsWorking",
+        "DisplayBlock.id and DisplayBlock.hasUserMessage",
+        "TimelineEntry (entry.id, entry.item.content)",
+        "TimelineItem content case .user(UserMessage)",
+        "UserMessage.text, UserMessage.attachments; attachment.isImage, attachment.name",
+        "RecentCache<Key, Value> with init(limit:), .value(for:), .insert(_:for:)",
+        "TimelineScrollTracking (reference type, compared with ===; reads .activeBlockID)",
+        "WindowLiveResize via @Environment(WindowLiveResize.self); reads .isActive",
+        "Chrome.accent, Chrome.primaryText, Chrome.secondaryText, Chrome.cardCornerRadius (16), Chrome.chromeTopPadding (12), Chrome.capsuleHeight",
+        "AppKit NSCursor.pointingHand.push() and NSCursor.pop()",
+        "SwiftUI: GeometryReader, ZStack, VStack, HStack, ForEach, RoundedRectangle, Color.clear, Spacer, Text, Path, DragGesture, AnyShapeStyle, .glassEffect(.regular, in: .rect(cornerRadius:style:)), .onContinuousHover, .contentShape, .equatable(), .contentTransition(.opacity), @Environment(\\.accessibilityReduceMotion)"
+      ],
+      "state_owned": [
+        "TimelineMinimap.entryCache: @MainActor static RecentCache<String, TimelineMinimapEntry> with limit 400, memoizing title/snippet/weight per block id because a sent message never changes",
+        "TimelineMinimapColumn @State private var lastEntries: [TimelineMinimapEntry] = [] (outline snapshot held across a live window resize)",
+        "TimelineMinimapRail @State private var hoveredID: String? (tick under the pointer, nil when the pointer leaves the rail)",
+        "TimelineMinimapRail @State private var isPressing = false (true while a press, tap or scrub, is down)",
+        "TimelineMinimapRail @State private var ownsCursorPush = false (whether this view pushed the pointing-hand cursor, so a disappear-while-hovering pops exactly once)",
+        "MinimapRailMetrics let spacing and let topInset, computed once in init; value type, no other storage"
+      ],
+      "side_effects": [
+        "NSCursor.pointingHand.push() on continuous-hover .active when ownsCursorPush is false; NSCursor.pop() in releaseCursor(), called from hover .ended and from .onDisappear. Mutates the app-wide AppKit cursor stack.",
+        "onNavigate(id, animated) callback: from the per-tick accessibility action with animated true, from drag .onChanged with animated false whenever the entry under the pointer changes, and from drag .onEnded with animated true. This drives the timeline scroll.",
+        "Writes into the shared static entryCache (cross-view mutable state).",
+        "No file writes, no process launches, no network calls, no timers, no notifications, no keychain. The header comment states the rail costs nothing at rest: no timers, no continuous animation, plain rects only, and the bubble mounts solely while hovering."
+      ],
+      "platform_assumptions": [
+        "import AppKit for NSCursor.pointingHand / .push() / .pop(): macOS cursor-stack management with no direct Windows equivalent (a port needs explicit set and restore)",
+        "SwiftUI .glassEffect(.regular, in: .rect(cornerRadius:style:)) is the macOS 26 Liquid Glass material used for the preview card",
+        "SwiftUI .onContinuousHover(phase:) with .active(location) / .ended is a pointer-only hover model (no touch)",
+        "@Environment(\\.accessibilityReduceMotion) reads the macOS Reduce Motion system setting",
+        "@Environment(WindowLiveResize.self) uses Observation-macro environment injection and assumes a continuous NSWindow live-resize drag",
+        "@MainActor isolation on the static cache and builders, with nonisolated static func == on the View conformances (Swift concurrency on macOS)",
+        "DragGesture(minimumDistance: 0, coordinateSpace: .local) assumes mouse/trackpad press-drag-release used as a scrubber",
+        "The card height estimate assumes roughly 7 pt average glyph width and 15 pt line height for the macOS system font at 12 pt",
+        "Window traffic-light buttons sit over the top of this column when the sidebar is hidden, which is why the hit area is restricted to the tick stack"
+      ],
+      "persisted_fields": [
+        "None. This file persists nothing: no @AppStorage, no UserDefaults, no file or database writes. Its only durable-ish state is the in-memory RecentCache(limit: 400) keyed by DisplayBlock id."
+      ],
+      "ui_elements": [
+        "Rail container: GeometryReader -> ZStack(alignment: .leading), .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)",
+        "Rail accessibility: .accessibilityElement(children: .contain) and .accessibilityLabel(\"Conversation outline\")",
+        "Tick shape: RoundedRectangle(cornerRadius: 1, style: .continuous), height MinimapRailMetrics.tickHeight = 2, .padding(.leading, 8)",
+        "Tick fill: selected and not hovered -> AnyShapeStyle(Chrome.accent); otherwise AnyShapeStyle(.primary.opacity(isHovered ? 0.95 : baseOpacity))",
+        "baseOpacity: 0.4 while expanded (hoveredID != nil || isPressing), else 0.25",
+        "Tick width: base = 10 + weight * 12 (10 pt narrowest, 22 pt at weight 1.0); hovered or selected -> exactly 26; otherwise while expanded -> min(26, base + 2)",
+        "Tick stack: VStack(alignment: .leading, spacing: metrics.spacing), .padding(.top, metrics.topInset), .animation(nil, value: centerHeight), .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading), .allowsHitTesting(false)",
+        "Per-tick accessibility: .accessibilityElement(), .accessibilityLabel(entry.title), .accessibilityAddTraits(.isButton), .accessibilityAction { onNavigate(entry.id, true) }",
+        "Preview card: HStack(spacing: 0) -> VStack(alignment: .leading, spacing: 3); title Text .font(.system(size: 13, weight: .semibold)), .foregroundStyle(Chrome.primaryText), .lineLimit(1), .truncationMode(.tail), .contentTransition(.opacity)",
+        "Preview card snippet (only when non-empty): Text .font(.system(size: 12)), .foregroundStyle(Chrome.secondaryText), .lineLimit(3), .truncationMode(.tail), .multilineTextAlignment(.leading), .contentTransition(.opacity)",
+        "Preview card box: .padding(.horizontal, 12), .padding(.vertical, 10), .frame(width: 300, alignment: .leading), .glassEffect(.regular, in: .rect(cornerRadius: Chrome.cardCornerRadius = 16, style: .continuous)), then Spacer(minLength: 0)",
+        "Preview card placement: .padding(.leading, 34), .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading), .offset(y: min(max(tickCenterY, top), bottom) - railHeight / 2) with top = half + 2 and bottom = max(top, railHeight - half - 2), half = estimatedCardHeight / 2",
+        "Preview card transition: .opacity combined with .offset(x: reduceMotion ? 0 : -6)",
+        "Hover animation: .smooth(duration: 0.22) applied to values hoveredID, isPressing and selectedID; nil (no animation) while liveResize.isActive or reduceMotion is on",
+        "Hit area: Color.clear with .contentShape(RailHitArea(rect: metrics.hitRect(count:railSize:))) plus .onContinuousHover and .gesture(scrubGesture)",
+        "Fallback titles when the message text has no words: \"1 image\" for exactly one image attachment, \"<n> images\" for more, otherwise the first attachment's name, otherwise \"Message\""
+      ],
+      "feature_notes": [
+        "One tick per user message only. Replies, tool runs, notices and summaries never get ticks: .turn takes the first .user entry among its entries and returns nil if there is none; .group(.single(entry)) only when entry.item.content is .user; .group(.work), .group(.heads), .working, .merging and .headsWorking all return nil.",
+        "Tick title = the first 8 whitespace-separated words of the message text, with a single ellipsis character appended when the message has more than 8 words (firstWords(_:limit: 8)).",
+        "Snippet = the message text with every whitespace run collapsed to a single space, cut at 160 characters with an ellipsis appended when longer. The snippet is blanked to \"\" when it is empty or identical to the title, so short messages show only the title line in the card.",
+        "Tick weight = min(1, max(0.15, Double(text.count) / 420)): a message of 420 or more characters reaches full weight, and anything under 63 characters floors at 0.15.",
+        "Selection fallback: when the timeline reports no activeBlockID, the lit tick is the last outline block whose hasUserMessage is true.",
+        "Hovering alone only previews (sets hoveredID and mounts the card); only a press navigates.",
+        "Scrub gesture is DragGesture(minimumDistance: 0, coordinateSpace: .local). .onChanged sets isPressing = true and calls onNavigate(id, false) each time the entry under the pointer changes, so the timeline tracks 1:1 unanimated; .onEnded sets isPressing = false and calls onNavigate(id, true) for one animated glide to the landing block. A zero-distance press therefore reads as a tap that jumps with animation.",
+        "Spacing: roomySpacing 8 when count*2 + (count-1)*8 fits in centerHeight; otherwise spacing = max(2, (height - count*2) / max(1, count-1)), tightening toward a 2 pt floor.",
+        "The tick stack is always vertically centred: topInset = (height - (ticks + gaps*spacing)) / 2, so a thread with more ticks than the rail can hold spills the same amount above and below instead of stacking against the top.",
+        "Y to entry mapping: raw = (y - topInset - tickHeight/2 + pitch/2) / pitch, rounded down and clamped to 0...count-1, where pitch = tickHeight + spacing = 2 + spacing. Inside the hit rect the area is solid, so a scrub never drops between ticks.",
+        "Hit rect: x 0, full rail width, from max(centerY(0) - pitch/2, Chrome.chromeTopPadding + Chrome.capsuleHeight) to min(centerY(count-1) + pitch/2, railSize.height); .zero when count is 0 or bottom <= top. Ticks under the floating chrome row are veiled and take no pointer.",
+        "RailHitArea returns Path(rect) ignoring the bounds it is asked about, so the shape is the rect as computed and is not stretched to the rail's full column.",
+        "Live-resize behaviour: while WindowLiveResize.isActive the column renders lastEntries (the track scales in place and new user messages wait for the settle) and hoverAnimation is nil; the outline is rebuilt on the isActive true-to-false edge, on .onAppear, and on blocks changes when not resizing.",
+        "Render-cost isolation is deliberate and three-layered: TimelineMinimapColumn is Equatable so an unchanged blocks/tracking/centerHeight pass rebuilds nothing; MinimapSelection is the only view that observes TimelineScrollTracking so a scroll-visibility change re-runs just that small body; TimelineMinimapRail is used with .equatable() so a visibility change that moved nothing is skipped. The stated reason is that building titles in the timeline's own body re-rendered the whole conversation on every streamed token.",
+        "Ticks carry .animation(nil, value: centerHeight) so a height-only change (the rail's first layout at height 0, and window resizes) re-centres without sliding the whole stack down from the top on every thread opened.",
+        "Card height is estimated, never measured, to avoid a re-layout on every hover change: title 17 + padding 20 when there is no snippet; otherwise title 17 + 3 + lines*15 + 20, where glyphsPerLine = max(1, (300 - 24) / 7) = 39 and lines = min(3, max(1, ceil(snippet.count / 39))).",
+        "Cursor discipline: the pointing-hand cursor is pushed at most once (guarded by ownsCursorPush) and popped on hover .ended and on .onDisappear, so a view that disappears mid-hover pops exactly once.",
+        "centerHeight is the full chat-column height used only for centring; the rail's own frame stays timeline-height, so hit testing, scrubbing and the preview card never reach into the composer, and composer or queue-tab growth never shifts the ticks.",
+        "All code in this file is shipped: there are no #if DEBUG blocks, no feature flags and no dead branches; every declared symbol is reachable from TimelineMinimapColumn's body, the rail's gestures, or the accessibility actions."
+      ],
+      "unresolved_questions": [
+        "Chrome.capsuleHeight is computed as capsuleContentHeight + capsuleVerticalPadding * 2 in DroppyCode/UI/Chrome/Chrome.swift, outside this bundle, so the numeric chromeClearance total is not established here (only chromeTopPadding = 12 and cardCornerRadius = 16 are).",
+        "Chrome.accent, Chrome.primaryText and Chrome.secondaryText resolve to colors defined outside this file, so their literal color values are unknown from this bundle.",
+        "RecentCache's eviction policy behind limit: 400 (LRU versus insertion order) is defined elsewhere; this file only relies on value(for:) and insert(_:for:).",
+        "Who supplies centerHeight, and how TimelineScrollTracking.activeBlockID is derived from scroll geometry, live in the timeline view outside this bundle.",
+        "DisplayBlock.hasUserMessage's exact definition is elsewhere, so it cannot be confirmed here that it agrees with entry(for:)'s own user-message test in every case (for example a .turn block whose entries contain no .user), which would make the selection fallback point at a block that has no tick.",
+        "The associated values elided as _ in the .turn and .group pattern matches are not named in this file, so what else those cases carry is unknown from here."
+      ]
+    }
+  ]
+}

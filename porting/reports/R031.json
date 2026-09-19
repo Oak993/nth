@@ -1,0 +1,282 @@
+{
+  "bundle_id": "R031",
+  "reader": "R031-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Core/Models/Hydra.swift",
+      "sha256": "82ffe7ce945277ba067579e2e67f11daa2e05c455d248e822d353fcd0b9a767f",
+      "lines_total": 1345,
+      "ranges_read": [
+        [
+          1,
+          1345
+        ]
+      ],
+      "purpose": "The whole Hydra data model and prompt corpus in one file: pair/profile configuration types, the head roster of 25 named personas with colours and dragon assets, per-head bookkeeping records, merge-stage enum, landing records, the budget constants for Droppy-run heads, and every system-prompt/policy/report string Hydra injects for native providers (Claude/Codex/Copilot) and for the fenced ```hydra fallback block used by every other provider, plus the fence-finding and block-parsing helpers.",
+      "key_symbols": [
+        "struct HydraHeadProfile: Codable, Hashable, Identifiable, Sendable (id: UUID, name: String, provider: ProviderKind?, model: String?, effort: String?)",
+        "HydraHeadProfile.init(name:) - generates a fresh UUID",
+        "HydraHeadProfile.briefLabel: String - \"name (model on Provider)\" via [model, provider?.displayName].compactMap.joined(separator: \" on \"); plain name when both nil",
+        "HydraHeadProfile.agentSlug: String - lowercased, every non letter/number mapped to '-' (\"Deep Work\" -> \"deep-work\")",
+        "HydraHeadProfile.matches(_:) - trimmed caseInsensitiveCompare == .orderedSame, or agentSlug == trimmed name",
+        "struct HydraPair: Codable, Hashable, Identifiable, Sendable (id, provider, orchestratorModel?, orchestratorEffort?, workerProvider?, workerModel?, workerEffort?, maxHeads: Int?, name: String?, headProfiles: [HydraHeadProfile])",
+        "HydraPair.maxHeadsRange = 1...8",
+        "HydraPair.init(from decoder:) - tolerant decode via container.value(_:default:)",
+        "HydraPair.headsProvider = workerProvider ?? provider",
+        "HydraPair.sendsHeadsElsewhere = workerProvider.map { $0 != provider } ?? false",
+        "HydraPair.customName - trimmed name, nil when blank",
+        "HydraPair.clampedCap(_:) - min(max(cap, 1), 8)",
+        "HydraPair.projectPair(_:hydraOn:in:) -> HydraPair? - nil unless hydraOn && id != nil && id present in available",
+        "struct HydraLaunch: Hashable, Sendable (headsProvider, runsNatively, headsLabel?, workerModel?, workerEffort?, maxHeads?, headProfiles = [], isolatesHeads = true, autoMerges = false, reviewsHeads = false, projects = [], antiSlopEnabled = true)",
+        "HydraLaunch.uncappedConcurrency = 8",
+        "HydraLaunch.hasRoom(running:) -> running < (maxHeads ?? 8)",
+        "HydraLaunch.profile(named:) -> first headProfile whose matches(name) is true",
+        "enum HydraBudget (pacingTools, wrapUpTools, maxTools, wrapUpSeconds, maxSeconds, reportSeconds, pacingNote, wrapUpNote, finalNote)",
+        "struct HydraPersona: Hashable, Sendable (name, asset, hex: UInt32) with init(_:_:_:) and computed `color: Color` built from 0xRRGGBB / 255",
+        "enum HydraRoster (personas: [HydraPersona] of 25; persona(at:); index(named:); persona(named:))",
+        "struct HydraHeadInfo: Codable, Hashable, Sendable with nested enum Kind {native, droppy}, enum Origin {delegated, queued, sent}, enum Status {running, completed, failed, stopped} (Status.isFinished = self != .running)",
+        "HydraHeadInfo computed: persona, displayName, isFinished, hasOwnCopy (baseTree != nil)",
+        "HydraHeadInfo.init(index:task:kind:origin:) and tolerant init(from decoder:)",
+        "struct HydraMentionTarget: Hashable, Sendable (threadID, task, status; static scheme; url; static threadID(in:))",
+        "struct HydraLanding: Codable, Hashable, Sendable with nested struct File (path, additions, deletions); files, conflicts, droppedBuildOutputFiles, patchPath?, error?; isEmpty; landed",
+        "struct HydraDelegation: Hashable, Sendable (task, prompt, name?, project?, profile?)",
+        "enum HydraMergeStage: Int, CaseIterable, Sendable {gathering, committing, describing, pushing, opening, merging, syncing} with `words`",
+        "struct HydraProjectRef: Hashable, Sendable (name, path)",
+        "struct HydraReport: Hashable, Sendable (headIndex, task, origin, status, text, landing?, copyPath?, elapsed?, toolCalls = 0)",
+        "enum HydraPrompts - workerAgentName, scoutAgentName, workerAgentName(for:), profileName(forAgentName:), nativeRoutableProfiles(of:), enum Workplace {ownCopy(path:), shared(path:)}, workplaceRules(_:), howToWork, howToReport, briefRule, verificationRule, projectRule(_:), autoMergeRule, reviewRule, reportStyleRule, policy(for:_:), workerPrompt, scoutPrompt, claudeAgents(_:), copilotAgents(_:), codexConfig(_:), maxDelegationRounds, teamStatus(_:now:), fallbackPolicy(maxHeads:isolated:autoMerges:reviewsHeads:heads:projects:profiles:), fallbackPolicy(_:), mergeStatus(merges:unmergedFiles:now:), delegationRequest(_:), fallbackTurnNote(team:merge:), fallbackReportNote(team:merge:canDelegate:), fallbackPreamble(_:team:merge:), fallbackReportPreamble(_:team:merge:canDelegate:), heldBackMessage(count:), delegationOpener(in:), lineStartFences(in:from:), delegationBlockRange(in:), hasDelegationBlock(in:), hasDelegationOpener(in:), delegations(in:), delegations(fromBody:), withoutDelegationBlock(_:), delegationSentHold, delegationLeaveFade, hasSentDelegationBlock(in:), hasLeavingDelegationBlock(in:), markingDelegationBlockLeaving(_:), markingDelegationBlockSent(_:), unreadableBlockMessage(reason:), verificationMarkers, withoutVerificationSteps(_:), delegatedHeadPrompt(persona:delegation:workplace:), struct ChatContext {lastUserPrompt?, lastReply?, touchedPaths}, queuedHeadPrompt(persona:task:context:workplace:leadIsWorking:), reportMessage(_:stillWorking:reviewsHeads:), landingLine(for:), duration(_:), list(_:), quoted(_:limit:)"
+      ],
+      "calls_into": [
+        "ProviderKind and ProviderKind.displayName (DroppyCode/Core/Models/Provider.swift) - cases used: .claude, .codex, .copilot",
+        "KeyedDecodingContainer.value(_:default:) tolerant decode helper (DroppyCode/Core/Support/Coding.swift:5)",
+        "JSONValue and JSONValue.parse / .object / .array / .string / .int (DroppyCode/Core/Support/JSONValue.swift), used to build Claude `--agents`, Copilot `customAgents` and Codex config overrides and to parse delegation bodies",
+        "AntiSlopPolicy.instructions(enabled:) (DroppyCode/Core/Models/AntiSlopPolicy.swift) appended to worker and scout prompts with \"\\n\\n\"",
+        "HydraMergeRecord (DroppyCode/Core/Models/Timeline.swift:238) with .outcome (.merged/.failed/.stray), .label, .url, .at, .files, .project, .detail",
+        "HydraPrompts.delegation(fromEntry:) - defined in HydraDelegationStream.swift, called by delegations(fromBody:)",
+        "SwiftUI Color(red:green:blue:) for HydraPersona.color",
+        "Foundation Date, TimeInterval, UUID, Duration, URL",
+        "Swift Regex literals with .ignoresCase() and String.firstMatch(of:) / firstRange(of:)",
+        "Date.formatted(date: .omitted, time: .shortened) in mergeStatus"
+      ],
+      "state_owned": [
+        "No observable objects or app state: this file is pure value types plus static constants. Stored properties are those of HydraHeadProfile, HydraPair, HydraLaunch, HydraPersona, HydraHeadInfo, HydraMentionTarget, HydraLanding/HydraLanding.File, HydraDelegation, HydraProjectRef, HydraReport and HydraPrompts.ChatContext",
+        "Static tables: HydraRoster.personas (25 entries), HydraPrompts.verificationMarkers (28 markers), HydraBudget constants, HydraPair.maxHeadsRange, HydraLaunch.uncappedConcurrency, HydraPrompts.maxDelegationRounds, delegationSentHold, delegationLeaveFade",
+        "HydraHeadInfo mutable bookkeeping: status, summary, activity, toolCalls, tokens, startedAt, finishedAt, queuedAt, executionStartedAt, executionFinishedAt, landingStartedAt, landingFinishedAt, nativeID, nativeTaskID, toolUseID, batchID, profile, canStop, isBackground, baseTree, landing, mergedAt"
+      ],
+      "side_effects": [
+        "None directly: no file writes, process launches, network calls, timers or keychain use. The strings produced here drive other layers (CLI flags, prompts) and HydraLanding.patchPath / HydraReport.copyPath merely record paths other code wrote"
+      ],
+      "platform_assumptions": [
+        "SwiftUI Color for HydraPersona.color (macOS SwiftUI)",
+        "Swift 5.9+ Regex literals (#/.../#) with .ignoresCase(), and `switch` used as an expression",
+        "Swift Concurrency Sendable conformances throughout",
+        "Prompt text hard-codes the Mac: \"the absolute path of any git repository on this Mac\", \"whose catalog is on this Mac\" style wording in projectRule, and \"already set up on this Mac\" assumptions",
+        "Named asset catalog images hydra-head-01 ... hydra-head-25 rendered as template images (Assets.xcassets SVGs)",
+        "git worktree semantics assumed for a head's own copy (workplaceRules .ownCopy)",
+        "Duration (.seconds/.milliseconds) for SwiftUI-side timing"
+      ],
+      "persisted_fields": [
+        "HydraHeadProfile Codable keys: id (UUID), name (String), provider (ProviderKind?), model (String?), effort (String?)",
+        "HydraPair Codable keys with decode defaults: id (UUID, default fresh UUID), provider (ProviderKind, required), orchestratorModel (String? = nil), orchestratorEffort (String? = nil), workerProvider (ProviderKind? = nil), workerModel (String? = nil), workerEffort (String? = nil), name (String? = nil), maxHeads (Int? = nil, clamped to 1...8 on decode), headProfiles ([HydraHeadProfile] = [])",
+        "HydraHeadInfo Codable keys with decode defaults: index (Int = 0), task (String = \"\"), kind (Kind = .droppy), origin (Origin = .delegated), status (Status = .stopped on unreadable value, deliberately never .completed), summary (String? = nil), activity (String? = nil), toolCalls (Int = 0), tokens (Int = 0), startedAt (Date = .now), finishedAt (Date? = nil), queuedAt (Date? = nil), executionStartedAt (Date? = nil), executionFinishedAt (Date? = nil), landingStartedAt (Date? = nil), landingFinishedAt (Date? = nil), nativeID (String? = nil), nativeTaskID (String? = nil), toolUseID (String? = nil), batchID (UUID? = nil), profile (String? = nil), canStop (Bool, default kind == .droppy), isBackground (Bool = true), baseTree (String? = nil), landing (HydraLanding? = nil), mergedAt (Date? = nil)",
+        "HydraHeadInfo.Kind raw values: \"native\", \"droppy\"",
+        "HydraHeadInfo.Origin raw values: \"delegated\", \"queued\", \"sent\"",
+        "HydraHeadInfo.Status raw values: \"running\", \"completed\", \"failed\", \"stopped\"",
+        "HydraLanding Codable keys with decode defaults: files ([File] = []), conflicts ([String] = []), droppedBuildOutputFiles (Int = 0), patchPath (String? = nil), error (String? = nil); File keys: path, additions, deletions",
+        "HydraMentionTarget.scheme = \"droppycode-head\" (URL scheme \"droppycode-head://<threadID.uuidString>\")",
+        "JSON field names read from a lead's delegation block: \"task\", \"prompt\", \"name\"/\"head\", \"project\"/\"repo\", \"profile\" (parsing itself lives in HydraDelegationStream.swift)",
+        "Claude --agents JSON keys emitted: \"description\", \"prompt\", \"background\" (false), \"tools\", \"model\", \"effort\"; agent names \"droppy-worker\", \"droppy-scout\", \"droppy-worker-<slug>\"",
+        "Copilot customAgents JSON keys emitted: \"name\", \"displayName\", \"description\", \"prompt\", \"infer\" (true), \"tools\", \"model\", \"reasoningEffort\"",
+        "Codex config override keys emitted: agents.max_concurrent_threads_per_session (Int), agents.default_subagent_model (String), agents.default_subagent_reasoning_effort (String), features.multi_agent (true), features.multi_agent_v2.expose_spawn_agent_model_overrides (true)"
+      ],
+      "ui_elements": [
+        "HydraMergeStage.words exact strings: \"Gathering the team's files\", \"Writing the commit\", \"Writing the commit message\", \"Pushing the branch\", \"Opening the merge request\", \"Merging\", \"Bringing the checkout up to date\" (7 stages, one dot each on the merging pill's track; with several projects the stages after the first repeat per project)",
+        "25 roster personas in exact order with asset and 0xRRGGBB colour: Hank/hydra-head-01/0xFF8A3D, Walter/02/0x3D8BFF, Ada/03/0x34C46A, Otto/04/0xA35BE0, Nova/05/0xF25C9A, Remy/06/0x2BB5B0, Iris/07/0xE8B430, Milo/08/0xE84F4F, Juno/09/0x6A5CFF, Ezra/10/0x4FD1A1, Lena/11/0x2FB8E6, Bo/12/0xB0784A, Kai/13/0x8FD14F, Vera/14/0xD946EF, Finn/15/0xF97316, Mira/16/0xC084FC, Odin/17/0xB45309, Suki/18/0xF472B6, Rex/19/0x2563EB, Zola/20/0x65A30D, Pip/21/0x94A3B8, Ivo/22/0x0D9488, Lux/23/0xFACC15, Tova/24/0x059669, Gus/25/0x7DD3FC",
+        "Past 25 heads the name gets a round suffix: persona(at:) returns \"<name> <round+1>\" (\"Hank 2\") keeping the same asset and hex",
+        "Delegation card timing: delegationSentHold = .seconds(3.2) holding the done wave, delegationLeaveFade = .milliseconds(450) fading in place so text below does not slide up",
+        "Fence info strings that drive the card state in the timeline: ```hydra (live), ```hydra-sent (done state), ```hydra-leaving (fading out)",
+        "Report message headings: \"## <Name>: <task>\" with suffixes \" (failed)\", \" (stopped by the user before finishing)\" and a parenthesised effort \"(<duration>, <n> tools)\"; body falls back to \"No report.\"",
+        "Landing lines: \"Landed in your checkout: <path> (+A −D)\" (U+2212 MINUS SIGN between the counts), \" with conflicts\" suffix per conflicted path, \"Did not land: ...\", \"Did not land (<error>): ...\", \"Changed nothing.\", \"Nothing landed; its unfinished work is in its copy at <path>.\"; at most 25 files listed then \", and N more\"; \"; N build-output file was/files were left out\"",
+        "teamStatus line: \"Your heads so far: <Name> (working for Nm), <Name> (done, landed 1 file / N files), <Name> (done, patch kept), <Name> (done, changed nothing), <Name> (failed), <Name> (stopped).\"",
+        "mergeStatus lines begin \"Merge state: \" and use time formatted date: .omitted, time: .shortened"
+      ],
+      "feature_notes": [
+        "HydraBudget literals for Droppy-run heads: pacingTools = 24, wrapUpTools = 120, maxTools = 160, wrapUpSeconds = 25 * 60, maxSeconds = 35 * 60, reportSeconds = 3 * 60",
+        "HydraBudget.pacingNote exact text: \"[Droppy Code] You have run 24 tools without changing a file. If the task is research, reply with your findings now. Otherwise act on what you know: make the change, or reply with what blocks you.\" (the 24 is interpolated from pacingTools)",
+        "HydraBudget.wrapUpNote: \"[Droppy Code] Your budget is nearly spent. Finish now: complete the smallest correct version of the task, then reply with your report.\"",
+        "HydraBudget.finalNote: \"[Droppy Code] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.\"",
+        "Concurrency: a pair's maxHeads is clamped to 1...8 on decode; with no cap, HydraLaunch.uncappedConcurrency = 8 heads run at once and the rest wait (comment cites 21 simultaneous heads forcing a force quit)",
+        "maxDelegationRounds = 3 rounds of heads per user request; heldBackMessage(count:) says \"Hydra held back a head.\" / \"Hydra held back N heads.\" then \"None of the heads you asked for went out: this request has had all 3 of its rounds of heads already. Do the rest yourself now, without git status or git diff on the heads' work, and answer the user.\"",
+        "Native providers with their own heads: .claude, .codex, .copilot (the switch in policy(for:) and in howToSpawn); everything else gets the fenced hydra fallback block",
+        "Claude spawn wording: \"Two agent types are yours: `droppy-worker` (edits files, runs commands) and `droppy-scout` (read-only research). Spawn them with the Agent tool...\"; Codex: \"Spawn heads with `spawn_agent`: the `worker` agent ... the `explorer` agent for read-only research.\"; Copilot: \"Two agents are yours ... Start them with the task tool ...\"",
+        "Claude wait wording: \"Launch every head for a job in one message so they run in parallel, in the foreground\" + \", and run at most N at once.\"; Codex adds \" Run at most N at once.\"; Copilot adds \", and run at most N at a time.\"",
+        "Native agent JSON: claudeAgents sets \"background\": false for both agents, gives the scout tools [\"Read\", \"Grep\", \"Glob\", \"WebFetch\", \"WebSearch\"], skips model when it equals \"default\" and skips effort when empty; profile variants are named droppy-worker-<agentSlug>",
+        "copilotAgents sets \"infer\": true, skips model when it equals \"auto\", uses \"reasoningEffort\", displayName \"Hydra worker\" / \"Hydra scout\" / \"Hydra worker · <profile name>\", and deliberately passes no tools list for the scout (a tool name the CLI does not know could refuse the whole session)",
+        "codexConfig only exposes features.multi_agent_v2.expose_spawn_agent_model_overrides when nativeRoutableProfiles is non-empty; features.multi_agent is always true",
+        "nativeRoutableProfiles filters to profiles whose provider is nil or equals launch.headsProvider AND that set a model or an effort",
+        "profileName(forAgentName:) strips the \"droppy-worker-\" prefix; \"droppy-worker\" and \"droppy-scout\" route nowhere (nil)",
+        "Roster naming discipline in the prompts: the lead is told the full 25-name order and told \"There is no head called Ives; the roster has Ivo.\"; HydraRoster.index(named:) matches case-insensitively, strips a trailing integer round suffix, and returns nil for unknown names so an announcement never renames a stranger",
+        "HydraRoster.persona(named:) honours the round suffix: \"Nova 3\" resolves to persona(at: index + 2 * 25)",
+        "Fence parsing: delegationOpener matches ```[ \\t]*hydra(?:-sent|-leaving)?[ \\t]*\\r?\\n case-insensitively; delegationBlockRange runs to the LAST line-starting ``` after the opener (never the first, because a prompt may quote its own fence), or to endIndex while still streaming",
+        "delegations(in:) retries parsing with each candidate closing fence from last back to first, then the end of text; an empty JSON array parses to [] (no heads, not nil); entries with no usable prompt are dropped",
+        "withoutDelegationBlock(_:) removes the block range and trims whitespace/newlines",
+        "unreadableBlockMessage(reason:) prefix \"[Hydra] Your delegation block could not be read, so no heads went out.\" plus an optional reason (a period is appended unless it already ends in . ! or ?) plus the re-write instructions ending \"This does not count as a round of heads.\"",
+        "verificationMarkers (34 exact substrings, lowercased match): \"xcodebuild\", \"swift build\", \"swift test\", \"swiftlint\", \"npm test\", \"npm run build\", \"npm run test\", \"yarn build\", \"yarn test\", \"pnpm test\", \"cargo build\", \"cargo test\", \"go test\", \"pytest\", \"gradle\", \"eslint\", \"tsc \" (trailing space), \"build succeeded\", \"run the build\", \"run the tests\", \"run the test suite\", \"build and prove\", \"prove it builds\", \"prove it compiles\", \"check that it builds\", \"check it still builds\", \"make sure it builds\", \"make sure it compiles\", \"confirm the build\", \"verify the build\", \"verify that it builds\", \"make sure nothing else broke\", \"run the suite\", \"build verification\"",
+        "withoutVerificationSteps(_:) drops any line containing a marker and, only when something was dropped, appends \"\\nMake the assigned edits and report; the lead handles all validation.\"",
+        "delegatedHeadPrompt sections in order: \"You are <Name>, a Hydra head in Droppy Code: one of several helpers working in parallel for a lead agent. The lead delegated this task to you.\", \"## Your task: <task>\", \"## Where you work\", \"## How to work\", \"## Your report\"",
+        "queuedHeadPrompt sections: \"## What is going on in the main chat\", \"## Your task\", \"## Where you work\", \"## How to work\", \"## Your report\"; context lines quote the last user prompt to 1200 characters and the lead's last reply to 800, both in curly quotes with a trailing … when cut, and list at most 20 touched paths; leadIsWorking toggles \"The user queued this task for you while the lead works on something else.\" versus \"The user sent this task straight to you; the lead is idle and will hear your report.\"; empty context gives \"The lead has not said anything yet.\"",
+        "workplaceRules .ownCopy tells the head it has a git worktree made from the checkout as it was when it was sent out, uncommitted work included, and forbids commit/branch/stash/push/checkout/reset/restore/clean and worktree creation, plus \"Never build, test or verify anything in your copy\"",
+        "workplaceRules .shared tells the head it shares the lead's checkout with other heads and forbids git status / git diff self-checks",
+        "reportMessage opening: \"Hydra reports: <list> finished.\" and, with heads still out, \"<list> is/are still at work; its report comes/their reports come as a later message.\"",
+        "reportMessage closings include: \"The changes listed above are in your checkout already; nothing needs applying.\", \"The heads worked in your checkout, so their changes are there already.\", the conflict line, a per-file warning when two heads changed the same path (\"<A> and <B> both changed <path>: read it as it is now before you build on it.\"), \"<Name>'s changes would not apply on their own; the patch is at <path>. Apply it with `git apply --3way <path>` and settle what conflicts.\", the failed-head line, the stopped-head line, the queued-origin line and the sent-origin line",
+        "duration(_:) formats \"<n>s\" under 60 seconds and \"<m>m <s>s\" above",
+        "list(_:) joins with commas and a final \" and \"",
+        "fallbackPolicy opens \"[Hydra is on] You lead a team of up to N helper agents (\\\"heads\\\").\" (or \"a team of helper agents\" with no cap) and instructs the lead to end its reply with one ```hydra fenced JSON array; it explicitly warns that three backticks inside a prompt would end the block early and to indent snippets by four spaces instead",
+        "fallbackPolicy names the exact entry shapes: {\"task\": \"...\", \"prompt\": \"...\"}, with optional \"name\" (announced, authoritative) and \"project\" (sidebar name or path), and with profiles present a \"profile\" key demonstrated as {\"task\": \"...\", \"prompt\": \"...\", \"profile\": \"<first profile name>\"}",
+        "fallbackPolicy notes each entry dispatches \"the moment its closing brace streams, before the block is finished\"",
+        "isolatesHeads wording: \"Each head works in a copy of its project of its own and Droppy Code lands its changes in that project's checkout when it reports\" versus \"The heads work in your checkout\"",
+        "delegationRequest(_:) emits \"[Hydra setting: enabled]\" followed by routing guidance that differs by launch.runsNatively, ending with \"\\n\\n---\\n\\n\"",
+        "fallbackTurnNote / fallbackReportNote prefix \"[Hydra] \" and end with \"\\n\\n---\\n\\n\"; the report note offers another round only when canDelegate, otherwise \"Send out no more heads for this request; whatever is left, do yourself.\"",
+        "mergeStatus handles three HydraMergeRecord outcomes: .merged (\"the team's work already merged as <label> <url> in <project> at <time> (N files).\"), .failed (\"the last merge failed at <time>: <detail or 'no reason recorded'>...\"), .stray (footnote after the last successful merge, default detail \"files were changed outside every project\"); with no merges and no unmerged files it returns nil",
+        "autoMergeRule forbids the lead from running or delegating branch/commit/merge-request operations and from claiming a merge the [Hydra] note does not confirm",
+        "reviewRule has the lead read every changed file named in reports plus affected callers, fix integration issues itself, run the narrowest required build, and never delegate the review",
+        "reportStyleRule demands one plain sentence per head starting with its name, no audit jargon and no decorative symbols"
+      ],
+      "unresolved_questions": [
+        "HydraHeadInfo, HydraPair, HydraHeadProfile and HydraLanding declare no explicit CodingKeys enums, so the synthesised keys are assumed to equal the property names; the container.value(_:default:) helper in Core/Support/Coding.swift was not read in this bundle to confirm its exact behaviour on type mismatch versus absent key",
+        "The HydraMergeStage dot track, the delegation card and the head mention link rendering live in view code outside this bundle, so the exact pill geometry and animation curves are not established here",
+        "HydraPersona.color has a trailing blank line before the closing brace suggesting a removed member; no evidence here of what it was"
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Models/HydraCookbook.swift",
+      "sha256": "f03943b728732273ad0ef00710d718ab89b9881cb6ec8442be2037304cdc6c03",
+      "lines_total": 52,
+      "ranges_read": [
+        [
+          1,
+          52
+        ]
+      ],
+      "purpose": "The curated catalogue of ten ready-made Hydra lead/heads pairings ('recipes') offered in the UI, written in terms of model names rather than providers, plus two helpers: one that keeps a wanted effort only when the resolved ModelOption actually offers it, and one that tells whether an equivalent pair is already configured.",
+      "key_symbols": [
+        "struct HydraPairRecipe: Identifiable, Sendable (id: String, title: String, tagline: String, lead: Side, heads: Side, maxHeads: Int?)",
+        "struct HydraPairRecipe.Side: Sendable (providers: [ProviderKind], models: [String], effort: String?)",
+        "enum HydraCookbook",
+        "HydraCookbook.recipes: [HydraPairRecipe] - 10 entries, strongest first",
+        "HydraCookbook.effort(_ wanted: String?, for option: ModelOption?) -> String?",
+        "HydraCookbook.isAdded(_ pair: HydraPair, in pairs: [HydraPair]) -> Bool"
+      ],
+      "calls_into": [
+        "ProviderKind cases: .claude, .commandcode, .antigravity, .deepseek, .zai, .cursor, .codex, .meta (DroppyCode/Core/Models/Provider.swift)",
+        "ModelOption and ModelOption.efforts (DroppyCode/Core/Models/Provider.swift:200)",
+        "HydraPair and HydraPair.headsProvider (Hydra.swift) in isAdded"
+      ],
+      "state_owned": [
+        "Only the static `recipes` table; no instance state, no caches"
+      ],
+      "side_effects": [
+        "None: pure data and two pure functions"
+      ],
+      "platform_assumptions": [
+        "The doc comment assumes local provider installation: \"the first one set up on this Mac whose catalog has the model is the one the pair runs on\"",
+        "Model names are matched against a provider's catalog by substring-style lookup done elsewhere; the recipe only supplies candidate name fragments"
+      ],
+      "persisted_fields": [
+        "Recipe ids (stable identifiers, not user data): \"claude-fable-opus\", \"claude-opus-gemini-flash\", \"claude-opus-deepseek\", \"claude-opus-glm\", \"claude-fable-composer\", \"astra-spark\", \"astra-terra\", \"astra-astra\", \"claude-opus-opus\", \"claude-fable-fable\"",
+        "No UserDefaults or Codable persistence in this file; recipes become persisted HydraPair values elsewhere"
+      ],
+      "ui_elements": [
+        "Recipe 1 title \"Fable 5.1 leads Opus 5\", tagline \"The deepest lead over the strongest builders: Fable plans and checks, Opus heads build. Set the thinking effort of each side yourself.\"; lead providers [.claude, .commandcode] models [\"Fable\"] effort nil; heads providers [.claude, .commandcode] models [\"Opus\"] effort nil; maxHeads nil",
+        "Recipe 2 title \"Opus 5 leads Gemini 3.8 Flash\", tagline \"A careful lead and a wide, fast team: Opus writes the briefs, six Gemini Flash heads sprint through them.\"; lead [.claude, .commandcode] [\"Opus\"] effort \"high\"; heads [.antigravity, .commandcode] [\"Gemini 3.8 Flash\", \"Gemini\", \"Flash\"] effort \"medium\"; maxHeads 6",
+        "Recipe 3 title \"Opus 5 leads DeepSeek V4.1\", tagline \"Opus keeps the plan tight; DeepSeek V4.1 Flash heads keep the bill small on the routine parts.\"; lead [.claude, .commandcode] [\"Opus\"] \"high\"; heads [.deepseek, .commandcode] [\"V4.1 Flash\", \"V4.1\", \"DeepSeek\"] \"high\"; maxHeads nil",
+        "Recipe 4 title \"Opus 5 leads GLM-5.3 Flash\", tagline \"Opus keeps the plan tight; GLM-5.3 Flash heads on a Z.ai Coding Plan keep the bill flat.\"; lead [.claude, .commandcode] [\"Opus\"] \"high\"; heads [.zai, .commandcode] [\"5.3 Flash\", \"GLM\"] \"high\"; maxHeads nil",
+        "Recipe 5 title \"Fable 5.1 leads Composer 2.5\", tagline \"Fable thinks; Cursor's Composer heads type at the speed Composer is known for.\"; lead [.claude, .commandcode] [\"Fable\"] \"high\"; heads [.cursor] [\"Composer\"] effort nil; maxHeads nil",
+        "Recipe 6 title \"Astra 6 leads Spark 1.3 Contributor\", tagline \"GPT-6 Astra orchestrates at high; Muse Spark Contributor heads build at medium.\"; lead [.codex, .commandcode] [\"Astra\"] \"high\"; heads [.meta, .commandcode] [\"Contributor\"] \"medium\"; maxHeads nil",
+        "Recipe 7 title \"Astra 6 leads Terra 5.6\", tagline \"OpenAI top to bottom: Astra plans and reviews, Terra does the work at medium.\"; lead [.codex, .commandcode] [\"Astra\"] \"high\"; heads [.codex, .commandcode] [\"Terra\"] \"medium\"; maxHeads nil",
+        "Recipe 8 title \"Astra 6 high, Astra 6 medium\", tagline \"One model, two efforts: Astra thinks hard about the plan and the review, and Astra heads build at a working effort.\"; lead [.codex, .commandcode] [\"Astra\"] \"high\"; heads [.codex, .commandcode] [\"Astra\"] \"medium\"; maxHeads nil",
+        "Recipe 9 title \"Opus 5 max, Opus 5 medium\", tagline \"Opus thinks as hard as it can where it counts; Opus heads at medium do the building.\"; lead [.claude, .commandcode] [\"Opus\"] \"max\"; heads [.claude, .commandcode] [\"Opus\"] \"medium\"; maxHeads nil",
+        "Recipe 10 title \"Fable 5.1 high, Fable 5.1 medium\", tagline \"For the hardest, longest jobs: every seat on the most capable model, the lead at high and the heads at medium.\"; lead [.claude, .commandcode] [\"Fable\"] \"high\"; heads [.claude, .commandcode] [\"Fable\"] \"medium\"; maxHeads nil"
+      ],
+      "feature_notes": [
+        "Only one recipe caps concurrency: \"claude-opus-gemini-flash\" with maxHeads = 6; the other nine leave maxHeads nil (uncapped, so HydraLaunch.uncappedConcurrency = 8 applies)",
+        "Effort literals used across the table: \"high\", \"medium\", \"max\", or nil to keep the provider default",
+        "Every model-name list is ordered best-first and falls back through broader fragments (\"Gemini 3.8 Flash\" then \"Gemini\" then \"Flash\"; \"V4.1 Flash\" then \"V4.1\" then \"DeepSeek\"; \"5.3 Flash\" then \"GLM\"); a recipe whose names find nothing in any installed provider's catalog is not offered at all",
+        "Provider lists are ordered so a model's own house wins over an aggregator: .commandcode is always listed last except in recipe 5 (.cursor only) and recipe 6 heads (.meta, .commandcode)",
+        "effort(_:for:) returns the wanted effort only when option.efforts contains it, otherwise nil so the model's default effort stands",
+        "isAdded(_:in:) considers a pair a duplicate when provider, headsProvider, orchestratorModel and workerModel all match; efforts, maxHeads, name and headProfiles are deliberately not compared"
+      ],
+      "unresolved_questions": [
+        "How a recipe's model-name fragments are matched against a provider catalog (case sensitivity, prefix versus substring) is decided by code outside this bundle",
+        "The mapping from a chosen recipe to a concrete HydraPair (which provider is picked when several serve the model) is also outside this file"
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Models/HydraDelegationStream.swift",
+      "sha256": "330e458241ec061e28ae5b63a95cb31ced086380b6546c6795efc8444630690c",
+      "lines_total": 226,
+      "ranges_read": [
+        [
+          1,
+          226
+        ]
+      ],
+      "purpose": "Incremental parsing of a lead's ```hydra delegation block while the reply is still streaming, so each head is dispatched the moment its JSON entry's outermost brace closes. Provides a stateless whole-text/whole-body reader (HydraPrompts.streamedDelegations), the shared single-entry reader HydraPrompts.delegation(fromEntry:) that the non-streaming parser in Hydra.swift also uses, and a stateful byte-at-a-time HydraDelegationStreamParser class that ingests only newly appended text.",
+      "key_symbols": [
+        "extension HydraPrompts",
+        "struct HydraPrompts.StreamedDelegations: Hashable, Sendable (delegations: [HydraDelegation] = [], isComplete = false)",
+        "HydraPrompts.streamedDelegations(in text: String) -> StreamedDelegations?",
+        "HydraPrompts.streamedDelegations(inBody body: Substring) -> StreamedDelegations",
+        "HydraPrompts.delegation(fromEntry entry: JSONValue) -> HydraDelegation?",
+        "HydraPrompts.isJSONWhitespace(_ byte: UInt8) -> Bool (fileprivate)",
+        "final class HydraDelegationStreamParser (let turnID: UUID, let entryID: String; private(set) delegations, private(set) isComplete)",
+        "HydraDelegationStreamParser.init(turnID:entryID:)",
+        "HydraDelegationStreamParser.ingest(_ text: String)",
+        "HydraDelegationStreamParser.readOpener(_:) / readOpenerEnd(_:) / readBody(_:) (private)"
+      ],
+      "calls_into": [
+        "HydraPrompts (enum extended here) and HydraDelegation (Hydra.swift)",
+        "JSONValue.parse(_:) and JSONValue subscript / .string (DroppyCode/Core/Support/JSONValue.swift)",
+        "TextCleanup.singleLine(_:limit:) (DroppyCode/Core/Support/Text.swift) used to title an entry that has no \"task\"",
+        "HydraPrompts.delegation(fromEntry:) is called back from Hydra.swift's delegations(fromBody:) and from the streaming parser"
+      ],
+      "state_owned": [
+        "HydraDelegationStreamParser instance state: turnID (UUID), entryID (String), delegations ([HydraDelegation], private(set)), isComplete (Bool, private(set)), opener (Int state-machine cursor, 0...15), inBody (Bool), shapeKnown (Bool), isArray (Bool), depth (Int), inString (Bool), escaped (Bool), atLineStart (Bool = true), entry ([UInt8] accumulator, cleared with removeAll(keepingCapacity: true) after each entry)",
+        "StreamedDelegations is a value type holding the entries parsed so far and whether the block closed"
+      ],
+      "side_effects": [
+        "None: no I/O, no processes, no timers. Dispatching heads on the parsed entries happens in the runtime, not here"
+      ],
+      "platform_assumptions": [
+        "Swift Regex literal #/```[ \\t]*hydra(?:-sent)?[ \\t]*\\r?\\n/#.ignoresCase() with String.firstMatch(of:)",
+        "String.utf8 view indices and the assumption that JSON structure is ASCII, so a multi-byte UTF-8 character never contains an ASCII byte and brace/quote tracking stays exact (the comment states this explicitly)",
+        "String(decoding:as: UTF8.self) to rebuild an entry from accumulated bytes",
+        "No AppKit/SwiftUI dependency; Foundation only"
+      ],
+      "persisted_fields": [
+        "None persisted. The JSON field names consumed from a delegation entry are: \"prompt\" (required, trimmed, must be non-empty), \"task\" (optional, trimmed), \"name\" with fallback \"head\" (optional announced roster name), \"project\" with fallback \"repo\" (optional), \"profile\" (optional head-profile name)"
+      ],
+      "ui_elements": [
+        "No UI. The only user-visible literal produced is the head's task title when no \"task\" was given: TextCleanup.singleLine(prompt, limit: 60), i.e. a 60-character single-line title derived from the prompt"
+      ],
+      "feature_notes": [
+        "streamedDelegations(in:) recognises only ```hydra and ```hydra-sent info strings (not ```hydra-leaving, unlike delegationOpener in Hydra.swift which also accepts -leaving)",
+        "streamedDelegations(inBody:) skips leading JSON whitespace (space, \\n, \\r, \\t), then requires '[' (array, cursor advances past it) or '{' (one bare entry, cursor stays); any other first byte returns an empty, incomplete result",
+        "Termination conditions that set isComplete: ']' at depth 0, a '`' that opens a line at depth 0 (the closing fence), a '}' driving depth below 0 (broken block), or the closing '}' of a bare single entry",
+        "Each entry is parsed with JSONValue.parse on the substring from its opening brace to its closing brace inclusive; an entry that does not parse or that delegation(fromEntry:) rejects is silently skipped, so the streaming and whole-block parsers agree on order and count",
+        "atLineStart starts true because the body begins right after the opening fence's newline, and is updated as `byte == \\n` after each byte",
+        "HydraDelegationStreamParser.ingest ignores further text once isComplete and breaks out of the byte loop as soon as isComplete flips",
+        "readOpener is a hand-written 16-state ASCII machine: states 0...2 count backticks (96), state 3 skips space (32) and tab (9) and extra backticks and requires 'h' (lowercased 104), states 4...7 require 'y' (121), 'd' (100), 'r' (114), 'a' (97), state 8 accepts '-' (45) to enter states 9...12 requiring 's' (115), 'e' (101), 'n' (110), 't' (116); states 13/14 accept trailing space/tab, '\\r' (13) moves to state 15, '\\n' (10) enters the body; a stray backtick anywhere resets the cursor to 1 rather than 0",
+        "The streaming class therefore accepts only ```hydra and ```hydra-sent, matching streamedDelegations(in:) and not the -leaving variant",
+        "readBody mirrors the stateless walk with raw ASCII codes: 34 '\"', 92 '\\\\', 91 '[', 93 ']', 96 '`', 123 '{', 125 '}'; the entry accumulator is appended to only while depth > 0 and reset to [byte] on the outermost '{'",
+        "The class doc states it reads only newly appended UTF-8 bytes; completed or replaced messages get a fresh parser, and the runtime's sent watermark prevents already dispatched entries repeating",
+        "delegation(fromEntry:) drops an entry with a missing, non-string or whitespace-only \"prompt\"; an empty \"task\" is replaced by the 60-character single-line prompt title; empty-string name/project/profile are normalised to nil",
+        "The \"name\" an entry carries is passed through as-is for the spawner to resolve against the roster; an unknown \"profile\" falls back to the pair's shared worker model"
+      ],
+      "unresolved_questions": [
+        "The class's turnID and entryID are stored but never read inside this file; their use (keying the parser per streaming message) is in the runtime outside this bundle",
+        "The exact behaviour of JSONValue.parse on a truncated or malformed entry (throwing versus nil) is assumed to be nil-returning from the optional binding, but JSONValue.swift was not read in this bundle",
+        "TextCleanup.singleLine's exact truncation behaviour at limit 60 (ellipsis, word boundary) is defined in Core/Support/Text.swift, not read here"
+      ]
+    }
+  ]
+}

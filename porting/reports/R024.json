@@ -1,0 +1,217 @@
+{
+  "bundle_id": "R024",
+  "reader": "R024-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Sidebar/FloatingSidebarPanel.swift",
+      "sha256": "c728674282f32e560848ac99be202802ca391cc1d9133c1edef68821bf3a520b",
+      "lines_total": 127,
+      "ranges_read": [
+        [
+          1,
+          127
+        ]
+      ],
+      "purpose": "Defines FloatingSidebarPanel, the SwiftUI view that shows the sidebar's thread list as a draggable, resizable floating glass panel over the chat area while the sidebar column is collapsed, replacing the toolbar-button popover. Owns the drag/resize gesture math, clamping to the chat area, and the persisted position and size in app settings.",
+      "key_symbols": [
+        "struct FloatingSidebarPanel: View",
+        "static let defaultSize = CGSize(width: 300, height: 560)",
+        "static let minSize = CGSize(width: 240, height: 320)",
+        "static let margin: CGFloat = 12",
+        "static let stripHeight: CGFloat = 44",
+        "let area: CGSize",
+        "let canClose: Bool",
+        "let close: () -> Void",
+        "var body: some View",
+        "private func onDrag(rest: CGPoint, size: CGSize) -> (CGSize) -> Void",
+        "private func onDragEnd()",
+        "private static func clamp(_ origin: CGPoint, size: CGSize, in area: CGSize) -> CGPoint"
+      ],
+      "calls_into": [
+        "AppModel via @Environment(AppModel.self), and model.settings",
+        "SidebarView(inPopover: true, dismiss: nil)",
+        "PanelDragHandle(onDrag:onDragEnd:) and PanelDragHandle(onDrag:onDragEnd:cursor:dragCursor:)",
+        "ChromeCircleButton(symbol:help:action:)",
+        "HydraPanel.cornerRadius",
+        "Chrome.contentTopInset",
+        "Chrome.primaryText",
+        "Chrome.capsuleHorizontalPadding",
+        "Chrome.capsuleContentHeight",
+        "Chrome.capsuleVerticalPadding",
+        "Chrome.chromeTopPadding",
+        "Chrome.chromeHorizontalPadding",
+        "Chrome.glassTint",
+        "Chrome.panelSlide",
+        "chromeGlassCapsule() view modifier",
+        "glassEffect(.regular, in: shape) SwiftUI Liquid Glass modifier",
+        "NSCursor.frameResize(position:directions:)",
+        "colorScheme environment value"
+      ],
+      "state_owned": [
+        "@State private var dragOrigin: CGPoint? - the panel top-left while the strip is held, nil at rest",
+        "@State private var grab: CGPoint? - the origin captured on the first tick of a move drag",
+        "@State private var resizeStart: CGSize? - the size captured on the first tick of a resize drag",
+        "Reads and writes model.settings.sidebarPanelSize and model.settings.sidebarPanelOrigin, which are owned by AppModel rather than this view"
+      ],
+      "side_effects": [
+        "Writes model.settings.sidebarPanelSize on every resize drag tick, live rather than only on drag end",
+        "Writes model.settings.sidebarPanelOrigin once on drag end, from the final clamped dragOrigin",
+        "Invokes the injected close() closure when the xmark button is pressed"
+      ],
+      "platform_assumptions": [
+        "import AppKit for NSCursor.frameResize(position: .bottomRight, directions: .all) used as the resize grip cursor and dragCursor",
+        "SwiftUI glassEffect(.regular, in:) requires the macOS Liquid Glass material API",
+        "@Environment(AppModel.self) uses the Swift Observation based SwiftUI environment",
+        "Top-left origin geometry: offset(x:y:) inside a maxWidth/maxHeight infinite frame aligned .topLeading",
+        "Chrome.contentTopInset as the default Y implies a macOS window chrome inset under the title bar"
+      ],
+      "persisted_fields": [
+        "settings.sidebarPanelSize: CGSize? - optional, nil default, falls back to CGSize(width: 300, height: 560)",
+        "settings.sidebarPanelOrigin: CGPoint? - optional, nil default, falls back to CGPoint(x: 12, y: Chrome.contentTopInset)"
+      ],
+      "ui_elements": [
+        "Top strip of height 44 acting as the drag handle across the panel's full width",
+        "Title Text(\"Threads\") at .font(.system(size: 12.5, weight: .medium)), .foregroundStyle(Chrome.primaryText.opacity(0.92))",
+        "Title capsule chain: .padding(.horizontal, Chrome.capsuleHorizontalPadding), .frame(height: Chrome.capsuleContentHeight), .padding(.vertical, Chrome.capsuleVerticalPadding), .fixedSize(), .chromeGlassCapsule(), .padding(.top, Chrome.chromeTopPadding), .padding(.leading, Chrome.chromeHorizontalPadding)",
+        "The title carries its own PanelDragHandle overlay, with the source comment 'The title is a label, not a control, so it drags the panel too.'",
+        "Middle PanelDragHandle with .frame(maxWidth: .infinity), .frame(height: 44), .help(\"Drag to move\"), .accessibilityLabel(Text(\"Drag to move\"))",
+        "Close button shown only when canClose: ChromeCircleButton(symbol: \"xmark\", help: \"Back into the column\"), .padding(.top, Chrome.chromeTopPadding), .padding(.trailing, Chrome.chromeHorizontalPadding)",
+        "Strip layout: HStack(alignment: .top, spacing: 8) holding title, drag strip and close button, as an .overlay(alignment: .top)",
+        "Bottom-trailing resize grip: PanelDragHandle in .frame(width: 16, height: 16) with .help(\"Drag to resize\"), as an .overlay(alignment: .bottomTrailing)",
+        "Content: SidebarView(inPopover: true, dismiss: nil) with .padding(.top, 44) so the list clears the strip, then .frame(width: size.width, height: size.height)",
+        "Inner background: RoundedRectangle(cornerRadius: HydraPanel.cornerRadius, style: .continuous) filled .clear, .glassEffect(.regular, in: shape), overlaid with shape.fill(Chrome.glassTint.opacity(isDark ? 0.22 : 0.16))",
+        "Outer background behind the clip: same shape filled (isDark ? Color.black : Color.white).opacity(isDark ? 0.3 : 0.34) with .shadow(color: .black.opacity(isDark ? 1 : 0.65), radius: 28, y: 10)",
+        "Panel body clipped with .clipShape(shape) between the two background layers",
+        "Placement: .offset(x: origin.x, y: origin.y) inside .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)"
+      ],
+      "feature_notes": [
+        "Default panel size 300x560 points, minimum 240x320, and a 12 point margin kept from every edge of the chat area",
+        "Stored size is clamped per axis as min(max(minSize, stored), max(minSize, area - margin * 2)), so an oversized stored size shrinks to fit but never below the minimum even when the area is smaller than the minimum",
+        "Default resting origin is x = 12, y = Chrome.contentTopInset, passed through clamp(_:size:in:)",
+        "clamp computes x = min(max(12, x), max(12, area.width - size.width - 12)) and y = min(max(12, y), max(12, area.height - size.height - 12)), so the panel can never be dragged off an edge",
+        "Resize is anchored at the current origin: width capped at area.width - origin.x - 12 and height at area.height - origin.y - 12, with the minimum size as the lower bound",
+        "Resize persists live on every tick; a move persists only in onDragEnd, with dragOrigin acting as the live preview",
+        "grab and resizeStart capture the base value on the gesture's first tick so the translation applies to a fixed base instead of accumulating",
+        "Animation .animation(dragOrigin == nil ? Chrome.panelSlide : nil, value: origin): the panel springs to a new resting position but tracks the pointer with no animation while dragged",
+        "The close button labelled 'Back into the column' appears only while the sidebar column still exists (canClose) and returns the list to the column",
+        "Dark and light differ in glass tint (0.22 vs 0.16), backing fill (black 0.3 vs white 0.34) and shadow alpha (1.0 vs 0.65)"
+      ],
+      "unresolved_questions": [
+        "Numeric values of Chrome.contentTopInset, Chrome.capsuleHorizontalPadding, Chrome.capsuleContentHeight, Chrome.capsuleVerticalPadding, Chrome.chromeTopPadding, Chrome.chromeHorizontalPadding, Chrome.glassTint, Chrome.primaryText, Chrome.panelSlide and HydraPanel.cornerRadius live outside this bundle",
+        "Who constructs FloatingSidebarPanel and what it passes for area, canClose and close is not visible from this file",
+        "Whether PanelDragHandle's onDrag receives a cumulative translation is inferred from the grab/resizeStart pattern; its definition is in another file"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Sidebar/RowGlide.swift",
+      "sha256": "c7bf82d5a83e9e4b134f83a316c02f0c12ae7e00ba1fc39cc00756e093e08196",
+      "lines_total": 252,
+      "ranges_read": [
+        [
+          1,
+          252
+        ]
+      ],
+      "purpose": "Implements the sidebar thread row's flight animation when a thread settles or reopens: a snapshot ghost of the row travels from its old frame to its new frame, crossfading the old face into the new one while a green checkmark slides across the row. Holds the shared RowGlideAnimator store, the window-wide RowGlideLayer that draws in-flight glides, the private RowGlideView keyframe animation, and a FrameShape clip.",
+      "key_symbols": [
+        "@MainActor @Observable final class RowGlideAnimator",
+        "static let shared = RowGlideAnimator()",
+        "nonisolated static let spring = Chrome.glideSpring",
+        "struct Glide: Identifiable",
+        "enum Glide.Direction { case settle, case reopen }",
+        "Glide stored fields: id: UUID, threadID: UUID, direction, departure: NSImage, arrival: NSImage, departureFill: Double, arrivalFill: Double, from: CGRect, var to: CGRect, bounds: CGRect, launchedAt = Date.now, var hasArrived = false, var hasLanded = false",
+        "private static let landingWindow: TimeInterval = 0.5",
+        "func launch(threadID:direction:from:fallback:bounds:departure:arrival:departureFill:arrivalFill:)",
+        "func land(threadID:settled:at:)",
+        "func isHiding(_ threadID: UUID) -> Bool",
+        "private func hidingCell(_ threadID: UUID) -> ObservedValue<Bool>",
+        "private func setHiding(_ threadID: UUID, _ hiding: Bool)",
+        "func arrive(_ id: UUID)",
+        "func finish(_ id: UUID)",
+        "func render<Face: View>(_ face: Face, size: CGSize, colorScheme: ColorScheme) -> NSImage?",
+        "struct RowGlideLayer: View",
+        "private struct RowGlideView: View",
+        "private nonisolated static let trailingCheckInset: CGFloat = 36",
+        "private nonisolated static let leadingCheckInset: CGFloat = 16",
+        "private nonisolated static func smoothstep(_ edge0: Double, _ edge1: Double, _ x: Double) -> Double",
+        "private struct FrameShape: Shape"
+      ],
+      "calls_into": [
+        "Chrome.glideSpring",
+        "Chrome.rowCornerRadius",
+        "Chrome.overlay(_:)",
+        "Chrome.inlineIconFont",
+        "Chrome.success",
+        "ObservedValue<Bool>, a per-thread observable cell type defined elsewhere",
+        "SidebarThreadRow, named in comments as the source of the check insets and the reader of isHiding",
+        "NSWorkspace.shared.accessibilityDisplayShouldReduceMotion",
+        "NSScreen.main?.backingScaleFactor",
+        "SwiftUI ImageRenderer, keyframeAnimator, SpringKeyframe, GeometryReader",
+        "Spring.settlingDuration"
+      ],
+      "state_owned": [
+        "private(set) var glides: [Glide] - the in-flight ghosts, observed by RowGlideLayer",
+        "@ObservationIgnored private var hidingCells: [UUID: ObservedValue<Bool>] - one observable cell per thread ID, created lazily and kept forever so an observing row keeps seeing the same instance",
+        "RowGlideView @State private var hasStarted = false - the keyframeAnimator trigger flipped in onAppear",
+        "Glide.launchedAt captured as Date.now at construction",
+        "Glide.to is re-targetable by land(); hasArrived and hasLanded are mutable flags"
+      ],
+      "side_effects": [
+        "Reads NSWorkspace.shared.accessibilityDisplayShouldReduceMotion and refuses to launch any glide when Reduce Motion is on",
+        "Rasterizes SwiftUI views into NSImage snapshots through ImageRenderer at NSScreen.main backing scale, defaulting to 2",
+        "Two chained Task.sleep timers per glide in .task: sleep(max(settlingDuration - 0.12, 0)) then arrive(glide.id), then sleep(0.12) then finish(glide.id)",
+        "Mutates the shared @MainActor singleton RowGlideAnimator.shared from view lifecycle",
+        "No file writes, no network calls, no process launches, no keychain access"
+      ],
+      "platform_assumptions": [
+        "import AppKit: NSImage, NSWorkspace and NSScreen are AppKit only",
+        "NSWorkspace.shared.accessibilityDisplayShouldReduceMotion is the macOS Reduce Motion accessibility flag",
+        "ImageRenderer.nsImage is the macOS specific renderer output, where iOS would use uiImage",
+        "NSScreen.main?.backingScaleFactor for Retina rasterization with a fallback of 2",
+        "Swift Observation (@Observable, @ObservationIgnored) with @MainActor isolation, and nonisolated statics so the keyframe closure can read spring and the insets off the main actor",
+        "SwiftUI keyframeAnimator with SpringKeyframe and Spring.settlingDuration",
+        "Top-left origin geometry: ZStack(alignment: .topLeading) and frames measured in the window's own coordinate space"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "RowGlideLayer: GeometryReader around a ZStack(alignment: .topLeading) of one RowGlideView per glide, framed to proxy.size at .topLeading, with .allowsHitTesting(false) and .accessibilityHidden(true)",
+        "Ghost shape: RoundedRectangle(cornerRadius: Chrome.rowCornerRadius, style: .continuous)",
+        "Departure image drawn at the from-frame size and arrival image at the to-frame size, both pinned .topLeading and clipped to the interpolated frame",
+        "Departure opacity = 1 - smoothstep(0.2, 0.65, p); arrival opacity = smoothstep(0.35, 0.8, p)",
+        "Background under the clip: shape.fill(Chrome.overlay(fill)) with .shadow(color: .black.opacity(0.28 * lift), radius: 10, y: 4)",
+        "Check glyph: Image(systemName: settles ? \"checkmark.circle.fill\" : \"checkmark.circle\") with .font(Chrome.inlineIconFont) and .foregroundStyle(Chrome.success)",
+        "Check scale: settles ? 1.35 - 0.35 * smoothstep(0, 0.5, p) : 1",
+        "Check opacity: settles ? 1 - 0.2 * p : 1 - smoothstep(0.55, 0.9, p)",
+        "Check position x = checkStart + (checkEnd - checkStart) * smoothstep(0.05, 0.95, p), y = frame.midY",
+        "Check insets measured from the row edge to the check centre: trailing 36 beside the ellipsis while open, leading 16 at the front once settled",
+        "Ghost positioned with .position(x: frame.midX, y: frame.midY), then framed to the canvas at .topLeading and clipped with FrameShape(frame: glide.bounds) so it cannot escape the list's visible frame"
+      ],
+      "feature_notes": [
+        "Two directions: .settle moves the row down to the settled rows with the check travelling trailing to leading as a filled checkmark.circle.fill, and .reopen moves it back up among the open ones with the check travelling leading to trailing as a hollow checkmark.circle that fades out",
+        "launch() refuses when from.width <= 1 or from.height <= 1, and refuses entirely when Reduce Motion is enabled",
+        "launch() removes any existing glide for the same threadID before appending, so a thread has at most one ghost in the air",
+        "A launch is aimed at a fallback rect just past the list's edge, so if the new row never reports a frame the ghost slips out under the clip instead of landing",
+        "land() re-targets a glide only when the glide exists, is younger than the 0.5 second landingWindow, and its direction matches the settled flag; the latest report inside the window wins and the interpolation absorbs the re-targeting",
+        "Per-thread ObservedValue<Bool> hiding cells mean a launch, landing or finish re-renders only the two rows of that glide plus the layer, not every row in the list",
+        "setHiding writes only when the value actually changes, so a row is never re-rendered for a write that said what it already showed",
+        "arrive() runs at settlingDuration - 0.12 seconds and un-hides the real row so it shows under the ghost's last frames; finish() removes the ghost 0.12 seconds later, so the handover never shows a gap",
+        "finish() re-derives hiding as glides.contains { $0.threadID == threadID && !$0.hasArrived }, so a thread relaunched meanwhile stays hidden",
+        "Geometry interpolates x, y, width and height linearly in the spring-driven progress p, so the ghost resizes as well as moves between the two row frames",
+        "lift = min(smoothstep(0, 0.12, p), 1 - smoothstep(0.7, 1, p)): the row lifts within the first 12 percent of the flight and has set back down through the last 30 percent",
+        "fill = max(departureFill + (arrivalFill - departureFill) * p, 0.12 * lift), so an unfilled row still shows a faint plate at up to 0.12 while airborne",
+        "smoothstep is t * t * (3 - 2 * t) with t = (x - edge0) / (edge1 - edge0) clamped to 0...1",
+        "The keyframe track is a single SpringKeyframe(1.0, spring: RowGlideAnimator.spring) from an initial value of 0.0, triggered by hasStarted flipping true in onAppear",
+        "render() snapshots any Face view at the given size, aligned .topLeading, with the colorScheme forced into the environment so a ghost matches the theme it was captured in",
+        "hasLanded is set by land() but is never read anywhere in this file"
+      ],
+      "unresolved_questions": [
+        "Chrome.glideSpring's exact spring parameters, and therefore settlingDuration and the real flight duration, are defined outside this bundle",
+        "Numeric values of Chrome.rowCornerRadius, Chrome.inlineIconFont, Chrome.success and the Chrome.overlay(_:) mapping are outside this bundle",
+        "ObservedValue<Bool> is used but defined elsewhere; that it is an observable box is inferred from the comments only",
+        "Glide.hasLanded is written by land() but never read here, so whether another file reads it could not be established from the assigned files",
+        "The call sites of launch() and land(), presumably SidebarThreadRow or the sidebar list, and where RowGlideLayer is mounted in the window, are outside this bundle",
+        "hidingCells is never pruned, and whether that is an intentional bounded cache or a leak over long sessions cannot be judged from this file alone"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,465 @@
+{
+  "bundle_id": "R016",
+  "reader": "R016-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Composer/EffortSlider.swift",
+      "sha256": "8a8a00b74940c2aed560d21add7e757e7bab9a5922d5ca44243ceba18182b166",
+      "lines_total": 1347,
+      "ranges_read": [
+        [
+          1,
+          1347
+        ]
+      ],
+      "purpose": "The composer's model chip and everything behind it: the ModelCatalog that decides which models the chip offers, the popover that flips between the effort slider and the model/pair list, the EffortSliderCard (fast mode, effort title, reset, provider/pair subtitle), the EffortSlider itself (capsule track with a Liquid Glass lens knob), the brand colour tables (EffortPalette, EffortBrand, EffortPairBrand, TrackLook) and TrackEffect, the Canvas that draws particles, speed streaks, lightning bolts, a sheen and the Hydra pair fusion animation on the filled part of the track.",
+      "key_symbols": [
+        "enum ModelCatalog (@MainActor) with struct Entry: Identifiable, Hashable { provider: ProviderKind, option: ModelOption, id == \"\\(provider.rawValue)/\\(option.id)\" } and static func entries(_ model: AppModel, including thread: ChatThread?) -> [Entry]",
+        "struct ModelEffortButton: View (public composer chip; props thread: ChatThread, hasHistory: Bool, compact: Bool = false)",
+        "ModelEffortButton.helpText(current:pair:) -> String",
+        "private struct ModelEffortPanel: View (threadID: UUID, hasHistory: Bool; @State showsModels)",
+        "ModelEffortPanel.slider(for:), .remember(_ id: UUID), .choose(_ entry:for:)",
+        "struct ModelList: View (thread, hasHistory, onChoose, onEnterPair default { _ in }, onBack); statics pairRowHeight = 46, sectionHeaderHeight = 22; private detail(for pair: HydraPair) -> String",
+        "private struct HydraPairListRow: View",
+        "private struct ModelListRow: View",
+        "struct EffortPairLook: Hashable { title, brand: EffortPairBrand, headsEffort: String?; init(_ pair: HydraPair, registry: ProviderRegistry, resolvedHeadsEffort: String?); var caption: String }",
+        "struct EffortSliderCard: View (modelName, provider: ProviderKind?, pair: EffortPairLook? = nil, efforts: [String], defaultEffort: String?, supportsFast: Bool, @Binding effort: String?, @Binding fastMode: Bool, onTitleTap: (() -> Void)?, onReset)",
+        "EffortSliderCard.resolvedIndex, .isMaxEffort, .title, .isFast, .brand, .titleStyle -> AnyShapeStyle",
+        "private struct FastModeButton: View (@Binding isOn)",
+        "private struct RoundIconButton: View (symbol, help, action)",
+        "struct EffortSlider: View; static let trackHeight: CGFloat = 34, static let thumbSize: CGFloat = 42; nearestStop(to:inset:step:)",
+        "enum EffortPalette { title, supercharged, superchargedFill, fast, fastFill }",
+        "enum EffortBrand: Hashable { case claude, deepseek, meta, antigravity, silver, purple }; init(provider: ProviderKind?); titleColor, title, fill, fillColor, spark, isLight, glow, static gemini",
+        "struct EffortPairBrand: Hashable { colors: [Color], isLight: Bool; init(_ pair: HydraPair); titleColors }",
+        "struct TrackLook: Hashable { enum Kind { plain, supercharged, fast, fusion }; kind, brand, pair; fill, glow, isLightFill, stopColor, spark, effectIdentity }",
+        "struct TrackEffect: View { look: TrackLook }; nested struct Particle, struct Streak, struct Traits (static build(width:)), final class TraitCache",
+        "TrackEffect statics: drawParticles, drawStreaks, drawBolts, drawSheen, drawFusion, edgeFade(_:width:), nonisolated static random(_ index: Double, _ trait: Double)"
+      ],
+      "calls_into": [
+        "AppModel: .providers, .settings, .thread(_:), .updateThread(_:), .hydraIsOn(_:), .hydraPair(for:), .hydraHeadsProvider(of:), .hydraPickerPairs, .leadsWithHydraPair(_:thread:), .enterHydraPair(_:for:), .leaveHydraPair(for:), .hydraLaunch(for:), .existingRuntime(for:)",
+        "ProviderRegistry: .availableProviders, .models(for:), .model(_:for:), .loadCatalog(_:)",
+        "ModelOption: .id, .shortName, .chipName, .efforts, .defaultEffort, .supportsFast, static effortTitle(_:)",
+        "AppSettings: .modelList (pins with .provider/.modelID), .preference(for:model:), .setPreference(_:for:model:), .remember(model:effort:for:), .defaultProvider",
+        "ModelPreference(effort:fastMode:)",
+        "ChatThread fields: id, provider, model, effort, fastMode, providerSessionID, providerResumeAt",
+        "HydraPair: .id, .provider, .headsProvider, .customName, .orchestratorEffort, .workerEffort, .sendsHeadsElsewhere",
+        "HydraPairSummary.title(_:registry:), .modelsTitle(_:registry:), .providers(_:), .efforts(_:)",
+        "HydraRoster.personas (first 4 personas' .color)",
+        "HydraFusedPairIcon, HydraMarkImage, ProviderIcon, PopoverSectionHeader",
+        "Chrome.overlay(_:), Chrome.primaryText, Chrome.secondaryText, Chrome.accent, Chrome.inlineIconFont, Chrome.chevronFont, Chrome.hover",
+        "ThemeManager (indirect via .presentedChrome()), .presentedChrome(), .buttonStyle(.chip(active:))",
+        "WebsiteCaptures.isEnabled, .modelChipAnchor, .modelChipFrames; WeakView; AttachmentAnchorCapture",
+        "FrontMonitor.shared.isVisible",
+        "NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)",
+        "Transition .softAppear"
+      ],
+      "state_owned": [
+        "ModelEffortButton: @Environment(AppModel.self) model; @State isPresented = false; @State naturalWidth: CGFloat?; @State lockedWidth: CGFloat?",
+        "ModelEffortPanel: @Environment(AppModel.self) model; @Environment(\\.dismiss); @State showsModels = false",
+        "HydraPairListRow / ModelListRow: @State isHovering = false",
+        "EffortSliderCard: @State isTitleHovering = false",
+        "FastModeButton: @State isHovering; RoundIconButton: @State isHovering",
+        "EffortSlider: @State dragX: CGFloat? (nil at rest)",
+        "TrackEffect: @Environment(\\.accessibilityReduceMotion) reduceMotion; @State startedAt = Date.now; @State traits = TraitCache() (final class caching Traits per fill width, width starts -1.0)"
+      ],
+      "side_effects": [
+        "model.updateThread(thread.id) mutates and persists thread.effort / thread.fastMode / thread.provider / thread.model / thread.providerSessionID / thread.providerResumeAt",
+        "model.settings.setPreference(ModelPreference(effort:fastMode:), for:model:) and model.settings.remember(model:effort:for:) write per-model preferences whenever the slider or fast mode changes; choosing a model also sets model.settings.defaultProvider = provider",
+        "Switching provider calls model.existingRuntime(for: thread.id)?.stopSession()",
+        "await registry.loadCatalog(provider) in .task(id: thread.provider) on the chip, and in ModelList's .task for every distinct pair provider/headsProvider that differs from the thread's",
+        "Haptics: NSHapticFeedbackManager .alignment on every slider stop change during drag",
+        "WebsiteCaptures.modelChipAnchor = WeakView(view) and WebsiteCaptures.modelChipFrames[thread.id] = frame (global capture state, only when WebsiteCaptures.isEnabled and !compact)",
+        "model.enterHydraPair / model.leaveHydraPair change the chat's Hydra pairing",
+        "TimelineView(.animation) drives a per-frame Canvas at 30fps (supercharged with no pair) or 60fps; paused when reduceMotion or FrontMonitor.shared.isVisible is false"
+      ],
+      "platform_assumptions": [
+        "AppKit + SwiftUI on macOS: NSHapticFeedbackManager.defaultPerformer (trackpad haptics)",
+        "SwiftUI .glassEffect(.regular.tint(...).interactive(), in: Circle()) - Liquid Glass, macOS 26 era API",
+        "SF Symbols names: chevron.down, chevron.right, chevron.left, bolt, bolt.fill, arrow.counterclockwise, checkmark",
+        ".symbolEffect(.bounce, value:), .contentTransition(.numericText()), .onGeometryChange(for:of:action:), .accessibilityAdjustableAction, .scrollBounceBehavior(.basedOnSize)",
+        "Canvas GraphicsContext with .addFilter(.blur(radius:)), blendMode .plusLighter, .clip(to:), linearGradient shading",
+        "Color.mix(with:by:) (SwiftUI colour mixing)",
+        "NSPopover-backed SwiftUI .popover(isPresented:arrowEdge: .bottom)"
+      ],
+      "persisted_fields": [
+        "Indirect only, through AppSettings: modelList (array of pins with .provider and .modelID), per-model ModelPreference(effort: String?, fastMode: Bool) via setPreference/preference, remember(model:effort:for:), and defaultProvider: ProviderKind",
+        "Thread-persisted through AppModel.updateThread: effort: String?, fastMode: Bool, provider: ProviderKind, model: String?, providerSessionID (cleared to nil on provider switch), providerResumeAt (cleared to nil on provider switch)",
+        "This file declares no @AppStorage / UserDefaults keys of its own"
+      ],
+      "ui_elements": [
+        "Chip: HStack(spacing: 5) of HydraFusedPairIcon(size: 15) when in a pair else ProviderIcon(size: 14); bolt.fill in .yellow at Chrome.inlineIconFont when thread.fastMode && current?.supportsFast; model name (pair.customName ?? current?.chipName ?? thread.model ?? provider.displayName) lineLimit(1) truncationMode(.tail); effort title at opacity 0.72 fixedSize; chevron.down at Chrome.chevronFont. buttonStyle(.chip(active: isPresented)), .focusable(false)",
+        "Chip width lock: naturalWidth measured only while lockedWidth == nil; on popover open lockedWidth = naturalWidth, on close nil; compact chips pass width nil",
+        "Chip tooltip/accessibility label: parts joined with \" · \" - shortName, effort title, HydraPairSummary.title",
+        "Popover content fixed width 330, crossfade .animation(.easeOut(duration: 0.12), value: showsModels), transition .opacity both ways",
+        "ModelList header: chevron.left button 20x20 (help \"Back\"), label Text(\"Select model\") font size 13 Chrome.secondaryText; padding .horizontal 8, .top 8, .bottom 4; whole list .padding(6)",
+        "ModelList rows: LazyVStack spacing 1; PopoverSectionHeader(\"Pairs\") and PopoverSectionHeader(\"Models\") when pairs exist; empty state Text(\"Loading models…\") font 13, padding 10",
+        "Row height rule: 46 when showsProviders or (hasHistory and some entry is on another provider), else 34; pairRowHeight 46; sectionHeaderHeight 22; scroll frame height = min(pairsHeight + max(entries.count,1) * (rowHeight + 1), 440); pairsHeight = sectionHeaderHeight*2 + count*(46+1)",
+        "Locked rows show detail \"New chats only\", are .disabled and drawn at .opacity(0.45)",
+        "HydraPairListRow: HStack spacing 10, HydraFusedPairIcon(size: 16, animates: false) in an 18 wide frame, title font 14 primary, detail font 12 secondary, Spacer(minLength: 12), checkmark font 13 semibold opacity 1/0; padding .horizontal 10; hover background RoundedRectangle(cornerRadius: 9, style: .continuous) filled Chrome.overlay(0.1)",
+        "ModelListRow: same metrics; ProviderIcon(size: 14) in 18 wide frame when showsProviders; bolt glyph font size 10 when option.supportsFast",
+        "EffortSliderCard: VStack(spacing: 16), padding .horizontal 16, .top 14, .bottom 16; ZStack head row with FastModeButton at leading (only when supportsFast) and RoundIconButton(\"arrow.counterclockwise\", help \"Reset to default\") at trailing; centred VStack(spacing: 2) inset .padding(.horizontal, 44)",
+        "Effort title: font .system(size: 17, weight: .medium), .contentTransition(.numericText()), chevron.right font 12 semibold when onTitleTap != nil; hover background RoundedRectangle(cornerRadius: 7) Chrome.overlay(0.08); help \"Choose a model\" (empty string when not tappable); title animations .smooth(duration: 0.3) on isMaxEffort and isFast",
+        "Subtitle row: HStack(spacing: 5) with HydraMarkImage 12x12 at Chrome.primaryText.opacity(0.75) in a pair else ProviderIcon(size: 12); text font 13 at primaryText.opacity(0.7), lineLimit 1, truncationMode .tail, minimumScaleFactor 0.85",
+        "No-effort state: Text(\"This model has one reasoning level.\") font 12 secondary, frame(height: EffortSlider.thumbSize) = 42",
+        "Pair caption line: font 11 secondary, lineLimit 1, minimumScaleFactor 0.9, .padding(.top, -6), .transition(.softAppear)",
+        "FastModeButton: 30x30 circle, glyph font 13 semibold, yellow when on with Circle fill Color.yellow.opacity(0.18) else Chrome.overlay(0.1 hovering / 0.06), .symbolEffect(.bounce, value: isOn), toggle animation .spring(response: 0.3, dampingFraction: 0.7); help \"Fast mode is on\" / \"Fast mode\"; accessibilityLabel \"Fast mode\", value \"On\"/\"Off\"",
+        "RoundIconButton: 30x30, glyph font 13 medium Chrome.secondaryText, hover Circle fill Chrome.overlay(0.1)",
+        "EffortSlider geometry: trackHeight 34, thumbSize 42, inset = thumbSize/2 = 21, step = (width - 42) / (count - 1), fill width = x + inset; base capsule Chrome.overlay(0.1); stop dots 5x5 circles, look.stopColor when passed else Chrome.overlay(0.32)",
+        "Knob: blurred glow disc (blur radius 4 when plain else 8, offset y 1) under a Circle().fill(.clear).glassEffect(.regular.tint(.white.opacity(0.55 on light fill else 0.32)).interactive(), in: Circle()); strokeBorder Color.black.opacity(0.14) lineWidth 1 only on a light fill; scaleEffect 1.06 while dragging",
+        "Slider drag: DragGesture(minimumDistance: 0); first change animates dragX in with .spring(response: 0.22, dampingFraction: 0.8); release .spring(response: 0.32, dampingFraction: 0.78); look changes animate .smooth(duration: 0.3); effort setter in the card animates .snappy(duration: 0.2)",
+        "Slider accessibility: element with label \"Reasoning effort\" or \"The lead's reasoning effort\" when in a pair, value = the effort title, adjustable action increments/decrements the index"
+      ],
+      "feature_notes": [
+        "ModelCatalog.entries: when settings.modelList is empty it offers every available provider's models; otherwise exactly the pinned list, resolved through registry.model(pin.modelID, for: pin.provider). The thread's current model is inserted at index 0 if it is not already in the list, so a chat never loses its own model.",
+        "Chip tapping opens a 330-wide popover showing the slider; the slider's title opens the model list in the same popover; the list's chevron.left returns.",
+        "Choosing a model row: switching provider clears providerSessionID and providerResumeAt and stops the existing runtime session; effort is taken from the saved ModelPreference only if the new model still lists it; fastMode = option.supportsFast && preference.fastMode; the chat leaves any Hydra pair (leaveHydraPair); settings.defaultProvider is set to the chosen provider.",
+        "Choosing a pair row calls model.enterHydraPair and dismisses the whole popover; tapping the pair the chat is already in re-settles model, effort and Hydra.",
+        "Reset button: effort goes to the pair's orchestratorEffort when in a pair and that effort still exists on the model, otherwise nil (the model default); fastMode goes to false.",
+        "Every slider/fast-mode change is remembered as that model's setting for future chats (setPreference + remember).",
+        "hasHistory locks cross-provider rows with the detail string \"New chats only\".",
+        "Effort resolution order in the card: thread.effort, then defaultEffort, then the index of \"medium\", then 0.",
+        "Title colour rules: in a pair a gradient [lead titleColor] + pair.brand.titleColors (+ EffortPalette.fast appended in fast mode); else max+fast = gradient brand.titleColor -> EffortPalette.fast, max alone = brand.title, fast alone = EffortPalette.fast, neither = EffortPalette.title.",
+        "EffortPalette exact colours: title = Chrome.accent.mix(with: .white, by: 0.22); supercharged = rgb(0.74, 0.55, 1.0); superchargedFill = rgb(0.55, 0.34, 0.97); fast = rgb(1.0, 0.84, 0.36); fastFill = rgb(0.93, 0.66, 0.13).",
+        "EffortBrand mapping: .claude -> claude; .deepseek -> deepseek; .meta -> meta; .antigravity -> antigravity; .codex, .cursor, .grok, .opencode, .devin, .copilot, .commandcode, .pi, .zai -> silver; nil -> purple.",
+        "EffortBrand titleColor: claude rgb(0.93,0.58,0.44); deepseek rgb(0.49,0.58,1.0); meta rgb(0.31,0.64,1.0); antigravity rgb(0.61,0.45,0.80); silver Chrome.primaryText; purple EffortPalette.supercharged.",
+        "EffortBrand fill: claude solid rgb(0.80,0.42,0.28); deepseek solid rgb(0.24,0.36,0.98); meta gradient rgb(0.0,0.39,0.88) -> rgb(0.0,0.51,0.98); antigravity the gemini sweep; silver gradient white -> rgb(0.88,0.88,0.91); purple superchargedFill.",
+        "EffortBrand fillColor: claude rgb(0.80,0.42,0.28); deepseek rgb(0.24,0.36,0.98); meta rgb(0.0,0.45,0.93); antigravity rgb(0.56,0.45,0.80); silver rgb(0.92,0.92,0.94); purple superchargedFill. spark = .black for silver else .white; isLight only for silver; glow = .black.opacity(0.35) for silver else fillColor.opacity(0.6).",
+        "EffortBrand.gemini = [rgb(0.26,0.52,0.96), rgb(0.61,0.45,0.80), rgb(0.85,0.40,0.44)].",
+        "EffortPairBrand: when pair.sendsHeadsElsewhere the heads' colours come from their brand (antigravity -> gemini, silver -> [white 0.8, white 0.95], else [fillColor, titleColor]); otherwise the first four HydraRoster.personas colours and isLight = false. titleColors mix each with white by 0.18.",
+        "TrackLook.fill: with a pair, a LinearGradient of [brand.fillColor] + pair.colors regardless of kind; else plain = Chrome.accent, supercharged = brand.fill, fast = EffortPalette.fastFill, fusion = gradient [brand.fillColor, brand.fillColor, EffortPalette.fastFill].",
+        "TrackLook.glow: pair -> last colour .opacity(0.7) (or .black.opacity(0.35) when light); plain .black.opacity(0.28); supercharged brand.glow; fast fastFill.opacity(0.7); fusion EffortPalette.fast.opacity(0.75).",
+        "TrackLook.stopColor: .black.opacity(0.35) on a light fill else .white.opacity(0.6). spark: brand.spark only when there is no pair and the kind is supercharged or fusion, else .white.",
+        "TrackLook.effectIdentity keeps a pair's fusion animation running across kind changes by identifying on TrackLook(kind: .plain, brand:, pair:).",
+        "TrackEffect traits: particles count = max(10, width/5), streaks count = max(5, width/14). Particle: height random(seed,1), speed 12 + 28*r, radius 0.7 + 1.1*r, start r, brightness 0.22 + 0.5*r, shimmerRate 2 + 3*r (seed = index). Streak: length 10 + 20*r, speed 110 + 190*r, thickness 1.1 + 1.1*r, start r, height 0.2 + 0.6*r, brightness 0.35 + 0.55*r (seed = index + 100).",
+        "drawParticles: span = width + 8, y = height * (0.16 + 0.68 * particle.height), shimmer = 0.6 + 0.4*sin(time*rate + index), skipped under opacity 0.01, drawn as filled circles.",
+        "drawStreaks: span = width + length + 12, x offset -length - 6, rounded rect of height = thickness with cornerRadius thickness/2, filled with a white gradient from opacity 0 to brightness left-to-right; skipped under brightness 0.02.",
+        "drawBolts: exactly 2 slots, seed = slot + 200, period 1.4 + 0.9*r, flash window 0.26 s, intensity = sin(phase/0.26 * pi); x = 12 + (width-24)*r(cycleSeed,3) with cycleSeed = seed + cycle*7.31, lean 3.0 + 3.0*r; zigzag path from (x+lean, 3) to (x-lean*0.4, h*0.42) to (x+lean*0.5, h*0.5) to (x-lean, h-3); glow stroke blur 3, EffortPalette.fast.opacity(0.9*intensity), lineWidth 4 round; core stroke white.opacity(intensity) lineWidth 1.5.",
+        "drawSheen: band 46 points, period 2.8 s, slanted quad leaning 10 points, gradient white/spark 0 -> 0.22 -> 0.",
+        "drawFusion: seam x = width * (0.5 + 0.13*sin(t*0.7) + 0.05*sin(t*1.9 + 1)); pulse = 0.5 + 0.5*sin(t*2.4); gradient stops lead at 0 and at seam/width - 0.22, white.opacity(0.92) at the seam, heads colours from seam/width + 0.16 to 1. Three plasma bands (seed = band + 300) drawn twice (toward each side) with blendMode .plusLighter, blur 2.5, clipped to their side, reach = width*0.55, brightness 0.32 + 0.16*r, amplitude height*(0.12 + 0.16*r), wavelength 30 + 34*r, speed 22 + 34*r, thickness 1.8 + 2.2*r, sampled every 3 points. 22 sparks (seed = index + 400), life 0.7 + 0.8*r, speed 28 + 74*r, radius 0.7 + 1.5*(1-progress), y wobble 5*sin(age*8 + seed), colour white mixed toward the landing side by progress*0.8. Seam core: plusLighter blur 7 ellipse of half-width 9 + 8*pulse spanning -h*0.2 to 1.4h at white.opacity(0.32 + 0.3*pulse), plus a blur-0.8 rounded rect 2.2 wide, inset 2 top and bottom, cornerRadius 1.1, white.opacity(0.5 + 0.4*pulse); then drawSheen in white.",
+        "edgeFade fades over the last 14 points at either end; random(index, trait) = fract(sin(index*12.9898 + trait*78.233) * 43758.5453), the classic GLSL hash, marked nonisolated so trait building is off the main actor.",
+        "Frame rate: TimelineView minimumInterval 1/30 only for kind == .supercharged with no pair, otherwise 1/60; paused when reduceMotion is on or the window is not visible (FrontMonitor.shared.isVisible).",
+        "WebsiteCaptures hooks are compiled in but gated on WebsiteCaptures.isEnabled and only on the non-compact chip; they record the chip's NSView anchor and its global frame per thread id for marketing captures."
+      ],
+      "unresolved_questions": [
+        "Chrome.accent, Chrome.primaryText/secondaryText, Chrome.inlineIconFont, Chrome.chevronFont, Chrome.hover and the .chip(active:) button style are defined elsewhere, so their exact literal values and animation curves are not visible in this file.",
+        "ModelOption.effortTitle's exact mapping from raw effort ids to display names (e.g. what \"medium\" renders as) lives in the ModelOption file, not here.",
+        "HydraRoster.personas' first four colours are used by EffortPairBrand but their literal values are defined in the Hydra roster file.",
+        "The .softAppear transition and PopoverSectionHeader's exact padding are referenced but defined in other files; sectionHeaderHeight = 22 is only this file's assumption about them.",
+        "FrontMonitor.shared.isVisible semantics (window visibility vs app frontmost) are not determinable from this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Composer/FollowUpEditor.swift",
+      "sha256": "b0607ec5f91fc501df15d80edeed4242f8770d9345fe1ee2d441ab14ae79bb83",
+      "lines_total": 36,
+      "ranges_read": [
+        [
+          1,
+          36
+        ]
+      ],
+      "purpose": "A 36-line wrapper that puts a queued follow-up prompt into a PromptEditor titled \"Edit follow-up\" with Cancel and Save buttons, saving through ThreadRuntime.updateFollowUp and clearing runtime.followUpEdit on either outcome so the edit state lives on the thread, not in this view.",
+      "key_symbols": [
+        "struct FollowUpEditor: View",
+        "@Bindable var edit: PromptEdit",
+        "let runtime: ThreadRuntime",
+        "private func save()",
+        "private func cancel()"
+      ],
+      "calls_into": [
+        "PromptEditor(title:text:attachments:onSubmit:onCancel:extra:actions:) - the extra closure is empty",
+        "PromptEdit: $edit.text, $edit.attachments, edit.id, edit.isEmpty",
+        "ThreadRuntime.updateFollowUp(_:text:attachments:)",
+        "ThreadRuntime.followUpEdit (set to nil)",
+        ".buttonStyle(.glass) and .buttonStyle(.glassProminent)"
+      ],
+      "state_owned": [
+        "No @State of its own; the edited text and attachments are @Bindable on the PromptEdit model object owned by ThreadRuntime.followUpEdit"
+      ],
+      "side_effects": [
+        "runtime.updateFollowUp(edit.id, text: edit.text, attachments: edit.attachments) rewrites the queued follow-up",
+        "runtime.followUpEdit = nil on save and on cancel, which is what closes the popover"
+      ],
+      "platform_assumptions": [
+        "SwiftUI @Bindable (Observation) and the Liquid Glass button styles .glass / .glassProminent (macOS 26 era)"
+      ],
+      "persisted_fields": [
+        "None directly; the follow-up queue persistence happens inside ThreadRuntime.updateFollowUp"
+      ],
+      "ui_elements": [
+        "PromptEditor title: exactly \"Edit follow-up\"",
+        "Button(\"Cancel\", role: .cancel) with .buttonStyle(.glass)",
+        "Button(\"Save\") with .buttonStyle(.glassProminent), .disabled(edit.isEmpty)",
+        "The extra view builder is an empty block, so nothing sits between the attachments and the button row"
+      ],
+      "feature_notes": [
+        "save() guards on !edit.isEmpty, so Return on an empty edit does nothing rather than saving an empty follow-up (the Save button is separately disabled).",
+        "Because the edit lives on ThreadRuntime.followUpEdit, closing the thread and reopening it later shows the edit exactly as it was left; both Save and Cancel clear it."
+      ],
+      "unresolved_questions": [
+        "PromptEdit.isEmpty's exact definition (whitespace-only text with no attachments?) is in the PromptEdit type, not in this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift",
+      "sha256": "18b916d02102ad1d3e86cd218e7e22641042a26c09ca46125cf6f6649ca6681f",
+      "lines_total": 547,
+      "ranges_read": [
+        [
+          1,
+          547
+        ]
+      ],
+      "purpose": "The queued-follow-up tab that rises from the top of the chat box: a collapsible titled header, a scrolling list of FollowUpRow entries capped at 7 rows, drag-to-reorder by a grip with pair/bundle-on-drop behaviour, per-row send/edit/delete buttons, attachment thumbnails with an anchorless preview panel, and a per-row PromptEditorPopover for editing.",
+      "key_symbols": [
+        "struct FollowUpQueueTab: View",
+        "static let overlap: CGFloat = ThreadChangesTab.overlap",
+        "static let maxRows = 7",
+        "static func cappedHeight(_ listHeight: CGFloat, rowHeights: [UUID: CGFloat], count: Int) -> CGFloat",
+        "private struct RowHeightReporter: ViewModifier",
+        "private static let slide = Animation.spring(response: 0.28, dampingFraction: 0.82)",
+        "private static let pairBand: CGFloat = 0.25",
+        "private static func numbers(for prompts: [FollowUpPrompt]) -> [UUID: Int]",
+        "private func dragChanged(_ id: UUID, translation: CGSize)",
+        "private func dragEnded()",
+        "private struct FollowUpRow: View (with nonisolated static proseLift)",
+        "FollowUpRow.syncEditor(_:), FollowUpRow.attachmentOnlyLabel",
+        "private struct QueueIconButton: View (symbol, help, isEnabled = true, action)"
+      ],
+      "calls_into": [
+        "ThreadRuntime: .followUps, .followUpsCollapsed, .followUpEdit, .moveFollowUp(_:to:placeAfter:), .unbundleFollowUp(_:), .bundleFollowUp(_:onto:), .sendFollowUpNow(_:), .removeFollowUp(_:), .hasWorkingNativeHeads, .isRunning",
+        "FollowUpPrompt: .id, .text, .attachments, .bundleID",
+        "PromptEdit(id:text:attachments:)",
+        "RowDrag<UUID>: .id, .translation, .visualOffset, .settle(order:heights:fallbackHeight:pastCentre:)",
+        "AttachmentPreviewSlot: .setAnchor(windowRect:), .retire(except:), .close()",
+        "PromptEditorPopover<FollowUpEditor>: .setAnchor(windowRect:), .sync(_:dismiss:content:), .close()",
+        "AttachmentThumbnail(attachment:size:preview:anchorless:)",
+        ".windowRectAnchor { ... } (WindowRectAnchor)",
+        "Chrome.panelSlide, Chrome.inlineIconFont, Chrome.primaryText, Chrome.secondaryText, Chrome.overlay(_:)",
+        "ThreadChangesTab.overlap",
+        "NSEvent.addLocalMonitorForEvents(matching: [.leftMouseUp]) / NSEvent.removeMonitor",
+        "NSCursor.closedHand.push(), NSCursor.openHand.push(), NSCursor.pop()",
+        "NSHapticFeedbackManager.defaultPerformer.perform(.alignment / .levelChange, performanceTime: .now)",
+        "Attachment.isImage, Attachment.id"
+      ],
+      "state_owned": [
+        "FollowUpQueueTab @State drag = RowDrag<UUID>()",
+        "FollowUpQueueTab @State mouseUpMonitor: Any? (NSEvent local monitor token)",
+        "FollowUpQueueTab @State rowHeights: [UUID: CGFloat]",
+        "FollowUpQueueTab @State pairTarget: UUID?",
+        "FollowUpQueueTab @State listHeight: CGFloat = 0",
+        "isCollapsed is NOT local state: it reads runtime.followUpsCollapsed",
+        "FollowUpRow @State preview = AttachmentPreviewSlot()",
+        "FollowUpRow @State editor = PromptEditorPopover<FollowUpEditor>()",
+        "FollowUpRow @State isHoveringGrip = false",
+        "FollowUpRow @GestureState isGrabbing = false"
+      ],
+      "side_effects": [
+        "Installs and removes a global NSEvent local monitor for .leftMouseUp while a row is held (also torn down .onDisappear), to end drags that report no end",
+        "Pushes and pops NSCursor (openHand on grip hover, closedHand while dragging)",
+        "Haptic feedback: .alignment when a reorder swap lands and when a pair target is first acquired, .levelChange on unbundle-by-drag, on bundle-on-release and on the link button's unlink",
+        "Mutates the runtime's follow-up queue: move, bundle, unbundle, send now, remove",
+        "Opens and closes an AppKit popover (PromptEditorPopover) and an attachment preview panel"
+      ],
+      "platform_assumptions": [
+        "AppKit: NSEvent local event monitors, NSCursor push/pop stack, NSHapticFeedbackManager (trackpad)",
+        "NSFont.systemFont(ofSize: 12).capHeight and .xHeight used to compute proseLift",
+        "SwiftUI .glassEffect(.regular, in: shape) on an UnevenRoundedRectangle (Liquid Glass)",
+        "SF Symbols: arrow.turn.down.right, chevron.down, link, line.3.horizontal, paperplane, pencil, trash",
+        "A documented workaround for SwiftUI's key-view-loop builder on macOS: every control here is .focusable(false) and no AppKit view may be mounted in this tab (the Sept 15 2026 main-thread freezes); attachment thumbnails and the pencil anchor via window rects instead"
+      ],
+      "persisted_fields": [
+        "runtime.followUpsCollapsed - the fold state is kept on the thread so it survives the tab leaving the screen",
+        "runtime.followUpEdit - which follow-up is open for editing, kept on the thread so the editor survives the row",
+        "No @AppStorage/UserDefaults keys in this file"
+      ],
+      "ui_elements": [
+        "Tab shape: UnevenRoundedRectangle(topLeadingRadius: 12, topTrailingRadius: 12, style: .continuous), .glassEffect(.regular, in: shape), frame(maxWidth: 560), padding .horizontal 12, .top 7, .bottom 7 + overlap",
+        "Header: HStack(spacing: 7) with arrow.turn.down.right at Chrome.inlineIconFont secondary; count text \"1 follow-up\" or \"N follow-ups\"; the word \"queued\" in secondary; Spacer(minLength: 8); chevron.down in a 22x22 frame rotated 180 degrees when collapsed; whole line font .system(size: 12, weight: .medium).monospacedDigit()",
+        "Header help: \"Expand queued follow-ups\" / \"Collapse queued follow-ups\"; accessibilityLabel \"1 queued follow-up\" / \"N queued follow-ups\"; accessibilityValue \"Collapsed\" / \"Expanded\"",
+        "List: ScrollView(.vertical) with VStack(alignment: .leading, spacing: 4), a Divider().opacity(0.5) on top, rows in a VStack spacing 0, .padding(.top, 6), .scrollBounceBehavior(.basedOnSize)",
+        "Fold: frame height 0 when collapsed else cappedHeight(...), opacity 0/1, mask Rectangle padded .horizontal -32 and .vertical -16 while open, .allowsHitTesting(!isCollapsed), .accessibilityHidden(isCollapsed); animated with Chrome.panelSlide",
+        "Row: HStack(alignment: .center, spacing: 8), .padding(.vertical, 5); a one-line row is 32 tall, the grip and buttons 22",
+        "Row number/link slot: 14 wide, trailing aligned; number font .system(size: 11, weight: .medium).monospacedDigit(), accent coloured when bundled with the next row; the link glyph is font .system(size: 10, weight: .semibold) in Color.accentColor",
+        "Grip: line.3.horizontal font .system(size: 11, weight: .medium) in a 28x28 -> actually 28 wide by 22 tall frame; accent at opacity 1 hovering / 0.85 when bundled-with-next, else Chrome.secondaryText at opacity 1 hovering / 0.7",
+        "Grip help: \"Drag above or below to reorder · drop onto the middle of another to send them together\"; accessibilityLabel \"Drag to reorder\"",
+        "Link button help: \"Unlink from the follow-up above\", accessibilityLabel \"Unlink\"",
+        "Attachment strip: HStack(spacing: 4) of AttachmentThumbnail(size: 22, anchorless: true)",
+        "Row text: font .system(size: 12) at Chrome.primaryText.opacity(0.9), lineLimit 2, truncationMode .tail, deliberately not selectable; empty-text rows show the attachment-only label in Chrome.secondaryText",
+        "Attachment-only label strings: \"1 image\", \"N images\", \"1 file\", \"N files\" joined with \", \", or \"Empty follow-up\" when there is nothing",
+        "Prose baseline nudge: alignmentGuide adds proseLift = ((NSFont.systemFont(ofSize: 12).capHeight - xHeight) / 2 * 2).rounded() / 2",
+        "Trailing buttons: QueueIconButton paperplane, pencil, trash, each 22x22 with glyph font .system(size: 11, weight: .semibold) at Chrome.secondaryText (opacity 0.35 when disabled), HStack(spacing: 0).fixedSize()",
+        "Send button help text: \"Send as soon as the heads report\" when runtime.hasWorkingNativeHeads && runtime.isRunning; \"Send now (stops the running turn)\" when running; otherwise \"Send now\"",
+        "Pencil help \"Edit follow-up\", trash help \"Delete follow-up\"",
+        "Row rule: Divider().opacity(0.35) at the bottom, hidden for the last row, while dragged, and when bundled with the next row",
+        "Pair target background: Capsule(style: .continuous) filled Color.accentColor.opacity(0.18) with strokeBorder Color.accentColor.opacity(0.65) lineWidth 1.5",
+        "Dragged background: Capsule filled Chrome.overlay(0.12) with shadow color .black.opacity(0.28), radius 10, y 4",
+        "Scale: 1.008 when pair target, 1.01 when dragged, else 1; both animated .spring(response: 0.25, dampingFraction: 0.8)"
+      ],
+      "feature_notes": [
+        "Rows are sent as direct user chat messages once the running turn finishes, top to bottom.",
+        "cappedHeight: once count > maxRows (7) and heights are known, height = (listHeight - sum(rowHeights)) + 7 * average row height, so the cut always lands on a whole row; below the cap the natural listHeight stands.",
+        "numbers(for:): one shared number per bundle - the counter only climbs when a prompt has no bundleID or starts a new bundle, so a bundled pair shows one number and a link glyph.",
+        "Reorder maths: only vertical travel counts (translation.height); the translation is applied inside a Transaction with disablesAnimations = true; RowDrag.settle uses fallbackHeight 32 and pastCentre = pairBand = 0.25, and swaps run inside .spring(response: 0.28, dampingFraction: 0.82).",
+        "Pairing: the target is the neighbour in the direction of travel when |abs(offset) - (ownHeight + slotHeight)/2| <= slotHeight * 0.25; the held row indents 14 points to the right while a pair target is live.",
+        "Dragging a bundled row more than 0.6 of its own height out of its slot unbundles it (levelChange haptic); hovering the neighbour's middle again re-pairs on release.",
+        "Release with a pair target calls runtime.bundleFollowUp(held, onto: target) inside .spring(response: 0.36, dampingFraction: 0.78), then the drag settles with .spring(response: 0.32, dampingFraction: 0.8).",
+        "A row removed mid-drag (sent or deleted) ends the drag cleanly and its measured height is pruned from rowHeights.",
+        "The whole title line toggles the fold; the chevron only indicates direction.",
+        "Every control in the tab is .focusable(false) on purpose: the key-view-loop builder spun the main thread forever when the collapse button sat flush above a trash button at the same x (documented as the Sept 15 2026 freezes).",
+        "RowHeightReporter is always applied, never switched in when a drag starts, because changing a row's structure mid-gesture tore the gesture down and left the row lifted for good.",
+        "The pencil toggles: a second tap while the editor is open sets runtime.followUpEdit = nil and closes it.",
+        "The editor and the attachment preview both hang from window rects (windowRectAnchor) rather than mounting an AppKit anchor view, to keep AppKit views out of this tab entirely."
+      ],
+      "unresolved_questions": [
+        "RowDrag.settle's exact geometry contract (how visualOffset compensates for a moved slot, what placeAfter means at the ends) is in the RowDrag file, not here.",
+        "ThreadChangesTab.overlap's literal value is defined in the changes tab file; this file only aliases it.",
+        "Chrome.panelSlide's curve and Chrome.overlay's exact colour derivation are defined elsewhere.",
+        "The grip frame is written .frame(width: 28, height: 22) while the comment says the grip is 22; whether the 28 width is intentional extra hit area is not stated."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Composer/HydraFusedPairIcon.swift",
+      "sha256": "ce5cb6d6fd6ab13060ffe7b8f9915c111c18ad698810ef96afe820ed047df17b",
+      "lines_total": 91,
+      "ranges_read": [
+        [
+          1,
+          91
+        ]
+      ],
+      "purpose": "Draws a Hydra pair as a single mark: the left half of the lead provider's icon and the right half of the heads' icon, separated by a 1-point capsule hairline, both masked out of one LinearGradient that runs from the lead's brand colours into the heads', with an appear animation where the halves slide in and the hairline scales up.",
+      "key_symbols": [
+        "struct HydraFusedPairIcon: View",
+        "let lead: ProviderKind; let heads: ProviderKind; var size: CGFloat = 15; var animates: Bool = true",
+        "private let gap: CGFloat = 1; private var halfWidth: CGFloat { (size - 1) / 2 - gap }",
+        "private func half(of provider: ProviderKind, stops: [Gradient.Stop], alignment: Alignment) -> some View",
+        "static func gradient(lead: ProviderKind, heads: ProviderKind) -> [Gradient.Stop]",
+        "private static func brandColors(_ provider: ProviderKind) -> [Color]",
+        "private static func spread(_ colors: [Color], from start: Double, to end: Double) -> [Gradient.Stop]"
+      ],
+      "calls_into": [
+        "ProviderKind.iconName, ProviderKind.rawValue",
+        "EffortBrand(provider:), EffortBrand.isLight, .titleColor, EffortBrand.gemini (all defined in EffortSlider.swift)",
+        "Chrome.secondaryText",
+        "Color.mix(with:by:)"
+      ],
+      "state_owned": [
+        "@Environment(\\.accessibilityReduceMotion) private var reduceMotion",
+        "@State private var isFused = false"
+      ],
+      "side_effects": [
+        "A .task keyed on \"\\(lead.rawValue)/\\(heads.rawValue)\" that resets isFused, sleeps 30 milliseconds, then animates isFused = true"
+      ],
+      "platform_assumptions": [
+        "SwiftUI on macOS: Image(name).renderingMode(.template) for asset-catalogue provider icons, nested .mask modifiers, .mask(alignment:)",
+        "Task.sleep(for: .milliseconds(30)) and the reduce-motion accessibility environment key"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Default size 15 (the composer chip uses 15, the pair list row uses 16 with animates: false)",
+        "gap = 1 point of clear space between each half and the hairline; halfWidth = (size - 1) / 2 - 1",
+        "Hairline: Capsule filled Chrome.secondaryText.opacity(0.55), width 1, height size * 0.85, scaleEffect(y:) 0.15 before fusing and 1 after",
+        "Halves offset +/- size * 0.35 and opacity 0 before fusing",
+        "Fuse animation: .spring(duration: 0.55, bounce: 0.25), nil under reduce motion",
+        "The whole mark is .accessibilityHidden(true)"
+      ],
+      "feature_notes": [
+        "The rendered state is `fused = isFused || !animates`, so rows that pass animates: false draw the mark at rest immediately.",
+        "gradient(lead:heads:): lead colours spread across locations 0 to 0.42 and heads colours across 0.58 to 1, so each half wears its own brand and blending happens only across the hairline.",
+        "When heads == lead, the heads' colour is a lighter shade of the lead's own: titleColor.opacity(0.55) for a light (silver) brand, otherwise titleColor.mix(with: .white, by: 0.4) - one model over its smaller self.",
+        "brandColors: the antigravity brand expands to the three-colour EffortBrand.gemini sweep; every other brand contributes just its titleColor.",
+        "spread(): a single colour is emitted as two stops at start and end (a flat band); several colours are laid evenly with location = start + (end-start) * index / (count-1).",
+        "The appear animation is retriggered by the .task id, so changing either provider replays the fusion."
+      ],
+      "unresolved_questions": [
+        "ProviderKind.iconName maps to asset-catalogue image names that are not visible from this file, so the exact artwork of each half is not determinable here.",
+        "The 30 ms sleep before animating is presumably to let the view settle before the spring starts; the file does not state the reason."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Composer/PromptEditor.swift",
+      "sha256": "117a6fc44501be680045ce9d5f4c2b9c2fc48ccd4d872be11444d342238d06ee",
+      "lines_total": 280,
+      "ranges_read": [
+        [
+          1,
+          280
+        ]
+      ],
+      "purpose": "Two things: the generic PromptEditor view (title, composer text view, attachments, an Add files button with a Downloads popover, and a caller-supplied action row) used for editing queued follow-ups and sent messages, and PromptEditorPopover, an NSPopover subclass-free AppKit wrapper that hosts such an editor as an application-defined popover anchored either to a live NSView or to a window rect.",
+      "key_symbols": [
+        "struct PromptEditor<Extra: View, Actions: View>: View, with an explicit init(title:text:attachments:onSubmit:onCancel:extra:actions:)",
+        "private static func measuredHeight(of text: String) -> CGFloat",
+        "private static var editorWidth: CGFloat { 520 }",
+        "private func handleKey(_ key: ComposerKey) -> Bool",
+        "private func chooseFiles(); private func attach(_ sources: [AttachmentSource])",
+        "@MainActor final class PromptEditorPopover<Content: View>: NSObject",
+        "PromptEditorPopover: setAnchor(_ view: NSView), setAnchor(windowRect: CGRect), sync(_:dismiss:content:), show(_:dismiss:content:), resize(to:), close(), startMonitors(), handleMouseDown(_:), stopMonitors()"
+      ],
+      "calls_into": [
+        "ComposerTextView(text:height:placeholder:controller:onKey:onAttach:onCursorChange:)",
+        "ComposerController(), ComposerKey (cases .submit, .steer, .escape, .up, .down, .tab, .deleteAtStart)",
+        "EditorAttachments(attachments:)",
+        "DownloadsPopover(pick:chooseOther:)",
+        "Storage.attachmentLimit, Storage.attach(_:to:)",
+        "AttachmentSource.file, Attachment",
+        "Chrome.overlay(0.05)",
+        "PromptEdit",
+        "WeakView, WindowRectAnchor.target(for:)",
+        "ThemeManager.spec.accent",
+        "NSOpenPanel, NSPopover, NSHostingController, NSEvent local monitors",
+        "AttachmentPreviewPanel.handleMouseDown (referenced in a comment as the same pattern)"
+      ],
+      "state_owned": [
+        "PromptEditor @State textHeight: CGFloat (seeded in init from measuredHeight(of:))",
+        "PromptEditor @State controller = ComposerController()",
+        "PromptEditor @State showingFiles = false",
+        "PromptEditorPopover: shownPopover: NSPopover? (lazily made on first show), anchor: WeakView?, anchorRect: CGRect?, monitors: [Any], dismiss: () -> Void = {}, generation: Int = 0"
+      ],
+      "side_effects": [
+        "NSOpenPanel().runModal() - a modal open panel with allowsMultipleSelection = true, canChooseDirectories = false, prompt \"Attach\"",
+        "Storage.attach(sources, to: $attachments) copies/registers attachments",
+        "Creates an NSPopover with behavior .applicationDefined and animates = true, hosts SwiftUI content in an NSHostingController with sizingOptions = [], and shows it relative to a rect with preferredEdge .maxY",
+        "Installs NSEvent local monitors for .keyDown (Escape, keyCode 53) and for [.leftMouseDown, .rightMouseDown]; removes them on close",
+        "Calls the caller's dismiss closure, which clears the thread's edit state"
+      ],
+      "platform_assumptions": [
+        "AppKit: NSPopover, NSPopover.Behavior.applicationDefined, NSHostingController, NSOpenPanel, NSEvent.addLocalMonitorForEvents/removeMonitor, keyCode 53 for Escape",
+        "NSString.boundingRect(with:options:attributes:) with [.usesLineFragmentOrigin, .usesFontLeading] and NSFont.systemFont(ofSize: 14) to pre-measure the text height",
+        "SwiftUI .buttonStyle(.glass), .buttonBorderShape(.capsule), .onGeometryChange, .popover(isPresented:arrowEdge:)",
+        "@MainActor class interacting with SwiftUI updates; the show is deferred to a Task to avoid hosting a view tree inside another's update pass"
+      ],
+      "persisted_fields": [
+        "None; the editor reads and writes bindings supplied by the caller"
+      ],
+      "ui_elements": [
+        "Outer layout: VStack(alignment: .leading, spacing: 14), .padding(20), .frame(width: 520)",
+        "Title: Text(verbatim: title) at font .system(size: 17, weight: .semibold)",
+        "Text field: ComposerTextView with placeholder \"Message\", .frame(height: min(240, max(22, textHeight))), .padding(10), background Chrome.overlay(0.05) in .rect(cornerRadius: 12, style: .continuous)",
+        "Attachments row: EditorAttachments shown only when attachments is non-empty",
+        "Action row: HStack(spacing: 8) with a plus button (.buttonStyle(.glass), help and accessibilityLabel \"Add files\", disabled at Storage.attachmentLimit), a Spacer, then the caller's actions(); .controlSize(.regular)",
+        "The plus button opens a popover (arrowEdge .bottom) containing DownloadsPopover; choosing \"other\" closes it and opens NSOpenPanel",
+        "measuredHeight: width = 520 - 2*20 - 2*10 = 460; height = ceil(max(18, boundingRect.height) + 2*2), i.e. an 18-point minimum plus 4 points of container inset",
+        "Popover hosting adds .fixedSize(horizontal: false, vertical: true), .buttonBorderShape(.capsule) and .tint(ThemeManager.spec.accent)"
+      ],
+      "feature_notes": [
+        "Key handling: .submit and .steer both call onSubmit and consume the key; .escape calls onCancel and consumes; .up, .down, .tab and .deleteAtStart are returned unhandled so the text view keeps them (nothing sits before the text here).",
+        "The initial textHeight is measured in init rather than waiting for the text view's own report, because a popover that opened one line tall and then grew played that growth over its own appearance.",
+        "PromptEditorPopover.behavior = .applicationDefined so AppKit never closes it on its own; it survives the file picker, the recent-downloads popover and an attachment preview, which are separate windows.",
+        "The NSPopover is created lazily on first show: every editable row owns one of these objects, and a popover per never-opened row would be an idle AppKit window.",
+        "sync() increments a generation counter and defers the show to a Task; a show deferred by one sync is dropped if a later sync closed it. sync(nil, ...) closes.",
+        "Anchoring: a live NSView anchor is preferred; otherwise a window rect resolved through WindowRectAnchor.target(for:) (the follow-up queue tab, which must not mount AppKit views).",
+        "resize(to:) only changes contentSize when the delta exceeds 0.5 points and temporarily sets animates = false, because animating a resize through the popover's own animation looked like a wobble.",
+        "Escape (keyCode 53) is swallowed (returns nil) and calls dismiss; mouse-down in the anchor's own window dismisses but still delivers the event, except clicks inside the anchor's bounds, which pass through so the pencil's own toggle works.",
+        "For a rect anchor, a click anywhere in that window except inside the anchor rect dismisses; the event is always returned so it still reaches its target."
+      ],
+      "unresolved_questions": [
+        "Storage.attachmentLimit's numeric value is defined in the Storage type, not here.",
+        "ComposerKey's full case list is used here but declared elsewhere; whether .steer differs from .submit in any way other than both submitting is not visible in this file.",
+        "WindowRectAnchor.target(for:) returns an optional (view, rect); how it locates the window and view from a global rect is in that file.",
+        "ThemeManager.spec.accent's literal value is not in this file."
+      ]
+    }
+  ]
+}

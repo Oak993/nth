@@ -1,0 +1,324 @@
+{
+  "bundle_id": "R004",
+  "reader": "R004-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/AppUpdater.swift",
+      "sha256": "52c35d9f3cd8403603f98f5dea7ff0b8642ab4b2f7902db51ed865ab9a7a21c0",
+      "lines_total": 521,
+      "ranges_read": [
+        [
+          1,
+          521
+        ]
+      ],
+      "purpose": "Owns the in-app self-update install pipeline and the observable progress model that drives the About page's version pill slider: milestone fractions, download to a temp .dmg, hdiutil mount plus ditto copy-out, codesign/version/Gatekeeper verification, and a /bin/sh installer script that swaps the bundle after the app quits and relaunches it.",
+      "key_symbols": [
+        "enum UpdateProgressMilestones (preparingCeiling 0.05, downloadEnd 0.55, verifyEnd 0.70, stagingCeiling 0.82, handoffEnd 0.86, installDot 0.96, dots = [downloadEnd, verifyEnd, handoffEnd, installDot])",
+        "@MainActor @Observable final class UpdateInstallProgress (static shared)",
+        "UpdateInstallProgress.FractionTarget (@MainActor @Observable nested class, fileprivate(set) var value = 0.0)",
+        "UpdateInstallProgress.Phase: Equatable — idle, preparing, downloading, verifying, staging, handoff, celebrating, failed",
+        "UpdateInstallProgress.showsProgressUI (false for .idle and .failed, true otherwise)",
+        "UpdateInstallProgress.isInstallRunning (true for preparing/downloading/verifying/staging/handoff)",
+        "UpdateInstallProgress.begin(), noteDownloadProgress(_:), beginVerification(), beginStaging(), noteHandoff(), fail()",
+        "UpdateInstallProgress.armCelebration(), consumePendingCelebration() -> Bool, finishCelebrationSweep(), completeCelebration()",
+        "UpdateInstallProgress private: resetToIdle(), cancelFailureReset(), apply(_:firesHaptics:), startCreep(toward:rate:), stopCreep()",
+        "@MainActor final class AppUpdater (static shared)",
+        "AppUpdater.teamID = \"NARHG44L48\" (nonisolated static let)",
+        "AppUpdater.handoffTimeout: TimeInterval = 25",
+        "AppUpdater.consumeRelaunchMarker() -> Bool",
+        "AppUpdater.install(_ update: AvailableUpdate)",
+        "AppUpdater.download(_:) -> URL, stage(image:expectedVersion:) -> URL, handOff(staged:version:)",
+        "AppUpdater.verifySignature(of:) (nonisolated static, throws)",
+        "AppUpdater.installerScript (private static let, embedded /bin/sh source)",
+        "struct UpdateInstallError: LocalizedError (var message; init(_ message: String))",
+        "private final class Downloader: NSObject, URLSessionDownloadDelegate, @unchecked Sendable"
+      ],
+      "calls_into": [
+        "AvailableUpdate (UpdateChecker.swift) — install(_:) takes it, reads downloadURL and version",
+        "AppVersion (UpdateChecker.swift) — used to compare the staged bundle's CFBundleShortVersionString with the accepted version",
+        "AppInfo.version, AppInfo.isDevelopment",
+        "Haptics.perform(.generic), Haptics.perform(.levelChange), Haptics.perform(.alignment)",
+        "Shell.run(_:_:timeout:) and ShellResult (.succeeded, .failureMessage)",
+        "Bundle.main.bundleURL, Bundle.main.bundleIdentifier, Bundle(url:) object(forInfoDictionaryKey: \"CFBundleShortVersionString\")",
+        "NSAlert, NSApp.terminate(nil)",
+        "Security framework: SecStaticCodeCreateWithPath, SecRequirementCreateWithString, SecStaticCodeCheckValidityWithErrors, SecCSFlags",
+        "UpdateInstallProgress.shared (from AppUpdater and from the Downloader progress callback)"
+      ],
+      "state_owned": [
+        "UpdateInstallProgress.shared singleton",
+        "UpdateInstallProgress.phase: Phase = .idle (private(set), observable)",
+        "UpdateInstallProgress.fractionTarget: FractionTarget (let; its .value is the raw 0...1 target, separate observable so per-byte download reports re-render only the slider)",
+        "UpdateInstallProgress.fraction: Double computed as fractionTarget.value",
+        "UpdateInstallProgress.hasPendingCelebration: Bool = false (private(set))",
+        "@ObservationIgnored creepTask: Task<Void, Never>?, creepCeiling = 0.0, creepRate = 0.0, failureReset: Task<Void, Never>?",
+        "AppUpdater.shared singleton; private var installTask: Task<Void, Never>? (guards against a second concurrent install)",
+        "Downloader: onProgress closure, continuation: CheckedContinuation<URL, Error>?, destination: URL?, lock = NSLock()"
+      ],
+      "side_effects": [
+        "Network: URLSessionDownloadTask streams the release .dmg to disk; ephemeral config with timeoutIntervalForRequest 30 and timeoutIntervalForResource 1800, waitsForConnectivity false, User-Agent header \"Droppy Code/<AppInfo.version>\"",
+        "File writes: downloads to FileManager.default.temporaryDirectory/DroppyCodeUpdate-<UUID>.dmg",
+        "Creates staging dir temporaryDirectory/DroppyCodeUpdate-<UUID>/ with attributes [.posixPermissions: 0o700]; mount point <staging>/image",
+        "Writes <staging>/install.sh (UTF-8, atomically) and creates an empty <staging>/install.log used as stdout+stderr for the installer process",
+        "Process launches: /usr/bin/hdiutil attach (timeout 120), /usr/bin/ditto (timeout 300), /usr/bin/hdiutil detach -force (timeout 60), /usr/sbin/spctl --assess (timeout 120), and /bin/sh <install.sh> <pid> <staged> <destination>",
+        "Deletes the downloaded .dmg after the copy (try? removeItem) on both the success and the error path",
+        "UserDefaults write/remove of \"appUpdater_pendingRelaunchVersion\"",
+        "Quits the app: NSApp.terminate(nil) 350 ms after handoff",
+        "Shows a modal NSAlert on failure",
+        "Timers: 125 ms creep tick task, 600 ms failure-reset task, 25 s handoff timeout task, 350 ms pre-terminate delay",
+        "Haptics feedback on begin, on failure, and once per milestone crossed",
+        "The installer script itself removes the staging tree, moves the installed bundle to a hidden .<name>.previous backup, runs xattr -dr com.apple.quarantine and open on the destination"
+      ],
+      "platform_assumptions": [
+        "macOS AppKit: NSAlert, NSApp.terminate, @MainActor UI isolation",
+        "Swift Observation (@Observable, @ObservationIgnored) and structured concurrency Task/Task.sleep",
+        "Apple Security framework code-signing APIs (SecStaticCode, SecRequirement) and the codesign requirement language",
+        "Apple certificate OIDs in the requirement: anchor apple generic, certificate 1[field.1.2.840.113635.100.6.2.6] (Developer ID CA), certificate leaf[field.1.2.840.113635.100.6.1.13] (Developer ID Application)",
+        "Gatekeeper via /usr/sbin/spctl --assess --type execute",
+        "Apple disk images: /usr/bin/hdiutil attach -nobrowse -readonly -noautoopen -mountpoint, and detach -force",
+        "/usr/bin/ditto for bundle-preserving copy; xattr -dr com.apple.quarantine; open(1) to relaunch",
+        "App-bundle layout: the update is a .app directory found by pathExtension == \"app\" at the image root, and the running app is Bundle.main.bundleURL inside a writable parent folder (Applications)",
+        "POSIX shell /bin/sh with kill -0 polling, trap '' HUP, and POSIX file permissions 0o700"
+      ],
+      "persisted_fields": [
+        "\"appUpdater_pendingRelaunchVersion\" (UserDefaults.standard, String) — the version the handoff promised; set just after the installer process starts, removed if the handoff times out after 25 s, and consumed once on the next launch by consumeRelaunchMarker(), which returns true only when it equals AppInfo.version"
+      ],
+      "ui_elements": [
+        "Failure alert: messageText \"Update Failed\", informativeText = error.localizedDescription, alertStyle .warning, shown with runModal()",
+        "Progress slider milestone fractions the version pill renders: 0.05 preparing ceiling, 0.55 download end, 0.70 verify end, 0.82 staging ceiling, 0.86 handoff end, 0.96 install dot, 1.0 complete",
+        "Initial fraction on begin(): 0.004",
+        "Creep rates: preparing 0.05 toward 0.05; unknown-size download 0.012 toward 0.50; verifying 0.12 toward verifyEnd - 0.02 (0.68); staging 0.10 toward 0.82",
+        "Creep tick every 125 ms, advancing by remaining * rate and stopping when remaining <= 0.0005",
+        "Failure shows .failed for 600 ms then resets to idle (fraction 0)",
+        "Celebration mounts at 0.86 and sweeps to 1 with firesHaptics: false"
+      ],
+      "feature_notes": [
+        "install() is a no-op when an install is already running or when AppInfo.isDevelopment is true",
+        "Install sequence reported to the progress model: begin() -> download with byte fractions -> beginVerification() -> stage() -> beginStaging() -> handOff() -> noteHandoff(); any throw calls fail() and shows the alert",
+        "The track only moves forward: apply() clamps to 0...1 and returns early unless the new value is strictly greater than the current fraction",
+        "Haptics fire once per milestone crossed: .levelChange at handoffEnd (0.86), .alignment at the other dots (0.55, 0.70, 0.96)",
+        "Download progress of 0 or less (unknown size) switches to a creep toward 0.50 instead of freezing",
+        "Verification is threefold on the copied-out app: Developer ID signature for team NARHG44L48 with identifier equal to Bundle.main.bundleIdentifier (fallback literal \"iordv.droppycode\"), CFBundleShortVersionString equal to the accepted update version, and spctl Gatekeeper acceptance",
+        "Signature check flags: kSecCSCheckAllArchitectures | kSecCSCheckNestedCode | kSecCSStrictValidate",
+        "Error strings, verbatim: \"The downloaded disk image could not be opened. <shell failure>\", \"The disk image holds no app.\", \"The update could not be copied. <shell failure>\", \"The downloaded app is version <actual|unknown>, not <expected>.\", \"Gatekeeper did not accept the downloaded app. <shell failure>\", \"The downloaded app is not signed.\", \"The signature requirement could not be built.\", \"The downloaded app is not signed by Droppy. <reason|OSStatus n>\", \"Droppy Code cannot replace itself in <parent path>. Move it to your Applications folder and try again.\", \"The download had nowhere to go.\", \"The download failed with HTTP <status>.\", \"The update could not be downloaded. <error>\"",
+        "handOff() refuses when the parent of Bundle.main.bundleURL is not writable",
+        "Installer script waits for the PID with kill -0 in 0.25 s steps, giving up after i > 240 (about 60 seconds) with the message \"The app did not quit\"; it also prints \"Could not move the installed app aside\" and \"Could not move the update into place\"",
+        "Backup path used by the script: \"$(dirname \"$DEST\")/.$(basename \"$DEST\").previous\"; it is restored if the move-in fails and removed on success",
+        "The staged app is copied to a path whose last component equals Bundle.main.bundleURL.lastPathComponent, so the installed bundle keeps its filename",
+        "The 25 s handoff timeout clears the relaunch marker and calls fail() if the app is somehow still in .handoff (a refused quit)",
+        "Downloader is a URLSessionDownloadDelegate so a large image streams to disk; didFinishDownloadingTo moves the temp file immediately and rejects non-2xx responses"
+      ],
+      "unresolved_questions": [
+        "Haptics.perform cases (.generic, .levelChange, .alignment) and Shell.run / ShellResult semantics are defined in files outside this bundle, so the exact feedback patterns and shell timeout behavior are not verifiable here",
+        "Who calls UpdateInstallProgress.armCelebration() and consumeRelaunchMarker() (presumably the About page and AppDelegate) is outside this bundle"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/DroppyCodeApp.swift",
+      "sha256": "faaadee59c90886ca9473bb7927483b16e5e761f2f40774515ae39a26dca6ed3",
+      "lines_total": 26,
+      "ranges_read": [
+        [
+          1,
+          26
+        ]
+      ],
+      "purpose": "The SwiftUI @main entry point: runs the fixed-order launch prologue (notification guard, SIGPIPE ignore, capture prep, legacy migration, hang watchdog, switch latency) and declares a menus-only Settings scene, because the real windows are AppKit windows owned by WindowManager.",
+      "key_symbols": [
+        "@main struct DroppyCodeApp: App",
+        "@NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate",
+        "init()",
+        "var body: some Scene"
+      ],
+      "calls_into": [
+        "AppDelegate (via @NSApplicationDelegateAdaptor)",
+        "DCInstallNotificationGuard()",
+        "signal(SIGPIPE, SIG_IGN)",
+        "WebsiteCaptures.prepare()",
+        "LegacyMigration.run()",
+        "HangWatchdog.start()",
+        "SwitchLatency.start()",
+        "WindowManager.shared.model",
+        "AppCommands(model:)"
+      ],
+      "state_owned": [
+        "delegate: AppDelegate (private, via @NSApplicationDelegateAdaptor property wrapper)"
+      ],
+      "side_effects": [
+        "Installs a framework notification guard before anything posts a notification (DCInstallNotificationGuard)",
+        "Sets the SIGPIPE disposition to SIG_IGN process-wide so writes to an exited provider process report EPIPE instead of killing the app",
+        "WebsiteCaptures.prepare() runs before any settings or library read",
+        "LegacyMigration.run() migrates defaults and the support folder from the former app name",
+        "HangWatchdog.start() writes main-thread stacks to ~/Library/Logs/Droppy Code when the main thread freezes",
+        "SwitchLatency.start()"
+      ],
+      "platform_assumptions": [
+        "SwiftUI App lifecycle bridged to AppKit with @NSApplicationDelegateAdaptor",
+        "Settings scene, a macOS-only SwiftUI scene type, used purely as a menu carrier with EmptyView content",
+        "POSIX signal(3) with SIGPIPE / SIG_IGN",
+        "Log destination ~/Library/Logs/Droppy Code (macOS user Logs directory)",
+        "Comment cites popover window ordering on macOS 27 as the reason for the notification guard",
+        "Real windows are AppKit NSWindows owned by WindowManager, not SwiftUI WindowGroups"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Settings { EmptyView() } scene carrying .commands { AppCommands(model: WindowManager.shared.model) } — no SwiftUI-declared app windows at all"
+      ],
+      "feature_notes": [
+        "Launch order is explicitly load-bearing and commented: DCInstallNotificationGuard() first (before anything posts a notification), then SIGPIPE ignore, then WebsiteCaptures.prepare() and LegacyMigration.run() before anything reads settings or the library, then HangWatchdog.start() and SwitchLatency.start()",
+        "A framework observer raising while a notification is posted costs a log line instead of the app, per the guard's comment",
+        "The menu bar contents come entirely from AppCommands built over WindowManager.shared.model"
+      ],
+      "unresolved_questions": [
+        "AppDelegate, DCInstallNotificationGuard, WebsiteCaptures, HangWatchdog, SwitchLatency, WindowManager and AppCommands are all defined outside this bundle, so what each prologue step actually does is not verifiable from this file"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/LegacyMigration.swift",
+      "sha256": "81c5d90d724ed4e13c4de3e5b7d01b0094d68440dde1ab2a6c34fca57f697069",
+      "lines_total": 27,
+      "ranges_read": [
+        [
+          1,
+          27
+        ]
+      ],
+      "purpose": "One-shot migration from the app's earlier name Cody: copies the old bundle identifier's UserDefaults persistent domain into the current defaults without overwriting existing keys, and renames the Application Support folder Cody to Droppy Code.",
+      "key_symbols": [
+        "enum LegacyMigration (namespace enum, no cases)",
+        "private static let marker = \"migratedFromEarlierName\"",
+        "private static let formerBundleIdentifier = \"iordv.cody\"",
+        "private static let formerSupportFolder = \"Cody\"",
+        "static func run()"
+      ],
+      "calls_into": [
+        "AppInfo.isDevelopment",
+        "UserDefaults.standard.persistentDomain(forName:), object(forKey:), set(_:forKey:), bool(forKey:)",
+        "FileManager.default.urls(for:in:), fileExists(atPath:), moveItem(at:to:)"
+      ],
+      "state_owned": [
+        "No instance state; only the three private static string constants and the boolean marker it writes into UserDefaults"
+      ],
+      "side_effects": [
+        "Reads the persistent domain of another bundle identifier (\"iordv.cody\") from UserDefaults",
+        "Writes every former key whose current value is nil into UserDefaults.standard",
+        "Moves ~/Library/Application Support/Cody to ~/Library/Application Support/Droppy Code with try? (failure is silently ignored)",
+        "Sets UserDefaults key \"migratedFromEarlierName\" to true at the end, unconditionally once run reaches that line"
+      ],
+      "platform_assumptions": [
+        "macOS/Foundation UserDefaults persistent-domain access by bundle identifier",
+        ".applicationSupportDirectory in .userDomainMask, taking element [0] of the returned array (~/Library/Application Support)",
+        "Directory move semantics of an app support folder as a single filesystem rename"
+      ],
+      "persisted_fields": [
+        "\"migratedFromEarlierName\" (UserDefaults.standard, Bool, default false) — the once-only guard; when true, run() returns immediately",
+        "Every key found in the persistent domain \"iordv.cody\" is copied under its own name into UserDefaults.standard, but only where defaults.object(forKey:) is currently nil"
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "run() is skipped entirely when AppInfo.isDevelopment is true, so a development build never migrates",
+        "Existing values always win: the loop is `for (key, value) in former where defaults.object(forKey: key) == nil`",
+        "The folder move only happens when ~/Library/Application Support/Cody exists AND ~/Library/Application Support/Droppy Code does not, so an existing new-name library is never clobbered",
+        "Target folder name literal is \"Droppy Code\" (with the space), created with isDirectory: true"
+      ],
+      "unresolved_questions": [
+        "AppInfo.isDevelopment is defined outside this bundle, so what marks a build as development is not verifiable here",
+        "The migration marker is written into the current defaults, so whether a former-name key literally called \"migratedFromEarlierName\" could pre-suppress the migration is unknowable from this file alone"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/UpdateChecker.swift",
+      "sha256": "063fd19b7e48fb497f4fb4ed7bd2ef219abaf18c7bb1508b65c7b07be8926f4a",
+      "lines_total": 332,
+      "ranges_read": [
+        [
+          1,
+          332
+        ]
+      ],
+      "purpose": "Polls the public GitLab releases API for project 86415974, picks the newest stable non-upcoming release that ships a .dmg asset, persists it, recomputes updateAvailable against the running version, and posts one user notification per newly found version.",
+      "key_symbols": [
+        "struct AppVersion: Comparable, Hashable, CustomStringConvertible, Sendable (let components: [Int]; init?(_:); description; static text(ofTag:); static <)",
+        "struct AvailableUpdate: Codable, Equatable, Sendable (version, tag, downloadURL, size: Int64?, notes, releasedAt: Date?, pageURL)",
+        "@MainActor @Observable final class UpdateChecker (static shared)",
+        "UpdateChecker.projectID = \"86415974\", projectURL, releasesURL, private apiURL",
+        "UpdateChecker.checkInterval = 6 * 60 * 60, launchDelay = 8",
+        "private enum Keys { update, lastChecked, notifiedVersion }",
+        "UpdateChecker.currentVersion, update, isChecking, lastCheckedAt, lastError, updateAvailable",
+        "UpdateChecker.startBackgroundChecks(), check(background:) -> Bool, fetchReleases(), static newestRelease(in:), downloadSize(of:), persist(), notifyOnce(about:)",
+        "enum UpdateError: LocalizedError { noRelease, badResponse(Int) }",
+        "struct GitLabRelease: Decodable, Sendable with nested Assets and Link, custom init(from:) and static parseDate(_:)"
+      ],
+      "calls_into": [
+        "AppInfo.version, AppInfo.isDevelopment",
+        "WebsiteCaptures.isEnabled (background checks are suppressed while captures are on)",
+        "URLSession / URLSessionConfiguration.ephemeral, JSONDecoder, JSONEncoder, ISO8601DateFormatter",
+        "UserNotifications: UNMutableNotificationContent, UNNotificationRequest, UNUserNotificationCenter",
+        "NSApplication.didBecomeActiveNotification via NotificationCenter.default",
+        "AvailableUpdate is consumed by AppUpdater.install(_:) in AppUpdater.swift; AppVersion is reused there for the staged-bundle version check"
+      ],
+      "state_owned": [
+        "UpdateChecker.shared singleton",
+        "let currentVersion = AppInfo.version",
+        "private(set) var update: AvailableUpdate? (restored from defaults in init)",
+        "private(set) var isChecking = false",
+        "private(set) var lastCheckedAt: Date? (restored from defaults in init)",
+        "private(set) var lastError: String?",
+        "@ObservationIgnored backgroundTask: Task<Void, Never>?, activationObserver: NSObjectProtocol?, previewVersion: String?",
+        "@ObservationIgnored session: URLSession built from an ephemeral configuration"
+      ],
+      "side_effects": [
+        "Network GET of https://gitlab.com/api/v4/projects/86415974/releases?per_page=20",
+        "Network HEAD of the .dmg download URL purely to learn expectedContentLength for display",
+        "UserDefaults writes: JSON-encoded AvailableUpdate, the last-checked Date, the notified version string",
+        "Posts a UNNotificationRequest and, when authorization is .notDetermined, requests [.alert, .sound, .badge]",
+        "Registers a permanent NotificationCenter observer for NSApplication.didBecomeActiveNotification on the main queue",
+        "Long-lived background Task: sleeps 8 s, then loops check + sleep 6 h forever until cancelled",
+        "Reads CommandLine.arguments for --preview-update"
+      ],
+      "platform_assumptions": [
+        "macOS AppKit NSApplication.didBecomeActiveNotification for the app-came-to-the-front catch-up",
+        "UserNotifications framework banners and its authorization model",
+        "@MainActor + Swift Observation (@Observable, @ObservationIgnored)",
+        "Foundation ISO8601DateFormatter with .withFractionalSeconds",
+        "Releases ship macOS disk images (.dmg), and the leading v on GitLab tags",
+        "Notification tap is expected to open Settings › About (the body says so), a macOS Settings-window convention"
+      ],
+      "persisted_fields": [
+        "\"updateChecker_release\" (UserDefaults.standard, Data — JSONEncoder-encoded AvailableUpdate; removed when update is nil)",
+        "\"updateChecker_lastChecked\" (UserDefaults.standard, Date — written on both the success and the failure path)",
+        "\"updateChecker_notifiedVersion\" (UserDefaults.standard, String — the version whose banner was already shown; set before the banner is scheduled)"
+      ],
+      "ui_elements": [
+        "Notification title: \"Droppy Code \\(update.version) is available\"",
+        "Notification body: \"Open Settings › About to update and restart.\" (note the U+203A single right angle quote)",
+        "Notification userInfo: [\"update\": update.version]; identifier: \"update-\\(update.version)\"",
+        "Fallback error text shown after a manual check: \"Couldn't reach GitLab.\"",
+        "UpdateError strings: \"No release with a disk image was found.\" and \"GitLab answered with HTTP \\(status).\""
+      ],
+      "feature_notes": [
+        "AppVersion parses 1 to 3 dot-separated all-digit components, strips a leading v or V, pads with zeros to 3 components, and returns nil for anything with a prerelease suffix such as -nightly. or -beta.1",
+        "Comparison is lexicographic over the padded [Int] components",
+        "updateAvailable is recomputed from the running version, so an installed update stops reading as available while the notes stay",
+        "startBackgroundChecks() is a no-op if already started, if WebsiteCaptures.isEnabled, or if AppInfo.isDevelopment; it waits 8 s after launch then checks every 6 hours (21600 s)",
+        "Becoming active triggers a catch-up check only when the last check is older than 6 hours, or when there has never been one",
+        "check() returns early with updateAvailable when a check is already running, and returns false outright in development builds",
+        "newestRelease(in:) skips releases where upcomingRelease is true, where the tag does not parse, where releasedAt is in the future, where no asset link is a disk image, or where the URL will not parse; among the rest it keeps the highest version (ties keep the first, since `if let current = best, current.0 >= version { continue }`)",
+        "Link.isDiskImage is true when the lowercased direct_asset_url-or-url path ends in \".dmg\" or the lowercased asset name ends in \".dmg\"",
+        "pageURL is releasesURL.appending(path: release.tagName), i.e. https://gitlab.com/droppyformac1/droppy-code/-/releases/<tag>",
+        "The launch flag `--preview-update 9.9.9` overrides only the reported version of the real newest release, so the update story can be demonstrated; installing it then fails verification unless the real release carries that version",
+        "size is filled in by a HEAD request only when the release JSON did not supply one; nothing depends on it",
+        "notifyOnce marks the version as notified BEFORE the async add, so a denied or failed add still suppresses future banners for that version",
+        "URLSession config: ephemeral, reloadIgnoringLocalCacheData, urlCache nil, request timeout 15 s, resource timeout 30 s, waitsForConnectivity false, headers User-Agent \"Droppy Code/<AppInfo.version>\" and Accept \"application/json\"",
+        "GitLab JSON field names read: tag_name, name, description, released_at, upcoming_release, assets.links[].name/url/direct_asset_url",
+        "Custom decoding is lenient: name, description, released_at optional; upcoming_release defaults to false; assets defaults to Assets(links: [])",
+        "parseDate tries ISO8601 with fractional seconds first (example given: 2026-09-13T18:28:42.057Z), then plain internet date time"
+      ],
+      "unresolved_questions": [
+        "Nothing in this file cancels backgroundTask or removes activationObserver, so the observer and task live for the process lifetime; whether that is deliberate cannot be confirmed from here",
+        "Nothing in this file handles the notification tap, so the code that actually opens Settings › About from userInfo[\"update\"] lives outside this bundle",
+        "WebsiteCaptures.isEnabled and AppInfo are defined outside this bundle"
+      ]
+    }
+  ]
+}

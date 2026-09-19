@@ -1,0 +1,143 @@
+{
+  "bundle_id": "R018",
+  "reader": "R018-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Diff/DiffInspector.swift",
+      "sha256": "76edca0419723221ae2a1102e769865f1766994089324f61aecaac95a407d933",
+      "lines_total": 692,
+      "ranges_read": [
+        [
+          1,
+          692
+        ]
+      ],
+      "purpose": "The whole diff-review UI for a thread: the DiffInspector popover body (turn picker, file/line-stat header, expand/collapse-all menu, hide button, empty and loading states, lazy list of file cards), the per-file card, the diff line renderer with tinted addition/deletion blocks and a 200-line collapse budget, the per-row line-number/marker layout, and DiffPopoverCoordinator, the AppKit NSPopover controller that anchors the 640x540 semitransient popover, runs the local mouse/key monitors and drives it from runtime.isDiffVisible.",
+      "key_symbols": [
+        "struct DiffInspector: View",
+        "DiffInspector.loadKey (computed: \"<diffRevision>-<diffSelection uuid or 'all'>-<diffFocusRevision>\")",
+        "DiffInspector.load() async",
+        "private func focusedFiles(_ edits: [FileEdit], missingFrom files: [DiffFile]) -> [DiffFile]",
+        "private struct DiffFileCard: View, Equatable (nonisolated static ==, symbol, color)",
+        "struct DiffLinesView: View, Equatable (showsLineNumbers defaults true)",
+        "DiffLinesView.Section enum: .header(String, Int), .tinted(lines:offset:count:), .plain([DiffLine]); ids \"h<index>-<text>\", \"t<firstLineId>\", \"p<firstLineId>\"",
+        "DiffLinesView.sectionsKey (\"<file.id>|<hunks.count>|<additions>|<deletions>|<totalLines>\")",
+        "nonisolated static func makeSections(file:showsLineNumbers:limit:) -> [Section]",
+        "DiffLinesView.rowList(_:) @ViewBuilder",
+        "DiffLinesView.collapsedLineLimit = 200, DiffLinesView.tintedChunk = 40",
+        "private struct DiffLineBlock: Identifiable (lines, isTinted, id = lines.first?.id ?? 0)",
+        "private func lineBlocks(_ lines: ArraySlice<DiffLine>) -> [DiffLineBlock]",
+        "private struct DiffLineRow: View (marker, markerColor, background, rounding)",
+        "DiffLineRow.blockRounding(index:count:) -> UnevenRoundedRectangle",
+        "DiffLineRow.numberColumnWidth = 30, DiffLineRow.markerColumnWidth = 14",
+        "@MainActor final class DiffPopoverCoordinator: NSObject, NSPopoverDelegate",
+        "DiffPopoverCoordinator.width = 640, DiffPopoverCoordinator.height = 540",
+        "DiffPopoverCoordinator.setAnchor(_:), setFallbackAnchor(_:), sync(isVisible:runtime:), close(), reopen(runtime:), resolvedAnchor(), show(), popoverDidClose(_:), handleMouseDown(_:), handleKeyDown(_:), startMonitors(), stopMonitors()"
+      ],
+      "calls_into": [
+        "ThreadRuntime: diffRevision, diffSelection (UUID?), diffFocusRevision, diffFocusEdits ([FileEdit]), diffAnchor (.value weak NSView), diffAnchorEdge (NSRectEdge), diffOpenRequest (Int), isDiffVisible (Bool), turns ([TurnRecord]), clearDiffFocus(), turnsWithChanges(), hasCachedDiff(selection:), parsedDiff(selection:) async",
+        "DiffFile / DiffHunk / DiffLine model (id, name, directory, additions, deletions, hunks, change enum .added/.deleted/.renamed/.modified, isBinary; DiffLine.kind .addition/.deletion/.context/.note, oldNumber, newNumber, text, id; DiffHunk.header, .lines)",
+        "FileChangeSummary(files:) with .files, .additions, .deletions",
+        "DiffParser.parseHunks(_ patch: String, path: String) -> DiffFile",
+        "TouchedPaths.matches(_ file: DiffFile, touched: Set<String>) (DroppyCode/Services/Git/TouchedPaths.swift:55)",
+        "FileEdit (.path, .diff: String?)",
+        "TurnRecord (.id, .index)",
+        "GlassEffectContainer(spacing:)",
+        "Chrome.secondaryText, Chrome.chromeHorizontalPadding, Chrome.chromeTopPadding",
+        "ChromeTextMenu(symbol:title:help:), ChromeMenuButton(symbol:help:), ChromeIconButton(symbol:help:), ChromeCapsule, ChromeDivider, PopoverItem(_:symbol:isChecked:action:)",
+        "DiffStatLabel(additions:deletions:)",
+        "ShortcutStore.hint(for: .toggleChanges) (case toggleChanges at Core/Models/Shortcuts.swift:125)",
+        "NSPopover.setFixedContent(_:size:) (DroppyCode/UI/Chrome/Popovers.swift:29)",
+        "WeakView (DroppyCode/UI/Common/AttachmentPreviewPanel.swift:246)",
+        "WebsiteCaptures.isEnabled -> CaptureRun.isEnabled (true only under --website-captures <folder> or --tour-captures <folder>)",
+        "ContentUnavailableView, ProgressView, ScrollViewReader/ScrollView/LazyVStack, NSEvent.addLocalMonitorForEvents"
+      ],
+      "state_owned": [
+        "DiffInspector @State files: [DiffFile] = []",
+        "DiffInspector @State summary = FileChangeSummary(files: [])",
+        "DiffInspector @State isLoading = false",
+        "DiffInspector @State collapsed: Set<String> = [] (collapsed file ids)",
+        "DiffInspector @State changedTurns: [TurnRecord] = []",
+        "DiffInspector @State scrollTarget: String? (file id to scroll to after a focus load)",
+        "DiffInspector @State scrollRequest = 0 (monotonic counter so a re-opened popover with surviving state still scrolls)",
+        "DiffInspector body uses @Bindable var runtime = runtime",
+        "DiffLinesView @State showsAll = false (per-file 'show all lines' toggle)",
+        "DiffLinesView @State sections: [Section] = [] (row groups cached per state change)",
+        "DiffPopoverCoordinator: let popover = NSPopover(); var anchor: WeakView?; var fallback: WeakView?; weak var shownOn: NSView?; weak var shownRuntime: ThreadRuntime?; var runtime: ThreadRuntime?; var desiredVisible = false; var monitors: [Any] = []; var session = 0; var pendingSession = 0; var seenOpenRequest = 0"
+      ],
+      "side_effects": [
+        "await runtime.parsedDiff(selection:) triggers the git diff read/parse owned by ThreadRuntime",
+        "Task.sleep(for: .milliseconds(180)) before loading whenever runtime.hasCachedDiff(selection:) is false, so the popover paints first",
+        "Task.detached(priority: .userInitiated) parses the focused rows' patches off the main thread",
+        "DispatchQueue.main.async + withAnimation(.smooth(duration: 0.25)) { proxy.scrollTo(target, anchor: .top) }",
+        "NSEvent.addLocalMonitorForEvents for [.leftMouseDown, .rightMouseDown] and for .keyDown while shown; NSEvent.removeMonitor on close",
+        "Mutates runtime.isDiffVisible (xmark button, popoverDidClose on the owning session, and when adopting a runtime outside a capture run)",
+        "Sets popover.contentViewController = nil on the owning close to release the inspector view tree",
+        "popover.show(relativeTo:of:preferredEdge:), popover.performClose(nil), popover.close()",
+        "No file writes, no network, no keychain access in this file"
+      ],
+      "platform_assumptions": [
+        "AppKit: NSPopover, NSPopoverDelegate, NSView, NSSize, NSRectEdge (.maxY), NSEvent local event monitors",
+        "popover.behavior = .semitransient and popover.animates = true (macOS popover dismissal semantics)",
+        "Escape detected by raw macOS keyCode 53",
+        "SF Symbols: plusminus, ellipsis, xmark, chevron.right, doc.text.magnifyingglass, arrow.down.right.and.arrow.up.left, arrow.up.left.and.arrow.down.right, plus.circle.fill, minus.circle.fill, arrow.right.circle.fill, pencil.circle.fill",
+        "SwiftUI-on-mac: GlassEffectContainer, ContentUnavailableView, Observation @Bindable, .task(id:), .onChange(of:initial:), .textSelection(.enabled), UnevenRoundedRectangle(style: .continuous), Capsule(style: .continuous), .quaternary/.tertiary/.secondary hierarchical styles, Color.accentColor",
+        "System monospaced design font: .font(.system(size: 11.5, design: .monospaced))",
+        "Capture mode gated on CommandLine launch arguments through CaptureRun"
+      ],
+      "persisted_fields": [
+        "none: this file persists nothing (no @AppStorage, no UserDefaults, no file writes); selection and visibility live on ThreadRuntime, everything else is @State or coordinator instance state"
+      ],
+      "ui_elements": [
+        "Header ChromeTextMenu symbol \"plusminus\", help \"Choose which changes to show\"; title \"Turn <index + 1>\" for the selected turn, else \"All changes\"",
+        "Turn picker PopoverItems: \"All changes\" (isChecked when diffSelection == nil) plus one \"Turn <index + 1>\" per runtime.turnsWithChanges(); both call runtime.clearDiffFocus() before setting diffSelection",
+        "File count label: exactly \"1 file\" for one file, else \"<count> files\", .font(.system(size: 11)), Chrome.secondaryText; shown only when files is non-empty, next to DiffStatLabel(additions:deletions:)",
+        "Header layout: GlassEffectContainer(spacing: 2), HStack(spacing: 10), Spacer(minLength: 8); padding .horizontal Chrome.chromeHorizontalPadding, .top Chrome.chromeTopPadding, .bottom 10; outer VStack(spacing: 0)",
+        "ChromeCapsule: ChromeMenuButton symbol \"ellipsis\" help \"More\" with PopoverItem \"Expand all\" (symbol arrow.down.right.and.arrow.up.left, collapsed.removeAll()) and \"Collapse all\" (symbol arrow.up.left.and.arrow.down.right, collapsed = every file id); ChromeDivider; ChromeIconButton symbol \"xmark\" help \"Hide changes\" + ShortcutStore.hint(for: .toggleChanges) setting runtime.isDiffVisible = false",
+        "Loading state: ProgressView(\"Reading the diff\\u2026\") (trailing U+2026 ellipsis), frame maxWidth/maxHeight .infinity",
+        "Empty state: ContentUnavailableView(\"No changes yet\", systemImage: \"doc.text.magnifyingglass\", description: Text(\"Files the agent changes appear here after each turn.\"))",
+        "File list: ScrollViewReader + ScrollView + LazyVStack(alignment: .leading, spacing: 10) with .padding(12); each DiffFileCard .equatable().id(file.id)",
+        "DiffFileCard header button: HStack(spacing: 8); chevron.right .font(.caption2.weight(.semibold)) .foregroundStyle(.tertiary) rotationEffect 0 degrees collapsed / 90 degrees expanded; change symbol tinted by change color; Text(file.directory in .secondary + file.name) .font(.callout) lineLimit(1) truncationMode(.head); Spacer(minLength: 8); DiffStatLabel; padding .horizontal 12 / .vertical 9; contentShape(.rect); buttonStyle(.plain)",
+        "DiffFileCard background .quaternary.opacity(0.3) in .rect(cornerRadius: 12, style: .continuous) with matching clipShape",
+        "Expanded-but-unrenderable body: Text \"Binary file\" when file.isBinary, else \"Diff details unavailable\"; .font(.caption), .secondary, padding .horizontal 12 / .bottom 10",
+        "Expanded normal body: DiffLinesView(file:).equatable().padding(.bottom, 6)",
+        "Hunk header row: Text(hunk.header) .secondary, lineLimit(1), padding .horizontal 10 / .vertical 3, frame maxWidth .infinity alignment .leading, background Color.accentColor.opacity(0.06); emitted only when showsLineNumbers is true",
+        "\"Show all <totalLines> lines\" button: .font(.caption), .secondary, padding .horizontal 10 / .vertical 6, background .quaternary.opacity(0.5) in Capsule(style: .continuous), contentShape(.capsule), buttonStyle(.plain), outer padding .horizontal 10 / .vertical 8; shown when !showsAll and totalLines > 200",
+        "DiffLinesView-wide row font .system(size: 11.5, design: .monospaced) with .textSelection(.enabled)",
+        "DiffLineRow columns: HStack(alignment: .top, spacing: 0); two 30pt trailing-aligned number columns (old then new) in Color.secondary.opacity(0.6), present only when showsLineNumbers; a 14pt centered marker column; then text filling the rest leading-aligned, empty text rendered as a single space \" \"; .note lines use .secondary, all others .primary",
+        "DiffLineRow padding: .vertical 1, .leading 6, .trailing 8; frame maxWidth .infinity alignment .leading; .background(background, in: rounding)",
+        "Markers: addition \"+\", deletion \"\\u2212\" (U+2212 MINUS SIGN, not an ASCII hyphen), context and note render an empty string",
+        "Marker colors: addition .green, deletion .red, default .secondary; row backgrounds: addition .green.opacity(0.12), deletion .red.opacity(0.12), default .clear",
+        "Tinted block rounding radius 8, applied only on the block's first row (topLeading + topTrailing) and last row (bottomLeading + bottomTrailing), style .continuous; default rounding is all-zero radii",
+        "Change symbol/color pairs: .added plus.circle.fill + .green, .deleted minus.circle.fill + .red, .renamed arrow.right.circle.fill + .blue, .modified pencil.circle.fill + .orange",
+        "Popover fixed content size: 640 wide by 540 tall"
+      ],
+      "feature_notes": [
+        "Reload trigger: .task(id: loadKey) where loadKey is \"<runtime.diffRevision>-<diffSelection uuid or 'all'>-<diffFocusRevision>\", so a new turn, a different turn selection, or a new focus request reloads the panel.",
+        "Opening latency rule: when runtime.hasCachedDiff(selection:) is false the view sleeps 180 ms and bails if cancelled before calling load(); an already-parsed diff loads with no delay.",
+        "focusedFiles(): for each FileEdit with a non-empty path and a non-empty .diff patch that is not already covered (TouchedPaths.matches) by the parsed diff or by an earlier missing entry, DiffParser.parseHunks builds a DiffFile and it is kept only if hunks are non-empty; results are prepended (files = missing + parsed). This makes a tapped tool row always show its edit even when the turn is still running, or the work was reverted or moved into a worktree.",
+        "After load: collapse state is decided in three branches. (1) If any file matches the focus paths, collapsed = all ids minus the focused ones, scrollTarget = the first focused id, scrollRequest += 1, which animates a 0.25 s smooth scrollTo(anchor: .top) on the next main-queue hop. (2) Else if files.count > 6 and collapsed is empty, every file but the first is collapsed. (3) Else the previous collapsed set is intersected with the current file ids.",
+        "Per-file render budget: 200 lines (collapsedLineLimit) until 'Show all' is tapped, then Int.max; the budget is spent across hunks, so a huge hunk only materializes its first 200 lines.",
+        "Tinted runs merge across hunk boundaries and are emitted in chunks of 40 rows (tintedChunk), each chunk carrying the run's absolute offset and total count so corner rounding is computed against the whole merged run; a hunk header that would land inside a continuing run is dropped (continues = first run isTinted and pending non-empty).",
+        "Equatable conformances are explicit render optimizations. DiffFileCard == compares file.id, additions, deletions, hunks.count, change, isBinary and isCollapsed. DiffLinesView == compares sectionsKey and showsLineNumbers, so a sibling card's collapse never rebuilds these rows but the same path with a different line count does.",
+        "Sections are computed twice on purpose: inline in body as a fallback when @State sections is empty (so a card materialized mid-scroll draws rows on its first frame) and in .onChange(of: \"<sectionsKey>|<showsAll>\", initial: true).",
+        "Container choice: when showsAll and totalLines > 200 the rows go in a LazyVStack; otherwise a VStack with .fixedSize(horizontal: false, vertical: true) so the panel's outer LazyVStack gets exact card heights and no row is dropped while scrolling.",
+        "DiffPopoverCoordinator.sync three cases: (1) a different runtime - close, clear the previous runtime's isDiffVisible, adopt the new runtime, seed seenOpenRequest from its diffOpenRequest, and outside a capture run force isDiffVisible = false so the diff never auto-opens after a thread switch, then return; (2) first adoption (runtime == nil) - same seeding, and if isVisible outside a capture run clear the flag and return; (3) same runtime - desiredVisible = isVisible then show() or close().",
+        "reopen(runtime:) opens only for the runtime already served (otherwise it delegates to sync) and only when diffOpenRequest differs from seenOpenRequest; if the popover is already shown on the same resolved anchor view it is a no-op, otherwise monitors stop, session/pendingSession bump, popover.close(), then show() on the new anchor.",
+        "Anchor resolution order in resolvedAnchor(): runtime.diffAnchor?.value with a non-nil window paired with runtime.diffAnchorEdge (a tool row opens below itself, a Review button above itself), else the first of [tab anchor, composer fallback] whose window is non-nil, with edge .maxY.",
+        "show() guards on a resolved anchor and on the popover not already being shown, bumps session, installs the fixed content DiffInspector(runtime:) at 640x540, starts the monitors, records shownOn/shownRuntime and shows relative to target.view.bounds.",
+        "Stale-close guard: popoverDidClose hops to @MainActor, stops monitors, clears desiredVisible, and only when session == pendingSession clears the shown runtime's isDiffVisible and sets popover.contentViewController = nil (releasing the inspector so it stops observing the runtime off screen); shownRuntime is always cleared.",
+        "Dismissal behavior: a left or right mouse-down whose window is not the popover's content window closes the popover but the event is still returned so it reaches its target (picking another turn's Review opens that diff in one tap); mouse-downs inside the popover pass through unchanged; Escape (keyCode 53) closes and swallows the event (returns nil).",
+        "Documented close paths in the coordinator's doc comment: Escape, the X button, Command-D, tapping the changes tab, or the thread going away.",
+        "Shipped vs capture-only: the !WebsiteCaptures.isEnabled guards are live in normal launches (they suppress auto-opening after a thread switch); only under --website-captures or --tour-captures is a pre-set isDiffVisible preserved so scripted captures can show the diff popover open."
+      ],
+      "unresolved_questions": [
+        "Chrome.chromeHorizontalPadding and Chrome.chromeTopPadding are used for the header insets but are defined in the Chrome design-system file outside this bundle, so their literal point values are not captured here.",
+        "DiffFile.id semantics (path only, or path plus change) and DiffLine.id numbering come from the diff model/parser outside this bundle; Section ids, sectionsKey and the Equatable comparisons all depend on those being stable.",
+        "The default value of runtime.diffAnchorEdge and the code that sets diffAnchor / bumps diffOpenRequest live in ThreadRuntime, outside this bundle.",
+        "DiffLinesView.showsLineNumbers defaults to true and no call site in this file passes false; whether another view renders diffs without gutters (and therefore without hunk headers) could not be determined from this file alone.",
+        "ChromeTextMenu, ChromeMenuButton, ChromeIconButton, ChromeCapsule, ChromeDivider, PopoverItem, DiffStatLabel and GlassEffectContainer supply their own metrics and styling, which are not visible in this file."
+      ]
+    }
+  ]
+}

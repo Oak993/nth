@@ -1,0 +1,257 @@
+{
+  "bundle_id": "R032",
+  "reader": "R032-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Core/Models/MCP.swift",
+      "sha256": "64e2b8feb72c519d4ce0bef2e1706c48aaf18e5ce5c79912d45d79a4514cd0a2",
+      "lines_total": 263,
+      "ranges_read": [
+        [
+          1,
+          263
+        ]
+      ],
+      "purpose": "Defines the whole MCP domain model for Droppy Code: the three transports (stdio/http/oauth), the MCPField input descriptor, the MCPCategory taxonomy, the MCPCatalogEntry shape with its {key} placeholder fill/resolve logic, the resolved-server struct handed to providers and the probe, the persisted MCPConnection record, the probe result and tool summary, the setup-guide and connection-state enums, the MCPPaths file locations for the per-provider config files, and a Color(rgb:) initializer for the 0xRRGGBB brand tints.",
+      "key_symbols": [
+        "enum MCPTransport (Sendable, Hashable): case stdio(command: String, args: [String]), case http(url: String, headers: [String: String]), case oauth(url: String)",
+        "struct MCPField (Sendable, Hashable, Identifiable): key, label, placeholder, kind (default .secret), help: String? = nil, defaultValue: String? = nil, isRequired = true; id { key }",
+        "enum MCPField.Kind: case secret, text, path",
+        "enum MCPCategory: String, CaseIterable, Sendable, Identifiable - developer, browser, search, work, data, cloud, knowledge; id { rawValue }; title switch returning \"Developer\", \"Browser\", \"Search\", \"Work\", \"Data\", \"Cloud\", \"Knowledge\"",
+        "struct MCPCatalogEntry (Sendable, Hashable, Identifiable): id, name, vendor, summary, category, asset, colorValue: UInt32, isMonochrome = false, transport, fields: [MCPField] = [], env: [String: String] = [:], docsURL, sampleTools: [String] = [], keysURL: String? = nil",
+        "MCPCatalogEntry.color -> Color { Color(rgb: colorValue) }",
+        "MCPCatalogEntry.needsInput -> Bool { fields.contains { $0.isRequired } }",
+        "MCPCatalogEntry.isOAuth -> Bool (pattern-matches .oauth on transport)",
+        "struct MCPResolvedServer (Sendable, Hashable, Identifiable): id, name, command: String?, args: [String] = [], env: [String: String] = [:], url: String?, headers: [String: String] = [:], oauthUpstream: String?; isRemote { url != nil }",
+        "extension MCPCatalogEntry.oauthURL(values: [String: String] = [:]) -> String?",
+        "extension MCPCatalogEntry.fill(_ text: String, values: [String: String]) -> String",
+        "extension MCPCatalogEntry.resolve(values: [String: String]) -> MCPResolvedServer",
+        "struct MCPToolSummary (Codable, Sendable, Hashable, Identifiable): name, summary: String?; id { name }",
+        "struct MCPProbeResult (Sendable, Hashable): serverName: String?, serverVersion: String?, tools: [MCPToolSummary]",
+        "struct MCPConnection (Codable, Sendable, Hashable, Identifiable): catalogID, isEnabled = true, values: [String: String] = [:], connectedAt: Date?, serverVersion: String?, tools: [MCPToolSummary] = []; id { catalogID }",
+        "struct MCPSetupGuide (Sendable, Hashable): title, reason, steps: [String], pageLabel, pageURL, note: String?",
+        "enum MCPConnectionState (Sendable, Hashable): notConnected, connecting, connected(toolCount: Int), failed(message: String), needsSetup(MCPSetupGuide); isConnected, isConnecting",
+        "enum MCPPaths: static directory, connectionsURL, customsURL, claudeConfigURL, codexConfigURL, copilotConfigURL",
+        "extension Color { init(rgb hex: UInt32) }"
+      ],
+      "calls_into": [
+        "MCPProxy.url(for: id) - used inside resolve() to point an OAuth server's url at the app's local proxy route",
+        "Storage.root - base URL for the mcp/ directory, mcp.json and custom-mcp.json",
+        "FileManager.default.createDirectory(at:withIntermediateDirectories:) - creates Storage.root/mcp",
+        "SwiftUI.Color (extended here with init(rgb:))",
+        "MCPKeychain (named in doc comments as where secret field values live)",
+        "MCPKeyPanel (named in the keysURL doc comment as the panel that opens the key page)",
+        "MCPOAuth (named in the .oauth transport doc comment as the sign-in implementation)"
+      ],
+      "state_owned": [
+        "MCPPaths.directory - a lazily-initialized static let URL (Storage.root/mcp, created on first access)",
+        "MCPPaths.connectionsURL, customsURL, claudeConfigURL, codexConfigURL, copilotConfigURL - static let URLs",
+        "MCPConnection is the persisted per-server user state value type (isEnabled, values, connectedAt, serverVersion, tools)",
+        "No ObservableObject or @State here; every type is a value type (struct/enum), all Sendable + Hashable"
+      ],
+      "side_effects": [
+        "MCPPaths.directory's initializer calls FileManager.default.createDirectory(at:withIntermediateDirectories: true) with try? - it creates Storage.root/mcp on first touch and silently swallows failure",
+        "No network, process launch, timers or Keychain access happen in this file itself; it only names the files and the Keychain store that other code uses"
+      ],
+      "platform_assumptions": [
+        "SwiftUI is imported solely for Color; Color(rgb:) builds a Color from Double components divided by 255 with no explicit color space",
+        "Swift concurrency Sendable conformance throughout, plus implicit-return switch bodies (Swift 5.9+) in MCPCategory.title",
+        "Storage.root is an app-owned macOS support directory",
+        "The generated config files target macOS CLI agents: `claude --mcp-config`, Codex app-server `config` overrides, `copilot --additional-mcp-config`",
+        "OAuth servers depend on a local HTTP proxy (MCPProxy) running in-process on the Mac"
+      ],
+      "persisted_fields": [
+        "Storage.root/mcp.json - JSON for [MCPConnection]; keys: catalogID (String), isEnabled (Bool, default true), values ([String:String], default empty), connectedAt (Date?), serverVersion (String?), tools ([MCPToolSummary], default empty)",
+        "MCPToolSummary persisted keys: name (String), summary (String?)",
+        "Storage.root/custom-mcp.json - JSON for [MCPCustomServer] (secret values never land here)",
+        "Storage.root/mcp/claude.json - {\"mcpServers\": {...}} for `claude --mcp-config`",
+        "Storage.root/mcp/codex.json - {\"mcp_servers\": {...}} for Codex's app-server config overrides",
+        "Storage.root/mcp/copilot.json - {\"mcpServers\": {...}} for `copilot --additional-mcp-config`",
+        "Secret field values are explicitly NOT stored in mcp.json; they live in the Keychain via MCPKeychain"
+      ],
+      "ui_elements": [
+        "MCPCategory.title strings used as section headings: \"Developer\", \"Browser\", \"Search\", \"Work\", \"Data\", \"Cloud\", \"Knowledge\"",
+        "MCPCatalogEntry.summary is documented as one line shown under the name on its card",
+        "MCPCatalogEntry.sampleTools is documented as three or four tools shown as the card's fine print",
+        "MCPCatalogEntry.asset names an Assets.xcassets image set of the form `mcp-<id>`, a template SVG tinted with `color`",
+        "isMonochrome = true means the brand mark is black or white and wears the text colour instead of colorValue",
+        "MCPSetupGuide drives a floating panel offered by the card: title (doc example \"Turn on GitLab's MCP server\"), reason, ordered steps, pageLabel (doc example \"Open my groups\"), pageURL, and an optional note shown under the buttons after a check that still fails",
+        "MCPConnectionState drives the page and composer display, including connected(toolCount:) and failed(message:)"
+      ],
+      "feature_notes": [
+        "Tool-call naming: the entry id is the server key in every provider config and therefore the server part of a tool call name, documented with the example `mcp__github__list_issues`; ids must be lowercase with hyphens only",
+        "fill() placeholder substitution: every `{key}` in text is replaced by values[key] (an empty string is treated as absent) else field.defaultValue else the empty string",
+        "Host-coercion rule in fill(): when a placeholder sits immediately after \"://\" (the test is `out.contains(\"://\" + token)`), the value is trimmed of whitespace and newlines, a leading \"https://\" or \"http://\" is dropped (case-insensitive prefix test on the lowercased value), and all trailing \"/\" are removed - so pasting `https://gitlab.example.com/` yields `gitlab.example.com`",
+        "resolve() for .stdio: sets command, maps args through fill, and sets env = env.mapValues(fill).filter { !$0.value.isEmpty } so an optional field left empty drops its variable rather than passing an empty string",
+        "resolve() for .http: url = fill(url) and headers = headers.mapValues(fill) with empty values dropped the same way",
+        "resolve() for .oauth: server.url = MCPProxy.url(for: id) and server.oauthUpstream = fill(url) - the provider config never sees the real remote address, and no token ever sits in a config file because the proxy adds a fresh token per request",
+        "needsInput is true only when at least one field has isRequired == true, so an optional key (one that merely raises a rate limit) does not make a server need input",
+        "MCPConnectionState.isConnecting is implemented as `self == .connecting`, relying on the enum's synthesized Equatable",
+        "Color(rgb:) decodes 0xRRGGBB as red = (hex >> 16) & 0xFF / 255, green = (hex >> 8) & 0xFF / 255, blue = hex & 0xFF / 255"
+      ],
+      "unresolved_questions": [
+        "The `extension MCPCatalogEntry` block opens with a doc comment (\"The launchable form, with `{key}` placeholders replaced by the user's values (or the field's default). OAuth servers resolve to their route on the app's proxy.\") separated by a blank line from oauthURL's own doc comment, so it documents nothing; it reads like resolve()'s documentation stranded by a reordering, but intent cannot be confirmed from this file.",
+        "MCPProxy.url(for:) route shape, MCPOAuth's token flow, MCPKeychain's key naming and Storage.root's concrete path are all defined outside this bundle.",
+        "Whether Color(rgb:) yields sRGB or SwiftUI's default color space is not stated; Color(red:green:blue:) is called without a color space argument."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Models/MCPCatalog.swift",
+      "sha256": "c1cbda782e05439b3ad11572c8514cedb226a4fb72c2fa33a5876edcc7ca9548",
+      "lines_total": 483,
+      "ranges_read": [
+        [
+          1,
+          483
+        ]
+      ],
+      "purpose": "The hard-coded catalog of the 33 MCP servers Droppy Code ships with: each entry's id, display name, vendor, one-line summary, category, asset name, brand colour, transport (exact command and args, or exact remote URL and headers), credential fields with placeholder and help text, environment variables, docs URL, sample tool names and key-creation page. It also provides lookup by id, tolerant lookup by server name, a grouped-by-category view and the flat id list.",
+      "key_symbols": [
+        "enum MCPCatalog",
+        "MCPCatalog.entries: [MCPCatalogEntry] - 33 entries in declaration order: github, gitlab, playwright, chrome-devtools, context7, filesystem, fetch, memory, sequential-thinking, git, brave-search, tavily, exa, firecrawl, perplexity, slack, notion, linear, atlassian, figma, sentry, vercel, cloudflare, netlify, supabase, stripe, resend, postgres, sqlite, mongodb, huggingface, deepwiki, aws-docs",
+        "static func entry(id: String) -> MCPCatalogEntry?",
+        "static func entry(matching serverName: String) -> MCPCatalogEntry? (with a nested normalize(_:) helper)",
+        "static var byCategory: [(category: MCPCategory, entries: [MCPCatalogEntry])]",
+        "static let ids: [String] = entries.map(\\.id)"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry(id:name:vendor:summary:category:asset:colorValue:isMonochrome:transport:fields:env:docsURL:sampleTools:keysURL:)",
+        "MCPField(key:label:placeholder:kind:help:defaultValue:isRequired:)",
+        "MCPTransport.stdio / .http / .oauth",
+        "MCPCategory (.developer, .browser, .search, .work, .data, .cloud, .knowledge) and MCPCategory.allCases",
+        "NSHomeDirectory() - the Filesystem entry's default folder value"
+      ],
+      "state_owned": [
+        "MCPCatalog.entries - a static let array, the single source of truth for built-in servers",
+        "MCPCatalog.ids - a static let derived from entries",
+        "MCPCatalog.byCategory - a computed static var, recomputed on each access"
+      ],
+      "side_effects": [
+        "None beyond evaluating NSHomeDirectory() when the static catalog is first built; no I/O, process launch or network in this file"
+      ],
+      "platform_assumptions": [
+        "NSHomeDirectory() from Foundation supplies the Filesystem server's default root, and its placeholder is the macOS-shaped path \"/Users/you/Projects\"",
+        "The 15 stdio entries assume `npx` (11 entries) and `uvx` (4 entries: fetch, git, sqlite, aws-docs) are on the user's PATH",
+        "Brand assets are expected in Assets.xcassets under the exact names mcp-github, mcp-gitlab, mcp-playwright, mcp-chrome-devtools, mcp-context7, mcp-filesystem, mcp-fetch, mcp-memory, mcp-sequential-thinking, mcp-git, mcp-brave-search, mcp-tavily, mcp-exa, mcp-firecrawl, mcp-perplexity, mcp-slack, mcp-notion, mcp-linear, mcp-atlassian, mcp-figma, mcp-sentry, mcp-vercel, mcp-cloudflare, mcp-netlify, mcp-supabase, mcp-stripe, mcp-resend, mcp-postgres, mcp-sqlite, mcp-mongodb, mcp-huggingface, mcp-deepwiki, mcp-aws-docs",
+        "The filesystem and sqlite path fields assume a Unix filesystem layout (\"/Users/you/Projects\", \"/path/to/app.db\")"
+      ],
+      "persisted_fields": [
+        "The entry ids are the persisted catalogID values in mcp.json and the server keys in the generated provider configs: github, gitlab, playwright, chrome-devtools, context7, filesystem, fetch, memory, sequential-thinking, git, brave-search, tavily, exa, firecrawl, perplexity, slack, notion, linear, atlassian, figma, sentry, vercel, cloudflare, netlify, supabase, stripe, resend, postgres, sqlite, mongodb, huggingface, deepwiki, aws-docs",
+        "Field keys that become mcp.json values or Keychain entries: token (github, slack, huggingface), instance (gitlab), key (context7, brave-search, firecrawl, perplexity), root (filesystem), url (postgres, mongodb), path (sqlite)",
+        "Environment variable names emitted by stdio entries: BRAVE_API_KEY, FIRECRAWL_API_KEY, PERPLEXITY_API_KEY, SLACK_MCP_XOXB_TOKEN, SLACK_MCP_ADD_MESSAGE_TOOL, MDB_MCP_CONNECTION_STRING, FASTMCP_LOG_LEVEL"
+      ],
+      "ui_elements": [
+        "Exact card summaries: github \"Issues, pull requests and code across your repositories\"; gitlab \"Issues, merge requests, pipelines and code across your projects\"; playwright \"Drives a real browser: open pages, click, fill forms, screenshot\"; chrome-devtools \"Inspects pages, console messages and performance traces\"; context7 \"Fresh docs and examples for the libraries you use\"; filesystem \"Reads, writes and searches files in one folder\"; fetch \"Downloads web pages as plain text to read\"; memory \"Remembers people, facts and how they connect\"; sequential-thinking \"Thinks hard problems through step by step\"; git \"Status, diffs, history and commits for a repo\"; brave-search \"Searches the web, local places and news\"; tavily \"Searches the web and pulls out page content\"; exa \"Searches the web and reads pages, with code-focused answers\"; firecrawl \"Scrapes, searches and maps whole websites\"; perplexity \"Asks the web and answers with sources\"; slack \"Lists channels, reads and posts messages\"; notion \"Finds and edits pages in your workspace\"; linear \"Issues and projects in your Linear teams\"; atlassian \"Jira issues and Confluence pages\"; figma \"Design details and screenshots from files\"; sentry \"Error reports and which projects they hit\"; vercel \"Projects, deployments and their build logs\"; cloudflare \"Workers, storage buckets and databases\"; netlify \"Sites, deploys, forms and environment variables\"; supabase \"Projects, SQL queries and database changes\"; stripe \"Customers, payment links and balances\"; resend \"Sends email and manages contacts, broadcasts and domains\"; postgres \"Runs SQL and explores the schema of a Postgres database\"; sqlite \"Reads and writes a local database file\"; mongodb \"Finds and changes documents in your collections\"; huggingface \"Searches models, datasets and papers\"; deepwiki \"Reads docs and answers questions about repos\"; aws-docs \"Searches and reads the AWS documentation\"",
+        "Display names that differ from their ids: \"Chrome DevTools\" (chrome-devtools), \"Sequential Thinking\" (sequential-thinking), \"Brave Search\" (brave-search), \"PostgreSQL\" (postgres), \"Hugging Face\" (huggingface), \"AWS Docs\" (aws-docs)",
+        "Vendor strings: GitHub, GitLab, Microsoft (playwright), Google (chrome-devtools), Upstash (context7), Anthropic (filesystem, fetch, memory, sequential-thinking, git), Brave, Tavily, Exa, Firecrawl, Perplexity, Slack, Notion, Linear, Atlassian, Figma, Sentry, Vercel, Cloudflare, Netlify, Supabase, Stripe, Resend, PostgreSQL, SQLite, MongoDB, Hugging Face, Cognition (deepwiki), Amazon Web Services (aws-docs)",
+        "Field labels and placeholders: \"Personal access token\" / \"ghp_...\"; \"GitLab address\" / \"gitlab.com\"; \"API key\" / \"ctx7sk-...\"; \"Folder\" / \"/Users/you/Projects\"; \"API key\" / \"BSA...\"; \"API key\" / \"fc-...\"; \"API key\" / \"pplx-...\"; \"Bot token\" / \"xoxb-...\"; \"Connection string\" / \"postgresql://user:pass@host:5432/db\"; \"Database file\" / \"/path/to/app.db\"; \"Connection string\" / \"mongodb+srv://...\"; \"Access token\" / \"hf_...\" (each placeholder uses a single horizontal-ellipsis character)",
+        "Field help strings: github \"Create a fine-grained token on the page, then copy it\"; gitlab \"gitlab.com, or your own instance's host\"; context7 \"Optional. Raises the rate limit\"; filesystem \"The folder the server may use\"; brave-search / firecrawl / perplexity all \"Make a key on the page, then copy it\"; slack \"Copy the Bot User OAuth Token from your app, then invite the bot to the channels it should read\"; postgres \"The connection string; a read-only user is safest\"; sqlite \"Created if it does not exist\"; mongodb \"In Atlas: Connect -> Drivers, then copy the string\" (the source uses a right-arrow glyph); huggingface \"Optional. Raises the limits\"",
+        "Brand colours as 0xRRGGBB: github 0x24292F, gitlab 0xFC6D26, playwright 0x2EAD33, chrome-devtools 0x4285F4, context7 0x5B8DEF, filesystem 0x8E8E93, fetch 0x0A84FF, memory 0xAF52DE, sequential-thinking 0x30B0C7, git 0xF05032, brave-search 0xFB542B, tavily 0x0D9488, exa 0x1F4FFF, firecrawl 0xFF6B1A, perplexity 0x20808D, slack 0x4A154B, notion 0x000000, linear 0x5E6AD2, atlassian 0x0052CC, figma 0xF24E1E, sentry 0x7B61FF, vercel 0x000000, cloudflare 0xF38020, netlify 0x00C7B7, supabase 0x3ECF8E, stripe 0x635BFF, resend 0x000000, postgres 0x4169E1, sqlite 0x0F80CC, mongodb 0x47A248, huggingface 0xFFB000, deepwiki 0x1D1D1F, aws-docs 0xFF9900",
+        "isMonochrome: true on exactly five entries - github, notion, vercel, resend, deepwiki"
+      ],
+      "feature_notes": [
+        "Exactly 33 built-in servers. Transport split: 15 stdio, 4 http, 14 oauth",
+        "stdio command lines verbatim - playwright: npx -y @playwright/mcp@latest; chrome-devtools: npx -y chrome-devtools-mcp@latest; filesystem: npx -y @modelcontextprotocol/server-filesystem {root}; fetch: uvx mcp-server-fetch; memory: npx -y @modelcontextprotocol/server-memory; sequential-thinking: npx -y @modelcontextprotocol/server-sequential-thinking; git: uvx mcp-server-git; brave-search: npx -y @brave/brave-search-mcp-server; firecrawl: npx -y firecrawl-mcp; perplexity: npx -y @perplexity-ai/mcp-server; slack: npx -y slack-mcp-server@latest --transport stdio; postgres: npx -y @bytebase/dbhub@latest --transport stdio --dsn {url}; sqlite: uvx mcp-server-sqlite --db-path {path}; mongodb: npx -y mongodb-mcp-server; aws-docs: uvx awslabs.aws-documentation-mcp-server@latest",
+        "http transports: github https://api.githubcopilot.com/mcp/ with header Authorization \"Bearer {token}\"; context7 https://mcp.context7.com/mcp with Authorization \"Bearer {key}\"; huggingface https://huggingface.co/mcp with Authorization \"Bearer {token}\"; deepwiki https://mcp.deepwiki.com/mcp with an explicitly empty headers dictionary",
+        "oauth upstream URLs: gitlab https://{instance}/api/v4/mcp; tavily https://mcp.tavily.com/mcp; exa https://mcp.exa.ai/mcp; notion https://mcp.notion.com/mcp; linear https://mcp.linear.app/mcp; atlassian https://mcp.atlassian.com/v2/mcp; figma https://mcp.figma.com/mcp; sentry https://mcp.sentry.dev/mcp; vercel https://mcp.vercel.com; cloudflare https://bindings.mcp.cloudflare.com/mcp; netlify https://netlify-mcp.netlify.app/mcp; supabase https://mcp.supabase.com/mcp; stripe https://mcp.stripe.com; resend https://mcp.resend.com/mcp",
+        "gitlab is the only OAuth entry with a field: instance, kind .text, defaultValue \"gitlab.com\", isRequired false - so needsInput is false and the {instance} placeholder sits right after \"https://\" and is host-coerced by MCPCatalogEntry.fill",
+        "Optional (isRequired: false) fields exist on exactly three entries: gitlab instance, context7 key, huggingface token. Every other declared field is required",
+        "Slack sets SLACK_MCP_ADD_MESSAGE_TOOL to the literal string \"true\", which enables the message-posting tool; aws-docs sets FASTMCP_LOG_LEVEL to \"ERROR\"",
+        "keysURL values: github https://github.com/settings/personal-access-tokens/new; context7 https://context7.com/dashboard; brave-search https://api-dashboard.search.brave.com/app/keys; firecrawl https://www.firecrawl.dev/app/api-keys; perplexity https://www.perplexity.ai/settings/api; slack https://api.slack.com/apps; mongodb https://cloud.mongodb.com; huggingface https://huggingface.co/settings/tokens. The path-based entries (filesystem, sqlite) and postgres deliberately have none",
+        "sampleTools verbatim: github [list_issues, create_pull_request, search_code, get_file_contents]; gitlab [list_merge_requests, get_merge_request_diffs, create_issue, get_pipeline_jobs]; playwright [browser_navigate, browser_click, browser_snapshot, browser_take_screenshot]; chrome-devtools [navigate_page, take_screenshot, list_console_messages, performance_start_trace]; context7 [resolve-library-id, query-docs]; filesystem [read_text_file, write_file, list_directory, search_files]; fetch [fetch]; memory [create_entities, create_relations, search_nodes, read_graph]; sequential-thinking [sequentialthinking]; git [git_status, git_diff, git_log, git_commit]; brave-search [brave_web_search, brave_local_search, brave_news_search]; tavily [tavily-search, tavily-extract, tavily-crawl]; exa [web_search_exa, web_fetch_exa, agent_run]; firecrawl [firecrawl_scrape, firecrawl_search, firecrawl_crawl, firecrawl_map]; perplexity [perplexity_search, perplexity_ask, perplexity_research, perplexity_reason]; slack [channels_list, conversations_history, conversations_search_messages, conversations_add_message]; notion [API-post-search, API-retrieve-a-page, API-patch-block-children]; linear [list_issues, create_issue, update_issue, list_projects]; atlassian [searchJiraIssuesUsingJql, createJiraIssue, getConfluenceContent]; figma [get_design_context, get_screenshot, get_metadata]; sentry [search_issues, get_issue_details, find_projects]; vercel [list_projects, list_deployments, get_deployment_build_logs]; cloudflare [workers_list, kv_namespaces_list, r2_buckets_list, d1_databases_list]; netlify [get-projects, deploy-site, manage-env-vars, get-deploy]; supabase [list_projects, execute_sql, apply_migration, query_logs]; stripe [create_customer, list_customers, create_payment_link, retrieve_balance]; resend [send-email, list-contacts, create-broadcast, list-domains]; postgres [execute_sql, search_objects]; sqlite [read_query, write_query, list_tables, describe-table]; mongodb [find, aggregate, list-collections, insert-many]; huggingface [hub_repo_search, hub_repo_details, hf_fs, hf_whoami]; deepwiki [read_wiki_structure, read_wiki_contents, ask_question]; aws-docs [read_documentation, search_documentation, recommend]",
+        "docsURL values: github https://github.com/github/github-mcp-server; gitlab https://docs.gitlab.com/user/model_context_protocol/mcp_server/; playwright https://github.com/microsoft/playwright-mcp; chrome-devtools https://github.com/ChromeDevTools/chrome-devtools-mcp; context7 https://github.com/upstash/context7; filesystem https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem; fetch .../src/fetch; memory .../src/memory; sequential-thinking .../src/sequentialthinking; git .../src/git; brave-search https://github.com/brave/brave-search-mcp-server; tavily https://github.com/tavily-ai/tavily-mcp; exa https://github.com/exa-labs/exa-mcp-server; firecrawl https://github.com/firecrawl/firecrawl-mcp-server; perplexity https://github.com/perplexityai/modelcontextprotocol; slack https://github.com/korotovsky/slack-mcp-server; notion https://developers.notion.com/docs/mcp; linear https://linear.app/docs/mcp; atlassian https://developer.atlassian.com/cloud/rovo-mcp/; figma https://help.figma.com/hc/en-us/articles/32132100833559; sentry https://mcp.sentry.dev; vercel https://vercel.com/docs/agent-resources/vercel-mcp; cloudflare https://github.com/cloudflare/mcp-server-cloudflare; netlify https://docs.netlify.com/welcome/build-with-ai/netlify-mcp-server/; supabase https://supabase.com/docs/guides/ai-tools/mcp; stripe https://docs.stripe.com/mcp; resend https://github.com/resend/resend-mcp; postgres https://github.com/bytebase/dbhub; sqlite https://github.com/modelcontextprotocol/servers-archived/tree/main/src/sqlite; mongodb https://github.com/mongodb-js/mongodb-mcp-server; huggingface https://github.com/huggingface/hf-mcp-server; deepwiki https://docs.devin.ai/work-with-devin/deepwiki-mcp; aws-docs https://awslabs.github.io/mcp/servers/aws-documentation-mcp-server",
+        "entry(matching:) normalizes by lowercasing and replacing both '_' and ' ' with '-', tries an exact normalized id match first, then falls back to an exact normalized name match - so \"Chrome DevTools\", \"chrome_devtools\" and \"chrome-devtools\" all resolve, while \"Hugging Face\" resolves only via the name branch (its normalized name \"hugging-face\" does not equal the id \"huggingface\")",
+        "byCategory walks MCPCategory.allCases in declaration order (developer, browser, search, work, data, cloud, knowledge), compactMaps away empty groups, and preserves each entry's catalog order inside its group",
+        "Category membership: developer = github, gitlab, filesystem, git, sentry (5); browser = playwright, chrome-devtools, fetch, firecrawl (4); search = brave-search, tavily, exa, perplexity (4); work = slack, notion, linear, atlassian, figma, stripe, resend (7); data = supabase, postgres, sqlite, mongodb (4); cloud = vercel, cloudflare, netlify, aws-docs (4); knowledge = context7, memory, sequential-thinking, huggingface, deepwiki (5)",
+        "The filesystem entry's default root is NSHomeDirectory(), evaluated when the static catalog is first built, so the prefilled folder is the user's home rather than the placeholder \"/Users/you/Projects\""
+      ],
+      "unresolved_questions": [
+        "The deepwiki entry passes an explicit empty headers dictionary to .http; whether the HTTP client adds default headers of its own is decided outside this file.",
+        "How a server seen in a transcript but absent from the catalog is presented (the nil branch of entry(matching:)) is up to the callers, which are outside this bundle.",
+        "Nothing here declares an ordering for the cards inside a category beyond source order; whether the UI re-sorts (for example alphabetically) cannot be determined from this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Models/MCPCustom.swift",
+      "sha256": "b49f8cfb145b4c3f5a6eb69bdda65cfb9d6434aa5f468b43e2fcce5705a8f4f1",
+      "lines_total": 183,
+      "ranges_read": [
+        [
+          1,
+          183
+        ]
+      ],
+      "purpose": "Models user-defined MCP servers from Settings > MCP > Custom: the lean Codable MCPCustomServer record (stdio or http, with named env or header variables flagged secret or not), its tolerant decoder, its slugged `custom-` id generator, its one-line card summary, the bridge that turns it into a synthetic MCPCatalogEntry so the rest of the MCP machinery treats it as built-in, and the MCPCustomError validation enum with its exact user-facing messages, variable-key rule and remote-URL rule.",
+      "key_symbols": [
+        "struct MCPCustomServer (Codable, Sendable, Hashable, Identifiable)",
+        "enum MCPCustomServer.Kind: String, Codable, Sendable - case stdio, case http",
+        "struct MCPCustomServer.Variable (Codable, Sendable, Hashable, Identifiable): key: String, isSecret = false; id { key }",
+        "private enum CodingKeys: String, CodingKey - id, name, kind, command, args, env, url, headers",
+        "init(from decoder: Decoder) throws - the tolerant decoder",
+        "init(id: String, name: String, kind: Kind) - the memberwise-replacement initializer",
+        "var variables: [Variable] - env for stdio, headers for http",
+        "static func makeID(_ name: String) -> String",
+        "var summary: String",
+        "func catalogEntry() -> MCPCatalogEntry",
+        "enum MCPCustomError: Error, Equatable - emptyName, takenName(String), emptyCommand, badURL, badVariableKey(String), duplicateVariableKey(String)",
+        "MCPCustomError.message: String",
+        "static func validVariableKey(_ key: String) -> Bool",
+        "static func validate(_ server: MCPCustomServer, existingIDs: Set<String>) -> MCPCustomError?",
+        "static func validRemoteURL(_ text: String) -> Bool"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry (constructed inside catalogEntry()) and MCPField (one per variable)",
+        "MCPTransport.stdio(command:args:) and MCPTransport.http(url:headers:)",
+        "MCPCategory.developer - every custom entry is filed under the developer category",
+        "URL(string:)?.host() - used by summary for the http case",
+        "URLComponents(string:) - used by validRemoteURL",
+        "String.trimmingCharacters(in: .whitespacesAndNewlines)",
+        "MCPKeychain and MCPCatalogEntry.fields are named in the doc comments as where filled-in values end up"
+      ],
+      "state_owned": [
+        "MCPCustomServer stored properties: id, name, kind, command (default \"\"), args (default []), env ([Variable], default []), url (default \"\"), headers ([Variable], default [])",
+        "Variable stored properties: key, isSecret (default false)",
+        "No caches and no observable objects; the array of these records is persisted to MCPPaths.customsURL by code outside this file"
+      ],
+      "side_effects": [
+        "None: pure value types and pure functions, with no file writes, process launches, network calls or Keychain access (the doc comments only describe where other code puts the values)"
+      ],
+      "platform_assumptions": [
+        "URL.host() is the modern parenthesized Foundation API (macOS 13+), not the deprecated `host` property",
+        "The stdio summary text says \"Runs on this Mac\", and validRemoteURL's doc comment describes http as allowed \"only on this Mac\" - both are Mac-specific wording a Windows port must restate",
+        "The variable-key rule (a letter or underscore first) follows Unix environment-variable naming conventions",
+        "Implicit-return switch expressions in the Kind-switching computed properties require Swift 5.9+"
+      ],
+      "persisted_fields": [
+        "custom-mcp.json entries use exactly the CodingKeys: id (String, required), name (String, required), kind (String enum \"stdio\" | \"http\", required), command (String, missing -> \"\"), args ([String], missing -> []), env ([Variable], missing -> []), url (String, missing -> \"\"), headers ([Variable], missing -> [])",
+        "Variable is persisted as {\"key\": String, \"isSecret\": Bool}; isSecret defaults to false in memory but Variable uses the synthesized decoder, so the JSON key is expected to be present",
+        "id format: \"custom-\" + slug, e.g. \"custom-my-server\"; a name with no letters or digits yields exactly \"custom-server\"",
+        "Variable values are deliberately not persisted in this record: non-secret values go to mcp.json (MCPConnection.values) and secret ones to the Keychain"
+      ],
+      "ui_elements": [
+        "Card line for a stdio server: \"Runs on this Mac: <command> <args joined with single spaces>.\" with a trailing period",
+        "Card line for an http server: \"Remote server at <host>.\" with a trailing period, falling back to the raw url string when URL parsing yields no host",
+        "Error messages verbatim: \"The server needs a name.\"; \"A server named \\u201C<name>\\u201D already exists.\"; \"A stdio server needs a command.\"; \"The URL must start with https:// (or http:// for a local server).\"; \"\\u201C<key>\\u201D is not a valid variable name: letters, digits, `_`, `-` and `.`, starting with a letter or `_`.\"; \"\\u201C<key>\\u201D is listed twice.\" - the quotes are curly typographic quotes and the message body contains literal backticks",
+        "Custom entries render with vendor \"Custom\", asset \"\" (no image), colorValue 0 and isMonochrome true, so they wear the text colour rather than a brand tint",
+        "Each variable becomes an MCPField whose label is the key itself and whose placeholder is the empty string; kind is .secret when isSecret is true, otherwise .text",
+        "catalogEntry() sets docsURL to the empty string, so a custom server has no documentation link"
+      ],
+      "feature_notes": [
+        "makeID slugging: lowercases the name, keeps letters and digits, collapses every run of other characters into a single \"-\", never emits a leading dash (lastWasDash starts as true), strips a trailing dash, then prefixes \"custom-\"; an unsluggable name such as \"!!!\" falls back to \"custom-server\"",
+        "catalogEntry() builds placeholders as a dictionary mapping each variable key to \"{key}\", deduplicated with uniquingKeysWith { first, _ in first } because drafts reach the editor's header before duplicate keys are validated",
+        "For stdio the placeholders dictionary is assigned to entry.env after construction; for http it is passed as the transport's headers - either way MCPCatalogEntry.fill/resolve substitutes the user's typed values exactly as for a built-in server",
+        "validate() order: trim the name and reject empty (.emptyName); compute makeID(name) and reject when existingIDs contains it (.takenName with the trimmed name); then the kind-specific check (stdio: trimmed command must be non-empty else .emptyCommand; http: validRemoteURL else .badURL); then walk variables checking validVariableKey and uniqueness; returns nil when the server is savable",
+        "Duplicate detection is case-insensitive for http headers (the key is lowercased before insertion into the seen set) and case-sensitive for stdio env vars, matching HTTP header semantics versus Unix env var semantics",
+        "validVariableKey: the first character must be a letter or \"_\", and every character must be a letter, a number, \"_\", \"-\" or \".\"; an empty key fails because key.first is nil",
+        "validRemoteURL: trims whitespace and newlines, requires URLComponents to parse with a scheme and a non-empty host; the lowercased scheme must be \"https\" or \"http\"; \"http\" is accepted only when the lowercased host is one of \"localhost\", \"127.0.0.1\", \"::1\" or \"[::1]\"; \"https\" is accepted for any host",
+        "The tolerant decoder requires only id, name and kind and defaults every other field, so a definition saved before a field existed (or hand-edited) loads with the missing pieces empty rather than dropping the whole list",
+        "variables returns the kind-appropriate list, so switching a draft between stdio and http swaps which variable list the editor and catalogEntry() read without discarding the other one"
+      ],
+      "unresolved_questions": [
+        "takenName is checked only against the caller-supplied existingIDs set; whether that set includes MCPCatalog.ids (so a custom cannot shadow a built-in id) is decided by the caller, outside this bundle.",
+        "Variable has no custom decoder, so a stored variable object missing \"isSecret\" would throw during decoding rather than default to false, and because the throw happens inside decodeIfPresent([Variable]...) it would fail the whole server record; whether the app ever writes such JSON cannot be determined from this file.",
+        "Where custom servers are loaded and saved (MCPPaths.customsURL) and how the editor surfaces MCPCustomError.message are in files outside this bundle."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,319 @@
+{
+  "bundle_id": "R045",
+  "reader": "R045-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/Providers/PiCLI.swift",
+      "sha256": "0de55d717fa19fcda5f741bcbc4f5353f3fc8b2de6aa90504a34400daec0f56d",
+      "lines_total": 217,
+      "ranges_read": [
+        [
+          1,
+          217
+        ]
+      ],
+      "purpose": "Static helper enum PiCLI holding everything Droppy Code needs of the Pi coding harness (`pi`, npm package `@earendil-works/pi-coding-agent`) outside a live session: the `--thinking` level vocabulary, the app-support directory for the gate extension and per-session gate files, the resolution of Pi's config directory (`PI_CODING_AGENT_DIR` or `<home>/.pi/agent`), sign-in detection from `auth.json` or provider API-key env vars, a throwaway `pi --mode rpc` model-catalog probe, and the full TypeScript source of the `droppy-gate.ts` pi extension that converts tool calls into approval prompts.",
+      "key_symbols": [
+        "enum PiCLI",
+        "PiCLI.thinkingLevels: [String] = [\"off\", \"minimal\", \"low\", \"medium\", \"high\", \"xhigh\", \"max\"]",
+        "PiCLI.supportDirectory: URL (static computed)",
+        "PiCLI.configDirectory(environment:) -> URL",
+        "PiCLI.authStatus(executable:environment:) async -> ProviderStatus.Auth",
+        "PiCLI.listModels(executable:environment:) async throws -> [ModelOption]",
+        "PiCLI.installExtension() throws -> URL",
+        "PiCLI.extensionSource: String (raw string literal, TypeScript source of droppy-gate.ts)",
+        "JS helpers inside extensionSource: readGate(), isReadOnlyCommand(command), default async function (pi)",
+        "JS constants inside extensionSource: readOnly Set, readOnlyBinaries Set, readOnlyGit Set"
+      ],
+      "state_owned": [
+        "No instance state: PiCLI is a caseless enum of statics",
+        "supportDirectory: <Application Support>/Droppy Code/pi (falls back to <home>/Library/Application Support when .applicationSupportDirectory is unavailable)",
+        "On-disk artifact owned here: <support>/droppy-gate.ts, rewritten only when its bytes differ from extensionSource"
+      ],
+      "side_effects": [
+        "Reads <config>/auth.json (Data(contentsOf:)) in authStatus",
+        "Launches a throwaway `pi --mode rpc` process in listModels and terminates it after both responses or a 30 second timeout Task",
+        "Creates the support directory and writes droppy-gate.ts atomically in installExtension",
+        "The generated extension itself reads the gate JSON file named by env DROPPY_CODE_PI_GATE with fs.readFileSync, and dynamically imports the module named by env DROPPY_CODE_MCP_BRIDGE"
+      ],
+      "platform_assumptions": [
+        "macOS Application Support layout: FileManager .applicationSupportDirectory / .userDomainMask, with the literal fallback path \"Library/Application Support\" under $HOME",
+        "Unix HOME environment variable and POSIX-style path joining (\".pi/agent\")",
+        "Swift Concurrency (async/await, Task.sleep(for: .seconds(30)), for await over an AsyncSequence of JSONValue)",
+        "Assumes `pi` is a Node-hosted CLI that accepts a TypeScript extension file (.ts) via -e and can `import fs from \"node:fs\"` and `import { Type } from \"typebox\"`"
+      ],
+      "persisted_fields": [
+        "PI_CODING_AGENT_DIR (env, String): overrides the Pi config directory when non-empty",
+        "HOME (env, String): fallback base for <home>/.pi/agent",
+        "<config>/auth.json (JSON object keyed by provider name, e.g. anthropic, openai): presence of a non-empty object means signed in; keys are sorted and joined with \", \" as the account label",
+        "API key env vars treated as signed in: ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY, GROQ_API_KEY, MISTRAL_API_KEY, DEEPSEEK_API_KEY, XAI_API_KEY",
+        "PI_SKIP_VERSION_CHECK = \"1\" (env set on the probe process)",
+        "DROPPY_CODE_PI_GATE (env, path read by the extension)",
+        "DROPPY_CODE_MCP_BRIDGE (env, module path imported by the extension)",
+        "<Application Support>/Droppy Code/pi/droppy-gate.ts (written file)"
+      ],
+      "ui_elements": [
+        "Approval choices surfaced by the extension through ctx.ui.select: [\"Allow\", \"Allow for session\", \"Deny\"]",
+        "Select title format: \"droppy-gate \" + JSON.stringify({kind, toolName, toolCallId, input})",
+        "MCP tool label format registered into pi: tool.server + \" · \" + tool.name (middle dot separator), name \"mcp__\" + server + \"__\" + name",
+        "Error strings thrown as ProviderError.failed: \"Pi could not start: <localizedDescription>\" and \"Pi listed no models.\"",
+        "Model rows: id \"<provider>/<id>\", name from item.name falling back to the id, detail = provider; sorted by (detail, name) ascending"
+      ],
+      "feature_notes": [
+        "thinkingLevels maps Droppy effort strings 1:1 onto Pi's --thinking levels: off, minimal, low, medium, high, xhigh, max",
+        "Reasoning-capable models (item.reasoning == true) get the full effort list and defaultEffort \"medium\"; non-reasoning models get [] efforts and nil default",
+        "listModels launches `pi` with exactly: --mode rpc --no-session --no-extensions --no-skills --no-prompt-templates --no-themes --no-context-files, cwd = HOME",
+        "listModels sends two JSONL requests: {\"type\":\"get_state\",\"id\":\"state\"} and {\"type\":\"get_available_models\",\"id\":\"models\"}, matched back by the message's id field, and breaks once both arrived",
+        "Model list is read from data.models, falling back to models at the top level; each item needs both provider and id or it is skipped",
+        "isDefault is true when the state's model matches: if state model id contains \"/\" it compares against \"provider/id\", otherwise provider and id are compared separately",
+        "authStatus reports .signedIn(sorted provider keys joined by \", \") from auth.json; a bare provider API key yields .signedIn(nil); nothing found yields .signedOut",
+        "installExtension is idempotent by content: it compares the file bytes to extensionSource and writes only on a mismatch, so a new build replaces the old extension",
+        "Extension gate policy (shipped, loaded with -e in every RPC session): tools named read, grep, find, ls always pass; gate.finalReport blocks all tools with reason \"Final report: no tools\"; interactionMode == \"plan\" blocks with reason \"Plan mode is read-only\"; runtimeMode == \"fullAccess\" returns before asking; fileChange (edit/write) passes under autoAcceptEdits or auto; bash passes under auto only when isReadOnlyCommand",
+        "isReadOnlyCommand splits on /&&|\\|\\||;|\\|/ and requires every segment's head binary to be in readOnlyBinaries (ls, cat, head, tail, grep, rg, find, wc, pwd, echo, which, stat, file, du, tree, sort, uniq, diff) or to be `git` followed by one of readOnlyGit (status, diff, log, show, branch, blame); an empty segment counts as read-only",
+        "Tool input values are truncated for the approval payload: any string longer than 20000 characters is sliced to its first 20000 characters",
+        "Denial reason text depends on kind: \"The user declined this command\" / \"... file change\" / \"... tool call\"",
+        "before_agent_start appends to the system prompt, joined with \"\\n\\n\", in order: final-report line \"Reply with your final report now: no tools, one message.\", plan line \"You are in plan mode: read-only. Do not edit files or run commands that change anything; investigate, then end with the plan as markdown.\", then gate.systemPrompt when non-empty; returns undefined when nothing to add",
+        "MCP bridge loading is best effort: a failure logs to stderr as \"droppy mcp: <message>\" and the session continues without MCP tools",
+        "Registered MCP tools return { content: [{ type: \"text\", text }], details: {} } and declare parameters with Type.Unsafe(tool.inputSchema)"
+      ],
+      "unresolved_questions": [
+        "The `executable` parameter of authStatus is unused in the body; whether it is kept only for signature parity with other providers' authStatus helpers cannot be settled from this file alone.",
+        "The exact StdioProcess.messages semantics on process exit (whether the for-await loop ends when pi dies before answering) is defined in StdioProcess, not here.",
+        "Which module shape MCPBridge's loadMCPTools() returns (server/name/description/inputSchema/call) is only implied by the extension's usage; the bridge file is outside this bundle."
+      ],
+      "calls_into": [
+        "LoginEnvironment.homeDirectory",
+        "JSONValue.parse(_:) and JSONValue.object / .string / .bool / .array subscripts",
+        "ProviderStatus.Auth (.signedIn(String?), .signedOut)",
+        "ProviderError.failed(_:)",
+        "ModelOption(id:name:detail:efforts:defaultEffort:isDefault:)",
+        "StdioProcess(executable:arguments:directory:environment:framing:), .start(), .send(_:), .messages, .terminate()",
+        "StdioProcess.Framing.lines",
+        "FileManager.default.urls(for:in:), createDirectory(at:withIntermediateDirectories:)"
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Providers/PiPlanLimits.swift",
+      "sha256": "ba164885d5503ee5576e4a8659ab04aa9d8ab0b531c94760f40fc7cb96865bb2",
+      "lines_total": 115,
+      "ranges_read": [
+        [
+          1,
+          115
+        ]
+      ],
+      "purpose": "Reads the subscription usage windows for whichever providers Pi is OAuth-signed into, by taking the access tokens Pi stores in <config>/auth.json and calling Anthropic's and ChatGPT's own usage endpoints, so Droppy Code's usage panel can show the same windows Pi's TUI shows without owning the logins itself.",
+      "key_symbols": [
+        "enum PiPlanLimits",
+        "PiPlanLimits.anthropicUsageURL (private static let)",
+        "PiPlanLimits.codexUsageURL (private static let)",
+        "PiPlanLimits.read(environment:) async -> PlanLimits?",
+        "PiPlanLimits.readAnthropic(token:) async -> PlanLimits? (private)",
+        "PiPlanLimits.readCodex(token:) async -> PlanLimits? (private)",
+        "PiPlanLimits.codexWindow(id:raw:) -> PlanLimits.Window? (private)",
+        "PiPlanLimits.codexAccountID(token:) -> String? (private)"
+      ],
+      "calls_into": [
+        "PiCLI.configDirectory(environment:)",
+        "JSONValue.parse(_:) and its subscripts (.object, .string, .double, .int, .array)",
+        "PlanLimits(planName:windows:) and PlanLimits.Window(id:title:percent:resetsAt:)",
+        "PlanLimitsReader.parseClaudeUsage(_:limits:planName:titlePrefix:)",
+        "PlanLimitsReader.planName(_:)",
+        "PlanLimitsReader.codexPlanName(_:)",
+        "PlanLimitsReader.windowTitle(minutes:)",
+        "URLSession.shared.data(for:)"
+      ],
+      "state_owned": [
+        "No mutable state; only the two URL constants. Results are built fresh per call into local arrays `windows: [PlanLimits.Window]` and `names: [String]`."
+      ],
+      "side_effects": [
+        "Reads <config>/auth.json from disk",
+        "Network: GET https://api.anthropic.com/api/oauth/usage with a 15 second timeoutInterval",
+        "Network: GET https://chatgpt.com/backend-api/wham/usage with a 15 second timeoutInterval",
+        "Sends the user's OAuth bearer tokens to those two hosts"
+      ],
+      "platform_assumptions": [
+        "Foundation URLSession/URLRequest and async data(for:) (macOS/Darwin Foundation)",
+        "Date.now (macOS 12+/Swift 5.7 API)",
+        "Unix home-relative config path via PiCLI.configDirectory",
+        "Base64 decoding of a JWT payload with Data(base64Encoded:) after URL-safe character substitution"
+      ],
+      "persisted_fields": [
+        "<config>/auth.json entries, per provider key: type (String, must equal \"oauth\"), access (String access token, must be non-empty), expires (Double, milliseconds since epoch, compared as expires/1_000 against Date.now)",
+        "Recognized auth.json keys: \"anthropic\" -> Anthropic usage; \"openai-codex\" or \"openai\" -> Codex usage; all other keys are skipped",
+        "Anthropic response fields: limits (array, passed through to PlanLimitsReader.parseClaudeUsage), subscription_type (String -> plan name)",
+        "Codex response fields: rate_limit (object, falling back to the root), primary_window, secondary_window, used_percent (Double), limit_window_seconds (Int), reset_at (Double, epoch seconds), reset_after_seconds (Int), plan_type (String)",
+        "JWT claim path for the account id: [\"https://api.openai.com/auth\"][\"chatgpt_account_id\"] (String)"
+      ],
+      "ui_elements": [
+        "Anthropic plan name: \"Claude \" + PlanLimitsReader.planName(subscription_type), or plain \"Claude\" when absent",
+        "Anthropic window titlePrefix passed to parseClaudeUsage: \"Claude\"",
+        "Codex plan name: \"Codex \" + PlanLimitsReader.codexPlanName(plan_type), or plain \"Codex\"",
+        "Codex window title: \"Codex · \" + PlanLimitsReader.windowTitle(minutes: limit_window_seconds / 60) (middle dot with surrounding spaces)",
+        "Codex window ids: \"codex-primary\" and \"codex-secondary\"",
+        "Combined plan name when several providers report: the individual names joined with \" · \""
+      ],
+      "feature_notes": [
+        "Providers are visited in sorted key order of the auth.json object, so combined plan names and window order are deterministic",
+        "An entry whose type is not \"oauth\", whose access token is empty, or whose expires (ms/1000) is already in the past is skipped without any network call",
+        "read returns nil when auth.json is missing/unparsable, when it is not an object, or when no provider produced a window",
+        "planName is nil when every contributing provider returned a nil planName",
+        "Anthropic request headers: Authorization \"Bearer <token>\", anthropic-beta \"oauth-2025-04-20\", Accept \"application/json\"; a non-200 status, a transport error or an unparsable body yields nil",
+        "Codex request headers: Authorization \"Bearer <token>\", Accept \"application/json\", plus ChatGPT-Account-Id taken from the JWT payload when the claim is present and non-empty",
+        "Codex reset time prefers reset_at (absolute epoch seconds) and falls back to Date.now + reset_after_seconds; when neither is present resetsAt is nil but the window is still produced",
+        "A Codex window needs both used_percent and limit_window_seconds or it is dropped; if both primary and secondary drop, readCodex returns nil",
+        "The JWT payload is the second dot-separated segment; '-' becomes '+', '_' becomes '/', and '=' padding is appended to a multiple of 4 before decoding"
+      ],
+      "unresolved_questions": [
+        "The precise shape parseClaudeUsage expects and the window titles it emits are defined in PlanLimitsReader, which is outside this bundle.",
+        "PlanLimits.planName is assigned after construction in readAnthropic (`var limits` then `limits.planName = ...`), implying PlanLimits is a struct with a var planName; the declaration is in another file and was not read here.",
+        "Whether any caller refreshes expired OAuth tokens before calling read (the file only skips them) cannot be determined from this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Providers/PiSession.swift",
+      "sha256": "91817d6c26890c99d5dc3681404df9b88e5023bbdbdd4545066c702d6603e9aa",
+      "lines_total": 654,
+      "ranges_read": [
+        [
+          1,
+          654
+        ]
+      ],
+      "purpose": "The ProviderSession implementation for Pi: launches and drives one `pi --mode rpc` child process per thread over LF-delimited JSONL, translating Pi's RPC stream (message_start/message_update/message_end, tool_execution_*, agent_end, compaction_*, extension_ui_request) into Droppy's ProviderEvent stream, writing the per-session gate JSON the droppy-gate extension reads, routing gate select requests into ApprovalRequests, and synthesizing unified diffs for edit/write tool rows.",
+      "key_symbols": [
+        "@MainActor final class PiSession: ProviderSession",
+        "onEvent: ((ProviderEvent) -> Void)?",
+        "init(configuration: SessionConfiguration)",
+        "isRunning, workingDirectory (computed)",
+        "start() async throws -> String",
+        "send(_ input: TurnInput) async throws",
+        "interrupt() async",
+        "compact() async throws",
+        "stop()",
+        "stopAgent(_:) async -> Bool (always returns false)",
+        "resolveApproval(_:optionID:)",
+        "answerQuestion(_:answers:)",
+        "request(_:) async -> JSONValue (private)",
+        "writeGate(finalReport:) (private)",
+        "static grantKey(_ kind: ApprovalRequest.Kind) -> String (private)",
+        "handle(_:), handleUpdate(_:), handleMessageEnd(_:), handleToolStart(_:), handleToolEnd(_:) (private)",
+        "editDiff(name:args:id:), static unifiedDiff(path:old:new:), static snapshot(_:), static text(in:) (private)",
+        "finishTurn(), handleExtensionUI(_:), handleSelect(id:params:), didClose(status:) (private)"
+      ],
+      "calls_into": [
+        "PiCLI.installExtension(), PiCLI.supportDirectory, PiCLI.thinkingLevels",
+        "StdioProcess(executable:arguments:directory:environment:framing: .lines), start(), send(_:), messages, terminate(), waitForExit(), isRunning, errorTail",
+        "MCPBridge.installBridge()",
+        "MCPPaths.claudeConfigURL",
+        "ProviderError.notInstalled(_:), ProviderError.failed(_:), ProviderError.notRunning",
+        "ProviderEvent cases: sessionReady, commands, turnStarted, messageDelta, messageCompleted, reasoningDelta, reasoningCompleted, usage, toolStarted, toolOutput, toolUpdated, approval, question, requestResolved, notice, planCompleted, turnCompleted, exited",
+        "SessionConfiguration (executable, workingDirectory, environment, provider, runtimeMode, interactionMode, model, effort, resumeID)",
+        "TurnInput (text, images, runtimeMode, interactionMode, model, effort, isFinalReport)",
+        "ToolCall(kind:title:detail:), ToolCall.Kind (.command/.read/.edit/.search/.mcp/.other), ToolCall.Status (.completed/.declined/.failed)",
+        "ToolUpdate(output:status:exitCode:edits:)",
+        "FileEdit(path:diff:additions:deletions:)",
+        "ToolTitles.unwrapShell(_:), ToolTitles.relativePath(_:to:), ToolTitles.diffStats(_:)",
+        "TextCleanup.lastLines(_:)",
+        "ApprovalRequest(id:kind:title:detail:options:toolItemID:), ApprovalRequest.Kind (.command/.fileChange/.tool/.permissions/.plan), option roles .approve/.approveAlways/.decline/.cancel",
+        "QuestionRequest(id:questions:), QuestionRequest.Question(id:header:prompt:choices:allowsMultiple:allowsOther:isSecret:), QuestionRequest.Choice(label:detail:)",
+        "Notice(level:message:) with Notice.Level .info/.warning/.error",
+        "SlashCommand(name:detail:)",
+        "ContextUsage(usedTokens:windowTokens:)",
+        "JSONValue (parse, subscripts, .data(), .isNull, .compactString, .prettyString)"
+      ],
+      "state_owned": [
+        "configuration: SessionConfiguration (let)",
+        "process: StdioProcess?, readTask: Task<Void, Never>?",
+        "sessionID: String? (the pi session FILE PATH, seeded from configuration.resumeID when non-empty)",
+        "started: Bool, stopped: Bool",
+        "runtimeMode: RuntimeMode, interactionMode: InteractionMode, model: String?, effort: String?",
+        "turnActive: Bool, interruptRequested: Bool",
+        "launchID: String = first 8 characters of a fresh UUID string (namespaces ids per launch)",
+        "messageCounter: Int, thinkingCounter: Int, turnCounter: Int, requestCounter: Int",
+        "currentMessageID: String?, currentThinkingID: String?, messageText: String, thinkingText: String",
+        "contextWindow: Int? (from state data.model.contextWindow)",
+        "gateURL: URL?",
+        "pendingApprovals: [String: ApprovalRequest]",
+        "pendingQuestions: [String: String] (request id -> method name)",
+        "sessionGrants: Set<String> (gate kinds approved for the session)",
+        "toolNames: [String: String], toolInputs: [String: JSONValue]",
+        "editSnapshots: [String: String] (pre-write file contents by toolCallId)",
+        "turnError: String?, lastReplyText: String",
+        "pendingResponses: [String: CheckedContinuation<JSONValue, Never>]"
+      ],
+      "side_effects": [
+        "Launches the `pi` executable as a child process with a constructed argument list and environment",
+        "Creates <Application Support>/Droppy Code/pi/gates/ and writes a per-session gate file named <UUID>.json, atomically, on start and before every turn",
+        "Deletes the gate file in stop()",
+        "Writes the droppy-gate.ts extension via PiCLI.installExtension() and the MCP bridge via MCPBridge.installBridge()",
+        "Reads image files from disk and base64-encodes them into the prompt",
+        "Reads files being overwritten by `write` (snapshot, only when <= 1_000_000 bytes) for diff generation",
+        "Spawns detached Tasks that sleep 30 seconds to time out pending RPC responses",
+        "Terminates the child process and cancels the read task in stop()"
+      ],
+      "platform_assumptions": [
+        "@MainActor class: all state mutation and event delivery happen on the AppKit main actor",
+        "Swift Concurrency: Task, CheckedContinuation, for-await over StdioProcess.messages, Task.sleep(for: .seconds(30))",
+        "POSIX child process with stdin/stdout JSONL framing and a separate stderr tail buffer; exit status is an Int32",
+        "FileManager URL APIs, .fileSizeKey resourceValues, atomic writes",
+        "Unix absolute file paths for the pi session file (existence is checked with fileExists(atPath:))"
+      ],
+      "persisted_fields": [
+        "Gate file JSON keys written every turn: runtimeMode (String, RuntimeMode.rawValue), interactionMode (String, InteractionMode.rawValue), finalReport (Bool), systemPrompt (String, always written as \"\")",
+        "Gate file location: <Application Support>/Droppy Code/pi/gates/<UUID>.json",
+        "Environment set on the child: DROPPY_CODE_PI_GATE = gate file path, PI_SKIP_VERSION_CHECK = \"1\", DROPPY_CODE_MCP_BRIDGE = bridge path (only when installBridge() succeeds), DROPPY_CODE_MCP_CONFIG = MCPPaths.claudeConfigURL.path (only when that file exists)",
+        "resumeID persisted by the app is the pi session file path; start() re-reads it from get_state as data.sessionFile, falling back to data.sessionId"
+      ],
+      "ui_elements": [
+        "Approval options, in order: (id \"allow\", title \"Approve\", role .approve), (id \"always\", title \"Approve for session\", role .approveAlways), (id \"deny\", title \"Decline\", role .decline)",
+        "Approval answer strings sent back to pi: \"Allow\", \"Allow for session\", \"Deny\"",
+        "Confirm question: header \"Pi\", choices \"Yes\" and \"No\", allowsMultiple false, allowsOther false, isSecret false; prompt is title and message joined with \"\\n\"",
+        "Input/editor question: header \"Pi\", prompt = params.title or \"Pi\", no choices, allowsOther true",
+        "Fallback select question (non droppy-gate title): header \"Pi\", prompt = the raw title, choices from params.options",
+        "Notices: \"Compacting the conversation…\" (info, with a U+2026 ellipsis), \"Conversation compacted\" (info), auto-retry warning defaulting to \"Pi is retrying.\", extension error defaulting to \"Pi reported an extension error.\", notify default \"Pi sent a notification.\"",
+        "Errors: \"Pi no longer has this conversation; starting a new one.\", \"Pi could not start: <error>\", \"Pi is still on the last turn.\", \"Pi reported an error.\", \"Pi exited with status <status>\" plus \"\\n\" and the stderr tail when non-empty",
+        "MCP tool row title: \"<server> · <tool>\" (middle dot)",
+        "Diff header format: \"--- a/<path>\\n+++ b/<path>\""
+      ],
+      "feature_notes": [
+        "start() refuses to resume when the stored session file path no longer exists on disk, with the message \"Pi no longer has this conversation; starting a new one.\"",
+        "Launch arguments: [\"--mode\", \"rpc\", \"-e\", <extension path>] then \"--approve\" when runtimeMode is .auto or .fullAccess else \"--no-approve\"; then --provider/--model split on the FIRST \"/\" of the model id (skipped when the model is empty or the literal \"default\" or has no slash); then --thinking <effort> when the effort is one of PiCLI.thinkingLevels; then --session <sessionID> when resuming",
+        "After launch, start() issues get_state (reading sessionFile or sessionId and model.contextWindow), emits .sessionReady, then issues get_commands and emits .commands built from each entry's name and description (description defaults to the empty string); .commands is only emitted when the list is non-empty",
+        "Every request() call tags the line with id \"droppy-<n>\" (n from requestCounter) and resolves with .null after 30 seconds if no response arrives",
+        "send() rejects a new turn while turnActive with \"Pi is still on the last turn.\"; it rewrites the gate file with the turn's runtimeMode/interactionMode/isFinalReport",
+        "A model change mid-session sends {\"type\":\"set_model\",\"provider\":...,\"modelId\":...} and then re-reads get_state purely to refresh contextWindow; an effort change sends {\"type\":\"set_thinking_level\",\"level\":...}",
+        "Prompts are sent as {\"type\":\"prompt\",\"message\":<text>} with an optional \"images\" array of {type:\"image\", data:<base64>, mimeType:<mime>} built only from attachments where isImage is true and the bytes load",
+        "interrupt() sends {\"type\":\"abort\"}; compact() sends {\"type\":\"compact\"} and throws ProviderError.notRunning when not running",
+        "stopAgent(_:) always returns false: Pi has no sub-agent stop support here",
+        "Streaming ids are namespaced per launch: messages \"<launchID>-m-<n>\", thinking \"<launchID>-t-<n>\", plans \"<launchID>-plan-<turnCounter>\"",
+        "message_start is ignored unless message.role == \"assistant\"; it bumps the message counter and clears messageText/thinkingText/currentThinkingID",
+        "handleUpdate reads assistantMessageEvent, falling back to event; text_delta accumulates into messageText and emits .messageDelta (creating a message id if none exists yet), thinking_delta accumulates into thinkingText and emits .reasoningDelta",
+        "Usage is read from message.usage or event.usage: totalTokens when present, otherwise input/inputTokens + output/outputTokens + cacheRead/cacheReadTokens + cacheWrite/cacheWriteTokens, each defaulting to 0; .usage is emitted only when the total is > 0. The four fallbacks are split into named locals with a comment that the single summed expression makes `swiftc -typecheck` fail with \"unable to type-check this expression in reasonable time\"",
+        "message_end prefers the joined text of the message's content blocks of type \"text\" over the accumulated deltas when that join is non-empty; it emits .reasoningCompleted when thinkingText has non-whitespace, then .messageCompleted, and records lastReplyText; stopReason == \"error\" sets turnError from errorMessage or \"Pi reported an error.\"",
+        "Tool kinds by name: bash -> .command, read -> .read, edit/write -> .edit, grep/find/ls -> .search, any name starting with \"mcp__\" -> .mcp, anything else -> .other",
+        "Tool titles: bash uses ToolTitles.unwrapShell(args.command); read/edit/write use ToolTitles.relativePath(args.path, to: workingDirectory); grep/find use args.pattern; ls uses args.path defaulting to \".\"; mcp__ names split on \"__\" into server (index 1) and tool (indices 2... rejoined with \"__\"); other tools use the raw name with the pretty-printed args as detail when they are not null and not \"{}\"",
+        "A `write` call snapshots the target file at tool_execution_start so the row's diff is before-vs-written; files larger than 1_000_000 bytes are not snapshotted (snapshot returns nil, stored as \"\")",
+        "tool_execution_update emits .toolOutput with the text extracted from partialResult.content (string, or the joined \"text\" fields of content blocks separated by \"\\n\")",
+        "Tool status: completed unless isError (message.isError or result.isError); an error output beginning with \"The user declined this\" is reported as .declined rather than .failed; exitCode comes from result.details.exitCode",
+        "unifiedDiff is deliberately minimal: a --- / +++ header then every non-empty old line prefixed \"-\" followed by every non-empty new line prefixed \"+\"; `let relative = path.hasPrefix(\"/\") ? path : path` is a no-op ternary that always yields the path unchanged",
+        "edit diffs use args.oldText vs args.newText; write diffs use the snapshot vs args.content (the snapshot is consumed with removeValue)",
+        "finishTurn is driven by agent_end (and by a failed prompt response); in plan mode with no error and no interrupt it first emits .planCompleted with the last reply as markdown, then emits .turnCompleted with .interrupted / .failed(error) / .completed",
+        "A response line whose id has no waiting continuation but whose command == \"prompt\" and success == false sets turnError from error or message and finishes the turn",
+        "extension_ui_request ids are read from id or requestId; methods handled: select, confirm, input, editor, notify; setStatus, setWidget, setTitle and set_editor_text are explicitly accepted and ignored (break), as is any unknown method",
+        "notify maps notifyType \"warning\" -> .warning, \"error\" -> .error, anything else -> .info",
+        "handleSelect recognizes the gate by the title prefix \"droppy-gate \" and parses the JSON that follows it; a session grant for the payload's kind answers \"Allow\" immediately without prompting; otherwise an ApprovalRequest is raised carrying the payload's toolCallId as toolItemID",
+        "Session grants are keyed by grantKey: .command -> \"command\", .fileChange -> \"fileChange\", .tool/.permissions/.plan -> \"tool\", which matches the kind strings the extension puts in the payload",
+        "answerQuestion sends {\"cancelled\": true} when no answer text was given, {\"confirmed\": <text == \"Yes\">} for confirm, and {\"value\": <first text>} otherwise, then emits .requestResolved",
+        "didClose reads the stderr tail through TextCleanup.lastLines, fails any active turn (interrupted when an interrupt was requested), and, unless stop() was called, emits .exited with nil for status 0 or \"Pi exited with status <status>\" plus the tail"
+      ],
+      "unresolved_questions": [
+        "resolveApproval sends \"Allow for session\" back to pi for the approveAlways role, but the extension treats \"Allow\" and \"Allow for session\" identically; the session-wide effect comes solely from Droppy's own sessionGrants set. Whether pi attaches any extra meaning to that string could not be determined from these files.",
+        "`let relative = path.hasPrefix(\"/\") ? path : path` in unifiedDiff appears to be a leftover of an intended relative-path conversion; whether absolute paths in diff headers are intentional cannot be settled here.",
+        "handleSelect's non-gate fallback stores pendingQuestions[id] = \"select\", which answerQuestion handles through its generic `value` branch; whether pi expects a different field for a select response was not verifiable from this file.",
+        "The `permissions` and `plan` ApprovalRequest.Kind cases are never produced by this session (only .command/.fileChange/.tool are), so their grantKey mapping to \"tool\" is unreachable here; the cases are defined elsewhere.",
+        "DROPPY_CODE_MCP_CONFIG is exported for the child but is not read by the droppy-gate extension source in PiCLI.swift, so it must be consumed by the MCP bridge module, which is outside this bundle."
+      ]
+    }
+  ]
+}

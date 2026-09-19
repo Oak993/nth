@@ -1,0 +1,1004 @@
+{
+  "bundle_id": "R056",
+  "reader": "R056-reader",
+  "files": [
+    {
+      "path": "scripts/build_changelog.py",
+      "sha256": "ab08ef90a6359a7f31b940c8ea797b6fefeccb90596d18a45f4693d392a38004",
+      "lines_total": 178,
+      "ranges_read": [
+        [
+          1,
+          178
+        ]
+      ],
+      "purpose": "Python 3 generator that parses CHANGELOG.md into website/changelog.json for the marketing site, and with --section <version> prints one release's notes to stdout (headings promoted from '### ' to '## ') for publish_release.sh to feed GitLab and the in-app release cards.",
+      "key_symbols": [
+        "ROOT",
+        "CHANGELOG",
+        "OUT",
+        "RELEASE_RE",
+        "SECTION_RE",
+        "HEADING_MAP",
+        "SECTION_ORDER",
+        "git_date(args)",
+        "release_date(version, heading_date=None)",
+        "strip_emphasis(text)",
+        "split_releases(text)",
+        "parse_notes(lines)",
+        "extract_section(version)",
+        "version_key(version)",
+        "build_releases()",
+        "main()"
+      ],
+      "calls_into": [
+        "git log -1 --format=%cs v<version>",
+        "git log -1 --format=%cs -- CHANGELOG.md",
+        "subprocess.run",
+        "datetime.date.today().isoformat()",
+        "json.dumps",
+        "pathlib.Path"
+      ],
+      "state_owned": [
+        "ROOT = Path(__file__).resolve().parent.parent",
+        "CHANGELOG = ROOT/'CHANGELOG.md'",
+        "OUT = ROOT/'website'/'changelog.json'",
+        "HEADING_MAP = {'new features':'New features','bug fixes':'Bug fixes','refinements':'Refinements'}",
+        "SECTION_ORDER = ['New features','Bug fixes','Refinements']"
+      ],
+      "side_effects": [
+        "Writes website/changelog.json (json.dumps indent=2, ensure_ascii=False, trailing newline, encoding utf-8)",
+        "Runs git subprocesses in ROOT",
+        "Prints 'Wrote {n} releases to {OUT relative to ROOT}'",
+        "--section writes the section to stdout and returns 0, or prints 'No ## [{version}] section in CHANGELOG.md' to stderr and returns 1"
+      ],
+      "platform_assumptions": [
+        "Requires python3 on PATH and a git checkout (git log with v<version> tags); the emitted release record hardcodes \"platform\": \"mac\""
+      ],
+      "persisted_fields": [
+        "website/changelog.json top level: generated_at (ISO-8601 UTC from datetime.now(timezone.utc).isoformat()), releases (array)",
+        "release object keys: version (str), date (str YYYY-MM-DD), platform (always literal 'mac'), summary (str), sections (array of {title, items}), thanks (array of str)"
+      ],
+      "ui_elements": [
+        "Section titles emitted verbatim: 'New features', 'Bug fixes', 'Refinements' in that fixed SECTION_ORDER; empty sections are dropped"
+      ],
+      "feature_notes": [
+        "RELEASE_RE = ^## \\[(\\d+(?:\\.\\d+)*)\\](?: - (\\d{4}-\\d{2}-\\d{2}))?\\s*$ so a release heading is '## [1.2.3]' optionally followed by ' - 2026-01-31'",
+        "SECTION_RE = ^### (.*)$; heading lookup is lowercased, so '### New Features' also matches",
+        "A '### Thanks' heading switches current to the literal 'thanks' bucket and its bullets go into the release's thanks list, never into sections",
+        "Bullets must match ^\\s*-\\s+(.*)$ ; strip_emphasis removes '**', '__', '*' and '_' from each item",
+        "Text before the first '### ' heading is joined with single spaces into summary",
+        "Date precedence: heading date, else git committer date of tag v<version>, else last commit date touching CHANGELOG.md, else today",
+        "version_key sorts by the integer tuple of all digit runs, descending (newest release first)",
+        "--section strips leading/trailing blank lines and rewrites each '### X' line to '## X'"
+      ],
+      "unresolved_questions": [
+        "The module docstring line '### Thanks bullets land in the `thanks` list, not in the sections.' is prefixed with '### ' inside the docstring; harmless here but would read as a heading if the docstring were rendered."
+      ]
+    },
+    {
+      "path": "scripts/build_project_symbol_catalogue.py",
+      "sha256": "7c39397c001ea9e333906aae971e5633bc89e10cc44822390de392a38e4f797d",
+      "lines_total": 58,
+      "ranges_read": [
+        [
+          1,
+          58
+        ]
+      ],
+      "purpose": "One-shot code generator that reads the installed SF Symbols app's plist metadata on this Mac and writes DroppyCode/UI/Chrome/ProjectSymbolCatalogue.swift, the enum of filled SF Symbol names the project-mark picker offers, grouped under SF Symbols' own category labels.",
+      "key_symbols": [
+        "base",
+        "header",
+        "avail",
+        "years",
+        "cats",
+        "symcats",
+        "pseudo",
+        "order",
+        "labels",
+        "locale",
+        "localised(name)",
+        "on_this_macos(year)",
+        "names",
+        "groups",
+        "other",
+        "lines",
+        "body",
+        "head",
+        "text"
+      ],
+      "calls_into": [
+        "plistlib.load",
+        "Generated Swift: enum ProjectSymbolCatalogue, struct Group: Identifiable, Hashable (id, title, names), static let groups, static let all, private static let raw"
+      ],
+      "state_owned": [
+        "base = '/Applications/SF Symbols.app/Contents/Resources/Metadata/'",
+        "pseudo = {'all','whatsnew','variable','multicolor'}",
+        "locale = {'ar','he','hi','th','zh','ja','ko','ru','rtl','ltr'}"
+      ],
+      "side_effects": [
+        "Reads name_availability.plist, categories.plist and symbol_categories.plist from the SF Symbols app bundle",
+        "Overwrites DroppyCode/UI/Chrome/ProjectSymbolCatalogue.swift with the generated Swift (relative path, so it must be run from the repository root)",
+        "Prints 'names <count> groups <count> bytes <count>'"
+      ],
+      "platform_assumptions": [
+        "Requires Apple's SF Symbols.app installed at /Applications/SF Symbols.app",
+        "Ceiling (int(major), int(minor)) <= (26, 0) hardcodes the app's macOS 26.0 minimum, so no symbol newer than macOS 26.0 is emitted",
+        "Generated Swift targets SwiftUI Identifiable/Hashable"
+      ],
+      "persisted_fields": [
+        "Output file path literal 'DroppyCode/UI/Chrome/ProjectSymbolCatalogue.swift'",
+        "raw format: one line per group, '<label>\\t<space-separated sorted names>'"
+      ],
+      "ui_elements": [
+        "Group ids and titles are both the SF Symbols category label",
+        "Symbols with no matching category go to a group literally titled 'Other', appended last"
+      ],
+      "feature_notes": [
+        "Only names ending in '.fill' are kept, minus localised variants (any dot-part in the locale set)",
+        "Four extra non-fill names are appended when available: 'swift', 'apple.logo', 'terminal', 'curlybraces'",
+        "Each symbol lands in the FIRST of its categories that survived the pseudo filter (groups[keys[0]])",
+        "Group order follows categories.plist order minus the pseudo categories",
+        "Generated doc comment reads: 'Every SF Symbol the picker offers as a project mark, grouped under the SF Symbols app's own category names, generated from this Mac's SF Symbols metadata: filled marks only, no localised variants, and nothing newer than the system the app itself requires. `all` is the flat list the search reads, `groups` the sections the picker draws.'",
+        "Swift side re-parses raw by splitting on \\n then \\t with maxSplits: 1, omittingEmptySubsequences: false, and names by spaces; all = groups.flatMap(\\.names)"
+      ],
+      "unresolved_questions": [
+        "The script has no shebang, no __main__ guard and no argument handling, so it always regenerates on import/run; whether it is wired into any build step is not visible from this file."
+      ]
+    },
+    {
+      "path": "scripts/deploy_site.sh",
+      "sha256": "ec9dacf0e0737463c98d5307d45938ad763e8818b7a68afa296e24737596db45",
+      "lines_total": 9,
+      "ranges_read": [
+        [
+          1,
+          9
+        ]
+      ],
+      "purpose": "Nine-line bash wrapper that regenerates website/changelog.json from CHANGELOG.md and then deploys the whole website/ directory to Netlify production.",
+      "key_symbols": [
+        "(no functions; straight-line script)"
+      ],
+      "calls_into": [
+        "scripts/build_changelog.py",
+        "netlify CLI"
+      ],
+      "state_owned": [],
+      "side_effects": [
+        "cd \"$(dirname \"$0\")/..\" to the repository root",
+        "python3 scripts/build_changelog.py rewrites website/changelog.json",
+        "netlify deploy --prod --site b6307927-958d-4208-822c-2a0677210ce8 --no-build --dir website publishes the site"
+      ],
+      "platform_assumptions": [
+        "#!/bin/bash with set -euo pipefail; needs python3 and a signed-in netlify CLI"
+      ],
+      "persisted_fields": [
+        "Netlify site id literal: b6307927-958d-4208-822c-2a0677210ce8"
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "--no-build: Netlify publishes the directory as-is, no build command",
+        "Called as the last step of scripts/publish_release.sh under the heading 'Rebuilding the changelog and deploying the site'"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "scripts/hydra_heads.py",
+      "sha256": "1e9355d17e33d7629221c0ba443cea1fec3db10c5368b84475f46c56c61a56a4",
+      "lines_total": 236,
+      "ranges_read": [
+        [
+          1,
+          236
+        ]
+      ],
+      "purpose": "Procedural SVG artwork generator for the Hydra feature: builds 25 named dragon-head-in-profile templates (hydra-head-01..25) plus the hydra-mark from interchangeable neck/skull/snout/mouth/throat point lists, and installs each as a template imageset in Assets.xcassets.",
+      "key_symbols": [
+        "ASSETS",
+        "OUT",
+        "signed_area(pts)",
+        "ensure_dir(pts, positive=True)",
+        "smooth_path(pts)",
+        "circle_path(cx,cy,r,clockwise=True,ry=None)",
+        "transform(pts, scale, angle, mirror, dx, dy, cx=50, cy=50)",
+        "S",
+        "NECK",
+        "SKULL",
+        "SNOUT",
+        "MOUTH",
+        "THROAT",
+        "head_points(...)",
+        "head_svg(spec)",
+        "SPECS",
+        "mark_svg()",
+        "install(name, svg)"
+      ],
+      "calls_into": [
+        "PIL Image, ImageDraw, ImageOps (only under --render)",
+        "qlmanage -t -s 300 -o <dir> (macOS Quick Look thumbnailer)",
+        "json.dump for Contents.json"
+      ],
+      "state_owned": [
+        "ASSETS = <script dir>/../DroppyCode/Resources/Assets.xcassets",
+        "OUT = '/tmp/hydra-svg/out' (created at import time)",
+        "S = 0, the corner tension marker",
+        "NECK keys: plain, spiked, fin, mane",
+        "SKULL keys: none, single, double, straight, ram, nubs, antlers, ears, crest, swept",
+        "SNOUT keys: long, short, upturned, beak, bumped",
+        "MOUTH keys: closed, open, teeth, tongue, smirk",
+        "THROAT keys: plain, beard, frill, wattle"
+      ],
+      "side_effects": [
+        "Writes 26 SVGs to /tmp/hydra-svg/out/",
+        "Creates <name>.imageset folders under Assets.xcassets with <name>.svg and Contents.json (only when ASSETS exists)",
+        "--render: wipes and rewrites /tmp/hydra-svg/render and /tmp/hydra-svg/preview, runs qlmanage, writes /tmp/hydra-svg/sheet.png and prints 'sheet at /tmp/hydra-svg/sheet.png'",
+        "Runs its install loop at import time (module-level for loop, no __main__ guard)"
+      ],
+      "platform_assumptions": [
+        "/tmp paths and qlmanage are macOS/Unix specific",
+        "Xcode asset catalog layout and 'preserves-vector-representation' / 'template-rendering-intent' are Xcode-only"
+      ],
+      "persisted_fields": [
+        "Contents.json: {\"images\":[{\"filename\":\"<name>.svg\",\"idiom\":\"universal\"}],\"info\":{\"author\":\"xcode\",\"version\":1},\"properties\":{\"preserves-vector-representation\":true,\"template-rendering-intent\":\"template\"}} written with indent=2 plus a trailing newline",
+        "Asset names: hydra-head-01 .. hydra-head-25 (f'hydra-head-{i:02d}') and hydra-mark"
+      ],
+      "ui_elements": [
+        "SVG header: <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"><path fill=\"#000000\" fill-rule=\"nonzero\" d=\"...\"/></svg>",
+        "Default eye ('round', 63, 43, 4.6); slit eyes pass ry through circle_path, e.g. ('slit',62,43,3,6)",
+        "Nostril holes are radius 1.8 circles"
+      ],
+      "feature_notes": [
+        "The 25 head names in order: Hank, Walter, Ada, Otto, Nova, Remy, Iris, Milo, Juno, Ezra, Lena, Bo, Kai, Vera, Finn, Mira, Odin, Suki, Rex, Zola, Pip, Ivo, Lux, Tova, Gus",
+        "Silhouette winding: ensure_dir(pts, True) forces a visually clockwise (positive shoelace in y-down screen coords) outline; eyes and nostrils are drawn counter-clockwise so fill-rule=nonzero cuts them as holes",
+        "smooth_path is a closed Catmull-Rom to cubic bezier conversion with control offsets (p2-p0)/6*t; a third tuple element t=0 (S) makes a hard corner, default tension 1",
+        "circle_path uses the bezier circle constant k = 0.5523",
+        "All path coordinates are formatted to 2 decimals",
+        "mark_svg's docstring records the design decision: an earlier mark fanned three half-size heads on one collar and read as a blob at the 15 to 30 point sizes the mark is shown at, so the mark is one head (skull double, snout long, mouth closed, neck plain, throat plain, eye ('round',63,43,5), nostril (86,63))",
+        "--render contact sheet: 6 columns, cell 310 px, previews upscaled by replacing 'width=\"100\" height=\"100\"' with 'width=\"300\" height=\"300\"', 5 rows of white cells with red '<index> <NAME>' labels ('MARK' for index 25), plus a 60 px strip of 20x20 white-tinted glyphs on background (30, 30, 34) spaced 66 px apart starting at x=20, y=20",
+        "transform() is defined but never called anywhere in the file (dead helper)"
+      ],
+      "unresolved_questions": [
+        "transform() and the mirroring it would allow are unused; whether an earlier roster used it cannot be told from this file alone.",
+        "Contents.json for hydra assets is only written when Assets.xcassets already exists; a checkout without it silently gets only the /tmp copies."
+      ]
+    },
+    {
+      "path": "scripts/og-home.html",
+      "sha256": "2467701043cb5cc6aed89b62dbbf10b6f9cb4000b9e25930d2787360db73e3eb",
+      "lines_total": 122,
+      "ranges_read": [
+        [
+          1,
+          122
+        ]
+      ],
+      "purpose": "Standalone 1200x630 HTML page screenshotted by headless Chromium to produce website/assets/og/og-home.png, the Open Graph social card for getdroppycode.app; it repeats the site hero's palette, fonts and binary-digit canvas field.",
+      "key_symbols": [
+        "canvas#field",
+        "div.card",
+        ".icon",
+        ".title",
+        ".charged",
+        ".apple",
+        ".subtitle",
+        ".kicker",
+        "random()"
+      ],
+      "calls_into": [
+        "Google Fonts css2 (Inter 400;500 and Inter Tight 500;600, display=block)",
+        "../website/assets/brand/droppy-code-icon-180.png",
+        "../website/assets/brand/droppy-icon-64.png",
+        "website/assets/js/code.js (the hero field this reproduces at progress 0)"
+      ],
+      "state_owned": [
+        "var CELL = 22",
+        "cols = Math.ceil(1200 / CELL) + 1",
+        "rows = Math.ceil(630 / CELL) + 1",
+        "var seed = 20260914 (LCG state)"
+      ],
+      "side_effects": [
+        "None at runtime beyond canvas drawing; the render command in the comment writes website/assets/og/og-home.png"
+      ],
+      "platform_assumptions": [
+        "Render command hardcodes /Applications/Chromium.app/Contents/MacOS/Chromium --headless=new --hide-scrollbars --window-size=1200,630 --virtual-time-budget=6000 --screenshot=website/assets/og/og-home.png \"file://$PWD/scripts/og-home.html\"",
+        "-webkit-font-smoothing: antialiased and -webkit-mask-image are WebKit/Blink specific"
+      ],
+      "persisted_fields": [
+        "Output path literal website/assets/og/og-home.png"
+      ],
+      "ui_elements": [
+        "CSS variables: --bg #0b0e14, --text-primary #e8edf5, --accent-text #8cc4ff",
+        "html, body fixed at width 1200px, height 630px, overflow hidden",
+        "canvas inset 0 with mask-image linear-gradient(180deg, #000 0%, #000 55%, transparent 100%)",
+        "card: absolute inset 0, flex column, centered, text-align center, padding-top 6px",
+        "icon: 164x164 px, margin-bottom 6px",
+        "title: Inter Tight 600, 76px, letter-spacing -0.045em, line-height 1.02em, margin-bottom 26px",
+        "Title text: 'All your coding agents,' then 'one native <Apple logo>Mac app', with 'coding agents' in .charged (#8cc4ff)",
+        "apple svg: viewBox 0 0 16 19.81, width 0.72em, height 0.88em, vertical-align -0.06em, margin-right 0.08em, fill currentColor",
+        "subtitle: 26px, letter-spacing -0.01em, line-height 1.45, opacity 0.62, margin-bottom 34px, text 'Streaming replies, inline approvals, a diff for every turn. Free and open source.'",
+        "kicker: inline-flex, gap 10px, Inter Tight 500, 22px, letter-spacing -0.02em, line-height 1, image 24x24 with border-radius 6px, text 'The coding app by Droppy'"
+      ],
+      "feature_notes": [
+        "Binary field: ctx.font = \"500 13px ui-monospace, 'SF Mono', Menlo, monospace\", textBaseline 'top', glyph drawn at (c*22+4, r*22+3)",
+        "Per-cell alpha = 0.045 + 0.035 * (((c*7 + r*3) % 11) / 10), colour rgba(120, 165, 230, alpha) with alpha.toFixed(3)",
+        "LCG: seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; a cell shows '0' when random() < 0.5 else '1', so the picture is deterministic across renders",
+        "Image src paths are '../website/assets/...', i.e. relative to scripts/, which resolves only when the file is opened from inside the repository"
+      ],
+      "unresolved_questions": [
+        "The Google Fonts links need network at render time; the comment only notes that fonts get a few seconds to arrive via --virtual-time-budget=6000, with no offline fallback recorded."
+      ]
+    },
+    {
+      "path": "scripts/package_dmg.sh",
+      "sha256": "1599d458144f590c806f5cea2ac830850a4fd6283438ac5e8e7559e7716797a0",
+      "lines_total": 117,
+      "ranges_read": [
+        [
+          1,
+          117
+        ]
+      ],
+      "purpose": "Packages a built 'Droppy Code.app' into the styled installer DMG: stages the app plus an /Applications symlink, the pre-baked window background, .DS_Store and volume icon, builds a UDRW image, sets the volume custom-icon Finder flag, then converts to a compressed ULMO image. Signing and notarization stay with release.sh.",
+      "key_symbols": [
+        "error(msg)",
+        "cleanup()",
+        "APP_PATH",
+        "OUTPUT_PATH",
+        "VOLNAME",
+        "APP_BUNDLE_NAME",
+        "DMG_ASSET_DIR",
+        "BACKGROUND_ASSET",
+        "DSSTORE_ASSET",
+        "VOLUME_ICON_SOURCE",
+        "WORK_DIR",
+        "STAGE_PATH",
+        "DSSTORE_PATH",
+        "RW_DMG_PATH",
+        "MOUNT_POINT",
+        "ACTIVE_MOUNT_POINT"
+      ],
+      "calls_into": [
+        "hdiutil create/attach/detach/convert",
+        "ditto",
+        "xattr -wx com.apple.FinderInfo",
+        "base64 -d",
+        "LC_ALL=C grep -a -q",
+        "release/dmg/installer-background.tiff",
+        "release/dmg/installer-DS_Store.base64",
+        "<app>/Contents/Resources/AppIcon.icns"
+      ],
+      "state_owned": [
+        "VOLNAME=\"Droppy Code\"",
+        "APP_BUNDLE_NAME=\"$VOLNAME.app\"",
+        "WORK_DIR from mktemp -d /tmp/droppy-code-dmg-XXXX",
+        "IFS=$'\\n\\t'"
+      ],
+      "side_effects": [
+        "Creates and (via trap cleanup EXIT) removes a /tmp work dir, force-detaching any still-mounted volume",
+        "ditto copies the app bundle into the stage; ln -s /Applications creates the drop target; copies .background.tiff and .VolumeIcon.icns",
+        "Mounts the RW image at $WORK_DIR/mnt with -nobrowse -noverify, writes .DS_Store onto the live volume, sets the FinderInfo xattr, detaches",
+        "rm -f then writes $OUTPUT_PATH; prints 'Styled DMG packaged at $OUTPUT_PATH'"
+      ],
+      "platform_assumptions": [
+        "Entirely macOS: hdiutil, ditto, xattr, HFS+ filesystem, Finder .DS_Store and FinderInfo semantics, .icns volume icons",
+        "ULMO (LZMA) format is noted as supported since macOS 10.15, below Droppy Code's macOS 26 minimum"
+      ],
+      "persisted_fields": [
+        "Staged names: '/Applications' symlink, '.background.tiff', '.VolumeIcon.icns', '.DS_Store'",
+        "FinderInfo bytes written literally: '00 00 00 00 00 00 00 00 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00' (finderFlags at byte offset 8, kHasCustomIcon = 0x0400)"
+      ],
+      "ui_elements": [
+        "Error strings go to stderr prefixed 'package_dmg: '; texts include 'Usage: --app <Droppy Code.app> --output <out.dmg>', 'App bundle must be named $APP_BUNDLE_NAME (got ...)', and 'The installer .DS_Store does not point its background at /Volumes/Droppy Code; re-bake it (see release/dmg/README.md)'"
+      ],
+      "feature_notes": [
+        "Only two flags are accepted, --app and --output; anything else errors with 'Unknown argument: $1'",
+        "Refuses to run unless the bundle's basename is exactly 'Droppy Code.app', because the baked .DS_Store keys icon positions and the background alias by that name, by volume 'Droppy Code' and by '/.background.tiff'",
+        "The .DS_Store is stored in the repo as base64 text (release/dmg/installer-DS_Store.base64) so git and code review treat it as source; it is decoded first so a bad asset fails in a second, not a minute, then grepped for '/Volumes/Droppy Code'",
+        "hdiutil create uses -format UDRW -fs HFS+; final conversion is -format ULMO, measured about 19% smaller than the previous maximum-zlib UDZO image",
+        "Detach retries up to 8 times with sleep 1 between tries before falling back to hdiutil detach -force",
+        "ditto is used rather than cp specifically to keep the bundle signature, extended attributes and stapled notarization ticket"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "scripts/publish_release.sh",
+      "sha256": "7cd8b12ccb090c94eb0720fd9851dac89f5f0ee1c077774775fbc3e35268f382",
+      "lines_total": 73,
+      "ranges_read": [
+        [
+          1,
+          73
+        ]
+      ],
+      "purpose": "Publishes an already-built, notarized DMG as a GitLab release on droppyformac1/droppy-code: validates the changelog section and the Thanks credits, tags, creates the release, repoints the latest-download permalink asset path, checks the permalink and redeploys the website.",
+      "key_symbols": [
+        "PROJECT",
+        "ENCODED_PROJECT",
+        "VERSION",
+        "TAG",
+        "DMG",
+        "NOTES",
+        "ASSET_PATH",
+        "step(title)",
+        "RELEASE_REF"
+      ],
+      "calls_into": [
+        "scripts/build_changelog.py --section",
+        "scripts/release_credits.py --check",
+        "scripts/deploy_site.sh",
+        "xcrun stapler validate",
+        "git tag -a / git push origin",
+        "glab release view/create",
+        "glab api (GET assets/links, PUT assets/links/<id>)",
+        "curl -sIL"
+      ],
+      "state_owned": [
+        "PROJECT=\"droppyformac1/droppy-code\"",
+        "ENCODED_PROJECT=\"${PROJECT//\\//%2F}\" giving droppyformac1%2Fdroppy-code",
+        "VERSION from project.yml MARKETING_VERSION via sed -nE 's/^[[:space:]]*MARKETING_VERSION:[[:space:]]*\"([^\"]+)\".*/\\1/p' | head -1",
+        "TAG=\"v$VERSION\"",
+        "DMG default \"build.noindex/Droppy-Code-$VERSION.dmg\"",
+        "NOTES from mktemp -t droppy-code-notes",
+        "ASSET_PATH=\"/Droppy-Code.dmg\""
+      ],
+      "side_effects": [
+        "Creates an annotated git tag v<version> on ${RELEASE_REF:-HEAD} with message 'Droppy Code <version>' and pushes it to origin",
+        "Creates a GitLab release via glab with asset label 'Droppy Code <version> (Apple silicon)' and --name 'Droppy Code <version>'",
+        "PUTs the release asset link with name, direct_asset_path=/Droppy-Code.dmg and link_type=package",
+        "Runs scripts/deploy_site.sh, which deploys the website to Netlify",
+        "Writes a temp notes file"
+      ],
+      "platform_assumptions": [
+        "Needs xcrun stapler (macOS notarization) and glab signed in as a maintainer; bash with set -euo pipefail"
+      ],
+      "persisted_fields": [
+        "GitLab project path and encoded path; release tag format v<MARKETING_VERSION>; asset direct_asset_path '/Droppy-Code.dmg'"
+      ],
+      "ui_elements": [
+        "step() prints a blank line then '==> <title>' for: 'Checking every contributor is thanked', 'Checking the disk image is notarized', 'Tagging $TAG', 'Creating the release', 'Pointing the latest-download permalink at it', 'Checking the permalink', 'Rebuilding the changelog and deploying the site'",
+        "Failure strings: 'No ## [$VERSION] section in CHANGELOG.md. Add one before publishing.', 'No disk image at $DMG. Run scripts/release.sh first.', 'No release notes at $NOTES.', '$NOTES needs at least one of the three headings: ## New features, ## Bug fixes, ## Refinements.', 'Release $TAG already exists on GitLab.'",
+        "Final line: 'Published: https://gitlab.com/<project>/-/releases/<tag>'"
+      ],
+      "feature_notes": [
+        "Accepts one optional positional argument, the DMG path",
+        "Notes must contain at least one of '## New features', '## Bug fixes', '## Refinements' (grep -qE '^## (New features|Bug fixes|Refinements)')",
+        "Credits gate: python3 scripts/release_credits.py --check \"$NOTES\" must pass, otherwise it prints 'Add a ### Thanks section to the ## [$VERSION] entry in CHANGELOG.md naming them (python3 scripts/release_credits.py prints it), then publish again.' and exits 1",
+        "The permalink is https://gitlab.com/droppyformac1/droppy-code/-/releases/permalink/latest/downloads/Droppy-Code.dmg; the link id is found by picking the first asset link whose url lowercases to a .dmg suffix, via an inline python3 -c one-liner",
+        "A comment notes GitLab insists on a name or url in every link update, so the name rides along with the direct_asset_path change",
+        "RELEASE_REF env var moves the tag off HEAD when the version bump landed on main from elsewhere",
+        "The permalink check is curl -sIL ... | grep -i \"content-disposition\""
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "scripts/quick_run.sh",
+      "sha256": "04639b25034b4e91ba274c32524276e3648ba650b683ec5b63b9c0b2c2f9829e",
+      "lines_total": 73,
+      "ranges_read": [
+        [
+          1,
+          73
+        ]
+      ],
+      "purpose": "The developer inner loop: builds the Debug configuration as 'Droppy Code Dev', installs it as the single /Applications copy with an atomic swap, preserves the Xcode Development signature so macOS TCC approvals survive, quits the running Dev app (waiting out an in-flight Hydra merge) and relaunches it.",
+      "key_symbols": [
+        "APP_NAME",
+        "DERIVED",
+        "PRODUCT",
+        "TARGET",
+        "step(title)",
+        "DROPPY_DEV_SYNC"
+      ],
+      "calls_into": [
+        "xcodebuild -project DroppyCode.xcodeproj -scheme DroppyCode -configuration Debug",
+        "ditto",
+        "codesign --verify --deep --strict / codesign --force --deep --sign -",
+        "xattr -dr com.apple.quarantine",
+        "osascript quit",
+        "scripts/sync_dev_data.sh",
+        "open",
+        "ps aux | grep"
+      ],
+      "state_owned": [
+        "APP_NAME=\"Droppy Code Dev\"",
+        "DERIVED=\"build.noindex/dev\"",
+        "PRODUCT=\"$DERIVED/Build/Products/Debug/$APP_NAME.app\"",
+        "TARGET=\"/Applications/$APP_NAME.app\""
+      ],
+      "side_effects": [
+        "Builds into build.noindex/dev (xcodebuild output piped through tail -n 5)",
+        "Removes $TARGET.old, moves the running bundle aside, ditto-installs the fresh build, removes the .old copy",
+        "Strips com.apple.quarantine when the signature verifies, otherwise ad-hoc re-signs",
+        "Quits the app via osascript with a 300 second AppleScript timeout, then polls ps for up to 300 seconds",
+        "Optionally runs scripts/sync_dev_data.sh, then open \"$TARGET\", sleep 4 and prints up to 3 matching ps lines"
+      ],
+      "platform_assumptions": [
+        "macOS only: xcodebuild, ditto, codesign, xattr, osascript, open, plus LaunchServices/Spotlight behaviour",
+        "Relies on Xcode's Development signature and Team NARHG44L48 so macOS TCC keeps granted permissions"
+      ],
+      "persisted_fields": [
+        "Debug bundle id iordv.droppycode.dev; Dev data root ~/.droppy-code-dev; env var DROPPY_DEV_SYNC (default '0', '1' enables the mirror)"
+      ],
+      "ui_elements": [
+        "step() headers: 'Building $APP_NAME (Debug)', 'Installing the single copy to $TARGET', 'Relaunching', 'Mirroring the release app's data into $APP_NAME'"
+      ],
+      "feature_notes": [
+        "A Debug build is a separate app 'Droppy Code Dev' with its own library, settings, keychain items and worktrees, never touching the release app's",
+        "Builds under build.noindex on purpose: the '.noindex' suffix keeps Spotlight and Launchpad from listing the build folder as a second copy of the app; there must only ever be one dev app at /Applications/Droppy Code Dev.app",
+        "The re-sign policy is documented as a fix: ad-hoc re-signing every build gave a new identity with no Team ID and macOS forgot all TCC approvals, so ad-hoc is only a fallback when codesign --verify fails",
+        "Explicitly noted as safe to run from an agent inside Droppy Code itself: quitting may interrupt the calling session but the script keeps going and the fresh build picks up the changes on relaunch",
+        "The 300-iteration quit wait exists because the app holds its quit while a Hydra merge is going out, up to four minutes"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "scripts/release.sh",
+      "sha256": "2177266345115e09a23f25474bfba160ef8336bf799a824741d7abb723024ff6",
+      "lines_total": 121,
+      "ranges_read": [
+        [
+          1,
+          121
+        ]
+      ],
+      "purpose": "The full release build: regenerates the Xcode project, archives Release for arm64 only, exports with Developer ID, verifies the signature and architecture, notarizes and staples the app, builds the styled DMG via package_dmg.sh, signs and notarizes the DMG, runs Gatekeeper assessments and cleans up so only the DMG remains.",
+      "key_symbols": [
+        "TEAM_ID",
+        "NOTARY_PROFILE",
+        "APP_NAME",
+        "BUILD",
+        "ARCHIVE",
+        "EXPORT",
+        "VERSION",
+        "DMG",
+        "step(title)",
+        "notarize(file)",
+        "IDENTITY",
+        "archs",
+        "details"
+      ],
+      "calls_into": [
+        "xcodegen generate --quiet",
+        "xcodebuild archive / -exportArchive",
+        "xcrun notarytool submit --wait --output-format json and notarytool log",
+        "xcrun stapler staple",
+        "codesign --verify / codesign -dv / codesign --sign --timestamp",
+        "lipo -archs",
+        "plutil -extract status raw - and -extract id raw -",
+        "security find-identity -v -p codesigning",
+        "spctl --assess",
+        "scripts/package_dmg.sh --app --output"
+      ],
+      "state_owned": [
+        "TEAM_ID=\"NARHG44L48\"",
+        "NOTARY_PROFILE=\"${NOTARY_PROFILE:-Droppy-Notarize}\"",
+        "APP_NAME=\"Droppy Code\"",
+        "BUILD=\"$ROOT/build.noindex\"",
+        "ARCHIVE=\"$BUILD/DroppyCode.xcarchive\"",
+        "EXPORT=\"$BUILD/export\"",
+        "DMG=\"$BUILD/Droppy-Code-$VERSION.dmg\"",
+        "VERSION from project.yml MARKETING_VERSION"
+      ],
+      "side_effects": [
+        "rm -rf then recreates build.noindex",
+        "Writes $BUILD/ExportOptions.plist, $BUILD/archive.log, $BUILD/export.log, $BUILD/DroppyCode.zip",
+        "Submits the app zip and the DMG to Apple notarization and staples both",
+        "Signs the DMG with the resolved Developer ID Application identity and --timestamp",
+        "Removes the archive, export dir, DroppyCode.zip and DerivedData at the end, leaving only the DMG"
+      ],
+      "platform_assumptions": [
+        "macOS plus Xcode and XcodeGen; Apple notarization service; Gatekeeper (spctl); Apple silicon only build (ARCHS=arm64, EXCLUDED_ARCHS=x86_64, ONLY_ACTIVE_ARCH=NO)"
+      ],
+      "persisted_fields": [
+        "ExportOptions.plist keys: method=developer-id, teamID=NARHG44L48, signingStyle=manual, signingCertificate='Developer ID Application'",
+        "DMG filename pattern Droppy-Code-<MARKETING_VERSION>.dmg under build.noindex"
+      ],
+      "ui_elements": [
+        "step() headers: 'Generating the Xcode project', 'Archiving $APP_NAME $VERSION', 'Exporting with Developer ID', 'Verifying the signature', 'Notarizing the app', 'Building the disk image', 'Notarizing the disk image', 'Checking Gatekeeper', 'Cleaning up'",
+        "notarize() prints 'Notarization accepted for <basename>'",
+        "Final message: 'Ready: <dmg>' then 'Publish it with scripts/publish_release.sh once CHANGELOG.md has a ## [<version>] section.'",
+        "Architecture failure text: 'Expected an Apple silicon binary, got: <archs>'"
+      ],
+      "feature_notes": [
+        "notarize() parses notarytool JSON with plutil -extract status raw -, and on anything other than 'Accepted' prints the JSON, fetches the log by id and exits 1",
+        "Signature gate greps codesign -dv --verbose=4 output for 'Authority=Developer ID Application', 'flags=.*runtime' (hardened runtime) and 'Timestamp='",
+        "On archive failure it prints the first 40 'error:' lines from archive.log, otherwise the last 40 lines; export failure prints tail -40 of export.log",
+        "Gatekeeper checks: spctl --assess --type execute on the app and --type open --context context:primary-signature on the DMG, both with --ignore-cache --no-cache --verbose, then xcrun stapler validate on the DMG",
+        "The signing identity is resolved from security find-identity with sed -nE matching 'Developer ID Application: ... (NARHG44L48)', taking the first match",
+        "'.noindex' is chosen so Spotlight and Launchpad never list the build copies of the app, and the cleanup step is justified the same way",
+        "The build archives with -skipPackagePluginValidation and -skipMacroValidation"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "scripts/release_credits.py",
+      "sha256": "f3fcd05430d1e7b3ee5889301c3d5c640b831bec47b05f2a3875e53f75b015ef",
+      "lines_total": 389,
+      "ranges_read": [
+        [
+          1,
+          200
+        ],
+        [
+          200,
+          389
+        ]
+      ],
+      "purpose": "Lists every outside contributor whose work merged since the previous v* tag, by joining git log authors and Co-authored-by trailers against GitLab merged merge requests, and prints the '### Thanks' block; with --check <notes-file> it is the gate publish_release.sh uses to refuse publishing until each contributor is named.",
+      "key_symbols": [
+        "PROJECT",
+        "ENCODED_PROJECT",
+        "MAINTAINER_USERNAMES",
+        "MAINTAINER_EMAILS",
+        "IGNORED_EMAIL_SUFFIXES",
+        "COAUTHOR_RE",
+        "VERSION_RE",
+        "run_git(args)",
+        "project_version()",
+        "previous_tag()",
+        "commits_in_range(tag)",
+        "tag_date(tag)",
+        "is_ancestor(sha, rev)",
+        "merged_in(sha, tag)",
+        "merged_requests(tag)",
+        "ignored_email(email)",
+        "contributors(tag)",
+        "entry_for_user",
+        "entry_for_email",
+        "add_subject",
+        "suggested_line(entry)",
+        "thanks_section(text)",
+        "check_notes(path, entries, tag)",
+        "main()"
+      ],
+      "calls_into": [
+        "git log / git tag --points-at HEAD / git describe --tags --abbrev=0 --match v* / git merge-base --is-ancestor",
+        "glab api projects/<encoded>/merge_requests?state=merged&updated_after=<date>&per_page=100",
+        "project.yml MARKETING_VERSION"
+      ],
+      "state_owned": [
+        "PROJECT = 'droppyformac1/droppy-code'",
+        "ENCODED_PROJECT = 'droppyformac1%2Fdroppy-code'",
+        "MAINTAINER_USERNAMES = {'droppyformac'}",
+        "MAINTAINER_EMAILS = {'jordylegrand@gmail.com', 'droppyformac@gmail.com'}",
+        "IGNORED_EMAIL_SUFFIXES = ('@anthropic.com', '@users.noreply.github.com', '@localhost')",
+        "by_user / by_email dicts of entries {name, handle, mrs, subjects}"
+      ],
+      "side_effects": [
+        "Runs git and glab subprocesses in ROOT (read-only)",
+        "Prints the '### Thanks' block, a JSON array with --json, or the missing lines with --check; exit codes 0, 1 or 2"
+      ],
+      "platform_assumptions": [
+        "Needs python3, a git checkout with v* tags, and glab on PATH for MR data (failures fall back to an empty MR list, degrading to commit-only credits)"
+      ],
+      "persisted_fields": [
+        "--json object keys: name, handle, merge_requests (list of {iid, title}), subjects (list of str), printed with indent=2, ensure_ascii=False",
+        "MR fields read from GitLab: iid, title, author.username, author.name, squash_commit_sha, merge_commit_sha, sha"
+      ],
+      "ui_elements": [
+        "Prints the literal heading '### Thanks'",
+        "suggested_line formats: '- {name} (@{handle}): {title} (!{iid}); ...' when the entry has MRs and a handle, '- {name}: {titles}.' without a handle, '- {name}: {subjects}.' when only commit subjects",
+        "Warning line on stderr: 'Warning: !{iid} ({title}) is not mentioned in the Thanks section.'",
+        "'Missing from the Thanks section:' header followed by one suggested line per missing contributor",
+        "'No outside contributors since {tag}.' on stderr, or '[]' with --json"
+      ],
+      "feature_notes": [
+        "previous_tag(): if project.yml's MARKETING_VERSION tag v<version> already points at HEAD, it describes from HEAD^ instead, so a tagged bump does not credit against itself",
+        "commits_in_range uses git log --no-merges with format %H%x1f%an%x1f%ae%x1f%s%x1f%(trailers:key=Co-authored-by,valueonly), splitting on \\x1f and padding to 5 fields",
+        "COAUTHOR_RE = (.+?)\\s*<([^<>]+)>\\s* parses each Co-authored-by trailer into name and email",
+        "merged_requests matches MRs by squash_commit_sha, merge_commit_sha or sha against the range's shas, falling back to merged_in() which tests ancestry against HEAD and origin/main but not the tag",
+        "MAINTAINER_USERNAMES filtering drops the maintainer's own MRs; ignored_email drops maintainer emails and anything ending in @anthropic.com, @users.noreply.github.com or @localhost, so Claude co-author trailers and GitHub noreply addresses never appear",
+        "Commit subjects are only recorded for commits NOT linked to a matched MR, so an MR contributor is credited by title and a direct committer by subject",
+        "Email entries are folded into a user entry when the display names match case-insensitively",
+        "Entries sort by lowest MR iid (MR-less entries last, float('inf')) then by lowercased name; each entry's mrs sort by iid",
+        "check_notes finds the section under a line whose strip() is exactly '## Thanks' or '### Thanks' and stops at the next line starting with '#'; a contributor counts as named if '@handle' or the name appears case-insensitively in it",
+        "CLI: --since <tag> / --since=<tag>, --json, --check <file> / --check=<file>; anything else prints 'Unknown argument: {arg}' to stderr and returns 2",
+        "--check returns 0 immediately when there are no outside contributors at all"
+      ],
+      "unresolved_questions": [
+        "check_notes takes a `tag` parameter it never uses.",
+        "When glab is missing or the API call fails, merged_requests silently returns [] and credits degrade to commit-based entries with no visible warning."
+      ]
+    },
+    {
+      "path": "scripts/sync_dev_data.sh",
+      "sha256": "6df79b8002c3d36c860ca93bcbfdbfc3707e164a9b0eee997ec221d774b5c45a",
+      "lines_total": 63,
+      "ranges_read": [
+        [
+          1,
+          63
+        ]
+      ],
+      "purpose": "One-way mirror of the released Droppy Code's data into Droppy Code Dev: quits Dev, rsyncs the Application Support library, copies the user defaults domain, and re-adds four named API keys into the Dev keychain service, never writing to the release side.",
+      "key_symbols": [
+        "RELEASE_NAME",
+        "DEV_NAME",
+        "RELEASE_LIB",
+        "DEV_LIB",
+        "RELEASE_DOMAIN",
+        "DEV_DOMAIN",
+        "DEV_APP",
+        "step(title)"
+      ],
+      "calls_into": [
+        "osascript quit",
+        "rsync -a --delete",
+        "defaults read/delete/export/import",
+        "security find-generic-password -w and add-generic-password -U",
+        "ps aux | grep",
+        "find ... | wc -l"
+      ],
+      "state_owned": [
+        "RELEASE_NAME=\"Droppy Code\"",
+        "DEV_NAME=\"Droppy Code Dev\"",
+        "RELEASE_LIB=\"$HOME/Library/Application Support/Droppy Code\"",
+        "DEV_LIB=\"$HOME/Library/Application Support/Droppy Code Dev\"",
+        "RELEASE_DOMAIN=iordv.droppycode",
+        "DEV_DOMAIN=iordv.droppycode.dev",
+        "DEV_APP=\"/Applications/Droppy Code Dev.app\""
+      ],
+      "side_effects": [
+        "Quits Droppy Code Dev and polls ps for up to 20 seconds",
+        "rsync -a --delete from the release library into the Dev library (destructive on the Dev side)",
+        "defaults delete on the Dev domain then defaults export <release> - piped into defaults import <dev> -",
+        "security add-generic-password -U into service 'Droppy Code Dev' with -T \"$DEV_APP\" -T /usr/bin/security for each key found",
+        "Counts threads with find \"$DEV_LIB/threads\" -name '*.json'"
+      ],
+      "platform_assumptions": [
+        "macOS only: ~/Library/Application Support, cfprefsd defaults domains, the login keychain via security, osascript",
+        "A comment notes macOS may ask once per key to let `security` read the release item and advises choosing Always Allow"
+      ],
+      "persisted_fields": [
+        "Keychain service names 'Droppy Code' (read) and 'Droppy Code Dev' (write)",
+        "Keychain accounts mirrored, in order: 'DeepSeek API Key', 'Meta API Key', 'Z.ai API Key', 'Command Code API Key'",
+        "Defaults domains iordv.droppycode and iordv.droppycode.dev",
+        "Library subfolder 'threads' holding *.json thread files",
+        "Worktree roots ~/.droppy-code (release) and ~/.droppy-code-dev (Dev)"
+      ],
+      "ui_elements": [
+        "step() headers: 'Quitting $DEV_NAME', 'Mirroring the library', 'Mirroring settings', 'Mirroring API keys'",
+        "Messages: 'No release library at $RELEASE_LIB; nothing to mirror.' (exit 0), '<n> threads mirrored', 'No release settings yet.', two-space-indented '  <account>' per key, '<n> keys mirrored', 'No API keys in the release keychain.', and the closing 'Droppy Code Dev now mirrors Droppy Code. Worktrees stay separate (~/.droppy-code vs ~/.droppy-code-dev).'"
+      ],
+      "feature_notes": [
+        "Explicitly one-way: nothing is ever written to the release library, defaults domain or keychain items",
+        "Dev's own changes since the last mirror are replaced, so Dev opens on the real data as of that moment",
+        "Head worktrees and patches under ~/.droppy-code are left alone; Dev keeps its own under ~/.droppy-code-dev",
+        "Exits 0 (not an error) when there is no release library to mirror",
+        "Invoked by quick_run.sh only when DROPPY_DEV_SYNC=1"
+      ],
+      "unresolved_questions": [
+        "Only these four API-key accounts are mirrored; whether the app stores other keychain accounts that are deliberately left behind cannot be told from this file."
+      ]
+    },
+    {
+      "path": "scripts/tour_captures.py",
+      "sha256": "d19ba800626f45afb2487cd31a269fb4ffebbb446a2e13dcbc2e35618c571058",
+      "lines_total": 295,
+      "ranges_read": [
+        [
+          1,
+          160
+        ],
+        [
+          160,
+          295
+        ]
+      ],
+      "purpose": "Builds the app Debug, runs it in --tour-captures mode to photograph each onboarding tour scene, then cuts each still to the window's inside (zoomed on the sidecar's named focus when there is one), resizes to exactly 1320x824 and writes the tour-* imagesets into Assets.xcassets; delegates the website's set to website_captures.py.",
+      "key_symbols": [
+        "ROOT",
+        "CAPTURES",
+        "DERIVED",
+        "APP",
+        "ASSETS",
+        "WIDTH",
+        "HEIGHT",
+        "SCENES",
+        "CONTENTS",
+        "WINDOW_SIZES",
+        "THEME_ORDER",
+        "window_box(name)",
+        "step(title)",
+        "build()",
+        "capture()",
+        "fit(image,width,height)",
+        "write_imageset(name,image)",
+        "interior(name, inset=8)",
+        "focus_box(inner, focus, aspect, min_share=0.55)",
+        "frame(name, inset=8)",
+        "theme_mosaic()",
+        "encode()",
+        "_tour_pipeline()",
+        "website()",
+        "upload()"
+      ],
+      "calls_into": [
+        "xcodegen generate --quiet",
+        "xcodebuild -scheme DroppyCode -configuration Debug",
+        "open -n <app> --args --tour-captures <dir>",
+        "pgrep -f and pkill -9 -f",
+        "PIL Image (LANCZOS resize, crop, new, paste)",
+        "website_captures.encode_tour() and website_captures.upload_tour()",
+        "DroppyCode/App/Captures/TourCaptures.swift and TourCaptures+Hydra.swift (the capture mode this drives)"
+      ],
+      "state_owned": [
+        "CAPTURES = build.noindex/tour-captures",
+        "DERIVED = build.noindex/tour",
+        "APP = DERIVED/'Build/Products/Debug/Droppy Code.app'",
+        "ASSETS = DroppyCode/Resources/Assets.xcassets",
+        "WIDTH = 1320, HEIGHT = 824",
+        "SCENES = ['welcome','hydra','pairs','slider','threads','recipes','panels']",
+        "THEME_ORDER = ['tokyoNight','gruvbox','catppuccinLatte','rosePine']",
+        "CONTENTS = {'info': {'author': 'xcode', 'version': 1}}"
+      ],
+      "side_effects": [
+        "Regenerates the Xcode project and builds Debug into build.noindex/tour",
+        "Deletes and recreates build.noindex/tour-captures, launches the app through LaunchServices with --tour-captures, polls pgrep every 2 s up to a 630 second deadline, then pkill -9 on overrun",
+        "Writes <name>.imageset/<name>@2x.png and Contents.json under Assets.xcassets",
+        "Prints the last line of build.noindex/tour-captures/run.log, per-scene crop decisions, and 'Ready: <assets path>'"
+      ],
+      "platform_assumptions": [
+        "macOS: xcodebuild/xcodegen, open -n ... --args through LaunchServices (a shell-launched app is refused activation and the captures need the key window of the active app), pgrep/pkill",
+        "Stills come out at the display's 2x scale"
+      ],
+      "persisted_fields": [
+        "Imageset Contents.json: {\"images\":[{\"filename\":\"<name>@2x.png\",\"idiom\":\"universal\",\"scale\":\"2x\"}],\"info\":{\"author\":\"xcode\",\"version\":1}} with indent=2 and a trailing newline",
+        "Imagesets written: tour-welcome, tour-hydra, tour-pairs, tour-slider, tour-threads, tour-recipes, tour-panels, tour-themes",
+        "Per-still sidecar <name>.json written by the app with keys 'rect' [x,y,w,h], 'window' [x,y,w,h] and optional 'focus' [x,y,w,h], top-left origin, in points"
+      ],
+      "ui_elements": [
+        "Every tour picture is exactly 1320x824 (16:10) after fit()",
+        "interior() insets 8 points from the window edges so the tour card's own rounded corners do not draw a second, tighter corner inside the window's",
+        "theme_mosaic(): 2x2 tiles with a 6 px gap on background (16, 16, 20), tile_w = (1320-6)//2 = 657, tile_h = (824-6)//2 = 409"
+      ],
+      "feature_notes": [
+        "WINDOW_SIZES in points: tour-welcome and web-hero 1280x800; tour-hydra, tour-pairs, tour-slider, tour-threads, tour-recipes 960x600; tour-panels 1280x800; tour-window 660x600; web-diff, web-palette, web-plans, web-question, web-queue, web-intro 1200x660; every tour-theme-* and web-theme-* 960x600",
+        "window_box grows the window by 72 pt per side (w+144, h+144) then widens or heightens to exactly 1.6 aspect",
+        "focus_box: pad = max(40, 0.12 * max(fw, fh)); the padded focus is grown about its centre to the 1320/824 aspect; never narrower than min_share 0.55 of the inside width; shifted (never shrunk) to lie inside; returns the whole inside when there is no focus or the inside cannot hold the box",
+        "When a focus cannot fit the window (the cookbook's popover is taller than the window it hangs from) frame() re-cuts around the focus within the whole still, so the page shows the popover entire beside the window rather than clipped at its edge",
+        "Per-scene log line: '  <name>: focus' or '  <name>: whole window' plus the rounded box tuple",
+        "fit() centre-crops to the target aspect only when the aspect differs by more than 1e-9, then resizes with Image.LANCZOS",
+        "encode() exits with 'The capture run wrote no <source>.png; see <captures>/run.log' when a scene is missing",
+        "Capture-mode budget is 630 seconds; overrun prints '  the run overran its budget and was killed'",
+        "--website, --export-only and --upload delegate to website_captures.encode_tour()/upload_tour(); --export-only skips build, capture and encode entirely",
+        "The comment records that the old path (cropped WebP into website/assets/app/tour/) was removed so only one uploader writes the R2 tour keys",
+        "The welcome page is deliberately its own scene: the whole window with the sidebar open and no popover, so the first page is the overview and not the hero's close-up"
+      ],
+      "unresolved_questions": [
+        "The docstring says the website set goes to the R2 'tour/v4' prefix, but website_captures.py's R2_TOUR_PREFIX is 'site-assets/droppy-code/tour/v5'; the docstring appears stale.",
+        "SCENES is defined but never referenced; encode() uses its own inline (name, source) pair list instead.",
+        "The 'from PIL import Image, ImageDraw' inside fit() and encode() imports ImageDraw without using it."
+      ]
+    },
+    {
+      "path": "scripts/website_captures.py",
+      "sha256": "ba012baffa99b4994f452b15692826d38a2435ad7dc026713da2ad87587413f6",
+      "lines_total": 389,
+      "ranges_read": [
+        [
+          1,
+          140
+        ],
+        [
+          140,
+          280
+        ],
+        [
+          280,
+          389
+        ]
+      ],
+      "purpose": "Renders the marketing site's app media from the real app and publishes it: drives the tour capture run, encodes every still whole as WebP into build.noindex/website-tour (mirroring the R2 tour/v5 prefix), uploads with immutable cache headers and verifies each key serves byte-identical; behind --website it also runs the older wallpaper capture mode and encodes H.264/HEVC films plus stills into website/assets/app.",
+      "key_symbols": [
+        "ROOT",
+        "CAPTURES",
+        "DERIVED",
+        "APP",
+        "OUT",
+        "FFMPEG",
+        "FFPROBE",
+        "R2_BUCKET",
+        "R2_PREFIX",
+        "SITE_ORIGIN",
+        "TOUR_CAPTURES",
+        "TOUR_OUT",
+        "R2_TOUR_PREFIX",
+        "TOUR_STILLS",
+        "TOUR_THEME_QUADRANTS",
+        "TOUR_THEMES_WIDTH",
+        "MARGIN",
+        "FILMS",
+        "STILLS",
+        "THEME_WIDTH",
+        "step",
+        "build()",
+        "capture()",
+        "wait_for_run(marker, budget)",
+        "capture_tour()",
+        "tour_still(name, source, width, quality=90)",
+        "tour_themes()",
+        "encode_tour()",
+        "verify_key(key, local)",
+        "upload_tour()",
+        "probe(path)",
+        "color_flags(stream)",
+        "encode_film(name, master, width, hevc_bitrate)",
+        "pane_crop(image, blank)",
+        "still(name, source, crop, width, quality=92)",
+        "encode()",
+        "upload()"
+      ],
+      "calls_into": [
+        "xcodegen, xcodebuild",
+        "open -n <app> --args --tour-captures / --website-captures",
+        "pgrep -f -- and pkill -9 -f --",
+        "ffmpeg, ffprobe",
+        "wrangler r2 object put",
+        "urllib.request.urlopen",
+        "PIL Image, ImageChops",
+        "DroppyCode/App/Captures/TourCaptures.swift and WebsiteCaptures.swift"
+      ],
+      "state_owned": [
+        "CAPTURES = build.noindex/website-captures",
+        "DERIVED = build.noindex/website",
+        "APP = DERIVED/'Build/Products/Debug/Droppy Code Dev.app'",
+        "OUT = website/assets/app",
+        "FFMPEG = shutil.which('ffmpeg') or '/opt/homebrew/bin/ffmpeg'",
+        "FFPROBE = shutil.which('ffprobe') or '/opt/homebrew/bin/ffprobe'",
+        "R2_BUCKET = 'droppy-releases'",
+        "R2_PREFIX = 'site-assets/droppy-code'",
+        "R2_TOUR_PREFIX = 'site-assets/droppy-code/tour/v5'",
+        "SITE_ORIGIN = 'https://droppy-releases.jordylegrand.workers.dev'",
+        "TOUR_CAPTURES = build.noindex/tour-captures",
+        "TOUR_OUT = build.noindex/website-tour",
+        "MARGIN = 144",
+        "TOUR_THEMES_WIDTH = 2080",
+        "THEME_WIDTH = 2080"
+      ],
+      "side_effects": [
+        "Deletes and recreates build.noindex/website-captures and build.noindex/tour-captures",
+        "Launches the app twice through LaunchServices (--website-captures budget 120 s, --tour-captures budget 330 s), killing overruns with pkill -9",
+        "Writes WebP stills under build.noindex/website-tour and MP4/WebP under website/assets/app",
+        "Uploads every file to Cloudflare R2 via wrangler with --remote and Cache-Control 'public, max-age=31536000, immutable'",
+        "Fetches each uploaded key over HTTPS from SITE_ORIGIN with a 60 s timeout and User-Agent 'DroppyCode-website-captures' to compare bytes"
+      ],
+      "platform_assumptions": [
+        "macOS: xcodebuild/xcodegen, open -n ... --args, pgrep/pkill, /opt/homebrew ffmpeg fallbacks, and hevc_videotoolbox (Apple VideoToolbox hardware encoder)",
+        "Captures are 2x with a 72 point (144 px) wallpaper margin per side; the wide window is 1320x860 pt (2928x2008 px) and the narrow one 860x560 pt (2008x1408 px)"
+      ],
+      "persisted_fields": [
+        "TOUR_STILLS output name -> (source still, output width): hero <- web-hero 2400; welcome <- tour-welcome 2080; hydra, pairs, slider, panels, threads, recipes, window <- the matching tour-* at 2080; diff, palette, plans, question, queue, slash, quote, notify, intro <- web-diff, web-palette, web-plans, web-question, web-queue, web-slash, web-quote, web-notify, web-intro at 2080",
+        "Also written: themes.webp (quality 86), themes/<themeId>.webp from web-theme-*.png (2080, quality 86), sidebar.webp (quality 86)",
+        "TOUR_THEME_QUADRANTS = ['tokyoNight','gruvbox','catppuccinLatte','rosePine'] in tile order top-left, top-right, bottom-left, bottom-right",
+        "FILMS: hero <- editing 2400 '4500k'; question <- question 2080 '3500k'; queue <- queue 2080 '3500k'; slider <- slider 2008 '3000k'",
+        "STILLS: hero <- editing None 2400; diff <- diff None 2080; palette <- palette None 2080; switcher <- switcher None 2008; sidebar <- editing crop (0, 144, 684, 1864) width 684; plans <- plans 'pane' 2080",
+        "Uploaded content types: mp4 -> video/mp4, webp -> image/webp, png -> image/png, else application/octet-stream"
+      ],
+      "ui_elements": [
+        "step() headers: 'Building Droppy Code (Debug)', 'Capturing the scenes', 'Capturing the tour and web stills', 'Encoding the tour and web stills', 'Uploading to R2 (<bucket>/<prefix>)', 'Verifying every key serves', 'Encoding'",
+        "Per-file log lines of the form '  <name>.webp <w>x<h>  <n> KB' (bytes // 1024) and '  <key> verified (<n> KB, identical)'",
+        "Closing line: 'Ready: <TOUR_OUT>'"
+      ],
+      "feature_notes": [
+        "Tour stills are encoded whole, popovers uncropped (WebP quality 90, method 6), downscaled only when wider than the target; the comment states a width here only ever caps, never scales up",
+        "sidebar.webp is cut from tour-threads.png using the sidecar's 'focus' rect scaled by image.width / frames['rect'][2]",
+        "tour_themes() tiles the four theme stills 2x2 seamlessly (each still is one quarter of a double-size gradient), resizes to at most 2080 wide and saves at quality 86",
+        "verify_key exits with '  <key>: uploaded but does not serve (<url>: <error>)' or '  <key>: serves <n> bytes but the still is <n>' on mismatch, making the upload self-checking",
+        "encode_film runs ffmpeg twice per film: libx264 -preset slow -crf 19 -profile:v high -level 5.1 -g 120, and hevc_videotoolbox -b:v <bitrate> -tag:v hvc1 -g 120; common flags are -vf scale='min(<width>,iw)':-2:flags=lanczos -r 60 -fps_mode cfr -pix_fmt yuv420p -movflags +faststart -an plus the master's own -color_primaries/-color_trc/-colorspace when not 'unknown'",
+        "The poster is the film's own first frame, extracted with -frames:v 1 and encoded as <name>-poster.webp",
+        "pane_crop finds the chat pane by diffing against blank-wide.png inside the box (684, 244, 2764, 1624), thresholding a difference above 18 to 255, taking getbbox, moving 40 px above the first content and running to (2764, 1864)",
+        "wait_for_run first waits the app into existence (60 tries, 2 s apart, because a fresh bundle's first launch can take a minute to clear LaunchServices) and exits 'the run never launched (<marker>)' if it never appears",
+        "capture() exits 'The capture run wrote no <master> film; see <log>' when a film is missing or zero bytes; capture_tour() lists every missing still in one message",
+        "ffprobe reads width, height, avg_frame_rate, color_space, color_transfer, color_primaries and color_range from stream v:0 as JSON",
+        "CLI: no flags means build + capture_tour + encode_tour; --website adds the wallpaper capture/encode/upload path; --encode skips build and capture; --upload-only skips build, capture and encode; --upload or --upload-only uploads"
+      ],
+      "unresolved_questions": [
+        "The web-slash, web-quote and web-notify sources appear in TOUR_STILLS but have no entry in tour_captures.py's WINDOW_SIZES table, so their window sizes are only known to the Swift capture code.",
+        "The two pipelines build different bundle names from the same scheme: this file points APP at 'Droppy Code Dev.app' under build.noindex/website, while tour_captures.py points at 'Droppy Code.app' under build.noindex/tour."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,796 @@
+{
+  "bundle_id": "R063",
+  "reader": "R063-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Resources/AppIcon.icon/Assets/mascot (3).png",
+      "sha256": "50e7235981eb956261bc04f9f9a1da0e27335e358f48576403e177d2593e813a",
+      "asset_inspection": "PNG, 1528x1749, 8-bit RGBA (colorType 6), non-interlaced, 614192 bytes. Chunks IHDR,pHYs,sRGB,gAMA,tEXt,IDAT,IEND; pHYs 5669x5669 px/metre (=144 dpi), sRGB intent 0, gAMA 45455, tEXt Software=Figma. Artwork: the Droppy mascot, a glossy light-blue teardrop whose point leans to the upper right, with two tall white oval eyes low-centre and a soft white inner highlight along the bottom; a wide white blurred halo bleeds past the drop on a transparent background.",
+      "purpose": "Light-appearance mascot layer of the macOS 26 layered .icon app icon: the blue glossy Droppy teardrop that icon.json shows at full opacity in the default appearance and hides in dark and tinted.",
+      "key_symbols": [],
+      "calls_into": [
+        "DroppyCode/Resources/AppIcon.icon/icon.json layer named \"mascot \" (image-name \"mascot (3).png\")"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Apple .icon layered icon bundle (Icon Composer), macOS 26 Liquid Glass app icon pipeline",
+        "icon.json gives this layer glass-specializations true for the default appearance and false for dark, so AppKit applies the glass material to it"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Dock / Finder / About app icon",
+        "icon.json position: scale 0.5, translation-in-points [0, 36]"
+      ],
+      "feature_notes": [
+        "opacity-specializations: dark = 0, tinted = 0 (no explicit default entry, so it is opaque in the default appearance)",
+        "Paired with 'shadow def.png', which is also default-only, so the default light icon is this drop over the blue-tinted shadow",
+        "Group fill-specializations behind it: default linear-gradient display-p3:0.56863,0.76863,1.00000,1.00000 -> srgb:0.14510,0.50196,1.00000,1.00000"
+      ],
+      "unresolved_questions": [
+        "The '(3)' in the filename looks like a Figma export duplicate suffix; nothing in the repository says whether variants (1) or (2) ever existed."
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/AppIcon.icon/Assets/mascot dark.png",
+      "sha256": "a4718b34da21345c39a15ecde8b499d56516130f5c732dd00079951e49c9d828",
+      "asset_inspection": "PNG, 1528x1749, 8-bit RGBA (colorType 6), non-interlaced, 592612 bytes. Same chunk set and metadata as the light mascot: pHYs 5669x5669 unit=1, sRGB intent 0, gAMA 45455, tEXt Software=Figma. Artwork: the same teardrop silhouette as 'mascot (3).png' but desaturated to a grey/silver gradient body (dark on the upper-left flank, light along the lower-right), keeping the two white oval eyes and the wide white blurred halo on transparency.",
+      "purpose": "Dark-and-tinted-appearance mascot layer of the layered .icon bundle: the same Droppy teardrop rendered in neutral greys so the group's dark gradient fill and the system tint can colour it.",
+      "key_symbols": [],
+      "calls_into": [
+        "DroppyCode/Resources/AppIcon.icon/icon.json layer named \"mascot dark\" (image-name \"mascot dark.png\")"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Apple .icon layered icon bundle; appearance specialization (default / dark / tinted) is resolved by the OS, not by app code"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "icon.json position: scale 0.5, translation-in-points [0, 36] (identical placement to the light mascot, so the two swap in register)"
+      ],
+      "feature_notes": [
+        "opacity-specializations: default 0, dark 1, tinted 1",
+        "glass-specializations: default false, dark true, so the dark variant is the one that takes the glass material",
+        "Dark group fill behind it: linear-gradient display-p3:0.20870,0.20870,0.20870,1.00000 -> display-p3:0.08561,0.08561,0.08561,1.00000"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/AppIcon.icon/Assets/shadow dark.png",
+      "sha256": "1b20410a1dd70bbb155c91f240e3b2089b324b35fb15aa9a6b2c84e8c6284709",
+      "asset_inspection": "PNG, 743x339, 8-bit RGBA, non-interlaced, 180035 bytes. Chunks IHDR,pHYs,sRGB,gAMA,tEXt,IDAT,IEND; pHYs 2835x2835 px/metre (=72 dpi), sRGB intent 0, gAMA 45455, tEXt Software=Figma. Artwork: a single soft horizontally-stretched elliptical blur in neutral grey/black, densest in a flat-ended band across the middle and fading to full transparency at the edges. No hard geometry and no colour cast.",
+      "purpose": "Neutral contact-shadow ellipse painted under the mascot in the dark and tinted appearances of the layered app icon, so the drop reads as sitting on the icon plate.",
+      "key_symbols": [],
+      "calls_into": [
+        "DroppyCode/Resources/AppIcon.icon/icon.json layer named \"shadow dark\" (image-name \"shadow dark.png\")"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Apple .icon layered icon bundle appearance specialization"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "icon.json position: scale 1, translation-in-points [0, 342] (pushed far down the plate, under the drop)"
+      ],
+      "feature_notes": [
+        "opacity-specializations: default 0, dark 1, tinted 1",
+        "glass-specializations: false in both default and dark, so the shadow never takes the glass material",
+        "Same pixel dimensions as 'shadow def.png', so the two swap in register; only the tint differs (grey here, blue there)"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/AppIcon.icon/Assets/shadow def.png",
+      "sha256": "53533afd2dd1a8d0bc2bf064684543ba1159fab7a4d47b2afb6e4907c1e963ea",
+      "asset_inspection": "PNG, 743x339, 8-bit RGBA, non-interlaced, 279706 bytes. Chunks IHDR,pHYs,sRGB,gAMA,tEXt,IDAT,IEND; pHYs 2835x2835 unit=1, sRGB intent 0, gAMA 45455, tEXt Software=Figma. Artwork: the same soft stretched ellipse as 'shadow dark.png' but tinted slate/steel blue, with a desaturated navy core fading out through pale blue-grey to transparency, matching the blue icon plate.",
+      "purpose": "Blue-tinted contact-shadow ellipse for the default (light) appearance of the layered app icon, sitting under the blue mascot layer.",
+      "key_symbols": [],
+      "calls_into": [
+        "DroppyCode/Resources/AppIcon.icon/icon.json layer named \"shadow def\" (image-name \"shadow def.png\")"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Apple .icon layered icon bundle appearance specialization"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "icon.json position: scale 1, translation-in-points [0, 342]"
+      ],
+      "feature_notes": [
+        "opacity-specializations: default 1, dark 0, tinted 0; it is the only layer with an explicit default opacity of 1",
+        "glass-specializations: false in both default and dark",
+        "Group-level shadow in icon.json is separate from this bitmap: kind \"neutral\", opacity 0.6; translucency enabled with value 0.2",
+        "icon.json also lists a fifth layer, 'SVG Image.svg' at opacity 0.33 in both default and dark, which is not part of this bundle"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/UpdateBugFixesIcon.imageset/update-bug-fixes.png",
+      "sha256": "2025b1d5d7dbb84b4280ade41ba4182554612db3791eb5ca268e0be8b8cc2159",
+      "asset_inspection": "PNG, 128x128, 8-bit RGBA, non-interlaced, 19762 bytes. Chunks IHDR,sRGB,eXIf,IDAT,IEND: no pHYs, but it carries an eXIf block. Artwork: a red app-tile squircle with a dark outline and a top notch, a glossy red gradient face, and a cream/off-white open-ended wrench lying on a diagonal with a small check mark cut into its head.",
+      "purpose": "The 128x128 red wrench-and-check tile that marks the Bug fixes section of a release's notes on the About page's software-update cards.",
+      "key_symbols": [],
+      "calls_into": [
+        "ReleaseNoteCategory.assetName in DroppyCode/App/Views/Settings/AboutUpdateViews.swift:22 returns \"UpdateBugFixesIcon\" for case .bugFixes",
+        "Loaded through SwiftUI Image(category.assetName)"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog (Assets.xcassets) imageset resolved by name at runtime through NSImage/SwiftUI Image"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Card icon: .resizable().interpolation(.high).scaledToFit().frame(width: 26, height: 26) at AboutUpdateViews.swift:221-225",
+        "Section header icon: the same modifiers at .frame(width: 24, height: 24) at AboutUpdateViews.swift:269-273",
+        "Card title text \"Bugs\"; section title \"Bug fixes\"; count summary \"\\(count) fixed\""
+      ],
+      "feature_notes": [
+        "Contents.json declares one universal 1x entry: {\"filename\":\"update-bug-fixes.png\",\"idiom\":\"universal\",\"scale\":\"1x\"}, so a 128pt logical image is downscaled to 26pt and 24pt rather than coming from a @2x pair",
+        "ReleaseNoteCategory.cardTint for .bugFixes is Color(red: 0.90, green: 0.30, blue: 0.24), which the source comment says is sampled from this icon"
+      ],
+      "unresolved_questions": [
+        "The eXIf block's contents were not decoded; only its presence was recorded."
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/UpdateNewFeaturesIcon.imageset/update-new-features.png",
+      "sha256": "c036bb8a900aaec95b94f4643fd64bfd781f31a7b94cd6e4d965cc6bb28a2bb9",
+      "asset_inspection": "PNG, 128x128, 8-bit RGBA, non-interlaced, 20285 bytes. Chunks IHDR,sRGB,eXIf,IDAT,IEND. Artwork: a blue app-tile squircle with a dark outline and a top notch, a blue vertical gradient face, bearing a thick white plus sign with a small white four-pointed sparkle at its upper right.",
+      "purpose": "The 128x128 blue plus-and-sparkle tile that marks the New features section of a release's notes on the About page's update cards.",
+      "key_symbols": [],
+      "calls_into": [
+        "ReleaseNoteCategory.assetName returns \"UpdateNewFeaturesIcon\" for case .newFeatures at AboutUpdateViews.swift:21"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog imageset lookup by name"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Card icon frame 26x26 and section header icon frame 24x24, both .resizable().interpolation(.high).scaledToFit()",
+        "Card title text \"New\"; section title \"New features\"; count summary \"1 addition\" when count == 1 else \"\\(count) additions\""
+      ],
+      "feature_notes": [
+        "Contents.json: one universal 1x entry {\"filename\":\"update-new-features.png\",\"idiom\":\"universal\",\"scale\":\"1x\"}",
+        "ReleaseNoteCategory.cardTint for .newFeatures is Color(red: 0.09, green: 0.44, blue: 0.85)",
+        "The same glyph, flattened to white on transparency, ships on the website as website/assets/images/changelog-icons/new-features.png"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/UpdateRefinementsIcon.imageset/update-refinements.png",
+      "sha256": "d2431478814ecd3e2e604cb560f66dd74d2baeec61cfbddc8fa649671ac10239",
+      "asset_inspection": "PNG, 128x128, 8-bit RGBA, non-interlaced, 17578 bytes. Chunks IHDR,sRGB,eXIf,IDAT,IEND. Artwork: a purple app-tile squircle with a dark outline and a top notch, carrying three stacked horizontal slider rails in pale lilac, each with one round knob at a different position along its rail.",
+      "purpose": "The 128x128 purple three-slider tile that marks the Refinements section of a release's notes on the About page's update cards.",
+      "key_symbols": [],
+      "calls_into": [
+        "ReleaseNoteCategory.assetName returns \"UpdateRefinementsIcon\" for case .refinements at AboutUpdateViews.swift:23"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog imageset lookup by name"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Card icon frame 26x26 and section header icon frame 24x24",
+        "Card title text \"Refinements\", the same string as its section title; count summary \"\\(count) improved\"",
+        "Sibling card copy when a section is absent: \"Nothing here\""
+      ],
+      "feature_notes": [
+        "Contents.json: one universal 1x entry {\"filename\":\"update-refinements.png\",\"idiom\":\"universal\",\"scale\":\"1x\"}",
+        "ReleaseNoteCategory.cardTint for .refinements is Color(red: 0.43, green: 0.23, blue: 0.72)",
+        "Release notes feeding these three cards are parsed from the GitLab release description under '## New features', '## Bug fixes' and '## Refinements' headings"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/droppy-logo.png",
+      "sha256": "0f5d9663a0d23c458ab8e2783237596e5618d482f4ac23f00ead91eccef04388",
+      "asset_inspection": "PNG, 256x256, 8-bit RGBA, non-interlaced, 51677 bytes. Chunks IHDR,gAMA,cHRM,eXIf,pHYs,iTXt,IDAT,IEND; gAMA 45455, pHYs 5669x5669 unit=1, iTXt XML:com.adobe.xmp written by XMP Core 6.0.0. Artwork: the Droppy company mark, a rounded-square (squircle) tile filled with a light-to-mid blue vertical gradient carrying the glossy translucent teardrop mascot with two white oval eyes. Plain blue plate, no binary-digit pattern.",
+      "purpose": "1x slot of the droppy-logo imageset: the Droppy parent-brand mark shown in Settings beside the 'Made by Droppy' link, deliberately different from the Droppy Code app icon.",
+      "key_symbols": [],
+      "calls_into": [
+        "MadeByDroppyRow in DroppyCode/App/Views/Settings/SettingsView.swift:1051 uses Image(\"droppy-logo\")"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode asset catalog imageset, scale-slot selection by the display's backing scale"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Image(\"droppy-logo\").resizable().interpolation(.high).frame(width: 40, height: 40).accessibilityHidden(true)",
+        "Row copy: \"Made by Droppy\" at .system(size: 13, weight: .semibold); \"Droppy Code is a coding app by Droppy for Mac.\" at .system(size: 11); trailing Text(verbatim: \"getdroppy.app\") with SF Symbol \"arrow.up.right\" at .system(size: 10, weight: .semibold)",
+        "Layout: HStack spacing 12, inner VStack alignment .leading spacing 2, Spacer(minLength: 12)"
+      ],
+      "feature_notes": [
+        "Contents.json sets properties.template-rendering-intent = \"original\", so the logo keeps its own colours and is never tinted as a template image",
+        "Byte-identical (same sha256) to docs/droppy-logo.png, the copy the README links from"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/droppy-logo@2x.png",
+      "sha256": "8007b4c58a34c96525245976b4d715930a24b4a8fac1614811c058720d98943d",
+      "asset_inspection": "PNG, 512x512, 8-bit RGBA, non-interlaced, 168848 bytes. Chunks IHDR,gAMA,cHRM,eXIf,pHYs,iTXt,IDAT,IEND; gAMA 45455, pHYs 5669x5669 unit=1, iTXt XML:com.adobe.xmp. Artwork: the same plain-blue squircle Droppy mark at double resolution; the teardrop's glassy rim highlight and the two white eyes are visibly crisper, and the plate's gradient runs pale blue at the top to a stronger blue at the bottom.",
+      "purpose": "2x Retina slot of the droppy-logo imageset, the file actually sampled for the 40x40 point 'Made by Droppy' badge on a Retina Mac.",
+      "key_symbols": [],
+      "calls_into": [
+        "Resolved through the same Image(\"droppy-logo\") call site in SettingsView.swift:1051"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "AppKit @2x asset-catalog scale slot; assumes a Retina backing scale of 2.0"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Rendered at 40x40 points inside MadeByDroppyRow, which is a SwiftUI Link holding an isHovering @State"
+      ],
+      "feature_notes": [
+        "Declared in Contents.json as {\"filename\":\"droppy-logo@2x.png\",\"idiom\":\"universal\",\"scale\":\"2x\"}",
+        "Not the same image as docs/icon.png, which is also a 512x512 RGBA PNG but is the Droppy Code app icon with the binary-digit backdrop"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/tour-hydra.imageset/tour-hydra@2x.png",
+      "sha256": "f3c4832c791af3599ce388143e53e411bacb9b8f4a6ad6b4f3251c7dd1f5524c",
+      "asset_inspection": "PNG, 1320x824, 8-bit RGB (colorType 2, no alpha), non-interlaced, 546393 bytes; chunks IHDR,iCCP,IDAT,IEND with an embedded profile named 'ICC Profile'. Content: a screenshot of the Droppy Code window titled 'Welcome tour for the app' showing the lead reply 'Three heads are out: one builds the tour window, one writes the pages and wires the Help menu, one photographs every page. I keep the design and the integration.', a 'Sending out 3 heads' card listing 'Tour window and slideshow', 'Tour pages and Help menu', 'Screenshots for every page', three 'Sent out Hank/Walter/Ada' rows, status pills 'Hank is done', 'Walter and Ada are working' and 'Hank finished working', and a head panel docked on the right headed 'Ada' with 'working 58s' and the placeholder 'Ask OpenCode to build, fix or explai'.",
+      "purpose": "Artwork for the 'Meet Hydra' tour page, showing one chat dispatching three named helper agents in parallel with a live head panel docked beside the conversation.",
+      "key_symbols": [],
+      "calls_into": [
+        "Tour.pages entry TourPage(imageName: \"tour-hydra\", ...) at DroppyCode/App/Views/Tour/TourPages.swift:6",
+        "TourView.artwork(for:) does NSImage(named: page.imageName) then Image(page.imageName).resizable().scaledToFill() at TourView.swift:256-259",
+        "Captured by recorder.still(\"tour-hydra\", stage.tourCaptureRect) at DroppyCode/App/Captures/TourCaptures+Hydra.swift:177, encoded by scripts/tour_captures.py"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "A real macOS screen capture of the app under Liquid Glass; the desktop wallpaper and the window's vibrancy are baked into the pixels"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Tour page title \"Meet Hydra\"",
+        "Tour page description \"One chat, many heads. The lead writes the briefs, sends helper agents out in parallel, each in a copy of your project, and their work lands back in your checkout.\"",
+        "Composer visible in the shot: placeholder \"Ask Claude for anything; big jobs go out t\" with the model chip \"Fable High\""
+      ],
+      "feature_notes": [
+        "Contents.json declares only a 2x slot, so the intended logical size is 660x412 points",
+        "scripts/tour_captures.py encodes every tour still at WIDTH = 1320, HEIGHT = 824 through fit(frame(source), WIDTH, HEIGHT)",
+        "TourView falls back to LinearGradient(colors: [Color(red: 0.16, green: 0.12, blue: 0.40), Color(red: 0.05, green: 0.05, blue: 0.10)], startPoint: .top, ...) when NSImage(named:) returns nil"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/tour-pairs.imageset/tour-pairs@2x.png",
+      "sha256": "d4fbfff100310f300cfe103f87cb6d172e893bc8bb358815d2447898331dd2ba",
+      "asset_inspection": "PNG, 1320x824, 8-bit RGB, non-interlaced, 404967 bytes; chunks IHDR,iCCP,IDAT,IEND with an embedded ICC profile. Content: a screenshot of the empty-chat window (title 'Attachment strip insets', greeting 'What should we build in Droppy Code?' over the dark mascot tile) with the model picker popover open on the right. The popover is headed 'Select model' with a back chevron; its 'Pairs' section lists 'Fable + Gemini 3.8 Flash / Claude lead, Antigravity heads' and 'Fable + OpenRouter/Mus... / Claude lead, OpenCode heads'; the 'Models' section lists Opus (Claude, with a lightning bolt and a check mark), Sonnet (Claude), Gemini 3.8 Flash (Antigravity), V4 Pro (DeepSeek) and Spark 1.3 (Meta).",
+      "purpose": "Artwork for the 'Pair a strong lead with quick heads' tour page, showing the model picker's Pairs section sitting above the flat model list.",
+      "key_symbols": [],
+      "calls_into": [
+        "Tour.pages entry TourPage(imageName: \"tour-pairs\", ...) at TourPages.swift:7",
+        "Captured by capture(model, stage, recorder, name: \"tour-pairs\", backdrop: .pairs, size: NSSize(width: 960, height: 600)) at TourCaptures.swift:84"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "macOS screenshot with the real popover shadow and Liquid Glass translucency baked in"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Tour page title \"Pair a strong lead with quick heads\"",
+        "Tour page description \"Put a Claude lead over Gemini or OpenCode heads. Pick the pair from the model picker, cap how many heads run at once, and give each side its own effort.\"",
+        "Composer chip in the shot reads \"Opus High\"; placeholder \"Ask Claude for anything; big jobs go out to a team of heads\""
+      ],
+      "feature_notes": [
+        "The source window for this capture is 960x600 points, then fitted onto the 1320x824 imageset canvas",
+        "Only a 2x slot exists in Contents.json, so there is no 1x fallback"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/tour-panels.imageset/tour-panels@2x.png",
+      "sha256": "1fdb11ae42911d1ff49c6dc4acb2700a1e15f115f244022a259d8d63c1c27e0e",
+      "asset_inspection": "PNG, 1320x824, 8-bit RGB, non-interlaced, 538872 bytes; chunks IHDR,iCCP,IDAT,IEND with an embedded ICC profile. Content: the 'Welcome tour for the app' window with two head panels docked along the bottom edge. Bottom-left is 'Hank  done 48s' captioned 'Tour window and slideshow'; bottom-right is a '2' heads chip with 'Ada  working 1m 23s' captioned 'Screenshots for every page'; both carry their own 'Ask OpenCode to build, fix or explai' composers. The centre conversation keeps a 2-of-3 checklist ('Crop every capture on its action', 'Swap the site's films for stills', 'Upload the set and deploy'), an 'Edited +51 -37' row, and its own 'Ask Claude for anything; bi' composer with a 'Fable High' chip.",
+      "purpose": "Artwork for the 'Panels that float' tour page, showing two head panels docked into the bottom corners while the conversation narrows to make room between them.",
+      "key_symbols": [],
+      "calls_into": [
+        "Tour.pages entry TourPage(imageName: \"tour-panels\", ...) at TourPages.swift:11",
+        "Captured by recorder.still(\"tour-panels\", stage.tourCaptureRect) at TourCaptures+Hydra.swift:301"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "macOS window capture; the docked panels' glass blur over the wallpaper is baked into the pixels"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Tour page title \"Panels that float\"",
+        "Tour page description \"Changes, the terminal and the team's panel dock to any corner and can pop out on their own. The conversation makes room, and everything stays in one window.\"",
+        "Visible user message bubble: \"Use the same pictures on the website, zoomed in on the action.\""
+      ],
+      "feature_notes": [
+        "Shares the Hydra capture stage with tour-hydra, so both stills show the same 'Welcome tour for the app' thread at different moments",
+        "Contents.json declares only the 2x slot"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/tour-recipes.imageset/tour-recipes@2x.png",
+      "sha256": "3047cf7a53dcc5391e3bfa84b20eca9af4530de1220af875f4cc1be50d79dbf0",
+      "asset_inspection": "PNG, 1320x824, 8-bit RGB, non-interlaced, 682913 bytes; chunks IHDR,iCCP,IDAT,IEND with an embedded ICC profile. Content: the app window floating over an iridescent wallpaper with the Cookbook panel open on the right. Panel header 'Cookbook' with the subtitle 'Pairs built from the models in your library: which one leads, at what effort, and which ones build. Add one and it is in the model picker.' Rows, each with a blue '+ Add' button: 'Fable + Opus', 'Opus + Gemini 3.8 Flash' (Claude lead, Antigravity heads - Lead high, heads medium effort), 'Opus + V4.1 Flash' (Claude lead, DeepSeek heads - High effort), '6 Astra + Spark 1.3 Contributor' (Command Code lead, Meta heads - Lead high, heads medium effort) and '6 Astra + 5.6 Terra' (Command Code lead, Codex heads - Lead high, heads medium effort).",
+      "purpose": "Artwork for the 'Recipes for a team' tour page, showing Hydra's Cookbook of ready-made lead-plus-heads pairs with their per-side effort lines and Add buttons.",
+      "key_symbols": [],
+      "calls_into": [
+        "Tour.pages entry TourPage(imageName: \"tour-recipes\", ...) at TourPages.swift:10",
+        "Captured by capture(..., name: \"tour-recipes\", backdrop: .hydra, size: NSSize(width: 960, height: 600)) at TourCaptures.swift:140"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "macOS screenshot; a sliver of the system menu bar is visible along the top of this frame"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Tour page title \"Recipes for a team\"",
+        "Tour page description \"Hydra's cookbook holds ready-made pairs: a lead, its heads and the effort each side gets, from the providers you have signed in. Pick one in Settings and every new chat starts on it.\"",
+        "Recipe blurbs legible in the image, for example \"The deepest lead over the strongest builders: Fable plans and checks, Opus heads build. Set the thinking effort of each side yourself.\" and \"OpenAI top to bottom: Astra plans and reviews, Terra does the work at medium.\""
+      ],
+      "feature_notes": [
+        "Captured on the .hydra backdrop at 960x600 points",
+        "Composer chip in the shot reads \"Fable Max\""
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/tour-slider.imageset/tour-slider@2x.png",
+      "sha256": "24dabdf44f19b3a87f11d86b9663c1418b8365712bf77070391c3e6e0d01df3d",
+      "asset_inspection": "PNG, 1320x824, 8-bit RGB, non-interlaced, 342603 bytes; chunks IHDR,iCCP,IDAT,IEND with an embedded ICC profile. Content: a tight crop on the effort popover. The card shows the title 'Max' with a disclosure chevron, the word painted in a pink-to-blue gradient, a reset arrow at the top right, the subtitle 'Fable + Gemini 3.8 Flash' with a small lead glyph, a wide rounded track running burnt orange on the left through a white hot spot into blue on the right with speckled particles and a large pale-pink knob at the far right, and the caption \"The lead's effort \\u00b7 heads keep their own\". Below it the composer strip shows 'Fable Max' with a chevron.",
+      "purpose": "Artwork for the 'Effort, on a slider' tour page: a close-up of the effort popover in a pair, showing the lead-to-heads colour blend and the fast-mode particle streaks on the track.",
+      "key_symbols": [],
+      "calls_into": [
+        "Tour.pages entry TourPage(imageName: \"tour-slider\", ...) at TourPages.swift:8",
+        "Captured by capture(..., name: \"tour-slider\", backdrop: .slider, size: NSSize(width: 960, height: 600)) at TourCaptures.swift:103"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "macOS screenshot; the popover's glass blur and the track's gradient are baked pixels, not live SwiftUI"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Tour page title \"Effort, on a slider\"",
+        "Tour page description \"Drag from low to max on any model. In a pair the track blends the lead's colour into the heads', fast mode streaks toward the knob, and the title opens the model picker.\"",
+        "Partially visible behind the popover: the greeting fragment \"e build in Droppy Code?\" with a dashed underline under 'Droppy Code'"
+      ],
+      "feature_notes": [
+        "This is the only tour still that is a zoomed crop rather than a whole window, so the window chrome is cut off on every edge",
+        "Popover caption captured verbatim: \"The lead's effort \\u00b7 heads keep their own\""
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/tour-themes.imageset/tour-themes@2x.png",
+      "sha256": "2361ef94dae845d6152d8a911ce0dcf145e285db7883991d7b38e4a258bd2834",
+      "asset_inspection": "PNG, 1320x824, 8-bit RGB, non-interlaced, 733624 bytes. Chunks are IHDR,IDAT,IEND only, with NO iCCP profile, unlike every other tour still, because it is composited by Pillow rather than exported through the screen-capture path. Content: a 2x2 mosaic of the same 'Composer: draft photo spacing' conversation rendered in four themes with a thin dark seam between tiles: top-left a blue-violet dark theme, top-right a warm brown/amber dark theme, bottom-left a pale lavender light theme, bottom-right a muted rose/plum dark theme.",
+      "purpose": "Artwork for the 'Make it yours' tour page: a four-up theme mosaic assembled by scripts/tour_captures.py from separate per-theme window captures.",
+      "key_symbols": [],
+      "calls_into": [
+        "Tour.pages entry TourPage(imageName: \"tour-themes\", ...) at TourPages.swift:12",
+        "Built by theme_mosaic() and written by write_imageset(\"tour-themes\", fit(theme_mosaic(), WIDTH, HEIGHT)) at scripts/tour_captures.py:262"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Assembled from per-theme macOS window captures named tour-theme-<theme>.png"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Tour page title \"Make it yours\"",
+        "Tour page description interpolates the live theme count: \"\\(themeCount) themes, from Catppuccin to Kanagawa, in real Liquid Glass. Built in Swift, so it scrolls at 120 frames a second and starts in a blink.\"",
+        "themeCount is AppTheme.allCases.count spelled out with NumberFormatter numberStyle .spellOut in Locale(identifier: \"en_US\"), added because the copy had drifted to twenty-five after a twenty-sixth theme landed"
+      ],
+      "feature_notes": [
+        "theme_mosaic() uses THEME_ORDER = [\"tokyoNight\", \"gruvbox\", \"catppuccinLatte\", \"rosePine\"], laid out left to right then top to bottom",
+        "gap = 6 px, tile_w = (1320 - 6) // 2 = 657, tile_h = (824 - 6) // 2 = 409, seam/background colour RGB (16, 16, 20)",
+        "Each tile is interior(f\"tour-theme-{theme}\", inset=8), the window's inside with the chrome edge trimmed by 8"
+      ],
+      "unresolved_questions": [
+        "Which AppTheme case each visual tile corresponds to was inferred from THEME_ORDER rather than from any label baked into the image."
+      ]
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/tour-threads.imageset/tour-threads@2x.png",
+      "sha256": "34e6e931e7147b6b941fdc8a9d6a9030cd1a3287471b466b0d00ae0ec23f03bf",
+      "asset_inspection": "PNG, 1320x824, 8-bit RGB, non-interlaced, 746435 bytes; chunks IHDR,iCCP,IDAT,IEND with an embedded ICC profile. Content: the sidebar-less window over a glassy wallpaper with the Threads floating panel open at the top left. The panel has a 'Search threads' field and a bell button, a 'Today' group listing 'Welcome tour for the app / Droppy Code' with a nested '3 heads' disclosure, 'Composer: draft photo spacing / Droppy Code' highlighted, 'Regional pricing claim expiry / getdroppy.app', 'Attachment strip insets', 'Timeline final answer', 'Final answer card' and 'Archive: delete all', a 'Yesterday' group cut off below, and a footer with '+ Add project' and a gear 'Settings' row.",
+      "purpose": "Artwork for the 'Threads, when you want them' tour page, showing the thread list coming back as a floating panel over a full-width conversation.",
+      "key_symbols": [],
+      "calls_into": [
+        "Tour.pages entry TourPage(imageName: \"tour-threads\", ...) at TourPages.swift:9",
+        "Captured by capture(..., name: \"tour-threads\", backdrop: .panels, size: NSSize(width: 960, height: 600)) at TourCaptures.swift:129"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "macOS screenshot; the floating panel's shadow falls outside the window bounds and onto the captured wallpaper"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Tour page title \"Threads, when you want them\"",
+        "Tour page description \"Hide the sidebar and the chat has the whole window. The Threads button brings the list back as a floating panel: the same search, the same rows, and it goes away as soon as you pick one.\"",
+        "Search field placeholder \"Search threads\"; footer actions \"Add project\" and \"Settings\"; group headings \"Today\" and \"Yesterday\""
+      ],
+      "feature_notes": [
+        "Uses the .panels backdrop even though it is the Threads page, so it shares a wallpaper with the panels scene",
+        "Only a 2x slot in Contents.json"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/tour-welcome.imageset/tour-welcome@2x.png",
+      "sha256": "1a522c669013882669c6d66b9d8ad5e2009ad230033d6b4ece811484958d9f50",
+      "asset_inspection": "PNG, 1320x824, 8-bit RGB, non-interlaced, 485967 bytes; chunks IHDR,iCCP,IDAT,IEND with an embedded ICC profile. Content: an edge-to-edge shot of the window titled 'Composer: draft photo spacing' with traffic lights, toolbar buttons and a 'main' branch chip at the top. The thread shows the user bubble 'Where does the composer decide how far the draft photo sits from the edges?', a 'Worked for 58s' disclosure, an answer naming DraftAttachments inside ComposerView.swift and attachmentInset (14pt), the follow-up 'Want me to give the top the same 14pt?', a second user bubble, an 'Edited files, read files' row, a '2 of 3 done' checklist, a 'Running xcodebuild -scheme DroppyCode build' line, a '1 file +3 -1' diff pill, and the composer with placeholder 'Ask Claude for anything; big jobs go out to a team of heads' and an 'Opus High' chip.",
+      "purpose": "Artwork for the first tour page, the overview shot of one whole Droppy Code window mid-conversation with the diff pill and composer visible.",
+      "key_symbols": [],
+      "calls_into": [
+        "Tour.pages entry TourPage(imageName: \"tour-welcome\", ...) at TourPages.swift:5",
+        "Captured by capture(model, stage, recorder, name: \"tour-welcome\", backdrop: .welcome, size: NSSize(width: 1280, height: 800)) at TourCaptures.swift:70"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "macOS screenshot of the full window including the window's own vibrancy over the wallpaper"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Tour page title \"Welcome to Droppy Code\"",
+        "Tour page description \"One native macOS window for every coding agent you use. Claude, Codex, Gemini, Copilot and more, each in its own thread, on the same Liquid Glass.\"",
+        "Checklist items legible in the image: \"Find the attachment strip's insets\", \"Match the top inset to the leading one\", \"Build and confirm nothing else moved\""
+      ],
+      "feature_notes": [
+        "This is the only tour still captured at 1280x800 points; every other whole-window page uses 960x600",
+        "It is the same conversation that the tour-themes mosaic tiles show in four themes"
+      ],
+      "unresolved_questions": [
+        "scripts/tour_captures.py describes the welcome scene as 'the whole window with the sidebar open, no popover', but no sidebar is visible in the shipped image; whether the scene changed or the comment is stale cannot be determined from these files."
+      ]
+    },
+    {
+      "path": "docs/droppy-logo.png",
+      "sha256": "0f5d9663a0d23c458ab8e2783237596e5618d482f4ac23f00ead91eccef04388",
+      "asset_inspection": "PNG, 256x256, 8-bit RGBA, non-interlaced, 51677 bytes. Chunks IHDR,gAMA,cHRM,eXIf,pHYs,iTXt,IDAT,IEND; gAMA 45455, pHYs 5669x5669 unit=1, iTXt XML:com.adobe.xmp from XMP Core 6.0.0. Its sha256 is identical to DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/droppy-logo.png, so it is a byte-for-byte duplicate of the in-app 1x logo. Artwork: the plain blue squircle Droppy company mark with the glassy teardrop and two white eyes, no binary backdrop.",
+      "purpose": "Repository-visible copy of the Droppy parent-brand mark that README.md links to getdroppy.app with, kept outside the asset catalog so GitHub can render it.",
+      "key_symbols": [],
+      "calls_into": [
+        "README.md:78 <a href=\"https://getdroppy.app\"><img src=\"docs/droppy-logo.png\" width=\"64\" alt=\"Droppy logo\"></a>"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Rendered by the README at width=\"64\" with alt text \"Droppy logo\", wrapped in a link to https://getdroppy.app"
+      ],
+      "feature_notes": [
+        "A duplicate of the in-app 1x logo slot rather than a separately exported file, so the port must either keep both copies in sync or dedupe them deliberately"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "docs/icon.png",
+      "sha256": "5541c64f4d6d628b978aa9ceb07a7c86a3bc5991b39dbc0914984248b96a7a3e",
+      "asset_inspection": "PNG, 512x512, 8-bit RGBA, non-interlaced, 168110 bytes. Chunks IHDR,gAMA,cHRM,eXIf,pHYs,iTXt,IDAT,IEND; gAMA 45455, pHYs 5669x5669 unit=1, iTXt XML:com.adobe.xmp. Artwork: the Droppy CODE app icon rather than the plain Droppy logo. A blue squircle whose plate is filled with rows of faint white binary digits (0s and 1s), a soft drop shadow beneath the tile, and the glossy translucent teardrop mascot with two white oval eyes centred on top.",
+      "purpose": "The README's masthead image: the Droppy Code application icon with its binary-field plate, supplied at 512x512 so GitHub downscales it cleanly.",
+      "key_symbols": [],
+      "calls_into": [
+        "README.md:1 <img src=\"docs/icon.png\" width=\"128\" alt=\"Droppy Code icon\">"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Rendered by the README at width=\"128\" with alt text \"Droppy Code icon\", on the first line of the file"
+      ],
+      "feature_notes": [
+        "Distinct from droppy-logo@2x.png despite both being 512x512 RGBA PNGs: this one carries the binary-digit backdrop that marks the Code product, the logo does not",
+        "Same artwork family as website/assets/brand/droppy-code-icon-*.png and website/assets/brand/favicon.ico"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "release/dmg/installer-background.tiff",
+      "sha256": "aeb1fc6185d426c876199c2469814a51167b367e7b879486e4832e240df86e1a",
+      "asset_inspection": "Multi-page big-endian TIFF, 121852 bytes, written by 'tiffutil v350' (Software tag 305). Two IFDs: page 0 is 660x430 at XResolution/YResolution 72/1 with ImageDescription 'installer-background.png'; page 1 is 1320x860 at 144/1 with ImageDescription 'installer-background@2x.png'. Both pages use LZW compression (tag 259 = 5), PhotometricInterpretation RGB (2), SamplesPerPixel 4 with ExtraSamples 2 (unassociated alpha), 22 directory entries each. This is the HiDPI TIFF produced by 'tiffutil -cathidpicheck installer-background.png installer-background@2x.png -out installer-background.tiff'.",
+      "purpose": "The DMG installer window's background picture, staged onto the mounted volume as /.background.tiff so Finder paints the Droppy Code drag-to-install scene behind the two icons.",
+      "key_symbols": [],
+      "calls_into": [
+        "release/dmg/dmgbuild_settings.py:23 background = os.path.join(HERE, \"installer-background.tiff\")",
+        "scripts/package_dmg.sh:17 BACKGROUND_ASSET=\"$DMG_ASSET_DIR/installer-background.tiff\"",
+        "Generated by release/dmg/generate_installer_background.swift, whose outputStem is \"installer-background\""
+      ],
+      "state_owned": [],
+      "side_effects": [
+        "dmgbuild copies it onto the built disk image at /.background.tiff, and the pre-baked .DS_Store alias points at that path"
+      ],
+      "platform_assumptions": [
+        "Finder's HiDPI multi-representation TIFF convention (1x and 2x pages in one file), produced by Apple's tiffutil",
+        "Finder anchors volume backgrounds at the top-left, which is why the art carries flat-colour bleed below the composition"
+      ],
+      "persisted_fields": [
+        "/.background.tiff on the mounted volume (path baked into release/dmg/installer-DS_Store.base64)"
+      ],
+      "ui_elements": [
+        "Designed canvas 660x370 points plus exportBleed 60 = 430 exported height, hence the 660x430 page 0",
+        "backgroundColor srgb 0x0b/0x0e/0x14 (#0b0e14); textPrimary 0xe8/0xea/0xed; accent 0x4f/0x9c/0xff (#4f9cff)",
+        "Wordmark \"Droppy Code\" in systemFont size 31 weight .semibold, centred at (330, 88)",
+        "Helper caption \"Drag to install\" in systemFont size 12 weight .medium, NSColor(white: 1, alpha: 0.40), centred at (330, 246)",
+        "Notch silhouette hanging from the top edge: centreX 330, width 150, height 27, cornerRadius 10, filletRadius 7, filled black",
+        "Accent radial glow under the notch: accent at alpha 0.16 to alpha 0, endRadius 210, context translated to (330, 4) and scaled y by 0.42",
+        "Arrow on the icons' centreline y = 208 from x = 250.75 to x = 400.75, chevron legs to (389.75, 199) and (389.75, 217); stroke NSColor(white: 1, alpha: 0.32), lineWidth 2.5, round cap and join, shaft and chevron stroked as ONE path in ONE operation so the translucent alpha does not double at the vertex",
+        "Finder icon geometry it is designed around: iconSize 128, Droppy Code.app centred at (165, 208), Applications at (495, 208)"
+      ],
+      "feature_notes": [
+        "dmgbuild_settings.py pairs it with volume_name \"Droppy Code\", format \"UDZO\", filesystem \"HFS+\", window_rect ((420, 240), (660, 398)), icon_size 128, text_size 12, default_view \"icon-view\", and every bar hidden (status bar, tab view, toolbar, pathbar, sidebar all False), show_icon_preview False, arrange_by None",
+        "The generator declares its geometry the single source of truth shared with the baked .DS_Store; changing it requires re-baking installer-DS_Store.base64",
+        "Rendered into a CGContext with CGColorSpace sRGB and CGImageAlphaInfo.premultipliedLast, flipped to a top-left origin"
+      ],
+      "unresolved_questions": [
+        "The TIFF's LZW RGBA pixels were not decoded, so the rendered result was characterised from generate_installer_background.swift rather than by viewing the image."
+      ]
+    },
+    {
+      "path": "website/assets/brand/droppy-code-icon-180.png",
+      "sha256": "ae48a205e0b7f810e8f835ba139969b7dc2ed3976810b7d59c169d6024b21202",
+      "asset_inspection": "PNG, 180x180, 8-bit RGBA, non-interlaced, 34477 bytes. Chunks IHDR,gAMA,cHRM,eXIf,pHYs,iTXt,IDAT,IEND; gAMA 45455, pHYs 5669x5669 unit=1, iTXt XML:com.adobe.xmp. Artwork: the Droppy Code app icon, a blue squircle plate patterned with faint white binary digits, a soft shadow beneath the tile, and the glossy translucent teardrop with two white oval eyes on top.",
+      "purpose": "The 180x180 apple-touch-icon for getdroppycode.app, and the icon baked into the Open Graph card render.",
+      "key_symbols": [],
+      "calls_into": [
+        "website/index.html:48 and website/changelog.html:45: <link rel=\"apple-touch-icon\" sizes=\"180x180\" href=\"/assets/brand/droppy-code-icon-180.png\">",
+        "scripts/og-home.html:95 <img class=\"icon\" src=\"../website/assets/brand/droppy-code-icon-180.png\" alt=\"\">"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "iOS/iPadOS home-screen icon convention (apple-touch-icon at 180x180)"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Served from the absolute site path /assets/brand/droppy-code-icon-180.png",
+        "In og-home.html it is the .icon element of the card, sitting above the headline"
+      ],
+      "feature_notes": [
+        "It is the only brand PNG referenced by both the live site and the OG-card generator, so regenerating the OG card depends on this exact file"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "website/assets/brand/droppy-code-icon-256.webp",
+      "sha256": "88e73a0910d3d5101f126f728af195da2dafbfc35d085a86db574524d8a00cfb",
+      "asset_inspection": "WebP (RIFF/WEBP), 11020 bytes, extended container: a VP8X chunk (length 10) declaring canvas 256x256 with flags 0x10 (alpha present; no animation, no ICC, no EXIF, no XMP), then an ALPH chunk (length 1992, lossy alpha plane) and a VP8 chunk (length 8982, lossy 256x256). Artwork: the Droppy Code app icon at 256px, the blue binary-digit squircle with a drop shadow and the glassy teardrop mascot with two white eyes.",
+      "purpose": "The 256px WebP app icon used as the large decorative mark in the site's word-scroll section and in the outro block.",
+      "key_symbols": [],
+      "calls_into": [
+        "website/index.html:386 <img class=\"wordscroll__icon\" src=\"assets/brand/droppy-code-icon-256.webp\" alt=\"\" width=\"96\" height=\"96\" aria-hidden=\"true\" loading=\"lazy\" decoding=\"async\">",
+        "website/index.html:695 <img class=\"outro__icon\" src=\"assets/brand/droppy-code-icon-256.webp\" alt=\"\" width=\"96\" height=\"96\" loading=\"lazy\" decoding=\"async\">"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [],
+      "persisted_fields": [],
+      "ui_elements": [
+        ".wordscroll__icon: width 96px, height 96px, display block, border-radius 24px, opacity calc(0.3 + 0.7 * var(--ws-enter, 0)), position relative, z-index 1",
+        ".outro__icon: width 96px, height 96px, border-radius 24px, display block, position relative, z-index 1; .outro__icon-wrap has margin-bottom 32px and ::before content none"
+      ],
+      "feature_notes": [
+        "Lossy VP8 with a separate lossy alpha plane, not lossless VP8L, so the port cannot assume a bit-exact re-encode from the PNG",
+        "Both call sites are decorative: the wordscroll copy is aria-hidden=\"true\" and both use empty alt text with loading=\"lazy\" decoding=\"async\""
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "website/assets/brand/droppy-code-icon-96.png",
+      "sha256": "b402b0ff565b1d2a9c10f1e73e8583152d9e25a3b49ce217b484471689c6bfcf",
+      "asset_inspection": "PNG, 96x96, 8-bit RGBA, non-interlaced, 12960 bytes. Chunks IHDR,gAMA,cHRM,eXIf,pHYs,iTXt,IDAT,IEND; gAMA 45455, pHYs 5669x5669 unit=1, iTXt XML:com.adobe.xmp. Artwork: the Droppy Code binary-plate app icon with the teardrop mascot, small enough that the binary digits read as texture rather than as legible glyphs.",
+      "purpose": "The site's 96x96 PNG favicon and the small brand mark reused in the nav, the changelog hero kicker and the changelog release rows.",
+      "key_symbols": [],
+      "calls_into": [
+        "website/index.html:47 and website/changelog.html:44 <link rel=\"icon\" type=\"image/png\" sizes=\"96x96\" href=\"/assets/brand/droppy-code-icon-96.png\">",
+        "website/index.html:91 and website/changelog.html:71 nav mark at width=\"24\" height=\"24\"",
+        "website/index.html:542 at width=\"34\" height=\"34\"",
+        "website/index.html:724 and website/changelog.html:120 at width=\"48\" height=\"48\" with loading=\"lazy\" decoding=\"async\"",
+        "website/changelog.html:92 <img class=\"hero__kicker-mark\" src=\"assets/brand/droppy-code-icon-96.png\" alt=\"\" height=\"20\">"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Rendered at five different sizes across the two pages: height 20, 24x24, 34x34, 48x48, plus the declared 96x96 favicon",
+        "website/assets/css/changelog.css:37 overrides the shared kicker treatment for this image with .changelog-hero .hero__kicker-mark { filter: none; }"
+      ],
+      "feature_notes": [
+        "The most reused single website brand file; a port must keep all five call-site sizes looking right from this one 96px source"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "website/assets/brand/droppy-icon-64.png",
+      "sha256": "3441bdd3bb4fa2ec321379ad64823064679d526febd32f1a48950db6f72cf514",
+      "asset_inspection": "PNG, 64x64, 8-bit RGBA, non-interlaced, 6637 bytes. Chunks IHDR,gAMA,cHRM,eXIf,pHYs,iTXt,IDAT,IEND; gAMA 45455, pHYs 5669x5669 unit=1, iTXt XML:com.adobe.xmp. Artwork: the plain Droppy PARENT-brand squircle, a pale-to-mid blue gradient plate with the glassy teardrop and two white eyes and NO binary-digit pattern, which is exactly what separates it from the droppy-code-icon-* files.",
+      "purpose": "The small Droppy company mark used wherever the site credits the parent brand rather than the Droppy Code product.",
+      "key_symbols": [],
+      "calls_into": [
+        "website/index.html:119 <img class=\"hero__kicker-mark\" src=\"assets/brand/droppy-icon-64.png\" alt=\"\" width=\"22\" height=\"22\">",
+        "website/index.html:708 <img src=\"assets/brand/droppy-icon-64.png\" alt=\"\" width=\"18\" height=\"18\" style=\"border-radius:5px\">",
+        "scripts/og-home.html:99 the kicker mark beside the words \"The coding app by Droppy\""
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [],
+      "persisted_fields": [],
+      "ui_elements": [
+        "website/assets/css/site.css:746 .hero__kicker-mark { width: auto; height: 22px; border-radius: 6px; }",
+        "The second index.html call site overrides with an inline style border-radius:5px at 18x18",
+        "In og-home.html the .kicker img rule is width 24px, height 24px, border-radius 6px"
+      ],
+      "feature_notes": [
+        "Telling this file apart from the droppy-code-icon family matters for the port: the two marks are not interchangeable, one is Droppy the company and one is Droppy Code the app"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "website/assets/brand/favicon.ico",
+      "sha256": "fd46251b76c988078014b44812bda266caeb9350b95d4ef4351236c8ea05e7e2",
+      "asset_inspection": "Windows ICO resource, 6862 bytes, reserved 0, type 1 (icon), 3 directory entries, every frame PNG-encoded 8-bit RGBA (bit depth 8, colour type 6) declared at 32 bits/pixel with 0 palette entries: entry 0 is 16x16 (687 bytes at offset 54), entry 1 is 32x32 (2081 bytes at offset 741), entry 2 is 48x48 (4040 bytes at offset 2822). Decoding the 48x48 frame shows the Droppy Code squircle filling the frame with roughly 4px of transparent margin behind a rounded-rectangle alpha mask; the dominant opaque colours run #4396ff, #6cb5ff, #6fb8ff, #7ac0ff, #7bc0ff, #7bc1ff, #7dc2ff, #7ec3ff.",
+      "purpose": "The multi-resolution legacy favicon for getdroppycode.app, declared with sizes=\"any\" so browsers that ignore the PNG icon still get a sharp tab mark.",
+      "key_symbols": [],
+      "calls_into": [
+        "website/index.html:46 and website/changelog.html:43 <link rel=\"icon\" href=\"/assets/brand/favicon.ico\" sizes=\"any\">"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Windows ICO container with PNG-compressed frames, the modern browser-favicon convention rather than classic BMP/DIB frames"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Browser tab icon and bookmark mark, served from the absolute path /assets/brand/favicon.ico"
+      ],
+      "feature_notes": [
+        "Both pages declare the icon links in the same order: the .ico with sizes=\"any\", then the 96x96 PNG, then the 180x180 apple-touch-icon",
+        "Unrelated to the app's own FaviconCache, which fetches remote host favicons for links inside replies"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "website/assets/images/changelog-icons/bug-fixes.png",
+      "sha256": "7d82c7a2bb3ae0a99cbee2ce4cf327c85d5c9346a855c03bf5df4864f6e42fa8",
+      "asset_inspection": "PNG, 64x64, 8-bit RGBA, non-interlaced, only 2003 bytes, chunks IHDR,IDAT,IEND with no colour or metadata chunks at all. Decoded pixels: every opaque pixel is exactly #ffffff, with 1614 of 4096 pixels above alpha 16 (39.4% coverage), so it is a pure-white anti-aliased silhouette on transparency. The alpha map shows an open-ended wrench on a diagonal with its ring head at the lower left and a check mark tucked against the upper-right jaw.",
+      "purpose": "White wrench-and-check glyph rendered beside the 'Bug fixes' heading of each release group on the public changelog page.",
+      "key_symbols": [],
+      "calls_into": [
+        "website/assets/js/changelog.js:176 maps the lowercased group label \"bug fixes\" to the file stem \"bug-fixes\", then sets icon.src = \"assets/images/changelog-icons/\" + iconFile + \".png\""
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Injected as <img class=\"changelog-group__icon\" alt=\"\" width=\"15\" height=\"15\"> prepended to the <h3 class=\"changelog-group__label\">",
+        "website/assets/css/changelog.css:378 .changelog-group__icon { width: 15px; height: 15px; opacity: 0.92; flex-shrink: 0; }"
+      ],
+      "feature_notes": [
+        "Monochrome white counterpart of the app's coloured UpdateBugFixesIcon tile: the same glyph, with no tile and no colour",
+        "Because the glyph is pure white on alpha it only reads on the site's dark canvas; it would vanish on a light background"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "website/assets/images/changelog-icons/new-features.png",
+      "sha256": "4b460b7e043bfcc6da322cda287696e2dee616ae361656328e02963b0c08720d",
+      "asset_inspection": "PNG, 64x64, 8-bit RGBA, non-interlaced, 1508 bytes, chunks IHDR,IDAT,IEND only. Decoded pixels: all opaque pixels are exactly #ffffff, 1501 of 4096 pixels above alpha 16 (36.6% coverage). The alpha map shows a thick plus sign set slightly low and left, with a small four-pointed sparkle touching its upper-right arm.",
+      "purpose": "White plus-and-sparkle glyph rendered beside the 'New features' heading of each release group on the public changelog page.",
+      "key_symbols": [],
+      "calls_into": [
+        "website/assets/js/changelog.js:175 maps the lowercased label \"new features\" to the stem \"new-features\""
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Injected as img.changelog-group__icon at width 15 and height 15 with empty alt, before the group label text node"
+      ],
+      "feature_notes": [
+        "The smallest of the three changelog glyphs at 1508 bytes",
+        "Only three labels get an icon; any other group heading renders with no image at all, because the lookup object returns undefined and the img element is never created"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "website/assets/images/changelog-icons/refinements.png",
+      "sha256": "eb50ad8af65a9c47a79484c859333e1b5575abd571bbd1648e101894f7b9800e",
+      "asset_inspection": "PNG, 64x64, 8-bit RGBA, non-interlaced, 2240 bytes, chunks IHDR,IDAT,IEND only. Decoded pixels: all opaque pixels are exactly #ffffff, 1414 of 4096 pixels above alpha 16 (34.5% coverage). The alpha map shows three full-width horizontal slider rails stacked vertically, each carrying one round knob, the knobs sitting at different horizontal positions.",
+      "purpose": "White three-slider glyph rendered beside the 'Refinements' heading of each release group on the public changelog page.",
+      "key_symbols": [],
+      "calls_into": [
+        "website/assets/js/changelog.js:177 maps the lowercased label \"refinements\" to the stem \"refinements\"",
+        "Group labels themselves come from the map at website/assets/js/changelog.js:16 (\"refinements\" -> \"Refinements\"), mirrored in scripts/build_changelog.py:26"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Injected as img.changelog-group__icon at 15x15 with opacity 0.92 and flex-shrink 0"
+      ],
+      "feature_notes": [
+        "The largest of the three changelog glyphs at 2240 bytes despite having the lowest alpha coverage, because the thin rails anti-alias into many partial-alpha pixels",
+        "Monochrome counterpart of the app's purple UpdateRefinementsIcon tile"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "website/assets/images/jordy.webp",
+      "sha256": "569936adcef5ee47407c89247aa661ee799a6d4e535b6939c7694a2c196d0c71",
+      "asset_inspection": "WebP (RIFF/WEBP), 41456 bytes, simple lossy container: a single VP8 chunk (length 41436) at 640x640, with no VP8X, no ALPH, no alpha channel and no ICC, EXIF or XMP. It is a photograph, not artwork: a bearded man in a white 'NEW YORK' cap and white t-shirt, smiling, tossing a disc of pizza dough in front of a green 'NEW YORK / IT'S THE...' backdrop, with a black floor fan on the left and stacked white tubs on the right.",
+      "purpose": "The author's face photo used in the byline at the bottom of both website pages, cropped to a small circle.",
+      "key_symbols": [],
+      "calls_into": [
+        "website/index.html:734 and website/changelog.html:130: <p class=\"footer__byline\">Built with a blue-heart emoji by <img class=\"footer__face\" src=\"assets/images/jordy.webp\" alt=\"\" width=\"28\" height=\"28\" loading=\"lazy\" decoding=\"async\"> <span>Jordy Spruit</span></p>"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [],
+      "persisted_fields": [],
+      "ui_elements": [
+        "website/assets/css/site.css:1866 .footer__face { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }",
+        "Byline reads \"Built with\", a blue-heart emoji, \"by\", the image, then \"Jordy Spruit\""
+      ],
+      "feature_notes": [
+        "Stored at 640x640 but only ever displayed at 28x28, so nearly all of the 41KB is detail the page never shows",
+        "The only photographic asset in this bundle and the only file containing an identifiable person"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "website/assets/og/og-home.png",
+      "sha256": "53ab48949031096df3d46a8c9b0308b918f7859acfdaacf753370385d9a10881",
+      "asset_inspection": "PNG, 1200x630, 8-bit RGB (colorType 2, no alpha), non-interlaced, 135966 bytes, chunks IHDR,IDAT,IEND only, which is headless-Chromium screenshot output with no colour profile. Content: a near-black canvas covered by a faint field of blue 0s and 1s that fades out toward the bottom, the Droppy Code app icon centred near the top, the headline 'All your coding agents,' / 'one native <Apple logo> Mac app' with 'coding agents,' in light blue, the subtitle 'Streaming replies, inline approvals, a diff for every turn. Free and open source.', and a kicker row with the small Droppy mark and the words 'The coding app by Droppy'.",
+      "purpose": "The Open Graph and Twitter social card image for getdroppycode.app, rendered from scripts/og-home.html by headless Chromium.",
+      "key_symbols": [],
+      "calls_into": [
+        "website/index.html:31, 32 and 42 and website/changelog.html:28, 29 and 39 set og:image, og:image:secure_url and twitter:image to https://getdroppycode.app/assets/og/og-home.png?v=2",
+        "Built from scripts/og-home.html, which itself embeds website/assets/brand/droppy-code-icon-180.png and website/assets/brand/droppy-icon-64.png"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Rendered on macOS with /Applications/Chromium.app/Contents/MacOS/Chromium --headless=new --hide-scrollbars --window-size=1200,630 --virtual-time-budget=6000 --screenshot=website/assets/og/og-home.png",
+        "Type is Inter and Inter Tight loaded from Google Fonts with display=block at render time, so an offline re-render would fall back and change the picture"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Headline markup: All your <span class=\"charged\">coding agents</span>,<br>one native <svg class=\"apple\" viewBox=\"0 0 16 19.81\" aria-hidden=\"true\">...</svg>Mac app",
+        "Subtitle: \"Streaming replies, inline approvals, a diff for every turn. Free and open source.\"",
+        "Kicker: \"The coding app by Droppy\"",
+        "Card palette from og-home.html :root - --bg #0b0e14, --text-primary #e8edf5, --accent-text #8cc4ff",
+        "html, body are width 1200px height 630px overflow hidden; .kicker img is 24x24 with border-radius 6px"
+      ],
+      "feature_notes": [
+        "The binary field is drawn on a <canvas id=\"field\" width=\"1200\" height=\"630\"> with CELL 22, cols = ceil(1200/22)+1, rows = ceil(630/22)+1, an LCG seeded at 20260914 with seed = (seed * 1664525 + 1013904223) >>> 0, per-cell alpha 0.045 + 0.035 * (((c*7 + r*3) % 11) / 10), fillStyle rgba(120, 165, 230, alpha), font \"500 13px ui-monospace, 'SF Mono', Menlo, monospace\", textBaseline top, glyph drawn at (c*22 + 4, r*22 + 3), '0' when random() < 0.5 else '1'",
+        "The canvas carries -webkit-mask-image / mask-image linear-gradient(180deg, #000 0%, #000 55%, transparent 100%), which is why the digits fade out over the lower part of the card",
+        "Both pages cache-bust the URL with ?v=2"
+      ],
+      "unresolved_questions": []
+    }
+  ]
+}

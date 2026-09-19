@@ -1,0 +1,3926 @@
+{
+  "schema": "droppy-windows-port/assignments/1",
+  "baseline": {
+    "repository": "https://gitlab.com/droppyformac1/droppy-code",
+    "default_branch": "main",
+    "commit_sha": "dd2b86efef9e77168f304a86e8a8411877578bbe",
+    "tree_sha": "f761e5ef3745c4f68958ffa4014ab0b618c9d419",
+    "reference_path": "E:/Droppy/reference/droppy-code"
+  },
+  "budget_lines": 2600,
+  "counts": {
+    "bundles": 63,
+    "files": 433,
+    "inventory_files": 433,
+    "text_bundles": 59,
+    "asset_bundles": 4,
+    "total_lines": 85392
+  },
+  "bundles": [
+    {
+      "group": "repo-root",
+      "files": [
+        {
+          "path": ".commandcode/taste/taste.md",
+          "line_count": 0,
+          "size_bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "ext": "md",
+          "kind": "text"
+        },
+        {
+          "path": ".gitignore",
+          "line_count": 13,
+          "size_bytes": 322,
+          "sha256": "b76ca57d34086476bee4d7b03c5016d51f0de95321a5753bdac8257c753b2e2d",
+          "ext": "gitignore",
+          "kind": "text"
+        },
+        {
+          "path": "AGENTS.md",
+          "line_count": 61,
+          "size_bytes": 3862,
+          "sha256": "adbe54275b2aec6fa10534b780133368b7c71022cc1b32b646ecbfed90a8266c",
+          "ext": "md",
+          "kind": "text"
+        },
+        {
+          "path": "CHANGELOG.md",
+          "line_count": 367,
+          "size_bytes": 40119,
+          "sha256": "207421288764c3f3d889a650f6693d010efbe64ec8c65a33f67746474256083a",
+          "ext": "md",
+          "kind": "text"
+        },
+        {
+          "path": "LICENSE",
+          "line_count": null,
+          "size_bytes": 37215,
+          "sha256": "7f3c0b6d88aef79edd8b2fd364e2fb5b333b62d966502a37c02b7b9434fae423",
+          "ext": "(noext)",
+          "kind": "unknown"
+        },
+        {
+          "path": "README.md",
+          "line_count": 96,
+          "size_bytes": 8392,
+          "sha256": "e6c1b79f908b481f4db955ed2db95b5574c499255832e09f56ca1bca637f74ff",
+          "ext": "md",
+          "kind": "text"
+        },
+        {
+          "path": "THIRD_PARTY_NOTICES.md",
+          "line_count": 218,
+          "size_bytes": 11311,
+          "sha256": "c9a70527b21f67188f08640515f1ced5ecec170f1f9a5003ef989ba1e29198f2",
+          "ext": "md",
+          "kind": "text"
+        },
+        {
+          "path": "TRADEMARK.md",
+          "line_count": 40,
+          "size_bytes": 1611,
+          "sha256": "4fb86271ecde9a348ca678a1f9be19c0de2dc16e86ed1ea38cc96197fad8ccdd",
+          "ext": "md",
+          "kind": "text"
+        },
+        {
+          "path": "netlify.toml",
+          "line_count": 52,
+          "size_bytes": 1746,
+          "sha256": "c8fbd80a6ad0b58f0753bbc7c937a7937a7484c2c24397b9c4c8793fc9a51598",
+          "ext": "toml",
+          "kind": "text"
+        }
+      ],
+      "lines": 847,
+      "id": "R001"
+    },
+    {
+      "group": "build-config",
+      "files": [
+        {
+          "path": "DroppyCode.xcodeproj/project.pbxproj",
+          "line_count": 375,
+          "size_bytes": 13808,
+          "sha256": "76073e0c9073e72ba70325bda68dff2540042a8c57d1d793c1a3f3f7e5c77996",
+          "ext": "pbxproj",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
+          "line_count": 7,
+          "size_bytes": 142,
+          "sha256": "ac28b35c2b940210bec0fff8e424b07fd0efe9112ab178a10533583f251a386c",
+          "ext": "xcworkspacedata",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
+          "line_count": 24,
+          "size_bytes": 697,
+          "sha256": "009ac396420734921cca3bbdf07079d29d0731b4db0bd9e61a141f5715dba58b",
+          "ext": "resolved",
+          "kind": "text"
+        },
+        {
+          "path": "project.yml",
+          "line_count": 59,
+          "size_bytes": 2010,
+          "sha256": "506f28144e8dfd2e08696d015756976a7ba73843a09155cac3aeb6c275220568",
+          "ext": "yml",
+          "kind": "text"
+        }
+      ],
+      "lines": 465,
+      "id": "R002"
+    },
+    {
+      "group": "app-model",
+      "files": [
+        {
+          "path": "DroppyCode/App/AppCommands.swift",
+          "line_count": 105,
+          "size_bytes": 5774,
+          "sha256": "9c7b87d2290de4985bd14792a84cea5292d5494e815462e30a894ab80f8dfba7",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/AppDelegate.swift",
+          "line_count": 87,
+          "size_bytes": 3715,
+          "sha256": "2a6ac91d4d46266e121085f6cb2c07d6a1d0490faea9f59fae21fe6b171dad76",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/AppModel.swift",
+          "line_count": 1356,
+          "size_bytes": 64921,
+          "sha256": "b58c9304a5c5cd950bba320dbbd40012bcef1006e26b410404b8b0a8d5a5d014",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/AppSettings.swift",
+          "line_count": 938,
+          "size_bytes": 43030,
+          "sha256": "3a201941fe982723cc279b03ac8cb04bf0ce8c8cb21658589c5bb17ee32e42af",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 2486,
+      "id": "R003"
+    },
+    {
+      "group": "app-model",
+      "files": [
+        {
+          "path": "DroppyCode/App/AppUpdater.swift",
+          "line_count": 521,
+          "size_bytes": 22183,
+          "sha256": "52c35d9f3cd8403603f98f5dea7ff0b8642ab4b2f7902db51ed865ab9a7a21c0",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/DroppyCodeApp.swift",
+          "line_count": 26,
+          "size_bytes": 1049,
+          "sha256": "faaadee59c90886ca9473bb7927483b16e5e761f2f40774515ae39a26dca6ed3",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/LegacyMigration.swift",
+          "line_count": 27,
+          "size_bytes": 1332,
+          "sha256": "81c5d90d724ed4e13c4de3e5b7d01b0094d68440dde1ab2a6c34fca57f697069",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/UpdateChecker.swift",
+          "line_count": 332,
+          "size_bytes": 14669,
+          "sha256": "063fd19b7e48fb497f4fb4ed7bd2ef219abaf18c7bb1508b65c7b07be8926f4a",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 906,
+      "id": "R004"
+    },
+    {
+      "group": "app-model-hydra",
+      "files": [
+        {
+          "path": "DroppyCode/App/AppModel+Hydra.swift",
+          "line_count": 1082,
+          "size_bytes": 63476,
+          "sha256": "95326da759253c58c0e3209e93c95e0d572e46560c900fc1b0da7f94628007d4",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/AppModel+HydraMerge.swift",
+          "line_count": 721,
+          "size_bytes": 47606,
+          "sha256": "47b564698112ae3bd200f82316b151a5d471929b356aeb8784a215693a4a2769",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/AppModel+HydraPairs.swift",
+          "line_count": 137,
+          "size_bytes": 7664,
+          "sha256": "cad45f81363fd3eff195d06edd911c8cac9ca8c669dc9cec426ba9a67deba26c",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/HydraCookbook+Resolve.swift",
+          "line_count": 69,
+          "size_bytes": 4032,
+          "sha256": "ed1caf965117415483e7c9e28b4ea56cb08dc333dd765d46d91fd09f58c4ef59",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 2009,
+      "id": "R005"
+    },
+    {
+      "group": "app-captures",
+      "files": [
+        {
+          "path": "DroppyCode/App/Captures/TourCaptures+Hydra.swift",
+          "line_count": 305,
+          "size_bytes": 17298,
+          "sha256": "14f107ec5f6c79a5f6bfff42fe4c23e9e1df84937895ceb881a1c6d87f38cbea",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Captures/TourCaptures.swift",
+          "line_count": 313,
+          "size_bytes": 18086,
+          "sha256": "578d1a0ddbde9a2a250fa05d3ca286ce85ed0e3c55b0b232f57d40036734e560",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Captures/WebsiteCaptures.swift",
+          "line_count": 1122,
+          "size_bytes": 61699,
+          "sha256": "5adef6405a43350c4cf1df4908ddf9de011a5bd46dd375112ce5340e8c2d6113",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 1740,
+      "id": "R006"
+    },
+    {
+      "group": "app-runtime",
+      "files": [
+        {
+          "path": "DroppyCode/App/Runtime/AutoContinue.swift",
+          "line_count": 159,
+          "size_bytes": 8259,
+          "sha256": "c15edabc5d01a5d3e353bd740467ca860b510743105c03dfee34373d05087d9f",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Runtime/LimitHandoff.swift",
+          "line_count": 78,
+          "size_bytes": 3348,
+          "sha256": "e15f94400b8190732fe92b2c5a10aad61e0bf3fc57c099b8cbf202e399b06132",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 237,
+      "id": "R007"
+    },
+    {
+      "group": "app-runtime",
+      "files": [
+        {
+          "path": "DroppyCode/App/Runtime/ThreadRuntime.swift",
+          "line_count": 3637,
+          "size_bytes": 193334,
+          "sha256": "410c2f43c5fb859cd57322281701a479e89215b94f09b2a783d860deb7481e24",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 3637,
+      "id": "R008"
+    },
+    {
+      "group": "app-views-chat",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Chat/ChatBadge.swift",
+          "line_count": 201,
+          "size_bytes": 8602,
+          "sha256": "6a4236f43687a1bf0c146a2c7c83584e088b66eda9310dab0ca84f737b6c6e8d",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Chat/ChatView.swift",
+          "line_count": 1734,
+          "size_bytes": 89379,
+          "sha256": "f56f1c6eb3af8f34ea69e834a1b92120bb014baa6b9bc8a00f925f6d2b20377a",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Chat/LimitResumeBadge.swift",
+          "line_count": 61,
+          "size_bytes": 2978,
+          "sha256": "3d194904d642b0cff6a0805062cd15360fe4cee77892f2ae52e3661ee449c24f",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Chat/MessageEditor.swift",
+          "line_count": 176,
+          "size_bytes": 7572,
+          "sha256": "5ced941d6cf9656d509ec4890c580f7cdbdd10a43db01da59326bfad7a912fc7",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Chat/MessagePopoverMenu.swift",
+          "line_count": 83,
+          "size_bytes": 2951,
+          "sha256": "49e06c0ca9d51f03e42fc2f6bc8301a5ece14bb998a423e78df8a183c457067e",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Chat/NewThreadPrompt.swift",
+          "line_count": 81,
+          "size_bytes": 3183,
+          "sha256": "ce895025a2d655203679f6cc9c2fc26264297f611063636f5234c924554450fc",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 2336,
+      "id": "R009"
+    },
+    {
+      "group": "app-views-chat",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Chat/ThreadTimeline.swift",
+          "line_count": 2298,
+          "size_bytes": 122818,
+          "sha256": "af3d31b705dc9591da31f157d71e9f93e577e4050a4aa69595d942d4ee41df79",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 2298,
+      "id": "R010"
+    },
+    {
+      "group": "app-views-chat",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Chat/TimelineMinimap.swift",
+          "line_count": 449,
+          "size_bytes": 20579,
+          "sha256": "c37079ee185315f32e87a7173914152dd65f536b7a5689a2ada493f58406954b",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 449,
+      "id": "R011"
+    },
+    {
+      "group": "app-views-chat",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Chat/TimelineRows.swift",
+          "line_count": 2878,
+          "size_bytes": 142895,
+          "sha256": "778db5022d274e515de05e6d97dd69e8f03e9cceb597a4fe0f5ee45ba8c129ed",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 2878,
+      "id": "R012"
+    },
+    {
+      "group": "app-views-chat-hydra",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Chat/HydraButton.swift",
+          "line_count": 711,
+          "size_bytes": 34061,
+          "sha256": "a888290efd66ac1360099b81a3d4ee158ee0c7fd8095ee780e15232db53a9fff",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift",
+          "line_count": 175,
+          "size_bytes": 6953,
+          "sha256": "9f691dc2c54a8e9cb33119829be2dfe709a1424c40d169773bf1fc2a0cc0f30c",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Chat/HydraIntroPopover.swift",
+          "line_count": 158,
+          "size_bytes": 8286,
+          "sha256": "08fbcd1fe0ed561867f2d471c046c5f42fe0bd4fe1266eb1245a5615e6725cd1",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Chat/HydraMergePopover.swift",
+          "line_count": 298,
+          "size_bytes": 14140,
+          "sha256": "ca038f565d7e41a85b3e8c5165cb6bf70a31e45a57e05bb96e371822ddd1a6a7",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Chat/HydraPanel.swift",
+          "line_count": 553,
+          "size_bytes": 26872,
+          "sha256": "be750b242f45045bb35fe783bad6324f2748105604bec9f5527829a485c3a331",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Chat/HydraProgressBar.swift",
+          "line_count": 603,
+          "size_bytes": 28731,
+          "sha256": "87f2192ecc68782fede0c7b02e6dc9fa135b5792f5164f39cd92b6b6fbd3a536",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 2498,
+      "id": "R013"
+    },
+    {
+      "group": "app-views-chat-hydra",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Chat/HydraReportsPopover.swift",
+          "line_count": 662,
+          "size_bytes": 30698,
+          "sha256": "eac1f5139e62b9233137e20deae109efd33fd8d3c621c9903707a832c92dd946",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Chat/HydraRunMetricsView.swift",
+          "line_count": 398,
+          "size_bytes": 17072,
+          "sha256": "0765a6a2d62ad68ef99a54dad849bb97421e026081bf2a026e4cb085c96fbba7",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Chat/SubagentPanel.swift",
+          "line_count": 738,
+          "size_bytes": 33878,
+          "sha256": "4af3917ec1b02b2609ef5dfc7650c43bae7b3159755b05e985fe43d1507ea6dc",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 1798,
+      "id": "R014"
+    },
+    {
+      "group": "app-views-composer",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Composer/AttachmentFlight.swift",
+          "line_count": 207,
+          "size_bytes": 7601,
+          "sha256": "e877fdd0ea1895a95c508c4d0c52ad90e520daffbabfcee52e033080f02c797d",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Composer/ComposerTextView.swift",
+          "line_count": 378,
+          "size_bytes": 17078,
+          "sha256": "54f0cea6e32a186421635689f2e47457ffc7a4aaa0e7a9f965afe1378fe35ddb",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Composer/ComposerView.swift",
+          "line_count": 1307,
+          "size_bytes": 60157,
+          "sha256": "904de73d4287c1a9cb035d42c663d8cdceafae0fa72364153c1b3d1337ee8be0",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Composer/ComposerWorkingDots.swift",
+          "line_count": 191,
+          "size_bytes": 8304,
+          "sha256": "d5ad365eacf98f5327f7a5771494d4364cf8b5053df0ff86871691618f2a5913",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Composer/DownloadsPopover.swift",
+          "line_count": 242,
+          "size_bytes": 9558,
+          "sha256": "54bdbd44e29ddc9b5758cfc8856733111c0c12cc624b419eccf427aac6e419cb",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Composer/EditorAttachments.swift",
+          "line_count": 54,
+          "size_bytes": 2615,
+          "sha256": "90f4d522730e187767a8c3d8a250101ce1095ccfeb665526118da86f14e3de96",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 2379,
+      "id": "R015"
+    },
+    {
+      "group": "app-views-composer",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Composer/EffortSlider.swift",
+          "line_count": 1347,
+          "size_bytes": 63591,
+          "sha256": "8a8a00b74940c2aed560d21add7e757e7bab9a5922d5ca44243ceba18182b166",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Composer/FollowUpEditor.swift",
+          "line_count": 36,
+          "size_bytes": 1151,
+          "sha256": "b0607ec5f91fc501df15d80edeed4242f8770d9345fe1ee2d441ab14ae79bb83",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift",
+          "line_count": 547,
+          "size_bytes": 28982,
+          "sha256": "18b916d02102ad1d3e86cd218e7e22641042a26c09ca46125cf6f6649ca6681f",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Composer/HydraFusedPairIcon.swift",
+          "line_count": 91,
+          "size_bytes": 4270,
+          "sha256": "ce5cb6d6fd6ab13060ffe7b8f9915c111c18ad698810ef96afe820ed047df17b",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Composer/PromptEditor.swift",
+          "line_count": 280,
+          "size_bytes": 12136,
+          "sha256": "117a6fc44501be680045ce9d5f4c2b9c2fc48ccd4d872be11444d342238d06ee",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 2301,
+      "id": "R016"
+    },
+    {
+      "group": "app-views-composer",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Composer/QuestionTab.swift",
+          "line_count": 332,
+          "size_bytes": 15677,
+          "sha256": "28b8d1828843331d7cd2d1972c2c2e2c6b6316439159791a744c9c266e5eb8b7",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Composer/RequestCards.swift",
+          "line_count": 66,
+          "size_bytes": 2853,
+          "sha256": "d9d474c1242bfd188aa75a6b14dcd350bdef37514a31e79b5edb0107b2c13855",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Composer/ThreadChangesTab.swift",
+          "line_count": 46,
+          "size_bytes": 2102,
+          "sha256": "5ccd9d2d70e6cbd1fedbf297b9bf5d74a2e5aee8d183caf4439403ea2e8b796d",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 444,
+      "id": "R017"
+    },
+    {
+      "group": "app-views-diff",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Diff/DiffInspector.swift",
+          "line_count": 692,
+          "size_bytes": 30631,
+          "sha256": "76edca0419723221ae2a1102e769865f1766994089324f61aecaac95a407d933",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 692,
+      "id": "R018"
+    },
+    {
+      "group": "app-views-palette",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Palette/CommandPalette.swift",
+          "line_count": 211,
+          "size_bytes": 9677,
+          "sha256": "485eba3000688ae79c4fac1a6aafcd9fab5f64385d568bcc1d525958ff5983a1",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 211,
+      "id": "R019"
+    },
+    {
+      "group": "app-views-root",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/RootView.swift",
+          "line_count": 479,
+          "size_bytes": 22446,
+          "sha256": "9059efadbe36514383401bc37dc9a1945682a976f85082922a5bb1f5079d8977",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 479,
+      "id": "R020"
+    },
+    {
+      "group": "app-views-settings",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Settings/AboutUpdateViews.swift",
+          "line_count": 852,
+          "size_bytes": 37013,
+          "sha256": "3bf4af9743a92888f481d74a5ded9c5900e16bcfcab73d55071a2a54447a7fbe",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift",
+          "line_count": 134,
+          "size_bytes": 6886,
+          "sha256": "7a696e396be7fccbcf4bf82e6a6bad1a07d35afba426c546b629db775731e0e1",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Settings/HydraSettingsPage.swift",
+          "line_count": 589,
+          "size_bytes": 31847,
+          "sha256": "c4ae265c04f3b5f0d67a52f49af7798c074fb907011e02628f7edd75c20f5b3a",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Settings/MCPKeyPanel.swift",
+          "line_count": 251,
+          "size_bytes": 9671,
+          "sha256": "06c4233827fe0a1da01a2f43dee9db19a1c27d157130a52ec1057bd19c981680",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 1826,
+      "id": "R021"
+    },
+    {
+      "group": "app-views-settings",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
+          "line_count": 1110,
+          "size_bytes": 46572,
+          "sha256": "e0d44a21dcbb923c3ccee68f329d7b5136b9b7115c5268d96500369b6eec191f",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Settings/MCPSetupPanel.swift",
+          "line_count": 262,
+          "size_bytes": 10642,
+          "sha256": "00390a2f279fe0abe082cb08d3d05e858d7bb9afd9d6247675129951dbcc2822",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift",
+          "line_count": 374,
+          "size_bytes": 18296,
+          "sha256": "01f57ddb5615c408b3b89d604a837e8ffa70ce3cb4738e6428ea4ba4ae7a3e47",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Settings/SettingsScrollTracker.swift",
+          "line_count": 56,
+          "size_bytes": 2326,
+          "sha256": "0e30afa8c18cf2aa692ef0861ed65eb21e624022ddeeb2a296269c3892204c95",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 1802,
+      "id": "R022"
+    },
+    {
+      "group": "app-views-settings",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Settings/SettingsView.swift",
+          "line_count": 1193,
+          "size_bytes": 56315,
+          "sha256": "a44f7c513e565464a6adbfd431d7c6b9a99c345d9882d84041098a2aba92c94e",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift",
+          "line_count": 675,
+          "size_bytes": 25462,
+          "sha256": "25ce42aed81b285f73df207f605af9faefb6b12c2ea2a59b4e1e407c74396d15",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Settings/TokenActivitySection.swift",
+          "line_count": 276,
+          "size_bytes": 13767,
+          "sha256": "036413d17bb40e1ace7a202b2dfdc0b20e3e1feb5c26c71fb38cce94f64db9e1",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Settings/WallpaperCard.swift",
+          "line_count": 190,
+          "size_bytes": 8455,
+          "sha256": "a2724a3492e86fac87907ff3c767a614ba25959305f24409c6bfcd74ff3681c9",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 2334,
+      "id": "R023"
+    },
+    {
+      "group": "app-views-sidebar",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Sidebar/FloatingSidebarPanel.swift",
+          "line_count": 127,
+          "size_bytes": 6374,
+          "sha256": "c728674282f32e560848ac99be202802ca391cc1d9133c1edef68821bf3a520b",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Sidebar/RowGlide.swift",
+          "line_count": 252,
+          "size_bytes": 12315,
+          "sha256": "c7bf82d5a83e9e4b134f83a316c02f0c12ae7e00ba1fc39cc00756e093e08196",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 379,
+      "id": "R024"
+    },
+    {
+      "group": "app-views-sidebar",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Sidebar/SidebarView.swift",
+          "line_count": 2696,
+          "size_bytes": 134357,
+          "sha256": "798bb2b233e3145f0a823e53caac95496ad61c7fbc64c05bfc908c54466c31f9",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 2696,
+      "id": "R025"
+    },
+    {
+      "group": "app-views-terminal",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Terminal/TerminalPanel.swift",
+          "line_count": 443,
+          "size_bytes": 17926,
+          "sha256": "db8b0a14feb372833d1ea0f8f2ee368777b80b45079d5a1fdf015db28029a908",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Terminal/TerminalStore.swift",
+          "line_count": 176,
+          "size_bytes": 6974,
+          "sha256": "21f4918858bd9377c0f6a8e6770749fecd443a13c54557cbf7c6492618166a87",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 619,
+      "id": "R026"
+    },
+    {
+      "group": "app-views-tour",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Tour/TourPages.swift",
+          "line_count": 29,
+          "size_bytes": 2931,
+          "sha256": "0c38f7edfc84fb42dd4cc68e0e80c644e3ab262612cb5c70ab12d9ce3ea8f791",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Tour/TourView.swift",
+          "line_count": 299,
+          "size_bytes": 10193,
+          "sha256": "b9ceb3dc4ddde6965c9fdbd1e1cbe4b2535e497dd27f55b20dc9b656673f9606",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Tour/TourWindowController.swift",
+          "line_count": 186,
+          "size_bytes": 6243,
+          "sha256": "e4fd08cc03fac858f8bf7bbd1889cbd2618afb6571ce66af63b3c3ff3ed7cb3d",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 514,
+      "id": "R027"
+    },
+    {
+      "group": "app-views-usage",
+      "files": [
+        {
+          "path": "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift",
+          "line_count": 112,
+          "size_bytes": 5475,
+          "sha256": "11ca0f913fed3fcced7c2327ab4b2bf4538cdb0d50b46441b5f287cca76acb76",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Usage/UsagePanel.swift",
+          "line_count": 120,
+          "size_bytes": 5365,
+          "sha256": "70a18c8aefbd06234b32d8afadcb514997541d6ada989818f8d9678b856ed859",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Views/Usage/UsageViews.swift",
+          "line_count": 396,
+          "size_bytes": 16998,
+          "sha256": "003bd22d52ee3abcf253996fd98c8f281f7bf2f9d736d48c07d3c051324be321",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 628,
+      "id": "R028"
+    },
+    {
+      "group": "app-window",
+      "files": [
+        {
+          "path": "DroppyCode/App/Window/DCDisplayCycleGuardedWindow.h",
+          "line_count": 36,
+          "size_bytes": 2284,
+          "sha256": "5d69a993184c6267e8affa75657024e0c434fc1487f46bcc92f4797e08fdc718",
+          "ext": "h",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Window/DCDisplayCycleGuardedWindow.m",
+          "line_count": 61,
+          "size_bytes": 2261,
+          "sha256": "a28c4fa77558e4172a34b40b7f09293f4561523699c578131b4b6be89f31a456",
+          "ext": "m",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Window/DCNotificationGuard.h",
+          "line_count": 21,
+          "size_bytes": 1151,
+          "sha256": "3bf3545166c27382531e4b9114e9bb7cb763f30380c81b3ddaf487e55664d52e",
+          "ext": "h",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Window/DCNotificationGuard.m",
+          "line_count": 56,
+          "size_bytes": 2423,
+          "sha256": "ec4c32afdddc668334e303b41034d217b98cce393ce6c0413da753eef5be3ebc",
+          "ext": "m",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Window/DroppyCode-Bridging-Header.h",
+          "line_count": 2,
+          "size_bytes": 74,
+          "sha256": "31afab4f7fcb1c548d782492ce59667f29fdc04a18665babefce0915a71534a2",
+          "ext": "h",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Window/ThreadWindow.swift",
+          "line_count": 65,
+          "size_bytes": 3064,
+          "sha256": "e534d1be1eb31cf3b9adc3ec4a5adc04d9c5d7c96a8443fe4f12b3b0ff2634c9",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/App/Window/WindowManager.swift",
+          "line_count": 219,
+          "size_bytes": 9739,
+          "sha256": "e020d9577591269b31416d19d6839c020a4a9e9550ff549f45aea7479014f879",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 460,
+      "id": "R029"
+    },
+    {
+      "group": "core-models",
+      "files": [
+        {
+          "path": "DroppyCode/Core/Models/AntiSlopPolicy.swift",
+          "line_count": 19,
+          "size_bytes": 1590,
+          "sha256": "a4cc03819cb998f3132838a4ea4581c4219f65decfaed171b7b914681e840c60",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Models/FileChangeSummary.swift",
+          "line_count": 15,
+          "size_bytes": 404,
+          "sha256": "7f517eed0a9f5dcc406c396c4363e713f4fcd40e41b669b50aba26ae9ca70258",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Models/Library.swift",
+          "line_count": 278,
+          "size_bytes": 12542,
+          "sha256": "2fe6b069fde6440f78349ff8f96ba30e1f224b083272033236e9e0d9003877df",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Models/MergeRequestLink.swift",
+          "line_count": 62,
+          "size_bytes": 3147,
+          "sha256": "5efb58d57a46d40e9f4b4a06c04537f0828da3bedb1a131e02dd2b651272ac82",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Models/Provider.swift",
+          "line_count": 335,
+          "size_bytes": 12293,
+          "sha256": "e6de135c76265886928ee8c109f3ce9828f67ab35c676db19a847edbf627f63d",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Models/ProviderSettings.swift",
+          "line_count": 12,
+          "size_bytes": 543,
+          "sha256": "63880a7ab9e258faf5f4579c7917166a7e91547a398ca068c3683f78d3583c67",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Models/Requests.swift",
+          "line_count": 74,
+          "size_bytes": 1854,
+          "sha256": "2f597d781763fa7a0d6ec9ede1f37089aefb8662e38c4f7b381236b4bb9182a1",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Models/Shortcuts.swift",
+          "line_count": 335,
+          "size_bytes": 14276,
+          "sha256": "9c46e082f6c2ad11850447135ee47b29d55d6787f1513f0f74bd0aa58a7f390d",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Models/ThreadContinuation.swift",
+          "line_count": 162,
+          "size_bytes": 7632,
+          "sha256": "341bd7df55892ffbbf4eb864a275fffefa068a6b015cbce0a44bb67b9761068f",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Models/Timeline.swift",
+          "line_count": 332,
+          "size_bytes": 11634,
+          "sha256": "99dab435dee12841b0e614978c1a336bca9c8a854ef850ca3255043c14404632",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Models/TokenSpend.swift",
+          "line_count": 66,
+          "size_bytes": 2781,
+          "sha256": "944088f270e2b13fe424ba9d5135ddc65d49c6f8a3ec4c92aaaca4540e9e478f",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 1690,
+      "id": "R030"
+    },
+    {
+      "group": "core-models-hydra",
+      "files": [
+        {
+          "path": "DroppyCode/Core/Models/Hydra.swift",
+          "line_count": 1345,
+          "size_bytes": 87064,
+          "sha256": "82ffe7ce945277ba067579e2e67f11daa2e05c455d248e822d353fcd0b9a767f",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Models/HydraCookbook.swift",
+          "line_count": 52,
+          "size_bytes": 5755,
+          "sha256": "f03943b728732273ad0ef00710d718ab89b9881cb6ec8442be2037304cdc6c03",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Models/HydraDelegationStream.swift",
+          "line_count": 226,
+          "size_bytes": 10475,
+          "sha256": "330e458241ec061e28ae5b63a95cb31ced086380b6546c6795efc8444630690c",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 1623,
+      "id": "R031"
+    },
+    {
+      "group": "core-models-mcp",
+      "files": [
+        {
+          "path": "DroppyCode/Core/Models/MCP.swift",
+          "line_count": 263,
+          "size_bytes": 10566,
+          "sha256": "64e2b8feb72c519d4ce0bef2e1706c48aaf18e5ce5c79912d45d79a4514cd0a2",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Models/MCPCatalog.swift",
+          "line_count": 483,
+          "size_bytes": 22915,
+          "sha256": "c1cbda782e05439b3ad11572c8514cedb226a4fb72c2fa33a5876edcc7ca9548",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Models/MCPCustom.swift",
+          "line_count": 183,
+          "size_bytes": 8159,
+          "sha256": "b49f8cfb145b4c3f5a6eb69bdda65cfb9d6434aa5f468b43e2fcce5705a8f4f1",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 929,
+      "id": "R032"
+    },
+    {
+      "group": "core-support",
+      "files": [
+        {
+          "path": "DroppyCode/Core/Support/CaptureRun.swift",
+          "line_count": 41,
+          "size_bytes": 1876,
+          "sha256": "1537532d8aa6f58a958d10304acb25ce344b029192cc0e30d4e27320be0a5afb",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Support/Coding.swift",
+          "line_count": 34,
+          "size_bytes": 964,
+          "sha256": "3e7c5b1cff76f2f77cfb72dd633a465e5133b9bca57f97da6f67520e4b8890ab",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Support/HangWatchdog.swift",
+          "line_count": 131,
+          "size_bytes": 6071,
+          "sha256": "44453936c0183e38fa3e8f4e2931acd76d5092d42f28df7307ab5252bb0b8463",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Support/JSONRPC.swift",
+          "line_count": 157,
+          "size_bytes": 5220,
+          "sha256": "4b31038c5d01ec0113f718ff03a18b8e75b62f595c625a3773f5f646139c47e6",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Support/JSONValue.swift",
+          "line_count": 165,
+          "size_bytes": 5173,
+          "sha256": "2341ca77aa2734c12937f3653121b713a600bbd57e31d650a0ee9fa58d5b8b9b",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Support/ObservedValue.swift",
+          "line_count": 14,
+          "size_bytes": 373,
+          "sha256": "31088c74db1026dcde3a4f0083429f96f04501f015c58d9245ff0cb50de2c143",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Support/RecentCache.swift",
+          "line_count": 57,
+          "size_bytes": 1870,
+          "sha256": "3b3dcfad27f45e89355590052da4fb62838290ffa0d91fbbd962940d532c3dcb",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Support/Shell.swift",
+          "line_count": 458,
+          "size_bytes": 20168,
+          "sha256": "bfb7edaf6eff0e1745e8f189a0a7414695ac7458d30ce99d98854d68d7b14121",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Support/StdioFramer.swift",
+          "line_count": 81,
+          "size_bytes": 2917,
+          "sha256": "2e33d55653ba15500e3ab71c9934aa6cf4d9f6995a476f93c03b4076146676f6",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Support/StdioProcess.swift",
+          "line_count": 180,
+          "size_bytes": 6362,
+          "sha256": "60bab2dac297a41777846e09a9fec906594f915e2161b88c4812832fc990398a",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Support/SwitchLatency.swift",
+          "line_count": 58,
+          "size_bytes": 2779,
+          "sha256": "1220e10c9e93ff7bf4f7da546bb25fe778b7922b0ba42e06c3577e99fd362356",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Support/Text.swift",
+          "line_count": 129,
+          "size_bytes": 6257,
+          "sha256": "2f487fb6f188ce01af834c916c06d5486a2c5e2228f5f63e505fb075d776b535",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Core/Support/ThumbnailCache.swift",
+          "line_count": 83,
+          "size_bytes": 4059,
+          "sha256": "83e6d4a95c8af371751d62b65986ee884a1b2172ebe99d06da7d628a892d7795",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 1588,
+      "id": "R033"
+    },
+    {
+      "group": "resources-appicon",
+      "files": [
+        {
+          "path": "DroppyCode/Resources/AppIcon.icon/icon.json",
+          "line_count": 187,
+          "size_bytes": 4284,
+          "sha256": "f3aabbba2ccadedea2e5263467a6092739595c424ff9f1b727728f0e3db04b2b",
+          "ext": "json",
+          "kind": "text"
+        }
+      ],
+      "lines": 187,
+      "id": "R034"
+    },
+    {
+      "group": "resources-assets",
+      "files": [
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/Contents.json",
+          "line_count": 6,
+          "size_bytes": 69,
+          "sha256": "73d83da8f89d57a704aa6df8b476cd9c2a22221daf3b9e949cecdd61e77f7cdc",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/UpdateBugFixesIcon.imageset/Contents.json",
+          "line_count": 1,
+          "size_bytes": 121,
+          "sha256": "ec59376f2004fa4fbc24a9f6fa845e0e3fecc77196e0c2e183a2b69cbcd238e6",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/UpdateNewFeaturesIcon.imageset/Contents.json",
+          "line_count": 1,
+          "size_bytes": 124,
+          "sha256": "051e0ec11cfc148537827ae14a980494693d746c57f1f694a4f62534b8097c83",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/UpdateRefinementsIcon.imageset/Contents.json",
+          "line_count": 1,
+          "size_bytes": 123,
+          "sha256": "941b6c67d491f57b6dd6816b7421a16d427f2edc55028f6e5714f2c399db18bf",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/badge-edit.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 291,
+          "sha256": "206a4e7976563e82744f5e3513420034c2e116328c7b32b64ba0039dfcc213bc",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/Contents.json",
+          "line_count": 21,
+          "size_bytes": 363,
+          "sha256": "9b7b5097bd58e2b64df37d240ef98467168925737b702b653e5575e7e7497034",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-01.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "09824357dec4fc1d8ea37767d12d10aeb1ad7e5634a1b7b7be29438827ce791a",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-02.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "77cd351fe3849ddd3cd1ebc67cb1583ea2bbd6dcaccc04bd6c871e4441558319",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-03.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "37cd58aec0f3b1814a75c621f529b02649981e82426191b253614d8143873f5f",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-04.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "30f870ede6ac2310083f1ff58971227261468e65a606367b304cac4df6ab0d38",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-05.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "ad37757dc4eb174605f1457616013a767a09e63cb10f4e39e91c17fa7a72a6f5",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-06.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "518b08affbbf232c7a220785da8df187cc22324d2f794b9a32cce790f25c49f3",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-07.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "9d8cbc74ca6014a2903aa8e47cd8fd0bc163b6578c5bbdb4dbca673532e79190",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-08.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "ed3b960fc2ef4626aa074eaf814a2900c0a37c859f9955af44d142e4bc49bb6d",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-09.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "b932f14cd88d97afa5b4cb0b894005aa4bd895533e7893faf03423f75f5b8b84",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-10.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "87bf95ba760cf5f84c4420686015bee8806576a36245ea47a73cbb7fdb57e79f",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-11.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "1e1754e19587d89b1d2d35aaea76501c584bd0bbc284fcdf31800e5d32168805",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-12.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "4419baa0df0fff9f2ba45e872d0f7ac32f44cf99b93b2aa8f0a246db2cb9f55a",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-13.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "8fbf7dbfe344c96f71510b15c9c4f0e40827094af784f6e5b2024a1e2c63b8b7",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-14.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "35ab7bb1b1069645fb88f907444bf4317fc7ada47d02dd62d2519336d75e4de3",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-15.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "c919b65c9dd8f11900a0b50835aebaa563f7fa4ff1cd7ed8056ede02091856b5",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-16.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "4684d1a9e2d89c4dfe1b9481df8866d7448b780cd5c3d6be50ede664df853528",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-17.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "1bc73d1e9899b0f86a818932d3a0ae21c8767f9cf8aff166bfeb42bbf57f7e1f",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-18.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "15c3863d8b1608dbd339ea30b3c1503c3a8f6f82e3a5576b2a7e9fafebb29af7",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-19.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "ee3b0aa0aee9695520db6e584751b514d69f5dc7736c36973f4dd42c987c5355",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-20.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "a9fa9a63adcec258e537eb4db178112e867d13cb960c344a2c594b0d07217268",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-21.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "bb60321e1ef4c63393a51772a0b23b2122759d32420aaf392dc7a3d5744e3ef6",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-22.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "e4bbd57ce4e5089832648ad824de1c045aac2491c1713099500a69b5edb61032",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-23.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "0da740d62394259c3be754511bab82ca29f145f78b4238923b6b38249f155d2b",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-24.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "d8aceca172dadbe6bb6633ac4a15bee6c339409d70316dc2856487d25aeaa421",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-25.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "aa21d278ba829c4e0fd03535acb4d840679529b19bbb9e68df4955b5a37f348f",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-mark.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 282,
+          "sha256": "ab89f0f1c950b0be8918537e3f96596b8190f9d3b732465cb8483c56f8b878d7",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-atlassian.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "a277466cbc97295abcffe8b6f2acc2b1528e78ccda761017b9de1c69a7749c23",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-aws-docs.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 284,
+          "sha256": "65024d8d31afead603d84146a02f9563e8c9583a4a92acb893224b998ce91cd7",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-brave-search.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 288,
+          "sha256": "129c2a9dac3c221d4866f6669103a59dc11d81556559e2d2a9c639f74a3d6835",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-chrome-devtools.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 291,
+          "sha256": "f9c87be378cffaca3dec445fc9695e0e5d19546ac3180ed5ec5fcce913205461",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-cloudflare.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 286,
+          "sha256": "3608770cea3d7862cea0d0385eea2bbffe9b4bddc926ddf7ec099479ba80e54a",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-context7.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 284,
+          "sha256": "5635a3db3c441b67b3d408c0ba1037106aba4d7cd9c07558130853c58cfb18e5",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-deepwiki.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 284,
+          "sha256": "5f0804e8b605987a2230cec0714e238320888b714534adc16e38a3ea8d760ed4",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-exa.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 279,
+          "sha256": "7e45994bba7a8b33b650167c3a8f4a5202131ed4e213d27c830fd4b8c7b005a0",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-fetch.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 281,
+          "sha256": "7f13c363ddf791b500aac5276aa10df17601a5e0ab6fa3c767b6d9d952f05c9c",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-figma.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 281,
+          "sha256": "6cdb5a2818052dd5b31a37120fc9f9a5707ad803750eb79ad01bb7ce796ca25b",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-filesystem.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 286,
+          "sha256": "ccf832c5792c5ebad0dbf630b0ec707fada193a22518be640bef87cbc626239a",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-firecrawl.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "3bbb6711a2a281c45a262d4de4b69cf7f9029d628f5f7a89370e1b3cf91667ce",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-git.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 279,
+          "sha256": "7d5851ed7d458e07833a3fb20b545ce80a7d373bd5e2cd47105ae337e5d8b0d8",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-github.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 282,
+          "sha256": "98ef40d34c3236f05da8dc3b2c08f651b874d7f9058d1c55d83cfbb2891322bf",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-gitlab.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 282,
+          "sha256": "107269dd549e4cb0b102382e30cc3eaff4a69f0a6618f2309515e059dbcddfa8",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-huggingface.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 287,
+          "sha256": "851166c970fd31f2d1e1e8082982019f34dfc6a841ab3b6ffd9ca2de3f8613af",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-linear.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 282,
+          "sha256": "cb08513dad7734d2228f322ab94c987f87c0af07369e4c28bafef5a3e8b5f313",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-memory.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 282,
+          "sha256": "b0fd20adf8cdb3263a68693408f72a1970439e042af64c83af60d8582a1cd41f",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-mongodb.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 283,
+          "sha256": "b9ee4f3a189089c932d080428ad9b6c1d292b9338017eb6eacce770cf7fdfbf4",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-netlify.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 283,
+          "sha256": "d4a228869466fba85adc11f3e582b5e8419bb6a21b9659aebd7ad7a019c707a1",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-notion.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 282,
+          "sha256": "68b1a50b4238d106ebf421c4b0b65db4e8742ced49b332ee111560f83f03cb39",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-perplexity.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 286,
+          "sha256": "65e1c1d135229710084cb0b71366fe38c8b0ef92a852374c2d5ddcf4503f24eb",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-playwright.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 286,
+          "sha256": "eb5a33608859efab806c8511e94292a48c69f38a610524f6bd541f6866b8f761",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-postgres.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 284,
+          "sha256": "55600735d65824d4c0d8dad4b1f4cc95e9b408ea872aa54306d35385bc899c4e",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-resend.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 282,
+          "sha256": "e0941f9f2f7975ff3cfb7167b0b3ccbdf69b3f7f58bc0b834dd0367b3a2f2cd1",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-sentry.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 282,
+          "sha256": "0553d388b2651a8c245598dfb875d1c50840e4138b4323ff949d6abcac8dfc93",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-sequential-thinking.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 295,
+          "sha256": "b0f9c18c1d362001ecc8afe68c1d2a86ded1e786af9e8da9a265bf1fedaad51c",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-slack.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 281,
+          "sha256": "65143a6673a1dad52106539a4a5b7e32916e38af53888ed4037db1058bf340b6",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-sqlite.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 282,
+          "sha256": "576f35aef50f723c5db1bb54baca811b8315e721d9133fcf4f6b30e7b9aae1f8",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-stripe.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 282,
+          "sha256": "b02d3286faf322b2cce7286727eb452affc50ce0df15ec21840457a90ee028a2",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-supabase.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 284,
+          "sha256": "7c9f655ce9f3bbfd22404093d5b6a9f7e8a7ba2594af0d8ea5cd573d9abb8bd6",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-tavily.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 282,
+          "sha256": "d7d063c66bb99f6c9f685b6149d6d19f5b64e7606f1ad250a16a4442b06cc3e0",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-vercel.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 282,
+          "sha256": "ee4925ec6f1425f633e08a079fdf69a4b6e296da336384574e83a9d1fd1f58f7",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-antigravity.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 292,
+          "sha256": "cbcc22066d934cf246e867c45b9bee3b3777872c797244d7d374ef9453273a94",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-claude.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 287,
+          "sha256": "c0dfb9e451ac66cdf8815e9e9a1736c2c0b1ea8a674dfa49a6f1b3810dec5ba4",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-codex.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 286,
+          "sha256": "277a3090c32d1cffa064fca2e8163b62e8759de1f5a91344fc6855497399eae2",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-commandcode.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 292,
+          "sha256": "f8ba5357e2a19efc2b38a3279bb48dd1932643b796be0c3cb9c1bf65943f0b3d",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-copilot.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 288,
+          "sha256": "c0b0617bb67044e9bef1536bc0b38d6e65ad8e7446a4978b7b5c33e40a87a135",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-cursor.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 287,
+          "sha256": "aaede2e12c2e70fb5779943f049ada676a59172440ae9364a43f5e0015b6a27b",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-deepseek.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 280,
+          "sha256": "2deac8405817ab42b98710b07d608ec0f9453c9278ae0d4d6ede490a070d536a",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-devin.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 286,
+          "sha256": "a9072ffd4c08dfc433403886cfadd9f33be5b09173b90b6a1ad2f7d74b5a6313",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-grok.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 285,
+          "sha256": "310316dbc8addf86d9fd7e2377bb3177cfd7c47a876330f28d48a9a9e4ad8869",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-meta.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 276,
+          "sha256": "741c55bb6bd0b5d36e381e37bb0b3975ca546e330306c3020dc49664db4270e1",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-opencode.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 289,
+          "sha256": "c082c4871976c16c5c715b81da692ff7dea51977699f852b2c281fd3b452b62b",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-pi.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 283,
+          "sha256": "b27c039b15103b8cdb20f860bf3549708586f05f3184f33fcb03574ffd66b944",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-zai.imageset/Contents.json",
+          "line_count": 16,
+          "size_bytes": 275,
+          "sha256": "778215c8508727288c1b4984ac50e5e8aff5e2df3e4b32dbe6cbdcf9a517d453",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/tour-hydra.imageset/Contents.json",
+          "line_count": 13,
+          "size_bytes": 191,
+          "sha256": "7b85f604470258df10d94320239a05a6ff047cf14682e8a23df5a8505f335830",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/tour-pairs.imageset/Contents.json",
+          "line_count": 13,
+          "size_bytes": 191,
+          "sha256": "4fe1e9c8882972814df271f83264cb7fb3573b04569b9220e0a6d52227977e1a",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/tour-panels.imageset/Contents.json",
+          "line_count": 13,
+          "size_bytes": 192,
+          "sha256": "e51dab0662d9703ee742deefb42d7531c49a1851a2026d076f1bcc9625619fdc",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/tour-recipes.imageset/Contents.json",
+          "line_count": 13,
+          "size_bytes": 193,
+          "sha256": "a615587d8f93268a5db59dc07cdc62ca1db0d713c9648d486a942f4de1d97ff1",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/tour-slider.imageset/Contents.json",
+          "line_count": 13,
+          "size_bytes": 192,
+          "sha256": "b1798a5da0eac7603c63f0c59d4b4496ca6c068321dfcf620b7a47bf891707b6",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/tour-themes.imageset/Contents.json",
+          "line_count": 13,
+          "size_bytes": 192,
+          "sha256": "7ef7c77dd4449505ac0fd044feb008e464c5def261f626a69c1cdf75a7322e1a",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/tour-threads.imageset/Contents.json",
+          "line_count": 13,
+          "size_bytes": 193,
+          "sha256": "8f17011fd2497970c3197f6b055332bcb888fc438ccfecdaf6c0c0ad6fb3d5bf",
+          "ext": "json",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/tour-welcome.imageset/Contents.json",
+          "line_count": 13,
+          "size_bytes": 193,
+          "sha256": "5296ad0f5fde851d0df4370b1623bb53f017942e003dd33fb9503719f54af63c",
+          "ext": "json",
+          "kind": "text"
+        }
+      ],
+      "lines": 1302,
+      "id": "R035"
+    },
+    {
+      "group": "services-git",
+      "files": [
+        {
+          "path": "DroppyCode/Services/Git/DiffParser.swift",
+          "line_count": 167,
+          "size_bytes": 6459,
+          "sha256": "d2ae692ca34ca19e667739dbe07debeb70ed89ac4dff3c4b7f5e010ddac9ed65",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Git/FileChangeSummary+Diff.swift",
+          "line_count": 19,
+          "size_bytes": 647,
+          "sha256": "82d77d8271a0fb046ec322a3e0557c2510c9304ec7540d462ccbbd4750e6dc2c",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Git/Git.swift",
+          "line_count": 723,
+          "size_bytes": 37312,
+          "sha256": "91a7e510740ec0fcdb04761e73e3557405b3489b2f56cb9af898b33dbd6dc107",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Git/RevertPreview.swift",
+          "line_count": 42,
+          "size_bytes": 1732,
+          "sha256": "50b9301243db70154a8819b44dabd3f2a11b1498e5543013bd6cf34716b9902d",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Git/TouchedPaths.swift",
+          "line_count": 60,
+          "size_bytes": 3604,
+          "sha256": "36b32f0fd8a1a066225844cd0c5062bc87c47088b7931614dc80d0ce1f54b601",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Git/TurnDiff.swift",
+          "line_count": 65,
+          "size_bytes": 3416,
+          "sha256": "2371fcde103d2e54ebfae8f979cc784c449471ca83612277e2c2a086812ed9ef",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Git/WorkingTreeWatch.swift",
+          "line_count": 353,
+          "size_bytes": 18190,
+          "sha256": "d1625079ddf96001230158c17add97105e94aae55b6191052339e3ac6a33c191",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 1429,
+      "id": "R036"
+    },
+    {
+      "group": "services-mcp",
+      "files": [
+        {
+          "path": "DroppyCode/Services/MCP/MCPBridgeSource.swift",
+          "line_count": 252,
+          "size_bytes": 11513,
+          "sha256": "ea745c50864a2f9d9cebde713b6258af3cfe12bc04767d9efddb0c229259de9a",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/MCP/MCPExternalSync.swift",
+          "line_count": 64,
+          "size_bytes": 2698,
+          "sha256": "57161e660c12700c51c42a753f0e6657fb07c3e13a1f00d1ce7240f5002fb1f5",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/MCP/MCPHub.swift",
+          "line_count": 554,
+          "size_bytes": 22337,
+          "sha256": "6567d4a5a63e4be6b744098261ced9bc674b1d6e3f53e4fe104676a44b3e06f8",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/MCP/MCPKeychain.swift",
+          "line_count": 68,
+          "size_bytes": 3031,
+          "sha256": "b4b0c8d1de672b235c86ca1c1cbf47e60e8666edd26ef3d8b2a4b356e5fbff9e",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/MCP/MCPOAuth.swift",
+          "line_count": 929,
+          "size_bytes": 40457,
+          "sha256": "42475995d5ae5dc3433a70f810824540e7071e92b5b7ba97c193cabe7b653918",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/MCP/MCPProbe.swift",
+          "line_count": 426,
+          "size_bytes": 18664,
+          "sha256": "e868b55231c204b191f184ce15f5c24266ace6fe8178eba1ede19260b6fa7cad",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/MCP/MCPProviderConfig.swift",
+          "line_count": 252,
+          "size_bytes": 11917,
+          "sha256": "f563e93b9f6d6b2edc8881d8710763f565579e7c4a942bf23d62793c83b1308e",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 2545,
+      "id": "R037"
+    },
+    {
+      "group": "services-mcp",
+      "files": [
+        {
+          "path": "DroppyCode/Services/MCP/MCPProxy.swift",
+          "line_count": 470,
+          "size_bytes": 20210,
+          "sha256": "6e48cfa60b8b0379514be3a11e6d7b42a96d5d4e06c4a23aba3b366fe6dd94dc",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/MCP/MCPSessionOverrides.swift",
+          "line_count": 84,
+          "size_bytes": 3635,
+          "sha256": "3ceae49429101b32bb117d20496aae0e2d4281a4b3ae5c9b06bd29e833a52e5f",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/MCP/MCPStore.swift",
+          "line_count": 356,
+          "size_bytes": 16539,
+          "sha256": "66d678f708b0a6d59c3c873d3a2ec9a4144ad015d40c8059c042b0d3a289529c",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 910,
+      "id": "R038"
+    },
+    {
+      "group": "services-providers-acp",
+      "files": [
+        {
+          "path": "DroppyCode/Services/Providers/ACPSession.swift",
+          "line_count": 920,
+          "size_bytes": 43468,
+          "sha256": "564c13ed3c4d72026b55f6e18527f0736a641569e000c09786beb23ca9cc95c8",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/AntigravitySession.swift",
+          "line_count": 727,
+          "size_bytes": 37033,
+          "sha256": "21eb73065b894f134f81426ecf9d8669acddc19334be737db91403f5950b6fc4",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 1647,
+      "id": "R039"
+    },
+    {
+      "group": "services-providers-api",
+      "files": [
+        {
+          "path": "DroppyCode/Services/Providers/APIKeychain.swift",
+          "line_count": 66,
+          "size_bytes": 2924,
+          "sha256": "54ef58c9afa33c32ee7411ea463454092980b6f631c605b0ad91fcadb23067f3",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/DeepSeekAPI.swift",
+          "line_count": 99,
+          "size_bytes": 5767,
+          "sha256": "51cc6cb014bb9811f7c346bcc6843e31f7e2589bf043efdf52b1a707da78b484",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/DeepSeekKeychain.swift",
+          "line_count": 16,
+          "size_bytes": 513,
+          "sha256": "f938b86e1ac461eeb62256a306d985f4a58c0f693d6a97012a67df0aab5c8b5b",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/DeepSeekSession.swift",
+          "line_count": 58,
+          "size_bytes": 2759,
+          "sha256": "d7593d7dcb36c79c87b065f1e11b324b9f8a2536d229fdac270b0a14c0d47b33",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/MetaAPI.swift",
+          "line_count": 89,
+          "size_bytes": 5164,
+          "sha256": "96cfd753d0a20f1219b708a1391b629693988aa75b82bdc618b2078f7e7a6cec",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/MetaKeychain.swift",
+          "line_count": 16,
+          "size_bytes": 523,
+          "sha256": "89d04643675b6588b0b5e879579e63af1dceb2ac3c4b04b750d6474a1e65639c",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/MetaSession.swift",
+          "line_count": 76,
+          "size_bytes": 4270,
+          "sha256": "6edbb8f07b07735bd2b3a85bd8f922dbfee005bbce6e77a09c25f7d0a4c64f33",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/NativeFileTools.swift",
+          "line_count": 160,
+          "size_bytes": 8908,
+          "sha256": "33e9c2425eddc73265516a4df99acbd32debfd83365b1ae6b2e6ef103b0355d3",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/OpenAICompatibleSession.swift",
+          "line_count": 1336,
+          "size_bytes": 70003,
+          "sha256": "d95da35a24ac7fb11ce05d11f4463f9bad7cbb9865ce38bd6a498018a06a52ed",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/ProviderCredits.swift",
+          "line_count": 76,
+          "size_bytes": 3763,
+          "sha256": "54480c44fa313147a24c808a797f4238cea08f8a2c3601d5bdf047b1d7c7b697",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/TextGeneration.swift",
+          "line_count": 101,
+          "size_bytes": 5786,
+          "sha256": "8c05140681a1a86fa3cb8d794504177f065fe059120388870fa3cbfce507dc5e",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/ZaiAPI.swift",
+          "line_count": 224,
+          "size_bytes": 11800,
+          "sha256": "2ad41c8b747405c461a484cc51af9a2d013d6889e8c8fd01d628d10e39979c78",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/ZaiKeychain.swift",
+          "line_count": 16,
+          "size_bytes": 500,
+          "sha256": "7752219c87d6daf54389269b8f9c377d9f6ea1b9eae73c26f65c22ec2a33d089",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/ZaiSession.swift",
+          "line_count": 106,
+          "size_bytes": 6537,
+          "sha256": "d99127499cad99c34ad24e466d1b0398f78f266d2696a10f05a17d6343ea8ab5",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 2439,
+      "id": "R040"
+    },
+    {
+      "group": "services-providers-claude",
+      "files": [
+        {
+          "path": "DroppyCode/Services/Providers/ClaudeSession.swift",
+          "line_count": 814,
+          "size_bytes": 42190,
+          "sha256": "29110f6bad93a250c765438ba28d739afd5882b497a54955f045ff1766f54ba2",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/PlanLimits.swift",
+          "line_count": 336,
+          "size_bytes": 16742,
+          "sha256": "4a7aae2cb60c8d01e8d7901f6a79b68acec0d2f9d7801c11cce4ed7add1241a4",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/UsageLimitSignal.swift",
+          "line_count": 53,
+          "size_bytes": 3017,
+          "sha256": "34997469bacaa3afc9b6bd4ea3b97821437f2176eb8a294899582a9be4cf7603",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 1203,
+      "id": "R041"
+    },
+    {
+      "group": "services-providers-codex",
+      "files": [
+        {
+          "path": "DroppyCode/Services/Providers/CodexSession.swift",
+          "line_count": 1034,
+          "size_bytes": 53670,
+          "sha256": "4ffd5192311e755cde217e1f65ed93ed78802bdfeb9d52ad70f0429fbe3a09a6",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 1034,
+      "id": "R042"
+    },
+    {
+      "group": "services-providers-cmdcode",
+      "files": [
+        {
+          "path": "DroppyCode/Services/Providers/CommandCodeAPI.swift",
+          "line_count": 458,
+          "size_bytes": 27471,
+          "sha256": "6e594adf13d761034078ab6e6ba518db90848877ac847790251b72b405866927",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/CommandCodeKeychain.swift",
+          "line_count": 18,
+          "size_bytes": 717,
+          "sha256": "b96de05848dfc446acc3994a49271b5fcc8ccfaa77f2aaed0e9ecbec2ccecc5d",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/CommandCodeSession.swift",
+          "line_count": 771,
+          "size_bytes": 38172,
+          "sha256": "665e9b4497880de2cdeb0bf8dd0891527e135973cd7f241ef1f54d4a775c41d6",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 1247,
+      "id": "R043"
+    },
+    {
+      "group": "services-providers-copilot",
+      "files": [
+        {
+          "path": "DroppyCode/Services/Providers/CopilotSession.swift",
+          "line_count": 1075,
+          "size_bytes": 57279,
+          "sha256": "27137c84c80395d06b37996a44ab2694db01818c0b510d37b3bf3f0e0b3a85c0",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 1075,
+      "id": "R044"
+    },
+    {
+      "group": "services-providers-pi",
+      "files": [
+        {
+          "path": "DroppyCode/Services/Providers/PiCLI.swift",
+          "line_count": 217,
+          "size_bytes": 11140,
+          "sha256": "0de55d717fa19fcda5f741bcbc4f5353f3fc8b2de6aa90504a34400daec0f56d",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/PiPlanLimits.swift",
+          "line_count": 115,
+          "size_bytes": 6255,
+          "sha256": "ba164885d5503ee5576e4a8659ab04aa9d8ab0b531c94760f40fc7cb96865bb2",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/PiSession.swift",
+          "line_count": 654,
+          "size_bytes": 30360,
+          "sha256": "91817d6c26890c99d5dc3681404df9b88e5023bbdbdd4545066c702d6603e9aa",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 986,
+      "id": "R045"
+    },
+    {
+      "group": "services-providers-registry",
+      "files": [
+        {
+          "path": "DroppyCode/Services/Providers/ProjectGuidance.swift",
+          "line_count": 119,
+          "size_bytes": 5997,
+          "sha256": "828ed8e99670117e2b8f5074652778c7f9e15d44400d5bc16726a630710c4649",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/ProviderRegistry.swift",
+          "line_count": 817,
+          "size_bytes": 46041,
+          "sha256": "e95d777d9a0bdc6182630fd043b6a837f384c7a9bcb47a63fc6a1c8c6498fe6c",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Providers/ProviderSession.swift",
+          "line_count": 203,
+          "size_bytes": 8477,
+          "sha256": "c6c28b5221f4f687dfc3920b2b47e94c11390010fb8d8ba6bbd5555b93725e1f",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 1139,
+      "id": "R046"
+    },
+    {
+      "group": "services-store",
+      "files": [
+        {
+          "path": "DroppyCode/Services/Store/Storage.swift",
+          "line_count": 389,
+          "size_bytes": 18494,
+          "sha256": "5497b7eaa7522e854b0b7f051a4d5bafb85e5098664e2caceb775120a0cae14f",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Services/Store/TokenLedger.swift",
+          "line_count": 716,
+          "size_bytes": 34954,
+          "sha256": "cd2114d1f7cd76c3f3f583a398465593a5e3be5532054c4289d430af650d3465",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 1105,
+      "id": "R047"
+    },
+    {
+      "group": "ui-chrome",
+      "files": [
+        {
+          "path": "DroppyCode/UI/Chrome/Chrome.swift",
+          "line_count": 1107,
+          "size_bytes": 43537,
+          "sha256": "0c9511bea7ea024dabdd66741ba6f1ca20af0f28f5edc24e9187764a87a59ce0",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift",
+          "line_count": 82,
+          "size_bytes": 3117,
+          "sha256": "ac3f230d40ae2649ce169120dd420cde8848c234a9ad6190354fa758791f1300",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Chrome/ChromeVisualPicker.swift",
+          "line_count": 106,
+          "size_bytes": 4476,
+          "sha256": "9d3b81c95e248c40f1219b2d65f783ce284593af257ce7277090e3dccbfdec40",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Chrome/HydraPairMark.swift",
+          "line_count": 23,
+          "size_bytes": 1005,
+          "sha256": "c8b00e190a7a3fdb9a2923cc18ad8863dd69f05756a6c6d7bc99e2b2117191ed",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Chrome/InfoHoverButton.swift",
+          "line_count": 57,
+          "size_bytes": 2021,
+          "sha256": "5bfc0fc61e360b0e278bc8bc8f3bb2af461aa57976f332c4784f523eb7278e16",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Chrome/Popovers.swift",
+          "line_count": 401,
+          "size_bytes": 15482,
+          "sha256": "fb488bbd815d28da187c3a03b228bba9f1807cc11da4d9983ed01807d8475833",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Chrome/ProjectIconPicker.swift",
+          "line_count": 272,
+          "size_bytes": 12032,
+          "sha256": "f7343951623148d3630da1170c4b85f0ff2cbec456c0e3cdd4ecfe4309eabeeb",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Chrome/ProjectSymbolCatalogue.swift",
+          "line_count": 53,
+          "size_bytes": 68019,
+          "sha256": "b7327b1a8b030c7134a1d90503f843f8e6b5d4184b2efb17a9b4ec181a92bf22",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Chrome/RowDrag.swift",
+          "line_count": 62,
+          "size_bytes": 3040,
+          "sha256": "a4cb8aa74f557c9708e2149aa09de79e5acbdb4017f7302fcb6c94e57318f531",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 2163,
+      "id": "R048"
+    },
+    {
+      "group": "ui-chrome",
+      "files": [
+        {
+          "path": "DroppyCode/UI/Chrome/WindowChrome.swift",
+          "line_count": 571,
+          "size_bytes": 25377,
+          "sha256": "0cc559377fc6e116dafd58a8923390f418536f0417ddb455f6659819fa2e15e4",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 571,
+      "id": "R049"
+    },
+    {
+      "group": "ui-common",
+      "files": [
+        {
+          "path": "DroppyCode/UI/Common/AttachmentPreview.swift",
+          "line_count": 430,
+          "size_bytes": 19697,
+          "sha256": "875fe61d1f550de0e4ea10f075bdf8ea13df9dc191e5d5179a459203be91633b",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
+          "line_count": 366,
+          "size_bytes": 17397,
+          "sha256": "9bcd97ca9db29385aa11b9f8bb968938d098a345f9fbe5b9a56ba3156dc9120a",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Common/ChatZoom.swift",
+          "line_count": 71,
+          "size_bytes": 2833,
+          "sha256": "c013a4ac7ec184d78facacc6809f92f85342d0c60432fbf52bf1b09622c9f92b",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Common/Components.swift",
+          "line_count": 168,
+          "size_bytes": 6866,
+          "sha256": "3e530391c8c393a6e5d9719b5e3bcd61ae56237250b3a36da5a6f2627a56e487",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Common/Genie.metal",
+          "line_count": 54,
+          "size_bytes": 2560,
+          "sha256": "8b84d1a40fcfb51d442ad23975d605f749072666541637768d0265a6b65c611b",
+          "ext": "metal",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Common/Genie.swift",
+          "line_count": 214,
+          "size_bytes": 9786,
+          "sha256": "af48ab5aecde8ebe919e52f59420fc37b0a03c2901540339edfd441c1a16a934",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Common/HydraGlyph.swift",
+          "line_count": 242,
+          "size_bytes": 9765,
+          "sha256": "1d10d54808c448e0565e321add5af3a7fa1666a65f87c497c36d780533145a1b",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Common/MCPGlyph.swift",
+          "line_count": 59,
+          "size_bytes": 2076,
+          "sha256": "dc50f05711b9065eaa4494fec1e5072f625d87d56b4e7ae26c539a49654c3730",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Common/RenderBudget.swift",
+          "line_count": 99,
+          "size_bytes": 4274,
+          "sha256": "20280c6548d82868de6b95832f79c7b8c19a9b63abf32c574f59a8711c01ce7d",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Common/WorkingIndicators.swift",
+          "line_count": 345,
+          "size_bytes": 14522,
+          "sha256": "4bfe9bdd46da51dbb3f87556e2db429400f498d3308764c56f01c09f66646608",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 2048,
+      "id": "R050"
+    },
+    {
+      "group": "ui-markdown",
+      "files": [
+        {
+          "path": "DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift",
+          "line_count": 90,
+          "size_bytes": 3516,
+          "sha256": "232a8295a931a84c6387253ee1e016283fa3aac2eb416a64498f1e27d56851cb",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Markdown/LinkParagraphView.swift",
+          "line_count": 550,
+          "size_bytes": 27164,
+          "sha256": "2e467d72f630b864b51d0b5041d948cd4052ffe82cf06aceca84749320339787",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Markdown/LinkPopover.swift",
+          "line_count": 108,
+          "size_bytes": 4231,
+          "sha256": "ab8949c67ce76d3607cb0acca111cb2294c4d0be2402ed64091b99a003273707",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Markdown/LinkTitles.swift",
+          "line_count": 112,
+          "size_bytes": 5040,
+          "sha256": "012891820479a5c478d372f2129ace09cd189728dd5d0d6a99ea686d375ca408",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Markdown/MarkdownParser.swift",
+          "line_count": 338,
+          "size_bytes": 14940,
+          "sha256": "b5d86eddf582dbee5cf9dfa824d32086cf817f9628181c8e687d8b70b874c96b",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 1198,
+      "id": "R051"
+    },
+    {
+      "group": "ui-markdown",
+      "files": [
+        {
+          "path": "DroppyCode/UI/Markdown/MarkdownView.swift",
+          "line_count": 1499,
+          "size_bytes": 72972,
+          "sha256": "c165a6378494c0c54517f7538a061b5ded8913dde14209338106f05f3c922fee",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Markdown/ProseRunView.swift",
+          "line_count": 245,
+          "size_bytes": 12185,
+          "sha256": "3e5c7cca4c4c2f3aff8fa4d2a3fb514fa8338aee352fe1bb0582e8af8329b986",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Markdown/SelectableMessageText.swift",
+          "line_count": 80,
+          "size_bytes": 3594,
+          "sha256": "ddb7e22d963e098b73f5e26037dcdce84d074ce2ff6ee75091a4993062974006",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Markdown/StreamVeil.swift",
+          "line_count": 431,
+          "size_bytes": 18216,
+          "sha256": "9db33e0328db17de7d2f5b9de4cc70e651664f9e07f6d0ab251fd59b8c37bd9a",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 2255,
+      "id": "R052"
+    },
+    {
+      "group": "ui-theme-sound",
+      "files": [
+        {
+          "path": "DroppyCode/UI/Sound/FinishChime.swift",
+          "line_count": 37,
+          "size_bytes": 1588,
+          "sha256": "970ad4aaa2779ef947bac6df1b5cb2fdd6656595537e276a3330b076e3a20d92",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Sound/SettleChime.swift",
+          "line_count": 36,
+          "size_bytes": 1410,
+          "sha256": "f8e2dbc1c7ce0ab31190ed9fd0d87ab321e4b6cc9130afa05af518f3da642cbc",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Sound/ToneSynth.swift",
+          "line_count": 70,
+          "size_bytes": 3002,
+          "sha256": "9f3458c7904dd260ee0ec663f595a77d45e3beb2310f937aad1c8eaa6a11d20c",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Theme/AppTheme.swift",
+          "line_count": 248,
+          "size_bytes": 10626,
+          "sha256": "cfb568f027b5219d4dc0c6851c53f333446bfcf6cc83b41eb15d6204c853a0f6",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Theme/ShortcutTint.swift",
+          "line_count": 12,
+          "size_bytes": 356,
+          "sha256": "6bed1e1e7f2280d1dd5db4bd2a96ede69d605d1ef668088dab374c11a5e19ebe",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/UI/Theme/Wallpaper.swift",
+          "line_count": 270,
+          "size_bytes": 12658,
+          "sha256": "742e96b698201c5a2dddaa6c3f1e6ea65c4dce6035ec6e32b6bbaa8785b39d12",
+          "ext": "swift",
+          "kind": "text"
+        }
+      ],
+      "lines": 673,
+      "id": "R053"
+    },
+    {
+      "group": "docs",
+      "files": [
+        {
+          "path": "docs/anti-slop.md",
+          "line_count": 31,
+          "size_bytes": 2964,
+          "sha256": "2461e3ea844d9256db7687f2bf6c146a309cd88300487e277d4ac267ebe53fd9",
+          "ext": "md",
+          "kind": "text"
+        },
+        {
+          "path": "docs/audit-2026-09-15.md",
+          "line_count": 167,
+          "size_bytes": 21674,
+          "sha256": "448674c67bab3969c406630cd5dbb0e09b9367f800f3d4e4d516996a5598b200",
+          "ext": "md",
+          "kind": "text"
+        },
+        {
+          "path": "docs/performance-2026-09-15.md",
+          "line_count": 46,
+          "size_bytes": 5155,
+          "sha256": "35450ca90a039850d4f8b51d97b446ec82658816acfd29b0fde090da50f77c82",
+          "ext": "md",
+          "kind": "text"
+        }
+      ],
+      "lines": 244,
+      "id": "R054"
+    },
+    {
+      "group": "release-tooling",
+      "files": [
+        {
+          "path": "release/dmg/README.md",
+          "line_count": 63,
+          "size_bytes": 3528,
+          "sha256": "1ce4c22c5f29335b240ddc8ede718ed96b59a1dfa590b56d30ad85dff30e9d67",
+          "ext": "md",
+          "kind": "text"
+        },
+        {
+          "path": "release/dmg/dmgbuild_settings.py",
+          "line_count": 42,
+          "size_bytes": 1489,
+          "sha256": "951d71361688868909968c30b2ed9847c68730961af66b2ec6f3a8a4b4400130",
+          "ext": "py",
+          "kind": "text"
+        },
+        {
+          "path": "release/dmg/generate_installer_background.swift",
+          "line_count": 168,
+          "size_bytes": 9458,
+          "sha256": "38fc423325e2cc130470b3ede9ed70a4e02d92a58bdc466406d143174719d907",
+          "ext": "swift",
+          "kind": "text"
+        },
+        {
+          "path": "release/dmg/installer-DS_Store.base64",
+          "line_count": 288,
+          "size_bytes": 22428,
+          "sha256": "0f8ea777eccc8ea652faf34695a18cea0b03d82e618696b50176c35713e91a4f",
+          "ext": "base64",
+          "kind": "text"
+        }
+      ],
+      "lines": 561,
+      "id": "R055"
+    },
+    {
+      "group": "scripts",
+      "files": [
+        {
+          "path": "scripts/build_changelog.py",
+          "line_count": 178,
+          "size_bytes": 5475,
+          "sha256": "ab08ef90a6359a7f31b940c8ea797b6fefeccb90596d18a45f4693d392a38004",
+          "ext": "py",
+          "kind": "text"
+        },
+        {
+          "path": "scripts/build_project_symbol_catalogue.py",
+          "line_count": 58,
+          "size_bytes": 2893,
+          "sha256": "7c39397c001ea9e333906aae971e5633bc89e10cc44822390de392a38e4f797d",
+          "ext": "py",
+          "kind": "text"
+        },
+        {
+          "path": "scripts/deploy_site.sh",
+          "line_count": 9,
+          "size_bytes": 264,
+          "sha256": "ec9dacf0e0737463c98d5307d45938ad763e8818b7a68afa296e24737596db45",
+          "ext": "sh",
+          "kind": "text"
+        },
+        {
+          "path": "scripts/hydra_heads.py",
+          "line_count": 236,
+          "size_bytes": 13406,
+          "sha256": "1e9355d17e33d7629221c0ba443cea1fec3db10c5368b84475f46c56c61a56a4",
+          "ext": "py",
+          "kind": "text"
+        },
+        {
+          "path": "scripts/og-home.html",
+          "line_count": 122,
+          "size_bytes": 5219,
+          "sha256": "2467701043cb5cc6aed89b62dbbf10b6f9cb4000b9e25930d2787360db73e3eb",
+          "ext": "html",
+          "kind": "text"
+        },
+        {
+          "path": "scripts/package_dmg.sh",
+          "line_count": 117,
+          "size_bytes": 5201,
+          "sha256": "1599d458144f590c806f5cea2ac830850a4fd6283438ac5e8e7559e7716797a0",
+          "ext": "sh",
+          "kind": "text"
+        },
+        {
+          "path": "scripts/publish_release.sh",
+          "line_count": 73,
+          "size_bytes": 3869,
+          "sha256": "7cd8b12ccb090c94eb0720fd9851dac89f5f0ee1c077774775fbc3e35268f382",
+          "ext": "sh",
+          "kind": "text"
+        },
+        {
+          "path": "scripts/quick_run.sh",
+          "line_count": 73,
+          "size_bytes": 3094,
+          "sha256": "04639b25034b4e91ba274c32524276e3648ba650b683ec5b63b9c0b2c2f9829e",
+          "ext": "sh",
+          "kind": "text"
+        },
+        {
+          "path": "scripts/release.sh",
+          "line_count": 121,
+          "size_bytes": 4378,
+          "sha256": "2177266345115e09a23f25474bfba160ef8336bf799a824741d7abb723024ff6",
+          "ext": "sh",
+          "kind": "text"
+        },
+        {
+          "path": "scripts/release_credits.py",
+          "line_count": 389,
+          "size_bytes": 11757,
+          "sha256": "f3fcd05430d1e7b3ee5889301c3d5c640b831bec47b05f2a3875e53f75b015ef",
+          "ext": "py",
+          "kind": "text"
+        },
+        {
+          "path": "scripts/sync_dev_data.sh",
+          "line_count": 63,
+          "size_bytes": 2349,
+          "sha256": "6df79b8002c3d36c860ca93bcbfdbfc3707e164a9b0eee997ec221d774b5c45a",
+          "ext": "sh",
+          "kind": "text"
+        },
+        {
+          "path": "scripts/tour_captures.py",
+          "line_count": 295,
+          "size_bytes": 12801,
+          "sha256": "d19ba800626f45afb2487cd31a269fb4ffebbb446a2e13dcbc2e35618c571058",
+          "ext": "py",
+          "kind": "text"
+        },
+        {
+          "path": "scripts/website_captures.py",
+          "line_count": 389,
+          "size_bytes": 18377,
+          "sha256": "ba012baffa99b4994f452b15692826d38a2435ad7dc026713da2ad87587413f6",
+          "ext": "py",
+          "kind": "text"
+        }
+      ],
+      "lines": 2123,
+      "id": "R056"
+    },
+    {
+      "group": "website",
+      "files": [
+        {
+          "path": "website/assets/css/changelog.css",
+          "line_count": 495,
+          "size_bytes": 13215,
+          "sha256": "d9308d8384321115ac5cd7005f16679955a3de6de56185954d885fa5243eb69a",
+          "ext": "css",
+          "kind": "text"
+        },
+        {
+          "path": "website/assets/css/site.css",
+          "line_count": 2002,
+          "size_bytes": 61063,
+          "sha256": "7520c707bbe7bb55c7ba4125e41408e4cea906cb04006cfb3b7ee982d3df5425",
+          "ext": "css",
+          "kind": "text"
+        }
+      ],
+      "lines": 2497,
+      "id": "R057"
+    },
+    {
+      "group": "website",
+      "files": [
+        {
+          "path": "website/assets/css/wordscroll.css",
+          "line_count": 209,
+          "size_bytes": 7325,
+          "sha256": "1b9ebadd27bfafe6a7be8b8836f346fbcf8bc8f2c657a6640ff30dff9abfb407",
+          "ext": "css",
+          "kind": "text"
+        },
+        {
+          "path": "website/assets/js/changelog.js",
+          "line_count": 527,
+          "size_bytes": 17394,
+          "sha256": "cc012cba75df6f852d7f4b1a704719fc7c1c6086556e032fc2b15683d15c356e",
+          "ext": "js",
+          "kind": "text"
+        },
+        {
+          "path": "website/assets/js/code.js",
+          "line_count": 391,
+          "size_bytes": 16012,
+          "sha256": "d92b93266217d8b606ce4e348bcf1b58b3ad7e651fa4f8ce7fa10302ec9ac926",
+          "ext": "js",
+          "kind": "text"
+        },
+        {
+          "path": "website/assets/js/site.js",
+          "line_count": 402,
+          "size_bytes": 15513,
+          "sha256": "8a5d9d2f4a87ae77488ea44c5c55849b8bfec42ffc6bec3d7861c910e5dad13d",
+          "ext": "js",
+          "kind": "text"
+        },
+        {
+          "path": "website/assets/js/wordscroll.js",
+          "line_count": 249,
+          "size_bytes": 10509,
+          "sha256": "d781ff0e7fdf63c788f0bcba291ae6e471170c4583b087b92d6c026be78f84ea",
+          "ext": "js",
+          "kind": "text"
+        },
+        {
+          "path": "website/changelog.html",
+          "line_count": 178,
+          "size_bytes": 11222,
+          "sha256": "de89ec2d3819496d1ccb147b3d9c7d85e665433d6846c18b7675cc1b593af12e",
+          "ext": "html",
+          "kind": "text"
+        },
+        {
+          "path": "website/changelog.json",
+          "line_count": 541,
+          "size_bytes": 45437,
+          "sha256": "34ae38bdc4712f30a90b8594f9ffdbe5ae94d968c86eaabaf0131cf2599e9594",
+          "ext": "json",
+          "kind": "text"
+        }
+      ],
+      "lines": 2497,
+      "id": "R058"
+    },
+    {
+      "group": "website",
+      "files": [
+        {
+          "path": "website/index.html",
+          "line_count": 782,
+          "size_bytes": 70113,
+          "sha256": "57d7dd91f7c13ee7eba7113ad8548e460c596775bf9eb6c1f4e3ec13a54b0018",
+          "ext": "html",
+          "kind": "text"
+        },
+        {
+          "path": "website/robots.txt",
+          "line_count": 4,
+          "size_bytes": 75,
+          "sha256": "3dd1d66e6e1c601424e9002f9b19dda6374810ac9fcc292f2797d9a3ac5b881d",
+          "ext": "txt",
+          "kind": "text"
+        },
+        {
+          "path": "website/sitemap.xml",
+          "line_count": 15,
+          "size_bytes": 455,
+          "sha256": "a9c67ff97831023186fd9504f9c4149d409913a60e87ad056596242b64581f98",
+          "ext": "xml",
+          "kind": "text"
+        }
+      ],
+      "lines": 801,
+      "id": "R059"
+    },
+    {
+      "group": "assets-vector",
+      "files": [
+        {
+          "path": "DroppyCode/Resources/AppIcon.icon/Assets/SVG Image.svg",
+          "line_count": 1262,
+          "size_bytes": 57541,
+          "sha256": "52eb379e10e01fe3a2cbfab216a87e4f964632a36533e0f38cb39f9ad145b1d6",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/badge-edit.imageset/badge-edit.svg",
+          "line_count": 1,
+          "size_bytes": 278,
+          "sha256": "91ce10a554cb96c12c59a2f778b9541014483c9e70f9b84f5a3f4776efd20e3e",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-01.imageset/hydra-head-01.svg",
+          "line_count": 1,
+          "size_bytes": 1291,
+          "sha256": "dda00072e38f13b1dbf416ec6fe011e47ce87f1e6a32182098660991d781b0e6",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-02.imageset/hydra-head-02.svg",
+          "line_count": 1,
+          "size_bytes": 1535,
+          "sha256": "fed154187237b95e45b8845dfd98064bf3d2e7a16ac57edb58f13dd73f09b6dd",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-03.imageset/hydra-head-03.svg",
+          "line_count": 1,
+          "size_bytes": 1235,
+          "sha256": "7762d8a10db7f12d1b0ccda7c2a743f96d7841fffaef575264d53012d814d78c",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-04.imageset/hydra-head-04.svg",
+          "line_count": 1,
+          "size_bytes": 1421,
+          "sha256": "3783b8b906cbda324e01f16a9f749d4e13072c5a45f5614a6a2aa928c8047f4d",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-05.imageset/hydra-head-05.svg",
+          "line_count": 1,
+          "size_bytes": 1538,
+          "sha256": "2021936fcacecc7f7d629c59a04d86c7256ef5e5f19f6b1caf827410e90286a5",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-06.imageset/hydra-head-06.svg",
+          "line_count": 1,
+          "size_bytes": 1347,
+          "sha256": "689f5eeef5e28e44c5ce900c0412ba01fcd00f54c690d5be823cff127e8e5016",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-07.imageset/hydra-head-07.svg",
+          "line_count": 1,
+          "size_bytes": 1467,
+          "sha256": "5ad6f3b7969ce3c933fa82f7a43b478d50e2287bb82f47819a8de4c7dee93463",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-08.imageset/hydra-head-08.svg",
+          "line_count": 1,
+          "size_bytes": 1279,
+          "sha256": "3a2b4009bd24147a12313760f013fd2d536d6f718db85e25fa08bd36f18f8616",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-09.imageset/hydra-head-09.svg",
+          "line_count": 1,
+          "size_bytes": 1461,
+          "sha256": "53d0fc417f17ddf1adf9bbf551857c08529876f773e523fed405141cdbf04ba4",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-10.imageset/hydra-head-10.svg",
+          "line_count": 1,
+          "size_bytes": 1720,
+          "sha256": "f8bed9f6ec7d8fbea043457222b2a53a1d9ff1c971d2569cbfcb5166845a4b06",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-11.imageset/hydra-head-11.svg",
+          "line_count": 1,
+          "size_bytes": 1205,
+          "sha256": "e8c3602d16cebd753baa1d96b2f0cbd7976071f0c83d10fec08a843caaa569bb",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-12.imageset/hydra-head-12.svg",
+          "line_count": 1,
+          "size_bytes": 1386,
+          "sha256": "6108d97a753485c0747432a0c0ff9a1b137e4f37d4174b0bb1604ad3de245c37",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-13.imageset/hydra-head-13.svg",
+          "line_count": 1,
+          "size_bytes": 1621,
+          "sha256": "dd627edb1ac55589788cb16330b24b116a360fa9dec7372eaf5a7412aa0a4732",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-14.imageset/hydra-head-14.svg",
+          "line_count": 1,
+          "size_bytes": 1242,
+          "sha256": "7a3f5f765d1f6c8d3d89533c9cec4331e8ea989320cf49b51f646132e8fbb343",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-15.imageset/hydra-head-15.svg",
+          "line_count": 1,
+          "size_bytes": 1634,
+          "sha256": "d1f0270a61a7aa707ee378f2bd1afe5609d6b349455aeb816eb34a8e6c774773",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-16.imageset/hydra-head-16.svg",
+          "line_count": 1,
+          "size_bytes": 1239,
+          "sha256": "3a194b461b16547632619d74e2db31485f05721ad07fa9afba901df49e7dad9a",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-17.imageset/hydra-head-17.svg",
+          "line_count": 1,
+          "size_bytes": 2053,
+          "sha256": "ca9600450b68fc8336b99cbc702c7e4300ddebb9890d7025d461576ea8d777bc",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-18.imageset/hydra-head-18.svg",
+          "line_count": 1,
+          "size_bytes": 1201,
+          "sha256": "9fd2bebf585c0e516b4da0469f3fcd0df8f1a289db8eae682ad068cda25da270",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-19.imageset/hydra-head-19.svg",
+          "line_count": 1,
+          "size_bytes": 1461,
+          "sha256": "9149edea5c276388be9db32b5304fbf5edd6e5b9671236edc73c86ff6dcb7c2a",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-20.imageset/hydra-head-20.svg",
+          "line_count": 1,
+          "size_bytes": 1504,
+          "sha256": "7c464196c8cb534bb439084caf7d312a280ccb32af82f1372fe3a40e67280caa",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-21.imageset/hydra-head-21.svg",
+          "line_count": 1,
+          "size_bytes": 1242,
+          "sha256": "269283ebd58617f648e1059d5e4c4258895ef87bd371012e9d9b2dd86baf75dd",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-22.imageset/hydra-head-22.svg",
+          "line_count": 1,
+          "size_bytes": 1387,
+          "sha256": "3e3c1434363aaa55f6dbefbf73bec3403adfbe69d50e698c284bee463b4a5897",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-23.imageset/hydra-head-23.svg",
+          "line_count": 1,
+          "size_bytes": 1319,
+          "sha256": "a64f9848e3a3b3d533363ca6aec916dabc9736f6990842f06f752478c1302841",
+          "ext": "svg",
+          "kind": "text"
+        }
+      ],
+      "lines": 1286,
+      "id": "R060"
+    },
+    {
+      "group": "assets-vector",
+      "files": [
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-24.imageset/hydra-head-24.svg",
+          "line_count": 1,
+          "size_bytes": 1676,
+          "sha256": "aaebc0cbdb4df44f463ecbd51108f016a1eb836186248f1c11c9bd660fd2fb63",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-head-25.imageset/hydra-head-25.svg",
+          "line_count": 1,
+          "size_bytes": 1402,
+          "sha256": "45e8bac8d8e312fcae642d63aac130bc7e09fdee59807c166ff36734f78f84fa",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/hydra-mark.imageset/hydra-mark.svg",
+          "line_count": 1,
+          "size_bytes": 1436,
+          "sha256": "26c998a5e343e9bc0e8110be443fcb5b716dec0c705f4a52a2b5066d5d3d8f72",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-atlassian.imageset/mcp-atlassian.svg",
+          "line_count": 1,
+          "size_bytes": 354,
+          "sha256": "bfc96e09ac5b3c7553ea422e67fc00ce636a97b26ddb9a361d0af780cb24c910",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-aws-docs.imageset/mcp-aws-docs.svg",
+          "line_count": 1,
+          "size_bytes": 188,
+          "sha256": "6765b58d698176b8d2bce7bc4c520a7f36b95cb5a3f6ae531ec39a380028a5d9",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-brave-search.imageset/mcp-brave-search.svg",
+          "line_count": 1,
+          "size_bytes": 2094,
+          "sha256": "7038d3d9a08e044f8575b7afbd49762c3639265368e908f5bc64cd79badac6b7",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-chrome-devtools.imageset/mcp-chrome-devtools.svg",
+          "line_count": 1,
+          "size_bytes": 507,
+          "sha256": "55c2c0d61699cf71e9dda8039c533bf29a3279f40d46c8a01ad3bb4e3698dad1",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-cloudflare.imageset/mcp-cloudflare.svg",
+          "line_count": 1,
+          "size_bytes": 1153,
+          "sha256": "e03d51e40d6149bacfaaa77601e2d982a8c3e39435f984493b17144df2e442b0",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-context7.imageset/mcp-context7.svg",
+          "line_count": 1,
+          "size_bytes": 243,
+          "sha256": "a1fb2afa42fea60d11a7b57cbdda4a0016d36e72dc82caf6aaf0dc651d3dea08",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-deepwiki.imageset/mcp-deepwiki.svg",
+          "line_count": 1,
+          "size_bytes": 200,
+          "sha256": "bd9a7d251af2e0c6f8fbad8af624b95a3fe3d36dd4da5b937593fa9a51c1f141",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-exa.imageset/mcp-exa.svg",
+          "line_count": 1,
+          "size_bytes": 223,
+          "sha256": "c0b2c677808e660a38c579824e52f21bded72d26ebcba545b11341e7628a6505",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-fetch.imageset/mcp-fetch.svg",
+          "line_count": 1,
+          "size_bytes": 263,
+          "sha256": "9185d8f63a64dd56c77318882c2e0e3d9e0476a1f2d3b1baf7f30a3db3f8a397",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-figma.imageset/mcp-figma.svg",
+          "line_count": 1,
+          "size_bytes": 1073,
+          "sha256": "fe6b827450992549f7041f1beb7dc8e32394b7010e6c4a8d5258e2eec537c960",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-filesystem.imageset/mcp-filesystem.svg",
+          "line_count": 1,
+          "size_bytes": 158,
+          "sha256": "f38056c9f99f483da6c4b3285ea09de54cea42e5a560c58d5c948b37f4a222b9",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-firecrawl.imageset/mcp-firecrawl.svg",
+          "line_count": 1,
+          "size_bytes": 383,
+          "sha256": "2ed412419856d3483bf80231ba4931785657258b93a0438ed040d9e4f095208d",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-git.imageset/mcp-git.svg",
+          "line_count": 1,
+          "size_bytes": 408,
+          "sha256": "92e8ed3dda4bdc880d12e73543f1811e964519ad87d84cff91187e7c2465e31d",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-github.imageset/mcp-github.svg",
+          "line_count": 1,
+          "size_bytes": 801,
+          "sha256": "3629791d9f13ef7a51c2b0a9706b366d264a2c1e9a06bb2b77c3598bc99bd6b6",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-gitlab.imageset/mcp-gitlab.svg",
+          "line_count": 1,
+          "size_bytes": 555,
+          "sha256": "6c895649b78119e5167eccaa36c2a4c45bca20728deea4f0c2647828ce156a7a",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-huggingface.imageset/mcp-huggingface.svg",
+          "line_count": 1,
+          "size_bytes": 3000,
+          "sha256": "5c9441068746b8212292a5e6df93367aab9ed15d98427ff011ffec3dc89c5c39",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-linear.imageset/mcp-linear.svg",
+          "line_count": 1,
+          "size_bytes": 432,
+          "sha256": "54938d1eab5b1c629d6c49ba20ee27c99554bfd3113b28ab4c0323508e5ccac3",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-memory.imageset/mcp-memory.svg",
+          "line_count": 1,
+          "size_bytes": 217,
+          "sha256": "c51a875465cf80cd3af37bd092989ac07cd32ca9d8ac1c5a13a9db5d3b7927ec",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-mongodb.imageset/mcp-mongodb.svg",
+          "line_count": 1,
+          "size_bytes": 505,
+          "sha256": "9196da9755289d0afb9928fceb4a304032060ee1214d181390ea7bb56c89aa82",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-netlify.imageset/mcp-netlify.svg",
+          "line_count": 1,
+          "size_bytes": 636,
+          "sha256": "ad6d8fb1d1d463603b834ecf87f67082b05a27a6fd6104fb7b22b0af60d4237b",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-notion.imageset/mcp-notion.svg",
+          "line_count": 1,
+          "size_bytes": 957,
+          "sha256": "9653926ee5ac181204e2e352f2b09e79d0e6ba800f95458c30bbbe6348649b63",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-perplexity.imageset/mcp-perplexity.svg",
+          "line_count": 1,
+          "size_bytes": 593,
+          "sha256": "e05c84d7b222e6ee9efd1dab6fb005752d900841aedf669b2dc672d04d479abb",
+          "ext": "svg",
+          "kind": "text"
+        }
+      ],
+      "lines": 25,
+      "id": "R061"
+    },
+    {
+      "group": "assets-vector",
+      "files": [
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-playwright.imageset/mcp-playwright.svg",
+          "line_count": 1,
+          "size_bytes": 975,
+          "sha256": "7e9e889581ca63cd1328158b58d04c2f96077d5c58b88d0642912f5f122582ef",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-postgres.imageset/mcp-postgres.svg",
+          "line_count": 1,
+          "size_bytes": 5180,
+          "sha256": "bdb71861b6cee8fd1f034ec3090dc83781f0d22bd7187a968e465f32982724fd",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-resend.imageset/mcp-resend.svg",
+          "line_count": 1,
+          "size_bytes": 323,
+          "sha256": "ec72a1f953dbe08c9cb1b2d2045279850a2ba9ef6f008dcdb124d545b9d59a64",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-sentry.imageset/mcp-sentry.svg",
+          "line_count": 1,
+          "size_bytes": 665,
+          "sha256": "587d44de6280d81709bf8aed9bbabfb3da1e0ee60614c1d00cd6d561780a56f8",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-sequential-thinking.imageset/mcp-sequential-thinking.svg",
+          "line_count": 1,
+          "size_bytes": 263,
+          "sha256": "c4e7b29b5012cf499568bcc013dfc1705e7fab319c24be66c030f963f5a0aa33",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-slack.imageset/mcp-slack.svg",
+          "line_count": 1,
+          "size_bytes": 1103,
+          "sha256": "13044f91773c564315759d4ad91bf1a1f9ca93203457a810e218c54ae5c4301d",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-sqlite.imageset/mcp-sqlite.svg",
+          "line_count": 1,
+          "size_bytes": 1399,
+          "sha256": "0fb0506fc5ecf88a7b25fb1c1623af9a23bcf888551f08d627a87dc918197c5d",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-stripe.imageset/mcp-stripe.svg",
+          "line_count": 1,
+          "size_bytes": 567,
+          "sha256": "2dd8789371b4fb94f7f6c4ca367d17020a90e8530403dfba0453196383b7efb4",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-supabase.imageset/mcp-supabase.svg",
+          "line_count": 1,
+          "size_bytes": 280,
+          "sha256": "4464b87a7785980037961233fe4d762acb9836e8400282d47e367ef46601d447",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-tavily.imageset/mcp-tavily.svg",
+          "line_count": 1,
+          "size_bytes": 135,
+          "sha256": "b0f159004467d54dd396a2736f8bc29f29a5c18cb7664b9633a36247e7a2cf8b",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/mcp-vercel.imageset/mcp-vercel.svg",
+          "line_count": 1,
+          "size_bytes": 111,
+          "sha256": "cc15be5edd5f241ece94eb4f4cf7a9263583c2e7de8193e9f7bab3eaf1937f3f",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-antigravity.imageset/antigravity.svg",
+          "line_count": 1,
+          "size_bytes": 417,
+          "sha256": "278ea4b5feac255a6919943e57056cf297f945a55cad35f5b3a2ea28d9e12704",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-claude.imageset/claude.svg",
+          "line_count": 1,
+          "size_bytes": 1986,
+          "sha256": "fb21ac9bfce821e7badcfcec81cc706ba8a5c73a690da112d416855e0821cf72",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-codex.imageset/codex.svg",
+          "line_count": 1,
+          "size_bytes": 1697,
+          "sha256": "b78b0eb753b20027a4a5eb105b993d7af9230a186f5fbca5061024a7aa88461e",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-commandcode.imageset/commandcode.svg",
+          "line_count": 1,
+          "size_bytes": 485,
+          "sha256": "eb70177b06d7ad6d16bda8f8277332923493f528d0696c258e7e963d0b766869",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-copilot.imageset/copilot.svg",
+          "line_count": 1,
+          "size_bytes": 1739,
+          "sha256": "2512f516d8bed535da470d2da42f2d7a3759fbc6ab6c96a342ab9c58d7920a29",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-cursor.imageset/cursor.svg",
+          "line_count": 1,
+          "size_bytes": 585,
+          "sha256": "be26226b74a1cd8c4568fc80aea8877aa73b0e53ca910072dcf51cf5254c2663",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-deepseek.imageset/deepseek.svg",
+          "line_count": 1,
+          "size_bytes": 2112,
+          "sha256": "f3da303c33d9ec378567d290660886ca5cdd835bb12db8972741137be0c33f39",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-devin.imageset/devin.svg",
+          "line_count": 1,
+          "size_bytes": 1400,
+          "sha256": "67942743807cc606a77c23920237fc1737c6a7f85e13f21add9918cce7d23f45",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-grok.imageset/grok.svg",
+          "line_count": 1,
+          "size_bytes": 972,
+          "sha256": "0b9fa569f6f89cc86fe738e1f3dc5fa5b52df339e96e36a1579b2b2436661a79",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-meta.imageset/meta.svg",
+          "line_count": 1,
+          "size_bytes": 583,
+          "sha256": "1cb5e3801b638fbc9ba5a4aeac937825adce2d314690bf43faff49d902d349fb",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-opencode.imageset/opencode.svg",
+          "line_count": 1,
+          "size_bytes": 234,
+          "sha256": "c6b7b5b6d93b8ba54064b490ec623910cfe3b4af8fc4c3e484198ee7eb4665d2",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-pi.imageset/pi.svg",
+          "line_count": 1,
+          "size_bytes": 371,
+          "sha256": "8986776df2945964a397b29ce49ee7dd3e659e08b9c6e041380e73812301acd4",
+          "ext": "svg",
+          "kind": "text"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/provider-zai.imageset/zai.svg",
+          "line_count": 1,
+          "size_bytes": 145,
+          "sha256": "40d8b40fb7c9035a6744092c0ebf35ea8e2cdfd98f5d3c9d3c489ed79216d766",
+          "ext": "svg",
+          "kind": "text"
+        }
+      ],
+      "lines": 24,
+      "id": "R062"
+    },
+    {
+      "group": "assets-binary",
+      "files": [
+        {
+          "path": "DroppyCode/Resources/AppIcon.icon/Assets/mascot (3).png",
+          "line_count": null,
+          "size_bytes": 614192,
+          "sha256": "50e7235981eb956261bc04f9f9a1da0e27335e358f48576403e177d2593e813a",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "DroppyCode/Resources/AppIcon.icon/Assets/mascot dark.png",
+          "line_count": null,
+          "size_bytes": 592612,
+          "sha256": "a4718b34da21345c39a15ecde8b499d56516130f5c732dd00079951e49c9d828",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "DroppyCode/Resources/AppIcon.icon/Assets/shadow dark.png",
+          "line_count": null,
+          "size_bytes": 180035,
+          "sha256": "1b20410a1dd70bbb155c91f240e3b2089b324b35fb15aa9a6b2c84e8c6284709",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "DroppyCode/Resources/AppIcon.icon/Assets/shadow def.png",
+          "line_count": null,
+          "size_bytes": 279706,
+          "sha256": "53533afd2dd1a8d0bc2bf064684543ba1159fab7a4d47b2afb6e4907c1e963ea",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/UpdateBugFixesIcon.imageset/update-bug-fixes.png",
+          "line_count": null,
+          "size_bytes": 19762,
+          "sha256": "2025b1d5d7dbb84b4280ade41ba4182554612db3791eb5ca268e0be8b8cc2159",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/UpdateNewFeaturesIcon.imageset/update-new-features.png",
+          "line_count": null,
+          "size_bytes": 20285,
+          "sha256": "c036bb8a900aaec95b94f4643fd64bfd781f31a7b94cd6e4d965cc6bb28a2bb9",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/UpdateRefinementsIcon.imageset/update-refinements.png",
+          "line_count": null,
+          "size_bytes": 17578,
+          "sha256": "d2431478814ecd3e2e604cb560f66dd74d2baeec61cfbddc8fa649671ac10239",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/droppy-logo.png",
+          "line_count": null,
+          "size_bytes": 51677,
+          "sha256": "0f5d9663a0d23c458ab8e2783237596e5618d482f4ac23f00ead91eccef04388",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/droppy-logo@2x.png",
+          "line_count": null,
+          "size_bytes": 168848,
+          "sha256": "8007b4c58a34c96525245976b4d715930a24b4a8fac1614811c058720d98943d",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/tour-hydra.imageset/tour-hydra@2x.png",
+          "line_count": null,
+          "size_bytes": 546393,
+          "sha256": "f3c4832c791af3599ce388143e53e411bacb9b8f4a6ad6b4f3251c7dd1f5524c",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/tour-pairs.imageset/tour-pairs@2x.png",
+          "line_count": null,
+          "size_bytes": 404967,
+          "sha256": "d4fbfff100310f300cfe103f87cb6d172e893bc8bb358815d2447898331dd2ba",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/tour-panels.imageset/tour-panels@2x.png",
+          "line_count": null,
+          "size_bytes": 538872,
+          "sha256": "1fdb11ae42911d1ff49c6dc4acb2700a1e15f115f244022a259d8d63c1c27e0e",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/tour-recipes.imageset/tour-recipes@2x.png",
+          "line_count": null,
+          "size_bytes": 682913,
+          "sha256": "3047cf7a53dcc5391e3bfa84b20eca9af4530de1220af875f4cc1be50d79dbf0",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/tour-slider.imageset/tour-slider@2x.png",
+          "line_count": null,
+          "size_bytes": 342603,
+          "sha256": "24dabdf44f19b3a87f11d86b9663c1418b8365712bf77070391c3e6e0d01df3d",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/tour-themes.imageset/tour-themes@2x.png",
+          "line_count": null,
+          "size_bytes": 733624,
+          "sha256": "2361ef94dae845d6152d8a911ce0dcf145e285db7883991d7b38e4a258bd2834",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/tour-threads.imageset/tour-threads@2x.png",
+          "line_count": null,
+          "size_bytes": 746435,
+          "sha256": "34e6e931e7147b6b941fdc8a9d6a9030cd1a3287471b466b0d00ae0ec23f03bf",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "DroppyCode/Resources/Assets.xcassets/tour-welcome.imageset/tour-welcome@2x.png",
+          "line_count": null,
+          "size_bytes": 485967,
+          "sha256": "1a522c669013882669c6d66b9d8ad5e2009ad230033d6b4ece811484958d9f50",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "docs/droppy-logo.png",
+          "line_count": null,
+          "size_bytes": 51677,
+          "sha256": "0f5d9663a0d23c458ab8e2783237596e5618d482f4ac23f00ead91eccef04388",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "docs/icon.png",
+          "line_count": null,
+          "size_bytes": 168110,
+          "sha256": "5541c64f4d6d628b978aa9ceb07a7c86a3bc5991b39dbc0914984248b96a7a3e",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "release/dmg/installer-background.tiff",
+          "line_count": null,
+          "size_bytes": 121852,
+          "sha256": "aeb1fc6185d426c876199c2469814a51167b367e7b879486e4832e240df86e1a",
+          "ext": "tiff",
+          "kind": "binary"
+        },
+        {
+          "path": "website/assets/brand/droppy-code-icon-180.png",
+          "line_count": null,
+          "size_bytes": 34477,
+          "sha256": "ae48a205e0b7f810e8f835ba139969b7dc2ed3976810b7d59c169d6024b21202",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "website/assets/brand/droppy-code-icon-256.webp",
+          "line_count": null,
+          "size_bytes": 11020,
+          "sha256": "88e73a0910d3d5101f126f728af195da2dafbfc35d085a86db574524d8a00cfb",
+          "ext": "webp",
+          "kind": "binary"
+        },
+        {
+          "path": "website/assets/brand/droppy-code-icon-96.png",
+          "line_count": null,
+          "size_bytes": 12960,
+          "sha256": "b402b0ff565b1d2a9c10f1e73e8583152d9e25a3b49ce217b484471689c6bfcf",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "website/assets/brand/droppy-icon-64.png",
+          "line_count": null,
+          "size_bytes": 6637,
+          "sha256": "3441bdd3bb4fa2ec321379ad64823064679d526febd32f1a48950db6f72cf514",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "website/assets/brand/favicon.ico",
+          "line_count": null,
+          "size_bytes": 6862,
+          "sha256": "fd46251b76c988078014b44812bda266caeb9350b95d4ef4351236c8ea05e7e2",
+          "ext": "ico",
+          "kind": "binary"
+        },
+        {
+          "path": "website/assets/images/changelog-icons/bug-fixes.png",
+          "line_count": null,
+          "size_bytes": 2003,
+          "sha256": "7d82c7a2bb3ae0a99cbee2ce4cf327c85d5c9346a855c03bf5df4864f6e42fa8",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "website/assets/images/changelog-icons/new-features.png",
+          "line_count": null,
+          "size_bytes": 1508,
+          "sha256": "4b460b7e043bfcc6da322cda287696e2dee616ae361656328e02963b0c08720d",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "website/assets/images/changelog-icons/refinements.png",
+          "line_count": null,
+          "size_bytes": 2240,
+          "sha256": "eb50ad8af65a9c47a79484c859333e1b5575abd571bbd1648e101894f7b9800e",
+          "ext": "png",
+          "kind": "binary"
+        },
+        {
+          "path": "website/assets/images/jordy.webp",
+          "line_count": null,
+          "size_bytes": 41456,
+          "sha256": "569936adcef5ee47407c89247aa661ee799a6d4e535b6939c7694a2c196d0c71",
+          "ext": "webp",
+          "kind": "binary"
+        },
+        {
+          "path": "website/assets/og/og-home.png",
+          "line_count": null,
+          "size_bytes": 135966,
+          "sha256": "53ab48949031096df3d46a8c9b0308b918f7859acfdaacf753370385d9a10881",
+          "ext": "png",
+          "kind": "binary"
+        }
+      ],
+      "lines": 0,
+      "id": "R063"
+    }
+  ]
+}

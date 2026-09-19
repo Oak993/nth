@@ -1,0 +1,384 @@
+{
+  "bundle_id": "R022",
+  "reader": "R022-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
+      "sha256": "e0d44a21dcbb923c3ccee68f329d7b5136b9b7115c5268d96500369b6eec191f",
+      "lines_total": 1110,
+      "ranges_read": [[1, 1110]],
+      "purpose": "The MCP tab of Settings: a lead explainer card, a 'Connected' section of rows, a 'Custom' section with an add/edit popover, and per-category two-column grids of catalog server cards where one click connects. Also defines the shared MCPIcon view, the hover/click 'i' info button, the server details popover, monospaced tool chips and the FlowLayout they wrap with.",
+      "key_symbols": [
+        "struct MCPSettingsPage: View (takes `let query: String`)",
+        "MCPSettingsPage.columns: [GridItem] = two .flexible() columns, spacing 10",
+        "MCPSettingsPage.connected: [MCPCatalogEntry] (filters out celebrating ids, keeps isConnected, sorted by name ascending)",
+        "MCPSettingsPage.visibleSections: [(category: MCPCategory, entries: [MCPCatalogEntry])]",
+        "fileprivate static func matches(_ entry: MCPCatalogEntry, query: String) -> Bool",
+        "private struct MCPLeadCard: View (+ private func fact(symbol:text:))",
+        "private struct MCPConnectedRow: View (+ toolsPopover, toolCount, connection)",
+        "private struct MCPServerCard: View (+ headerRow, action, begin(), successView, toolCount)",
+        "private struct MCPCustomSection: View (+ visible, addRow)",
+        "private struct MCPCustomRow: View (+ statusLine, action, begin(), menuButton)",
+        "private struct MCPCustomEditor: View (+ nested private struct VariableDraft: Identifiable, header, nameField, field(_:control:), editorField(_:text:), secureEditorField(_:text:), argsEditor, variablesSection(title:addLabel:), draft, save())",
+        "private struct MCPInfoButton: View",
+        "private struct MCPHoverInfoButton<Content: View>: View (+ reconsider())",
+        "private struct MCPInfoPopover: View (+ detail(_:_:), connection, needs, static host(of:), static width: CGFloat = 340)",
+        "private struct FlowChips: View",
+        "private struct FlowLayout: Layout (sizeThatFits, placeSubviews)",
+        "struct MCPIcon: View (internal, `var size: CGFloat = 20`)"
+      ],
+      "calls_into": [
+        "AppModel via @Environment(AppModel.self); model.mcp",
+        "model.mcp.state(for:), .states, .connection(for:), .connect(_:), .disconnect(_:), .refresh(_:), .setEnabled(_:for:), .customs, .deleteCustom(_:), .saveCustom(_:replacing:), .saveCustomValues(_:for:replacingFieldsOf:), .storedValue(server:field:secret:), .entry(for:)",
+        "MCPCatalog.entries, MCPCatalog.byCategory",
+        "MCPCatalogEntry: id, name, vendor, summary, sampleTools, asset, color, isMonochrome, category, docsURL, fields (label/isRequired), transport (.stdio(command,args)/.http(url,_)/.oauth(url)), isOAuth, needsInput, fill(_:values:)",
+        "MCPConnectionState cases .notConnected, .connecting, .connected(Int), .needsSetup(MCPSetupGuide), .failed(String); .isConnected",
+        "MCPConnection: tools (id, name, summary), serverVersion, isEnabled",
+        "MCPCustomServer: id, name, kind (.stdio/.http), command, args, url, variables, env, headers, summary, catalogEntry(), makeID(_:), Variable(key:isSecret:)",
+        "MCPSetupPanel.shared.present(entry:guide:model:)",
+        "MCPKeyPanel.shared.present(entry:model:)",
+        "Chrome.sectionSpacing, Chrome.primaryText, Chrome.secondaryText, Chrome.accent, Chrome.danger, Chrome.warning, Chrome.success, Chrome.overlay(_:), Chrome.rowControlTrailingPadding",
+        "ChromeSection, ChromeCard, ChromeRowDivider",
+        "SettingsSwitch, WorkingSpinner(cellSize:), GlassPickerButton(options:selection:symbol:)",
+        "PopoverMenu, PopoverItem(_:symbol:isEnabled:isDestructive:), PopoverDivider, PopoverSectionHeader, PopoverNote",
+        "SettleChime.play()",
+        ".presentedChrome(); button styles .glass and .glassProminent"
+      ],
+      "state_owned": [
+        "MCPSettingsPage: @State private var celebrating: Set<String> = []",
+        "MCPConnectedRow: @State showMenu = false; @State showTools = false",
+        "MCPServerCard: @State successPopped = false",
+        "MCPCustomSection: @State isAdding = false",
+        "MCPCustomRow: @State showMenu = false; @State isEditing = false",
+        "MCPCustomEditor: @State name, kind, command, argsText, url, variables: [VariableDraft], error: String?, savedID: String?; @FocusState isNameFocused",
+        "MCPHoverInfoButton: @State isPresented, isOverButton, isOverPopover, settle: Task<Void, Never>?"
+      ],
+      "side_effects": [
+        "SettleChime.play() when a server transitions to connected (skipped entirely under accessibilityReduceMotion)",
+        "Task sleeps: 900ms celebration window; 220ms open / 320ms close hover settle in MCPHoverInfoButton",
+        "MCPSetupPanel.shared.present(...) opens a floating panel and a browser page; auto-fired from MCPServerCard.onChange when state becomes .needsSetup",
+        "MCPKeyPanel.shared.present(...) for entries with needsInput",
+        "model.mcp.saveCustom / saveCustomValues write mcp.json (plain values) and the Keychain (locked values)",
+        "model.mcp.connect/disconnect/refresh start, stop or re-probe MCP servers",
+        "Link(destination:) opens entry.docsURL in the browser"
+      ],
+      "platform_assumptions": [
+        "SwiftUI on macOS with `import AppKit`",
+        "SF Symbols used: checkmark.shield.fill, lock.fill, arrow.uturn.backward, sparkles, ellipsis.circle, arrow.clockwise, wrench, xmark.circle, checkmark.circle.fill, plus.circle, pencil, trash, terminal, network, minus.circle, lock.open, plus, info.circle, arrow.up.right, server.rack",
+        "macOS 26 liquid-glass button styles .glass / .glassProminent",
+        "popover(isPresented:arrowEdge:) with macOS popover semantics (arrowEdge .bottom throughout)",
+        "@Observable AppModel via @Environment(AppModel.self)",
+        "SwiftUI Layout protocol for FlowLayout",
+        "Keychain-backed secret storage for locked variables",
+        "Copy is macOS-specific: 'a command that runs on this Mac', 'Runs on this Mac through ...'"
+      ],
+      "persisted_fields": [
+        "mcp.json: plain (non-secret) custom-server variable values (help text: 'Stored in mcp.json; click to keep it in the Keychain instead')",
+        "Keychain: locked/secret variable values, written by model.mcp.saveCustomValues, read back by model.mcp.storedValue(server:field:secret:)",
+        "MCPCustomServer record via model.mcp.saveCustom: id, name, kind (.stdio/.http), command: String, args: [String], url: String, env: [Variable] (stdio) or headers: [Variable] (http); Variable = (key: String, isSecret: Bool) - values are NOT part of the record",
+        "Per-connection enabled flag via model.mcp.setEnabled(_:for:) (connection.isEnabled, defaults to true when nil)"
+      ],
+      "ui_elements": [
+        "Grid: LazyVGrid, 2 flexible columns, column spacing 10, row spacing 10",
+        "Lead card: checkmark.shield.fill 22pt Chrome.accent; 'Connected servers lead' 13pt semibold; body 'Connect a server here and every thread can use it. Anything set up in a terminal or another app stays just as it is.' 12pt secondary; padding 16; RoundedRectangle cornerRadius 14 continuous filled Chrome.primaryText.opacity(0.05)",
+        "Lead card info popover (label 'About connected servers'): VStack spacing 8, padding 14, three 12pt facts at Chrome.primaryText.opacity(0.9) with 14-wide accent symbols: lock.fill 'Keys stay in your Keychain'; arrow.uturn.backward 'Disconnect to go back to your own setup'; sparkles 'Every provider, whatever the model'",
+        "Footer: 'Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Droppy Code itself.' 11pt secondary",
+        "Section titles: 'Connected', 'Custom', plus each MCPCategory.title",
+        "MCPConnectedRow: MCPIcon size 22 inside a 26-wide frame; name 13pt semibold; subtitle '<n> tools · <serverVersion or vendor>' 11pt; SettingsSwitch; ellipsis.circle 13pt in 22x22 with help 'Server options'; padding leading 16, trailing Chrome.rowControlTrailingPadding, vertical 11",
+        "Connected row menu: 'Refresh' (arrow.clockwise), 'Show tools' (wrench), PopoverDivider, 'Disconnect' (xmark.circle, destructive)",
+        "Tools popover: PopoverSectionHeader '<entry.name> tools'; PopoverNote 'No tools listed yet.' when empty; each row = tool.name 11pt monospaced primary + summary 11pt secondary lineLimit 2; padding horizontal 8 vertical 3",
+        "MCPServerCard: VStack alignment .leading spacing 8, padding 14; summary 12pt secondary with lineLimit(2, reservesSpace: true); sampleTools joined ' · ' 10.5pt monospaced at opacity 0.8, lineLimit 1, truncationMode .tail, trailing padding 24 to clear the info button; failed message 11pt Chrome.danger lineLimit 3; needsSetup guide.title 11pt Chrome.warning lineLimit 2; frame maxWidth/maxHeight .infinity alignment .topLeading; background RoundedRectangle cornerRadius 14 continuous filled Chrome.primaryText.opacity(0.05); MCPInfoButton overlaid bottomTrailing with padding 10",
+        "Card header: MCPIcon size 26; entry.name 13pt semibold; entry.vendor 11pt secondary; Spacer(minLength: 8)",
+        "Card action by state: .notConnected -> 'Sign in' (isOAuth) or 'Connect', .glass, controlSize .small; .connecting -> WorkingSpinner(cellSize: 3) + 'Waiting' (isOAuth) or 'Connecting' 11pt secondary fixedSize; .connected -> EmptyView; .needsSetup -> 'Fix it' .glassProminent .small; .failed -> 'Sign in again' (isOAuth) or 'Try again' .glass .small",
+        "Card success view: checkmark.circle.fill 34pt Chrome.success scaling 0.5 -> 1, 'Connected · <toolCount> tools' 12pt medium primary, VStack spacing 8, minHeight 120 centered",
+        "Custom section explainer row: 'Servers of your own: a command that runs on this Mac, or a remote address, with the variables they need.' 12pt secondary, padding horizontal 16 vertical 11, followed by a ChromeRowDivider",
+        "Add row: plus.circle 13pt Chrome.accent in a 26-wide frame + 'Add server' 13pt medium primary; padding leading 16 / trailing Chrome.rowControlTrailingPadding / vertical 11",
+        "MCPCustomRow: MCPIcon size 22 in a 26-wide frame; server.name 13pt semibold; status line = '<n> tools · <serverVersion or vendor>' when connected, the failure message 11pt Chrome.danger lineLimit 3 when failed, otherwise server.summary 11pt secondary; padding leading 16 / trailing Chrome.rowControlTrailingPadding / vertical 11",
+        "MCPCustomRow action: 'Connect' (.glass .small), WorkingSpinner + 'Connecting', SettingsSwitch when connected, 'Fix it' (.glassProminent .small), 'Try again' (.glass .small)",
+        "Custom row menu: 'Edit' (pencil), 'Disconnect' (xmark.circle, isEnabled: state.isConnected, destructive), PopoverDivider, 'Delete' (trash, destructive)",
+        "MCPCustomEditor popover: fixed frame width 380 height 560, padding 18, VStack alignment .leading spacing 14; header title 'New server' when adding else the server name, 14pt semibold; subtitle 'Custom · stdio' or 'Custom · http' 11pt secondary; xmark 11pt semibold close button; a ScrollView holds the fields so header and save stay put",
+        "Editor fields: 'Name' TextField prompt 'My server' 12pt; 'Kind' GlassPickerButton with options 'stdio — a command on this Mac' and 'http — a remote server', symbols terminal / network; 'Command' editorField prompt 'npx'; 'URL' editorField prompt 'https://…'; 'Arguments' TextEditor 12pt monospaced, scrollContentBackground hidden, padding horizontal 4 vertical 3, frame height 66, with note 'One argument per line; empty lines are dropped.' 10.5pt secondary",
+        "variablesSection titles: 'Environment' with add label 'Add environment variable' (stdio); 'Headers' with add label 'Add header' (http)",
+        "Variable row: key editorField prompt 'KEY', value field prompt 'value' (SecureField when locked), lock toggle lock.fill (Chrome.accent) / lock.open (secondary) 12pt medium 24x24 with help 'Kept in the Keychain' or 'Stored in mcp.json; click to keep it in the Keychain instead', minus.circle 12pt medium secondary 24x24 with help 'Remove this variable'; HStack spacing 6",
+        "Add-variable button: Label(addLabel, systemImage: 'plus') 12pt medium Chrome.accent, .plain; footnote 'Locked values are kept in the Keychain.' 10.5pt secondary",
+        "editorField/secureEditorField shape: .plain style, focusEffectDisabled, 12pt monospaced, padding horizontal 8 vertical 7, RoundedRectangle cornerRadius 8 continuous filled Chrome.overlay(0.06)",
+        "field(_:control:): label 11pt semibold Chrome.secondaryText over the control, VStack alignment .leading spacing 5",
+        "Save button: 'Add server' when adding, 'Save' when editing, .glassProminent, pushed right by a Spacer; error text above it 11pt Chrome.danger lineLimit 3",
+        "MCPHoverInfoButton: info.circle 12pt medium, Chrome.secondaryText at opacity 1 when hovered or presented else 0.55, 22x22 frame, .plain, focusable(false)",
+        "MCPInfoPopover: width 340, padding 16, VStack alignment .leading spacing 14; MCPIcon size 28; name 14pt semibold; '<vendor> · <category.title>' 11pt secondary; summary 12pt at primaryText 0.9; detail rows 'Connects' and 'Needs' with an 11pt semibold label in a 58-wide leading frame and an 11.5pt value; 'Tools' header 11pt semibold secondary over FlowChips; optional-field button 'Change the <label lowercased>…' 12pt medium accent; Link 'Read the docs' + arrow.up.right 9pt bold, 12pt medium accent",
+        "MCPInfoPopover.connection strings: 'Runs on this Mac through <command> (<package>).' where package is the first arg not starting with '-' else the command; 'Remote server at <host>.'; 'Remote server at <host>. You sign in once in your browser.' for oauth",
+        "MCPInfoPopover.needs strings: 'Only your sign-in.' (OAuth, no fields); 'Nothing — press Connect.' (no fields, not OAuth); otherwise required labels joined '; ' plus 'optional: <optional labels joined \", \" lowercased>' with a trailing '.'",
+        "FlowChips: 10.5pt monospaced, Chrome.primaryText.opacity(0.85), padding horizontal 7 vertical 3, Chrome.overlay(0.08) in RoundedRectangle cornerRadius 6 continuous, FlowLayout spacing 6 (default)",
+        "MCPIcon: resizable, renderingMode .template, aspectRatio .fit, default size 20; foregroundStyle Chrome.primaryText when entry.asset.isEmpty || entry.isMonochrome, else entry.color; image is Image(systemName: 'server.rack') when asset is empty, otherwise Image(entry.asset)"
+      ],
+      "feature_notes": [
+        "Connection celebration: when model.mcp.states flips an id to connected, the id is inserted into `celebrating`, SettleChime.play() fires, and after a 900ms Task.sleep it is removed, so the card flashes success in the grid and then moves to the 'Connected' section. The whole block is guarded by `guard !reduceMotion else { return }`, so with Reduce Motion the card moves straight across with no flash and no chime.",
+        "Grid animation: .animation(.spring(duration: 0.35), value: celebrating) with .transition(.scale(scale: 0.9).combined(with: .opacity)) on each card.",
+        "Search matching is case-insensitive over entry.name, entry.vendor, entry.summary, entry.id and any sampleTools element; an empty or whitespace-only query matches everything.",
+        "The Custom section hides itself completely while searching when no custom server matches; when not searching it always shows, with the explainer row when the user has none.",
+        "Connect flow (identical in MCPServerCard.begin() and MCPCustomRow.begin()): `!entry.needsInput` connects immediately via model.mcp.connect(entry); otherwise MCPKeyPanel.shared.present takes the field values.",
+        "A card whose state becomes .needsSetup auto-presents MCPSetupPanel with no user action, because the user just came back from the browser expecting a result.",
+        "Custom editor save(): builds `draft`; records wasConnected; model.mcp.saveCustom(draft, replacing: server?.id ?? savedID) and on failure sets error = failure.message and returns; sets savedID = draft.id; writes values with saveCustomValues(keptValues, for: draft.id, replacingFieldsOf: server?.catalogEntry()) and on failure shows the literal 'The Keychain could not save a value. Keep this editor open and try again.'; if it was connected and model.mcp.entry(for: draft.id) resolves, calls refresh; then dismiss().",
+        "savedID exists so a retry after a failed first save replaces the record just created rather than adding a duplicate.",
+        "Argument parsing: argsText is split on newline, lines that are whitespace-only after trimming are dropped, but surviving lines are NOT trimmed, so a leading dash, embedded spaces or quotes reach the server exactly as typed.",
+        "Variable keys are trimmed with .whitespaces; rows whose key is empty are dropped silently in both `draft` and `keptValues` rather than failing validation.",
+        "Switching kind preserves the variable list: the same keys become env vars for stdio or headers for http.",
+        "Editing pre-loads stored values on appear via model.mcp.storedValue(server:field:secret:); name focus is taken only when adding (server == nil), never when editing, so it does not read as a prompt to rename.",
+        "VariableDraft's identity is a UUID, deliberately not the key, because the key changes on every keystroke and would throw the row out of the ForEach mid-edit.",
+        "Hover info button: opens 220ms after the pointer arrives and closes 320ms after it has left BOTH the button and the popover, so the gap between them can be crossed; clicking cancels the pending settle and toggles immediately.",
+        "The tools popover and the custom edit popover are attached to the ellipsis button rather than the row, deliberately, because hung from the row they opened from the row's middle.",
+        "Connected rows are sorted alphabetically by entry.name; grid section order follows MCPCatalog.byCategory.",
+        "MCPCustomRow shows the SettingsSwitch only in the .connected state, whereas MCPConnectedRow shows it always (it only exists for connected entries)."
+      ],
+      "unresolved_questions": [
+        "MCPCategory.title values, MCPCatalog.byCategory ordering and the concrete catalog entries are defined outside this file.",
+        "Numeric values of Chrome.sectionSpacing and Chrome.rowControlTrailingPadding live in the Chrome file.",
+        "Whether the `query` passed into MCPSettingsPage is already trimmed by the caller: matches() trims again and MCPCustomSection trims separately.",
+        "The contents of `failure.message` returned by model.mcp.saveCustom cannot be determined from this file.",
+        "Whether MCPCustomServer.summary is derived or stored is not visible here."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Settings/MCPSetupPanel.swift",
+      "sha256": "00390a2f279fe0abe082cb08d3d05e858d7bb9afd9d6247675129951dbcc2822",
+      "lines_total": 262,
+      "ranges_read": [[1, 262]],
+      "purpose": "A singleton floating NSPanel plus its SwiftUI content, shown when an MCP server reports it needs a step taken on its own side: it opens the guide's web page in the default browser as it appears, lists numbered steps beside it, offers a 'Check again' re-probe, and turns into a success view that auto-closes once the server connects.",
+      "key_symbols": [
+        "@MainActor final class MCPSetupPanel (static let shared, private init)",
+        "MCPSetupPanel.isPresenting(_ entry: MCPCatalogEntry) -> Bool",
+        "MCPSetupPanel.present(entry:guide:model:)",
+        "MCPSetupPanel.close()",
+        "MCPSetupPanel.fit(height: CGFloat)",
+        "private func makePanel() -> NSPanel",
+        "private func startEscapeMonitor() / stopEscapeMonitor()",
+        "struct MCPSetupPanelView: View (let entry, guide, model, onDone: @MainActor () -> Void)",
+        "MCPSetupPanelView.header, stepRow(_:text:accessory:), successView, private var state"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry (id, name)",
+        "MCPSetupGuide (pageURL, pageLabel, reason, steps, title, note)",
+        "AppModel; model.mcp.state(for:), model.mcp.refresh(_:)",
+        "MCPConnectionState (.isConnected, .isConnecting, .needsSetup, .connected(count), .failed(message))",
+        "MCPIcon(entry:size:) declared in MCPSettingsPage.swift",
+        "WorkingSpinner(cellSize:)",
+        "WindowDragArea(), WindowBackdrop(opacity:)",
+        "Chrome.primaryText, Chrome.secondaryText, Chrome.accent, Chrome.warning, Chrome.danger, Chrome.success, Chrome.windowCornerRadius",
+        ".presentedChrome(); .environment(model)",
+        "NSWorkspace.shared.open(_:), NSHostingView, NSHostingController, NSPanel, NSEvent.addLocalMonitorForEvents/removeMonitor, NSScreen.main"
+      ],
+      "state_owned": [
+        "MCPSetupPanel: private var panel: NSPanel?; private var escapeMonitor: Any?; private var presentedEntryID: String?",
+        "MCPSetupPanelView: @State checkedOnce = false; @State successPopped = false; @Environment(\\.accessibilityReduceMotion) reduceMotion"
+      ],
+      "side_effects": [
+        "NSWorkspace.shared.open(url) opens guide.pageURL in the browser on present(), and again when the page button is pressed",
+        "Creates, sizes, positions and orders front a floating NSPanel (orderFrontRegardless)",
+        "Installs a local NSEvent keyDown monitor and removes it on close",
+        "model.mcp.refresh(entry) re-probes the server on 'Check again'",
+        "Task.sleep(for: .seconds(1.2)) after connection, then onDone() closes the panel",
+        "Spring animation on the success checkmark"
+      ],
+      "platform_assumptions": [
+        "AppKit NSPanel: styleMask [.nonactivatingPanel, .fullSizeContentView, .titled, .closable], backing .buffered, defer false",
+        "titleVisibility .hidden, titlebarAppearsTransparent true, isMovableByWindowBackground true, level .floating, hidesOnDeactivate false",
+        "collectionBehavior [.canJoinAllSpaces, .fullScreenAuxiliary]; isOpaque false; backgroundColor .clear; hasShadow true",
+        "Standard window buttons .closeButton, .miniaturizeButton and .zoomButton explicitly hidden",
+        "Escape detected by raw keyCode 53 via NSEvent.addLocalMonitorForEvents(matching: .keyDown), returning nil to swallow the event",
+        "NSHostingView(rootView:).fittingSize measures the content height before showing",
+        "NSScreen.main?.visibleFrame drives placement",
+        "macOS liquid-glass .glass / .glassProminent button styles; SF Symbols xmark and checkmark.circle.fill"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Panel content width is fixed at 400; initial contentRect is 400x200; shown height = NSHostingView fittingSize.height.rounded(.up) with max(height, 100)",
+        "Placement: origin x = visibleFrame.maxX - 400 - 24, y = visibleFrame.maxY - panel.frame.height - 24 (top-right of the main screen, 24pt inset)",
+        "fit(height:) clamps to max(height.rounded(.up), 100), ignores differences of 1pt or less, and adjusts origin.y by (oldHeight - wanted) so the TOP edge stays put",
+        "Content: VStack alignment .leading spacing 14, padding 18, frame width 400, clipShape RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style: .continuous)",
+        "Backgrounds, in order: WindowDragArea(), then WindowBackdrop(opacity: 0.5)",
+        "Header: MCPIcon size 26; entry.name 13pt semibold Chrome.primaryText; guide.title 11pt Chrome.secondaryText; VStack spacing 1; HStack alignment .top spacing 10; Spacer(minLength: 8); xmark 11pt semibold secondary, .plain button",
+        "Reason: Text(verbatim: guide.reason) 12pt Chrome.primaryText, fixedSize(horizontal: false, vertical: true)",
+        "Steps: VStack alignment .leading spacing 6; ForEach over guide.steps.enumerated() keyed by \\.offset; each stepRow = ZStack of an 18x18 Circle filled Chrome.accent.opacity(0.18) with the 1-based number 10pt semibold Chrome.accent, then the step text 12pt Chrome.primaryText; HStack spacings 8 (outer) and 4 (text + accessory)",
+        "Action row: Button(guide.pageLabel) with .glass; Spacer; then either WorkingSpinner(cellSize: 3) + 'Checking' 11pt secondary (HStack spacing 6) while connecting, or Button('Check again') with .glassProminent",
+        "Post-check status: needsSetup -> 'Still off on the server's side. ' + (guide.note ?? \"\") in 11pt Chrome.warning; failed -> the message in 11pt Chrome.danger; both fixedSize vertical",
+        "Success view: checkmark.circle.fill 34pt Chrome.success with scaleEffect 0.5 -> 1, 'Connected · <count> tools' 12pt medium Chrome.primaryText, VStack spacing 8, frame maxWidth .infinity minHeight 120 centered"
+      ],
+      "feature_notes": [
+        "present() opens the guide page in the browser BEFORE the panel appears, so the steps sit beside the page.",
+        "isPresenting(entry) guards re-entry: if the same entry's panel is already visible, present() only calls orderFrontRegardless and returns, so a failing re-check never reopens the browser page or rebuilds the steps under the user.",
+        "The NSPanel instance is reused across entries (`self.panel ?? makePanel()`); only contentViewController and size are replaced, and the escape monitor is installed at most once.",
+        "Escape (keyCode 53) closes the panel and the key event is consumed (the monitor returns nil).",
+        "Traffic lights are hidden deliberately because there is no title bar to hold them; closing is via the xmark button or Escape.",
+        "Pressing the guide.pageLabel button re-opens guide.pageURL in the browser.",
+        "'Check again' sets checkedOnce = true and calls model.mcp.refresh(entry); the follow-up status line only renders when checkedOnce is true and the probe is not currently connecting.",
+        "On connection the body swaps to successView and .onChange(of: state.isConnected) schedules onDone() 1.2 seconds later, which closes the panel.",
+        "Under accessibilityReduceMotion the success checkmark is set to full scale immediately rather than springing; unlike MCPServerCard, this view still shows the success state.",
+        "onGeometryChange(for: CGFloat.self) { $0.size.height } reports the content height to MCPSetupPanel.shared.fit, so the panel follows content growth (the status line, the success view).",
+        "The whole background is a WindowDragArea, so a press anywhere the controls do not claim (reason text, steps, status line) drags the panel clear of the browser page behind it.",
+        "stepRow declares an `accessory: AnyView? = nil` parameter that no call site in this file supplies: unused/reserved code, reachable only if a future call passes it."
+      ],
+      "unresolved_questions": [
+        "MCPSetupGuide's declaration and where guides are produced are outside this file; `note` is optional and its typical text is unknown.",
+        "Chrome.windowCornerRadius's numeric value is defined elsewhere.",
+        "WindowBackdrop's material and WindowDragArea's hit-testing rules are defined elsewhere; only opacity 0.5 is fixed here."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift",
+      "sha256": "01f57ddb5615c408b3b89d604a837e8ffa70ce3cb4738e6428ea4ba4ae7a3e47",
+      "lines_total": 374,
+      "ranges_read": [[1, 374]],
+      "purpose": "The Models tab of Settings: a drag-reorderable 'Your models' card of pinned models with a per-model effort and fast-mode popover and a remove button, followed by one section per available provider listing that provider's catalog with add/remove buttons, everything filtered by the settings search query.",
+      "key_symbols": [
+        "struct ModelsSettingsPage: View (var query = \"\")",
+        "ModelsSettingsPage.slide = Animation.spring(response: 0.28, dampingFraction: 0.82)",
+        "private func visiblePins(query:) -> [ModelPin]",
+        "private func dragChanged(_ pin: ModelPin, translation: CGFloat) / private func dragEnded()",
+        "private struct PinnedRowHeightReporter: ViewModifier (nested)",
+        "static func matches(_ option: ModelOption?, id: String, provider: ProviderKind, query: String) -> Bool",
+        "private struct PinnedModelRow: View (+ private func summary(option:preference:) -> String)",
+        "private struct RowControl: View (symbol, help, isEnabled, action)",
+        "private struct ProviderModelsSection: View (provider, query)"
+      ],
+      "calls_into": [
+        "AppModel via @Environment(AppModel.self); model.settings, model.providers",
+        "AppSettings: modelList, modelListLimit, moveModel(_:to:placeAfter:), removeFromModelList(_:), addToModelList(_:), isInModelList(_:), preference(for:model:), setPreference(_:for:model:)",
+        "ModelPin(provider:modelID:) - Hashable, used as ForEach id and as a dictionary key",
+        "ModelPreference (effort: String?, fastMode: Bool, default init)",
+        "ModelOption (id, shortName, name, detail, efforts, defaultEffort, supportsFast) and ModelOption.effortTitle(_:)",
+        "ProviderKind.displayName; registry.availableProviders, registry.models(for:), registry.model(_:for:), registry.loadingCatalogs, registry.loadCatalog(_:force:)",
+        "RowDrag<ModelPin>: .id, .translation, .visualOffset, .settle(order:heights:fallbackHeight:_:)",
+        "EffortSliderCard(modelName:provider:efforts:defaultEffort:supportsFast:effort:fastMode:onReset:)",
+        "ProviderIcon(provider:size:)",
+        "ChromeSection, ChromeCard, ChromeRow(title:detail:content:), ChromeRowDivider",
+        "Chrome.sectionSpacing, Chrome.sectionHeaderSpacing, Chrome.primaryText, Chrome.secondaryText, Chrome.accent, Chrome.overlay(_:), Chrome.rowControlTrailingPadding, Chrome.panelSlide",
+        "NSCursor.closedHand/.openHand push/pop; NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)",
+        ".presentedChrome()"
+      ],
+      "state_owned": [
+        "ModelsSettingsPage: @State private var drag = RowDrag<ModelPin>(); @State private var rowHeights: [ModelPin: CGFloat] = [:]",
+        "PinnedModelRow: @State isPresented = false (effort popover); @State isHovering = false; @State isHoveringGrip = false"
+      ],
+      "side_effects": [
+        "NSCursor.closedHand.push() when a drag starts, NSCursor.pop() when it ends; NSCursor.openHand.push()/pop() on grip hover, with pops on disappear and on drag end away from the grip",
+        "NSHapticFeedbackManager .alignment haptic on every reorder swap that lands",
+        "model.settings.moveModel / addToModelList / removeFromModelList / setPreference mutate persisted settings",
+        "registry.loadCatalog(provider) runs in each section's .task; the 'Load models' button calls loadCatalog(provider, force: true), which fetches that provider's model list"
+      ],
+      "platform_assumptions": [
+        "AppKit NSCursor and NSHapticFeedbackManager (macOS only)",
+        "SwiftUI popover(isPresented:arrowEdge: .trailing) with macOS popover semantics",
+        "SF Symbols line.3.horizontal, slider.horizontal.3, minus.circle, bolt, checkmark.circle.fill, plus.circle",
+        "DragGesture(minimumDistance: 1, coordinateSpace: .global)",
+        ".contentTransition(.symbolEffect(.replace)) symbol replace animation",
+        ".onGeometryChange(for:of:) (recent SwiftUI)",
+        "Button style .glass (macOS 26 liquid glass)",
+        "Curly typographic quotes in the 'No models match “…”.' string"
+      ],
+      "persisted_fields": [
+        "AppSettings.modelList: [ModelPin] - the ordered list the composer's picker offers",
+        "AppSettings.modelListLimit - the maximum number of pinned models, surfaced in '<n> of <limit>' and in the disabled-add help text",
+        "ModelPreference keyed by (provider, modelID) through settings.preference(for:model:) / settings.setPreference(_:for:model:): `effort` (optional String) and `fastMode` (Bool); reset writes a fresh ModelPreference()"
+      ],
+      "ui_elements": [
+        "Root VStack alignment .leading, spacing Chrome.sectionSpacing",
+        "ChromeSection 'Your models' containing a ChromeCard",
+        "Empty state ChromeRow: title 'No models chosen yet', detail 'Until you add some below, the picker shows every model from your providers.'",
+        "Count line: '\\(pins.count) of \\(AppSettings.modelListLimit). Click a model to set its reasoning effort and fast mode for every new chat.' 11pt Chrome.secondaryText, horizontal padding 4, shown only when the trimmed query is empty",
+        "No-match text: 'No models match “\\(trimmed)”.' 13pt secondary, horizontal padding 4, shown only when the query is non-empty and both visiblePins and providers are empty",
+        "Pinned list is a plain VStack(spacing: 0); each entry is a VStack(spacing: 0) of a ChromeRowDivider (opacity 0 for the first row and for the dragged row) plus the PinnedModelRow, with .offset(y: drag.visualOffset) and zIndex 1 while dragged",
+        "PinnedModelRow grip: line.3.horizontal 11pt medium, Chrome.secondaryText at opacity 1 when hovering the grip else 0.7, 24x24 frame, contentShape .rect, help and accessibilityLabel 'Drag to reorder'",
+        "PinnedModelRow button content: ProviderIcon size 16 tinted Chrome.primaryText inside a 22-wide frame; shortName (or modelID) 13pt primary; summary 11pt secondary; VStack spacing 2; HStack spacing 12; Spacer(minLength: 8); slider.horizontal.3 12pt secondary with opacity 1 only while hovering",
+        "Row padding: leading 10, trailing Chrome.rowControlTrailingPadding, vertical 9; outer HStack spacing 10",
+        "Dragged row chrome: RoundedRectangle cornerRadius 10 continuous filled Chrome.overlay(0.12) with shadow color .black.opacity(0.28), radius 10, y 4; scaleEffect 1.02; .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isDragged)",
+        "Effort popover: EffortSliderCard inside .frame(width: 330) with .presentedChrome(), arrowEdge .trailing",
+        "RowControl remove button: 'minus.circle' 12pt medium Chrome.secondaryText, 24x24 frame, contentShape .rect, .plain, opacity 0.35 when disabled, help and accessibilityLabel 'Remove from the picker'",
+        "ProviderModelsSection header: ProviderIcon size 16 tinted Chrome.primaryText + provider.displayName 13pt semibold foregroundStyle(.secondary), HStack spacing 8, frame height 22; section VStack spacing Chrome.sectionHeaderSpacing",
+        "Provider empty-card row: ChromeRow title 'Loading models…' when registry.loadingCatalogs contains the provider, otherwise 'No models loaded', with a 'Load models' Button (.glass) disabled while loading",
+        "Catalog row: ChromeRow(title: option.shortName, detail: option.detail); 'bolt' 11pt secondary with help 'Supports fast mode' when option.supportsFast; add/remove Button showing checkmark.circle.fill in Chrome.accent when added else plus.circle in Chrome.secondaryText, 17pt, .plain, with .contentTransition(.symbolEffect(.replace)); HStack spacing 10; ChromeRowDivider before every row after the first",
+        "Add button disabled when not added and the list is full, with an explicit opacity 0.35 (because a .plain button does not dim itself); help text 'Remove from the picker' / 'The picker holds up to \\(AppSettings.modelListLimit) models' / 'Add to the picker'; accessibility labels 'Remove \\(option.shortName) from the picker' and 'Add \\(option.shortName) to the picker'",
+        "Pinned row summary format: provider.displayName, then '\\(ModelOption.effortTitle(effort)) effort' when the option has efforts, then 'Fast' when preference.fastMode and option.supportsFast, joined with ' · '"
+      ],
+      "feature_notes": [
+        "Filtering is deliberately instant with NO transitions: the comment records that animating dozens of rows with blur on every keystroke (and again on clearing) made entries overlap and jump.",
+        "matches() tests shortName, name, detail, the raw model id and provider.displayName with localizedCaseInsensitiveContains; an empty query matches everything.",
+        "The pinned list uses a plain VStack, not the card's lazy stack, on purpose: a lazy stack rebuilds a row that changes slot and animates it in from the container origin (sending the grabbed row flying to the top) and also ignores zIndex, which the lifted row needs.",
+        "Drag reorder: DragGesture(minimumDistance: 1, coordinateSpace: .global) on the grip only; the translation is applied inside a Transaction with disablesAnimations = true so the grabbed row tracks the pointer exactly, while neighbour swaps animate with .spring(response: 0.28, dampingFraction: 0.82).",
+        "The visible order is recomputed on every move via visiblePins(query:) rather than captured in the gesture, so swaps happen against the currently visible neighbour and hidden (filtered-out) models keep their relative place through settings.moveModel(pin, to: neighbour, placeAfter:).",
+        "RowDrag.settle is passed fallbackHeight: 54 for rows whose height has not been measured yet.",
+        "A landed swap fires NSHapticFeedbackManager .alignment at .now.",
+        "Drag end animates drag back to a fresh RowDrag() with .spring(response: 0.32, dampingFraction: 0.8) and pops the closed-hand cursor; it returns early when drag.id is nil.",
+        "Cursor bookkeeping: the open-hand push is popped on the grip's onDisappear and on isDragged going false while the pointer is not over the grip, covering the case where the drag is released away from the grip with no leave event.",
+        "rowHeights is pruned in .onChange(of: pins) whenever the dictionary holds more entries than pins, so an unpinned model takes its measured height with it.",
+        "Adding to and removing from the picker animate with Chrome.panelSlide.",
+        "Each ProviderModelsSection runs `.task { await registry.loadCatalog(provider) }`, so catalogs load lazily as sections appear; the 'Load models' button forces a reload with force: true.",
+        "A provider section is listed only when the trimmed query is empty or at least one of its models matches the query.",
+        "The whole 'Your models' section is skipped when a search matches none of the pinned models (`trimmed.isEmpty || !visiblePins.isEmpty`).",
+        "The effort and fast-mode bindings read and write through settings.preference/setPreference on every get and set rather than holding local copies, so the popover always reflects stored state; onReset writes a default ModelPreference()."
+      ],
+      "unresolved_questions": [
+        "AppSettings.modelListLimit's numeric value is defined in the settings model, not here.",
+        "RowDrag's implementation (visualOffset math, settle's crossing test, the exact meaning of placeAfter) lives in another file.",
+        "Chrome.sectionSpacing, Chrome.sectionHeaderSpacing, Chrome.rowControlTrailingPadding and Chrome.panelSlide values are defined in the Chrome file.",
+        "ModelOption.effortTitle's mapping from an effort identifier to a display title is not in this file.",
+        "ProviderIcon's artwork per ProviderKind is defined elsewhere."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Settings/SettingsScrollTracker.swift",
+      "sha256": "0e30afa8c18cf2aa692ef0861ed65eb21e624022ddeeb2a296269c3892204c95",
+      "lines_total": 56,
+      "ranges_read": [[1, 56]],
+      "purpose": "A small @MainActor @Observable object that tracks whether a settings pane is being scrolled right now, reports that to the global ScrollActivity under one fixed pane UUID so effects that should not run under a moving finger rest, and exposes a separate isFrozen flag that tells settings rows to stop hovering and animating while content slides under the pointer.",
+      "key_symbols": [
+        "final class SettingsScrollTracker: ScrollActivityReporter (@MainActor, @Observable)",
+        "private static let pane = UUID()",
+        "private(set) var isScrolling = false",
+        "private(set) var isFrozen = false",
+        "@ObservationIgnored private var isCoasting = false",
+        "@ObservationIgnored private var settle: Task<Void, Never>?",
+        "var isScrollingNow: Bool { isScrolling } (ScrollActivityReporter conformance)",
+        "func note()",
+        "func coast()",
+        "func end()"
+      ],
+      "calls_into": [
+        "ScrollActivityReporter (protocol requiring isScrollingNow)",
+        "ScrollActivity.shared.setScrolling(true, timeline: Self.pane, reporter: self)",
+        "ScrollActivity.shared.setScrolling(false, timeline: Self.pane)"
+      ],
+      "state_owned": [
+        "isScrolling: Bool (observable, private setter)",
+        "isFrozen: Bool (observable, private setter)",
+        "isCoasting: Bool (@ObservationIgnored)",
+        "settle: Task<Void, Never>? (@ObservationIgnored, the debounce task)"
+      ],
+      "side_effects": [
+        "Registers and unregisters with the global ScrollActivity.shared singleton under the fixed pane UUID",
+        "Spawns a @MainActor Task that sleeps 150 milliseconds as the settle debounce, cancelling the previous one on each note()"
+      ],
+      "platform_assumptions": [
+        "Swift Observation (@Observable, @ObservationIgnored) and @MainActor isolation",
+        "Structured concurrency with Task.sleep(for: .milliseconds(150)) and Task.isCancelled",
+        "Assumes a caller that can distinguish an active drag or wheel movement from a coasting flick, which on macOS comes from NSEvent scroll phase and momentum phase"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "No views: it drives row hover suppression through isFrozen and effect pausing through isScrolling elsewhere"
+      ],
+      "feature_notes": [
+        "note() is documented as 'a frame of movement': the first call flips isScrolling true and calls ScrollActivity.shared.setScrolling(true, timeline: Self.pane, reporter: self); every call restarts a 150ms debounce, after which isScrolling and isCoasting go false, isFrozen is cleared if set, and ScrollActivity is told scrolling stopped.",
+        "isFrozen is raised in note() only when `!isCoasting && !isFrozen`, so once the flick is coasting, further momentum frames do not re-freeze the rows.",
+        "coast() sets isCoasting = true and clears isFrozen immediately, so a click that stops a flick always reaches its target; the comment names this 'the chat timeline's rule'.",
+        "end() cancels the settle task, sets it to nil, clears isFrozen and isCoasting, then `guard isScrolling else { return }` so it only reports scrolling stopped when it had reported it started.",
+        "The pane key is a single `private static let pane = UUID()` shared by every instance, so all settings panes report under one timeline id rather than one per instance.",
+        "The settle task guards `guard let self, !Task.isCancelled else { return }` before mutating state, and captures self weakly."
+      ],
+      "unresolved_questions": [
+        "The callers of note(), coast() and end() are not in this file, so which NSEvent phases map to coast() versus note() cannot be confirmed here.",
+        "ScrollActivity.shared's semantics - what pauses when a timeline reports scrolling and what the `reporter:` argument is used for - are defined elsewhere.",
+        "Whether isFrozen is consumed by every settings row or only some is not determinable from this file."
+      ]
+    }
+  ]
+}

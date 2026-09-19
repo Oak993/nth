@@ -1,0 +1,197 @@
+{
+  "bundle_id": "R007",
+  "reader": "R007-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Runtime/AutoContinue.swift",
+      "sha256": "c15edabc5d01a5d3e353bd740467ca860b510743105c03dfee34373d05087d9f",
+      "lines_total": 159,
+      "ranges_read": [[1, 159]],
+      "purpose": "Defines the @MainActor @Observable class AutoContinue, the runtime service that resumes a chat automatically once its provider's usage-limit window resets: it records limit hits during a turn (noteLimit), decides at turn end whether to start a wait (turnFinished), sleeps until the reset time plus a 60 second margin, posts notices and notifications, then enqueues and immediately sends a fixed continue prompt. It also implements user-driven cancel and hand-off into a new chat.",
+      "key_symbols": [
+        "final class AutoContinue (@MainActor, @Observable)",
+        "static let continueMessage: String",
+        "static let margin: TimeInterval",
+        "private(set) var resumesAt: [UUID: Date]",
+        "enum LimitOutcome: Equatable, Sendable",
+        "LimitOutcome.cancelled",
+        "LimitOutcome.handedOff(UUID)",
+        "LimitOutcome.resumed",
+        "private(set) var outcomes: [UUID: LimitOutcome]",
+        "init(app: AppModel)",
+        "func noteLimit(_ threadID: UUID, resetsAt: Date?)",
+        "func turnFinished(_ threadID: UUID, status: TurnStatus, continues: Bool) -> Bool",
+        "func cancel(_ threadID: UUID)",
+        "func handOff(_ threadID: UUID)",
+        "private func wait(_ threadID: UUID, turnID: UUID?, resetsAt: Date?, provider: ProviderKind, token: UUID) async",
+        "private func readResetTime(_ provider: ProviderKind) async -> Date?",
+        "private func notice(_ threadID: UUID, _ level: Notice.Level, _ message: String, limitMark: Bool = false)",
+        "private func notify(_ threadID: UUID, _ body: String)",
+        "static func format(_ date: Date) -> String"
+      ],
+      "calls_into": [
+        "AppModel.settings.autoContinueAfterLimit",
+        "AppModel.settings.notifyWhenFinished",
+        "AppModel.settings.apiKey(for:)",
+        "AppModel.thread(_:)",
+        "AppModel.existingRuntime(for:)",
+        "AppModel.runtime(for:)",
+        "AppModel.project(_:)",
+        "AppModel.newThread(in:)",
+        "AppModel.providers.executable(for:)",
+        "AppModel.providers.environment(for:)",
+        "AppModel.notify(threadID:title:body:)",
+        "AppModel.selectedThreadID",
+        "TurnStatus (compared against .failed)",
+        "Thread.isHydraHead, Thread.provider, Thread.projectID, Thread.title",
+        "ThreadRuntime.turns (last?.id)",
+        "ThreadRuntime.isRunning",
+        "ThreadRuntime.draft.text",
+        "ThreadRuntime.enqueueFollowUp(text:attachments:)",
+        "ThreadRuntime.followUps (last(where:) on .text, then .id)",
+        "ThreadRuntime.sendFollowUpNow(_:)",
+        "ThreadRuntime.rehearse(.notice(_:))",
+        "LimitHandoff.text(for:title:)",
+        "PlanLimitsReader.exposesLimits(_:)",
+        "PlanLimitsReader.read(_:apiKey:)",
+        "PlanLimitsReader.read(_:executable:environment:)",
+        "PlanLimits.windows, PlanLimits.Window.resetsAt, PlanLimits.Window.percent",
+        "ProviderKind.isAPIKeyBased",
+        "Notice(level:message:), Notice.Level.info, Notice.Level.warning, Notice.limit",
+        "LimitNotice(threadID:)",
+        "UsageLimitSignal.format(_:)",
+        "NSApp.isActive (AppKit)"
+      ],
+      "state_owned": [
+        "resumesAt: [UUID: Date] - observable countdown target per thread; set when the wait starts, cleared on cancel and when the sleep completes",
+        "outcomes: [UUID: LimitOutcome] - observable per-thread result of a finished wait; set to nil at the start of a new wait, .cancelled in cancel, .handedOff(newThreadID) in handOff, .resumed just before the follow-up is sent",
+        "app: AppModel? - @ObservationIgnored weak back-reference set in init",
+        "noted: [UUID: Date?] - @ObservationIgnored limits hit by the running turn, thread id to optional reset date; note the double optional (a present entry may carry nil)",
+        "waits: [UUID: Task<Void, Never>] - @ObservationIgnored in-flight wait tasks per thread",
+        "waitTokens: [UUID: UUID] - @ObservationIgnored generation token per thread so a superseded wait does not clobber its successor's countdown or task"
+      ],
+      "side_effects": [
+        "Creates and cancels Swift Concurrency Tasks stored in waits[threadID], each sleeping with try? await Task.sleep(for: .seconds(resumeAt.timeIntervalSinceNow))",
+        "Posts transcript notices via ThreadRuntime.rehearse(.notice(...))",
+        "Posts user notifications via AppModel.notify(threadID:title:body:) when settings.notifyWhenFinished is on and the thread is not visible on screen",
+        "Reads live plan limits: for API-key providers PlanLimitsReader.read(provider, apiKey:) (network); for CLI providers PlanLimitsReader.read(provider, executable:environment:) (process launch)",
+        "Creates a new thread in the project (AppModel.newThread(in:)) and writes its composer draft text during handOff",
+        "Enqueues and immediately sends a follow-up prompt (enqueueFollowUp then sendFollowUpNow), which starts a new provider turn"
+      ],
+      "platform_assumptions": [
+        "import AppKit and NSApp.isActive to detect whether the app is frontmost (macOS only)",
+        "Swift Observation macro @Observable with @ObservationIgnored on non-observed storage",
+        "@MainActor isolation for the whole class; the async wait and readResetTime run on the main actor",
+        "Swift Concurrency Task, Task.isCancelled and Task.sleep(for: .seconds(_:)) (Duration-based sleep, macOS 13+)",
+        "Date and TimeInterval from Foundation; provider CLI executables and environments come from a Unix-style process launcher"
+      ],
+      "persisted_fields": [
+        "settings.autoContinueAfterLimit: Bool - gate read in turnFinished and re-checked after the sleep; the whole feature is off when false (declared elsewhere, only read here)",
+        "settings.notifyWhenFinished: Bool - gate for the system notification in notify(_:_:)",
+        "settings.apiKey(for: ProviderKind) -> String - read for API-key providers; an empty string aborts the limits read",
+        "No UserDefaults or @AppStorage of its own: resumesAt, outcomes, noted, waits and waitTokens are in-memory only and lost on relaunch"
+      ],
+      "ui_elements": [
+        "Info notice text: \"Usage limit reached. Continuing automatically at \\(when).\" posted with notice.limit = LimitNotice(threadID:) set, which is what makes the transcript row show the countdown",
+        "Warning notice text when no reset time is known: \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\"",
+        "Notification body when a time is known: \"Usage limit reached. Continuing at \\(when).\"",
+        "Notification body when no time is known: \"Usage limit reached. Send a message to continue.\"",
+        "Notification title is the thread's title (thread.title)",
+        "The follow-up message that appears in the chat: \"The usage limit has reset. Continue exactly where you left off and finish the task.\"",
+        "The time string comes from AutoContinue.format(_:), which forwards to UsageLimitSignal.format(_:)",
+        "outcomes drives the wording the notice row shows after the wait ends (.cancelled / .handedOff(newThreadID) / .resumed), per the doc comment on LimitOutcome"
+      ],
+      "feature_notes": [
+        "continueMessage is identical for every provider: \"The usage limit has reset. Continue exactly where you left off and finish the task.\"",
+        "margin is exactly 60 seconds (TimeInterval) past the provider's stated reset time",
+        "The resume moment is max(resetsAt.addingTimeInterval(60), Date.now.addingTimeInterval(5)): a reset already in the past still waits at least 5 seconds",
+        "noteLimit keeps the better note: if an entry already exists and is non-nil while the new resetsAt is nil, the new note is ignored; otherwise it overwrites",
+        "turnFinished consumes the note with removeValue(forKey:) and returns false when there was no note, so a failure without a limit hit is reported normally",
+        "A wait only starts when all hold: a note exists, settings.autoContinueAfterLimit is on, status == .failed, continues == false, the thread exists, and !thread.isHydraHead (Hydra heads are left to their leads)",
+        "turnFinished returning true tells the app not to chime or notify about the failure",
+        "Any previous wait for the thread is cancelled and outcomes[threadID] is reset to nil before the new wait starts",
+        "The turn being resumed is pinned by turnID = app.existingRuntime(for: threadID)?.turns.last?.id; after the sleep the resume is skipped if runtime.turns.last?.id != turnID, meaning the user already picked the chat up themselves",
+        "Resume is also skipped if the runtime no longer exists, runtime.isRunning is true, or settings.autoContinueAfterLimit was turned off during the wait",
+        "Generation tokens: waitTokens[threadID] == token is checked after the readResetTime await and again after the sleep; a superseded or cancelled wait returns without touching resumesAt, waits or waitTokens",
+        "When the turn itself gave no reset time, readResetTime queries the provider's live plan limits and picks the window with the highest percent among windows whose resetsAt is non-nil and in the future",
+        "That window is only accepted when spent.percent >= 95; otherwise readResetTime returns nil and the warning notice path runs",
+        "readResetTime returns nil unless PlanLimitsReader.exposesLimits(provider); for API-key providers an empty stored key returns nil, and for CLI providers a missing executable returns nil",
+        "cancel(_:) cancels the task, clears waits, waitTokens and resumesAt, and records LimitOutcome.cancelled",
+        "handOff(_:) builds LimitHandoff.text(for: runtime, title: thread.title), calls cancel(threadID), creates a new thread in the same project, records .handedOff(made.id) and sets app.runtime(for: made.id).draft.text to the hand-off text; the user chooses the model and sends it themselves",
+        "handOff records .handedOff after cancel has already written .cancelled, so the hand-off outcome wins; if project(_:) or newThread(in:) returns nil the outcome stays .cancelled",
+        "The resume sends by finding the last queued follow-up whose text equals continueMessage and calling runtime.sendFollowUpNow(prompt.id)",
+        "notify suppresses the notification when NSApp.isActive and app.selectedThreadID == threadID (the onScreen check)"
+      ],
+      "unresolved_questions": [
+        "Where noteLimit is called from (which provider session parses the limit signal) is not visible in this file; UsageLimitSignal appears here only as the formatter",
+        "The exact string produced by UsageLimitSignal.format(_:) (date style, locale handling) is defined in another file",
+        "PlanLimits.Window.percent's scale is assumed to be 0 to 100 because of the >= 95 comparison, but the type is not declared here",
+        "Nothing in this file cancels all waits on teardown or app quit, so whether waits survive window or app-level teardown cannot be determined here"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Runtime/LimitHandoff.swift",
+      "sha256": "e15f94400b8190732fe92b2c5a10aad61e0bf3fc57c099b8cbf202e399b06132",
+      "lines_total": 78,
+      "ranges_read": [[1, 78]],
+      "purpose": "A stateless namespace enum that renders the plain-text hand-off prompt placed into a new chat's composer when a chat stopped on its provider's usage limit: it restates the request being answered, up to 40 bullet lines of what the stopped turn had already said and run, and up to 20 changed file paths, then asks the new model to take the work over.",
+      "key_symbols": [
+        "enum LimitHandoff (no cases; namespace only)",
+        "@MainActor static func text(for runtime: ThreadRuntime, title: String) -> String",
+        "private static func flatten(_ text: String) -> String"
+      ],
+      "calls_into": [
+        "ThreadRuntime.turns (last?.id)",
+        "ThreadRuntime.entries (each entry's turnID and item.content)",
+        "Entry content cases matched: .user(message) with message.text, .assistant(message) with message.text, .tool(call) with call.title and call.edits",
+        "Edit.path on each tool-call edit",
+        "CharacterSet.whitespacesAndNewlines (Foundation)"
+      ],
+      "state_owned": [
+        "None: the enum has no cases and no stored properties; text(for:title:) uses only the locals turnID, turn, request, requestText, lines, seen, suffix, paths and blocks"
+      ],
+      "side_effects": [
+        "None: pure string building, no file writes, process launches, network calls, notifications, timers or keychain access"
+      ],
+      "platform_assumptions": [
+        "@MainActor isolation on text(for:title:), because it reads ThreadRuntime, a main-actor model",
+        "import Foundation only; no AppKit or SwiftUI, so the formatting logic itself is portable apart from the runtime model it reads",
+        "Swift pattern matching over the entry content enum plus Collection prefix/joined/components(separatedBy:) APIs"
+      ],
+      "persisted_fields": [
+        "None: nothing is read from or written to UserDefaults or disk; the produced text is placed into a composer draft by the caller, AutoContinue.handOff"
+      ],
+      "ui_elements": [
+        "Opening block (exact): Continue the work from the chat \"<title>\". It stopped when its provider's usage limit was reached, and it will not continue there. - the title is wrapped in straight double quotes",
+        "Request block header (exact): \"The request it was answering:\" followed by a blank line and the request text",
+        "Fallback request text (exact): \"(the request was not recorded)\"",
+        "Work block header (exact): \"What it had already done in that turn:\" followed by a blank line and the bullet lines",
+        "Files block header (exact): \"Files it had changed:\" followed by a blank line and \"- \" prefixed paths",
+        "Closing block (exact): \"Take it over from here and finish it, asking me about anything unclear.\"",
+        "Assistant bullet prefix (exact, trailing space included): \"- It said: \"",
+        "Tool bullet prefix (exact, trailing space included): \"- It ran: \"",
+        "Changed-files suffix on a tool bullet (exact): \" (changed <suffix>)\"",
+        "Overflow phrase inside a tool bullet (exact): \" and <n> more\" where n = seen.count - 5",
+        "Blocks are joined with \"\\n\\n\"; bullet lines and path lines are joined with \"\\n\"; edit paths inside a tool bullet are joined with \", \""
+      ],
+      "feature_notes": [
+        "The turn scanned is the last one: turn = entries whose turnID == runtime.turns.last?.id; when there is no last turn it falls back to the whole entries list",
+        "The request is found by scanning runtime.entries.reversed() (the whole transcript, not just the last turn) for the most recent .user entry and flattening its text",
+        "At most 40 bullet lines are produced: the loop breaks once lines.count reaches 40 (guard lines.count < 40 else { break })",
+        "Assistant text longer than 400 characters is truncated to String(flat.prefix(400)) and suffixed with the single character U+2026 horizontal ellipsis",
+        "Assistant entries whose flattened text is empty are skipped entirely (continue), and do not consume one of the 40 line slots",
+        "A tool bullet lists at most 5 distinct changed paths (seen.prefix(5) joined by \", \"); beyond that it appends \" and N more\" where N = seen.count - 5",
+        "Distinct paths per tool call are collected in first-seen order with a linear !seen.contains(edit.path) check",
+        "The global Files-it-had-changed list collects distinct edit paths across the turn's tool calls and stops at exactly 20, checked both inside the inner edit loop and again after each entry",
+        "The work block and the files block are omitted entirely when their lists are empty; the opening, request and closing blocks are always present",
+        "Entry contents other than .user, .assistant and .tool are ignored (default: break in the switch)",
+        "flatten collapses all whitespace and newlines: components(separatedBy: .whitespacesAndNewlines), drop empty pieces, join with a single space, so multi-line messages become one line"
+      ],
+      "unresolved_questions": [
+        "The concrete shape of the entry content enum (whether .user and .assistant carry the same message type) and of the tool call's title and edits is defined in other files",
+        "Whether call.title is already user-facing prose (it is embedded verbatim after \"- It ran: \") or a raw tool identifier cannot be determined from this file",
+        "The request scan ignores turn boundaries, so it picks the newest user message anywhere in the transcript; whether that can ever differ from the last turn's request is not determinable here"
+      ]
+    }
+  ]
+}

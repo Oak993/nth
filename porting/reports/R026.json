@@ -1,0 +1,210 @@
+{
+  "bundle_id": "R026",
+  "reader": "R026-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Terminal/TerminalPanel.swift",
+      "sha256": "db8b0a14feb372833d1ea0f8f2ee368777b80b45079d5a1fdf015db28029a908",
+      "lines_total": 443,
+      "ranges_read": [[1, 443]],
+      "purpose": "SwiftUI drawer that renders the per-thread terminal panel: a 38pt tab strip of TerminalTab chips with a plus button and a hide chevron, the hosted SwiftTerm view (TerminalHost/TerminalHostContainer), an AppKit drag handle on its top edge (TerminalResizeHandle/TerminalResizeHandleView) that resizes the drawer, and an empty state shown when every tab is closed.",
+      "key_symbols": [
+        "struct TerminalPanel: View",
+        "TerminalPanel.body",
+        "@State private var dragOrigin: Double?",
+        "@State private var dragHeight: Double?",
+        "private struct TerminalResizeHandle: NSViewRepresentable (onBegin, onChange: (CGFloat) -> Void, onEnd)",
+        "TerminalResizeHandle.makeNSView / updateNSView / apply(to:)",
+        "final class TerminalResizeHandleView: NSView",
+        "TerminalResizeHandleView.Grip enum (height, restWidth, shownWidth, alpha, duration)",
+        "TerminalResizeHandleView.gripLayer / trackingArea / pressOriginY / isHovering / isDragging",
+        "TerminalResizeHandleView.applyColors / viewDidChangeEffectiveAppearance / layout / showsGrip / updateGrip(animated:)",
+        "TerminalResizeHandleView.acceptsFirstMouse / mouseDownCanMoveWindow / resetCursorRects / mouseDown / mouseDragged / mouseUp / updateTrackingAreas / mouseEntered / mouseExited",
+        "private struct TerminalTab: View (session, isSelected, select, restart, close, @State isHovering)",
+        "struct TerminalHost: NSViewRepresentable (session, runtime, isDark, onEscapeAtPrompt)",
+        "TerminalHost.Coordinator (keyMonitor, deinit removes the monitor)",
+        "TerminalHost.makeCoordinator / makeNSView / updateNSView / attach(to:)",
+        "final class TerminalHostContainer: NSView",
+        "TerminalHostContainer.hostedView (weak) / pendingSync / resizeObservers",
+        "TerminalHostContainer.isolated deinit / viewDidMoveToWindow / resizeSubviews(withOldSize:) / finishResize / syncFrame"
+      ],
+      "calls_into": [
+        "AppModel via @Environment(AppModel.self): model.terminals, model.settings.terminalHeight",
+        "ThreadRuntime: runtime.threadID, runtime.isTerminalVisible, runtime.isTerminalResizing, runtime.terminalWantsFocus",
+        "TerminalStore: sessions(for:), selected(for:), selection[threadID], open(threadID:directory:), ensureTerminal(threadID:directory:), restart(_:), close(_:)",
+        "TerminalSession: id, title, isRunning, view (LocalProcessTerminalView), applyAppearance(isDark:), foregroundJobIsTheShell(_:)",
+        "Chrome.iconFont, Chrome.secondaryText, Chrome.sheetCornerRadius",
+        "Button styles .chip and .glass",
+        "ShortcutStore.hint(for: .toggleTerminal)",
+        "KeyChord.allowedModifiers",
+        "NSEvent.addLocalMonitorForEvents(matching: .keyDown) and NSEvent.removeMonitor",
+        "NSWindow.willStartLiveResizeNotification and NSWindow.didEndLiveResizeNotification via NotificationCenter.default",
+        "SwiftUI UnevenRoundedRectangle, ScrollView(.horizontal), Environment(colorScheme)"
+      ],
+      "state_owned": [
+        "TerminalPanel.@State dragOrigin: Double? - the settings height captured on press, nil when not dragging",
+        "TerminalPanel.@State dragHeight: Double? - the live height during a drag; settings take it only on release so user defaults are not written every frame",
+        "TerminalTab.@State isHovering: Bool - drives the close cross opacity and hit testing",
+        "TerminalResizeHandleView: gripLayer CALayer, trackingArea NSTrackingArea?, pressOriginY CGFloat = 0, isHovering Bool = false, isDragging Bool = false",
+        "TerminalHost.Coordinator.keyMonitor: Any? - the local Escape keyDown monitor",
+        "TerminalHostContainer: weak hostedView NSView?, pendingSync DispatchWorkItem?, resizeObservers [NSObjectProtocol]"
+      ],
+      "side_effects": [
+        "Writes model.settings.terminalHeight (a persisted user default) once on drag end, and only from dragHeight",
+        "Sets runtime.isTerminalResizing true on drag begin and false on drag end",
+        "Sets runtime.isTerminalVisible = false from the chevron button and from Escape at the shell prompt",
+        "Installs a process-wide NSEvent local keyDown monitor in makeNSView; removed in Coordinator.deinit",
+        "Registers and removes NSWindow live-resize NotificationCenter observers per window move; removed in the isolated deinit",
+        "Schedules a DispatchWorkItem 50 ms out on the main queue to coalesce frame syncs during live resize; cancelled by the next beat and by finishResize",
+        "Reparents the SwiftTerm view: view.removeFromSuperview() then container.addSubview(view)",
+        "window.makeFirstResponder(view) inside a @MainActor Task when runtime.terminalWantsFocus, then clears that flag",
+        "Calls terminals.ensureTerminal(threadID:directory:) in .onAppear, which can spawn a shell process",
+        "Reads shell foreground state through TerminalSession.foregroundJobIsTheShell(view.process.shellPid)"
+      ],
+      "platform_assumptions": [
+        "AppKit: NSView, NSViewRepresentable, NSEvent local event monitor, NSTrackingArea, NSCursor.resizeUpDown, CALayer/CATransaction/CAMediaTimingFunction",
+        "AppKit window coordinates with y increasing upward: the drag delta is event.locationInWindow.y - pressOriginY, positive when the pointer moves up, the direction the drawer grows",
+        "macOS keyCode 53 is Escape",
+        "effectiveAppearance.performAsCurrentDrawingAppearance and viewDidChangeEffectiveAppearance to refresh CGColors across dark and light",
+        "NSColor.labelColor semantic system color for the grip bar",
+        "NSWindow.willStartLiveResizeNotification / didEndLiveResizeNotification and window.inLiveResize are macOS only",
+        "SF Symbols names: plus, chevron.down, terminal, arrow.clockwise, xmark",
+        "Swift 6 isolated deinit on a @MainActor-isolated NSView subclass",
+        "SwiftTerm re-wraps its buffer on every frame-size change, the reason the container coalesces resizes",
+        "mouseDownCanMoveWindow = false so the resize strip is not treated as window-drag background"
+      ],
+      "persisted_fields": [
+        "model.settings.terminalHeight: Double - written on resize end; declared elsewhere (AppSettings.swift Key.terminalHeight = \"terminalHeight\", default 260)"
+      ],
+      "ui_elements": [
+        "Tab row: HStack(spacing: 6), .padding(.horizontal, 10), .frame(height: 38)",
+        "Tabs sit in a horizontal ScrollView(showsIndicators: false) with HStack(spacing: 4) and .fixedSize(horizontal: false, vertical: true)",
+        "Plus button: Image(systemName: \"plus\").font(Chrome.iconFont), .buttonStyle(.chip), help \"New terminal\", accessibilityLabel \"New terminal\"",
+        "Hide button: Image(systemName: \"chevron.down\").font(Chrome.iconFont), .buttonStyle(.chip), help \"Hide terminal\" concatenated with ShortcutStore.hint(for: .toggleTerminal), accessibilityLabel \"Hide terminal\"",
+        "Terminal host padding: .padding(.leading, 12), .padding(.trailing, 6), .padding(.bottom, 6), with .id(selected.id)",
+        "Empty state: VStack(spacing: 10) with Text \"No shell open in this thread\" at .font(.system(size: 13)) and .foregroundStyle(Chrome.secondaryText), plus Button \"New shell\" with .buttonStyle(.glass) and .controlSize(.small), framed maxWidth .infinity and maxHeight .infinity",
+        "Panel height: .frame(height: dragHeight ?? model.settings.terminalHeight); drag clamped min 140, max 760",
+        "Resize strip: .overlay(alignment: .top) with .frame(height: 8)",
+        "Grip bar: height 2.5, cornerRadius height/2 = 1.25, rest width 12, shown width 28, opacity 0.6 when shown else 0, animation duration 0.18 s with easeOut timing, centred horizontally and vertically in the strip",
+        "Background: UnevenRoundedRectangle(topLeadingRadius: Chrome.sheetCornerRadius, topTrailingRadius: Chrome.sheetCornerRadius, style: .continuous) filled Color(white: 0.08) in dark and Color(white: 0.985) in light",
+        "TerminalTab content: HStack(spacing: 6), Image(systemName: \"terminal\").font(.caption), Text(session.title).lineLimit(1), a restart button Image(systemName: \"arrow.clockwise\").font(.caption2.weight(.bold)) shown only when !session.isRunning, and a close button Image(systemName: \"xmark\").font(.caption2.weight(.bold)); both buttons use .buttonStyle(.plain) and .foregroundStyle(.secondary)",
+        "TerminalTab chrome: .font(.callout), .padding(.horizontal, 10), .padding(.vertical, 5), foregroundStyle .primary when selected else .secondary, background .primary.opacity(0.08) in .capsule when selected else Color.clear, .contentShape(.capsule), whole chip .onTapGesture(perform: select)",
+        "TerminalTab dimming for an exited shell: .opacity(session.isRunning ? 1 : 0.55)",
+        "Close cross: .opacity(isHovering || isSelected ? 1 : 0) and .allowsHitTesting(isHovering || isSelected)",
+        "Help strings: restart \"Start a new shell in this tab\"; close \"Close terminal\"; tab help is session.title when running, otherwise \"<title> \u00b7 the shell has exited\" (middle dot U+00B7 with spaces around it)",
+        "Accessibility: \"Restart <title>\", \"Close <title>\", .accessibilityElement(children: .contain), label \"<title>, the shell has exited\" when not running, traits [.isButton, .isSelected] when selected else .isButton"
+      ],
+      "feature_notes": [
+        "The drawer is resized from a dedicated 8pt strip overlaid on the band above the tabs, deliberately not the whole tab row, so a sideways drag across the tabs scrolls them instead of moving the drawer",
+        "Height is clamped with min(760, max(140, origin + delta)); the drag writes only @State, and settings (hence user defaults) are written once on mouseUp",
+        "mouseUp applies one final onChange with the release delta before calling onEnd, so the release position counts",
+        "The grip bar appears only on hover or while dragging, widening from 12 to 28 over 0.18 s easeOut and fading 0 to 0.6 opacity",
+        "The strip installs a resizeUpDown cursor rect so the pointer shows the affordance before any press; acceptsFirstMouse is true so an inactive window resizes on the first click",
+        "Escape in the terminal closes the panel only when the shell itself owns the terminal foreground, no allowed modifiers are held, and the terminal view is the window's first responder; a foreground program (vim, claude, less) still receives Escape. When it acts, the monitor swallows the event by returning nil",
+        "A newly opened terminal takes keyboard focus once when runtime.terminalWantsFocus is set; the focus move happens in a main-actor Task rather than during the SwiftUI update, and the flag is cleared first",
+        "Appearance is re-applied on every updateNSView via session.applyAppearance(isDark:), which itself no-ops unless the value changed",
+        "During a window live resize the hosted terminal's autoresizingMask is parked to [] and its frame is synced at most once per 50 ms beat, then restored to [.width, .height] and synced once more at didEndLiveResize, so SwiftTerm re-wraps far less often",
+        "syncFrame is a no-op unless the hosted view is still this container's subview, bounds width and height are greater than 0, and the frame actually differs",
+        "The panel calls ensureTerminal on appear, so opening the drawer in a thread with no shells spawns one; if the reader closes every tab the drawer stays open showing the empty state with its \"New shell\" button",
+        "The hosted terminal is keyed by .id(selected.id), so switching tabs swaps the hosted NSView rather than mutating one representable"
+      ],
+      "unresolved_questions": [
+        "Chrome.sheetCornerRadius, Chrome.iconFont, Chrome.secondaryText and the .chip and .glass button styles are defined outside this bundle, so their literal values are not captured here",
+        "ShortcutStore.hint(for: .toggleTerminal) formatting, the exact appended hint text, is defined elsewhere",
+        "KeyChord.allowedModifiers membership is defined elsewhere, so which modifier combinations still let Escape close the panel is not pinned down",
+        "session.view.process.shellPid comes from SwiftTerm's LocalProcess, outside this repository's sources"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Terminal/TerminalStore.swift",
+      "sha256": "21f4918858bd9377c0f6a8e6770749fecd443a13c54557cbf7c6492618166a87",
+      "lines_total": 176,
+      "ranges_read": [[1, 176]],
+      "purpose": "Owns the app's live shells: TerminalSession wraps one SwiftTerm LocalProcessTerminalView running a login shell in a pseudo terminal with Droppy-specific environment, TerminalBridge receives SwiftTerm's process callbacks, and TerminalStore keeps per-thread arrays of sessions plus the selected tab with open, run, ensure, restart, close, closeAll and terminateAll.",
+      "key_symbols": [
+        "@MainActor @Observable final class TerminalSession: Identifiable",
+        "TerminalSession.init(threadID:directory:title:command:)",
+        "TerminalSession.applyAppearance(isDark:)",
+        "TerminalSession.terminate()",
+        "TerminalSession.foregroundJobIsTheShell(_ shell: pid_t) -> Bool (nonisolated static)",
+        "TerminalSession.processEnded() (fileprivate)",
+        "private final class TerminalBridge: NSObject, LocalProcessTerminalViewDelegate",
+        "TerminalBridge.sizeChanged(source:newCols:newRows:) / setTerminalTitle(source:title:) / hostCurrentDirectoryUpdate(source:directory:) / processTerminated(source:exitCode:)",
+        "@MainActor @Observable final class TerminalStore",
+        "TerminalStore.sessions(for:) / selected(for:) / open(threadID:directory:title:command:) / run(_:threadID:directory:) / ensureTerminal(threadID:directory:) / restart(_:) / close(_:) / closeAll(for:) / terminateAll()"
+      ],
+      "calls_into": [
+        "SwiftTerm: LocalProcessTerminalView, LocalProcessTerminalViewDelegate, TerminalView, startProcess(executable:args:environment:execName:currentDirectory:), terminate(), nativeBackgroundColor, nativeForegroundColor, caretColor, selectedTextBackgroundColor, optionAsMetaKey",
+        "LoginEnvironment.userShell() and LoginEnvironment.current",
+        "Chrome.accentNSColor",
+        "ProjectScript (script.name, script.command) in run(_:threadID:directory:)",
+        "NSFont.monospacedSystemFont(ofSize:weight:), NSColor, NSRect",
+        "Darwin sysctl with kinfo_proc, CTL_KERN, KERN_PROC, KERN_PROC_PID"
+      ],
+      "state_owned": [
+        "TerminalSession.id: UUID (let, fresh per session, the Identifiable key)",
+        "TerminalSession.threadID: UUID and directory: String (let)",
+        "TerminalSession.title: String (var, observable)",
+        "TerminalSession.isRunning: Bool, private(set), starts true",
+        "TerminalSession.view: LocalProcessTerminalView (@ObservationIgnored let)",
+        "TerminalSession.bridge: TerminalBridge? (@ObservationIgnored private var, held strongly so the delegate stays alive)",
+        "TerminalSession.appliedDark: Bool? - the last applied appearance, guards redundant full redraws",
+        "TerminalBridge.session: weak TerminalSession?",
+        "TerminalStore.sessions: [UUID: [TerminalSession]] private(set) - sessions keyed by thread id",
+        "TerminalStore.selection: [UUID: UUID] - selected session id per thread id"
+      ],
+      "side_effects": [
+        "Launches a real login shell process per session via view.startProcess in init, in a pseudo terminal with the project directory as working directory",
+        "Sets child environment variables TERM, COLORTERM, TERM_PROGRAM and DROPPY_CODE_PROJECT_ROOT on top of LoginEnvironment.current",
+        "terminate() kills the shell through SwiftTerm's view.terminate() and flips isRunning to false",
+        "restart(_:) terminates the old shell and spawns a replacement process",
+        "closeAll(for:) and terminateAll() kill every matching shell",
+        "sysctl(CTL_KERN, KERN_PROC, KERN_PROC_PID, pid) reads kernel process info from a nonisolated context",
+        "processTerminated hops to the main actor with Task { @MainActor in } to set isRunning = false",
+        "Setting the colours flushes SwiftTerm's attribute caches and redraws the whole screen, which is why applyAppearance guards on appliedDark"
+      ],
+      "platform_assumptions": [
+        "macOS and Unix pseudo terminals through SwiftTerm's LocalProcessTerminalView",
+        "Login-shell convention: execName is \"-\" plus the shell's lastPathComponent, so the shell runs as a login shell",
+        "Darwin sysctl with kinfo_proc; the foreground test compares info.kp_eproc.e_tpgid with info.kp_eproc.e_pgid, because the pty master side answers no tcgetpgrp for a process whose controlling terminal it is not",
+        "AppKit NSFont and NSColor plus the NSView-based SwiftTerm terminal",
+        "optionAsMetaKey = true, the macOS terminal convention of sending Option as Meta",
+        "Swift 6 @MainActor @Observable classes with @ObservationIgnored stored properties, and MemoryLayout<kinfo_proc>.stride for the sysctl buffer size"
+      ],
+      "persisted_fields": [
+        "None. All terminal state here is in-memory and per-run; nothing is written to disk or UserDefaults from this file"
+      ],
+      "ui_elements": [
+        "Default tab title \"Terminal \\(number)\" where number = existing sessions for the thread + 1, so the first tab is \"Terminal 1\"",
+        "Script-launched tabs are titled with ProjectScript.name instead",
+        "Terminal view initial frame NSRect(x: 0, y: 0, width: 640, height: 240)",
+        "Font NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)",
+        "Dark colours: background NSColor(white: 0.08, alpha: 1), foreground NSColor(white: 0.9, alpha: 1)",
+        "Light colours: background NSColor(white: 0.985, alpha: 1), foreground NSColor(white: 0.12, alpha: 1)",
+        "Caret colour = Chrome.accentNSColor; selection background = Chrome.accentNSColor.withAlphaComponent(0.3)"
+      ],
+      "feature_notes": [
+        "Each session starts the user's login shell from LoginEnvironment.userShell() with argv[0] set to \"-<shellname>\" so profile files run",
+        "Environment overrides on top of LoginEnvironment.current: TERM=xterm-256color, COLORTERM=truecolor, TERM_PROGRAM=Droppy Code, DROPPY_CODE_PROJECT_ROOT=<project directory>; the dictionary is flattened to \"KEY=VALUE\" strings for startProcess",
+        "With a command the arguments are exactly [\"-l\", \"-i\", \"-c\", \"<command>; exec <shell> -l\"], so the script runs and the tab then becomes an interactive login shell instead of exiting; with no command the argument array is empty",
+        "selected(for:) returns the session whose id matches selection[threadID], falling back to the LAST session in the thread, so a stale selection still shows a tab",
+        "open(...) appends the new session to the thread's array and immediately makes it the selection, returning it (@discardableResult)",
+        "run(_ script:threadID:directory:) is open(...) with script.name as the title and script.command as the startup command",
+        "ensureTerminal(threadID:directory:) opens a shell only when the thread has none",
+        "restart(_:) terminates the old shell and substitutes a fresh session at the same index in the row, keeping the title and directory and dropping any startup command (command: nil), then selects the fresh one; if the old session is no longer in the array the fresh one is appended",
+        "close(_:) terminates and removes the session, and if it was the selected one the selection falls back to the last remaining session's id, or nil when none remain",
+        "closeAll(for:) terminates every session of the thread and sets both sessions[threadID] and selection[threadID] to nil",
+        "terminateAll() terminates every session across every thread without clearing the dictionaries, an app-shutdown sweep",
+        "terminate() is idempotent: it returns early unless isRunning is true",
+        "The SwiftTerm delegate callbacks sizeChanged, setTerminalTitle and hostCurrentDirectoryUpdate are deliberately empty bodies, so the tab title never follows the shell's OSC title or its current directory; only processTerminated does anything",
+        "foregroundJobIsTheShell returns false for a non-positive pid or a failed sysctl, and otherwise true only when the terminal foreground process group equals the shell's own process group"
+      ],
+      "unresolved_questions": [
+        "LoginEnvironment.userShell() and LoginEnvironment.current are defined outside this bundle, so the shell fallback and the inherited variable set are not captured here",
+        "Chrome.accentNSColor's literal value is defined elsewhere",
+        "ProjectScript's full definition, beyond the name and command fields used here, is outside this bundle",
+        "Whether an orphaned session's process is ever reaped other than through terminate() depends on callers outside this bundle"
+      ]
+    }
+  ]
+}

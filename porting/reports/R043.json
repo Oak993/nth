@@ -1,0 +1,343 @@
+{
+  "bundle_id": "R043",
+  "reader": "R043-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/Providers/CommandCodeAPI.swift",
+      "sha256": "6e594adf13d761034078ab6e6ba518db90848877ac847790251b72b405866927",
+      "lines_total": 458,
+      "ranges_read": [
+        [
+          1,
+          458
+        ]
+      ],
+      "purpose": "The non-streaming half of the Command Code provider: locates the CLI login (env COMMAND_CODE_API_KEY or ~/.commandcode/auth.json), reads ~/.commandcode/config.json for the CLI's chosen model and per-model reasoning efforts, checks auth with `cmd status`, fetches plan windows and credits from api.commandcode.ai /alpha/billing routes, parses `cmd --list-models` into ModelOption rows, carries hardcoded effort and context-window tables copied from command-code 1.53.1, ships a seed catalog, and embeds plus installs the TypeScript session mod (droppy-code-approvals.ts) that gates tools during headless runs.",
+      "key_symbols": [
+        "enum CommandCodeAPI",
+        "CommandCodeAPI.baseURL = URL(string: \"https://api.commandcode.ai\")!",
+        "CommandCodeAPI.billingURL = URL(string: \"https://commandcode.ai/billing\")!",
+        "static func apiKey(environment: [String: String]) -> String?",
+        "struct StoredLogin { var apiKey: String; var userName: String? }",
+        "static func storedLogin(environment:) -> StoredLogin?",
+        "static func userConfig(environment:) -> JSONValue?",
+        "static func authStatus(executable:environment:) async -> ProviderStatus.Auth",
+        "static func planLimits(environment:) async -> PlanLimits?",
+        "static func credits(environment:) async -> ProviderCredits?",
+        "static func credits(apiKey:) async -> ProviderCredits?",
+        "private static let planNames: [String: String]",
+        "static func planName(_ planID: String?) -> String?",
+        "private static func fetch(_ path: String, key: String) async -> JSONValue?",
+        "static func listModels(executable:environment:) async throws -> [ModelOption]",
+        "static func parseModels(_ text:configuredModel:configuredEfforts:) -> [ModelOption]",
+        "static func matches(_ id: String, _ query: String) -> Bool",
+        "static func displayName(for id: String) -> String",
+        "static func efforts(for id: String) -> [String]",
+        "static func contextWindow(for id: String?) -> Int?",
+        "static let seed: [ModelOption]",
+        "static let approvalMod (raw string #\"\"\"...\"\"\"#)",
+        "static var supportDirectory: URL",
+        "static func installMod() throws -> URL"
+      ],
+      "calls_into": [
+        "JSONValue.parse / JSONValue subscripting (.string, .double, .bool, .int, .isNull)",
+        "LoginEnvironment.homeDirectory",
+        "Shell.run(executable, args, environment:timeout:) -> (output, errorOutput, status)",
+        "TextCleanup.stripANSI",
+        "TextCleanup.lastLines",
+        "ProviderStatus.Auth (.signedIn/.signedOut/.unknown)",
+        "ProviderError.failed",
+        "PlanLimits, PlanLimits.Window",
+        "ProviderCredits, ProviderCredits.money(_:currency:)",
+        "ModelOption(id:name:detail:efforts:defaultEffort:isDefault:)",
+        "URLSession.shared.data(for:)",
+        "AppInfo.name",
+        "FileManager.default.urls(for:.applicationSupportDirectory, in:.userDomainMask)"
+      ],
+      "state_owned": [
+        "static let baseURL (https://api.commandcode.ai)",
+        "static let billingURL (https://commandcode.ai/billing)",
+        "private static let planNames lookup table (8 entries)",
+        "efforts(for:) local table: 40+ model ids to effort arrays",
+        "contextWindow(for:) local table: ~60 model ids to token counts",
+        "static let seed: 9 ModelOption rows",
+        "static let approvalMod: embedded TypeScript mod source",
+        "static var supportDirectory: computed Application Support/<AppInfo.name>/CommandCode"
+      ],
+      "side_effects": [
+        "Reads ~/.commandcode/auth.json (login) and ~/.commandcode/config.json (model/efforts)",
+        "Launches the cmd CLI: `status --no-auto-update` (timeout 25s) and `--list-models --no-auto-update` (timeout 30s)",
+        "HTTPS GET https://api.commandcode.ai/alpha/billing/credits and /alpha/billing/subscriptions with Bearer auth, 15s timeoutInterval",
+        "Creates ~/Library/Application Support/<AppInfo.name>/CommandCode and writes droppy-code-approvals.ts atomically, only when the bytes differ"
+      ],
+      "platform_assumptions": [
+        "macOS Application Support directory via FileManager .applicationSupportDirectory/.userDomainMask, falling back to ~/Library/Application Support",
+        "POSIX HOME environment variable with LoginEnvironment.homeDirectory fallback",
+        "Swift 5.7+ regex literals #/Authenticated as (\\S+)/# and #/^(\\d+)x$/# and #/^(\\S+)\\s{2,}(.+)$/#",
+        "Swift concurrency async let for parallel billing fetches",
+        "Assumes the `cmd` CLI binary exists at the resolved executable URL and that its mods are TypeScript compiled at load"
+      ],
+      "persisted_fields": [
+        "Env var COMMAND_CODE_API_KEY: String, trimmed, takes precedence over stored login",
+        "~/.commandcode/auth.json keys read: apiKey (String, required non-empty), userName (String, optional), fallback name; file also documented to hold userId, keyName, authenticatedAt",
+        "~/.commandcode/config.json keys read: model (String), reasoningEffort (object keyed by model id to effort String)",
+        "Billing JSON read: credits.monthlyCredits, credits.purchasedCredits, credits.freeCredits, credits.belowThreshold (Bool), windowLimits.fiveHour / windowLimits.weekly with cap, used, resetAt (epoch ms), data.planId",
+        "Written file: <Application Support>/<AppInfo.name>/CommandCode/droppy-code-approvals.ts",
+        "Env vars the mod reads: DROPPY_CODE_MCP_BRIDGE, DROPPY_CODE_APPROVALS"
+      ],
+      "ui_elements": [
+        "Plan window titles composed as \"5-hour limit · <money>\" and \"Weekly · <money>\" using ProviderCredits.money(cap, currency: \"USD\")",
+        "Plan names surfaced: Go, GOAT, Pro, Provider, Max 10×, Max 20×, Teams Pro (note the multiplication sign ×, not x)",
+        "Model display names such as \"Claude Sonnet 5\", \"Kimi K2.7 Code\", \"GPT-5.6 Terra\"; GPT ids render as \"GPT-\" + remaining words; \":free\" suffix appends \" Free\"",
+        "Seed catalog detail strings: \"Anthropic · best combo of speed & intelligence\", \"Anthropic · most capable for demanding reasoning & long-horizon agents\", \"Anthropic · most intelligent Opus for agents and coding\", \"OpenAI · most capable OpenAI model for demanding reasoning & agents\", \"OpenAI · latest frontier model for general complex work\", \"Google · newest Gemini Flash, improved core reasoning\", \"Open Source · fast hybrid-attention reasoning\", \"Open Source · long-horizon coding & knowledge work with 1M context\", \"Open Source · frontier coding with emergent cyber capabilities\"",
+        "Error string when no models parse: \"Command Code listed no models.\"",
+        "Model detail joins section header and description with \" · \""
+      ],
+      "feature_notes": [
+        "apiKey precedence: trimmed COMMAND_CODE_API_KEY wins, else storedLogin().apiKey",
+        "authStatus: returns .signedOut immediately when no key; runs `cmd status --no-auto-update` with 25s timeout; regex \"Authenticated as (\\\\S+)\" yields .signedIn(name); exit status 3 or text containing \"not authenticated\"/\"not logged in\" yields .signedOut; text containing \"authentication verified\" yields .signedIn(storedLogin userName); otherwise .unknown",
+        "planLimits: fetches /alpha/billing/credits and /alpha/billing/subscriptions concurrently with async let; builds windows only for windowLimits.fiveHour (title \"5-hour limit\") and windowLimits.weekly (title \"Weekly\") where cap > 0; percent = min(100, used / cap * 100); resetAt > 0 becomes Date(timeIntervalSince1970: resetAt / 1_000); returns nil if no windows and no plan name",
+        "Documented dollar caps: Go plan $3 per five hours, Pro plan $16; on-demand credits are never throttled",
+        "credits(): total = monthlyCredits + purchasedCredits + freeCredits, currency \"USD\", toppedUp = purchased, granted = free, monthly = monthly, isUsable = belowThreshold != true",
+        "planName: exact lookup on lowercased id first; unknown ids drop a leading \"individual\" segment and title-case the rest, mapping goat->GOAT, pro->Pro, go->Go, max->Max, ultra->Ultra, teams/team->Teams, and \"20x\"->\"20×\" via regex ^(\\d+)x$",
+        "fetch(): Bearer <key> Authorization header, Accept: application/json, 15s timeout, requires HTTP 200",
+        "parseModels skips lines starting with \"Available models\", \"Pass the full id\", \"cmd \", \"Docs:\", \"Usage\"; a line matching ^(\\S+)\\s{2,}(.+)$ is a model row, otherwise it becomes the section header when it has no space and starts uppercase, or when it is shorter than 24 characters; ids must contain \"-\" or \"/\"",
+        "\" (recommended)\" and \" (default)\" are stripped from the detail and each sets isDefault",
+        "Exactly one default survives: the config.json model wins and is moved to index 0, otherwise the first isDefault row keeps the flag",
+        "matches(): case-insensitive equality on the whole id, or on the segment after the last \"/\"",
+        "displayName merges trailing all-digit token pairs into one dotted number (claude-fable-5-1 -> Fable 5.1); uppercases gpt, glm, hy3, hy4, v4, v4.1, v2.5; leaves tokens starting with a digit alone",
+        "efforts table values: full = [low, medium, high, xhigh, max]; toXHigh = [low, medium, high, xhigh]; toHigh = [low, medium, high]; highMax = [high, max]; lowHighMax = [low, high, max]; sakana/fugu-ultra = [high, xhigh]; the qwen3.8 family = [low, medium, xhigh]; models absent from the table get [] so the effort slider hides",
+        "contextWindow examples: claude-sonnet-5 1_000_000, claude-haiku-4-5 200_000, gpt-6-astra 1_050_000, gpt-5.5 400_000, moonshotai/kimi-k2.7-code 256_000, kimi-k2.7-code-highspeed 262_000, z-ai/glm-5.3-flash 1_048_576, qwen/qwen3.8-27b 262_144, xai/grok-4.5 500_000, tencent/hy3-paid 262_144, nvidia/nemotron-3-ultra-550b-a55b 1_000_000; unknown ids fall back to the first table entry whose key matches() the id",
+        "approvalMod READ_ONLY set (passes through without asking): read_file, read_directory, glob, grep, shell_output, shell_tasks, todo_write, task_create, task_update, task_list, task_get, sleep, web_search, web_fetch, agent, agent_output, activate_skill, taste, get_diagnostics, ask_user_question, plan_review, enter_plan_mode, exit_plan_mode, cron_list, run_command",
+        "approvalMod registers MCP tools from DROPPY_CODE_MCP_BRIDGE by importing it and calling bridge.loadMCPTools(), adding each as cmd.addTool with schema name 'mcp__' + server + '__' + name and returning { ok: true, content: [{type:'text', text}] }; failures log via console.error('droppy mcp', error)",
+        "approvalMod gate: registers cmd.hooks({beforeToolCall}) only when DROPPY_CODE_APPROVALS is set; sanitizes the tool call id with /[^A-Za-z0-9_.-]/g -> '_'; writes <id>.request.json via a .tmp file plus rename; polls <id>.reply.json every 40 ms; a reply of {decision:'allow'} returns undefined (allow), anything else returns {block: true, additionalContext: answer.reason || 'The user declined this in Droppy Code.'}",
+        "approvalMod bail-outs: ctx.signal.aborted returns {block:true, additionalContext:'The turn was stopped.'}; process.ppid === 1 or more than 6 * 60 * 60 * 1000 ms elapsed returns {block:true, additionalContext:'Droppy Code did not answer.'}; both unlink the request file first",
+        "installMod() rewrites droppy-code-approvals.ts only when the on-disk bytes differ from the embedded source, so a new build replaces the old mod"
+      ],
+      "unresolved_questions": [
+        "ProviderCredits.money formatting (symbol, decimal places) is defined elsewhere, so the exact rendered window title text cannot be pinned from this file",
+        "AppInfo.name is referenced but not defined here, so the literal Application Support folder name is unknown from this file alone",
+        "The fetch path is appended with appendingPathComponent(\"/alpha/billing/credits\"), and whether the leading slash yields a double slash in the final URL depends on Foundation behavior not verified here"
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Providers/CommandCodeKeychain.swift",
+      "sha256": "b96de05848dfc446acc3994a49271b5fcc8ccfaa77f2aaed0e9ecbec2ccecc5d",
+      "lines_total": 18,
+      "ranges_read": [
+        [
+          1,
+          18
+        ]
+      ],
+      "purpose": "An 18-line namespace that stores the optional Command Code Studio API key in the macOS Keychain under the account name \"Command Code API Key\", delegating entirely to the shared APIKeychain helper; it exists for users who prefer pasting a key over running `cmd login`, and UserDefaults keeps a copy only where the Keychain refuses the write.",
+      "key_symbols": [
+        "enum CommandCodeKeychain",
+        "private static let account = \"Command Code API Key\"",
+        "static func apiKey(fallback: String) -> String",
+        "@discardableResult static func setAPIKey(_ key: String) -> Bool"
+      ],
+      "calls_into": [
+        "APIKeychain.key(for:fallback:)",
+        "APIKeychain.setKey(_:account:)"
+      ],
+      "state_owned": [
+        "private static let account = \"Command Code API Key\" (the Keychain account name; the only state this file owns)"
+      ],
+      "side_effects": [
+        "Keychain read through APIKeychain.key(for:fallback:)",
+        "Keychain write through APIKeychain.setKey(_:account:), which per the doc comment falls back to UserDefaults only when the Keychain refuses"
+      ],
+      "platform_assumptions": [
+        "macOS Keychain Services via the shared APIKeychain wrapper",
+        "UserDefaults as the documented fallback store when the Keychain is unavailable"
+      ],
+      "persisted_fields": [
+        "Keychain account string \"Command Code API Key\" (exact, with spaces and capitalization)",
+        "apiKey(fallback:) returns String and never optional; the caller supplies the fallback value"
+      ],
+      "ui_elements": [],
+      "feature_notes": [
+        "setAPIKey is @discardableResult and returns Bool, so callers may ignore whether the store succeeded",
+        "This key is separate from the CLI's own `cmd login` key in ~/.commandcode/auth.json; the doc comment states the CLI keeps its own there",
+        "No trimming, validation or empty-string handling happens in this file; it is a pure pass-through to APIKeychain"
+      ],
+      "unresolved_questions": [
+        "The service name, accessibility class and UserDefaults key APIKeychain uses are defined in APIKeychain, not here, so the exact persisted identifiers cannot be pinned from this file",
+        "Where the stored key is read back into the COMMAND_CODE_API_KEY environment variable is not visible in this file"
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Providers/CommandCodeSession.swift",
+      "sha256": "665e9b4497880de2cdeb0bf8dd0891527e135973cd7f241ef1f54d4a775c41d6",
+      "lines_total": 771,
+      "ranges_read": [
+        [
+          1,
+          771
+        ]
+      ],
+      "purpose": "The ProviderSession driver for the Command Code CLI in headless print mode: each turn spawns one `cmd -p --output-format json` process with the prompt on stdin, translates its newline-delimited event frames into ProviderEvents (messages, thinking, tools, todos, usage, notices, plan), resumes the CLI session id across turns, maps CLI exit codes to user-facing errors, and runs the file-based approval gate (request/reply JSON in a per-session approvals directory watched with a DispatchSource) that backs Supervised / Auto-accept edits / Auto / Full access.",
+      "key_symbols": [
+        "@MainActor final class CommandCodeSession: ProviderSession",
+        "var onEvent: ((ProviderEvent) -> Void)?",
+        "private struct RunResult { subtype, stopReason, error }",
+        "private static let maxTurns = 400",
+        "init(configuration: SessionConfiguration)",
+        "var isRunning: Bool",
+        "func start() async throws -> String",
+        "private static func transcriptExists(_ sessionID:environment:) -> Bool",
+        "func send(_ input: TurnInput) async throws",
+        "private static func prompt(for input: TurnInput) -> String",
+        "private static func takesEffort(_ effort: String, model: String?) -> Bool",
+        "func interrupt() async",
+        "func compact() async throws",
+        "func resolveApproval(_ requestID:optionID:)",
+        "func answerQuestion(_ requestID:answers:)",
+        "func stop()",
+        "private func handle(_ message: JSONValue)",
+        "private func handleEvent(_ event: JSONValue)",
+        "private func didClose(status: Int32, process: StdioProcess)",
+        "private func noteTurnCap()",
+        "private static func isRateLimit(_ text: String) -> Bool",
+        "private static func friendlyError(_ text: String) -> String",
+        "private static func errorText(_ value: JSONValue?) -> String?",
+        "private static func text(in value: JSONValue?) -> String",
+        "private static func todos(from input: JSONValue) -> [TodoStep]",
+        "private func makeToolCall(name:input:snapshot:) -> ToolCall",
+        "private static func humanize(_ name: String) -> String",
+        "private func finishEdit(_ id: String) -> [FileEdit]?",
+        "private static func snapshot(_ path: String) -> String?",
+        "private func startWatcher(_ directory: URL)",
+        "private func stopWatcher()",
+        "private func scanApprovals()",
+        "private func decide(id:request:)",
+        "private func autoApproves(name:input:) -> Bool",
+        "private func makeApproval(id:name:input:) -> ApprovalRequest",
+        "private static func grantKey(_ kind: ApprovalRequest.Kind) -> String",
+        "private func reply(to id: String, allow: Bool)",
+        "private func clearApprovalFiles()"
+      ],
+      "calls_into": [
+        "CommandCodeAPI.installMod(), CommandCodeAPI.supportDirectory, CommandCodeAPI.efforts(for:), CommandCodeAPI.contextWindow(for:)",
+        "StdioProcess(executable:arguments:directory:environment:), .start(), .write(_:), .closeInput(), .messages, .waitForExit(), .terminate(), .errorTail",
+        "MCPBridge.installBridge()",
+        "MCPPaths.claudeConfigURL",
+        "JSONValue parsing, subscripting, .compactString, .data()",
+        "ProviderEvent cases: .turnStarted, .sessionReady, .messageDelta, .messageCompleted, .reasoningDelta, .reasoningCompleted, .usage, .tokenSpend, .todos, .toolStarted, .toolUpdated, .toolOutput, .title, .notice, .planCompleted, .approval, .requestResolved, .usageLimit, .turnCompleted",
+        "ProviderError.notInstalled, .notRunning, .failed",
+        "ToolCall, ToolUpdate, FileEdit, TodoStep, Notice, ContextUsage, TokenSpend, ApprovalRequest",
+        "ToolTitles.relativePath(_:to:), ToolTitles.unwrapShell",
+        "TextCleanup.singleLine(_:limit:), TextCleanup.lastLines",
+        "ShellCommandKind.mayWriteFiles(_:)",
+        "TokenLedger.shared.record(spend:)",
+        "LoginEnvironment.homeDirectory"
+      ],
+      "state_owned": [
+        "configuration: SessionConfiguration",
+        "process: StdioProcess?, readTask: Task<Void, Never>?",
+        "sessionID: String?, started: Bool, stopped: Bool",
+        "runtimeMode: RuntimeMode, interactionMode: InteractionMode, model: String?, effort: String?",
+        "turnActive, interruptRequested, isFinalReport",
+        "launchID = String(UUID().uuidString.prefix(8))",
+        "turnCounter, messageCounter, thinkingCounter",
+        "currentMessageID, currentThinkingID, messageText, thinkingText, streamedText",
+        "activeModel: String? (model the CLI reported, used for the context ceiling)",
+        "editSnapshots: [String: String] (pre-write file contents keyed by tool call id)",
+        "toolNames: [String: String], toolInputs: [String: JSONValue]",
+        "runResult: RunResult?, runError: String?",
+        "modURL: URL?, approvalDirectory: URL?, approvalWatcher: DispatchSourceFileSystemObject?",
+        "pendingApprovals: [String: ApprovalRequest]",
+        "sessionGrants: Set<String> (session-wide \"Approve for session\" grants by kind)"
+      ],
+      "side_effects": [
+        "Installs the approval mod via CommandCodeAPI.installMod() and creates <supportDirectory>/approvals/<UUID>/ per session",
+        "Opens a DispatchSource file-system watcher on the approvals directory with O_EVTONLY and mask [.write] on the main queue",
+        "Spawns the cmd CLI per turn, writes the prompt to stdin and closes it",
+        "Sends SIGTERM to the process on interrupt() and stop()",
+        "Reads and deletes <id>.request.json files; writes <id>.reply.json via a .tmp file plus FileManager.replaceItemAt, falling back to a direct atomic write",
+        "Reads files up to 1_000_000 bytes as UTF-8 snapshots before and after write_file",
+        "Deletes the whole approvals directory in stop() and removes leftover files in clearApprovalFiles()",
+        "Scans ~/.commandcode/projects/*/<sessionID>.jsonl to check a resume is still possible",
+        "Records token spend into TokenLedger.shared",
+        "Installs the MCP bridge via MCPBridge.installBridge()"
+      ],
+      "platform_assumptions": [
+        "@MainActor class with MainActor.assumeIsolated inside the DispatchSource handler",
+        "DispatchSource.makeFileSystemObjectSource with POSIX open(path, O_EVTONLY) and close(), a Darwin/BSD kqueue facility",
+        "POSIX SIGTERM semantics and the CLI's exit code 130 for a terminated run",
+        "process.ppid orphan detection lives in the mod, not here, but the gate relies on it",
+        "HOME environment variable with LoginEnvironment.homeDirectory fallback",
+        "FileManager.replaceItemAt atomic replace semantics",
+        "Swift switch expressions (let level: Notice.Level = switch ...) requiring Swift 5.9+"
+      ],
+      "persisted_fields": [
+        "CLI session id persisted through SessionConfiguration.resumeID and re-emitted via .sessionReady",
+        "Transcript path checked: ~/.commandcode/projects/<project>/<sessionID>.jsonl",
+        "Approval request file: <approvalDirectory>/<id>.request.json with fields toolCallId, toolName, input",
+        "Approval reply file: <approvalDirectory>/<id>.reply.json with fields decision (\"allow\" or \"deny\") and reason",
+        "Environment variables set for the child: DROPPY_CODE_APPROVALS (approval directory path, cleared for Full access), DROPPY_CODE_MCP_BRIDGE (bridge path), DROPPY_CODE_MCP_CONFIG (MCPPaths.claudeConfigURL.path when that file exists)",
+        "Event ids minted as cc-<launchID>-m<n> (messages), cc-<launchID>-r<n> (reasoning), cc-<launchID>-plan<turn> (plans)"
+      ],
+      "ui_elements": [
+        "Approval options, in order: id \"allow\" title \"Approve\" role .approve; id \"always\" title \"Approve for session\" role .approveAlways; id \"deny\" title \"Decline\" role .decline",
+        "Notice \"Compacting context.\" on compaction_start",
+        "Notice \"Compacted context, freeing <n> tokens.\" (n formatted) or \"Compacted context.\" when tokensSaved is 0",
+        "Turn-cap warning notice: \"Command Code stopped at its cap of 400 round trips for one message. Send another to carry on.\"",
+        "compact() error: \"Command Code compacts its context on its own.\"",
+        "Busy error: \"Command Code is still on the last turn.\"",
+        "Stale session error: \"Command Code no longer has this conversation; starting a new one.\"",
+        "Launch failure: \"Command Code could not start: <localizedDescription>\"",
+        "Exit 3 / auth error: \"Command Code is not signed in. Run `cmd login` in Terminal, or add a Studio API key in Settings → Providers → Command Code.\"",
+        "Exit 4 fallback: \"Command Code was denied permission.\"",
+        "Exit 5 fallback: \"Command Code is rate limited. Wait for the window to reset, or buy on-demand credits, which are never throttled.\"",
+        "Exit 6: \"Could not reach Command Code. Check the connection and try again.\"",
+        "Exit 7 fallback: \"Command Code's API returned a server error. Try again in a moment.\"",
+        "Exit 9: \"The model produced no response.\"",
+        "Exit 10 / credits error: \"Command Code is out of credits. Top up at commandcode.ai/billing, or wait for the monthly credits to reset.\"",
+        "Default exit: \"Command Code exited with code <status>.\"",
+        "Result fallback: \"Command Code stopped before finishing.\"",
+        "Tool row titles: \"Shell command\", \"Monitor command\", \"Shell output\", \"Shell tasks\", \"Stop shell\", \"Read file\", \"List files\", \"Write file\", \"Edit file\", \"Find files\", \"Search\", \"Fetch page\", \"Search the web\", \"Sub-agent\", \"Agent output\", \"Skill · <name>\", \"Command · <command>\", MCP rows as \"<server> · <tool>\"",
+        "read_file detail formatted as \"lines <offset>–<offset + limit>\" using an en dash",
+        "Background shell detail appended as \"in the background\" joined with \" · \"",
+        "subagent_progress output line: \"<toolName>  <subject>\" (two spaces) with the subject shortened to 100 characters, plus a trailing newline",
+        "Declined tool output default: \"Declined.\"; failed tool default: \"The tool failed.\"",
+        "Deny reason sent back to the model: \"The user declined this in Droppy Code. Do not retry it; take another approach or explain what you would need.\"",
+        "Attachment preamble in the prompt: \"\\n\\nAttached files (read them with read_file):\\n\" followed by \"- <path>\" lines"
+      ],
+      "feature_notes": [
+        "Fixed command line per turn: -p, --output-format json, --skip-onboarding, --no-auto-update, --trust, --tools-enable todo_write, --max-turns <1 when isFinalReport else 400>",
+        "Optional flags appended: --model <model> when non-empty; --effort <effort> only when CommandCodeAPI.efforts(for: model) contains it; --permission-mode plan in plan mode, otherwise --yolo; --mod <modPath> when runtimeMode != .fullAccess or interactionMode == .plan or MCPPaths.claudeConfigURL exists; --resume <sessionID> when one is known",
+        "start() throws ProviderError.notInstalled when configuration.executable is nil, and fails with the stale-conversation message when the resume transcript jsonl is missing",
+        "interrupt() sets interruptRequested and SIGTERMs the process; the CLI exits 130 and the run reports .interrupted",
+        "Stream frames handled at the top level: type \"event\" (dispatched to handleEvent) and type \"result\" (subtype, stopReason, error, sessionId)",
+        "Event frames handled: run_start, message_start, text_delta, thinking_start, thinking_delta, thinking_end, message_end, model_request_start, model_request_end, tool_queued, tool_update, tool_completed, tool_errored, tool_hook_blocked, tool_denied, subagent_progress, session_titled, compaction_start, compaction_done, notice, run_error, interrupted, run_end",
+        "Explicitly ignored frames: turn_start, turn_end, message_update, model_trace, tool_running, tool_hooks, tool_input_repaired, subagent_start, subagent_stop",
+        "model_request_end usage fields: usage.inputTokens + usage.outputTokens; emits .usage with CommandCodeAPI.contextWindow(for: activeModel ?? model), records TokenLedger spend, and emits .tokenSpend(provider: .commandcode) carrying per-request totals rather than a baseline delta",
+        "todo_write is intercepted at tool_queued and turned into .todos, never a tool row; its updates, completions and errors are skipped",
+        "write_file snapshots the target file at tool_queued so the finished row diffs before against after; finishEdit returns [FileEdit(path:)] with no diff when the contents did not change",
+        "todos map status \"completed\"/\"done\" to .done, \"in_progress\"/\"active\" to .active, everything else to .pending, and read content, then text, then title",
+        "Notice levels map \"error\" to .error, \"warning\"/\"warn\" to .warning, everything else to .info",
+        "run_end emits .planCompleted only in plan mode and only when result.finalText is non-blank",
+        "didClose: pending approvals are resolved, approval files cleared; stop() suppresses further events; interruptRequested or status 130 yields .interrupted",
+        "Result subtype \"success\" with stopReason \"max_turns\", or subtype \"max_turns\", both complete the turn and post the turn-cap notice (suppressed when isFinalReport)",
+        "isRateLimit matches lowercased \"rate limit\", \"usage exceeded\" or \"window limit\" and emits .usageLimit(resetsAt: nil) before the failure",
+        "friendlyError rewrites text containing \"not authenticated\"/\"unauthorized\"/\"session expired\" into the sign-in message and \"insufficient credits\"/\"out of credits\" into the top-up message",
+        "Exit code 8 counts as a completed turn with the turn-cap notice; exit 0 with no result line also completes",
+        "autoApproves by mode: .fullAccess true (and the gate is not even loaded), .supervised false, .autoAcceptEdits only write_file/edit_file, .auto allows edits plus shell_command/powershell/monitor_command whose command is not ShellCommandKind.mayWriteFiles, plus kill_shell, cron_create, cron_delete, task_stop",
+        "Approval kind derived from the tool call kind: .command -> .command, .edit -> .fileChange, anything else -> .tool; grantKey collapses .tool/.permissions/.plan to \"tool\"",
+        "resolveApproval treats optionID \"allow\" and \"always\" as approve, \"always\" additionally inserts the grant key; any other option denies",
+        "answerQuestion(_:answers:) is an empty no-op: Command Code sessions do not support structured questions",
+        "scanApprovals only runs while turnActive, sorts request files by lastPathComponent, deletes each after reading, and skips ids already pending",
+        "snapshot() refuses files larger than 1_000_000 bytes or non-UTF-8, returning nil so a write renders as a whole-file addition",
+        "Documented live verification target: command-code 1.53.1, covering the event frames, stdin prompts, the result line, the mod gate under --yolo, --list-models, cmd status, exit code 130 and the /alpha/billing routes"
+      ],
+      "unresolved_questions": [
+        "ShellCommandKind.mayWriteFiles heuristics are defined elsewhere, so which shell commands Auto mode actually waves through cannot be pinned from this file",
+        "RuntimeMode and InteractionMode case lists are declared elsewhere; only .fullAccess, .supervised, .autoAcceptEdits, .auto and .plan appear here",
+        "The CLI's exit code 1 and 2 are not handled specially and fall into the default branch; whether the CLI uses them is not evidenced here",
+        "SessionConfiguration.environment is assumed to already carry COMMAND_CODE_API_KEY when the user pasted a Studio key; the wiring is not in this file"
+      ]
+    }
+  ]
+}

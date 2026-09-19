@@ -1,0 +1,341 @@
+{
+  "bundle_id": "R046",
+  "reader": "R046-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/Providers/ProjectGuidance.swift",
+      "sha256": "828ed8e99670117e2b8f5074652778c7f9e15d44400d5bc16726a630710c4649",
+      "lines_total": 119,
+      "ranges_read": [
+        [
+          1,
+          119
+        ]
+      ],
+      "purpose": "Builds the 'Project guidelines' system-prompt block for native API sessions (DeepSeek, Meta, Z.ai) by reading exactly AGENTS.md and CLAUDE.md at the working directory root, caching the rendered block and re-rendering only when a file's size or modification date changed.",
+      "key_symbols": [
+        "struct ProjectGuidance: Sendable",
+        "static let fileNames = [\"AGENTS.md\", \"CLAUDE.md\"]",
+        "static let perFileLimit = 16_000",
+        "static let totalLimit = 24_000",
+        "struct ProjectGuidance.FileState: Equatable, Sendable { var size: Int; var modified: Date? }",
+        "let workingDirectory: String",
+        "private var states: [String: FileState]",
+        "private var block: String?",
+        "private var didLoad = false",
+        "init(workingDirectory: String)",
+        "mutating func systemPromptBlock() -> String?",
+        "private static func states(in directory: String) -> [String: FileState]",
+        "private static func resolvedFile(named:in:) -> URL?",
+        "private static func render(in directory: String) -> String?",
+        "private static func boundedData(at url: URL) -> Data?"
+      ],
+      "calls_into": [
+        "FileManager.default.attributesOfItem(atPath:)",
+        "FileManager.default.fileExists(atPath:isDirectory:)",
+        "FileAttributeKey .size / .modificationDate / .type",
+        "FileAttributeType.typeRegular",
+        "URL.standardizedFileURL / resolvingSymlinksInPath()",
+        "FileHandle(forReadingFrom:) and handle.read(upToCount:)",
+        "String(data:encoding: .utf8)"
+      ],
+      "state_owned": [
+        "states: [String: FileState] - last seen size and modification date per file name, the change key",
+        "block: String? - the last rendered system-prompt block, returned unchanged while states match",
+        "didLoad: Bool - forces one render on the first call even when no file exists, so a nil result is cached too",
+        "workingDirectory: String - the single directory whose root is read"
+      ],
+      "side_effects": [
+        "Reads files from disk: <workingDirectory>/AGENTS.md and <workingDirectory>/CLAUDE.md",
+        "Stats those files (attributesOfItem) on every systemPromptBlock() call",
+        "Streams file bytes with FileHandle in chunks of min(65_536, perFileLimit + 1 - data.count)",
+        "No network, no process launch, no persistence"
+      ],
+      "platform_assumptions": [
+        "POSIX path handling: '/' separator, rootPrefix built by appending '/' when the resolved root lacks it",
+        "Symlink containment check uses URL.resolvingSymlinksInPath() with Darwin semantics",
+        "Foundation FileManager attribute dictionary with .size as NSNumber and .modificationDate as Date",
+        "attributes[.type] compared against FileAttributeType.typeRegular to reject devices, sockets and directories"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Injection order is fixed: AGENTS.md first, then CLAUDE.md (Self.fileNames order).",
+        "Per-file byte cap 16000; combined cap across all files 24000, tracked by a `remaining` counter decremented by each included file's byte count.",
+        "A file whose bytes exceed perFileLimit or the remaining budget is NOT dropped silently: the section text is exactly \"\\(name) is too large to include here (\\(size) bytes). Read \\(name) with the read_file tool; it may contain rules the project expects you to follow.\" where size is the on-disk size attribute, falling back to data.count.",
+        "A file that cannot be opened yields exactly \"Could not load \\(name). Read it with the read_file tool before changing the project.\"",
+        "A file that is not valid UTF-8, or whose text trims to empty under .whitespacesAndNewlines, is skipped entirely: it contributes no section and consumes no budget.",
+        "An included file renders as \"--- \\(name) ---\\n\\(text)\" and sections are joined with \"\\n\\n\".",
+        "The block header is exactly \"Project guidelines from \\(directory). They supplement the rules above; where they conflict, the Droppy Code rules take priority.\" followed by a newline then the joined sections.",
+        "Returns nil when no sections were produced, i.e. neither file present or both empty.",
+        "systemPromptBlock() re-renders only when the [name: FileState] map differs from the stored one, so an unchanged project pays two stat calls and nothing else per request.",
+        "resolvedFile refuses a name whose symlink target resolves outside the working directory: candidate.path must equal resolvedRoot or start with resolvedRoot + \"/\"; it also refuses directories and non-regular files.",
+        "The repository is never scanned; only these two names at the root are looked up, never a parent directory.",
+        "boundedData reads at most perFileLimit + 1 bytes (16001) so oversize is detected without reading the whole file; a read throw returns nil, which becomes the 'Could not load' section."
+      ],
+      "unresolved_questions": [
+        "The caller is not in this bundle: which native API session type invokes systemPromptBlock(), and where the block sits relative to the rest of the system prompt, is not visible here. The header wording 'They supplement the rules above' implies it is appended after the base rules.",
+        "The 'read_file tool' named in the two fallback strings is assumed to be the tool the native API sessions expose; its definition is in another file."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Providers/ProviderRegistry.swift",
+      "sha256": "e95d777d9a0bdc6182630fd043b6a837f384c7a9bcb47a63fc6a1c8c6498fe6c",
+      "lines_total": 817,
+      "ranges_read": [
+        [
+          1,
+          817
+        ]
+      ],
+      "purpose": "The @MainActor @Observable registry that discovers every provider CLI on disk, probes its version and sign-in state, owns and persists the per-provider model catalogs, slash-command lists, plan limits and pay-as-you-go credits, and performs in-app sign-in and reset-credit redemption.",
+      "key_symbols": [
+        "struct ProviderStatus: Equatable, Sendable",
+        "enum ProviderStatus.Auth: case unknown, case signedIn(String?), case signedOut",
+        "ProviderStatus.executable / version / auth / isChecking / apiKeyConfigured",
+        "ProviderStatus.isInstalled (executable != nil || apiKeyConfigured)",
+        "ProviderStatus.summary",
+        "final class ProviderRegistry (@MainActor @Observable)",
+        "statuses / catalogs / commands / commandErrors / recentCommands / loadingCatalogs / planLimits / loadingLimits / redeemingReset / credits / loadingCredits",
+        "static let claudeEfforts / claudeSeed / deepseekSeed / metaSeed / zaiSeed / antigravitySeed / copilotAuto / commandcodeSeed / piSeed",
+        "static func mergedClaudeCatalog(_:)",
+        "static func mergedACPCatalog(_:over:)",
+        "static func isStaleClaudeSeed(_:)",
+        "static func lacksEffortWalk(_:)",
+        "init(settings: any ProviderSettings)",
+        "var availableProviders: [ProviderKind]",
+        "func countsAsInstalled(_:)",
+        "func status(_:)",
+        "func executable(for:)",
+        "static func fallbackExecutables(for:)",
+        "func environment(for:)",
+        "func signIn(_:) async -> String?",
+        "func refreshEverything() async",
+        "static let probeWidth = 4",
+        "func refreshAll() async",
+        "func refresh(_:) async",
+        "private func refreshAPIProvider(_:) async",
+        "func models(for:) / model(_:for:) / defaultModel(for:)",
+        "func loadCatalog(_:force:) async",
+        "private func loadClaudeCatalog(executable:environment:) async",
+        "private func loadAPICatalog(_:force:) async",
+        "private func storeCatalogDates()",
+        "func refreshPlanLimits(_:force:)",
+        "private func drainedForcedRead(_:)",
+        "func consumeResetCredit(_:_:) async throws -> PlanLimits.ResetOutcome",
+        "func refreshCredits(_:force:)",
+        "func invalidateCredits(_:) / func invalidatePlanLimits(_:)",
+        "func updateCatalog(_:for:)",
+        "static func commandKey(_:directory:)",
+        "func updateCommands(_:for:directory:)",
+        "func recordCommand(_:for:)",
+        "func loadCommands(_:directory:force:) async",
+        "private static func version(_:_:) async -> String?",
+        "private static func auth(_:_:_:) async -> ProviderStatus.Auth",
+        "private static func devinAccount(from:) -> String?"
+      ],
+      "calls_into": [
+        "ProviderKind (allCases, rawValue, displayName, executableName, loginCommand, isAPIKeyBased, usesACP)",
+        "ProviderSettings protocol (isEnabled, binaryPath(for:), apiKey(for:), lastModel(for:))",
+        "ModelOption (id, name, detail, efforts, defaultEffort, isDefault, fastTier), Codable",
+        "LoginEnvironment.which / .current / .homeDirectory / .load()",
+        "Shell.run(executable, arguments, environment:timeout:) returning output / errorOutput / stdout / succeeded",
+        "TextCleanup.stripANSI",
+        "JSONValue.parse",
+        "ClaudeSession.handshake(executable:directory:environment:) giving .models and .commands",
+        "CodexSession.listModels / listCommands / consumeResetCredit / readPlanLimits",
+        "AntigravitySession.listModels / authStatus",
+        "CopilotSession.listModels / authStatus",
+        "CommandCodeAPI.seed / listModels / authStatus / apiKey(environment:)",
+        "PiCLI.listModels / authStatus",
+        "ACPSession.probeModels(provider:executable:environment:) and ACPSession.orderedEfforts",
+        "DeepSeekAPI.option(for:) / validate(apiKey:) / listModels(apiKey:)",
+        "MetaAPI.option(for:) / validate / listModels",
+        "ZaiAPI.option(for:) / validate / listModels / planLimits(apiKey:) / consumeResetCredit(apiKey:creditID:)",
+        "PlanLimitsReader.exposesLimits / read(_:executable:environment:) / read(_:apiKey:)",
+        "CreditsReader.exposesCredits / read(_:apiKey:)",
+        "ProviderCredits, PlanLimits, PlanLimits.ResetOutcome, ResetCreditError (.codexUnavailable, .unknownOutcome)",
+        "SlashCommand",
+        "MCPSessionOverrides.opencodeEnvironment()",
+        "MCPProviderConfig.geminiSettingsPath()",
+        "CaptureRun.isEnabled / CaptureRun.defaults",
+        "UserDefaults.standard, JSONEncoder / JSONDecoder"
+      ],
+      "state_owned": [
+        "statuses: [ProviderKind: ProviderStatus] (observable)",
+        "catalogs: [ProviderKind: [ModelOption]] (observable, persisted under \"providerModelCatalogs\")",
+        "commands: [String: [SlashCommand]] keyed by commandKey = provider.rawValue + \"\\n\" + directory, capped at 32 entries with oldest-fetched eviction",
+        "commandErrors: [String: String], cleared wholesale once it reaches 32 entries",
+        "recentCommands: [String: [String]] keyed by provider rawValue, capped to the first 100, persisted under \"recentSlashCommands\"",
+        "commandLoads: [String: Task<Void, Never>] - in-flight command loads, awaited by a second caller (@ObservationIgnored)",
+        "commandsFetchedAt: [String: Date]",
+        "loadingCatalogs: Set<ProviderKind> and attemptedCatalogs: Set<ProviderKind> (one live catalog attempt per launch unless forced)",
+        "catalogFetchedAt: [ProviderKind: Date], persisted under \"providerModelCatalogDates\"",
+        "planLimits: [ProviderKind: PlanLimits], loadingLimits: Set<ProviderKind>, limitsFetchedAt: [ProviderKind: Date], forcedLimitReads: Set<ProviderKind>",
+        "credits: [ProviderKind: ProviderCredits], loadingCredits: Set<ProviderKind>, creditsFetchedAt: [ProviderKind: Date]",
+        "redeemingReset: String? - the credit id being spent, or provider.rawValue (\"codex\") when the app-server listed only a count",
+        "isRefreshing: Bool - the Providers page refresh button's guard",
+        "signingIn: ProviderKind? - at most one in-app sign-in at a time",
+        "settings: any ProviderSettings (@ObservationIgnored)"
+      ],
+      "side_effects": [
+        "Spawns provider CLIs: `<exe> --version` (timeout 20), `codex login status` (20), `claude auth status` (20), `cursor status` (20), `devin auth status` (20), `opencode auth list` (20), and the provider's loginCommand tail through Shell.run with timeout 300",
+        "Reads ~/.grok/auth.json from disk for Grok sign-in state via Data(contentsOf:) and JSONSerialization",
+        "Network calls through DeepSeekAPI / MetaAPI / ZaiAPI validate, listModels, planLimits, consumeResetCredit and through PlanLimitsReader and CreditsReader",
+        "Writes UserDefaults.standard keys \"providerModelCatalogs\" and \"providerModelCatalogDates\"; writes \"recentSlashCommands\" into (CaptureRun.defaults ?? .standard)",
+        "Starts detached Tasks with 25-second watchdog sleeps for plan-limit reads so a dismissed popover cannot cancel them",
+        "Mutates the environment handed to children: prepends the executable's directory to PATH, sets COMMAND_CODE_API_KEY, merges MCPSessionOverrides.opencodeEnvironment(), sets GEMINI_CLI_SYSTEM_SETTINGS_PATH",
+        "Opens a browser indirectly, through the provider's own login command"
+      ],
+      "platform_assumptions": [
+        "PATH is colon separated: environment[\"PATH\"] = directory + \":\" + path, with a split(separator: \":\") membership check first",
+        "Unix executable discovery through LoginEnvironment.which and FileManager.default.isExecutableFile(atPath:)",
+        "macOS and Unix home-relative fallback paths: ~/.local/share/gh, /opt/homebrew/bin, /usr/local/bin, ~/.local/bin, ~/.npm-global/bin, ~/.volta/bin, ~/.bun/bin",
+        "GH_DATA_DIR and XDG_DATA_HOME environment conventions for the gh-installed Copilot CLI",
+        "A login shell must be sourced first (LoginEnvironment.load()) before a CLI can be found; a capture run substitutes /usr/bin/true as the executable",
+        "Swift @Observable macro, @MainActor isolation, Swift regex literals (#/.../#), withTaskGroup structured concurrency",
+        "~/.grok/auth.json is a per-user JSON file of account entries keyed by arbitrary names, values holding \"email\" and \"first_name\"",
+        "NSString appendingPathComponent used for home-relative paths"
+      ],
+      "persisted_fields": [
+        "UserDefaults \"providerModelCatalogs\": Data holding JSON of [String: [ModelOption]] keyed by ProviderKind.rawValue; the whole dictionary is rewritten on each catalog change",
+        "UserDefaults \"providerModelCatalogDates\": Data holding JSON of [String: Double] of timeIntervalSince1970 keyed by ProviderKind.rawValue",
+        "(CaptureRun.defaults ?? UserDefaults.standard) \"recentSlashCommands\": [String: [String]] keyed by ProviderKind.rawValue, each list capped to 100 names, most recent first",
+        "Environment variables written for child processes: COMMAND_CODE_API_KEY (Command Code Studio key from Settings) and GEMINI_CLI_SYSTEM_SETTINGS_PATH (Antigravity)"
+      ],
+      "ui_elements": [
+        "ProviderStatus.summary strings shown in Settings: \"Not installed\" when not installed; \"Signed in as \\(account)\" when an account name is known; \"Signed in\" when not; \"Not signed in\" for .signedOut; \"Installed \\u00B7 \\(version)\" (middle dot) when a version is known; \"Installed\" otherwise",
+        "signIn failure strings: \"\\(provider.displayName) was not found.\" and \"\\(provider.displayName) did not finish signing in.\", otherwise the CLI's last non-empty output line",
+        "Claude seed rows: \"Default\" with detail \"Claude Code's recommended model\"; \"Opus\"; \"Fable\" with detail \"Fable 5.1 \\u00B7 Most capable for your hardest and longest-running tasks\"; \"Sonnet\"; \"Haiku\"",
+        "Antigravity rows: \"Gemini 3.8 Flash\", \"Gemini 3.7 Flash\", \"Gemini 3.6 Flash\", \"Gemini 3.1 Pro\", \"Claude Sonnet 4.6 (Thinking)\", \"Claude Opus 4.6 (Thinking)\", \"GPT-OSS 120B\"",
+        "Copilot row: id \"auto\", name \"Auto\", detail \"Copilot picks the model for each request\", isDefault true",
+        "Pi row: id \"default\", name \"Default\", detail \"The model pi itself is set to\"",
+        "isChecking on ProviderStatus drives a spinner while refresh(_:) runs; loadingCatalogs, loadingLimits, loadingCredits, isRefreshing, signingIn and redeemingReset drive the Providers page's busy states"
+      ],
+      "feature_notes": [
+        "claudeEfforts = [\"low\", \"medium\", \"high\", \"xhigh\", \"max\"], applied to default, opus, claude-fable-5-1[1m] and sonnet, but NOT to haiku, which has no efforts and no fastTier.",
+        "Claude seed ids verbatim: \"default\" (fastTier \"fast\", isDefault true), \"opus\" (fastTier \"fast\"), \"claude-fable-5-1[1m]\" (no fastTier), \"sonnet\", \"haiku\".",
+        "isStaleClaudeSeed treats a cached Claude list as the stale earlier seed when it is empty or every id is in {\"default\", \"opus\", \"sonnet\", \"haiku\"}; such a list is replaced with claudeSeed at init so old installs gain the Fable row, while a live list without Fable is left alone.",
+        "mergedClaudeCatalog never drops a seed row: a live row with the same id lends non-empty efforts, non-empty detail, non-nil fastTier and non-nil defaultEffort; a live row the seed lacks is appended.",
+        "mergedACPCatalog (cursor, opencode, grok, devin): rows the live list dropped go away, but a live row with EMPTY efforts inherits efforts, and inherits defaultEffort and fastTier only when its own is nil, from the cached row with the same id; if the cached list is empty the live list is used as is. Rationale in the file: an ACP session reports the effort scale of the model it runs on, not of every model it lists (Cursor and OpenCode send only the current model's thought_level).",
+        "deepseekSeed ids: \"deepseek-v4-pro\", \"deepseek-flash\". metaSeed ids: \"muse-spark-1.3\", \"muse-spark-1.3-contributor\", \"muse-spark-1.2\", \"muse-spark-1.2-contributor\", \"muse-spark-1.1\". zaiSeed ids: \"glm-5.3\", \"glm-5.3-flash\". All three are built through each API's option(for:) table so seeds cannot disagree with live lists.",
+        "Antigravity efforts per row: gemini-3.8-flash / gemini-3.7-flash / gemini-3.6-flash each [\"low\", \"medium\", \"high\"] with defaultEffort \"high\"; gemini-3.1-pro [\"low\", \"high\"] defaultEffort \"high\"; claude-sonnet-4-6 and claude-opus-4-6-thinking have empty efforts; gpt-oss-120b [\"medium\"] defaultEffort \"medium\". gemini-3.8-flash is isDefault. Source noted as `agy models`.",
+        "An Antigravity catalog cached with per-effort duplicate ids, i.e. any id ending in \"-high\", \"-medium\" or \"-low\", is discarded at init and replaced with antigravitySeed.",
+        "Pi seed efforts: [\"off\", \"minimal\", \"low\", \"medium\", \"high\", \"xhigh\", \"max\"], defaultEffort \"medium\", isDefault true.",
+        "catalogFreshness = 6 * 3600 seconds (6 hours). commandFreshness = 600 seconds (10 minutes). Plan-limit and credit reads are throttled to once per 60 seconds unless forced. The plan-limit watchdog clears the loading flag after 25 seconds.",
+        "probeWidth = 4: refreshAll runs a sliding window of 4 concurrent provider probes, starting the next provider as each one finishes.",
+        "refresh runs the version probe and the auth probe one after the other, not concurrently, to halve the simultaneous process count.",
+        "countsAsInstalled returns TRUE when no status exists yet, so the launch screen's first chat finds providers before bootstrap() has probed them; a strict read there previously found no pair and no provider.",
+        "When CaptureRun.isEnabled, status(_:) returns a synthetic ProviderStatus(executable: file URL /usr/bin/true, auth: .signedIn(nil), apiKeyConfigured: true), no catalogs or dates are read or written, and loadCommands returns immediately.",
+        "At init, cached catalogs are re-ordered through ACPSession.orderedEfforts so a list cached high-to-low (Grok's was) reads low-to-high for the effort slider.",
+        "executable(for:) returns nil for API-key providers; when a custom binary path from settings is set it is resolved through which() and, if that fails, NO fallback list is consulted, because fallbacks apply only when the custom path is empty. It also returns nil when both the custom path and provider.executableName are empty.",
+        "Copilot fallback path: <GH_DATA_DIR, else XDG_DATA_HOME/gh, else ~/.local/share/gh>/copilot/copilot.",
+        "Command Code fallbacks, in order: which(\"command-code\"), which(\"commandcode\"), which(\"cmd\"), then the cross product of {~/.local/bin, /opt/homebrew/bin, /usr/local/bin, ~/.npm-global/bin, ~/.volta/bin} with {\"command-code\", \"cmd\"}.",
+        "Pi fallbacks in order: ~/.npm-global/bin/pi, /opt/homebrew/bin/pi, /usr/local/bin/pi, ~/.local/bin/pi, ~/.volta/bin/pi, ~/.bun/bin/pi. Other providers have no fallbacks.",
+        "environment(for:) prepends the executable's own directory to PATH only when it is not already a PATH element; sets COMMAND_CODE_API_KEY from settings for commandcode (documented as taking precedence over the `cmd login` in ~/.commandcode/auth.json); merges MCPSessionOverrides.opencodeEnvironment() for opencode so connected MCP servers arrive as config content rather than a config file edit; sets GEMINI_CLI_SYSTEM_SETTINGS_PATH from MCPProviderConfig.geminiSettingsPath() for antigravity.",
+        "signIn: refuses when another sign-in is in flight or the provider is API-key based; runs provider.loginCommand split on whitespace with the first word dropped as the argument list, with a 300-second timeout; on success re-runs refresh, refreshPlanLimits(force: true) and loadCatalog(force: true); on failure returns the last non-empty line of stripANSI(output + errorOutput).",
+        "refreshEverything: guarded by isRefreshing; runs refreshAll, then forced plan-limit reads for every provider whose auth is not .signedOut, then a concurrent forced catalog load for every installed provider, ACP providers included, because they only list models from a session of their own.",
+        "refreshAPIProvider: an empty key gives ProviderStatus(auth: .signedOut) with no apiKeyConfigured; deepseek, meta and zai validate the key and set version \"API\" with apiKeyConfigured true; a valid DeepSeek key triggers a forced credits read, an invalid one clears credits[.deepseek] and creditsFetchedAt[.deepseek]; a valid Z.ai key triggers a forced plan-limits read, an invalid one clears planLimits[.zai] and limitsFetchedAt[.zai]; any other API provider is set .signedIn(nil) with apiKeyConfigured true without validating.",
+        "model(_:for:) falls back to the id text before the first '[' so a legacy parameterized Cursor id such as model[effort=...] still resolves to the base row.",
+        "defaultModel prefers settings.lastModel(for:) when it resolves, else the row with isDefault, else the first row.",
+        "loadCatalog re-probes when forced; when the list is still a recognized seed (claude and codex always; copilot when it equals exactly [copilotAuto]; commandcode when it equals commandcodeSeed; pi when it equals piSeed; opencode when lacksEffortWalk); when the cached list is older than catalogFreshness, where a list with no stored date counts as stale only if the list is non-empty; or when the list is empty.",
+        "lacksEffortWalk: a list with at most one row carrying non-empty efforts is treated as pre-effort-walk and re-probed.",
+        "Per-provider live catalog sources: claude through ClaudeSession.handshake run in FileManager.default.temporaryDirectory (models are the same from any folder); codex CodexSession.listModels; antigravity AntigravitySession.listModels; copilot CopilotSession.listModels; commandcode CommandCodeAPI.listModels; pi PiCLI.listModels; cursor, opencode, grok and devin ACPSession.probeModels; deepseek, meta and zai return nil here and are handled by loadAPICatalog.",
+        "attemptedCatalogs is marked only after a non-empty list arrives, so a probe that came back empty (a cold CLI losing to its handshake timeout) is retried on the next ask; loadAPICatalog by contrast inserts into attemptedCatalogs before the fetch, once a key exists.",
+        "loadAPICatalog seeds the catalog first when empty so API providers stay usable offline, then fetches; an empty API key stops after the seed.",
+        "consumeResetCredit sets redeemingReset to the credit id or, when nil, provider.rawValue; codex redeems through CodexSession.consumeResetCredit then re-reads CodexSession.readPlanLimits into planLimits[.codex]; zai redeems through ZaiAPI.consumeResetCredit, requiring a non-empty key and a non-nil creditID, then re-reads ZaiAPI.planLimits; any other provider throws ResetCreditError.unknownOutcome, and a missing codex executable throws ResetCreditError.codexUnavailable.",
+        "refreshPlanLimits: gated by PlanLimitsReader.exposesLimits; a forced read arriving while a read is out is remembered in forcedLimitReads and replayed by drainedForcedRead when the outstanding read finishes, rather than dropped.",
+        "refreshCredits uses CommandCodeAPI.apiKey(environment:) for Command Code, that is the CLI's own login, rather than the Settings key; an empty key clears credits[provider].",
+        "invalidateCredits and invalidatePlanLimits only clear the fetch timestamps so the next look re-reads; invalidatePlanLimits applies only to API-key providers that expose limits.",
+        "updateCatalog writes nothing when the merged list is empty or identical to the cached list; otherwise it re-encodes the WHOLE catalogs dictionary into \"providerModelCatalogs\".",
+        "commandKey(provider, directory) = provider.rawValue + \"\\n\" + directory, so commands are cached per provider and per working directory.",
+        "loadCommands runs only for codex and claude, is skipped entirely under a capture run, de-duplicates concurrent loads by awaiting the in-flight Task for the same key, and records error.localizedDescription into commandErrors on failure. Codex uses CodexSession.listCommands, Claude uses ClaudeSession.handshake(...).commands.",
+        "version(): runs `--version` with a 20-second timeout and extracts the first match of the regex \\\\d+\\\\.\\\\d+(?:\\\\.\\\\d+)?(?:[-.][0-9A-Za-z]+)? from stripANSI(output + errorOutput).",
+        "auth() per provider: codex requires succeeded AND a case-insensitive \"logged in\"; claude parses stdout as JSON, needs \"loggedIn\" == true and takes the account from \"email\"; cursor matches the regex \"Logged in as (\\\\S+)\", reads \"not logged in\" as signed out and anything else as unknown; devin reads \"not logged in\" as out, requires \"logged in\" else unknown, and takes the account from the \"Name:\" line; opencode parses `auth list`, keeping the lines before the first line containing \"Environment\", taking lines whose trimmed text starts with U+25CF (black circle), and stripping a trailing \" api\" or \" oauth\" (case-insensitive) from the first credential name; grok reads ~/.grok/auth.json and prefers a non-empty \"email\", then a non-empty \"first_name\", else .signedIn(nil), with an empty root object meaning signed out and an unreadable file meaning unknown; antigravity, copilot, commandcode and pi delegate to their own authStatus; deepseek, meta and zai return .unknown.",
+        "devinAccount scans lines for one whose lowercased trim starts with \"name:\" and returns the remainder trimmed, or nil when empty.",
+        "updateCommands evicts the least-recently-fetched key, clearing its commands, fetch date and error, once 32 keys are held and a genuinely new key arrives.",
+        "recordCommand moves an existing name to the front, keeps only the first 100 per provider, and writes the whole map back to defaults immediately."
+      ],
+      "unresolved_questions": [
+        "ProviderKind's full case list is inferred from the exhaustive switches here (claude, codex, cursor, opencode, grok, devin, antigravity, copilot, commandcode, pi, deepseek, meta, zai) but its declaration, rawValues, displayName, executableName, loginCommand, isAPIKeyBased and usesACP live in another file.",
+        "ModelOption's exact stored properties and Codable coding keys are not visible here, so the on-disk JSON shape under \"providerModelCatalogs\" cannot be spelled out.",
+        "PlanLimits, PlanLimits.ResetOutcome, ProviderCredits, ResetCreditError and the ProviderSettings protocol are declared elsewhere; only the members used here are established.",
+        "A comment claims a live Claude list always names `opus[1m]`, but no code in this file references that id, so the claim could not be verified here.",
+        "Whether CaptureRun.defaults is a separate UserDefaults suite, and its suite name, is not determinable from this file.",
+        "refreshPlanLimits repeats its `PlanLimitsReader.exposesLimits(provider), !loadingLimits.contains(provider)` guard after the API-key branch; the second check is redundant given the first guard, so it is dead but harmless."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Providers/ProviderSession.swift",
+      "sha256": "c6c28b5221f4f687dfc3920b2b47e94c11390010fb8d8ba6bbd5555b93725e1f",
+      "lines_total": 203,
+      "ranges_read": [
+        [
+          1,
+          203
+        ]
+      ],
+      "purpose": "Declares the contract every provider adapter implements: the per-turn input, the launch configuration, the normalized ProviderEvent stream a thread consumes, the ProviderSession protocol itself, ProviderError's user-facing messages, and the ToolTitles helpers for shell unwrapping, relative paths and diff stats.",
+      "key_symbols": [
+        "struct TurnInput: Sendable (text, images, model, effort, serviceTier, fastMode, runtimeMode, interactionMode, isFinalReport, command)",
+        "struct SessionConfiguration: Sendable (provider, executable, workingDirectory, environment, resumeID, resumeAt, model, effort, fastMode, runtimeMode, interactionMode, apiKey, hydra, transcript, isHydraHead, antiSlopEnabled)",
+        "struct TranscriptMessage: Sendable with enum Role { case user, case assistant }, var role, var text",
+        "struct AgentSpawn: Sendable (id, taskID, toolUseID, description, prompt, model, profile, isBackground)",
+        "enum ProviderEvent: Sendable, with indirect case agentEvent",
+        "struct ToolUpdate: Sendable (title, detail, output, status, exitCode, edits, kind)",
+        "protocol ProviderSession: AnyObject, @MainActor",
+        "extension ProviderSession default stopAgent(_:) returning false",
+        "enum ProviderError: LocalizedError (.notInstalled(ProviderKind), .notRunning, .failed(String))",
+        "enum ToolTitles with unwrapShell(_:), relativePath(_:to:), diffStats(_:)"
+      ],
+      "calls_into": [
+        "Attachment (TurnInput.images)",
+        "RuntimeMode and InteractionMode",
+        "SlashCommand (TurnInput.command and ProviderEvent.commands)",
+        "HydraLaunch (SessionConfiguration.hydra)",
+        "ProviderKind (SessionConfiguration.provider and ProviderError.notInstalled; uses displayName, isAPIKeyBased, loginCommand)",
+        "ToolCall with ToolCall.Status and ToolCall.Kind",
+        "FileEdit, TodoStep, ApprovalRequest, QuestionRequest, ContextUsage, Notice, TurnStatus, ModelOption"
+      ],
+      "state_owned": [
+        "No runtime state of its own; it defines the value types and the two protocol requirements conforming sessions own: onEvent: ((ProviderEvent) -> Void)? and isRunning: Bool"
+      ],
+      "side_effects": [
+        "None directly: type declarations plus three pure string and diff helpers"
+      ],
+      "platform_assumptions": [
+        "ToolTitles.unwrapShell hard-codes Unix shell wrappers and absolute paths, in this order: \"/bin/zsh -lc \", \"/bin/bash -lc \", \"bash -lc \", \"zsh -lc \", \"/bin/sh -c \", \"sh -c \" - zsh first because providers wrap commands in the macOS default login shell",
+        "The single-quote un-escape handles the POSIX shell idiom '\\'' specifically",
+        "relativePath assumes '/' path separators",
+        "@MainActor protocol isolation, Sendable conformance and an indirect enum case are Swift concurrency and language features"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "ProviderError.errorDescription strings: for an API-key provider \"\\(provider.displayName) needs an API key. Add one in Settings \\u2192 Providers \\u2192 \\(provider.displayName).\"; for a CLI provider \"\\(provider.displayName) is not installed. Install it and sign in with `\\(provider.loginCommand)`.\" with backticks around the command; \"The agent session is not running.\" for .notRunning; the raw message for .failed"
+      ],
+      "feature_notes": [
+        "TurnInput defaults: serviceTier = nil, fastMode = false, isFinalReport = false. serviceTier is documented as a Codex service tier that is the fast tier, the literal \"default\", or nil when the model has none. fastMode maps to Cursor ACP's Fast variant (model_config / fast) and other providers ignore it.",
+        "isFinalReport marks a Hydra head past its budget answering for the last time: one reply with no tools, where the session can arrange that.",
+        "SessionConfiguration defaults: fastMode = false, transcript = [], isHydraHead = false, antiSlopEnabled = true. apiKey is how the native API providers (DeepSeek, Meta, Z.ai) authenticate instead of a CLI. transcript replays the conversation into a provider that keeps nothing between launches, since the API providers hold history in memory only.",
+        "resumeID plus resumeAt let a session resume an earlier provider session, optionally at a point.",
+        "hydra: HydraLaunch? is set while Hydra is on for the thread; providers that run heads of their own define them at launch on the pair's model and effort and steer the lead towards them. isHydraHead marks a thread that Droppy Code itself runs as a head, so the session paces it and tells a head that keeps reading without changing anything to act.",
+        "AgentSpawn.isBackground defaults to true; a foreground head is finished by its tool result, a background one only by the provider saying so. taskID is Claude's task id, which is what stops the head, and is nil where `id` does that job. `profile` carries the head profile a spawn was routed to: Claude's and Copilot's agent definitions are one per profile, and Codex's spawn call carries the profile's model and effort, which the session matches back.",
+        "ProviderEvent cases verbatim: sessionReady(sessionID: String), turnStarted(providerTurnID: String?), messageDelta(id:text:), messageCompleted(id:text:), reasoningDelta(id:text:), reasoningCompleted(id:text:), toolStarted(id:call:), toolOutput(id:text:), toolUpdated(id:update:), planDelta(id:text:), planCompleted(id:markdown:), todos([TodoStep]), approval(ApprovalRequest), question(QuestionRequest), requestResolved(id:), usage(ContextUsage), diff(String), notice(Notice), usageLimit(resetsAt: Date?), modeChanged(InteractionMode), models([ModelOption], current: String?), commands([SlashCommand]), title(String), assistantMessageID(String), turnCompleted(status: TurnStatus, error: String?), exited(error: String?), agentStarted(AgentSpawn), indirect agentEvent(agentID: String, ProviderEvent), agentProgress(agentID:summary:lastTool:tokens:toolCalls:), agentFinished(agentID:status:summary:).",
+        "usageLimit carries resetsAt: Date? and means the account's usage limit is spent and the turn stops until it resets, at the time given when known.",
+        "agentProgress is the provider's word on a running head: a progress note, its last tool, its token spend and tool-call count, all optional.",
+        "ProviderSession protocol requirements: start() async throws -> String returning the session id, send(_ input: TurnInput) async throws, interrupt() async, resolveApproval(_ requestID: String, optionID: String), answerQuestion(_ requestID: String, answers: [String: [String]]), compact() async throws, stop(), and stopAgent(_ id: String) async -> Bool, which has a default implementation returning false so an adapter that cannot stop a head need not implement it.",
+        "answerQuestion takes answers as [String: [String]], that is several selected values per question key.",
+        "ToolUpdate carries only optionals, so an adapter patches whichever of title, detail, output, status, exitCode, edits or kind it learned.",
+        "ToolTitles.unwrapShell trims whitespace and newlines first, strips the first matching prefix, then, when the remainder is at least 2 characters and begins and ends with the same quote character (' or \"), drops both quotes; for single quotes it additionally replaces the shell escape sequence '\\\\'' with a single quote. A command with no known prefix is returned trimmed.",
+        "ToolTitles.relativePath normalizes the root by appending '/' when it is missing and strips that prefix; a path outside the root is returned unchanged.",
+        "ToolTitles.diffStats splits on \"\\n\" WITHOUT omitting empty subsequences, skips lines starting with \"+++\" or \"---\", and counts every remaining line starting with \"+\" as an addition and every one starting with \"-\" as a deletion, returning the tuple (additions: Int, deletions: Int). Note it does not skip \"@@\" hunk headers, which start with neither sign."
+      ],
+      "unresolved_questions": [
+        "The payload types ToolCall, FileEdit, TodoStep, ApprovalRequest, QuestionRequest, ContextUsage, Notice, TurnStatus, Attachment, RuntimeMode, InteractionMode, HydraLaunch and SlashCommand are declared in other files, so their fields and exact string values are not established here.",
+        "Which adapters actually implement stopAgent rather than taking the default false cannot be told from this file.",
+        "Whether antiSlopEnabled gates a prompt block, a post-processing pass or both is not determinable here; only its default of true is visible.",
+        "TurnInput.effort and SessionConfiguration.effort are plain String?, so the allowed values come from the catalog rows rather than from a type declared here."
+      ]
+    }
+  ]
+}

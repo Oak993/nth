@@ -1,0 +1,509 @@
+{
+  "bundle_id": "R013",
+  "reader": "R013-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Chat/HydraButton.swift",
+      "sha256": "a888290efd66ac1360099b81a3d4ee158ee0c7fd8095ee780e15232db53a9fff",
+      "lines_total": 711,
+      "ranges_read": [
+        [
+          1,
+          711
+        ]
+      ],
+      "purpose": "The chat chrome row's Hydra mark button: dragon-head glyph with an animated colour charge ring and glow, a working/sending badge, left-click to open the Hydra panel (or the idle/intro popover), right-click for the per-chat Hydra switch; also defines the Core Animation charge layer view, the badge, and HydraPairSummary tooltip string builders.",
+      "key_symbols": [
+        "struct HydraButton: View (thread: ChatThread, runtime: ThreadRuntime)",
+        "HydraButton.togglePanel()",
+        "static HydraButton.isLeadDelegating(_ entries: [TimelineEntry]) -> Bool",
+        "static HydraButton.delegationChecks: RecentCache<String, Bool>(limit: 32)",
+        "static HydraButton.hasDelegationBlock(in:rowID:)",
+        "static HydraButton.streamingScans: [String: (scanned: Int, found: Bool)]",
+        "static HydraButton.hasDelegationBlockWhileStreaming(in:rowID:)",
+        "HydraButton.panelHelp(running:hasHeads:)",
+        "HydraButton.help(isOn:running:hasHeads:)",
+        "private struct HydraSwitchPopover: View",
+        "private struct HydraRightTap: NSViewRepresentable",
+        "private final class HydraRightTapHost: NSView (catches(_:), installMonitor(), removeMonitor())",
+        "private struct HydraIdlePopover: View",
+        "private struct HydraMarkView: View",
+        "struct HydraCharge: View (isWorking, static colors, static layerColors, static glow(breathing:), static ring(turned:bright:))",
+        "private struct HydraChargeMotion: NSViewRepresentable",
+        "final class HydraChargeLayerView: NSView (configure(colors:accent:), applyColors(), installAnimations(), layout(), hitTest(_:))",
+        "private struct HydraSendWorkingBadge: View",
+        "enum HydraPairSummary (workerModel, workers, providers, efforts, modelsTitle, title)"
+      ],
+      "calls_into": [
+        "AppModel (hydraIsOn(_:), panelHeads(of:), settings.hasSeenHydraIntro, settings.hydraEnabled, setHydra(_:for:), hydraPair(for:), providers)",
+        "ThreadRuntime (isRunning, entries, isHydraPanelHidden)",
+        "Chrome (capsuleHeight, panelSlide, hover, primaryText, accent, accentNSColor, glassTint)",
+        "chromeGlassCircle() view modifier",
+        "HydraMarkImage",
+        "HydraRoster.personas",
+        "HydraPrompts.hasDelegationBlock(in:), HydraPrompts.hasDelegationOpener(in:)",
+        "HydraIntroPopover",
+        "PopoverMenu, PopoverSectionHeader, PopoverItem, PopoverNote, PopoverDivider",
+        "MiniSpinner(cellSize:)",
+        "RecentCache",
+        "TimelineEntry / ToolCall (.agent kind, .running status), AssistantMessage.isStreaming",
+        "WebsiteCaptures.isEnabled, WebsiteCaptures.hydraMarkFrame",
+        "ThemeManager.didChange",
+        "ProviderRegistry (model(_:for:), defaultModel(for:))",
+        "HydraPair (workerModel, sendsHeadsElsewhere, headsProvider, provider, orchestratorModel, orchestratorEffort, workerEffort, customName)",
+        "ModelOption.effortTitle(_:)"
+      ],
+      "state_owned": [
+        "@State isHovering = false",
+        "@State isExplaining = false (idle popover)",
+        "@State isSending = false (badge pulse, cleared after 0.9 s)",
+        "@State isHydraSwitchShown = false",
+        "@State isIntroShown = false",
+        "@MainActor static delegationChecks: RecentCache<String, Bool> limit 32 (finished-reply delegation-block answers keyed by row id)",
+        "@MainActor static streamingScans: [String: (scanned: Int, found: Bool)] cleared wholesale when count > 64",
+        "HydraChargeLayerView stored layers: glow CAGradientLayer, ring CAGradientLayer, ringMask CAShapeLayer, colors [NSColor], accent NSColor"
+      ],
+      "side_effects": [
+        "NSEvent.addLocalMonitorForEvents(matching: [.rightMouseDown, .leftMouseDown]) installed/removed with window membership; swallows a matching secondary click by returning nil",
+        "NotificationCenter observers: NSApplication.didBecomeActiveNotification, NSWindow.didChangeOcclusionStateNotification, ThemeManager.didChange",
+        "Task.sleep(for: .seconds(0.9)) to clear isSending",
+        "Writes WebsiteCaptures.hydraMarkFrame (global frame) when WebsiteCaptures.isEnabled",
+        "Mutates model.settings.hasSeenHydraIntro (persisted setting) when the intro is dismissed",
+        "model.setHydra(_:for:) and model.settings.hydraEnabled writes from the right-click popover",
+        "CABasicAnimation add/removeAllAnimations on CALayers (render-server driven)"
+      ],
+      "platform_assumptions": [
+        "AppKit: NSView, NSEvent local event monitor, NSWorkspace.shared.accessibilityDisplayShouldReduceMotion, NSColor, NSApplication/NSWindow notifications, NSWindow.occlusionState",
+        "Core Animation: CAGradientLayer type .radial and .conic, CAShapeLayer mask, CABasicAnimation on transform.rotation.z and opacity, layer.convertTime(1, from: nil) shared clock, y-up layer geometry so a negative rotation reads clockwise",
+        "effectiveAppearance.performAsCurrentDrawingAppearance for resolving the dynamic system accent",
+        "macOS control-click counts as a secondary click",
+        "SwiftUI .popover(isPresented:arrowEdge:), .glassEffect-style chrome glass, .onGeometryChange, Environment(AppModel.self) observation"
+      ],
+      "persisted_fields": [
+        "settings.hasSeenHydraIntro (Bool) - gates the intro popover; set true by 'Got it'",
+        "settings.hydraEnabled (Bool) - global Hydra switch, set true by 'Turn Hydra on'",
+        "per-chat Hydra flag via model.setHydra(true/false, for: thread.id) read back through model.hydraIsOn(thread)"
+      ],
+      "ui_elements": [
+        "Mark frame: width/height = Chrome.capsuleHeight; contentShape(Circle()); HydraMarkImage sized 18x18, opacity 1 when on or hovering else 0.6",
+        "Badge overlay topTrailing offset(x: 3, y: -3); shown when running > 0 || isSending || isDelegating",
+        "HydraSendWorkingBadge: MiniSpinner(cellSize: 2.4) while sending, else Text count at .system(size: 9, weight: .bold).monospacedDigit() in white; frame(minWidth: 14, minHeight: 14), padding horizontal 4 / vertical 1, Capsule background Chrome.glassTint while sending else Chrome.accent",
+        "Animations: .spring(response: 0.3, dampingFraction: 0.7) on running; Chrome.panelSlide on isSending, isDelegating, isOn; charge transition .scale(scale: 0.6).combined(with: .opacity)",
+        "HydraCharge glow: RadialGradient Chrome.accent.opacity(0.46) -> opacity(0), startRadius 2, endRadius 15, padding 2, opacity 0.6 still / 1 breathing",
+        "HydraCharge ring: Circle().strokeBorder(AngularGradient of first 6 roster colours + first repeated), lineWidth 2, padding 1, rotationEffect 360 when turned, opacity 0.85 (1 when bright)",
+        "Layer animation constants: turnDuration 4 s linear infinite to -2*pi; breathDuration 1.4 s easeInEaseOut autoreversing infinite; ringRestOpacity 0.85; glowRestOpacity 0.6; lineWidth 2; glowStartRadius 2; glowEndRadius 15; layout skipped unless bounds > 4x4; glow inset 2, ring inset 1, mask ellipse inset lineWidth/2",
+        "Switch popover items: 'Hydra is off in Settings', 'Turn Hydra on', 'Hydra is on for this chat' / 'Hydra is off for this chat', 'Turn Hydra on for this chat', 'Turn Hydra off for this chat'",
+        "Idle popover width 290; strings 'Hydra is on', 'Heads run on this chat's model and effort.', 'No heads are out yet. Ask for something big enough to split up and this chat sends them out, each with a panel of its own.', 'Right-click the mark to switch Hydra off for this chat.'",
+        "Help strings: 'Hydra is on in Settings' (off), joined with ' · ': 'Hydra is on', pair summary or 'Heads run on this chat's model', '1 head working'/'N heads working', 'No heads out yet', 'Show the panel'/'Hide the panel'",
+        "Accessibility: label from panelHelp ('Hydra is on, no heads out yet' / 'Hydra is on, show the panel' / 'Hydra is on, 1 head working, show or hide the panel'), value 'On'/'Off'",
+        "Badge help: '1 head working · Show or hide the Hydra panel' / 'N heads working · Show or hide the Hydra panel'; badge is accessibilityHidden(true)"
+      ],
+      "feature_notes": [
+        "Tap order: if !hasSeenHydraIntro show intro popover; else if no heads show idle popover; else toggle runtime.isHydraPanelHidden inside withAnimation(Chrome.panelSlide)",
+        "Intro also auto-opens onAppear when !hasSeenHydraIntro && Hydra on, with .interactiveDismissDisabled()",
+        "isDelegating = isOn && running == 0 && runtime.isRunning && lead timeline shows a running .agent tool or a delegation fence in the current turn; drives the badge's sending pulse before heads report",
+        "isSending flips true whenever running increases, auto-clears after 0.9 s",
+        "Delegation scan is incremental for streaming replies: rescans from max(0, scanned - 32) bytes of overlap; restarts at 0 if the reply got shorter; a row once found stays found",
+        "Charge ring only turns and glow only breathes while a head is running and reduce-motion is off; otherwise a still ring/glow is drawn (explicitly to avoid re-compositing the chrome glass)",
+        "Animations are reinstalled on app activation, window occlusion becoming .visible, and viewDidMoveToWindow, always begun from convertTime(1) so phase never jumps",
+        "HydraPairSummary.workers examples: 'Heads on Opus · High effort', 'Heads on Gemini 3.8 Flash (Antigravity)', 'Heads on the chat's model'; providers: 'Claude lead, Antigravity heads' or just the provider name; efforts: 'High effort' / 'Lead high, heads medium effort' / 'Lead high effort' / 'Heads medium effort' / nil; modelsTitle: '<lead> + <worker>' or '<lead> + itself', lead falls back to 'Any <provider> model'"
+      ],
+      "unresolved_questions": [
+        "HydraPrompts.hasDelegationBlock / hasDelegationOpener fence syntax is defined elsewhere and was not in this bundle, so the exact delegation fence literal is unknown here",
+        "Chrome.capsuleHeight, Chrome.panelSlide, Chrome.hover and the Chrome colour tokens are defined in another file; their literal values are not visible from this file",
+        "HydraRoster.personas order and colours (the first 6 feed the ring) are defined outside this bundle"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift",
+      "sha256": "9f691dc2c54a8e9cb33119829be2dfe709a1424c40d169773bf1fc2a0cc0f30c",
+      "lines_total": 175,
+      "ranges_read": [
+        [
+          1,
+          175
+        ]
+      ],
+      "purpose": "Popovers hung off a head pill in the chat: a shared header (glyph, name, status caption, task, trailing accessory) plus the finished head's markdown report popover and the lead's brief popover, both scrolling markdown under a fixed header.",
+      "key_symbols": [
+        "struct HydraPopoverHeader: View (persona, status, caption, captionColor, title, accessory: AnyView?)",
+        "struct HydraHeadReportPopover: View (init(head:) precomputes blocks)",
+        "static HydraHeadReportPopover.caption(for:)",
+        "static HydraHeadReportPopover.captionColor(for:)",
+        "static HydraHeadReportPopover.duration(from:to:)",
+        "struct HydraBriefPopover: View (persona, task, text; init precomputes blocks)"
+      ],
+      "calls_into": [
+        "HydraGlyph(persona:size:status:)",
+        "HydraNameText(persona:size:weight:color:)",
+        "HydraHeadInfo (status, summary, task, startedAt, finishedAt, persona)",
+        "HydraPersona",
+        "MarkdownView.blocks(for:), MarkdownBlock, MarkdownBlockView(block:).equatable()",
+        "PopoverScroll(maxHeight:width:)",
+        "CopyButton(text:)",
+        "Chrome (secondaryText, primaryText, overlay(_:), danger, warning)",
+        "Environment keys markdownPointSize, markdownDimmed, chatZoom"
+      ],
+      "state_owned": [
+        "HydraHeadReportPopover.blocks: [MarkdownBlock] built once in the @MainActor init from the trimmed summary",
+        "HydraBriefPopover.blocks: [MarkdownBlock] built once in the @MainActor init from the brief text"
+      ],
+      "side_effects": [
+        "CopyButton writes the report or brief text to the pasteboard (behaviour lives in CopyButton)"
+      ],
+      "platform_assumptions": [
+        "SwiftUI on macOS: popover-sized content that must be laid out whole before presentation (explicit note that a LazyVStack measured differently once shown and cut the header off)",
+        "textSelection(.enabled) for selectable popover text",
+        "AppKit-backed Divider and Chrome overlay tints"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Header: HStack(alignment: .top, spacing: 12); glyph size 28 with .padding(.top, 1); inner VStack spacing 3; name/caption HStack(alignment: .firstTextBaseline, spacing: 8)",
+        "Name text size 14 weight .semibold in Chrome.primaryText; caption .system(size: 11, weight: .medium) monospacedDigit lineLimit 1; title .system(size: 12) in Chrome.primaryText.opacity(0.85), lineLimit 3, fixedSize vertical",
+        "Header padding: horizontal 16, vertical 14; background Chrome.overlay(0.035)",
+        "Report popover width 460; PopoverScroll maxHeight 460; body padding horizontal 16 / vertical 14; block VStack spacing 10; body font .system(size: 12); markdownPointSize 12; markdownDimmed false; chatZoom 1",
+        "Empty report text: 'No report yet.' at .system(size: 12) in Chrome.secondaryText",
+        "Brief popover width 520, PopoverScroll maxHeight 460, caption 'Brief', always shows a CopyButton accessory",
+        "Report accessory: CopyButton shown only when blocks are non-empty"
+      ],
+      "feature_notes": [
+        "Caption text by status: 'Finished' (completed), 'Failed', 'Stopped', 'Working' (running); for a non-running head with a finishedAt it becomes '<base> · <duration>'",
+        "Caption colour: Chrome.danger for failed, Chrome.warning for stopped, Chrome.secondaryText otherwise",
+        "duration(from:to:) formats: '<s>s' under 60 s, '<m> min' under 3600 s, else '<h> h <m> min'; negative intervals clamped to 0",
+        "Every markdown block is rendered eagerly (ForEach over enumerated blocks keyed by offset), deliberately not a lazy stack, so the popover sizes correctly before it opens"
+      ],
+      "unresolved_questions": [
+        "PopoverScroll's exact sizing behaviour and CopyButton's confirmation UI are defined in other files",
+        "HydraHeadInfo.Status case list is confirmed here only as completed/failed/stopped/running through the exhaustive switch"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/HydraIntroPopover.swift",
+      "sha256": "08fbcd1fe0ed561867f2d471c046c5f42fe0bd4fe1266eb1245a5615e6725cd1",
+      "lines_total": 158,
+      "ranges_read": [
+        [
+          1,
+          158
+        ]
+      ],
+      "purpose": "First-run Hydra explainer popover opened from the chat's Hydra mark (three steps, a Pairs note and a right-click hint, with Settings and Got it buttons), plus a reusable HydraInfoPopover with .hydra and .heads topics used elsewhere as an info popover.",
+      "key_symbols": [
+        "struct HydraIntroPopover: View (dismiss: () -> Void)",
+        "private func hydraIntroStep(glyph: AnyView, title: String, line: String) -> some View",
+        "struct HydraInfoPopover: View",
+        "HydraInfoPopover.Topic (case hydra, case heads)"
+      ],
+      "calls_into": [
+        "HydraGlyph(persona:size:)",
+        "HydraRoster.persona(at:)",
+        "HydraMarkImage",
+        "Chrome (primaryText, secondaryText, success)",
+        "WindowManager.shared.showSettings(page: .hydra)",
+        "Button styles .glass and .glassProminent",
+        "AppModel via @Environment (declared in HydraIntroPopover but not read in the body)"
+      ],
+      "state_owned": [],
+      "side_effects": [
+        "'Set up in Settings' calls dismiss() then WindowManager.shared.showSettings(page: .hydra), opening the Settings window on the Hydra page",
+        "'Got it' invokes the caller's dismiss closure (which in HydraButton sets settings.hasSeenHydraIntro = true)"
+      ],
+      "platform_assumptions": [
+        "SwiftUI on macOS with SF Symbols: 'checkmark.circle', 'cursorarrow.click.2', 'square.on.square', 'arrow.uturn.backward.circle'",
+        "macOS glass button styles (.glass, .glassProminent) and .keyboardShortcut(.defaultAction) for Return",
+        "A separate Settings window reachable through WindowManager"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Intro: outer VStack(alignment: .leading, spacing: 16), padding 20, frame width 420",
+        "Header: 5 overlapping HydraGlyph size 30 at HStack(spacing: -6); title 'Meet Hydra' .system(size: 17, weight: .semibold); subtitle .system(size: 13) in Chrome.secondaryText",
+        "Steps VStack spacing 12; each step HStack(alignment: .top, spacing: 12), glyph frame 30x30, inner VStack spacing 2, title size 13 semibold, line size 12 secondary",
+        "Step 1 glyph HydraMarkImage 18x18; Step 2 glyph two HydraGlyph size 24 at HStack(spacing: -8); Step 3 glyph SF 'checkmark.circle' size 20 in Chrome.success",
+        "Divider().opacity(0.5); Pairs heading size 13 semibold; Pairs body size 12 secondary",
+        "Right-click row: HStack(alignment: .center, spacing: 6) with 'cursorarrow.click.2', text lineLimit 1, font size 12, Chrome.secondaryText",
+        "Buttons: 'Set up in Settings' (.glass) and 'Got it' (.glassProminent, default action)",
+        "HydraInfoPopover: VStack(alignment: .leading, spacing: 14), padding 18, no fixed width; header 5 glyphs size 24 spacing -6, title size 15 semibold, subtitle size 12 secondary"
+      ],
+      "feature_notes": [
+        "Exact intro copy: 'Hydra is on. Big jobs go out to a team of heads, so this chat leads instead of doing everything itself.'",
+        "Step titles/lines: 'You ask, the chat leads' / 'Ask as you always do. Small things it does itself; anything bigger it splits into briefs.'; 'Heads go out in parallel' / 'Each head gets one brief and a panel of its own beside the chat. Hank, Walter, Ada and the rest work at the same time.'; 'Reports come back, the lead finishes' / 'The lead checks their work, fixes what needs fixing and answers you. Their changes land as one merge.'",
+        "Pairs copy: 'A pair says which model leads and which model, or which provider, runs the heads: Opus leading Sonnet, or Claude leading Gemini heads. Without one, the heads run on this chat's model at a working effort. Pairs live in the model picker and in Settings › Hydra.' (note the '›' separator)",
+        "Right-click hint (intro): 'Right-click the mark to switch Hydra off or on per chat.'",
+        "HydraInfoPopover .hydra: title 'Hydra', subtitle 'One chat leads a team of heads on big jobs.'; reuses the three intro steps verbatim except step 2's line is 'Each head gets one brief and a panel of its own beside the chat, all working at the same time.'; ends with a Divider().opacity(0.5) and 'Right-click the Hydra mark in a chat to switch it off or on for that chat.'",
+        "HydraInfoPopover .heads: title 'Heads', subtitle 'The helpers a chat sends out, one brief each.'; steps 'One brief, one panel' / 'A head gets a self-contained brief and its own panel beside the chat, on the model its pair names or the chat's own.'; 'Its own copy of the checkout' (SF 'square.on.square' size 18, Chrome.primaryText) / 'With the switch on, each head works in a copy of the project so heads never trip over each other; its changes land in the chat's checkout when it reports.'; 'Reports back to the lead' (SF 'arrow.uturn.backward.circle' size 20, Chrome.success) / 'A finished head hands its report to the lead, which checks the work and answers you. Cleared heads move from the panel to the sidebar.'; the heads topic shows no trailing divider or right-click note",
+        "Named personas surfaced in the copy: Hank, Walter, Ada"
+      ],
+      "unresolved_questions": [
+        "HydraIntroPopover declares @Environment(AppModel.self) private var model but never uses it in the body; whether this is leftover or intended for observation is not determinable from this file",
+        "Where HydraInfoPopover is presented from (its call sites are outside this bundle)"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/HydraMergePopover.swift",
+      "sha256": "ca038f565d7e41a85b3e8c5165cb6bf70a31e45a57e05bb96e371822ddd1a6a7",
+      "lines_total": 298,
+      "ranges_read": [
+        [
+          1,
+          298
+        ]
+      ],
+      "purpose": "Parses a Hydra merge note body (files/additions/deletions/target/branch plus per-head lines) with regexes and renders it as a fixed-width 'Merged' card popover: forge favicon, stat tiles, head faces with per-head file popovers, branch to target chips, notes, Copy link and Open pull/merge request.",
+      "key_symbols": [
+        "struct HydraMergeNote (link, files, additions, deletions, target, branch, notes, heads)",
+        "HydraMergeNote.Head (name, index, task, files, id = \"<index>-<name>\")",
+        "HydraMergeNote.filesPattern (private NSRegularExpression)",
+        "HydraMergeNote.headPattern (NSRegularExpression, internal)",
+        "static HydraMergeNote.parse(_ body: String, link: MergeRequestLink) -> HydraMergeNote?",
+        "struct HydraMergePopover: View",
+        "HydraMergePopover.openTitle",
+        "HydraMergePopover.headCard(_:)",
+        "HydraMergePopover.stat(value:label:tint:)",
+        "HydraMergePopover.chip(_:fills:)"
+      ],
+      "calls_into": [
+        "MergeRequestLink (forge: .gitlab/.github/.gitea, url, label)",
+        "HydraGlyph(persona:size:), HydraRoster.persona(at:)",
+        "FaviconCache.cached(host:), FaviconCache.image(for:)",
+        "NSPasteboard.general, NSWorkspace.shared.open(_:)",
+        "Chrome (accent, primaryText, secondaryText, success, danger, overlay(_:))",
+        "Button styles .glass and .glassProminent"
+      ],
+      "state_owned": [
+        "@State favicon: NSImage? (loaded in .task from FaviconCache)",
+        "@State didCopyLink = false (reset after 1.4 s)",
+        "@State hoveredHead: HydraMergeNote.Head? (drives the per-face popover)"
+      ],
+      "side_effects": [
+        "NSPasteboard.general.clearContents() + setString(note.link.url.absoluteString, forType: .string) on Copy link",
+        "NSWorkspace.shared.open(note.link.url) opens the merge/pull request in the browser",
+        "Async favicon fetch via FaviconCache.image(for: host) in .task (network, cached)",
+        "Task.sleep(for: .seconds(1.4)) to reset the Copied state"
+      ],
+      "platform_assumptions": [
+        "AppKit: NSImage, NSPasteboard, NSWorkspace",
+        "NSRegularExpression with NSRange(_:in:) bridging for Swift string ranges",
+        "SwiftUI popovers hung per element with arrowEdge: .bottom, SF Symbols 'arrow.triangle.merge', 'checkmark.seal.fill', 'arrow.right', 'info.circle', 'arrow.up.right', 'checkmark'"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Card: VStack(alignment: .leading, spacing: 14), padding 18, frame width 380, accessibilityElement(children: .contain)",
+        "Header: favicon or SF 'arrow.triangle.merge' size 18 in Chrome.accent, frame 22x22 clipped to RoundedRectangle(cornerRadius: 6); title 'Merged' size 15 semibold; subtitle '<link.label> on <host>' size 11 secondary; trailing 'checkmark.seal.fill' size 20 in Chrome.success",
+        "Stat row HStack spacing 8 with three tiles: files count ('file'/'files'), '+<additions>' labelled 'added' tinted Chrome.success, '−<deletions>' (U+2212 minus) labelled 'removed' tinted Chrome.danger",
+        "stat tile: value .system(size: 17, weight: .semibold).monospacedDigit(), label .system(size: 10, weight: .medium) secondary, padding horizontal 12 / vertical 9, background RoundedRectangle(cornerRadius: 10, style: .continuous) filled Chrome.overlay(0.08)",
+        "Heads row: up to 8 faces (prefix(8)) HydraGlyph size 26, HStack spacing 6, help '<name>: <task>', then Spacer(minLength: 8) and '1 head landed' / '<n> heads landed' at size 11 secondary",
+        "Head card popover: VStack(alignment: .leading, spacing: 6), padding 12, frame width 320; name size 13 semibold; task size 12 secondary lineLimit 3; Divider; either 'No files of its own in this merge' size 11 secondary or each path at .system(size: 11, design: .monospaced) lineLimit 1 truncationMode .middle",
+        "Branch row: chip(branch, fills: true) with help(branch), SF 'arrow.right' .system(size: 9, weight: .semibold) secondary, chip(target).fixedSize()",
+        "chip: .system(size: 11, design: .monospaced), Chrome.primaryText.opacity(0.9), lineLimit 1, truncationMode .middle, padding horizontal 8 / vertical 4, Capsule(style: .continuous) filled Chrome.overlay(0.1)",
+        "Note rows: SF 'info.circle' size 12 + text size 12, both Chrome.secondaryText, HStack(alignment: .top, spacing: 6)",
+        "Buttons: Copy link (.glass) becoming 'Copied' with a leading 'checkmark' size 11 semibold in Chrome.success, transitions .scale(scale: 0.6).combined(with: .opacity) and .contentTransition(.numericText()), animation .snappy(duration: 0.22); Open button (.glassProminent, .keyboardShortcut(.defaultAction)) labelled by forge"
+      ],
+      "feature_notes": [
+        "Files line regex (the thing that makes a body a merge note): ^(\\d+) files? \\(\\+(\\d+) −(\\d+)\\) landed on `([^`]+)` from `([^`]+)`\\.$ - note the U+2212 minus sign and the backticked target and branch; without a match parse returns nil and the caller keeps the generic popover",
+        "Head line regex: ^- (.+?) \\((\\d+)\\): (.*?) — (?:no files|(\\d+) files?: (.*))$ - name, persona index, task, em dash separator, then either the literal 'no files' or a count and a comma-space separated file list",
+        "Parsing: a line exactly equal to 'Heads' starts the heads section; a blank line ends it; a non '- ' line ends it too; only the first files line is taken (match == nil guard)",
+        "A line ending in 'is up to date.' is dropped as not a note; every other leftover line becomes a note with all backticks stripped",
+        "Open button title by forge: 'Open merge request' for .gitlab, 'Open pull request' for .github and .gitea",
+        "Copy link is guarded against re-entry while didCopyLink is true; the Copied state lasts 1.4 s",
+        "Each head face carries its own popover so the card hangs from the face under the cursor; hover sets hoveredHead and clears it only if it is still that head"
+      ],
+      "unresolved_questions": [
+        "The merge note body is produced elsewhere (the Hydra merge writer), so whether any other line shapes exist beyond the files line, the 'Heads' block and the 'is up to date.' line is not determinable here",
+        "FaviconCache's storage and network policy is outside this file",
+        "MergeRequestLink.label's exact content (e.g. '#123' vs a title) is defined elsewhere"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/HydraPanel.swift",
+      "sha256": "be750b242f45045bb35fe783bad6324f2748105604bec9f5527829a485c3a331",
+      "lines_total": 553,
+      "ranges_read": [
+        [
+          1,
+          553
+        ]
+      ],
+      "purpose": "The floating glass Hydra panel: picks the head on stage, shows its live transcript or progress view, draws the draggable top strip with the heads-count popover (select, stop all, clear finished), pop-out and dismiss buttons, plays a finish wave, and defines HydraLiveInfo and the HydraStatusText phrase builders.",
+      "key_symbols": [
+        "struct HydraPanel: View (runtime, heads, size, workingDirectory, projectName, isPoppedOut, onDrag, onDragEnd, popOut, dismiss)",
+        "static HydraPanel.cornerRadius = 22",
+        "static HydraPanel.stripHeight = Chrome.chromeTopPadding + Chrome.capsuleHeight + 6",
+        "static HydraPanel.finishHold: TimeInterval = 2.0",
+        "HydraPanel.strip(selected:)",
+        "private struct StageHold: Hashable (id: UUID, startedAt: Date)",
+        "private struct StageMark: Equatable (id: UUID?, status: HydraHeadInfo.Status?)",
+        "private struct HydraHeadsButton: View",
+        "private struct HydraSpokesMark: View",
+        "private struct HydraHeadRow: View",
+        "private struct HydraStopButton: View",
+        "private struct HydraHeadTranscript: View",
+        "private struct HydraHeadFooter: View",
+        "@MainActor enum HydraLiveInfo (shown(_:_:))",
+        "enum HydraStatusText (short, long, footer, landed, private steps, private elapsed)"
+      ],
+      "calls_into": [
+        "AppModel (existingRuntime(for:), runtime(for:), providers.model(_:for:), settings.hydraShowsHeadDetails, stopAllHydraHeads(of:), clearFinishedHydraHeads(of:), stopHydraHead(_:))",
+        "ThreadRuntime (hydraSelectedHeadID, hydraWaitingCount, threadID, hydraActivity, hydraToolCalls)",
+        "WindowLiveResize (isActive)",
+        "ChatThread / HydraHeadInfo (persona, status, startedAt, finishedAt, task, activity, toolCalls, summary, landing, kind, displayName, isFinished)",
+        "DotFieldSweep(tint:)",
+        "HydraGlyph, HydraNameText, HydraMarkImage, HydraRoster.persona(at:)",
+        "ProviderIcon(provider:size:)",
+        "HydraElapsedTime, HydraHeadProgress, HydraProgressBar (via HydraHeadProgress)",
+        "ThreadTimeline(runtime:scrollChrome:scrollState:projectName:workingDirectory:supportsRewind:columnHeight:showsMinimap:)",
+        "ComposerArea(runtime:workingDirectory:compactModelChip:takesFocusOnAppear:showsChanges:)",
+        "JumpToLatestButton(scrollState:), PaneTopVeil(model:), ChromeScrollModel, TimelineScrollState",
+        "PanelDragHandle(onDrag:onDragEnd:), ChromeCircleButton(symbol:help:action:)",
+        "PopoverMenu, PopoverSectionHeader, PopoverItem, PopoverDivider, MiniSpinner",
+        "Chrome (chromeTopPadding, capsuleHeight, capsuleContentHeight, capsuleHorizontalPadding, capsuleVerticalPadding, chromeHorizontalPadding, chevronFont, iconFont, glassTint, overlay(_:), primaryText, secondaryText, success, danger, panelSlide, hover, panelControlFill(isDark:))",
+        "chromeGlassCapsule(), .glassEffect(.regular, in:)",
+        "TextCleanup.singleLine(_:limit:)"
+      ],
+      "state_owned": [
+        "@State hold: StageHold? in HydraPanel (the head holding the stage past its finish)",
+        "@State isPresented, isHovering in HydraHeadsButton",
+        "@State isHovering in HydraHeadRow",
+        "@State scrollChrome = ChromeScrollModel(), @State scrollState = TimelineScrollState() in HydraHeadTranscript"
+      ],
+      "side_effects": [
+        "Task.sleep(for: .seconds(2.0)) (finishHold) before clearing the stage hold",
+        "model.stopHydraHead(head.id), model.stopAllHydraHeads(of: runtime.threadID), model.clearFinishedHydraHeads(of: runtime.threadID) - these stop child agent processes and mutate stored heads",
+        "Writes runtime.hydraSelectedHeadID when a head is picked from the popover",
+        "popOut(selected.id) / dismiss() closures move the head between panels"
+      ],
+      "platform_assumptions": [
+        "AppKit: NSColor bridging for DotFieldSweep tint",
+        "macOS glass: .glassEffect(.regular, in: shape) plus a tint overlay, and a separate filled shape carrying the shadow (explicitly to avoid re-blurring on every streamed token)",
+        "SwiftUI safeAreaInset(edge: .bottom), overlay(alignment:), popover(isPresented:arrowEdge:), simultaneousGesture(TapGesture())",
+        "A live window resize environment (WindowLiveResize) that suppresses animations during resize"
+      ],
+      "persisted_fields": [
+        "settings.hydraShowsHeadDetails (Bool) - chooses the full ThreadTimeline vs the HydraHeadProgress stand-in",
+        "runtime.hydraSelectedHeadID (UUID?) - the head on stage"
+      ],
+      "ui_elements": [
+        "Panel shape RoundedRectangle(cornerRadius: 22, style: .continuous); glass tint opacity 0.22 dark / 0.16 light; scrim fill black 0.3 dark / white 0.34 light with shadow color black opacity 1 dark / 0.65 light, radius 28, y 10",
+        "Strip height Chrome.chromeTopPadding + Chrome.capsuleHeight + 6; strip HStack(alignment: .top, spacing: 8)",
+        "Selected-head capsule: HydraGlyph size 16, HydraNameText size 12.5 weight .medium at Chrome.primaryText.opacity(0.92), ProviderIcon size 12, status text size 12 secondary, HydraElapsedTime; chromeGlassCapsule with a PanelDragHandle overlay; transition .softAppear",
+        "Drag handle help/accessibility text: 'Drag to move'",
+        "Buttons: popped out ChromeCircleButton 'arrow.down.left' help 'Put <name or the head> back in the team panel'; team panel 'arrow.up.right' help 'Pop <name or this head> out into its own panel' (only when heads.count > 1) and 'xmark' help 'Dismiss the panel; heads keep working'",
+        "HydraHeadsButton capsule: HydraMarkImage 15x15 at Chrome.primaryText.opacity(0.9), count .system(size: 12.5, weight: .semibold).monospacedDigit(), MiniSpinner when running > 0, chevron.down at Chrome.chevronFont; foreground opacity 1 when hovering/presented else 0.92; help/accessibility '1 head' or '<n> heads'",
+        "Heads popover header: 'Heads' / '1 head working' / '<n> heads working', with ', 1 waiting' or ', <n> waiting' appended when runtime.hydraWaitingCount > 0",
+        "Popover actions: 'Stop all heads' (symbol 'stop.circle', only when running > 1) and 'Clear finished heads' (symbol 'checkmark.circle', only when a head isFinished), separated by a PopoverDivider",
+        "HydraHeadRow: glyph size 22, name size 13 medium, ProviderIcon size 11, status text size 11 (Chrome.danger when failed), task size 12 secondary lineLimit 1 truncationMode .tail, placeholder 'Waiting for a task'; padding horizontal 8 / vertical 5; background RoundedRectangle(cornerRadius: 6, style: .continuous) filled Chrome.overlay(0.14) on stage, Chrome.overlay(0.08) hovering, clear otherwise",
+        "HydraStopButton: SF 'stop.fill' at Chrome.iconFont in white, frame 28x28, .tint circle background; help and accessibility 'Stop <name>'",
+        "HydraHeadFooter: MiniSpinner while running else 'checkmark.circle.fill' / 'xmark.circle.fill' / 'stop.circle.fill' at size 12 (Chrome.success / Chrome.danger / Chrome.secondaryText); footer text size 12 secondary lineLimit 1; trailing '1 step' / '<n> steps' at .system(size: 11).monospacedDigit(); padding horizontal 14 / vertical 10; RoundedRectangle(cornerRadius: 16, style: .continuous) filled Chrome.panelControlFill(isDark:); outer padding horizontal 20, bottom 14",
+        "Accessibility label for a head row: '<displayName>, <HydraStatusText.long>, <task>' plus ', on stage' when selected"
+      ],
+      "feature_notes": [
+        "Stage selection order: popped-out panel takes heads.first; otherwise the head whose id == runtime.hydraSelectedHeadID, else the last head with status .running, else the last head; a finish hold overrides all of it",
+        "When the head on stage goes from .running to a finished status, a StageHold starts and a DotFieldSweep wave in that head's persona colour plays over the whole panel for 2.0 s (matching the model's own clearing delay in finishHydraHead)",
+        "Transcript swaps fade (.transition(.opacity)) with Chrome.panelSlide, suppressed entirely while liveResize.isActive",
+        "ThreadTimeline in the panel uses supportsRewind: false and showsMinimap: false (no rail: hover tracking and geometry reads are per-frame work)",
+        "Bottom inset: a .droppy head gets a full ComposerArea (compactModelChip: true, takesFocusOnAppear: false, showsChanges: false); any other head kind gets the read-only HydraHeadFooter; both carry a JumpToLatestButton overlay at the top",
+        "HydraLiveInfo.shown overlays only runtime.hydraActivity and max(toolCalls, runtime.hydraToolCalls) onto a running head's stored info, deliberately not the live token total",
+        "HydraStatusText.short: 'working' / 'done' / 'failed' / 'stopped'",
+        "HydraStatusText.long: running -> '· ' + activity cleaned to 40 chars, else '· working'; completed -> '· done' + ' in <s>s' or ' in <m>m <s>s' + ' · 1 step'/' · <n> steps' + ' · <landed>'; '· failed'; '· stopped'",
+        "HydraStatusText.footer: running -> activity cleaned to 80 chars else 'Working'; completed -> 'Done' + elapsed + steps + landed + ' · ' + summary cleaned to 80; failed -> 'Failed' + optional ' · ' + summary; stopped -> 'Stopped'",
+        "HydraStatusText.landed: nil without a landing; 'changed nothing' when empty; 'kept as a patch' when patchPath is set; 'did not land' when error is set; 'landed <n> files, 1 conflict'/'<n> conflicts' when conflicts exist; else 'landed 1 file'/'landed <n> files'",
+        "elapsed() returns '' when finishedAt is nil or the interval rounds to 0 seconds",
+        "The heads-count capsule uses simultaneousGesture(TapGesture()) rather than a Button so the glass capsule still shows its native press"
+      ],
+      "unresolved_questions": [
+        "Chrome.chromeTopPadding, Chrome.capsuleHeight and the other chrome metrics are defined outside this bundle, so stripHeight's numeric value is not determinable here",
+        "HydraHeadInfo.Kind cases beyond .droppy, and HydraHeadInfo.landing's full shape, are defined elsewhere",
+        "DotFieldSweep's duration and appearance come from its own file; the panel only sets the tint and relies on finishHold = 2.0"
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/HydraProgressBar.swift",
+      "sha256": "87f2192ecc68782fede0c7b02e6dc9fa135b5792f5164f39cd92b6b6fbd3a536",
+      "lines_total": 603,
+      "ranges_read": [
+        [
+          1,
+          603
+        ]
+      ],
+      "purpose": "The head's work drawn as a Canvas of staves (one per tool call or reply, height by kind) with a rising animation, a budgeted highlight sweep, a hover card naming the step and a counts line; plus HydraHeadProgress (the no-details panel body), the shimmering HydraWorkingTitle, HydraElapsedTime and the SweepBudget slot allocator.",
+      "key_symbols": [
+        "struct HydraProgressBar: View (runtime, startedAt, finishedAt, status, tint, entries)",
+        "private final class HydraProgressBar.StaveCache (resolve(entries:capacity:), matches(_:), key(of:), private struct Key)",
+        "private struct HydraProgressBar.Stave (Kind: lookup/command/edit/reply, arrivedAt, step, mcp, symbol, height)",
+        "private struct HydraProgressBar.Counts (edits, commands, reads, parts, line, sentence)",
+        "static HydraProgressBar.events(in:) / staves(for:capacity:) / color(for:tint:) / draw(...)",
+        "HydraProgressBar.stepsCard(for:at:)",
+        "static HydraProgressBar.sweepSlots = 3",
+        "struct HydraHeadProgress: View",
+        "struct HydraWorkingTitle: View",
+        "struct HydraElapsedTime: View",
+        "private struct ProgressCardSurface: ViewModifier",
+        "@MainActor @Observable final class SweepBudget (shared, sweepers, join, leave, sweeps)"
+      ],
+      "calls_into": [
+        "ThreadRuntime.entries",
+        "TimelineEntry (kind, item.content, item.date), ToolCall (kind, status, title, edits)",
+        "ToolPresentation.mcpParts(_:), ToolPresentation.symbol(for:), ToolPresentation.label(for:)",
+        "MCPCatalogEntry, MCPGlyph(entry:size:)",
+        "TextCleanup.singleLine(_:limit:)",
+        "RelativeTime.duration(_:)",
+        "ScrollActivity.shared.isScrolling",
+        "NSWorkspace.shared.accessibilityDisplayShouldReduceMotion",
+        "Chrome (secondaryText, primaryText, danger, overlay(_:), cardCornerRadius, panelControlFill(isDark:))",
+        "Environment keys isOnGlassPanel, colorScheme",
+        "HydraHeadInfo (task, status, startedAt, finishedAt, persona), ChatThread (hydra, title, createdAt), HydraRoster.persona(at:)"
+      ],
+      "state_owned": [
+        "@State width: CGFloat = 0 (drives capacity)",
+        "@State isSettled = false",
+        "@State isRising = false",
+        "@State hoveredIndex: Int?",
+        "@State cache = StaveCache() holding key [Key], capacity, events, staves, counts",
+        "SweepBudget.shared.sweepers: [ObjectIdentifier] (process-wide, @Observable)"
+      ],
+      "side_effects": [
+        "Task.sleep(for: .seconds(rise + 0.1)) twice: one task to mark isSettled after a head stops, one to end isRising after a new stave",
+        "SweepBudget.shared.join / leave on isRunning changes and onDisappear",
+        "TimelineView animation clocks at 1/24 s (bar) and 1/20 s (title), paused by reduce motion, settling, or ScrollActivity.shared.isScrolling"
+      ],
+      "platform_assumptions": [
+        "AppKit: NSWorkspace accessibilityDisplayShouldReduceMotion",
+        "SwiftUI Canvas/GraphicsContext with clip and linearGradient fills, TimelineView(.animation(minimumInterval:paused:)) and TimelineView(.periodic(from:by:))",
+        "onContinuousHover(coordinateSpace: .local) - a pointer-based macOS interaction with no touch equivalent",
+        "macOS glass (.glassEffect(.regular, in:)) for the hover card unless already on a glass panel"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Bar metrics: height 28, staveWidth 3, gap 3, pitch 6 (staveWidth + gap); capacity = max(1, floor((width + gap) / pitch))",
+        "Timings: rise 0.45 s (ease-out cubic 1 - pow(1 - t, 3)), sweep 2.6 s, sweepRest 3.4 s, clock 1/24 s; sweepSlots 3",
+        "Stave height shares: lookup 0.45, command 0.65, edit 0.85, reply 1",
+        "Stave colours: edit and reply full tint, command tint.opacity(0.7), lookup tint.opacity(0.4); a failed head's last stave is Chrome.danger, a stopped head's last stave Chrome.secondaryText; the hovered stave is overpainted .white.opacity(0.4)",
+        "Empty slots: height bottom * 0.45, filled Chrome.overlay(0.06), drawn for indices staves.count..<capacity",
+        "Sweep band: width max(24, filledWidth / 3) where filledWidth = count * pitch - gap; clipped to the filled path; linear gradient white 0 -> white 0.55 -> white 0; x = -band + phase * (filledWidth + band)",
+        "Hover card: width 260, HStack spacing 8, MCPGlyph size 14 or SF symbol .system(size: 12, weight: .semibold) secondary in a 14-wide frame, step text .system(size: 13, weight: .semibold) primary lineLimit 1 truncation .tail; padding horizontal 12 / vertical 10; ProgressCardSurface at Chrome.cardCornerRadius; padding(.bottom, 8) in a zero-height bottom-aligned frame; x clamped to [0, width - 260]; allowsHitTesting(false); transition .opacity; animation .smooth(duration: 0.15) on hoveredIndex",
+        "Counts line: '3 edits · 2 commands · 5 reads' at .system(size: 11) Chrome.secondaryText, centred (frame(maxWidth: .infinity)), hidden when empty; accessibility sentence joins with ', ' and reads 'Nothing done yet' when empty",
+        "Accessibility label: '<counts sentence>, <elapsed>' plus ' so far' while running",
+        "HydraHeadProgress: VStack(spacing: 0) between two Spacer(minLength: 0), title then bar with .padding(.top, 10), padding horizontal 20 and top HydraPanel.stripHeight",
+        "HydraWorkingTitle: text .system(size: 13, weight: .medium), lineLimit 2, default alignment .center; sweep 3.2 s, sweepRest 3.0 s, breath 3.2 s, reach 0.3, clock 1/20 s; gradient dips to Chrome.primaryText.opacity(0.6) at the band centre; opacity 0.86 + 0.14 * breath where breath = 0.5 + 0.5 * sin(now / 3.2 * 2 * pi)",
+        "HydraElapsedTime: .system(size: 11).monospacedDigit() Chrome.secondaryText, ticking every 1 s from startedAt while running"
+      ],
+      "feature_notes": [
+        "Stave kinds from tool calls: .edit kind -> edit; .command kind -> command unless call.edits is non-empty, then edit; any other kind -> lookup unless call.edits is non-empty, then edit; an assistant message becomes a reply stave",
+        "Reply stave label: TextCleanup.singleLine of only the first 600 characters, limit 60, rendered as 'Replied: <words>' or plain 'Replied' when empty; symbol 'bubble.left'",
+        "Tool stave label is ToolPresentation.label(for: call); its mark is the MCP server's glyph when ToolPresentation.mcpParts(call) resolves, otherwise ToolPresentation.symbol(for: call.kind)",
+        "Overflow: when events exceed capacity only the latest `capacity` staves are drawn (events.suffix), so the oldest slide off the left",
+        "StaveCache keys each entry by ObjectIdentifier plus, for tool rows, call.status and call.title, and compares in place without allocating; a capacity change also invalidates",
+        "Drawing batches one fill per stave kind into a shared Path to avoid per-stave dynamic colour resolution; only the ending stave (failed/stopped) and the hovered stave are filled separately",
+        "The clock runs only when !reduceMotion && !isSettled && (has a sweep slot || a stave is rising), and is additionally paused whenever ScrollActivity.shared.isScrolling",
+        "Only the first 3 running bars sweep (SweepBudget.sweepSlots); a bar takes a freed slot as soon as one opens because SweepBudget is @Observable",
+        "Hover picks index = floor(point.x / pitch) but only when 0 <= y <= 28 and x >= 0, and names nothing past the filled staves",
+        "HydraHeadProgress falls back to head.title when the task is blank and to HydraRoster.persona(at: 0) when there is no head info"
+      ],
+      "unresolved_questions": [
+        "ToolPresentation.label/symbol/mcpParts and the full ToolCall.Kind case list are defined outside this bundle, so the exact per-kind symbols are not knowable here",
+        "The hover card's step for a stave that has slid off the left is index-based on the visible staves; whether ToolPresentation labels can be empty (leaving a bare card) is not determinable here",
+        "Chrome.cardCornerRadius and Chrome.panelControlFill values are defined elsewhere"
+      ]
+    }
+  ]
+}

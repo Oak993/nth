@@ -1,0 +1,395 @@
+{
+  "bundle_id": "R029",
+  "reader": "R029-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Window/DCDisplayCycleGuardedWindow.h",
+      "sha256": "5d69a993184c6267e8affa75657024e0c434fc1487f46bcc92f4797e08fdc718",
+      "lines_total": 36,
+      "ranges_read": [
+        [
+          1,
+          36
+        ]
+      ],
+      "purpose": "Public Objective-C header declaring DCDisplayCycleGuardedWindow, an NSWindow subclass used as the base class of every window in the app, plus a long doc comment recording exactly why it exists: AppKit's per-display-cycle pass counter raises NSGenericException out of the window's own needs-another-pass posts when SwiftUI under a fullSizeContentView title bar keeps re-dirtying the window while AppKit computes the drag region.",
+      "key_symbols": [
+        "DCDisplayCycleGuardedWindow (@interface, : NSWindow, empty body)",
+        "NS_ASSUME_NONNULL_BEGIN / NS_ASSUME_NONNULL_END"
+      ],
+      "calls_into": [
+        "NSWindow (AppKit)",
+        "#import <AppKit/AppKit.h>"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "AppKit NSWindow subclassing; Objective-C with NS_ASSUME_NONNULL nullability macros",
+        "Relies on AppKit's private display-cycle pass counting, documented as 'verified in the macOS 27.0 AppKit'",
+        "Assumes NSWindow style mask fullSizeContentView with a SwiftUI NSHostingView, where AppKit calls -[NSWindow _resetDragMargins]"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Documents AppKit's four counted pass kinds verbatim: 'Display, Layout, Update Constraints, Update Structural Regions in Window'",
+        "Quotes AppKit's log string verbatim: 'The window has been marked as needing another %@ pass, but it has already had %lu %@ passes'",
+        "States the raise becomes an NSGenericException once the count exceeds the number of views in the window, and uncaught it ends the app",
+        "Names the Sept 16 2026 crash-report frames: raise from `_postWindowNeedsUpdateConstraints` under `NSHostingView.setNeedsUpdate` and from `_postWindowNeedsDisplay` under `NSClipView _immediateScrollToPoint:`, both beneath `-[NSWindow _resetDragMargins]`",
+        "Describes the recovery contract: re-make the same request on the next run loop turn where the count starts over; the view keeps its own dirty flag so 'nothing is lost but a frame'",
+        "Declares the logging identity for the net: os_log subsystem `iordv.droppycode`, category `window`, so a storm can be seen",
+        "Records the rejected earlier fix: guarding one view's flags on the hosting view only moved the raise to the scroll view's clip view"
+      ],
+      "unresolved_questions": [
+        "The header declares no methods, so the exact override set is only visible in the .m; nothing here states which windows adopt the class (WindowManager does)."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Window/DCDisplayCycleGuardedWindow.m",
+      "sha256": "a28c4fa77558e4172a34b40b7f09293f4561523699c578131b4b6be89f31a456",
+      "lines_total": 61,
+      "ranges_read": [
+        [
+          1,
+          61
+        ]
+      ],
+      "purpose": "Implements DCDisplayCycleGuardedWindow by overriding AppKit's four private per-cycle 'window needs another pass' entry points and wrapping each super call in an @try/@catch that re-posts once on the next main-queue turn, logging both the first catch and a second consecutive catch to os_log.",
+      "key_symbols": [
+        "NSWindow (DCDisplayCyclePosting) category declaring -_postWindowNeedsDisplay, -_postWindowNeedsLayout, -_postWindowNeedsUpdateConstraints, -_postWindowNeedsToResetDragMargins (declared only so super can be called)",
+        "static os_log_t DCWindowLog(void)",
+        "-[DCDisplayCycleGuardedWindow dc_post:] taking a void(^)(void) block",
+        "override -_postWindowNeedsDisplay",
+        "override -_postWindowNeedsLayout",
+        "override -_postWindowNeedsUpdateConstraints",
+        "override -_postWindowNeedsToResetDragMargins"
+      ],
+      "calls_into": [
+        "os_log_create(\"iordv.droppycode\", \"window\")",
+        "os_log / os_log_error",
+        "dispatch_once, dispatch_async(dispatch_get_main_queue(), ...)",
+        "super's AppKit private _postWindowNeeds* implementations",
+        "NSException.name / NSException.reason"
+      ],
+      "state_owned": [
+        "static os_log_t log (file scope, dispatch_once initialized inside DCWindowLog)",
+        "static dispatch_once_t once (for the log handle)"
+      ],
+      "side_effects": [
+        "Writes os_log entries (subsystem iordv.droppycode, category window) on every caught display-cycle raise",
+        "Schedules a block on the main queue via dispatch_async to retry the pass request on the next run loop turn",
+        "Swallows NSException raised by AppKit inside the four private post methods"
+      ],
+      "platform_assumptions": [
+        "Overrides AppKit private API -[NSWindow(NSDisplayCycle) _postWindowNeedsDisplay] and siblings, described in-comment as 'Private, but unchanged since 10.x'",
+        "Objective-C exception handling across AppKit frames (@try/@catch around super)",
+        "libdispatch main queue is the AppKit main run loop",
+        "os_log unified logging on macOS"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "First-catch log message, verbatim format: 'Display cycle pass limit hit, requesting again next turn: %{public}@ %{public}@' with exception.name and (exception.reason ?: @\"\")",
+        "Second-catch message at os_log_error level, verbatim: 'Display cycle pass limit hit twice in a row: %{public}@ %{public}@' with again.name and (again.reason ?: @\"\")",
+        "Retry policy is exactly one retry; a second raise on the retry is logged and dropped, described in-comment as 'a runaway this net cannot end'",
+        "All four overrides funnel through dc_post: with a block that calls the matching super method, so recovery is identical for Display, Layout, UpdateConstraints and ResetDragMargins"
+      ],
+      "unresolved_questions": [
+        "Whether AppKit's _postWindowNeeds* methods take arguments or return values on newer SDKs cannot be verified here; the local category declares all four as -(void) with no arguments."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Window/DCNotificationGuard.h",
+      "sha256": "3bf3545166c27382531e4b9114e9bb7cb763f30380c81b3ddaf487e55664d52e",
+      "lines_total": 21,
+      "ranges_read": [
+        [
+          1,
+          21
+        ]
+      ],
+      "purpose": "Header exposing the single C function DCInstallNotificationGuard(void), which installs a process-wide net under NSNotificationCenter posting so an observer that raises during a post cannot end the app; the doc comment pins the concrete macOS 27 ViewBridge popover/sheet crash it was written for.",
+      "key_symbols": [
+        "void DCInstallNotificationGuard(void)",
+        "NS_ASSUME_NONNULL_BEGIN / NS_ASSUME_NONNULL_END"
+      ],
+      "calls_into": [
+        "#import <Foundation/Foundation.h>"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Foundation NSNotificationCenter posting semantics where an observer's raise travels out of the post",
+        "macOS 27 ViewBridge: -[NSRemoteView containingWindowWillOrderOnScreen:] observing a popover's window ordering",
+        "AppKit's layout block turning an escaped exception into +[NSApplication _crashOnException:]"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Names the raising chain verbatim: `-[NSRemoteView containingWindowWillOrderOnScreen:]` reached from `-[NSWindow _doWindowWillBeVisibleAsSheet:]` posting `NSWindowWillBeVisibleAsSheet`",
+        "Names the crash sink verbatim: `+[NSApplication _crashOnException:]`",
+        "Attributes the Sept 18 2026 crash reports to the release-notes cards on Settings > About",
+        "States the guard wraps 'the center's two public post methods' and logs under subsystem `iordv.droppycode`, category `notification`; the post then returns so the window ordering and the popover finish their work",
+        "States the limitation verbatim: 'It is a net, not the cure: whatever raised has still not seen its notification.'"
+      ],
+      "unresolved_questions": [
+        "The header does not say when the function must be called; the call site (DroppyCodeApp.swift line 10) is outside this bundle."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Window/DCNotificationGuard.m",
+      "sha256": "ec4c32afdddc668334e303b41034d217b98cce393ce6c0413da753eef5be3ebc",
+      "lines_total": 56,
+      "ranges_read": [
+        [
+          1,
+          56
+        ]
+      ],
+      "purpose": "Implements DCInstallNotificationGuard by swizzling NSNotificationCenter's two public name-based post selectors with C function IMPs that call the saved original inside @try/@catch, logging the notification name, the exception name and reason, and up to twelve frames of the raising observer's call stack.",
+      "key_symbols": [
+        "static os_log_t DCNotificationLog(void)",
+        "static NSString *DCNotificationOrigin(NSException *exception)",
+        "static void DCNotificationRaised(NSNotificationName name, NSException *exception)",
+        "static IMP DCPostWithUserInfoOriginal",
+        "static IMP DCPostObjectOriginal",
+        "static void DCPostWithUserInfoGuarded(id self, SEL _cmd, NSNotificationName name, id object, NSDictionary *userInfo)",
+        "static void DCPostObjectGuarded(id self, SEL _cmd, NSNotificationName name, id object)",
+        "void DCInstallNotificationGuard(void)"
+      ],
+      "calls_into": [
+        "objc runtime: class_getInstanceMethod, method_setImplementation, @selector(postNotificationName:object:userInfo:), @selector(postNotificationName:object:)",
+        "os_log_create(\"iordv.droppycode\", \"notification\"), os_log_error",
+        "NSException.callStackSymbols, -subarrayWithRange:, -componentsJoinedByString:",
+        "dispatch_once, MIN, NSMakeRange"
+      ],
+      "state_owned": [
+        "static IMP DCPostWithUserInfoOriginal (saved original implementation)",
+        "static IMP DCPostObjectOriginal (saved original implementation)",
+        "static os_log_t log inside DCNotificationLog with its dispatch_once_t",
+        "static dispatch_once_t once inside DCInstallNotificationGuard, making installation idempotent"
+      ],
+      "side_effects": [
+        "Process-wide method swizzle of NSNotificationCenter instance methods postNotificationName:object:userInfo: and postNotificationName:object: (affects every center, including Apple framework posts)",
+        "Writes os_log_error entries (subsystem iordv.droppycode, category notification) including up to 12 call stack symbols",
+        "Swallows any NSException raised by an observer during those two post methods"
+      ],
+      "platform_assumptions": [
+        "Objective-C runtime <objc/runtime.h> method_setImplementation on a Foundation class",
+        "NSException.callStackSymbols availability and symbol format",
+        "os_log unified logging",
+        "Assumes both selectors exist on NSNotificationCenter; each swizzle is guarded by a NULL Method check and skipped if absent"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Call-stack capture is limited to the first MIN(frames.count, 12) symbols joined by a newline; an empty stack yields the empty string",
+        "Log format verbatim: 'An observer raised while %{public}@ was posted, dropped: %{public}@ %{public}@' followed by a newline and '%{public}@' for the joined frames, with name, exception.name, (exception.reason ?: empty) and the origin frames",
+        "postNotification: (the NSNotification-object overload) is NOT guarded; only the two name-based overloads are",
+        "Installation is idempotent via dispatch_once, so repeated calls neither stack guards nor lose the original IMPs",
+        "Shipped and reached at launch: DroppyCodeApp.swift line 10 calls DCInstallNotificationGuard()"
+      ],
+      "unresolved_questions": [
+        "Whether Foundation internally routes postNotification: through postNotificationName:object:userInfo: (and is therefore covered) cannot be determined from this source."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Window/DroppyCode-Bridging-Header.h",
+      "sha256": "31afab4f7fcb1c548d782492ce59667f29fdc04a18665babefce0915a71534a2",
+      "lines_total": 2,
+      "ranges_read": [
+        [
+          1,
+          2
+        ]
+      ],
+      "purpose": "The target's Swift/Objective-C bridging header: exactly two #import lines that expose DCDisplayCycleGuardedWindow and DCInstallNotificationGuard() to all Swift code in the DroppyCode target. It contains nothing else, not even include guards.",
+      "key_symbols": [
+        "#import \"DCDisplayCycleGuardedWindow.h\"",
+        "#import \"DCNotificationGuard.h\""
+      ],
+      "calls_into": [
+        "DCDisplayCycleGuardedWindow.h",
+        "DCNotificationGuard.h"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Xcode/Clang Swift-to-Objective-C bridging header mechanism (SWIFT_OBJC_BRIDGING_HEADER build setting)"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Wired in by DroppyCode.xcodeproj/project.pbxproj lines 304 and 328: SWIFT_OBJC_BRIDGING_HEADER = \"DroppyCode/App/Window/DroppyCode-Bridging-Header.h\"; in both build configurations",
+        "This is the only reason ThreadWindow, SecondaryWindow and WindowManager can name DCDisplayCycleGuardedWindow from Swift"
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/App/Window/ThreadWindow.swift",
+      "sha256": "e534d1be1eb31cf3b9adc3ec4a5adc04d9c5d7c96a8443fe4f12b3b0ff2634c9",
+      "lines_total": 65,
+      "ranges_read": [
+        [
+          1,
+          65
+        ]
+      ],
+      "purpose": "Defines the two NSWindow subclasses WindowManager instantiates: ThreadWindow (main window) which intercepts Command-1 to Command-9 with a local key-down monitor and handles Tab-based next/previous-thread chords, and SecondaryWindow (Settings) which closes on Escape and on Command-W.",
+      "key_symbols": [
+        "final class ThreadWindow: DCDisplayCycleGuardedWindow",
+        "ThreadWindow.selectThread: ((Int) -> Void)?",
+        "ThreadWindow.selectThreadNumber: ((Int) -> Void)? with didSet installing the event monitor",
+        "ThreadWindow.digitMonitor: Any? (private)",
+        "private static let ThreadWindow.digitKeyCodes: [UInt16: Int]",
+        "ThreadWindow.performKeyEquivalent(with:) override",
+        "final class SecondaryWindow: DCDisplayCycleGuardedWindow",
+        "SecondaryWindow.sendEvent(_:) override",
+        "SecondaryWindow.performKeyEquivalent(with:) override"
+      ],
+      "calls_into": [
+        "DCDisplayCycleGuardedWindow (Objective-C base class, via the bridging header)",
+        "KeyChord(keyCode:modifiers:) and KeyChord.allowedModifiers",
+        "ShortcutStore.shared.chord(for:) with actions .nextThread and .previousThread",
+        "NSEvent.addLocalMonitorForEvents(matching: .keyDown)",
+        "NSWindow.attachedSheet, NSWindow.firstResponder, NSWindow.performClose(_:), NSText"
+      ],
+      "state_owned": [
+        "selectThread closure (set by WindowManager)",
+        "selectThreadNumber closure (set by WindowManager; its didSet is the monitor installer)",
+        "digitMonitor: Any? holding the NSEvent local monitor token, installed at most once (guard digitMonitor == nil else { return })"
+      ],
+      "side_effects": [
+        "Installs a local NSEvent key-down monitor that is never removed (no deinit or removeMonitor in this file)",
+        "Swallows matching key-down events by returning nil from the monitor",
+        "Calls performClose(nil) on SecondaryWindow for Escape and Command-W"
+      ],
+      "platform_assumptions": [
+        "AppKit key-equivalent dispatch order and NSEvent local monitors running before window dispatch",
+        "macOS virtual key codes: 48 = Tab, 53 = Escape, 13 = W, number row 18-28",
+        "NSWindow.attachedSheet used to detect a modal sheet",
+        "firstResponder is NSText while a text field is being edited; in-file comment states the SwiftUI hosting view never passes keyDown on"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "No views; key handling only. Comment: firing the menu item for the chord 'flashes its menu title, which holds the main thread for a tenth of a second on every switch', which is why Command-1..9 is taken before dispatch"
+      ],
+      "feature_notes": [
+        "Exact digit key code map for Command-1 to Command-9: [18: 1, 19: 2, 20: 3, 21: 4, 23: 5, 22: 6, 26: 7, 28: 8, 25: 9] (23 maps to 5 and 22 to 6)",
+        "Monitor conditions, all required: event.window === self, attachedSheet == nil, event.modifierFlags.intersection(KeyChord.allowedModifiers) == .command, a mapped digit key code, and a non-nil selectThreadNumber; otherwise the event is returned unchanged",
+        "ThreadWindow.performKeyEquivalent acts only on event.keyCode == 48 (Tab) and only when attachedSheet == nil; a chord matching ShortcutStore.shared.chord(for: .nextThread) calls selectThread?(1), .previousThread calls selectThread?(-1), each returning true; otherwise super",
+        "SecondaryWindow.sendEvent closes the window on a .keyDown with keyCode 53 (Escape) when modifierFlags.intersection(KeyChord.allowedModifiers).isEmpty and firstResponder is not an NSText, returning without calling super",
+        "SecondaryWindow.performKeyEquivalent closes on KeyChord(keyCode: 13, modifiers: .command) (Command-W) when attachedSheet == nil; the comment explains that chord is the archive shortcut in the main window and would otherwise reach the Thread menu",
+        "SecondaryWindow doc comment: 'A window beside the main one, Settings say, where Command-W closes it as it does in any Mac app.'",
+        "Escape handling comment notes a field being typed in keeps its Escape, and a shortcut being recorded takes it before any window sees it"
+      ],
+      "unresolved_questions": [
+        "KeyChord.allowedModifiers' exact member set is defined elsewhere, so the precise mask compared against .command is not verifiable here.",
+        "The default chords ShortcutStore returns for .nextThread and .previousThread are not stated in this file; only keyCode 48 (Tab) is hard-gated before the comparison."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Window/WindowManager.swift",
+      "sha256": "e020d9577591269b31416d19d6839c020a4a9e9550ff549f45aea7479014f879",
+      "lines_total": 219,
+      "ranges_read": [
+        [
+          1,
+          120
+        ],
+        [
+          120,
+          219
+        ]
+      ],
+      "purpose": "The app's window factory and window-scoped environment plumbing: a @MainActor singleton that lazily builds, caches and presents the main and Settings windows (plus a fixed-size capture window), sets their style mask, chrome and SwiftUI hosting view, and defines WindowLiveResize, HostedRoot, HostedEnvironment, ThemeTint and the FrameHostingView NSHostingView subclass.",
+      "key_symbols": [
+        "@MainActor final class WindowManager with static let shared",
+        "WindowManager.model: AppModel (the app's single model, created here)",
+        "private var mainWindow / settingsWindow: NSWindow?",
+        "private enum Size { static let main, mainMinimum, settings }",
+        "private static let mainFrameName",
+        "func showMain()",
+        "func showSettings(page: SettingsPage? = nil)",
+        "private func centerOverMainWindow(_ window: NSWindow)",
+        "private func present(_ window: NSWindow)",
+        "private func makeMainWindow() -> NSWindow",
+        "func makeCaptureWindow(size: NSSize) -> NSWindow",
+        "private func makeSettingsWindow() -> NSWindow",
+        "private func makeWindow<Content: View>(title:size:resizable:windowClass:content:) -> NSWindow",
+        "@MainActor @Observable final class WindowLiveResize (isActive, isPaneResizing, isReshaping, init(window:))",
+        "private struct HostedRoot<Content: View>: View",
+        "struct HostedEnvironment: ViewModifier",
+        "private struct ThemeTint: ViewModifier",
+        "final class FrameHostingView: NSHostingView<AnyView>"
+      ],
+      "calls_into": [
+        "AppModel: model.selectThread(offset:), model.selectThread(number:), model.settings.theme",
+        "RootView(), SettingsView()",
+        "SettingsNavigation.shared.requestedPage, SettingsPage",
+        "ThreadWindow, SecondaryWindow, DCDisplayCycleGuardedWindow",
+        "WindowChrome.configure(window)",
+        "AppInfo.name",
+        "AppTheme via theme.spec.scheme and theme.spec.accent",
+        "NSApp.activate(), NSApp.appearance, NSAppearance(named: .aqua / .darkAqua)",
+        "NSWindow.setFrameUsingName / setFrameAutosaveName / center() / setFrame(_:display:) / makeKeyAndOrderFront(_:)",
+        "NotificationCenter.default with NSWindow.willStartLiveResizeNotification and NSWindow.didEndLiveResizeNotification",
+        "NSHostingView sizingOptions / safeAreaRegions; MainActor.assumeIsolated"
+      ],
+      "state_owned": [
+        "static let shared singleton",
+        "let model = AppModel()",
+        "mainWindow: NSWindow? and settingsWindow: NSWindow? caches (each window built at most once and reused)",
+        "WindowLiveResize.isActive (private(set) var, default false)",
+        "WindowLiveResize.isPaneResizing (var, default false, written by the chat view)",
+        "NotificationCenter observer tokens held implicitly by WindowLiveResize and deliberately never removed ('a window is not made twice')"
+      ],
+      "side_effects": [
+        "Creates NSWindows, activates the app (NSApp.activate()) and orders windows front",
+        "Reads and writes the AppKit window frame autosave entry named DroppyCodeMainWindow (setFrameUsingName / setFrameAutosaveName), stored in user defaults",
+        "Sets process-wide NSApp.appearance whenever the theme changes, including on first build (initial: true)",
+        "Registers two NotificationCenter observers scoped to one window for live-resize start/end",
+        "fatalError(\"init(coder:) is not supported\") in FrameHostingView.init?(coder:)"
+      ],
+      "platform_assumptions": [
+        "AppKit NSWindow/NSScreen/NSApp with SwiftUI NSHostingView interop on macOS",
+        "NSWindow.StyleMask .fullSizeContentView transparent title bar, which the file's header comment names as the reason every window is a DCDisplayCycleGuardedWindow on macOS 26 and later",
+        "window.tabbingMode = .disallowed to suppress macOS window tabbing",
+        "MainActor.assumeIsolated inside NotificationCenter main-queue callbacks",
+        "NSAppearance names .aqua and .darkAqua",
+        "AppKit frame autosave persistence and NSScreen.visibleFrame"
+      ],
+      "persisted_fields": [
+        "mainFrameName = \"DroppyCodeMainWindow\" (String): used for both setFrameUsingName and setFrameAutosaveName, so AppKit persists the main window's frame under that autosave name; Settings and capture windows deliberately have no autosave name"
+      ],
+      "ui_elements": [
+        "Main window: title = AppInfo.name, content size 1320 x 860, contentMinSize 860 x 560, resizable, windowClass ThreadWindow",
+        "Settings window: title literal \"Settings\", size 780 x 580, not resizable, windowClass SecondaryWindow, centered over the main window",
+        "Style mask for every window: [.titled, .closable, .miniaturizable, .fullSizeContentView], plus .resizable when resizable",
+        "Window flags: backing .buffered, defer false, isReleasedWhenClosed = false, animationBehavior = .documentWindow, tabbingMode = .disallowed",
+        "Content hierarchy: a plain NSView container at the window frame holding a FrameHostingView with the same frame and autoresizingMask [.width, .height]",
+        "HostedEnvironment applies .buttonBorderShape(.capsule) to every hosted tree, plus .environment(model) and .environment(liveResize)",
+        "Centering math: frame.origin.x = (parent.midX - frame.width / 2).rounded(), y likewise, then clamped into the screen's visibleFrame with min(max(origin, visible.min), visible.max - size)"
+      ],
+      "feature_notes": [
+        "showMain() and showSettings(page:) each lazily create and cache their window, then present it with NSApp.activate() followed by makeKeyAndOrderFront(nil)",
+        "showSettings(page:) sets SettingsNavigation.shared.requestedPage before creating or showing the window when a page is passed",
+        "Settings is re-centered over the main window every time it is shown; if the main window is nil, not visible or miniaturized it falls back to window.center()",
+        "The main window restores its saved frame via setFrameUsingName(\"DroppyCodeMainWindow\") and calls center() only when that returns false, then sets the autosave name",
+        "makeMainWindow wires ThreadWindow.selectThread to model.selectThread(offset:) and selectThreadNumber to model.selectThread(number:), both capturing model weakly",
+        "makeCaptureWindow(size:) builds the same RootView window at a caller-given size, resizable, with no frame autosave, 'so the run never reads or writes where the real window sits'; used by WebsiteCaptures.swift line 766 for website captures",
+        "WindowLiveResize.isReshaping == isActive || isPaneResizing; views read it from the environment to hold settle animations, since 'a spring restarted on every frame of a live resize is what made panels lag behind the window and land somewhere else'",
+        "isPaneResizing covers the sidebar edge and the terminal divider drags and is written by the chat view, so the timeline steps its row width as it does during a window live resize",
+        "Theme change sets NSApp.appearance: nil scheme keeps nil (system), .light maps to NSAppearance(named: .aqua), .dark to .darkAqua, @unknown default to nil; onChange uses initial: true so it applies at first build; HostedRoot also applies .preferredColorScheme(model.settings.theme.spec.scheme)",
+        "ThemeTint deliberately uses one unconditional branch, content.tint(theme.spec.accent): an if/else previously rebuilt the whole window content on a theme change and 'Settings jumped back to its top'; a nil tint keeps the system control accent",
+        "FrameHostingView sets sizingOptions = [] and safeAreaRegions = [] so the given frame drives the size instead of the content hugging it, with translatesAutoresizingMaskIntoConstraints = true and autoresizingMask [.width, .height]",
+        "FrameHostingView.acceptsFirstResponder is hardcoded true because every window holds focusable text (composer, search field) and SwiftUI's own answer searches the whole view tree on every display cycle while content scrolls under the title bar",
+        "FrameHostingView.performKeyEquivalent returns !isHidden && super.performKeyEquivalent(with: event) so a hidden chat column keeps its buttons' shortcuts to itself and a Return meant for the shown column does not land behind it"
+      ],
+      "unresolved_questions": [
+        "WindowChrome.configure(window) is defined outside this bundle, so the actual titlebar/clear-background treatment is not verifiable here.",
+        "The 'SwiftUI glass pane' the header comment describes comes from RootView/SettingsView, which are not in this bundle.",
+        "The exact user-defaults key AppKit writes for the autosave name is not spelled out in source (AppKit's convention is 'NSWindow Frame DroppyCodeMainWindow')."
+      ]
+    }
+  ]
+}

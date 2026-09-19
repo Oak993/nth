@@ -1,0 +1,439 @@
+{
+  "bundle_id": "R053",
+  "reader": "R053-reader",
+  "files": [
+    {
+      "path": "DroppyCode/UI/Sound/FinishChime.swift",
+      "sha256": "970ad4aaa2779ef947bac6df1b5cb2fdd6656595537e276a3330b076e3a20d92",
+      "lines_total": 37,
+      "ranges_read": [
+        [
+          1,
+          37
+        ]
+      ],
+      "purpose": "Declares the two-note 'turn finished' chime as data (notes + partials) and lazily synthesizes it into a single shared NSSound via ToneSynth, so no audio file ships with the app.",
+      "key_symbols": [
+        "enum FinishChime (@MainActor)",
+        "FinishChime.volume: Float = 0.35 (private static let)",
+        "FinishChime.sound: NSSound? (private static lazy closure-initialized let)",
+        "FinishChime.play()",
+        "FinishChime.notes: [ToneSynth.Note] (private static let)",
+        "FinishChime.partials: [ToneSynth.Partial] (private static let)"
+      ],
+      "calls_into": [
+        "ToneSynth.wave(notes:partials:duration:)",
+        "ToneSynth.Note(frequency:onset:level:)",
+        "ToneSynth.Partial(multiple:level:decay:)",
+        "NSSound(data:)",
+        "NSSound.volume",
+        "NSSound.play()"
+      ],
+      "state_owned": [
+        "private static let sound: NSSound? - one process-wide NSSound instance, built once on first access from synthesized WAV Data",
+        "static let volume: Float = 0.35 applied to that NSSound"
+      ],
+      "side_effects": [
+        "Plays audio through the system output device (NSSound.play())",
+        "Allocates and holds synthesized 16-bit mono WAV Data for a 0.7 s tone for the app's lifetime"
+      ],
+      "platform_assumptions": [
+        "AppKit's NSSound for playback (import AppKit)",
+        "NSSound(data:) accepting an in-memory RIFF/WAVE buffer",
+        "NSSound.play() returning false / declining while the same NSSound instance is already playing - the file relies on this to de-duplicate simultaneous chimes ('NSSound declines a play while one is in flight, so several threads finishing in the same moment make one chime, never a pile-up')",
+        "@MainActor isolation of the enum"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Duration of the rendered tone: 0.7 seconds.",
+        "Playback volume: 0.35 (relative to system volume), described as 'Well under a stock alert'.",
+        "Note 1: frequency 587.33 Hz (D5), onset 0 s, level 0.8.",
+        "Note 2: frequency 880 Hz (A5), onset 0.14 s, level 1. A rising fifth; the second note is later and stronger.",
+        "Partials: multiple 1 / level 1 / decay 0.14; multiple 2 / level 0.22 / decay 0.06; multiple 4 / level 0.08 / decay 0.04 - a celesta-like tone where the octave and double octave glint only at the strike.",
+        "play() does NOT stop-then-play (unlike SettleChime), which is what makes concurrent finishes collapse into one chime.",
+        "Shipped and reachable: called from DroppyCode/App/AppModel.swift:1206 ('if chimed { FinishChime.play() }') and from the settings toggle preview at DroppyCode/App/Views/Settings/SettingsView.swift:357 ('if isOn { FinishChime.play() }')."
+      ],
+      "unresolved_questions": [
+        "The file itself carries no gating on a user setting; the 'chimed' condition and any sound preference live in AppModel.swift, which is outside this bundle."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Sound/SettleChime.swift",
+      "sha256": "f8e2dbc1c7ce0ab31190ed9fd0d87ab321e4b6cc9130afa05af518f3da642cbc",
+      "lines_total": 36,
+      "ranges_read": [
+        [
+          1,
+          36
+        ]
+      ],
+      "purpose": "Declares the quieter, shorter 'thread settling' tick as a two-note descending wooden tone synthesized by ToneSynth, and replays it from the top so consecutive settles tick twice.",
+      "key_symbols": [
+        "enum SettleChime (@MainActor)",
+        "SettleChime.volume: Float = 0.18 (private static let)",
+        "SettleChime.sound: NSSound? (private static lazy closure-initialized let)",
+        "SettleChime.play()",
+        "SettleChime.notes: [ToneSynth.Note] (private static let)",
+        "SettleChime.partials: [ToneSynth.Partial] (private static let)"
+      ],
+      "calls_into": [
+        "ToneSynth.wave(notes:partials:duration:)",
+        "ToneSynth.Note",
+        "ToneSynth.Partial",
+        "NSSound(data:)",
+        "NSSound.stop()",
+        "NSSound.play()"
+      ],
+      "state_owned": [
+        "private static let sound: NSSound? - one shared NSSound built once from a 0.32 s synthesized WAV",
+        "static let volume: Float = 0.18"
+      ],
+      "side_effects": [
+        "Plays audio through the system output device",
+        "Stops any in-flight playback of the same NSSound before replaying"
+      ],
+      "platform_assumptions": [
+        "AppKit NSSound (import AppKit)",
+        "NSSound.stop() followed by play() restarting from sample 0",
+        "@MainActor isolation"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Duration of the rendered tone: 0.32 seconds - shorter than FinishChime's 0.7 s.",
+        "Playback volume: 0.18, described as 'Barely there: a tick under the sidebar's motion, not a notification.'",
+        "Note 1: frequency 659.26 Hz (E5), onset 0 s, level 0.7.",
+        "Note 2: frequency 523.25 Hz (C5), onset 0.075 s, level 1 - a descending step ('a small landing').",
+        "Partials (declared in this order): multiple 1 / level 1 / decay 0.075; multiple 3 / level 0.16 / decay 0.02; multiple 2 / level 0.08 / decay 0.03. The third harmonic before the octave is what gives the 'woody' knock.",
+        "play() calls sound?.stop() then sound?.play(), the opposite policy to FinishChime: 'A replay from the top, so settling two threads in a row ticks twice.'",
+        "Doc comment states 'the setting can silence it'; the gate itself lives at call sites - DroppyCode/App/AppModel.swift:804 ('if sounds, settings.settleSound { SettleChime.play() }') and DroppyCode/App/Views/Sidebar/SidebarView.swift:1917 ('if model.settings.settleSound { SettleChime.play() }').",
+        "Also played unconditionally as feedback at DroppyCode/App/Views/Settings/MCPSettingsPage.swift:68 and as a toggle preview at SettingsView.swift:400 ('if isOn { SettleChime.play() }')."
+      ],
+      "unresolved_questions": [
+        "The exact AppSettings key backing 'settleSound' is defined outside this bundle (AppModel/settings types), so its default value is not established here."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Sound/ToneSynth.swift",
+      "sha256": "9f3458c7904dd260ee0ec663f595a77d45e3beb2310f937aad1c8eaa6a11d20c",
+      "lines_total": 70,
+      "ranges_read": [
+        [
+          1,
+          70
+        ]
+      ],
+      "purpose": "A tiny additive-synthesis engine that renders struck-bell tones to a complete 16-bit mono PCM WAV byte buffer in memory, including hand-written RIFF header emission, so the app's chimes are numbers in source rather than bundled audio assets.",
+      "key_symbols": [
+        "enum ToneSynth",
+        "struct ToneSynth.Note { var frequency: Double; var onset: Double; var level: Double }",
+        "struct ToneSynth.Partial { var multiple: Double; var level: Double; var decay: Double }",
+        "ToneSynth.sampleRate = 44_100.0 (private static let)",
+        "ToneSynth.attack = 0.006 (private static let)",
+        "ToneSynth.release = 0.08 (private static let)",
+        "static func wave(notes: [Note], partials: [Partial], duration: Double) -> Data",
+        "local generic func append<Value: FixedWidthInteger>(_ value: Value) inside wave"
+      ],
+      "calls_into": [
+        "Foundation Data / Data(capacity:)",
+        "cos, sin, exp, abs from the C math library",
+        "withUnsafeBytes(of:) and FixedWidthInteger.littleEndian",
+        "Int16.max"
+      ],
+      "state_owned": [
+        "No instance state; only the private static constants sampleRate, attack, release. wave() allocates a local [Double] sample buffer of Int(sampleRate * duration) elements."
+      ],
+      "side_effects": [
+        "Pure computation - allocates and returns Data; no I/O, no timers, no notifications"
+      ],
+      "platform_assumptions": [
+        "Foundation only (import Foundation); no AppKit dependency, so the synthesis itself is portable",
+        "Assumes the consumer (NSSound on macOS) can play a raw RIFF/WAVE buffer from memory",
+        "Little-endian byte order is written explicitly via .littleEndian, so it is not host-endianness dependent"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Sample rate 44_100.0 Hz, mono, 16-bit signed PCM.",
+        "Sample count = Int(sampleRate * duration).",
+        "Attack: raised-cosine onset of 0.006 s - for time < attack the envelope is 0.5 - 0.5 * cos(.pi * time / attack), else 1. 'quick enough to feel struck, with no click.'",
+        "Release: final 0.08 s linear fade, applied as samples[index] *= Double(count - index) / Double(fade) over indices (count - fade)..<count.",
+        "Per-note synthesis: start index = Int(note.onset * sampleRate); time = Double(index - start) / sampleRate; tone = sum over partials of partial.level * exp(-time / partial.decay) * sin(2 * .pi * note.frequency * partial.multiple * time); accumulated as samples[index] += note.level * onset * tone.",
+        "Partial.decay is documented as 'the seconds it takes to fall by about two thirds' (an exp(-t/decay) time constant).",
+        "Normalization: peak = max abs sample; scale = peak > 0 ? 0.9 / peak : 0 - every rendered tone is normalized to 0.9 full scale.",
+        "WAV header written by hand, in order: ASCII 'RIFF'; UInt32(36 + count * 2); 'WAVE'; 'fmt '; UInt32(16); UInt16(1) // PCM; UInt16(1) // mono; UInt32(sampleRate); UInt32(sampleRate) * 2 // bytes per second; UInt16(2) // bytes per frame; UInt16(16) // bits per sample; 'data'; UInt32(count * 2); then Int16 samples.",
+        "Data is preallocated with capacity 44 + count * 2 (44-byte canonical WAV header).",
+        "Sample conversion: Int16((sample * scale * Double(Int16.max)).rounded()).",
+        "Shipped and reachable: the only callers are FinishChime and SettleChime in this same bundle."
+      ],
+      "unresolved_questions": [
+        "A note whose onset is at or beyond duration would make start >= count and the range start..<count invalid (a crash); no guard exists. Both shipped callers use onsets (0.14 s, 0.075 s) far below their durations, so this is unreachable in practice but unverified as intentional."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Theme/AppTheme.swift",
+      "sha256": "cfb568f027b5219d4dc0c6851c53f333446bfcf6cc83b41eb15d6204c853a0f6",
+      "lines_total": 248,
+      "ranges_read": [
+        [
+          1,
+          130
+        ],
+        [
+          131,
+          248
+        ]
+      ],
+      "purpose": "Defines the app's complete 25-case theme enum with display names, picker subtitles, the canonical hex palette per theme (accent, surface, success, warning, danger), the gradient swatch view, the resolved ThemeSpec, the global ThemeManager cache plus its change notification, and the Color(hex:) sRGB parser.",
+      "key_symbols": [
+        "enum AppTheme: String, Codable, CaseIterable, Identifiable, Sendable",
+        "AppTheme cases: system, light, dark, catppuccinMocha, catppuccinLatte, dracula, tokyoNight, nord, gruvbox, gruvboxLight, oneDark, everforest, kanagawa, rosePine, solarizedDark, solarizedLight, githubDark, githubLight, ayu, nightOwl, monokai, claude, claudeLight, codex, cursor, matrix",
+        "AppTheme.id: String { rawValue }",
+        "AppTheme.displayName: String",
+        "AppTheme.detail: String",
+        "AppTheme.palette: (scheme: ColorScheme?, accent: String?, surface: String, success: String?, warning: String?, danger: String?) (private computed)",
+        "AppTheme.scheme: ColorScheme?",
+        "AppTheme.swatch: some View (@ViewBuilder)",
+        "AppTheme.spec: ThemeSpec",
+        "struct ThemeSpec { scheme, accent, surface, success, warning, danger }",
+        "enum ThemeManager",
+        "ThemeManager.didChange: Notification.Name(\"ThemeManager.didChange\")",
+        "ThemeManager.current: AppTheme (nonisolated(unsafe) static var, didSet)",
+        "ThemeManager.spec: ThemeSpec (nonisolated(unsafe) private(set) static var)",
+        "extension Color { init(hex: String) }"
+      ],
+      "calls_into": [
+        "SwiftUI Color, ColorScheme, Circle, LinearGradient, Gradient.Stop, .strokeBorder, .overlay, .fill",
+        "Color.accentColor, Color.primary, Color.green, Color.orange, Color.red",
+        "AppKit NSColor(name:dynamicProvider:), NSAppearance.bestMatch(from:), NSAppearance.Name.darkAqua / .aqua, NSColor(srgbRed:green:blue:alpha:)",
+        "Color(nsColor:)",
+        "Foundation Scanner.scanHexInt64(_:), String.trimmingCharacters(in: .whitespacesAndNewlines)",
+        "NotificationCenter.default.post(name:object:)",
+        "AppSettings.theme (documented as the source of truth this mirrors)"
+      ],
+      "state_owned": [
+        "ThemeManager.current: AppTheme - process-wide mutable theme, default .system, nonisolated(unsafe)",
+        "ThemeManager.spec: ThemeSpec - cached resolved spec, default AppTheme.system.spec, rebuilt in current's didSet so hex parsing happens once per theme change rather than on every Chrome color read"
+      ],
+      "side_effects": [
+        "Posts NotificationCenter notification named \"ThemeManager.didChange\" (object nil) on every assignment to ThemeManager.current",
+        "No file, network or process side effects"
+      ],
+      "platform_assumptions": [
+        "AppKit NSColor dynamic provider used for the .system theme's surface so it resolves per NSAppearance at draw time",
+        "NSAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua as the dark-mode test - a macOS appearance API with no Windows equivalent",
+        "SwiftUI ColorScheme and Color.accentColor tracking the Mac's system control accent when accent is nil",
+        "sRGB color space assumed by both NSColor(srgbRed:...) and Color(.sRGB, ...)",
+        "nonisolated(unsafe) statics assume all reads/writes happen on the main thread ('views re-render through the settings they already observe, so the static read is always fresh on the main thread')",
+        "Doc comment references 'Liquid Glass' macOS material styling: 'a theme tints the glass and recolors the accent and status hues, never paints opaque surfaces'"
+      ],
+      "persisted_fields": [
+        "AppTheme is Codable with String rawValues; the raw values themselves are the persisted tokens: \"system\", \"light\", \"dark\", \"catppuccinMocha\", \"catppuccinLatte\", \"dracula\", \"tokyoNight\", \"nord\", \"gruvbox\", \"gruvboxLight\", \"oneDark\", \"everforest\", \"kanagawa\", \"rosePine\", \"solarizedDark\", \"solarizedLight\", \"githubDark\", \"githubLight\", \"ayu\", \"nightOwl\", \"monokai\", \"claude\", \"claudeLight\", \"codex\", \"cursor\", \"matrix\". Storage of AppSettings.theme itself is outside this file."
+      ],
+      "ui_elements": [
+        "displayName strings, exactly: \"System\", \"Light\", \"Dark\", \"Catppuccin Mocha\", \"Catppuccin Latte\", \"Dracula\", \"Tokyo Night\", \"Nord\", \"Gruvbox\", \"Gruvbox Light\", \"One Dark\", \"Everforest\", \"Kanagawa\", \"Rosé Pine\" (with the accented e), \"Solarized Dark\", \"Solarized Light\", \"GitHub Dark\", \"GitHub Light\", \"Ayu\", \"Night Owl\", \"Monokai\", \"Claude\", \"Claude Light\", \"Codex\", \"Cursor\", \"Matrix\"",
+        "detail subtitle strings, exactly (middle dot U+00B7 separator): \"Follows your Mac\", \"Light · System accent\", \"Dark · System accent\", \"Dark · Mauve\", \"Light · Mauve\", \"Dark · Purple\", \"Dark · Blue\", \"Dark · Frost\", \"Dark · Orange\", \"Light · Rust\", \"Dark · Blue\", \"Dark · Green\", \"Dark · Wave blue\", \"Dark · Rose\", \"Dark · Blue\", \"Light · Blue\", \"Dark · Blue\", \"Light · Blue\", \"Dark · Amber\", \"Dark · Blue\", \"Dark · Pink\", \"Dark · Terracotta\", \"Light · Terracotta\", \"Dark · Magenta\", \"Dark · Frost\", \"Dark · Green\"",
+        "swatch: a Circle with an overlaid rim = Circle().strokeBorder(Color.primary.opacity(0.22), lineWidth: 0.5)",
+        "swatch for .system: LinearGradient with hard stops - #FFFFFF at location 0, #FFFFFF at 0.5, #1E1E20 at 0.5, #1E1E20 at 1, startPoint .leading, endPoint .trailing (a split light/dark disc)",
+        "swatch for every other theme: LinearGradient stops - surface at 0, surface at 0.42, accent at 1 (accent falls back to Color.accentColor when nil), startPoint .topLeading, endPoint .bottomTrailing"
+      ],
+      "feature_notes": [
+        "Full palette table (scheme, accent, surface, success, warning, danger); nil accent means keep the system control accent, nil status hue falls back to .green/.orange/.red in spec:",
+        "system: (nil, nil, 1E1E20, nil, nil, nil)",
+        "light: (.light, nil, FFFFFF, nil, nil, nil)",
+        "dark: (.dark, nil, 1E1E20, nil, nil, nil)",
+        "catppuccinMocha: (.dark, CBA6F7, 1E1E2E, A6E3A1, F9E2AF, F38BA8)",
+        "catppuccinLatte: (.light, 8839EF, EFF1F5, 40A02B, DF8E1D, D20F39)",
+        "dracula: (.dark, BD93F9, 282A36, 50FA7B, FFB86C, FF5555)",
+        "tokyoNight: (.dark, 7AA2F7, 1A1B26, 9ECE6A, E0AF68, F7768E)",
+        "nord: (.dark, 88C0D0, 2E3440, A3BE8C, EBCB8B, BF616A)",
+        "gruvbox: (.dark, FE8019, 282828, B8BB26, FABD2E, FB4934)",
+        "gruvboxLight: (.light, AF3A03, FBF1C7, 79740E, B57614, 9D0006)",
+        "oneDark: (.dark, 61AFEF, 282C34, 98C379, E5C07B, E06C75)",
+        "everforest: (.dark, A7C080, 2D353B, A7C080, DBBC7F, E67E80)",
+        "kanagawa: (.dark, 7E9CD8, 1F1F28, 98BB6C, D7A657, E82424)",
+        "rosePine: (.dark, EB6F92, 191724, 9CCFD8, F6C177, EB6F92)",
+        "solarizedDark: (.dark, 268BD2, 002B36, 859900, B58900, DC322F)",
+        "solarizedLight: (.light, 268BD2, FDF6E3, 859900, B58900, DC322F)",
+        "githubDark: (.dark, 4493F8, 0D1117, 3FB950, D29922, F85149)",
+        "githubLight: (.light, 0969DA, FFFFFF, 1A7F37, 9A6700, CF222E)",
+        "ayu: (.dark, E6B450, 0F1419, AAD94C, FFB454, F58572)",
+        "nightOwl: (.dark, 82AAFF, 011627, C5E478, ECC48D, EF5350)",
+        "monokai: (.dark, F92672, 272822, A6E22E, FD971F, F92672)",
+        "claude: (.dark, C15F3C, 1A1816, 51A556, C9A227, D97757)",
+        "claudeLight: (.light, C15F3C, FAF9F5, 2E7D32, 9A6700, B3261E)",
+        "codex: (.dark, D946EF, 101014, 3FB950, D29922, F85149)",
+        "cursor: (.dark, 88C0D0, 181818, 3FA266, F1B467, E34671)",
+        "matrix: (.dark, 00E676, 000000, 00E676, FFD600, FF5252)",
+        "spec for .system builds a dynamic NSColor surface: dark = sRGB 0x1E/255, 0x1E/255, 0x20/255, alpha 1.0; light = sRGB 1.0, 1.0, 1.0, alpha 1.0. All other themes take a static Color(hex: surface).",
+        "Color(hex:) trims whitespace/newlines, strips a leading '#', scans with Scanner.scanHexInt64 and builds .sRGB from (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF each / 255, opacity 1. A malformed string scans to 0 and yields black rather than failing.",
+        "ThemeManager.didChange exists specifically for layer-backed views whose colours are set once rather than resolved per draw (the spinners' cells): observed at DroppyCode/App/Views/Chat/HydraButton.swift:479 and DroppyCode/UI/Common/WorkingIndicators.swift:185.",
+        "Note that rosePine and monokai deliberately reuse their accent hex as the danger hex (EB6F92, F92672), and everforest and matrix reuse the accent as success (A7C080, 00E676)."
+      ],
+      "unresolved_questions": [
+        "Who assigns ThemeManager.current (the mirroring from AppSettings.theme) is not in this file, so the exact sync point and whether it is set at launch before first draw cannot be confirmed here.",
+        "The Chrome type that reads ThemeManager.spec (Chrome.accent and friends, referenced in the doc comments) is defined in another file, so the spec-to-Chrome mapping is not established from this bundle."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Theme/ShortcutTint.swift",
+      "sha256": "6bed1e1e7f2280d1dd5db4bd2a96ede69d605d1ef668088dab374c11a5e19ebe",
+      "lines_total": 12,
+      "ranges_read": [
+        [
+          1,
+          12
+        ]
+      ],
+      "purpose": "A 12-line extension on AppShortcut.Section giving each Settings shortcut section its tint colour, deliberately placed in the Theme folder so the shortcut model itself carries no chrome colours.",
+      "key_symbols": [
+        "extension AppShortcut.Section",
+        "var tint: Color (computed, switch over self)"
+      ],
+      "calls_into": [
+        "AppShortcut.Section (cases .threads and .window)",
+        "Chrome.blue",
+        "SwiftUI Color(red:green:blue:)"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "SwiftUI Color (import SwiftUI); Color(red:green:blue:) without an explicit color space, so it takes SwiftUI's default (sRGB) rather than the explicit .sRGB used in AppTheme's Color(hex:)"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        ".threads section tint: Chrome.blue",
+        ".window section tint: Color(red: 0.686, green: 0.322, blue: 0.871) - a purple, roughly #AF52DE"
+      ],
+      "feature_notes": [
+        "The switch is exhaustive over exactly two cases, .threads and .window, so AppShortcut.Section has only those two sections at this commit.",
+        "Uses the Swift 5.9+ implicit-return switch-expression form (no 'return' keyword, bare 'case .threads: Chrome.blue').",
+        "The .window purple is written as floating-point components rather than a hex string, unlike every colour in AppTheme.swift."
+      ],
+      "unresolved_questions": [
+        "The exact value of Chrome.blue is defined in another file outside this bundle, so the .threads tint cannot be pinned to a literal here."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Theme/Wallpaper.swift",
+      "sha256": "742e96b698201c5a2dddaa6c3f1e6ea65c4dce6035ec6e32b6bbaa8785b39d12",
+      "lines_total": 270,
+      "ranges_read": [
+        [
+          1,
+          140
+        ],
+        [
+          141,
+          270
+        ]
+      ],
+      "purpose": "The singleton WallpaperStore that owns the window's user-picked backdrop picture: copying a picked file into the app library, downsampling it with ImageIO, blurring it with Core Image per a persisted softness value, serving a live half-size preview while the softness slider is dragged, and persisting the file name and softness in UserDefaults.",
+      "key_symbols": [
+        "private struct DecodedPicture: @unchecked Sendable { let image: NSImage }",
+        "@MainActor @Observable final class WallpaperStore",
+        "WallpaperStore.shared",
+        "private enum Key { static let softness = \"wallpaperSoftness\"; static let file = \"wallpaperFile\" }",
+        "nonisolated static let ciContext = CIContext(options: [.useSoftwareRenderer: false])",
+        "static let acceptedTypes: [UTType] = [.image]",
+        "private(set) var image: NSImage?",
+        "private(set) var isInstalling: Bool",
+        "private(set) var lastError: String?",
+        "var softness: Double (with didSet clamp + save + rerender)",
+        "var hasWallpaper: Bool",
+        "var isAdjustingSoftness: Bool (with didSet)",
+        "nonisolated static func accepts(_ url: URL) -> Bool",
+        "func install(from source: URL)",
+        "func remove()",
+        "private func render()",
+        "private func scheduleRerender()",
+        "private func renderLive()",
+        "private func takeLiveRequest() -> Double?",
+        "private func finishInstall(file: URL, picture: DecodedPicture)",
+        "private func failInstall()",
+        "nonisolated static func thumbnail(_ url: URL, maxPixel: Int) -> CGImage?",
+        "nonisolated static func blurred(_ base: CGImage, softness: Double, radiusScale: CGFloat = 1) -> CGImage?",
+        "nonisolated static func decode(_ url: URL, softness: Double) -> NSImage?"
+      ],
+      "calls_into": [
+        "Storage.wallpaperDirectory",
+        "WebsiteCaptures.defaults (the shared UserDefaults suite; falls back to .standard)",
+        "CGImageSourceCreateWithURL, CGImageSourceCreateThumbnailAtIndex",
+        "kCGImageSourceCreateThumbnailFromImageAlways, kCGImageSourceCreateThumbnailWithTransform, kCGImageSourceThumbnailMaxPixelSize, kCGImageSourceShouldCacheImmediately",
+        "CIFilter(name: \"CIGaussianBlur\"), CIImage(cgImage:).clampedToExtent(), .cropped(to:), kCIInputImageKey, kCIInputRadiusKey, CIContext.createCGImage(_:from:)",
+        "UTType(filenameExtension:), UTType.image, URL.resourceValues(forKeys: [.contentTypeKey])",
+        "URL.startAccessingSecurityScopedResource() / stopAccessingSecurityScopedResource()",
+        "FileManager.default.createDirectory/copyItem/removeItem/fileExists",
+        "NSImage(cgImage:size:), NSSize",
+        "SwiftUI withAnimation, .easeOut(duration:), .spring(duration:bounce:)",
+        "Task.detached(priority: .userInitiated), Task.isCancelled",
+        "WindowBackdrop consumer at DroppyCode/App/Views/RootView.swift:64 and WallpaperCard at DroppyCode/App/Views/Settings/WallpaperCard.swift:8"
+      ],
+      "state_owned": [
+        "static let shared: WallpaperStore - the process-wide singleton, private init",
+        "image: NSImage? - the rendered backdrop picture, observed by views (private(set))",
+        "isInstalling: Bool - true while a picked file is being copied and decoded (private(set))",
+        "lastError: String? - one-sentence failure message for the settings card (private(set))",
+        "softness: Double - 0 crisp to 1 fully blurred, observed, persisted",
+        "isAdjustingSoftness: Bool - true while the slider is dragged",
+        "@ObservationIgnored fileURL: URL? - the installed copy in the library",
+        "@ObservationIgnored defaults: UserDefaults = WebsiteCaptures.defaults ?? .standard",
+        "@ObservationIgnored renderTask: Task<Void, Never>?",
+        "@ObservationIgnored liveTask: Task<Void, Never>?",
+        "@ObservationIgnored liveRequested: Double? - the newest softness asked for during a drag",
+        "@ObservationIgnored baseImage: CGImage? - unblurred downsample at 3200 px",
+        "@ObservationIgnored previewBase: CGImage? - unblurred downsample at 1600 px, the half-size drag source",
+        "nonisolated static ciContext: CIContext - one shared Core Image context for every render"
+      ],
+      "side_effects": [
+        "Creates Storage.wallpaperDirectory with intermediate directories during install",
+        "Copies the picked file into the library as \"wallpaper-<UUID uuidString>.<ext>\"",
+        "Deletes the destination file when the copy or decode fails, deletes the previous wallpaper file on a successful install, and deletes the file in remove()",
+        "Writes UserDefaults keys \"wallpaperSoftness\" (Double) and \"wallpaperFile\" (String file name); removeObject for \"wallpaperFile\" on remove()",
+        "Starts and cancels detached Tasks at .userInitiated priority for decode, downsample and blur",
+        "Acquires and releases a security-scoped resource on the picked source URL",
+        "Runs SwiftUI animations when the image appears or clears"
+      ],
+      "platform_assumptions": [
+        "AppKit NSImage/NSSize for the rendered picture",
+        "ImageIO CGImageSource thumbnail downsampling",
+        "Core Image CIGaussianBlur and CIContext with .useSoftwareRenderer: false (GPU-backed)",
+        "UniformTypeIdentifiers UTType conformance checks against .image",
+        "macOS App Sandbox security-scoped URLs from NSOpenPanel ('The panel hands over a scoped URL, which dies with the panel')",
+        "Swift @Observable macro and @ObservationIgnored, @MainActor isolation, nonisolated statics and @unchecked Sendable for the NSImage hand-off"
+      ],
+      "persisted_fields": [
+        "\"wallpaperSoftness\" - Double in UserDefaults; read via defaults.object(forKey:) as? Double with default 0, then clamped to 0...1",
+        "\"wallpaperFile\" - String in UserDefaults, the last path component of the installed file inside Storage.wallpaperDirectory; ignored when empty, and the file must still exist or nothing is loaded"
+      ],
+      "ui_elements": [
+        "lastError string when the pick is not an image, exactly: \"That is not a picture.\"",
+        "lastError string when copy or decode fails, exactly: \"Could not use that picture.\"",
+        "remove() animation: withAnimation(.easeOut(duration: 0.25)) { image = nil }",
+        "finishInstall animation: withAnimation(.spring(duration: 0.45, bounce: 0.2)) { image = picture.image }",
+        "render() sets self.image with no animation on purpose: 'an animated bitmap swap makes the picture flash'",
+        "acceptedTypes = [.image] drives the open panel's allowed content types"
+      ],
+      "feature_notes": [
+        "Blur radius formula: radius = softness * 28 * radiusScale; a radius <= 0.01 returns the base image unchanged.",
+        "Downsample sizes: full render maxPixel 3200, live preview maxPixel 1600 (and decode() during install also uses 3200).",
+        "Live preview radiusScale = CGFloat(previewBase.width) / CGFloat(baseImage.width), so the half-size copy gets a proportionally smaller radius and the drag looks the same as the final render.",
+        "Softness didSet guards against infinite recursion: the clamp is only written back when clamped != softness, otherwise 'dragging the softness slider crashed the app' (stack overflow). This is a recorded bug fix, not decoration.",
+        "isAdjustingSoftness didSet: ignores no-op changes and does nothing when fileURL is nil; on true it calls renderLive(), on false it clears liveRequested and calls the full render().",
+        "renderLive() runs at most one live render at a time (guard liveTask == nil) and coalesces: takeLiveRequest() returns the newest requested softness and nils it, so a fast drag never queues work.",
+        "renderLive() falls back to the full render() when previewBase or baseImage is missing.",
+        "render() computes both thumbnails (3200 and 1600) in one detached task, then blurs in a second detached task, then verifies !Task.isCancelled and self.fileURL == fileURL before publishing - a newer render or a removed wallpaper discards the result.",
+        "install() rejects non-images before any I/O, sets isInstalling = true and clears lastError, cancels any pending render, and captures the current softness for the detached decode.",
+        "The blur clamps the image to its extent before filtering and crops back to the original extent so edges stay solid: 'the middle softens while the frame stays solid.'",
+        "accepts(_:) checks the file extension's UTType first and falls back to the URL's .contentTypeKey resource value.",
+        "hasWallpaper is true when either image or fileURL is non-nil, so the settings card shows a wallpaper as present while it is still rendering.",
+        "Consumed by RootView.swift:64 as WindowBackdrop(opacity: model.settings.backdropOpacity, wallpaper: WallpaperStore.shared.image)."
+      ],
+      "unresolved_questions": [
+        "Storage.wallpaperDirectory's actual path and WebsiteCaptures.defaults' suite name are defined outside this bundle, so the on-disk location and the UserDefaults domain of \"wallpaperSoftness\"/\"wallpaperFile\" cannot be pinned here.",
+        "Nothing in this file clears baseImage/previewBase in remove(), so stale CGImages for a removed wallpaper stay in memory until another install; whether that is intentional is not stated."
+      ]
+    }
+  ]
+}
