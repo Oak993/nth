@@ -166,3 +166,61 @@ selection are blocked until Gate A and Gate B are satisfied (contract sections 5
   file a just-exited child had read), which damaged evidence until the gate caught it. Restore is
   now retried with backoff. Same defect class the product will hit in git, checkpoint and store
   writes.
+
+---
+
+# GATE A CLOSED (2026-09-19)
+
+`node porting/tools/verify.mjs --gate A` -> **12/12 PASS**.
+Full run -> PASS=12, NOT_IMPLEMENTED=5, exit 1, RESULT: NOT ACCEPTABLE. Correct: Gates B-F are
+not built and fail by design.
+
+Port commits: `9f66288` (Gate A evidence), `ddfff51` (line-ending pin).
+
+## What Gate A rests on
+
+| Evidence | Value |
+| --- | --- |
+| Files read with evidence | 433/433 |
+| Ledger records, 1:1 with inventory | 433 |
+| Digests re-verified against the pinned reference | 433 |
+| Critic findings raised / adjudicated | 182 / 258 |
+| Verdicts | 222 CRITIC_CORRECT, 41 PARTIALLY_CORRECT, 1 CRITIC_WRONG |
+| Verbatim extracts | 7 files, 520 KB |
+| Upstream defects to reproduce | 99 |
+| Dead/unreachable items with proof | 60 |
+| Port impacts | 264 |
+| Platform adaptations | 15 |
+| Unknowns | 11 |
+| Negative checks detected / injected | 6 / 6 |
+
+## Corrections made to this port`s own records
+
+1. PA-0011 said the Shell reader set had 47 entries. Source has **52**. Caught by an independent
+   critic, verified by counting, corrected in place with a note.
+2. The git extract said 19 sites at `timeout: 300`, then self-corrected to 12 mid-sentence.
+   Counted from source: **18 total, 12 git, 6 forge**. Recorded in the defects register.
+3. Upstream defect 22 implied the PKCE/CSRF token generation was cryptographically weak. It is
+   not: Swift`s default RNG is CSPRNG-backed on Apple platforms. Reframed as a **port hazard**
+   (the byte counts 32 and 24 and base64url are parity; the RNG choice is the port`s and must be
+   a platform CSPRNG on Windows).
+
+## Escalated rather than reproduced
+
+- **UNK-0010**: deleting a custom MCP server runs on one click with no confirmation
+  (`MCPSettingsPage.swift:564-566`) and also deletes the server`s Keychain secrets
+  (`MCPStore.swift:124`, `:193-199`), ignoring `confirmBeforeDeleting` which defaults true and is
+  honored by six other destructive paths. Reproducing it destroys credentials the user cannot
+  recover; fixing it silently is a product change. Contract section 8 requires escalation, so this
+  control is deferred until the owner decides.
+
+## Next: Gate B
+
+1. Derive `porting/architecture.md` from the ledger, the 7 extracts and direct reading.
+2. Build `porting/parity_matrix.json`: every atomic behavior with a stable ID, source evidence,
+   preconditions, action, expected result, side effects, persistence, failure and cancellation,
+   Windows path, verification method, status.
+3. Build `porting/ui_contract.json`: every screen, control, state, visual property, interaction,
+   seeded from the Chrome token extract, the reference captures and the UI-layer ledger records.
+4. Implement the Gate B checks in verify.mjs so completeness is machine-checked, not asserted.
+5. Only then the Windows stack evaluation, with Liquid Glass fidelity primary (OD-0003).
