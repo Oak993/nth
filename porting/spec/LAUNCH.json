@@ -1,0 +1,2046 @@
+{
+  "area": "LAUNCH",
+  "requirements": [
+    {
+      "id": "PR-LAUNCH-001",
+      "title": "Launch prologue runs six steps in a fixed, load-bearing order before any window exists",
+      "source_evidence": [
+        "DroppyCode/App/DroppyCodeApp.swift:3-19 @main struct DroppyCodeApp.init() - the whole prologue, in order: DCInstallNotificationGuard(), signal(SIGPIPE, SIG_IGN), WebsiteCaptures.prepare(), LegacyMigration.run(), HangWatchdog.start(), SwitchLatency.start()",
+        "DroppyCode/App/DroppyCodeApp.swift:8-9 comment - 'Before anything posts a notification'",
+        "DroppyCode/App/DroppyCodeApp.swift:13 comment - 'Before anything reads settings or the library.'"
+      ],
+      "preconditions": "Process has started; no window, no AppModel and no settings read has happened yet. AppDelegate is attached with @NSApplicationDelegateAdaptor (DroppyCodeApp.swift:5) but applicationDidFinishLaunching has not run.",
+      "action": "The process enters the app entry point.",
+      "expected_result": "Exactly these six steps run, in this order, synchronously on the main thread, before the scene body is evaluated and before applicationDidFinishLaunching: (1) DCInstallNotificationGuard(), (2) signal(SIGPIPE, SIG_IGN), (3) WebsiteCaptures.prepare(), (4) LegacyMigration.run(), (5) HangWatchdog.start(), (6) SwitchLatency.start(). No other work happens first. The ordering is stated by the source's own comments as load-bearing: the notification guard must precede any posted notification, and the capture prep plus legacy migration must precede any read of settings or the library.",
+      "side_effects": [
+        "Installs a process-wide NSNotificationCenter guard (see PR-LAUNCH-002)",
+        "Changes the SIGPIPE disposition process-wide (see PR-LAUNCH-003)",
+        "May create capture scratch directories and wipe a defaults suite (see PR-LAUNCH-008)",
+        "May copy UserDefaults keys and move an Application Support folder (see PR-LAUNCH-011, PR-LAUNCH-012)",
+        "Spawns the hang-watchdog background thread (see PR-LAUNCH-014)"
+      ],
+      "persistence": "Only through the steps it calls; the prologue itself persists nothing.",
+      "failure_cases": [
+        "No step reports failure to the caller; every one of the six is a void call with its own internal try?/guard handling. A failure inside any step cannot abort launch."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "A single startup function called before the main window is created and before the settings/library store is first touched, keeping the same relative order for the steps that are ported. Step 1 (an Objective-C exception net) has no Windows analogue and is not ported (port_impacts.md:384 entry 188); step 2 has no Windows analogue (no SIGPIPE) and is replaced by the pipe-write error handling recorded in platform_adaptations PA-0004.",
+      "verification_method": "unit test on the startup sequencer asserting call order; restart test asserting no settings or library read occurs before the migration step",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-002",
+      "title": "A process-wide notification guard swallows observer exceptions raised during the two name-based NSNotificationCenter post methods",
+      "source_evidence": [
+        "DroppyCode/App/DroppyCodeApp.swift:10 DCInstallNotificationGuard() - the call site, first statement of init()",
+        "DroppyCode/App/Window/DCNotificationGuard.m:43-56 DCInstallNotificationGuard - dispatch_once, swizzles postNotificationName:object:userInfo: and postNotificationName:object: with method_setImplementation, each guarded by a NULL Method check",
+        "DroppyCode/App/Window/DCNotificationGuard.m:27-41 DCPostWithUserInfoGuarded / DCPostObjectGuarded - @try around the saved original IMP, @catch calls DCNotificationRaised",
+        "DroppyCode/App/Window/DCNotificationGuard.m:5-22 DCNotificationLog/DCNotificationOrigin/DCNotificationRaised - os_log_create(\"iordv.droppycode\", \"notification\"), first MIN(frames.count, 12) callStackSymbols joined by newline",
+        "DroppyCode/App/Window/DCNotificationGuard.h:5-19 - doc comment naming the macOS 27 ViewBridge chain and +[NSApplication _crashOnException:]"
+      ],
+      "preconditions": "Process start, before any notification is posted.",
+      "action": "An observer raises an NSException while a notification is being posted through one of the two guarded selectors.",
+      "expected_result": "The exception does not escape the post. One os_log_error line is written on subsystem \"iordv.droppycode\", category \"notification\", with the verbatim format \"An observer raised while %{public}@ was posted, dropped: %{public}@ %{public}@\\n%{public}@\" carrying the notification name, exception.name, exception.reason (empty string when nil) and the first at most 12 call-stack frames joined by newlines. The post returns normally and the remaining work (window ordering, popover presentation) completes. The raising observer still never sees its notification.",
+      "side_effects": [
+        "Process-wide method swizzle affecting every NSNotificationCenter, including Apple framework posts",
+        "os_log error entries"
+      ],
+      "persistence": "Nothing is persisted.",
+      "failure_cases": [
+        "If either selector is absent, class_getInstanceMethod returns NULL and that swizzle is skipped silently; the other is still installed.",
+        "postNotification: (the NSNotification-object overload) is NOT guarded; an exception raised through it is not caught."
+      ],
+      "cancellation": "not cancellable; installation is idempotent via dispatch_once, so repeated calls neither stack guards nor lose the original IMPs",
+      "windows_path": "PLATFORM BOUNDARY: not ported. port_impacts.md:384 entry 188 - 'DCDisplayCycleGuardedWindow and DCNotificationGuard are macOS-only AppKit exception nets: Do not re-implement.' There is no NSNotificationCenter and no ViewBridge on Windows.",
+      "verification_method": "no Windows verification; recorded as a macOS-only construct in COMPATIBILITY notes",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-003",
+      "title": "SIGPIPE is ignored process-wide so a write to an exited provider process reports EPIPE instead of killing the app",
+      "source_evidence": [
+        "DroppyCode/App/DroppyCodeApp.swift:11-12 - comment 'Provider processes can exit while we write to them; report EPIPE instead of crashing.' followed by signal(SIGPIPE, SIG_IGN)"
+      ],
+      "preconditions": "Process start, step 2 of the prologue.",
+      "action": "The app writes to the stdin of a provider child process that has already exited.",
+      "expected_result": "The write fails with EPIPE and is handled by the caller; the app is not terminated by the signal.",
+      "side_effects": ["Changes the process-wide disposition of SIGPIPE"],
+      "persistence": "Nothing is persisted.",
+      "failure_cases": ["None reported; signal() returns the previous handler and the result is discarded."],
+      "cancellation": "not cancellable",
+      "windows_path": "PLATFORM BOUNDARY: Windows has no SIGPIPE. The equivalent is that a write to a closed pipe returns ERROR_BROKEN_PIPE / ERROR_NO_DATA, which must be surfaced to the same provider-session error path rather than thrown as an unhandled fault (platform_adaptations PA-0004).",
+      "verification_method": "unit test: write to a closed child stdin and assert the provider session reports the write error rather than the process faulting",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-004",
+      "title": "The app declares no SwiftUI windows; the only scene is a menus-only Settings scene",
+      "source_evidence": [
+        "DroppyCode/App/DroppyCodeApp.swift:21-25 body - comment 'The windows themselves are AppKit windows owned by WindowManager. This scene only carries the menus.' then Settings { EmptyView() }.commands { AppCommands(model: WindowManager.shared.model) }",
+        "DroppyCode/App/Window/WindowManager.swift:10-13 - WindowManager.shared with let model = AppModel(); the AppModel is constructed on the first access to WindowManager.shared"
+      ],
+      "preconditions": "Prologue has completed.",
+      "action": "The scene body is evaluated.",
+      "expected_result": "No application window is created by the scene graph. The scene exists only to install the menu bar commands built by AppCommands over WindowManager.shared.model. Evaluating the scene is therefore the first access to WindowManager.shared, which constructs the single AppModel.",
+      "side_effects": ["Constructs WindowManager.shared and, with it, the single AppModel instance (see PR-LAUNCH-034)"],
+      "persistence": "Nothing is persisted by the scene itself.",
+      "failure_cases": ["None."],
+      "cancellation": "not cancellable",
+      "windows_path": "A single application-owned window manager builds the real windows; the menu bar is built separately from the same model. Windows has no macOS Settings scene, so the menu carrier has no direct analogue and the commands attach to the application's menu and accelerator table.",
+      "verification_method": "unit test that no window exists until showMain() is called",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-005",
+      "title": "Capture-run launch arguments are parsed exactly once per process, by exact token match, in the order --website-captures then --tour-captures",
+      "source_evidence": [
+        "DroppyCode/Core/Support/CaptureRun.swift:10-19 outputDirectory - a nonisolated static let whose initializer scans CommandLine.arguments for the flags in the literal array [\"--website-captures\", \"--tour-captures\"], requiring arguments.indices.contains(index + 1), and returns URL(fileURLWithPath: arguments[index + 1], isDirectory: true)",
+        "DroppyCode/Core/Support/CaptureRun.swift:27 isEnabled - outputDirectory != nil"
+      ],
+      "preconditions": "Process launched with or without the flags.",
+      "action": "Any code reads CaptureRun.outputDirectory or CaptureRun.isEnabled for the first time.",
+      "expected_result": "The arguments are scanned once and the result cached for the process lifetime. --website-captures is checked first; if it is present with a following argument, that argument is the output folder and --tour-captures is not consulted. A flag with no following argument is ignored. With neither flag present, outputDirectory is nil and isEnabled is false, which is the normal launch.",
+      "side_effects": ["Reads process launch arguments"],
+      "persistence": "Nothing is persisted.",
+      "failure_cases": ["A flag as the last argument is ignored (the indices.contains(index + 1) guard fails) and the scan continues to the next flag."],
+      "cancellation": "not cancellable",
+      "windows_path": "OPEN ENGINEERING DECISION: whether capture mode is ported at all. port_impacts.md:344 entry 168 records 'Capture mode is tooling, not shipped behaviour' while requiring exact argv token matching, next-argv-element-is-the-folder, a single parse per process and the derived <folder>/storage redirection if it IS ported; dead_code.md entries 33, 38 and 42 state the subsystem is shipped but unreachable in a user launch and that the port does not need it.",
+      "verification_method": "unit test over an argv vector table",
+      "status": "DISCOVERED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-006",
+      "title": "A --tour-captures launch is a distinguishable sub-mode of the same capture machinery",
+      "source_evidence": [
+        "DroppyCode/Core/Support/CaptureRun.swift:21-25 isTourRun - true only when \"--tour-captures\" is present AND a following argument exists",
+        "DroppyCode/App/Captures/WebsiteCaptures.swift:303-304 run(model:) - 'if isTourRun { await TourCaptures.run(model: model); return }'"
+      ],
+      "preconditions": "Capture run is enabled.",
+      "action": "The capture run starts.",
+      "expected_result": "isTourRun is true only for --tour-captures with a following argument. The tour run takes the TourCaptures path; every other capture run takes the website path. isTourRun re-scans CommandLine.arguments on each read (it is a computed var, unlike outputDirectory which is a cached let).",
+      "side_effects": [],
+      "persistence": "Nothing is persisted.",
+      "failure_cases": ["--tour-captures without a following argument yields isTourRun false, and outputDirectory is also nil, so no capture run starts."],
+      "cancellation": "not cancellable",
+      "windows_path": "Same open decision as PR-LAUNCH-005.",
+      "verification_method": "unit test over an argv vector table",
+      "status": "DISCOVERED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-007",
+      "title": "A capture run redirects the store root to <output>/storage and the defaults to its own suite",
+      "source_evidence": [
+        "DroppyCode/Core/Support/CaptureRun.swift:30-32 storageRoot - outputDirectory?.appendingPathComponent(\"storage\", isDirectory: true)",
+        "DroppyCode/Core/Support/CaptureRun.swift:35-37 defaults - isEnabled ? UserDefaults(suiteName: suiteName) : nil",
+        "DroppyCode/Core/Support/CaptureRun.swift:40 suiteName - the literal \"iordv.droppycode.website-captures\"",
+        "DroppyCode/Services/Store/Storage.swift:19-25 root - 'if let captures = CaptureRun.storageRoot { return captures }' before the Application Support path"
+      ],
+      "preconditions": "Capture run enabled.",
+      "action": "Storage or settings resolve their location.",
+      "expected_result": "Storage.root becomes <output>/storage and every defaults read or write that consults CaptureRun.defaults uses the suite \"iordv.droppycode.website-captures\". In a normal launch both accessors return nil and callers fall back to the Application Support root and UserDefaults.standard.",
+      "side_effects": ["Creates or opens the named UserDefaults suite"],
+      "persistence": "The suite name \"iordv.droppycode.website-captures\" and the \"storage\" subfolder name are the persisted identifiers.",
+      "failure_cases": ["None; both are optional accessors."],
+      "cancellation": "not cancellable",
+      "windows_path": "Same open decision as PR-LAUNCH-005. port_impacts.md:188 entry 90 - if capture mode is dropped, the CaptureRun.defaults indirection must still be kept because AppModel.notify and threadNeedsAttention hard-bail on the same flag.",
+      "verification_method": "unit test on the store-root resolver",
+      "status": "DISCOVERED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-008",
+      "title": "WebsiteCaptures.prepare() runs in the prologue and is a no-op in a normal launch",
+      "source_evidence": [
+        "DroppyCode/App/DroppyCodeApp.swift:13-14 - comment 'Before anything reads settings or the library.' then WebsiteCaptures.prepare()",
+        "DroppyCode/App/Captures/WebsiteCaptures.swift:84-85 prepare() - 'guard let output = outputDirectory, let root = storageRoot, let defaults else { return }'",
+        "DroppyCode/App/Captures/WebsiteCaptures.swift:86-109 - removes the storage root, creates <root>/threads and <output>/films, removes the persistent domain for CaptureRun.suiteName and writes the run's fixed defaults"
+      ],
+      "preconditions": "Prologue step 3.",
+      "action": "prepare() is called unconditionally.",
+      "expected_result": "In a normal launch all three optionals are nil and prepare() returns immediately, touching nothing. In a capture launch it deletes and recreates the run's scratch storage, wipes the run's defaults suite and seeds it.",
+      "side_effects": ["Capture launch only: filesystem delete and create, defaults domain wipe"],
+      "persistence": "Capture launch only, in the capture suite.",
+      "failure_cases": ["All filesystem calls use try? and failures are silent."],
+      "cancellation": "not cancellable",
+      "windows_path": "Same open decision as PR-LAUNCH-005; in a normal launch this is an inert call and the port may omit it entirely.",
+      "verification_method": "unit test: normal launch performs no filesystem write in this step",
+      "status": "DISCOVERED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-009",
+      "title": "Legacy migration is skipped entirely in a development build",
+      "source_evidence": [
+        "DroppyCode/App/LegacyMigration.swift:10 - 'guard !AppInfo.isDevelopment else { return }' as the first statement of run()",
+        "DroppyCode/Core/Support/Text.swift:5 AppInfo.isDevelopment - Bundle.main.bundleIdentifier == \"iordv.droppycode.dev\""
+      ],
+      "preconditions": "Prologue step 4; the running bundle identifier is \"iordv.droppycode.dev\".",
+      "action": "LegacyMigration.run() is called.",
+      "expected_result": "run() returns immediately. No defaults are copied, no folder is moved, and the marker key is NOT written, so a later release build on the same machine still performs the migration.",
+      "side_effects": [],
+      "persistence": "Nothing is persisted in a development build.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Keep a build-identity check with the same semantics: a development build never migrates and never consumes the marker. The identity token is a Windows build identifier, not a bundle id.",
+      "verification_method": "unit test with the development identity set",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-010",
+      "title": "Legacy migration runs at most once, guarded by the boolean default \"migratedFromEarlierName\"",
+      "source_evidence": [
+        "DroppyCode/App/LegacyMigration.swift:5 - private static let marker = \"migratedFromEarlierName\"",
+        "DroppyCode/App/LegacyMigration.swift:11-12 - 'let defaults = UserDefaults.standard' then 'guard !defaults.bool(forKey: marker) else { return }'",
+        "DroppyCode/App/LegacyMigration.swift:25 - defaults.set(true, forKey: marker)"
+      ],
+      "preconditions": "Release build; the marker key is absent or false.",
+      "action": "LegacyMigration.run() is called.",
+      "expected_result": "The migration body runs, and at the end the key \"migratedFromEarlierName\" is set to true in the standard defaults. On every later launch the guard short-circuits and the migration never runs again.",
+      "side_effects": ["One boolean write to the standard defaults"],
+      "persistence": "UserDefaults.standard key \"migratedFromEarlierName\", Bool, absent by default (read as false).",
+      "failure_cases": ["None; the write is unconditional once the body is reached."],
+      "cancellation": "not cancellable",
+      "windows_path": "Same key name, same type, same default, in the Windows settings store.",
+      "verification_method": "restart test: second launch performs no migration work",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-011",
+      "title": "Legacy migration copies every key of the former bundle's defaults domain, and an existing value always wins",
+      "source_evidence": [
+        "DroppyCode/App/LegacyMigration.swift:6 - private static let formerBundleIdentifier = \"iordv.cody\"",
+        "DroppyCode/App/LegacyMigration.swift:13-17 - 'if let former = defaults.persistentDomain(forName: formerBundleIdentifier) { for (key, value) in former where defaults.object(forKey: key) == nil { defaults.set(value, forKey: key) } }'"
+      ],
+      "preconditions": "Release build, marker false, a persistent defaults domain exists for \"iordv.cody\".",
+      "action": "The migration body runs.",
+      "expected_result": "Every key in the former domain whose current value is nil is written into the standard defaults under the same key with the same value. A key that already has any current value is left untouched. Keys are copied in unspecified dictionary order; the outcome does not depend on order because each decision is per key.",
+      "side_effects": ["Reads another bundle identifier's persistent defaults domain; writes zero or more keys into the standard defaults"],
+      "persistence": "Arbitrary keys, copied verbatim under their own names.",
+      "failure_cases": ["No former domain: the whole 'if let' is skipped and the folder move is still attempted."],
+      "cancellation": "not cancellable",
+      "windows_path": "PLATFORM BOUNDARY: Windows has no per-bundle-identifier defaults domain. The port must define the former settings location for the earlier Windows name and reproduce the existing-value-wins rule. If the Windows build has no predecessor under the former name, the copy has no source and only the marker write applies.",
+      "verification_method": "unit test with a seeded former store, asserting existing values win",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-012",
+      "title": "Legacy migration renames the Application Support folder \"Cody\" to \"Droppy Code\" only when the destination does not exist",
+      "source_evidence": [
+        "DroppyCode/App/LegacyMigration.swift:7 - private static let formerSupportFolder = \"Cody\"",
+        "DroppyCode/App/LegacyMigration.swift:18-24 - support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]; formerLibrary = support/\"Cody\"; library = support/\"Droppy Code\"; 'if fileManager.fileExists(atPath: formerLibrary.path), !fileManager.fileExists(atPath: library.path) { try? fileManager.moveItem(at: formerLibrary, to: library) }'"
+      ],
+      "preconditions": "Release build, marker false.",
+      "action": "The migration body reaches the folder step.",
+      "expected_result": "If ~/Library/Application Support/Cody exists and ~/Library/Application Support/Droppy Code does not, the former is moved (a single rename) to the latter, carrying the library, thread histories and attachments. If either condition fails, nothing is moved and an existing new-name library is never clobbered. The destination name is the literal \"Droppy Code\" with a space, created with isDirectory: true.",
+      "side_effects": ["One filesystem move of a whole directory tree"],
+      "persistence": "The library, thread documents and attachments change location.",
+      "failure_cases": [
+        "The move is wrapped in try? - a failure (permissions, cross-volume, partial state) is silently ignored, the marker is still set to true at :25, and the migration is never retried."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "PLATFORM BOUNDARY: %APPDATA% or %LOCALAPPDATA% in place of ~/Library/Application Support (port_impacts.md entry 113 requires the two-root split to be chosen deliberately). The same existence preconditions and the same silent-failure-then-mark-done behavior must be reproduced.",
+      "verification_method": "integration test over the four existence combinations, plus a failing-move case asserting the marker is still set",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-013",
+      "title": "UPSTREAM DEFECT: the migration's destination folder is the hardcoded literal \"Droppy Code\", not AppInfo.name",
+      "source_evidence": [
+        "DroppyCode/App/LegacyMigration.swift:21 - support.appendingPathComponent(\"Droppy Code\", isDirectory: true), a string literal",
+        "DroppyCode/Services/Store/Storage.swift:22 - base.appendingPathComponent(AppInfo.name, isDirectory: true), the folder the app actually reads",
+        "DroppyCode/Core/Support/Text.swift:4 AppInfo.name - CFBundleDisplayName with fallback \"Droppy Code\"",
+        "porting/upstream_defects.md:105 entry 46"
+      ],
+      "preconditions": "Release build, marker false, the old folder present.",
+      "action": "The migration moves the folder while the app's display name is not \"Droppy Code\".",
+      "expected_result": "The migration writes to a folder named by the literal while Storage reads from a folder named by the display name. With the display name unchanged the two agree and the defect is invisible; with a changed display name the migrated library lands in a folder the store never reads and the user appears to have lost everything. This is upstream behavior and is recorded as such.",
+      "side_effects": ["A folder the store does not read"],
+      "persistence": "The moved library tree.",
+      "failure_cases": ["Silent: nothing reports the mismatch."],
+      "cancellation": "not cancellable",
+      "windows_path": "SIGNIFICANT for this port, because the product identity is renamed by owner-approved deviation. The literal and the store's name-derived path must be reconciled as a deliberate, recorded decision rather than copied blindly; copying the literal would migrate into a folder the Windows store never reads, which is data loss rather than an ordinary quirk. Escalate under the standing contract if reproducing it would strand a user's library.",
+      "verification_method": "integration test asserting the migrated folder is the folder the store subsequently reads",
+      "status": "DISCOVERED",
+      "upstream_defect": "46",
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-014",
+      "title": "The hang watchdog starts once and runs a background thread that pings and checks every 0.5 seconds",
+      "source_evidence": [
+        "DroppyCode/App/DroppyCodeApp.swift:16-17 - comment 'A frozen main thread gets its stacks written to ~/Library/Logs/Droppy Code.' then HangWatchdog.start()",
+        "DroppyCode/Core/Support/HangWatchdog.swift:42-60 start() - the state.withLock started latch returning false on a second call, then a Thread whose body is 'while true { Thread.sleep(forTimeInterval: 0.5); ping(); check() }', thread.name = \"hang-watchdog\", thread.qualityOfService = .utility",
+        "DroppyCode/Core/Support/HangWatchdog.swift:34-40 - OSAllocatedUnfairLock<State> with lastPong, reportedThisStall, started",
+        "DroppyCode/Core/Support/HangWatchdog.swift:15-16 - 'it stays on in every build'"
+      ],
+      "preconditions": "Prologue step 5.",
+      "action": "HangWatchdog.start() is called, possibly more than once.",
+      "expected_result": "The first call sets started = true, sets lastPong to now, and starts one background thread named \"hang-watchdog\" at utility quality of service which loops forever: sleep 0.5 s, ping, check. Every later call returns without starting a second thread. The watchdog is active in every build, not only debug.",
+      "side_effects": [
+        "One never-ending background thread",
+        "One block enqueued on the main queue every 0.5 s"
+      ],
+      "persistence": "Nothing is persisted.",
+      "failure_cases": ["None; the loop has no exit and no error path."],
+      "cancellation": "not cancellable; there is no stop() and nothing tears the thread down at quit (see PR-LAUNCH-021)",
+      "windows_path": "A dedicated background thread or timer with the same 0.5 s cadence posting work to the UI thread. The ping-the-UI-thread-and-time-the-answer technique ports directly.",
+      "verification_method": "unit test on the watchdog with an injected clock; idempotence test for a second start()",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-015",
+      "title": "Each ping resets the last-pong time and clears the reported-this-stall flag on the main thread",
+      "source_evidence": [
+        "DroppyCode/Core/Support/HangWatchdog.swift:62-69 ping() - DispatchQueue.main.async { state.withLock { state.lastPong = Date(); state.reportedThisStall = false } }"
+      ],
+      "preconditions": "Watchdog thread running.",
+      "action": "The watchdog enqueues a ping and the main thread drains it.",
+      "expected_result": "lastPong becomes the time the main thread ran the block and reportedThisStall becomes false, so the next stall is eligible for its own report. A main thread that never drains the block never updates lastPong, which is exactly the condition the check detects.",
+      "side_effects": ["One main-queue block every 0.5 s"],
+      "persistence": "Nothing is persisted.",
+      "failure_cases": ["A wedged main thread simply never runs the block; that is the detection mechanism, not a failure."],
+      "cancellation": "not cancellable",
+      "windows_path": "Post to the UI thread's message queue and timestamp when it runs.",
+      "verification_method": "unit test: block the UI thread and assert lastPong stops advancing",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-016",
+      "title": "A main thread unresponsive for 4 seconds produces exactly one hang report per stall",
+      "source_evidence": [
+        "DroppyCode/Core/Support/HangWatchdog.swift:24 - private static let stallThreshold: TimeInterval = 4",
+        "DroppyCode/Core/Support/HangWatchdog.swift:71-81 check() - 'guard stalled >= stallThreshold, !state.reportedThisStall else { return nil }' then 'state.reportedThisStall = true' under the lock, then log.error and writeReport(stalledFor:)",
+        "DroppyCode/Core/Support/HangWatchdog.swift:79 - log.error(\"Main thread unresponsive for \\(stalledFor, format: .fixed(precision: 1))s, sampling\")",
+        "DroppyCode/Core/Support/HangWatchdog.swift:12-13 - 'One report per stall; the next stall gets one of its own.'"
+      ],
+      "preconditions": "Watchdog running; the main thread has not answered a ping for at least 4 seconds.",
+      "action": "check() runs on the watchdog thread.",
+      "expected_result": "reportedThisStall is set to true under the lock before any sampling, one os_log error line is written on subsystem \"iordv.droppycode\", category \"hang\" reading \"Main thread unresponsive for <x.x>s, sampling\" with one fractional digit, and one report is written. Further checks during the same stall return early. The flag is cleared only by the next ping that the main thread actually runs.",
+      "side_effects": ["One os_log error line; one report file (see PR-LAUNCH-018)"],
+      "persistence": "A report file under the logs folder.",
+      "failure_cases": ["None; the guard is total."],
+      "cancellation": "not cancellable",
+      "windows_path": "Same threshold (the literal 4 seconds), same one-report-per-stall latch, writing to the Windows per-user application log location chosen under platform_adaptations PA-0005.",
+      "verification_method": "unit test with an injected clock: one report for a 30 s stall, a second report after a recovery and a new stall",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-017",
+      "title": "The hang report is written by running /usr/bin/sample against this process for 2 seconds, from the watchdog thread",
+      "source_evidence": [
+        "DroppyCode/Core/Support/HangWatchdog.swift:28 - private static let sampleSeconds = 2",
+        "DroppyCode/Core/Support/HangWatchdog.swift:83-84 - 'Runs on the watchdog's own thread, never the main one, so a stuck main thread cannot stop the report.'",
+        "DroppyCode/Core/Support/HangWatchdog.swift:95-100 - process.executableURL = URL(fileURLWithPath: \"/usr/bin/sample\"); process.arguments = [String(ProcessInfo.processInfo.processIdentifier), String(sampleSeconds), \"-mayDie\"]; one Pipe used for both standardOutput and standardError",
+        "DroppyCode/Core/Support/HangWatchdog.swift:102-112 - try process.run(); readDataToEndOfFile(); waitUntilExit(); body = String(decoding: data, as: UTF8.self); the non-zero-status prefix and the catch body"
+      ],
+      "preconditions": "A stall was just detected.",
+      "action": "writeReport(stalledFor:) runs.",
+      "expected_result": "The external process /usr/bin/sample is launched with the exact three-element argument vector [<this process's pid>, \"2\", \"-mayDie\"], its combined stdout and stderr are read to end, and the process is waited on. The whole operation happens on the watchdog thread so a wedged main thread cannot block it.",
+      "side_effects": ["Launches an external process; reads its output"],
+      "persistence": "Feeds the report body.",
+      "failure_cases": [
+        "process.terminationStatus != 0: the body is prefixed with the verbatim string \"sample exited with status <n>\\n\\n\" and the rest of the captured output is kept",
+        "try process.run() throws: the body becomes the verbatim string \"sample could not run: <error.localizedDescription>\\n\" and no output is read"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "PLATFORM BOUNDARY: there is no /usr/bin/sample. The Windows equivalent must capture every thread's stack for the running process, for example via the debug help APIs on the process itself or a bundled stack-walk helper. The requirement is 'every thread's stack plus the header', not 'the output of a tool named sample'. The two failure bodies name a macOS tool, so their Windows wording is a deliberate, recorded choice.",
+      "verification_method": "integration test asserting a stack-bearing report file is produced while the UI thread is blocked",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-018",
+      "title": "The hang report file name, location and header are exact",
+      "source_evidence": [
+        "DroppyCode/Core/Support/HangWatchdog.swift:118-121 reportsFolder() - FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first ?? URL(fileURLWithPath: NSHomeDirectory() + \"/Library\"), then appendingPathComponent(\"Logs/Droppy Code\", isDirectory: true)",
+        "DroppyCode/Core/Support/HangWatchdog.swift:86-89 - createDirectory(withIntermediateDirectories: true); stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: \":\", with: \"-\"); file = folder/\"hang-\\(stamp).txt\"",
+        "DroppyCode/Core/Support/HangWatchdog.swift:91-93 - header = \"Droppy Code main thread unresponsive for \\(String(format: \"%.1f\", stalledFor))s\\n\" + \"Version \\(CFBundleShortVersionString ?? \"?\") (\\(CFBundleVersion ?? \"?\"))\\n\" + \"Sampled at \\(Date())\\n\\n\"",
+        "DroppyCode/Core/Support/HangWatchdog.swift:113-114 - try? (header + body).write(to: file, atomically: true, encoding: .utf8); log.error(\"Hang report written to \\(file.path, privacy: .public)\")"
+      ],
+      "preconditions": "A stall was detected and the sample step has produced a body.",
+      "action": "The report is written.",
+      "expected_result": "The folder ~/Library/Logs/Droppy Code is created if missing. The file is named hang-<stamp>.txt where <stamp> is an ISO8601 timestamp with every ':' replaced by '-'. The file contains, in order: line 1 \"Droppy Code main thread unresponsive for <x.x>s\" with exactly one fractional digit; line 2 \"Version <CFBundleShortVersionString or ?> (<CFBundleVersion or ?>)\"; line 3 \"Sampled at <Date description>\"; then a blank line; then the body. The write is atomic and UTF-8. One os_log error line \"Hang report written to <path>\" follows, with the path marked public.",
+      "side_effects": ["Creates a directory; writes one text file; one os_log line"],
+      "persistence": "One report file per stall under the logs folder.",
+      "failure_cases": ["The write uses try? - a write failure is silent, and the 'Hang report written to' log line is emitted anyway."],
+      "cancellation": "not cancellable",
+      "windows_path": "PLATFORM BOUNDARY (platform_adaptations PA-0005): a per-user application log location replaces ~/Library/Logs. The file-name pattern, the timestamp sanitisation (a Windows filename cannot contain ':' either, so the same replacement is required), the three header lines and the blank separator line are all reproduced. The product name inside the header line follows the approved rename.",
+      "verification_method": "integration test on the written file's name and first four lines",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-019",
+      "title": "Hang reports are trimmed to the 10 newest, by ascending file name",
+      "source_evidence": [
+        "DroppyCode/Core/Support/HangWatchdog.swift:30-32 - private static let keptReports = 10, with the comment 'so a machine that freezes often does not fill its logs folder'",
+        "DroppyCode/Core/Support/HangWatchdog.swift:123-130 trimReports(in:) - contentsOfDirectory, filter { $0.hasPrefix(\"hang-\") && $0.hasSuffix(\".txt\") }, sorted(), 'guard reports.count > keptReports else { return }', then removeItem for reports.prefix(reports.count - keptReports)",
+        "DroppyCode/Core/Support/HangWatchdog.swift:115 - trimReports(in: folder) called after the write"
+      ],
+      "preconditions": "A report has just been written into the folder.",
+      "action": "trimReports runs.",
+      "expected_result": "Only files whose name starts with \"hang-\" and ends with \".txt\" are considered. They are sorted by name ascending, which given the ISO8601 stamp is chronological, and the oldest are deleted until exactly 10 remain. Files that do not match the pattern are never touched.",
+      "side_effects": ["Deletes report files"],
+      "persistence": "At most 10 report files survive.",
+      "failure_cases": [
+        "contentsOfDirectory failing returns early and nothing is trimmed",
+        "Each removeItem is try? and a failure is silent"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Same 10-file cap, same prefix and suffix filter, same ascending-name ordering.",
+      "verification_method": "unit test seeding 13 report files and asserting the 3 oldest are removed and non-matching files survive",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-020",
+      "title": "The hang watchdog logs under subsystem \"iordv.droppycode\", category \"hang\"",
+      "source_evidence": [
+        "DroppyCode/Core/Support/HangWatchdog.swift:18 - private static let log = Logger(subsystem: \"iordv.droppycode\", category: \"hang\")"
+      ],
+      "preconditions": "Watchdog running.",
+      "action": "Either watchdog log line is emitted.",
+      "expected_result": "Both lines carry subsystem \"iordv.droppycode\" and category \"hang\".",
+      "side_effects": ["os_log entries"],
+      "persistence": "Nothing beyond the system log.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "A named logging channel with the same two-part identity, or the port's chosen equivalent; the identity strings follow the approved rename decision rather than being copied blindly.",
+      "verification_method": "unit test on the logging channel identity",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-021",
+      "title": "The hang watchdog is never stopped, including at quit",
+      "source_evidence": [
+        "DroppyCode/Core/Support/HangWatchdog.swift:50-56 - the thread body is 'while true' with no cancellation check and no exit",
+        "DroppyCode/Core/Support/HangWatchdog.swift:17-131 - the enum declares no stop(), pause() or teardown",
+        "DroppyCode/App/AppDelegate.swift:50-55 applicationWillTerminate - saveBeforeQuit, flushLiveSpend and MCPHub.terminateAll only; the watchdog is not touched"
+      ],
+      "preconditions": "App is quitting.",
+      "action": "The termination sequence runs.",
+      "expected_result": "The watchdog thread keeps pinging and checking until the process itself exits. A stall during the quit sequence can therefore still produce a report.",
+      "side_effects": ["A report can be written during the quit sequence"],
+      "persistence": "Possibly one more report file.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Reproduce: the watchdog thread is not joined or stopped by the shutdown sequence. It must not, however, keep the process alive - it must be a background or daemon thread so process exit is not blocked.",
+      "verification_method": "restart test: the process exits cleanly with the watchdog thread still running",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-022",
+      "title": "The switch-latency instrument installs nothing outside a development build",
+      "source_evidence": [
+        "DroppyCode/App/DroppyCodeApp.swift:18 - SwitchLatency.start()",
+        "DroppyCode/Core/Support/SwitchLatency.swift:20-21 start() - 'guard AppInfo.isDevelopment, observer == nil else { return }'",
+        "DroppyCode/Core/Support/SwitchLatency.swift:22-38 - CFRunLoopObserverCreateWithHandler(nil, afterWaiting|beforeWaiting, true, 0, handler) added to CFRunLoopGetMain() in .commonModes",
+        "DroppyCode/Core/Support/Text.swift:5 - AppInfo.isDevelopment is bundleIdentifier == \"iordv.droppycode.dev\""
+      ],
+      "preconditions": "Prologue step 6.",
+      "action": "SwitchLatency.start() is called.",
+      "expected_result": "In a shipped build AppInfo.isDevelopment is false, the guard returns, observer stays nil, and the instrument costs nothing but the guard. In a development build one repeating run-loop observer with order 0 is installed on the main run loop in common modes, for the activities afterWaiting and beforeWaiting, and a second start() is a no-op because observer is non-nil.",
+      "side_effects": ["Development build only: one main-run-loop observer"],
+      "persistence": "Nothing is persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable; there is no stop()",
+      "windows_path": "Development-only instrumentation with no user-visible behavior in a shipped build. The port is not required to reproduce it; if it is kept, it must be inert in release exactly as here. The observable shipped behavior of this requirement is that nothing happens.",
+      "verification_method": "unit test: release identity installs no observer",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-023",
+      "title": "Selecting a thread notes the switch for the latency instrument; the note is a no-op in a shipped build",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:72-78 selectedThreadID didSet - 'SwitchLatency.noteSwitch(to: selectedThreadID.flatMap(thread)?.title ?? \"none\")', only when oldValue != selectedThreadID",
+        "DroppyCode/Core/Support/SwitchLatency.swift:48-57 noteSwitch(to:) - 'guard observer != nil else { return }', then the pending-window log line, os_signpost(.event, log: pointsOfInterest, name: \"switch\", \"%{public}s\", title), switchStart = CFAbsoluteTimeGetCurrent(), busySince = switchStart, firstSpan = nil, busyTotal = 0, label = String(title.prefix(24))",
+        "DroppyCode/Core/Support/SwitchLatency.swift:42-45 note(_:) - the same observer guard"
+      ],
+      "preconditions": "The selected thread changes to a different id, including to nil.",
+      "action": "AppModel.selectedThreadID is assigned a different value.",
+      "expected_result": "noteSwitch is called with the newly selected thread's title, or the literal \"none\" when nothing is selected. In a shipped build the observer is nil and the call returns immediately with no log, no signpost and no state change. In a development build the label is the first 24 characters of the title, a points-of-interest signpost named \"switch\" is emitted with the full title as a public string, and the measurement window restarts.",
+      "side_effects": ["Development build only: os_log and os_signpost"],
+      "persistence": "Nothing is persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The call site stays as a single no-op-capable hook so the selection path matches; no user-visible behavior in a shipped build.",
+      "verification_method": "unit test: a selection change calls the hook exactly once with the expected label, and the hook is inert in release",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-024",
+      "title": "The switch-latency measurement window is one second and produces two distinct log lines",
+      "source_evidence": [
+        "DroppyCode/Core/Support/SwitchLatency.swift:25-36 - on afterWaiting busySince = now and return; on beforeWaiting, 'guard switchStart > 0', span = (now - max(busySince, switchStart)) * 1000, firstSpan set once, busyTotal += span, and when now - switchStart >= 1 it logs and clears switchStart",
+        "DroppyCode/Core/Support/SwitchLatency.swift:34 - log.notice(\"switch to \\(label): blocked \\(Int(firstSpan ?? 0)) ms, busy \\(Int(busyTotal)) ms in 1 s\")",
+        "DroppyCode/Core/Support/SwitchLatency.swift:50 - log.notice(\"switch to \\(label): blocked \\(Int(firstSpan ?? 0)) ms, busy \\(Int(busyTotal)) ms before the next switch\")",
+        "DroppyCode/Core/Support/SwitchLatency.swift:11-12 - Logger(subsystem: \"iordv.droppycode\", category: \"switch\") and OSLog(subsystem: \"iordv.droppycode\", category: .pointsOfInterest)"
+      ],
+      "preconditions": "Development build with the observer installed and a switch in progress.",
+      "action": "The main run loop reaches beforeWaiting.",
+      "expected_result": "Spans are computed in milliseconds as (now - max(busySince, switchStart)) * 1000 and reported as truncated integers. Once at least one second has elapsed since the switch, the line \"switch to <label>: blocked <n> ms, busy <m> ms in 1 s\" is written and the window closes. A second selection inside an open window first writes \"switch to <label>: blocked <n> ms, busy <m> ms before the next switch\" and then restarts the window. All interpolations are public.",
+      "side_effects": ["os_log notice lines"],
+      "persistence": "Nothing is persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Development-only; not user-visible in a shipped build.",
+      "verification_method": "unit test with an injected clock over both line shapes",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-025",
+      "title": "applicationDidFinishLaunching sets the user-notification centre delegate before anything else",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:8-9 - UNUserNotificationCenter.current().delegate = self is the first statement",
+        "DroppyCode/App/AppDelegate.swift:5 - AppDelegate conforms to UNUserNotificationCenterDelegate"
+      ],
+      "preconditions": "The prologue has finished; the application has launched.",
+      "action": "applicationDidFinishLaunching runs.",
+      "expected_result": "The delegate is installed before the capture-run branch, before any window is shown and before any notification could be delivered, so a notification that arrives during launch is routed by this delegate.",
+      "side_effects": ["Sets a system delegate"],
+      "persistence": "Nothing is persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "PLATFORM BOUNDARY: register the Windows toast activation handler at the same point in the launch sequence, before the main window is shown.",
+      "verification_method": "unit test on the launch sequencer's call order",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-026",
+      "title": "The delegate takes its model handle from the single WindowManager-owned AppModel",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:6 - var model: AppModel?",
+        "DroppyCode/App/AppDelegate.swift:10-11 - 'let windows = WindowManager.shared' then 'model = windows.model'",
+        "DroppyCode/App/Window/WindowManager.swift:11-13 - static let shared = WindowManager(); let model = AppModel()"
+      ],
+      "preconditions": "Launch, immediately after the delegate is installed.",
+      "action": "applicationDidFinishLaunching resolves the window manager.",
+      "expected_result": "There is exactly one AppModel in the process and the delegate holds a reference to it. Before this line the delegate's model is nil, which is the state the quit path guards against (PR-LAUNCH-075).",
+      "side_effects": ["Constructs WindowManager.shared and the AppModel if the scene body has not already done so"],
+      "persistence": "Constructing AppModel reads the library from disk (PR-LAUNCH-034).",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "One application-scoped model instance owned by the window manager, with the lifecycle handler holding a nullable reference to it.",
+      "verification_method": "unit test asserting a single model instance",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-027",
+      "title": "A capture run short-circuits the entire normal launch after the delegate and model are set",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:12-15 - 'if WebsiteCaptures.isEnabled { Task { await WebsiteCaptures.run(model: windows.model) }; return }'",
+        "DroppyCode/App/Captures/WebsiteCaptures.swift:26 - isEnabled is CaptureRun.isEnabled"
+      ],
+      "preconditions": "The process was launched with a capture flag.",
+      "action": "applicationDidFinishLaunching reaches the branch.",
+      "expected_result": "The capture run starts as a detached task and the method returns, so showMain(), openThreadOnLaunch(), the welcome tour, bootstrap(), the background update checks and the relaunch-marker handling are all skipped. In a normal launch the branch is not taken and all six steps run.",
+      "side_effects": ["Capture run only: starts the capture task"],
+      "persistence": "Nothing in a normal launch.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Same open decision as PR-LAUNCH-005. port_impacts.md:188 entry 90 - 'Keep the ordering if capture mode is ported.'",
+      "verification_method": "unit test on the launch sequencer with the flag set and unset",
+      "status": "DISCOVERED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-028",
+      "title": "Launch shows the main window, activating the app and bringing the window to the front",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:16 - windows.showMain()",
+        "DroppyCode/App/Window/WindowManager.swift:26-30 showMain() - 'let window = mainWindow ?? makeMainWindow(); mainWindow = window; present(window)'",
+        "DroppyCode/App/Window/WindowManager.swift:57-60 present(_:) - NSApp.activate() then window.makeKeyAndOrderFront(nil)",
+        "DroppyCode/App/Window/WindowManager.swift:18-24 Size.main = 1320 x 860, Size.mainMinimum = 860 x 560, mainFrameName = \"DroppyCodeMainWindow\"",
+        "DroppyCode/App/Window/WindowManager.swift:62-69 makeMainWindow() - title AppInfo.name, contentMinSize = Size.mainMinimum, 'if !window.setFrameUsingName(Self.mainFrameName) { window.center() }'"
+      ],
+      "preconditions": "Normal launch, no capture flag.",
+      "action": "showMain() runs.",
+      "expected_result": "The main window is created on first use with title AppInfo.name, content size 1320 x 860, minimum content size 860 x 560, its frame restored from the saved frame under the name \"DroppyCodeMainWindow\" or centered when no saved frame exists. The app is activated and the window becomes key and front. A second showMain() reuses the same window.",
+      "side_effects": ["Creates and shows a window; activates the application"],
+      "persistence": "The window frame is saved under the autosave name \"DroppyCodeMainWindow\".",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Create or restore the main window with the same default and minimum sizes and the same persisted-frame key, then activate and foreground it. The detailed window chrome is specified by the shell and chrome area; this requirement covers only that launch shows it.",
+      "verification_method": "restart test: window position and size survive a restart",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-029",
+      "title": "Launch lands in a chat, never on an empty page: the newest unused thread in the last project is reused",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:17 - windows.model.openThreadOnLaunch()",
+        "DroppyCode/App/AppModel.swift:571-573 - comment 'Launch lands in a chat, never on the empty page: the newest thread nothing has been sent in yet, in the project you last worked in, or a fresh one there.'",
+        "DroppyCode/App/AppModel.swift:574-581 openThreadOnLaunch() - 'guard let project = currentProject else { return }' then the unused filter: projectID == project.id && !isArchived && !isSettled && !isHelper && lastStatus == nil && !hasCustomTitle && title == ChatThread.untitled, taking .max { $0.createdAt < $1.createdAt }",
+        "DroppyCode/Core/Models/Library.swift:122 - static let untitled = \"New thread\""
+      ],
+      "preconditions": "Normal launch; the library has been loaded; currentProject resolves to a project.",
+      "action": "openThreadOnLaunch() runs.",
+      "expected_result": "Among the threads of the current project, the candidate set is those that are not archived, not settled, not a helper, have lastStatus nil, do not have a custom title, and whose title is exactly the literal \"New thread\". The newest by createdAt is chosen. All seven conditions apply together; failing any one excludes the thread.",
+      "side_effects": [],
+      "persistence": "None by the selection itself.",
+      "failure_cases": ["No current project at all: openThreadOnLaunch returns and no thread is selected or created."],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port; the literal \"New thread\" and all seven predicates are reproduced.",
+      "verification_method": "unit test over a seeded library covering each excluding predicate",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-030",
+      "title": "A reused launch thread is refreshed to what a fresh chat would open on today, clearing the provider session if the provider changed",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:582-598 - 'let fresh = makeThread(in: project, carrying: nil)' then updateThread(unused.id) setting provider, model, effort, fastMode, hydraPairID and hydraEnabled from fresh, with 'if thread.provider != fresh.provider { thread.providerSessionID = nil; thread.providerResumeAt = nil }' first, then selectedThreadID = unused.id",
+        "DroppyCode/App/AppModel.swift:583-584 - comment 'The row may be older than the pair or model chosen since: nothing was sent in it, so it starts over on what a fresh chat would open on today.'"
+      ],
+      "preconditions": "An unused thread was found.",
+      "action": "openThreadOnLaunch() refreshes it.",
+      "expected_result": "A throwaway fresh thread is built (never inserted into the library) purely to compute today's defaults. If the reused thread's provider differs from the fresh provider, providerSessionID and providerResumeAt are cleared BEFORE the provider is overwritten. Then provider, model, effort, fastMode, hydraPairID and hydraEnabled are all copied from the fresh thread. Finally the reused thread becomes the selection, which triggers the selection side effects: mark read, idle-stop rescheduling, neighbour warming, remembering the project.",
+      "side_effects": [
+        "One thread update, which schedules a debounced library save (PR-LAUNCH-060)",
+        "The selection didSet chain runs"
+      ],
+      "persistence": "The updated thread fields are written to library.json by the debounced save.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port; the clear-then-assign ordering is load-bearing and must be preserved.",
+      "verification_method": "unit test: a reused thread whose provider changed loses its session id; one whose provider is unchanged keeps it",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-031",
+      "title": "With no reusable thread, launch creates a new thread in the current project",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:599-601 - 'else { newThread(in: project) }'",
+        "DroppyCode/App/AppModel.swift:604-605 - @discardableResult func newThread(in project: Project? = nil, workspace: WorkspaceMode? = nil) -> ChatThread?",
+        "DroppyCode/App/AppModel.swift:572-573 - the comment explains the reuse exists so a launch does not leave 'a \"New thread\" row behind every time'"
+      ],
+      "preconditions": "A current project exists but no thread satisfies the reuse predicate.",
+      "action": "openThreadOnLaunch() falls through.",
+      "expected_result": "A new thread is created in that project and becomes the selection. Consequently every launch ends with exactly one selected thread whenever at least one project exists, and repeated launches do not accumulate untouched \"New thread\" rows.",
+      "side_effects": ["Inserts a thread; schedules a library save"],
+      "persistence": "The new thread is written to library.json.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port.",
+      "verification_method": "restart test: three consecutive launches with no user action leave exactly one untouched thread",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-032",
+      "title": "The project launch lands in is resolved by a four-step fallback chain",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:296-304 currentProject - (1) the selected thread's project, (2) the project named by settings.lastProjectID, (3) the project of the most recently updated non-archived non-panel thread, (4) projects.first; nil when there are no projects",
+        "DroppyCode/App/AppModel.swift:299-300 - comment 'No selection (for example after relaunch): stay in the folder you last worked in instead of jumping back to the first project ever added.'",
+        "DroppyCode/App/AppSettings.swift:148 - static let lastProjectID = \"lastProjectID\"",
+        "DroppyCode/App/AppSettings.swift:724-727 - lastProjectID is loaded as UUID(uuidString:) of the stored string, else nil"
+      ],
+      "preconditions": "Launch; nothing is selected yet, so step 1 cannot apply.",
+      "action": "currentProject is read by openThreadOnLaunch().",
+      "expected_result": "At launch the answer is the project stored under \"lastProjectID\" when that project still exists; otherwise the project of the most recently updated thread that is neither archived nor in a panel; otherwise the first project in the list; and nil when there are no projects at all.",
+      "side_effects": [],
+      "persistence": "Reads the settings key \"lastProjectID\" (String holding a UUID uuidString).",
+      "failure_cases": ["A stored id that is not a valid UUID string yields nil and the chain falls through."],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port, same key name and same string-UUID representation.",
+      "verification_method": "unit test over each fallback rung",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-033",
+      "title": "A stored lastProjectID naming a project that no longer exists is cleared during model construction",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:143-145 init() - 'if let lastID = settings.lastProjectID, project(lastID) == nil { settings.lastProjectID = nil }'",
+        "DroppyCode/App/AppSettings.swift:312-318 - the lastProjectID setter writes the uuidString or removes the key"
+      ],
+      "preconditions": "The library has just been loaded and the cells built; settings hold an id for a project that is not in the library.",
+      "action": "AppModel.init reaches its final statement.",
+      "expected_result": "settings.lastProjectID is set to nil, which removes the key \"lastProjectID\" from the settings store immediately through the setter's didSet. currentProject then falls through to the most-recent-thread rung.",
+      "side_effects": ["Removes a settings key"],
+      "persistence": "Key \"lastProjectID\" removed.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port; the key must be removed, not written as an empty string.",
+      "verification_method": "restart test with a deleted project",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-034",
+      "title": "AppModel construction loads the library and falls back to an empty library on a missing or unreadable file",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:120-128 init() - builds AppSettings, ProviderRegistry(settings:), MCPStore(), TerminalStore(), SidebarLayout(), then 'let library = Storage.loadLibrary(); projects = library.projects; threads = library.threads'",
+        "DroppyCode/Services/Store/Storage.swift:60-63 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then '(try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()'",
+        "DroppyCode/Services/Store/Storage.swift:27 - libraryURL = root/\"library.json\""
+      ],
+      "preconditions": "First read of the library at startup.",
+      "action": "AppModel() is constructed.",
+      "expected_result": "The five collaborators are constructed in the order settings, providers, mcp, terminals, sidebar, then library.json is read from the store root. A missing file yields an empty library. A file that fails to decode ALSO yields an empty library, silently, with no backup, no diagnostic and no user-visible error; the app opens as if it were a fresh install and the next save overwrites the unreadable file.",
+      "side_effects": ["Reads library.json; creates the store root directory if missing (Storage.swift:23)"],
+      "persistence": "Reads <store root>/library.json.",
+      "failure_cases": [
+        "File missing: empty library, no message",
+        "File corrupt or schema-incompatible: empty library, no message, and the corrupt file is later overwritten by the first save"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port, same file name, same silent-empty fallback. The store root is the Windows application-data root chosen under port_impacts entry 113.",
+      "verification_method": "integration test with a missing file and with a truncated file",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-035",
+      "title": "On load, every thread whose last status was running is repaired to interrupted",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:129-131 init() - 'for index in threads.indices where threads[index].lastStatus == .running { threads[index].lastStatus = .interrupted }'"
+      ],
+      "preconditions": "The previous run ended, cleanly or not, while a turn was running.",
+      "action": "AppModel.init processes the loaded threads.",
+      "expected_result": "Every such thread's lastStatus becomes .interrupted, so no chat shows a running turn that no process backs. This happens in memory before the cells are built and before any observer can see the stale value.",
+      "side_effects": ["Mutates the in-memory threads; not written until some later save"],
+      "persistence": "The repaired value reaches library.json on the next save, which at launch is triggered by openThreadOnLaunch's thread update.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port.",
+      "verification_method": "restart test: kill the process mid-turn, relaunch, assert the chat reads interrupted",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-036",
+      "title": "On load, every Hydra head that was running is marked stopped and stamped with the current time",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:132-136 init() - comment 'A head at work when the app last quit went with its session.' then 'for index in threads.indices where threads[index].hydra?.status == .running { threads[index].hydra?.status = .stopped; threads[index].hydra?.finishedAt = .now }'"
+      ],
+      "preconditions": "The previous run ended with one or more heads running.",
+      "action": "AppModel.init processes the loaded threads.",
+      "expected_result": "Each such head's hydra.status becomes .stopped and its hydra.finishedAt becomes the launch time, not the time it actually stopped. This is a deliberate approximation: the head's process died with the previous app, so the only time available is now.",
+      "side_effects": ["Mutates the in-memory threads"],
+      "persistence": "Reaches library.json on the next save.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port, including the finishedAt equals launch-time approximation.",
+      "verification_method": "restart test with a running head in the stored library",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-037",
+      "title": "The welcome tour is presented 700 ms after launch, only when it has not been seen",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:18-20 - 'if !windows.model.settings.hasSeenTour { Task { @MainActor in try? await Task.sleep(for: .milliseconds(700)); Tour.present(model: windows.model) } }'",
+        "DroppyCode/App/AppSettings.swift:177 - static let hasSeenTour = \"hasSeenTour\"",
+        "DroppyCode/App/AppSettings.swift:745 - hasSeenTour = defaults.object(forKey: Key.hasSeenTour) as? Bool ?? false",
+        "DroppyCode/App/AppSettings.swift:532-534 - the setter writes the key on every change",
+        "DroppyCode/App/Views/Tour/TourPages.swift:26-28 present(model:) - TourWindowController.shared.present(pages: pages, onFinish: { model.settings.hasSeenTour = true }, onClose: { model.settings.hasSeenTour = true })"
+      ],
+      "preconditions": "Normal launch; the setting \"hasSeenTour\" is absent or false.",
+      "action": "applicationDidFinishLaunching schedules the tour.",
+      "expected_result": "The check is made synchronously during launch, then a main-actor task sleeps exactly 700 milliseconds and presents the tour over the already-visible main window. Both finishing the tour and closing it write hasSeenTour = true, so the tour is shown once. The 700 ms delay is not cancelled by anything; if the user quits within it, the tour simply never appears and the setting stays false.",
+      "side_effects": ["Presents the tour window 700 ms after launch"],
+      "persistence": "Settings key \"hasSeenTour\", Bool, default false, written true on finish or close.",
+      "failure_cases": ["Sleep failure is swallowed by try?; the tour would then present immediately."],
+      "cancellation": "The sleeping task is never cancelled and nothing cancels the presentation; quitting inside the window simply ends the process.",
+      "windows_path": "Direct port: same 700 ms delay, same one-shot setting key, same write on both finish and close. The tour's own pages and controls belong to the tour area.",
+      "verification_method": "interaction test: first launch shows the tour after 700 ms, second launch does not",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-038",
+      "title": "Launch starts the asynchronous bootstrap, which runs its nine steps strictly in order",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:21 - Task { await windows.model.bootstrap() }",
+        "DroppyCode/App/AppModel.swift:239-278 bootstrap() - warmDocuments(recent), await settings.loadKeychainInBackground(), await LoginEnvironment.load(), sweepHydraCopies(), await resumeHydraMerges(), start the repeating merge sweep, await providers.refreshAll(), the catalog task group, the zai catalog, and finally await Storage.sweepOrphanedAttachments()",
+        "DroppyCode/App/AppModel.swift:245-246 - comment 'After the login environment, so git runs with the user's PATH.'",
+        "DroppyCode/App/AppModel.swift:274-275 - comment 'Last, once nothing the first click needs is waiting on the disk'"
+      ],
+      "preconditions": "The main window is up and a thread is selected; bootstrap runs concurrently with the user's first interactions.",
+      "action": "bootstrap() runs.",
+      "expected_result": "The nine steps run in the source's order, each awaited before the next where the source awaits. Two orderings are stated as load-bearing by the source: the login environment must be loaded before the Hydra copy sweep so git runs with the user's PATH, and the orphan-attachment sweep is last so nothing the first click needs waits on the disk.",
+      "side_effects": ["See the per-step requirements PR-LAUNCH-039 to PR-LAUNCH-045"],
+      "persistence": "Per step.",
+      "failure_cases": ["No step reports failure to bootstrap(); each has its own internal handling."],
+      "cancellation": "The bootstrap task itself is never cancelled or awaited by the launch path.",
+      "windows_path": "Direct port of the order. The login-environment step is replaced consciously - platform_adaptations PA-0009 records that Windows has no login-shell argv[0] semantics.",
+      "verification_method": "unit test on the bootstrap sequencer asserting step order",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-039",
+      "title": "Bootstrap pre-decodes the 12 most recently updated open threads off the main thread",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:240-243 - comment 'The threads most likely to be opened first decode in the background from the start, so the first click into a conversation never parses its history on the main thread.' then 'let recent = threads.filter { !$0.isArchived && !$0.isInPanel }.sorted { $0.updatedAt > $1.updatedAt }.prefix(12).map(\\.id)' and warmDocuments(recent)",
+        "DroppyCode/App/AppModel.swift:441-445 warmDocuments(_:) - 'let cold = ids.filter { runtimes[$0] == nil }; guard !cold.isEmpty else { return }; DocumentPrefetch.shared.warm(cold)'"
+      ],
+      "preconditions": "The library is loaded.",
+      "action": "Bootstrap step 1 runs.",
+      "expected_result": "Exactly the 12 newest threads by updatedAt that are neither archived nor in a panel are selected, those that already have a live runtime are dropped, and the rest are handed to the prefetcher to be decoded in the background. Fewer than 12 eligible threads means fewer ids; none means the call returns without touching the prefetcher.",
+      "side_effects": ["Background disk reads and JSON decodes"],
+      "persistence": "Read-only.",
+      "failure_cases": ["A thread file that cannot be read or decoded simply yields no prefetched document; the click later reads it again."],
+      "cancellation": "not cancellable from here",
+      "windows_path": "Direct port; the literal 12 and both exclusions are reproduced.",
+      "verification_method": "unit test on the selected id list",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-040",
+      "title": "Bootstrap reads the stored API keys from the Keychain in the background, once per process",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:244 - await settings.loadKeychainInBackground()",
+        "DroppyCode/App/AppSettings.swift:453-458 loadKeychainInBackground() - 'guard !didReadKeychain else { return }', reads on a detached userInitiated task, then fillKeys(keys)",
+        "DroppyCode/App/AppSettings.swift:735 comment - 'Read from the Keychain later (see loadKeychainInBackground), not before the first frame.'",
+        "DroppyCode/App/AppSettings.swift:469-473 - keys held in the Keychain cause the legacy plaintext defaults copies to be removed"
+      ],
+      "preconditions": "Settings were constructed with empty key inputs.",
+      "action": "Bootstrap step 2 runs.",
+      "expected_result": "The Keychain read happens off the main actor and after the first frame, so launch never blocks on it. It happens at most once per process. Until it completes, the API-key fields read as empty strings.",
+      "side_effects": ["Keychain read; may remove legacy plaintext key defaults"],
+      "persistence": "May remove legacy plaintext defaults keys.",
+      "failure_cases": ["A key that is not in the Keychain falls back to its stored fallback value; the detail belongs to the settings area."],
+      "cancellation": "not cancellable",
+      "windows_path": "PLATFORM BOUNDARY: DPAPI-protected secret storage in place of the Keychain, read off the UI thread after the first frame, at most once per process.",
+      "verification_method": "unit test asserting one read per process and no UI-thread block",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-041",
+      "title": "Bootstrap loads the login environment before any git work",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:245-247 - 'await LoginEnvironment.load()' followed by the comment 'After the login environment, so git runs with the user's PATH.' and then sweepHydraCopies()"
+      ],
+      "preconditions": "Bootstrap step 3.",
+      "action": "LoginEnvironment.load() is awaited.",
+      "expected_result": "The environment, notably PATH, used for every later child process is resolved before the first git call of the session. Reordering these two steps would run git with the app's inherited minimal environment.",
+      "side_effects": ["Runs the user's login shell once; the detail belongs to the providers and shell area"],
+      "persistence": "Process-lifetime in-memory environment.",
+      "failure_cases": ["The shell capture has its own fallback environment; bootstrap sees no failure."],
+      "cancellation": "not cancellable",
+      "windows_path": "PLATFORM BOUNDARY (platform_adaptations PA-0009): Windows cannot use login-shell argv[0] semantics. The replacement is an explicit environment resolution step that still completes before the first git call.",
+      "verification_method": "unit test on the bootstrap sequencer",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-042",
+      "title": "Bootstrap sweeps Hydra working copies and starts the Hydra watchdog loop",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:247 - sweepHydraCopies()",
+        "DroppyCode/App/AppModel+Hydra.swift:1002-1020 sweepHydraCopies() - prunes worktrees for projects that ever had a copy, sweeps orphan copies, clears worktreePath, branch and baseTree for heads whose copy is gone from disk, then startHydraWatchdog()",
+        "DroppyCode/App/AppModel+Hydra.swift:959-968 startHydraWatchdog() - 'guard HydraWatchdog.loop == nil else { return }', a task looping 'try? await Task.sleep(for: HydraWatchdog.tick)' then watchHydraHeads()",
+        "DroppyCode/App/AppModel+Hydra.swift:76-78 - tick = .seconds(30), thinkingAfter = 180, stalledAfter = 600"
+      ],
+      "preconditions": "Bootstrap step 4; the login environment is loaded.",
+      "action": "sweepHydraCopies() runs.",
+      "expected_result": "Stale Hydra working copies are reconciled with disk, and one Hydra watchdog task is started for the lifetime of the process, ticking every 30 seconds. The watchdog is started exactly once: a second call is a no-op while the loop task exists. This is the second of the app's long-lived background loops started at launch.",
+      "side_effects": ["git prune-worktrees per affected project; thread updates; starts a 30 s repeating task"],
+      "persistence": "Thread worktreePath, branch and baseTree cleared where the copy is gone.",
+      "failure_cases": ["Detailed by the Hydra area."],
+      "cancellation": "The watchdog loop is never cancelled; it ends with the process.",
+      "windows_path": "Direct port of the launch-time start and the 30 s cadence; the watchdog's own behavior is specified by the Hydra area.",
+      "verification_method": "unit test asserting exactly one watchdog loop after repeated bootstraps",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-043",
+      "title": "Bootstrap finishes a Hydra merge the previous run was quit under",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:248-249 - comment 'A merge the last run did not finish (the app was quit under it) goes out now.' then 'await resumeHydraMerges()'",
+        "DroppyCode/App/AppModel+HydraMerge.swift:36-52 resumeHydraMerges() - 'guard settings.hydraAutoMerge else { return }', cutoff = Date.now.addingTimeInterval(-3 * 24 * 3600), leads = non-archived threads with Hydra on and updatedAt > cutoff, each runtime loaded, skipped unless phase == .idle and not merging and no running heads, requires at least one completed unmerged turn, the last turn completed, and real work touched"
+      ],
+      "preconditions": "Bootstrap step 5; automatic merge is on.",
+      "action": "resumeHydraMerges() runs at launch.",
+      "expected_result": "Only leads updated within the last 3 days (3 * 24 * 3600 seconds) are considered, and only those that are idle, not already merging, have no running head, have finished unmerged work, whose last turn completed, and that actually touched files. Those merge now. With hydraAutoMerge off, nothing happens at all.",
+      "side_effects": ["Runs git and one model call per eligible lead; writes a note into the lead's timeline"],
+      "persistence": "Per the Hydra merge area.",
+      "failure_cases": ["Per the Hydra merge area."],
+      "cancellation": "not cancellable from the launch path",
+      "windows_path": "Direct port of the launch trigger and the 3-day cutoff; the merge itself belongs to the Hydra area.",
+      "verification_method": "integration test with a library holding an unmerged completed turn",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-044",
+      "title": "Bootstrap starts a repeating merge sweep that asks again every 300 seconds for the life of the process",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:111-116 - the field's comment: a chat whose automatic merge never got its moment 'would sit on its files forever'; 'The sweep asks again every few minutes; it skips anything still running, so a busy chat is left alone.'",
+        "DroppyCode/App/AppModel.swift:250-261 - comment 'This task asks every five minutes for as long as the app runs' then 'hydraMergeSweepTask?.cancel()' and a task looping 'try? await Task.sleep(for: .seconds(300)); guard !Task.isCancelled, let self else { return }; await self.resumeHydraMerges()'"
+      ],
+      "preconditions": "Bootstrap step 6.",
+      "action": "The sweep task is started.",
+      "expected_result": "Any previously started sweep task is cancelled first, then exactly one task runs: sleep 300 seconds, then resumeHydraMerges(), repeating until cancelled or the model is gone. The first sweep therefore happens 300 seconds after bootstrap, not immediately; the launch-time sweep is the separate step PR-LAUNCH-043.",
+      "side_effects": ["A repeating background task for the process lifetime"],
+      "persistence": "None directly.",
+      "failure_cases": [],
+      "cancellation": "Cancelled only by a subsequent bootstrap. Nothing in the quit path cancels it; it ends with the process.",
+      "windows_path": "Direct port; the literal 300 seconds and the cancel-then-restart discipline are reproduced.",
+      "verification_method": "unit test with an injected clock: one sweep per 300 s, and a second bootstrap leaves exactly one task",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-045",
+      "title": "Bootstrap refreshes provider status, then loads the catalogs of installed providers, then sweeps orphaned attachments last",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:262 - await providers.refreshAll()",
+        "DroppyCode/App/AppModel.swift:263-270 - comment 'The catalogs a fresh install starts without, or with only a seed of: one CLI and two HTTPS calls, overlapped.' then a withTaskGroup over 'for provider in [ProviderKind.claude, .codex, .deepseek, .meta] where providers.status(provider).isInstalled' calling providers.loadCatalog(provider)",
+        "DroppyCode/App/AppModel.swift:271-273 - 'if providers.status(.zai).isInstalled { await providers.loadCatalog(.zai) }', outside the group",
+        "DroppyCode/App/AppModel.swift:276-277 - 'guard !WebsiteCaptures.isEnabled else { return }' then 'await Storage.sweepOrphanedAttachments()'",
+        "DroppyCode/Services/Store/Storage.swift:117-143 sweepOrphanedAttachments() - detached utility task, scans every thread document as text for attachment file names, also decodes forwarded continuations, and deletes unreferenced attachment files older than 'let cutoff = Date.now.addingTimeInterval(-24 * 60 * 60)'"
+      ],
+      "preconditions": "Bootstrap steps 7 to 9.",
+      "action": "The remaining bootstrap steps run.",
+      "expected_result": "Provider status is refreshed for all providers first. Then the catalogs of exactly claude, codex, deepseek and meta are loaded concurrently, but only for those reporting installed. zai's catalog is loaded afterwards, serially, and only when installed. Finally, unless this is a capture run, the attachment sweep runs on a detached utility task and deletes attachment files that no thread document references AND that are older than 24 hours.",
+      "side_effects": [
+        "Provider probes: CLI and HTTPS calls",
+        "Deletes attachment files older than 24 hours that nothing references"
+      ],
+      "persistence": "Provider catalog caches, specified by the providers area; attachment files deleted.",
+      "failure_cases": [
+        "A directory listing failure in the sweep returns early and deletes nothing",
+        "An unreadable thread document is skipped, so its attachments are treated as unreferenced - protected only by the 24-hour age cutoff"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port: the exact four-provider group, zai outside it, the capture guard, the 24-hour cutoff and the last-in-order placement.",
+      "verification_method": "integration test on the sweep with referenced, unreferenced-and-old, and unreferenced-but-young attachment files",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-046",
+      "title": "Launch starts background update checks after an 8 second delay, then every 6 hours, plus on activation when stale",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:22 - UpdateChecker.shared.startBackgroundChecks()",
+        "DroppyCode/App/UpdateChecker.swift:132-133 - 'guard backgroundTask == nil, !WebsiteCaptures.isEnabled, !AppInfo.isDevelopment else { return }'",
+        "DroppyCode/App/UpdateChecker.swift:74-75 - checkInterval: TimeInterval = 6 * 60 * 60; launchDelay: TimeInterval = 8",
+        "DroppyCode/App/UpdateChecker.swift:134-140 - sleep launchDelay, then loop { check(background: true); sleep checkInterval }",
+        "DroppyCode/App/UpdateChecker.swift:141-149 - an observer for NSApplication.didBecomeActiveNotification on the main queue that checks again when lastCheckedAt is older than checkInterval or nil"
+      ],
+      "preconditions": "Normal launch of a non-development build.",
+      "action": "startBackgroundChecks() runs.",
+      "expected_result": "In a development build or a capture run nothing starts. Otherwise exactly one background task starts: wait 8 seconds, then check, then repeat every 21600 seconds. In addition, every time the app becomes active, a check runs if the last check is older than 21600 seconds or has never happened. A second call to startBackgroundChecks is a no-op while the task exists.",
+      "side_effects": ["Network calls to the release feed; may post one notification per version (UpdateChecker.swift:245-252)"],
+      "persistence": "Specified by the update area; the notified-version key lives there.",
+      "failure_cases": ["Check failures are handled inside check(background:) and do not stop the loop."],
+      "cancellation": "The loop is never cancelled by the quit path; it ends with the process. The activation observer is never removed here.",
+      "windows_path": "Direct port of the three literals - 8 s delay, 6 h interval, stale-on-activation rule - and the three start guards. The activation notification is replaced by the Windows window-activation event.",
+      "verification_method": "unit test with an injected clock and an activation event",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-047",
+      "title": "The first launch after an installed update consumes the relaunch marker, arms the celebration and opens Settings on About",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:23-27 - comment 'The relaunch after an install: the update story finishes on About, where it began.' then 'if AppUpdater.shared.consumeRelaunchMarker() { UpdateInstallProgress.shared.armCelebration(); windows.showSettings(page: .about) }'",
+        "DroppyCode/App/AppUpdater.swift:241 - private static let relaunchVersionKey = \"appUpdater_pendingRelaunchVersion\"",
+        "DroppyCode/App/AppUpdater.swift:253-258 consumeRelaunchMarker() - 'guard let pending = defaults.string(forKey: Self.relaunchVersionKey) else { return false }', removeObject, 'return pending == AppInfo.version'",
+        "DroppyCode/App/AppUpdater.swift:152-154 armCelebration() - hasPendingCelebration = true",
+        "DroppyCode/App/Window/WindowManager.swift:32-38 showSettings(page:) - sets SettingsNavigation.shared.requestedPage, creates the settings window if needed, centres it over the main window, presents it"
+      ],
+      "preconditions": "The previous run wrote the pending version under \"appUpdater_pendingRelaunchVersion\" and relaunched into the new build.",
+      "action": "applicationDidFinishLaunching reaches the last step.",
+      "expected_result": "The key is read and REMOVED whether or not it matches, so the celebration can happen at most once. The branch is taken only when the stored version equals the running build's CFBundleShortVersionString. When taken, the celebration is armed and the Settings window opens on the About page, centred over the main window. When the stored version does not match the running build, meaning the update did not actually take, the key is still consumed and nothing is shown.",
+      "side_effects": ["Removes a defaults key; opens the Settings window on About"],
+      "persistence": "UserDefaults.standard key \"appUpdater_pendingRelaunchVersion\", String, removed on read.",
+      "failure_cases": ["No key present: consumeRelaunchMarker returns false and nothing happens."],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port including the exact key name, the remove-before-compare ordering and the version equality test. The installer mechanics belong to the update area.",
+      "verification_method": "restart test with the key seeded to the matching and to a non-matching version",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-048",
+      "title": "Reopening the app from the Dock shows the main window only when no window is visible, and always accepts the reopen",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:30-33 applicationShouldHandleReopen(_:hasVisibleWindows:) - 'if !flag { WindowManager.shared.showMain() }' then 'return true'"
+      ],
+      "preconditions": "The app is running with no windows visible, or with at least one visible window.",
+      "action": "The user clicks the Dock icon or otherwise reopens the app.",
+      "expected_result": "With no visible windows, the main window is created if needed and shown, and the app activates. With at least one visible window, nothing is created or reordered by this handler. The handler returns true in both cases, so the system performs its standard un-hide and activation.",
+      "side_effects": ["May create and show the main window; activates the app"],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "PLATFORM BOUNDARY: Windows has no Dock reopen. The equivalent surfaces are clicking the taskbar button, the notification-area icon if one exists, and a second launch attempt of a single-instance app; all of them must land on the same 'show the main window when none is visible' behavior.",
+      "verification_method": "interaction test: close the main window, reopen from the taskbar, assert one main window",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-049",
+      "title": "Quit proceeds immediately when there is no model or no Hydra merge in flight",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:38-39 applicationShouldTerminate - 'guard let model, model.isAnyHydraMergeRunning else { return .terminateNow }'",
+        "DroppyCode/App/AppModel+HydraMerge.swift:31 - var isAnyHydraMergeRunning: Bool { liveRuntimes.contains { $0.isHydraMerging } }",
+        "DroppyCode/App/AppModel.swift:436-437 - liveRuntimes is every runtime alive right now"
+      ],
+      "preconditions": "The user quits, or the system asks the app to terminate.",
+      "action": "applicationShouldTerminate is called.",
+      "expected_result": "If the delegate has no model yet, which is a quit during the earliest part of launch, or no live runtime reports isHydraMerging, the reply is terminateNow and the shutdown proceeds with no delay and no dialog. Note the guard's shape: a nil model ALSO returns terminateNow, so an extremely early quit never waits.",
+      "side_effects": [],
+      "persistence": "None at this step.",
+      "failure_cases": [],
+      "cancellation": "not applicable",
+      "windows_path": "The close and shutdown handler returns 'may close' immediately in the same two cases (platform_adaptations PA-0006).",
+      "verification_method": "unit test on the terminate decision with and without a merging runtime",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-050",
+      "title": "A quit during a Hydra merge is deferred, polled every 250 ms, and capped at 4 minutes",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:35-37 - comment 'A quit while the team's work is going out waits for it: the merge is a minute or two of git and one model call, and losing it half-way leaves the work unmerged until the user's next message. Capped, so a stuck merge never holds the quit.'",
+        "DroppyCode/App/AppDelegate.swift:40-47 - 'let deadline = Date.now.addingTimeInterval(4 * 60)'; 'while model.isAnyHydraMergeRunning, Date.now < deadline { try? await Task.sleep(for: .milliseconds(250)) }'; 'sender.reply(toApplicationShouldTerminate: true)'; the method returns .terminateLater",
+        "porting/platform_adaptations.md:136-148 PA-0006"
+      ],
+      "preconditions": "At least one live runtime is merging Hydra work when the quit arrives.",
+      "action": "The user quits.",
+      "expected_result": "The immediate reply is terminateLater, so the process stays alive. A main-actor task polls every 250 milliseconds. It stops as soon as no runtime is merging, or when 240 seconds (4 * 60) have passed since the quit was requested, whichever comes first. In BOTH cases it then replies true and the termination continues into applicationWillTerminate. The app therefore always quits within about 4 minutes; a stuck merge never blocks the quit forever.",
+      "side_effects": ["The app stays alive and its windows stay on screen while waiting; the merge keeps running and may complete"],
+      "persistence": "Whatever the merge itself persists.",
+      "failure_cases": [
+        "The merge does not finish within 240 seconds: the app quits anyway with the merge incomplete",
+        "Task.sleep failing is swallowed by try?, which would spin the loop faster but not change the outcome"
+      ],
+      "cancellation": "The deferral cannot be cancelled and there is no user-visible way to say 'quit now'. The reply is unconditionally true; the quit is never refused.",
+      "windows_path": "PLATFORM BOUNDARY (platform_adaptations PA-0006): the Windows close and shutdown path must offer the same deferral with the same 250 ms poll and the same 240 second cap, and must then run the same three shutdown steps in the same order. A Windows session end (logoff or shutdown) grants only a limited time before the OS terminates the process, so the 4 minute cap cannot be honoured under session end; that divergence must be recorded rather than hidden.",
+      "verification_method": "interaction test: quit with a simulated merge that finishes at 10 s, and one that never finishes, asserting exit at about 10 s and at about 240 s",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-051",
+      "title": "Termination runs exactly three steps in this order: save everything, flush the token ledger, terminate the MCP servers",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:50-55 applicationWillTerminate - 'model?.saveBeforeQuit()', then 'TokenLedger.shared.flushLiveSpend()', then the comment 'The MCP servers the hub started go with the app.' and 'MCPHub.terminateAll()'"
+      ],
+      "preconditions": "Termination has been approved, immediately or after the merge wait.",
+      "action": "applicationWillTerminate runs.",
+      "expected_result": "Exactly three steps, in this order, synchronously on the main thread: (1) model?.saveBeforeQuit(), a no-op if the model is nil; (2) TokenLedger.shared.flushLiveSpend(); (3) MCPHub.terminateAll(). No other work happens, and nothing here is conditional on the capture-run flag.",
+      "side_effects": ["Synchronous disk writes; child process termination"],
+      "persistence": "library.json, every unsaved thread document, and the live-spend state file.",
+      "failure_cases": ["Each step swallows its own failures; none can abort the sequence."],
+      "cancellation": "not cancellable; termination has already been agreed",
+      "windows_path": "The Windows shutdown handler runs the same three steps in the same order (platform_adaptations PA-0006). Child-process cleanup at exit is an explicit Gate E check.",
+      "verification_method": "unit test on the shutdown sequencer asserting order; Gate E check that no child process survives",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-052",
+      "title": "The capture-run early return does NOT short-circuit termination",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:12-15 - the capture branch returns only from applicationDidFinishLaunching",
+        "DroppyCode/App/AppDelegate.swift:50-55 applicationWillTerminate - no WebsiteCaptures.isEnabled guard",
+        "porting/port_impacts.md:224 entry 108 - 'capture-run early return does not short-circuit applicationWillTerminate'"
+      ],
+      "preconditions": "A capture run is quitting.",
+      "action": "applicationWillTerminate runs.",
+      "expected_result": "All three termination steps run for a capture run exactly as for a normal launch, even though the launch sequence was short-circuited.",
+      "side_effects": ["The capture run's scratch library is saved and its MCP children are terminated"],
+      "persistence": "Into the capture run's own store root.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "If capture mode is ported, reproduce the asymmetry; if it is dropped, the asymmetry disappears with it.",
+      "verification_method": "unit test asserting the shutdown sequence is unconditional",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-053",
+      "title": "saveBeforeQuit latches persistence off permanently and cancels the debounced save before writing",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:1308-1313 - comment 'Writes everything synchronously, for use while the app terminates.' then 'guard persistenceEnabled else { return }', 'persistenceEnabled = false', 'saveTask?.cancel()', 'saveTask = nil'",
+        "DroppyCode/App/AppModel.swift:117 - @ObservationIgnored private var persistenceEnabled = true",
+        "DroppyCode/App/AppModel.swift:1289-1297 scheduleSave() - 'guard persistenceEnabled else { return }' then cancel-and-restart a task that sleeps 400 ms and calls saveLibrary()",
+        "DroppyCode/App/AppModel.swift:1299-1300 saveLibrary() - 'guard persistenceEnabled else { return }'"
+      ],
+      "preconditions": "Termination step 1.",
+      "action": "saveBeforeQuit() runs.",
+      "expected_result": "A second call to saveBeforeQuit does nothing, because of the latch. The pending debounced save is cancelled so it cannot race the synchronous write. After the latch, every later scheduleSave() and saveLibrary() is a no-op for the rest of the process, so nothing that changes during shutdown is written to library.json.",
+      "side_effects": ["Cancels the debounced save task"],
+      "persistence": "Suppresses all later library writes.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port including the 400 ms debounce and the one-way latch. port_impacts.md entry 100 requires the persistenceEnabled latch to be ported together with the teardown ordering, because the ordering only has meaning through it.",
+      "verification_method": "unit test: a thread mutation after saveBeforeQuit writes nothing",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-054",
+      "title": "saveBeforeQuit writes the whole library synchronously, dropping any queued write for the same file",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:1314-1317 - 'var library = Library(); library.projects = projects; library.threads = threads; DiskWriter.shared.writeSynchronously(library, to: Storage.libraryURL)'",
+        "DroppyCode/Services/Store/Storage.swift:358-361 writeSynchronously(_:to:) - 'pending.withLock { $0[url] = nil }' then 'queue.sync { Self.write(value, to: url) }'",
+        "DroppyCode/Services/Store/Storage.swift:381-388 write(_:to:) - JSONEncoder.storage, 'try data.write(to: url, options: .atomic)', and on failure NSLog(\"Droppy Code could not save %@: %@\", url.lastPathComponent, error.localizedDescription)"
+      ],
+      "preconditions": "The latch has just been set.",
+      "action": "The library is written.",
+      "expected_result": "The current projects and threads are encoded and written atomically to library.json on the writer queue, synchronously, so the call does not return until the bytes are on disk. Any write queued for library.json is dropped first so the newest value wins.",
+      "side_effects": ["One atomic file write"],
+      "persistence": "<store root>/library.json.",
+      "failure_cases": [
+        "Encoding failure: write() returns without writing and without any message",
+        "Write failure: one NSLog line with the verbatim format \"Droppy Code could not save %@: %@\" carrying the file's last path component and the localized error. Nothing is shown to the user and the quit continues."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port: atomic replace, synchronous on the writer queue, drop-the-queued-value-first, and the same silent-except-for-a-log failure behavior. The log line's product name follows the approved rename.",
+      "verification_method": "integration test asserting library.json is complete and valid immediately after the process exits",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-055",
+      "title": "saveBeforeQuit tears down every live runtime in a fixed per-runtime order and writes only genuinely unsaved documents",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:1318-1324 - 'for runtime in runtimes.values { runtime.cancelPersistence(); runtime.stopSession(); guard let snapshot = runtime.unsavedSnapshot() else { continue }; DiskWriter.shared.writeSynchronously(snapshot, to: Storage.threadURL(runtime.threadID)) }'",
+        "DroppyCode/App/AppModel.swift:1321 - comment 'A thread only read since its last save is already on disk as it is.'",
+        "DroppyCode/Services/Store/Storage.swift:50-52 threadURL(_:) - threadsDirectory/\"<uuidString>.json\""
+      ],
+      "preconditions": "The library has been written.",
+      "action": "Each live runtime is torn down.",
+      "expected_result": "For every runtime, in dictionary order, which is unspecified and does not matter because the runtimes are independent: first its pending persistence is cancelled, then its provider session is stopped, and only then is its unsaved snapshot taken. A runtime whose document is already on disk returns no snapshot and is skipped. A snapshot that exists is written synchronously and atomically to <threads>/<thread uuid>.json.",
+      "side_effects": [
+        "Terminates every provider session process",
+        "One atomic file write per genuinely unsaved thread"
+      ],
+      "persistence": "<store root>/threads/<uuid>.json per unsaved thread.",
+      "failure_cases": ["Write failures behave as in PR-LAUNCH-054: one log line, no user-visible error, and the quit continues."],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port including the cancelPersistence-then-stopSession-then-snapshot order; port_impacts.md entry 100 requires both teardown orders to be ported.",
+      "verification_method": "restart test: quit with an unsaved in-flight thread and assert its document is complete after relaunch",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-056",
+      "title": "saveBeforeQuit waits for every queued disk write, then terminates every terminal session",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:1325-1326 - 'DiskWriter.shared.waitForQueuedWrites()' then 'terminals.terminateAll()'",
+        "DroppyCode/Services/Store/Storage.swift:376-379 waitForQueuedWrites() - comment 'Returns once every write queued so far has landed, so a read that follows sees them.' and 'queue.sync {}'",
+        "DroppyCode/App/Views/Terminal/TerminalStore.swift:171-175 terminateAll() - 'for list in sessions.values { for session in list { session.terminate() } }'"
+      ],
+      "preconditions": "All synchronous writes have been issued.",
+      "action": "The last two steps of saveBeforeQuit run.",
+      "expected_result": "The call blocks until the writer queue has drained, so no write started earlier in the session is lost to process exit. Then every terminal session of every thread is terminated. This is the last statement of saveBeforeQuit, so terminals are killed after all persistence, not before.",
+      "side_effects": ["Blocks the main thread until the write queue drains; terminates every terminal child process"],
+      "persistence": "Guarantees all earlier queued writes have landed.",
+      "failure_cases": ["A write that hangs would hang the quit here; there is no timeout on the drain."],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port of both steps and their order. Terminal child termination is part of the Gate E no-orphan-process check.",
+      "verification_method": "Gate E check: no terminal child process survives the app; integration test asserting queued writes land",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-057",
+      "title": "Termination flushes the token ledger's live spend, cancelling its pending debounced save",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:52 - TokenLedger.shared.flushLiveSpend()",
+        "DroppyCode/Services/Store/TokenLedger.swift:148-153 flushLiveSpend() - 'guard let liveSave else { return }', 'liveSave.cancel()', 'self.liveSave = nil', 'LiveSpendStateStore.save(state)'"
+      ],
+      "preconditions": "Termination step 2; the library and thread documents have been written.",
+      "action": "flushLiveSpend() runs.",
+      "expected_result": "If no live save is pending, nothing happens. Otherwise the pending debounced save is cancelled and the live-spend state is written immediately, so this session's token spend is not lost to the quit.",
+      "side_effects": ["One state file write"],
+      "persistence": "The live-spend state file, specified by the usage area.",
+      "failure_cases": ["Handled inside LiveSpendStateStore.save."],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port including the guard: with no pending save, nothing is written at quit even if the in-memory state differs from disk.",
+      "verification_method": "restart test: spend tokens, quit, relaunch, assert the spend survived",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-058",
+      "title": "Termination terminates every MCP server the hub started, escalating to a process-group kill",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:53-54 - comment 'The MCP servers the hub started go with the app.' then MCPHub.terminateAll()",
+        "DroppyCode/Services/MCP/MCPHub.swift:29 - nonisolated static func terminateAll() { liveProcesses.terminateAll() }",
+        "DroppyCode/Services/MCP/MCPHub.swift:544-553 - 'let running = lock.withLock { processes.filter(\\.isRunning) }'; 'for process in running { process.terminate() }'; then 'for process in running where process.isRunning { let pid = process.processIdentifier; kill(getpgid(pid) == pid ? -pid : pid, SIGKILL) }'"
+      ],
+      "preconditions": "Termination step 3, the last step.",
+      "action": "MCPHub.terminateAll() runs.",
+      "expected_result": "The set of running server processes is snapshotted under the lock. Every one is sent SIGTERM. Then, in a second pass with no wait between them, any that is still running is killed: if the process is its own process-group leader the SIGKILL goes to the whole group as a negative pid, otherwise only to that process. This is what stops a server from leaving a tree of orphans.",
+      "side_effects": ["Terminates and possibly force-kills child process trees"],
+      "persistence": "None.",
+      "failure_cases": [
+        "A process that ignores SIGTERM is force-killed in the same call",
+        "There is no wait between the two passes, so in practice the second pass will usually still see the process running and force-kill it"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "PLATFORM BOUNDARY (platform_adaptations PA-0007 and port_impacts.md entry 54): Windows has no SIGTERM with these delivery semantics. The candidate is a Job Object per spawned child with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE to match the negative-pid group kill, preceded by a cooperative shutdown or console control event. This must be probed, not assumed. Gate E checks that no npx or node child survives the app.",
+      "verification_method": "Gate E check: after quit, no MCP server child process or grandchild remains",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-059",
+      "title": "Nothing in the quit path cancels the hang watchdog, the Hydra watchdog, the merge sweep, the update checker or the idle-stop tasks",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:50-55 applicationWillTerminate - only the three steps; no task cancellation",
+        "DroppyCode/App/AppModel.swift:1309-1327 saveBeforeQuit() - cancels only saveTask and each runtime's persistence; hydraMergeSweepTask and idleSessionStops are not cancelled",
+        "DroppyCode/App/AppModel.swift:109 - idleSessionStops: [UUID: Task<Void, Never>]",
+        "DroppyCode/App/AppModel.swift:116 - hydraMergeSweepTask",
+        "DroppyCode/App/UpdateChecker.swift:134-149 - backgroundTask and activationObserver are never torn down at quit",
+        "DroppyCode/App/AppModel+Hydra.swift:959-968 - HydraWatchdog.loop has no cancellation site at quit"
+      ],
+      "preconditions": "The app is terminating.",
+      "action": "The shutdown sequence runs.",
+      "expected_result": "Every long-lived background loop started during the session keeps running until the process image is gone. No task is joined, cancelled or awaited. This is observable only in that shutdown never waits on them.",
+      "side_effects": ["A background loop can still run one more iteration during the shutdown steps"],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Reproduce, with the requirement that none of these background tasks may keep the Windows process alive after the shutdown sequence; they must be background or daemon work that dies with the process.",
+      "verification_method": "Gate E check: the process actually exits; unit test asserting the shutdown sequencer cancels only the two documented tasks",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-060",
+      "title": "Library changes are saved on a 400 ms debounce during the session",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:1289-1297 scheduleSave() - 'guard persistenceEnabled else { return }', 'saveTask?.cancel()', then a task that sleeps 400 milliseconds, checks cancellation and calls saveLibrary()",
+        "DroppyCode/App/AppModel.swift:1299-1306 saveLibrary() - builds a Library from projects and threads and calls DiskWriter.shared.encodeAndWrite(library, to: Storage.libraryURL)",
+        "DroppyCode/Services/Store/Storage.swift:345-356 encodeAndWrite - coalesces by URL: a second value for the same URL replaces the pending one and enqueues no second job"
+      ],
+      "preconditions": "The app is running and persistence has not been latched off.",
+      "action": "Anything mutates projects or threads and calls scheduleSave().",
+      "expected_result": "Each call cancels the previous pending save and restarts the 400 ms timer, so a burst of changes produces one write 400 ms after the last change. The write itself is asynchronous and coalesced per file, so a second value queued for library.json before the writer runs simply replaces the first.",
+      "side_effects": ["One asynchronous atomic write per quiet period"],
+      "persistence": "<store root>/library.json.",
+      "failure_cases": ["Write failure behaves as in PR-LAUNCH-054."],
+      "cancellation": "Cancelled by the next scheduleSave and by saveBeforeQuit.",
+      "windows_path": "Direct port: the literal 400 ms, the cancel-and-restart debounce and the per-URL coalescing.",
+      "verification_method": "unit test with an injected clock: ten mutations in 100 ms produce one write",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-061",
+      "title": "A thread left unselected for 10 minutes has its provider session stopped and its runtime released",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:465-469 - comment 'A thread left alone for ten minutes gives its agent process back, and its history with it when nothing but the saved document would be lost'",
+        "DroppyCode/App/AppModel.swift:470-488 scheduleIdleSessionStop(leaving:) - cancels and removes any pending stop for the NEW selection, then, when the outgoing id has a runtime, cancels its old task and starts a task looping 'try? await Task.sleep(for: .seconds(600))' with 'guard !Task.isCancelled, let self, self.selectedThreadID != id, let runtime = self.runtimes[id] else { return }', 'guard !runtime.isRunning else { continue }', then runtime.stopSession(), clearing the entry and calling releaseIdleRuntime(id)",
+        "DroppyCode/App/AppModel.swift:88-93 - scheduleIdleSessionStop(leaving: oldValue) is called from the selectedThreadID didSet whenever the selection changes"
+      ],
+      "preconditions": "The selection moves away from a thread that has a live runtime.",
+      "action": "600 seconds pass without that thread being reselected.",
+      "expected_result": "The provider session is stopped and the runtime is released if it holds nothing the saved document does not. A turn still running at the 600 second mark does NOT stop the session: the loop continues and checks again after another 600 seconds. Reselecting the thread cancels the pending stop.",
+      "side_effects": ["Terminates a provider session process; frees the decoded history"],
+      "persistence": "releaseIdleRuntime queues the document save before dropping the runtime (AppModel.swift:500-503).",
+      "failure_cases": [],
+      "cancellation": "Cancelled by reselecting the thread, or by a later selection change that re-enters this function for the same id.",
+      "windows_path": "Direct port; the literal 600 seconds and the running-turn continue are reproduced.",
+      "verification_method": "unit test with an injected clock over the idle, running-turn and reselected cases",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-062",
+      "title": "An idle runtime is released only when all eight conditions hold, and its document is saved before it goes",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:490-506 releaseIdleRuntime(_:) - the guard requires: a runtime exists; selectedThreadID != id; the thread exists; the thread's parent is nil or is not the current selection; runtime.holdsOnlyPersistedState; !sessionsToRelease.contains(id); autoContinue.resumesAt[id] == nil; terminals.sessions(for: id).isEmpty; runningDroppyHeads(of: id) == 0",
+        "DroppyCode/App/AppModel.swift:500-505 - comment 'The save is queued before the runtime goes; a read that follows waits for it (see Storage.readDocument), so the thread can never come back older than it left.' then runtime.saveNow(), runtime.cancelPersistence(), runtimes[id] = nil, return true",
+        "DroppyCode/Services/Store/Storage.swift:74 readDocument - 'DiskWriter.shared.waitForQueuedWrites()' as its first statement"
+      ],
+      "preconditions": "An idle stop has fired, or another caller asks to release.",
+      "action": "releaseIdleRuntime(id) is called.",
+      "expected_result": "The runtime is dropped only when every listed condition holds; otherwise the call returns false and the runtime stays. When it is dropped, its document save is queued first and its pending persistence is cancelled, so a later read of that thread blocks on the queued write and can never return an older document than the one the user left.",
+      "side_effects": ["Queues a document write; frees the runtime"],
+      "persistence": "<store root>/threads/<uuid>.json.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port; port_impacts.md entry 100 requires the idle release to be gated behind all eight conditions.",
+      "verification_method": "unit test asserting each condition independently blocks release, and that the save is queued before the drop",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-063",
+      "title": "A delivered notification for the chat that is already open and in front is suppressed entirely",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:57-69 userNotificationCenter(_:willPresent:) - reads userInfo[\"threadID\"] as? String, parses it as a UUID, and on the main actor computes 'NSApp.isActive && self.model?.selectedThreadID == notifiedID'; when true it returns [] (no banner, no sound); otherwise it returns [.banner, .sound]",
+        "DroppyCode/App/AppModel.swift:1256 - content.userInfo = [\"threadID\": threadID.uuidString]"
+      ],
+      "preconditions": "A notification arrives while the app is running.",
+      "action": "The system asks the delegate how to present it.",
+      "expected_result": "When the notification carries a \"threadID\" that parses as a UUID AND the app is active AND that thread is the selected one, the presentation options are empty: no banner and no sound. In every other case, including a missing or unparseable threadID and including the update notification which carries no threadID, the options are exactly [.banner, .sound].",
+      "side_effects": ["A banner and the default sound, or neither"],
+      "persistence": "None.",
+      "failure_cases": ["An unparseable threadID string falls through to the banner branch rather than being treated as an error."],
+      "cancellation": "not applicable",
+      "windows_path": "PLATFORM BOUNDARY: the same suppression gate must be applied before handing a toast to the Windows notification pipeline. port_impacts.md entry 116 - all four notification gates must ship; if the port uses the OS toast pipeline unconditionally, fold this gate's condition into the earlier gate and record the departure.",
+      "verification_method": "interaction test: a turn finishing in the open, front chat produces no toast; the same turn in a background chat produces one",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-064",
+      "title": "Tapping a thread notification shows the main window, selects that thread and activates the app, in that order",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:71-86 userNotificationCenter(_:didReceive:) - 'let identifier = userInfo[\"threadID\"] as? String'; 'let isUpdate = userInfo[\"update\"] != nil'; then on the main actor: 'if !isUpdate { WindowManager.shared.showMain() }'; 'if let identifier, let threadID = UUID(uuidString: identifier) { self.model?.selectedThreadID = threadID }'; 'NSApp.activate()'; 'if isUpdate { WindowManager.shared.showSettings(page: .about) }'"
+      ],
+      "preconditions": "A thread notification, one carrying \"threadID\" and not \"update\", is tapped.",
+      "action": "The system delivers the response.",
+      "expected_result": "In this exact order: the main window is shown, created if needed; the named thread becomes the selection, which marks it and its on-screen children read and updates the dock badge; and the app is activated. The Settings window is not opened.",
+      "side_effects": ["Shows and activates the main window; changes the selection; clears that thread's unread mark; updates the dock badge"],
+      "persistence": "The unread-mark clearing schedules a library save.",
+      "failure_cases": [
+        "A threadID that does not parse as a UUID: the window is still shown and the app still activated, but the selection is unchanged",
+        "A threadID naming a thread that no longer exists: selectedThreadID is set to an id with no thread; the selection didSet's lookups all return nil and the chat area shows nothing selected"
+      ],
+      "cancellation": "not applicable",
+      "windows_path": "PLATFORM BOUNDARY: the Windows toast activation handler performs the same three steps in the same order. port_impacts.md entry 115 - port both payload shapes, both identifier schemes and the routing branch order exactly.",
+      "verification_method": "interaction test on a toast activation with a valid and an unknown thread id",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-065",
+      "title": "Tapping an update notification skips the main window and opens Settings on About after activating",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:77-85 - isUpdate is 'userInfo[\"update\"] != nil'; showMain is skipped when isUpdate; NSApp.activate() runs; then 'if isUpdate { WindowManager.shared.showSettings(page: .about) }'",
+        "DroppyCode/App/UpdateChecker.swift:249-252 - the update notification's content: title \"Droppy Code \\(update.version) is available\", body \"Open Settings › About to update and restart.\", userInfo [\"update\": update.version]"
+      ],
+      "preconditions": "The update notification is tapped. It carries \"update\" and no \"threadID\".",
+      "action": "The system delivers the response.",
+      "expected_result": "showMain() is NOT called, so if every window was closed the main window stays closed. The selection is unchanged, because there is no threadID to parse. The app is activated. Then the Settings window is opened on the About page, centred over the main window if one is visible and centred on screen otherwise.",
+      "side_effects": ["Activates the app; opens the Settings window on About"],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not applicable",
+      "windows_path": "PLATFORM BOUNDARY: same routing branch, same order, same skip of the main window. The notification's own text belongs to the update area.",
+      "verification_method": "interaction test on the update toast activation with all windows closed",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-066",
+      "title": "The app icon badge shows the number of unread threads, and nothing at zero",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:1261-1264 updateDockBadge() - 'let unread = threads.count { $0.hasUnread && !$0.isArchived && !$0.isInPanel }' then 'NSApp.dockTile.badgeLabel = unread > 0 ? String(unread) : nil'",
+        "DroppyCode/App/AppModel.swift:1236-1238 - markRead calls scheduleSave() then updateDockBadge()"
+      ],
+      "preconditions": "Threads carry unread marks.",
+      "action": "The unread set changes: a turn finishes in a background chat, or a thread is read.",
+      "expected_result": "The badge label is the decimal count of threads that are unread AND not archived AND not in a panel, as a plain number with no padding or suffix. At zero the label is cleared entirely rather than set to \"0\".",
+      "side_effects": ["Sets the application icon badge"],
+      "persistence": "None; the unread marks themselves are persisted by the chat area.",
+      "failure_cases": [],
+      "cancellation": "not applicable",
+      "windows_path": "PLATFORM BOUNDARY: the Windows taskbar overlay icon or badge is the nearest equivalent and has different capabilities - it is an icon, not arbitrary text. The count-and-clear-at-zero rule and the three predicates are reproduced; the visual form is a recorded platform difference.",
+      "verification_method": "interaction test: two unread background chats show 2, reading both clears the badge",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-067",
+      "title": "Notification permission is requested lazily, at most once per process, and never in a capture run",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:118 - @ObservationIgnored private var didRequestNotifications = false",
+        "DroppyCode/App/AppModel.swift:1240-1246 requestNotificationPermission() - 'guard !didRequestNotifications, !WebsiteCaptures.isEnabled else { return }', 'didRequestNotifications = true', then a task calling requestAuthorization(options: [.alert, .sound, .badge])",
+        "DroppyCode/App/AppModel.swift:1251 - notify(...) calls requestNotificationPermission() before building the content"
+      ],
+      "preconditions": "The app has launched. No permission prompt is shown at launch.",
+      "action": "The first notification the app wants to post is built.",
+      "expected_result": "The system permission prompt appears at the moment the app first actually wants to notify, not at launch. The request is made exactly once per process with the option set [.alert, .sound, .badge]. The result is discarded, so a refusal is not recorded anywhere and the app keeps calling add() for later notifications.",
+      "side_effects": ["A system permission prompt, once"],
+      "persistence": "Nothing is persisted; the once-only flag is in memory and resets every launch.",
+      "failure_cases": ["Authorization failure or refusal is swallowed; no message, no state change, and notifications silently do not appear."],
+      "cancellation": "not cancellable",
+      "windows_path": "PLATFORM BOUNDARY: Windows toast notifications for a desktop app do not use a runtime permission prompt in the same way. The port keeps the lazy, once-per-process registration point and records the difference rather than inventing a prompt.",
+      "verification_method": "unit test asserting one request per process and none at launch",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-068",
+      "title": "The launch sequence produces no modal, no error dialog and no progress UI of its own",
+      "source_evidence": [
+        "DroppyCode/App/DroppyCodeApp.swift:7-19 - the prologue presents nothing",
+        "DroppyCode/App/AppDelegate.swift:8-28 applicationDidFinishLaunching - the only presented surfaces are the main window, the tour conditionally after 700 ms, and the Settings window on About conditionally",
+        "DroppyCode/App/AppModel.swift:106 - var alert: AppAlert? is never set by any launch-path code in this file",
+        "DroppyCode/Services/Store/Storage.swift:60-63 - a failed library load falls back to an empty library with no message",
+        "DroppyCode/App/LegacyMigration.swift:23 - the folder move is try? with no message"
+      ],
+      "preconditions": "Any launch, including one where the library is corrupt, the migration failed, or the store root could not be created.",
+      "action": "The app launches.",
+      "expected_result": "The user sees the main window with a chat selected. No splash screen, no progress indicator, no migration dialog and no error alert is shown by the launch path, whatever failed. Failures are silent by design; the only diagnostic surfaces are log lines.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": ["This requirement IS the failure behavior: every launch-path failure is silent."],
+      "cancellation": "not applicable",
+      "windows_path": "Reproduce. No Windows-only splash, first-run wizard or error dialog may be added to the launch path.",
+      "verification_method": "capture comparison and interaction test with a corrupted library, asserting no dialog appears",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-069",
+      "title": "A launch with no projects at all selects nothing and creates nothing",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:296-304 currentProject - returns projects.first, which is nil when projects is empty",
+        "DroppyCode/App/AppModel.swift:574-575 openThreadOnLaunch() - 'guard let project = currentProject else { return }'"
+      ],
+      "preconditions": "A fresh install, or every project removed: the library holds no projects.",
+      "action": "Launch runs openThreadOnLaunch().",
+      "expected_result": "No thread is created and no thread is selected. The main window is shown in its empty state. This is the empty-library launch path, and it is the only launch that ends without a selected thread.",
+      "side_effects": [],
+      "persistence": "Nothing is written by this path.",
+      "failure_cases": [],
+      "cancellation": "not applicable",
+      "windows_path": "Direct port; the empty state's appearance belongs to the shell and chrome area.",
+      "verification_method": "interaction test on a fresh data directory",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-070",
+      "title": "The store root and the home state directory are two separate roots, both resolved on first use",
+      "source_evidence": [
+        "DroppyCode/Services/Store/Storage.swift:19-25 root - CaptureRun.storageRoot, else ~/Library/Application Support/<AppInfo.name>, created with intermediate directories",
+        "DroppyCode/Services/Store/Storage.swift:43-48 stateDirectory(_:) - URL(fileURLWithPath: LoginEnvironment.homeDirectory)/<AppInfo.stateDirectoryName>/<name>, created with intermediate directories",
+        "DroppyCode/Core/Support/Text.swift:6 - AppInfo.stateDirectoryName = isDevelopment ? \".droppy-code-dev\" : \".droppy-code\"",
+        "DroppyCode/Services/Store/Storage.swift:31-41 - threadsDirectory, attachmentsDirectory and wallpaperDirectory under root; worktreesDirectory = stateDirectory(\"worktrees\"); patchesDirectory = stateDirectory(\"patches\")"
+      ],
+      "preconditions": "First access to any storage path during launch.",
+      "action": "Storage resolves a path.",
+      "expected_result": "Library, thread documents, attachments and wallpaper live under the application-support root named by the display name. Worktrees and patches live under a dot-folder in the user's home directory named \".droppy-code\", or \".droppy-code-dev\" in a development build. Each directory is created on first use and its URL cached for the process.",
+      "side_effects": ["Creates directories"],
+      "persistence": "Defines every on-disk location the app owns.",
+      "failure_cases": ["Directory creation uses try? and failure is silent; a later read or write then fails silently too."],
+      "cancellation": "not applicable",
+      "windows_path": "PLATFORM BOUNDARY (port_impacts.md entry 113): the two-root split must be preserved deliberately, because worktree paths are handed to git and appear in user-visible strings. %APPDATA% or %LOCALAPPDATA% replaces ~/Library/Application Support; a dotted folder under the user profile replaces the home state directory. The development-build suffix rule is reproduced.",
+      "verification_method": "integration test asserting both roots exist and hold the expected files after a launch",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-071",
+      "title": "There is no first-run onboarding beyond the welcome tour, and no account or sign-in step at launch",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:16-27 - the complete launch sequence: showMain, openThreadOnLaunch, the conditional tour, bootstrap, update checks, the conditional About page",
+        "DroppyCode/App/AppModel.swift:120-146 init() - constructs the stores and loads the library; no onboarding state",
+        "DroppyCode/App/AppModel.swift:239-278 bootstrap() - no sign-in, no account and no registration step"
+      ],
+      "preconditions": "A genuinely first launch on a clean machine.",
+      "action": "The app launches.",
+      "expected_result": "The main window opens with an empty or freshly created chat, and 700 ms later the welcome tour appears. Nothing asks the user to sign in, create an account, accept terms or choose a data directory. Provider sign-in state is discovered by the provider probes during bootstrap, not asked for.",
+      "side_effects": [],
+      "persistence": "Only hasSeenTour once the tour is dismissed.",
+      "failure_cases": [],
+      "cancellation": "not applicable",
+      "windows_path": "Reproduce. No Windows-only first-run wizard, EULA step or data-folder chooser may be added.",
+      "verification_method": "capture comparison on a clean data directory",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-072",
+      "title": "The source has no single-instance lock; a second launch is a separate process",
+      "source_evidence": [
+        "DroppyCode/App/DroppyCodeApp.swift:1-26 - the entry point installs no instance lock, mutex or port",
+        "DroppyCode/App/AppDelegate.swift:1-87 - no instance arbitration in any lifecycle callback",
+        "DroppyCode/Core/Support/CaptureRun.swift:9-19 - the capture invocation relies on launching another copy with arguments, implying multiple instances are possible",
+        "porting/dead_code.md:93 entry 42 - records the documented capture invocation, which opens a new instance"
+      ],
+      "preconditions": "A copy of the app is already running.",
+      "action": "The app is launched again.",
+      "expected_result": "Nothing in the source prevents a second process. macOS Launch Services normally activates the running copy instead of starting a second one for a double-click, but the app itself contributes no lock, and the documented capture invocation deliberately bypasses that to start a second instance. Two instances would share the same store root with no coordination.",
+      "side_effects": ["Two processes writing the same library.json, with only the atomic-write guarantee between them"],
+      "persistence": "Unsynchronised access to the same store root.",
+      "failure_cases": ["Concurrent writes: last writer wins per file, atomically; there is no lock, no merge and no warning."],
+      "cancellation": "not applicable",
+      "windows_path": "ENGINEERING DECISION required: Windows has no Launch Services single-activation behavior, so without an explicit lock a double-click WOULD start a second process, which is a behavioral divergence rather than a reproduction. A single-instance mutex that activates the running window is the faithful outcome of the macOS behavior; the source cannot settle it because the arbitration lives outside the app. Record the choice.",
+      "verification_method": "interaction test: launching twice results in one visible main window",
+      "status": "DISCOVERED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-073",
+      "title": "Quit is the stock application-termination menu item; the app replaces the settings and save command groups but not termination",
+      "source_evidence": [
+        "DroppyCode/App/DroppyCodeApp.swift:23-24 - the Settings scene carries .commands { AppCommands(model:) }",
+        "DroppyCode/App/AppCommands.swift:12-15 - CommandGroup(replacing: .appSettings) with Button(\"Settings…\")",
+        "DroppyCode/App/AppCommands.swift:17-19 - CommandGroup(replacing: .saveItem) {} with the comment about the stock Close taking Cmd-W",
+        "DroppyCode/App/AppCommands.swift:11-101 - no CommandGroup for .appTermination anywhere in the body"
+      ],
+      "preconditions": "The menu bar is built.",
+      "action": "The user opens the application menu.",
+      "expected_result": "The Quit item is the system-provided one, with the system-provided label and shortcut derived from the bundle name; the app neither replaces nor relabels it. Choosing it enters the termination sequence specified by PR-LAUNCH-049 to PR-LAUNCH-051. The app DOES replace the settings group, with \"Settings…\", and empties the save group.",
+      "side_effects": ["Triggers the termination sequence"],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "The quit can be deferred but never refused (PR-LAUNCH-050).",
+      "windows_path": "PLATFORM BOUNDARY: Windows has no application menu with a system Quit item. The equivalents that must reach the same termination sequence are the window close button, Alt+F4, the taskbar Close command and a session end. The exact label of any Exit menu item the port adds is NOT derivable from this source and must be recorded as a deliberate Windows addition, not invented as parity.",
+      "verification_method": "interaction test: each Windows close affordance runs the full termination sequence",
+      "status": "DISCOVERED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-074",
+      "title": "Closing the main window does not quit the app",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:1-87 - the delegate implements no applicationShouldTerminateAfterLastWindowClosed, so the AppKit default of false applies",
+        "DroppyCode/App/AppDelegate.swift:30-33 applicationShouldHandleReopen - exists precisely to bring the main window back when no window is visible, which is only reachable if closing the window left the app running"
+      ],
+      "preconditions": "The main window is the only visible window.",
+      "action": "The user closes it.",
+      "expected_result": "The app keeps running with no visible window. Its menu bar stays, and reopening from the Dock shows the main window again (PR-LAUNCH-048). No termination sequence runs and nothing is saved at this point beyond the ordinary debounced saves.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not applicable",
+      "windows_path": "ENGINEERING DECISION required: a Windows app with no window and no tray presence is unreachable, so 'keep running with no window' cannot be ported literally without adding a notification-area icon, which the source does not have. Either the close button exits, a divergence that must be recorded, or a tray affordance is added, an addition that must be recorded. The source settles the macOS behavior but not the Windows one.",
+      "verification_method": "interaction test on the chosen behavior, with the decision recorded in COMPATIBILITY",
+      "status": "DISCOVERED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-075",
+      "title": "A quit that arrives before the delegate has its model is never deferred and saves nothing",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:6 - var model: AppModel? starts nil",
+        "DroppyCode/App/AppDelegate.swift:10-11 - model is assigned inside applicationDidFinishLaunching",
+        "DroppyCode/App/AppDelegate.swift:39 - 'guard let model, ... else { return .terminateNow }'",
+        "DroppyCode/App/AppDelegate.swift:51 - 'model?.saveBeforeQuit()' is optional-chained"
+      ],
+      "preconditions": "A quit arrives between process start and the model assignment.",
+      "action": "The termination path runs.",
+      "expected_result": "The reply is terminateNow. In applicationWillTerminate the save step is skipped entirely because the model is nil, while flushLiveSpend() and MCPHub.terminateAll() still run. Nothing is lost because nothing was loaded or changed yet.",
+      "side_effects": ["The token ledger flush and MCP termination still run against their empty state"],
+      "persistence": "No library write.",
+      "failure_cases": [],
+      "cancellation": "not applicable",
+      "windows_path": "Direct port: the shutdown sequence must tolerate a null model and still run the other two steps.",
+      "verification_method": "unit test on the shutdown sequencer with a null model",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-076",
+      "title": "A force kill or crash loses only what the debounced saves had not yet written",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:1289-1297 scheduleSave() - the 400 ms debounce is the only routine library persistence",
+        "DroppyCode/App/AppModel.swift:129-136 init() - the running-to-interrupted and running-head-to-stopped repairs exist precisely because a previous run may not have terminated cleanly",
+        "DroppyCode/Core/Support/HangWatchdog.swift:5-7 - 'A freeze that ends in a force quit leaves nothing behind'"
+      ],
+      "preconditions": "The process is killed without running applicationWillTerminate.",
+      "action": "The app is relaunched.",
+      "expected_result": "library.json holds everything that was quiet for 400 ms before the kill; changes newer than that are lost. Thread documents hold whatever their own persistence had written. On relaunch, running turns read as interrupted and running heads read as stopped with a launch-time finishedAt. No recovery prompt, no crash report dialog and no restore-session step is offered.",
+      "side_effects": ["MCP server and terminal children are NOT terminated and may be orphaned, because the termination step never ran"],
+      "persistence": "Whatever landed before the kill.",
+      "failure_cases": ["Orphaned child processes after a force kill are upstream behavior and are not cleaned up on the next launch."],
+      "cancellation": "not applicable",
+      "windows_path": "Direct port of the recovery behavior. Job Objects with kill-on-close (platform_adaptations PA-0007) would additionally clean up children on a force kill, which is stricter than upstream; that is an improvement to record explicitly rather than assume.",
+      "verification_method": "restart test: kill the process and assert the relaunch state",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-077",
+      "title": "The selection change at launch marks the opened thread and its on-screen children read",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:79-87 selectedThreadID didSet - comment 'A helper or head under the selected thread is on screen with it, so reading the thread reads them too' then 'let ids = [selectedThreadID] + children(of: selectedThreadID).map(\\.id)' and 'Task { @MainActor [weak self] in self?.markRead(ids) }'",
+        "DroppyCode/App/AppModel.swift:1226-1238 markRead(_ ids:) - clears hasUnread on the named threads, then scheduleSave() and updateDockBadge()"
+      ],
+      "preconditions": "openThreadOnLaunch assigns the selection.",
+      "action": "The selection is set at launch.",
+      "expected_result": "The opened thread and every child under it lose their unread mark, on a task that runs after the selection has painted so the click itself never rewrites the library. The dock badge is then recomputed. At launch this typically means the badge drops by the unread count of the opened thread.",
+      "side_effects": ["Library save scheduled; dock badge updated"],
+      "persistence": "hasUnread false for the affected threads, via the debounced save.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port including the deferred, post-paint mark-read.",
+      "verification_method": "restart test: a thread with unread work that is reopened at launch is read afterwards",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-078",
+      "title": "The selection change at launch remembers the project and warms the neighbouring threads",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:88-96 selectedThreadID didSet - 'scheduleIdleSessionStop(leaving: oldValue)'; 'Task { @MainActor [weak self] in self?.warmNeighbors(of: id) }'; 'if let selectedThreadID, let thread = thread(selectedThreadID) { rememberLastProject(thread.projectID) }'",
+        "DroppyCode/App/AppModel.swift:306-309 rememberLastProject(_:) - 'guard project(id) != nil else { return }' then 'if settings.lastProjectID != id { settings.lastProjectID = id }'",
+        "DroppyCode/App/AppModel.swift:449-463 warmNeighbors/neighbors - the row above and the row below within the thread's project, in sidebar order"
+      ],
+      "preconditions": "The launch selection is assigned.",
+      "action": "The didSet chain runs.",
+      "expected_result": "The opened thread's project is written to the settings key \"lastProjectID\" unless it is already that value, so an unchanged project causes no settings write, and the documents of the rows immediately above and below are pre-decoded in the background. At launch the outgoing selection is nil, so no idle stop is scheduled.",
+      "side_effects": ["Possibly one settings write; background decodes of at most two thread documents"],
+      "persistence": "Settings key \"lastProjectID\".",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port including the equality guard before the settings write.",
+      "verification_method": "unit test asserting no settings write when the project is unchanged",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-079",
+      "title": "The launch prologue and the launch callback make no network call",
+      "source_evidence": [
+        "DroppyCode/App/DroppyCodeApp.swift:7-19 - no networking",
+        "DroppyCode/App/AppDelegate.swift:8-28 - the only network-capable step is UpdateChecker.shared.startBackgroundChecks(), which sleeps 8 seconds before its first call",
+        "DroppyCode/App/UpdateChecker.swift:134-135 - the launch delay precedes the first check",
+        "DroppyCode/App/AppModel.swift:262-273 - the provider refresh and catalog loads happen inside bootstrap, after the window is up"
+      ],
+      "preconditions": "Any normal launch.",
+      "action": "The app launches.",
+      "expected_result": "No network request is made before the main window is on screen. The first outbound traffic is whatever the provider refresh in bootstrap does, and the update check no sooner than 8 seconds after launch.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": ["An offline machine changes nothing about the launch sequence; failures are absorbed by the provider and update areas."],
+      "cancellation": "not applicable",
+      "windows_path": "Reproduce; no telemetry, ping or licence check may be added to the launch path.",
+      "verification_method": "integration test capturing outbound connections during the first 8 seconds",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-080",
+      "title": "Background work started at launch is exactly four long-lived loops, one activation observer and per-thread idle timers",
+      "source_evidence": [
+        "DroppyCode/Core/Support/HangWatchdog.swift:50-59 - the hang-watchdog thread, 0.5 s",
+        "DroppyCode/App/AppModel+Hydra.swift:959-967 with AppModel.swift:247 - the Hydra watchdog task, 30 s",
+        "DroppyCode/App/AppModel.swift:254-261 - the Hydra merge sweep task, 300 s",
+        "DroppyCode/App/UpdateChecker.swift:134-140 - the update check loop, 8 s then 6 h",
+        "DroppyCode/App/UpdateChecker.swift:141-149 - the activation observer, event-driven rather than a loop",
+        "DroppyCode/App/AppModel.swift:476-487 - one idle-session-stop task per deselected thread, 600 s"
+      ],
+      "preconditions": "A normal launch has completed and bootstrap has run.",
+      "action": "The app is idle.",
+      "expected_result": "Exactly these background activities are running: the 0.5 s hang watchdog thread; the 30 s Hydra watchdog task; the 300 s Hydra merge sweep task; the update loop, 8 s to the first check then every 6 h; the activation observer; and at most one 600 s idle-stop task per thread that has been deselected while holding a runtime. No other timer or polling loop is started by the launch path.",
+      "side_effects": ["Periodic CPU wakeups at these cadences"],
+      "persistence": "None directly.",
+      "failure_cases": [],
+      "cancellation": "Only the merge sweep, cancelled and restarted by a subsequent bootstrap, and the idle-stop tasks, cancelled on reselection, are ever cancelled. The rest end with the process.",
+      "windows_path": "Direct port of the set and the cadences. Windows timer coalescing may shift wakeups; the cadences are the requirement, not the exact wake instants.",
+      "verification_method": "unit test enumerating the started background tasks after a simulated launch",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    }
+  ],
+  "ui": [
+    {
+      "id": "UI-LAUNCH-001",
+      "screen": "Main window, shown by launch",
+      "element": "The application's main window, created on first use and restored to its last frame",
+      "role": "window",
+      "exact_text": "Droppy Code",
+      "geometry": "Content size 1320 x 860 points on a first ever launch; content minimum size 860 x 560; afterwards the frame saved under the autosave name \"DroppyCodeMainWindow\"; centered on screen when no saved frame exists",
+      "typography": "Title bar type is system-provided; the window is created titled with a transparent title bar, specified by the shell and chrome area",
+      "colors": "Clear window background with a SwiftUI glass pane over it (WindowManager.swift:4-8); resolved per theme by the shell and chrome area",
+      "states": [
+        "First launch: no saved frame, so the window is centered at 1320 x 860",
+        "Subsequent launch: restored to the saved frame",
+        "Resized below the minimum: prevented by contentMinSize 860 x 560",
+        "Closed: the app keeps running and the window is recreated on reopen"
+      ],
+      "interactions": [
+        "Shown automatically at launch",
+        "Reopen from the Dock when no window is visible (applicationShouldHandleReopen)",
+        "The Window menu item labelled with AppInfo.name shows it again (AppCommands.swift:21-25)"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:16",
+        "DroppyCode/App/Window/WindowManager.swift:18-24",
+        "DroppyCode/App/Window/WindowManager.swift:26-30",
+        "DroppyCode/App/Window/WindowManager.swift:62-69",
+        "DroppyCode/Core/Support/Text.swift:4"
+      ],
+      "notes": "The title is AppInfo.name, which reads CFBundleDisplayName and falls back to the literal \"Droppy Code\"; under the approved rename it becomes the new product name. The window is an AppKit window owned by WindowManager, not a SwiftUI WindowGroup, so no scene background draws a second corner. Its contents and chrome belong to the shell and chrome area; this record covers only what launch does to it."
+    },
+    {
+      "id": "UI-LAUNCH-002",
+      "screen": "Welcome tour, presented over the main window at launch",
+      "element": "The welcome tour window, presented 700 ms after launch on a first run",
+      "role": "window",
+      "exact_text": null,
+      "geometry": "Owned by TourWindowController; its geometry belongs to the tour area",
+      "typography": "Tour area",
+      "colors": "Tour area",
+      "states": [
+        "Not shown at all when the setting \"hasSeenTour\" is true",
+        "Shown once, 700 ms after launch, when \"hasSeenTour\" is absent or false",
+        "Finished: writes hasSeenTour = true",
+        "Closed without finishing: also writes hasSeenTour = true, so it never reappears"
+      ],
+      "interactions": [
+        "Appears automatically; no user action opens it at launch",
+        "The Help menu opens it again, outside this area"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:18-20",
+        "DroppyCode/App/Views/Tour/TourPages.swift:26-28",
+        "DroppyCode/App/AppSettings.swift:177",
+        "DroppyCode/App/AppSettings.swift:532-534",
+        "DroppyCode/App/AppSettings.swift:745"
+      ],
+      "notes": "The 700 ms delay is deliberate: the main window and the opened chat are already painted when the tour appears over them. A porter who presents the tour synchronously during launch will show it over an unpainted window. Both the finish and the close callbacks write the same setting, so dismissing counts as seeing it."
+    },
+    {
+      "id": "UI-LAUNCH-003",
+      "screen": "Settings window, About page, opened by launch after an update install",
+      "element": "The Settings window opened on the About page on the first launch after an installed update",
+      "role": "window",
+      "exact_text": null,
+      "geometry": "Content size 780 x 580; centered over the main window, clamped to that window's screen visible frame; centered on screen when the main window is missing, hidden or miniaturised",
+      "typography": "Settings area",
+      "colors": "Settings area",
+      "states": [
+        "Not shown when there is no pending relaunch marker",
+        "Not shown when the stored version differs from the running build's version, and the marker is still consumed",
+        "Shown on the About page with the install celebration armed when the versions match"
+      ],
+      "interactions": [
+        "Opens automatically during launch",
+        "Also opened by tapping the update notification, which skips showing the main window first"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:23-27",
+        "DroppyCode/App/AppDelegate.swift:84",
+        "DroppyCode/App/Window/WindowManager.swift:21",
+        "DroppyCode/App/Window/WindowManager.swift:32-38",
+        "DroppyCode/App/Window/WindowManager.swift:40-51",
+        "DroppyCode/App/AppUpdater.swift:241",
+        "DroppyCode/App/AppUpdater.swift:253-258"
+      ],
+      "notes": "The marker key \"appUpdater_pendingRelaunchVersion\" is removed before the version comparison, so a mismatched marker is consumed silently and the celebration is never retried. The celebration's own animation belongs to the update area."
+    },
+    {
+      "id": "UI-LAUNCH-004",
+      "screen": "Dock, application icon",
+      "element": "Unread-thread badge on the app icon",
+      "role": "badge",
+      "exact_text": "The decimal count of unread threads, as a plain number with no prefix, suffix or padding; no label at all when the count is zero",
+      "geometry": "System-drawn dock tile badge; no app-specified geometry",
+      "typography": "System-drawn",
+      "colors": "System-drawn",
+      "states": [
+        "Zero unread: badgeLabel is nil, so no badge is drawn, not a \"0\"",
+        "One or more unread: the count as a string",
+        "Archived threads and threads in a panel never count"
+      ],
+      "interactions": [
+        "Clicking the Dock icon reopens the main window when no window is visible (applicationShouldHandleReopen)"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:1261-1264",
+        "DroppyCode/App/AppModel.swift:1236-1238",
+        "DroppyCode/App/AppDelegate.swift:30-33"
+      ],
+      "notes": "The nil-at-zero rule matters: writing \"0\" would leave a permanent badge. The three predicates - hasUnread, not archived, not in a panel - must all be applied. On Windows the nearest surface is a taskbar overlay icon, which cannot render arbitrary text, so the visual result differs and must be recorded rather than faked."
+    },
+    {
+      "id": "UI-LAUNCH-005",
+      "screen": "System notification banner",
+      "element": "The banner and sound the app asks for when a notification is delivered while it is running",
+      "role": "notification banner",
+      "exact_text": null,
+      "geometry": "System-drawn",
+      "typography": "System-drawn",
+      "colors": "System-drawn",
+      "states": [
+        "Suppressed entirely, no banner and no sound, when the notification's threadID equals the selected thread and the app is active",
+        "Banner plus default sound in every other case, including when the threadID is missing or unparseable and including the update notification"
+      ],
+      "interactions": [
+        "Tap on a thread notification: show the main window, select that thread, activate the app, in that order",
+        "Tap on an update notification: activate the app, then open Settings on About; the main window is NOT shown"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:57-69",
+        "DroppyCode/App/AppDelegate.swift:71-86",
+        "DroppyCode/App/AppModel.swift:1248-1259",
+        "DroppyCode/App/UpdateChecker.swift:249-252"
+      ],
+      "notes": "The presentation options are exactly [.banner, .sound] or []; there is no third case. The tap routing order is load-bearing: the window is shown BEFORE the selection changes, the app is activated after the selection, and the Settings window is opened last and only for update notifications."
+    },
+    {
+      "id": "UI-LAUNCH-006",
+      "screen": "Application menu",
+      "element": "Quit item",
+      "role": "menu item",
+      "exact_text": null,
+      "geometry": "System-drawn",
+      "typography": "System-drawn",
+      "colors": "System-drawn",
+      "states": [
+        "Always enabled",
+        "Choosing it while a Hydra merge runs defers the quit silently for up to 4 minutes with no dialog, no progress indicator and no way to force it"
+      ],
+      "interactions": [
+        "Click, or the system-assigned application-termination shortcut"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/AppCommands.swift:11-101",
+        "DroppyCode/App/AppDelegate.swift:38-48"
+      ],
+      "notes": "exact_text is null on purpose: AppCommands replaces the .appSettings and .saveItem groups but never the termination group, so the item's label and shortcut come from AppKit and the bundle name and appear nowhere in the source. Inventing an \"Exit\" label for Windows is a recorded addition, not parity. The silent deferral is the part a porter gets wrong: the user sees nothing at all during a wait that can last four minutes."
+    },
+    {
+      "id": "UI-LAUNCH-007",
+      "screen": "Application menu",
+      "element": "Settings… item",
+      "role": "menu item",
+      "exact_text": "Settings…",
+      "geometry": "System-drawn menu item",
+      "typography": "System-drawn",
+      "colors": "System-drawn",
+      "states": ["Always enabled"],
+      "interactions": [
+        "Click opens the Settings window, centered over the main window",
+        "The keyboard shortcut comes from ShortcutStore for the .openSettings action, not from a literal in this file"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/AppCommands.swift:12-15",
+        "DroppyCode/App/Window/WindowManager.swift:32-38"
+      ],
+      "notes": "Included here because it is the command group the launch scene installs and because the post-update launch opens the same window programmatically. The label ends with a single-character horizontal ellipsis, not three full stops. The Settings page contents belong to the settings area."
+    },
+    {
+      "id": "UI-LAUNCH-008",
+      "screen": "No UI surface",
+      "element": "Hang report file",
+      "role": "file artifact",
+      "exact_text": "Line 1: \"Droppy Code main thread unresponsive for <x.x>s\". Line 2: \"Version <short version> (<build>)\", with \"?\" for either value when the bundle key is missing. Line 3: \"Sampled at <date>\". Line 4: empty. Then the captured stacks. A failed sample gives the body \"sample could not run: <error>\" and a non-zero exit prefixes the body with \"sample exited with status <n>\" followed by a blank line.",
+      "geometry": "Not applicable; plain UTF-8 text",
+      "typography": "Not applicable",
+      "colors": "Not applicable",
+      "states": [
+        "Written only when the main thread has not answered a ping for 4 seconds",
+        "One file per stall; a further stall after a recovery gets its own file",
+        "At most 10 files are kept in the folder"
+      ],
+      "interactions": [
+        "None; the user is never told a report was written and there is no in-app viewer, list or link to it"
+      ],
+      "source_evidence": [
+        "DroppyCode/Core/Support/HangWatchdog.swift:85-116",
+        "DroppyCode/Core/Support/HangWatchdog.swift:118-121",
+        "DroppyCode/Core/Support/HangWatchdog.swift:123-130"
+      ],
+      "notes": "This is a user-reachable artifact with no user-visible control anywhere in the app. The file name is hang-<ISO8601 with ':' replaced by '-'>.txt under ~/Library/Logs/Droppy Code. A porter must not add a notification, a dialog or a settings toggle for it: nothing in the source surfaces it."
+    },
+    {
+      "id": "UI-LAUNCH-009",
+      "screen": "Launch, whole app",
+      "element": "Absence of any launch-time progress, splash, migration or error surface",
+      "role": "negative requirement",
+      "exact_text": null,
+      "geometry": "Not applicable",
+      "typography": "Not applicable",
+      "colors": "Not applicable",
+      "states": [
+        "Corrupt library: the app opens empty with no message",
+        "Failed legacy folder move: the app opens without the old data and with no message",
+        "Failed store-root creation: the app opens and later writes fail silently",
+        "Slow bootstrap: the window is already usable; there is no blocking indicator"
+      ],
+      "interactions": ["None"],
+      "source_evidence": [
+        "DroppyCode/App/DroppyCodeApp.swift:7-19",
+        "DroppyCode/App/AppDelegate.swift:8-28",
+        "DroppyCode/App/LegacyMigration.swift:22-25",
+        "DroppyCode/Services/Store/Storage.swift:60-63",
+        "DroppyCode/App/AppModel.swift:106"
+      ],
+      "notes": "Recorded as UI because the temptation to add a splash screen, a 'restoring your data' step or a friendly error dialog on Windows is strong and would be an invention. Launch shows the main window with a chat in it, and nothing else."
+    }
+  ]
+}

@@ -302,16 +302,44 @@ check('B', 'every cited source path exists in the pinned inventory', () => {
   const m = readJson('porting/parity_matrix.json');
   const ui = existsSync(rel('porting/ui_contract.json')) ? readJson('porting/ui_contract.json') : { records: [] };
   const bogus = new Map();
+  // Longest-first alternation: "md" and "metal" and "mjs" must be tried before bare "m",
+  // otherwise chrome-design-tokens.md matches as "...tokens.m". Fixed 2026-09-20 after this
+  // check reported 351 false positives against its own derived artifacts.
+  const EXT = 'pbxproj|xcworkspacedata|resolved|metal|swift|json|toml|html|yml|mjs|css|svg|xml|txt|md|js|py|sh|h|m';
+  // A path is treated as a claim about the PINNED SOURCE TREE only when it is written like one:
+  // either followed by :<line>, which is the citation form, or rooted at a real top-level source
+  // directory. Evidence prose also names RUNTIME paths the app reads and writes on the user's
+  // machine (library.json, .grok/auth.json, ~/.commandcode/config.json, a project's CLAUDE.md,
+  // <thread-id>.json). Those are not source citations and must not be checked against the tree.
+  // Narrowed 2026-09-20; merge_spec.mjs separately requires every requirement to carry at least
+  // one real file:line citation, so this narrowing cannot let an unevidenced requirement through.
+  const SRC_ROOTS = ['DroppyCode/', 'DroppyCode.xcodeproj/', 'scripts/', 'website/', 'docs/', 'release/', '.commandcode/'];
+  const re = new RegExp(`([A-Za-z0-9_./+-]+\\.(?:${EXT}))(:\\d+)?(?![A-Za-z0-9])`, 'g');
+  const missingArtifacts = new Map();
   const scan = (records, field) => {
     for (const r of records) {
       for (const e of r[field] || []) {
-        const match = String(e).match(/([A-Za-z0-9_./+-]+\.(?:swift|h|m|json|md|yml|py|sh|js|html|css|metal|pbxproj|txt|toml|xml|svg))/);
-        if (!match) continue;
-        let p = match[1];
-        // Accept a repo-relative path, or one that ends with a known path.
-        if (known.has(p)) continue;
-        if ([...known].some((k) => k.endsWith('/' + p) || k === p)) continue;
-        bogus.set(r.id, p);
+        for (const match of String(e).matchAll(re)) {
+          const p = match[1];
+          // A porting/... citation is this port's own derived artifact, not a claim about the
+          // pinned tree. It still has to exist, so it is checked against disk rather than waved
+          // through: a citation to a file that is not there is exactly as bad either way.
+          // Citations to this port's own artifacts appear both repo-relative ("porting/x.md")
+          // and absolute ("E:/Droppy/port/porting/x.md"). Normalize from the porting/ segment
+          // so both forms are checked the same way, against disk.
+          const portIdx = p.indexOf('porting/');
+          if (portIdx >= 0) {
+            const normalized = p.slice(portIdx);
+            if (!existsSync(rel(normalized))) missingArtifacts.set(r.id, normalized);
+            continue;
+          }
+          const hasLine = Boolean(match[2]);
+          const rooted = SRC_ROOTS.some((root) => p.startsWith(root));
+          if (!hasLine && !rooted) continue; // a runtime path, not a source citation
+          if (known.has(p)) continue;
+          if ([...known].some((k) => k.endsWith('/' + p) || k === p)) continue;
+          bogus.set(r.id, `${p}${match[2] || ''}`);
+        }
       }
     }
   };
@@ -321,7 +349,11 @@ check('B', 'every cited source path exists in the pinned inventory', () => {
     const sample = [...bogus.entries()].slice(0, 6).map(([id, p]) => `${id} -> ${p}`);
     throw new Error(`${bogus.size} records cite a path not tracked at the pinned commit: ${sample.join('; ')}`);
   }
-  return `all cited paths exist at ${PINNED_SHA.slice(0, 8)}`;
+  if (missingArtifacts.size) {
+    const sample = [...missingArtifacts.entries()].slice(0, 6).map(([id, p]) => `${id} -> ${p}`);
+    throw new Error(`${missingArtifacts.size} records cite a port artifact that does not exist: ${sample.join('; ')}`);
+  }
+  return `all cited source paths exist at ${PINNED_SHA.slice(0, 8)}; all cited port artifacts exist on disk`;
 });
 
 check('B', 'UI contract exists with well-formed records', () => {
@@ -376,6 +408,36 @@ check('B', 'no requirement silently depends on an unresolved unknown', () => {
     .map((r) => `${r.id} -> ${r.depends_on_unknown}`);
   if (bogus.length) throw new Error(`${bogus.length} requirement(s) name an unknown that is not open: ${bogus.slice(0, 4).join('; ')}`);
   return `${openIds.size} open unknowns, ${declared} requirement(s) declare a dependency`;
+});
+
+check('B', 'every completeness-audit finding has been adjudicated', () => {
+  const p = rel('porting/critiques/spec_audit.json');
+  if (!existsSync(p)) throw new Error('no spec_audit.json; the completeness critics have not run');
+  const a = JSON.parse(readFileSync(p, 'utf8'));
+  const raised =
+    (a.audit_missing || []).length + (a.audit_wrong || []).length +
+    (a.audit_too_coarse || []).length + (a.audit_paraphrased || []).length;
+  const dir = rel('porting/reports/spec_repair');
+  if (!existsSync(dir)) {
+    return { status: 'FAIL', detail: `${raised} audit findings raised, spec repair pass has produced no output yet` };
+  }
+  let resolved = 0;
+  let scopes = 0;
+  for (const f of readdirSync(dir).filter((x) => x.endsWith('.json'))) {
+    try {
+      const doc = JSON.parse(readFileSync(join(dir, f), 'utf8'));
+      resolved += (doc.resolutions || []).length;
+      scopes++;
+    } catch { /* counted as unresolved */ }
+  }
+  const verdicts = (a.audit_verdicts || []).length;
+  if (scopes < verdicts) {
+    return { status: 'FAIL', detail: `${scopes}/${verdicts} audit scopes repaired, ${resolved} findings adjudicated of ${raised}` };
+  }
+  if (resolved < raised) {
+    return { status: 'FAIL', detail: `${resolved} adjudicated of ${raised} raised` };
+  }
+  return `${resolved} findings adjudicated across ${scopes} scopes`;
 });
 
 check('B', 'platform adaptation register covers the identified boundaries', () => {
