@@ -262,8 +262,132 @@ check('C', 'no quarantined behavior is implemented while its owner decision is o
   return `${open.length} open quarantine entr${open.length === 1 ? 'y' : 'ies'} respected across ${roots.length} tree(s)`;
 });
 
+// ---------------------------------------------------------------- Gate B
+
+const specExists = () => existsSync(rel('porting/parity_matrix.json'));
+
+check('B', 'architecture record exists and is substantive', () => {
+  const p = rel('porting/architecture.md');
+  if (!existsSync(p)) throw new Error('porting/architecture.md missing');
+  const text = readFileSync(p, 'utf8');
+  if (text.length < 8000) throw new Error(`architecture.md is only ${text.length} bytes; too thin to be the real architecture`);
+  const cites = (text.match(/\.swift:\d+/g) || []).length;
+  if (cites < 40) throw new Error(`architecture.md cites only ${cites} source lines; it must be evidenced, not narrated`);
+  return `${text.length} bytes, ${cites} source citations`;
+});
+
+check('B', 'parity matrix exists with well-formed requirements', () => {
+  if (!specExists()) throw new Error('porting/parity_matrix.json missing; run porting/tools/merge_spec.mjs');
+  const m = readJson('porting/parity_matrix.json');
+  const rs = m.requirements || [];
+  if (!rs.length) throw new Error('parity matrix is empty');
+  const bad = [];
+  const seen = new Set();
+  for (const r of rs) {
+    if (!/^PR-[A-Z]+-\d{3,}$/.test(r.id || '')) bad.push(`${r.id}: malformed id`);
+    else if (seen.has(r.id)) bad.push(`${r.id}: duplicate`);
+    seen.add(r.id);
+    if (!(r.source_evidence || []).length) bad.push(`${r.id}: no source evidence`);
+    if (!r.verification_method) bad.push(`${r.id}: no verification method`);
+    if (!r.expected_result) bad.push(`${r.id}: no expected result`);
+  }
+  if (bad.length) throw new Error(`${bad.length} malformed requirements: ${bad.slice(0, 5).join('; ')}`);
+  return `${rs.length} requirements across ${Object.keys(m.counts?.by_area || {}).length} areas`;
+});
+
+check('B', 'every cited source path exists in the pinned inventory', () => {
+  if (!specExists()) throw new Error('parity matrix missing');
+  const inv = readJson('porting/source_inventory.json');
+  const known = new Set(inv.items.map((i) => i.path));
+  const m = readJson('porting/parity_matrix.json');
+  const ui = existsSync(rel('porting/ui_contract.json')) ? readJson('porting/ui_contract.json') : { records: [] };
+  const bogus = new Map();
+  const scan = (records, field) => {
+    for (const r of records) {
+      for (const e of r[field] || []) {
+        const match = String(e).match(/([A-Za-z0-9_./+-]+\.(?:swift|h|m|json|md|yml|py|sh|js|html|css|metal|pbxproj|txt|toml|xml|svg))/);
+        if (!match) continue;
+        let p = match[1];
+        // Accept a repo-relative path, or one that ends with a known path.
+        if (known.has(p)) continue;
+        if ([...known].some((k) => k.endsWith('/' + p) || k === p)) continue;
+        bogus.set(r.id, p);
+      }
+    }
+  };
+  scan(m.requirements || [], 'source_evidence');
+  scan(ui.records || [], 'source_evidence');
+  if (bogus.size) {
+    const sample = [...bogus.entries()].slice(0, 6).map(([id, p]) => `${id} -> ${p}`);
+    throw new Error(`${bogus.size} records cite a path not tracked at the pinned commit: ${sample.join('; ')}`);
+  }
+  return `all cited paths exist at ${PINNED_SHA.slice(0, 8)}`;
+});
+
+check('B', 'UI contract exists with well-formed records', () => {
+  const p = rel('porting/ui_contract.json');
+  if (!existsSync(p)) throw new Error('porting/ui_contract.json missing');
+  const ui = readJson('porting/ui_contract.json');
+  const rs = ui.records || [];
+  if (!rs.length) throw new Error('UI contract is empty');
+  const bad = [];
+  const seen = new Set();
+  for (const r of rs) {
+    if (!/^UI-[A-Z]+-\d{3,}$/.test(r.id || '')) bad.push(`${r.id}: malformed id`);
+    else if (seen.has(r.id)) bad.push(`${r.id}: duplicate`);
+    seen.add(r.id);
+    if (!r.screen || !r.element) bad.push(`${r.id}: missing screen or element`);
+    if (!(r.source_evidence || []).length) bad.push(`${r.id}: no source evidence`);
+  }
+  if (bad.length) throw new Error(`${bad.length} malformed UI records: ${bad.slice(0, 5).join('; ')}`);
+  return `${rs.length} UI records`;
+});
+
+check('B', 'quarantined behavior is not marked ready to implement', () => {
+  if (!specExists()) throw new Error('parity matrix missing');
+  const blocked = readJson('porting/blocked_requirements.json');
+  const open = new Set((blocked.entries || []).filter((e) => e.status === 'OPEN').map((e) => e.id));
+  if (!open.size) return 'no open quarantine entries';
+  const m = readJson('porting/parity_matrix.json');
+  const wrong = (m.requirements || []).filter(
+    (r) => r.blocked_by && open.has(r.blocked_by) && !['DISCOVERED', 'BLOCKED'].includes(r.status),
+  );
+  if (wrong.length) {
+    throw new Error(`${wrong.length} requirement(s) blocked by an open owner decision but marked ${wrong.map((w) => `${w.id}=${w.status}`).join(', ')}`);
+  }
+  const covered = (m.requirements || []).filter((r) => r.blocked_by && open.has(r.blocked_by)).length;
+  return `${open.size} open quarantine entr${open.size === 1 ? 'y' : 'ies'}, ${covered} requirement(s) correctly held at DISCOVERED`;
+});
+
+check('B', 'no requirement silently depends on an unresolved unknown', () => {
+  if (!specExists()) throw new Error('parity matrix missing');
+  const unknowns = readFileSync(rel('porting/unknowns.md'), 'utf8');
+  const openIds = new Set();
+  for (const block of unknowns.split(/^## /m)) {
+    const id = (block.match(/^(UNK-\d+)/) || [])[1];
+    if (!id) continue;
+    if (/\*\*Status:\*\*\s*(OPEN|INVESTIGATING|BLOCKED_ON_OWNER|BLOCKED_ON_ACCESS)/.test(block)) openIds.add(id);
+  }
+  const m = readJson('porting/parity_matrix.json');
+  const declared = (m.requirements || []).filter((r) => r.depends_on_unknown).length;
+  // Not a completeness proof: it checks that declared dependencies name a real open unknown.
+  const bogus = (m.requirements || [])
+    .filter((r) => r.depends_on_unknown && !openIds.has(r.depends_on_unknown))
+    .map((r) => `${r.id} -> ${r.depends_on_unknown}`);
+  if (bogus.length) throw new Error(`${bogus.length} requirement(s) name an unknown that is not open: ${bogus.slice(0, 4).join('; ')}`);
+  return `${openIds.size} open unknowns, ${declared} requirement(s) declare a dependency`;
+});
+
+check('B', 'platform adaptation register covers the identified boundaries', () => {
+  const p = rel('porting/platform_adaptations.md');
+  if (!existsSync(p)) throw new Error('porting/platform_adaptations.md missing');
+  const text = readFileSync(p, 'utf8');
+  const entries = (text.match(/^## PA-\d+/gm) || []).length;
+  if (entries < 10) throw new Error(`only ${entries} adaptation entries; the boundaries found so far are not all recorded`);
+  return `${entries} adaptation entries`;
+});
+
 const PENDING = [
-  ['B', 'specification: architecture, parity matrix, UI contract, adaptations complete'],
   ['C', 'no fake-success paths, dead controls or unapproved product changes'],
   ['D', 'source-derived tests, interaction tests, visual comparison, persistence and cancellation'],
   ['E', 'packaged artifact installs, launches, cleans up children, upgrades and uninstalls'],
