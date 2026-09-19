@@ -305,3 +305,25 @@ Both remain open options for the owner alone.
   path exists, so neither alternative can be adopted by drift. Nothing else in the subsystem
   is blocked.
 
+
+## UNK-0015 ESCALATION: Legacy migration hardcodes "Droppy Code" while the store reads AppInfo.name; the approved rename makes them diverge
+
+- **Status:** BLOCKED_ON_OWNER. Raised 2026-09-20 during Gate B specification. Quarantined as
+  BLK-0005.
+- **This is not a parity question.** Upstream the literal and AppInfo.name agree, because
+  CFBundleDisplayName is "Droppy Code", so the inconsistency is latent and harmless there. The
+  hazard is created by OD-0002, the approved rename to Marrow.
+- **Consequence criteria met:** C1, C4.
+- **Source evidence:**
+  - DroppyCode/App/LegacyMigration.swift:21 - destination is the string literal "Droppy Code"
+  - DroppyCode/App/LegacyMigration.swift:7 - source folder is the literal "Cody"
+  - DroppyCode/App/LegacyMigration.swift:22-24 - moves only when Cody exists and the destination does not
+  - DroppyCode/Services/Store/Storage.swift:20 - root is base.appendingPathComponent(AppInfo.name)
+  - DroppyCode/Core/Support/Text.swift:4 - AppInfo.name reads CFBundleDisplayName, defaulting to "Droppy Code"
+  - DroppyCode/App/LegacyMigration.swift:10 - skipped entirely when AppInfo.isDevelopment
+- **Concrete harm:** Upstream the literal and AppInfo.name agree, because CFBundleDisplayName is "Droppy Code", so the inconsistency is latent and harmless. Under OD-0002 the product ships as Marrow, AppInfo.name becomes "Marrow", and the literal does not follow. A user migrating from the earlier name would have their entire library, thread histories and attachments moved into a folder the store never reads, and the app would start empty. This is a data-loss path CREATED BY the rename decision, not present upstream, so it is not a parity question.
+- **Likely resolution, which must still be evidenced not assumed:** Likely resolves to NOT_APPLICABLE_WITH_EVIDENCE: Droppy Code has never shipped on Windows, so no "Cody" Application Support folder can exist there and the migration has nothing to migrate. That classification must be an evidenced decision, not a convenience, and it interacts with whether the owner wants the Windows build to migrate from the separate existing Marrow installation, which is a different product.
+- **Three options, none approved:**
+  - Port the migration literally, keeping the "Droppy Code" destination literal. Exact parity, and under the rename it targets a folder the store never reads.
+  - Port it with the destination following AppInfo.name so the rename is applied consistently. A recorded owner-approved deviation, NOT parity.
+  - Classify NOT_APPLICABLE_WITH_EVIDENCE because no prior Windows install exists. Requires the owner to confirm no migration from the separate Marrow product is wanted.

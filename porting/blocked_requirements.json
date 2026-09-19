@@ -154,6 +154,48 @@
         "numstat"
       ],
       "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
+    },
+    {
+      "id": "BLK-0005",
+      "unknown": "UNK-0015",
+      "status": "OPEN",
+      "raised": "2026-09-20",
+      "owner_ruling": null,
+      "title": "Legacy migration hardcodes \"Droppy Code\" while the store reads AppInfo.name; the approved rename makes them diverge",
+      "defect_entry": 46,
+      "area": "launch",
+      "criteria": [
+        "C1",
+        "C4"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/LegacyMigration.swift:21 - destination is the string literal \"Droppy Code\"",
+        "DroppyCode/App/LegacyMigration.swift:7 - source folder is the literal \"Cody\"",
+        "DroppyCode/App/LegacyMigration.swift:22-24 - moves only when Cody exists and the destination does not",
+        "DroppyCode/Services/Store/Storage.swift:20 - root is base.appendingPathComponent(AppInfo.name)",
+        "DroppyCode/Core/Support/Text.swift:4 - AppInfo.name reads CFBundleDisplayName, defaulting to \"Droppy Code\"",
+        "DroppyCode/App/LegacyMigration.swift:10 - skipped entirely when AppInfo.isDevelopment"
+      ],
+      "concrete_harm": "Upstream the literal and AppInfo.name agree, because CFBundleDisplayName is \"Droppy Code\", so the inconsistency is latent and harmless. Under OD-0002 the product ships as Marrow, AppInfo.name becomes \"Marrow\", and the literal does not follow. A user migrating from the earlier name would have their entire library, thread histories and attachments moved into a folder the store never reads, and the app would start empty. This is a data-loss path CREATED BY the rename decision, not present upstream, so it is not a parity question.",
+      "criteria_detail": [
+        "C1: the move at LegacyMigration.swift:23 relocates the whole library directory. If the destination is not the folder Storage.root reads, the user sees an empty app and their history appears gone.",
+        "C4: moveItem is wrapped in try? and the marker is set unconditionally at :25, so a failed or mis-targeted migration is silent and never retried."
+      ],
+      "analysis_note": "Likely resolves to NOT_APPLICABLE_WITH_EVIDENCE: Droppy Code has never shipped on Windows, so no \"Cody\" Application Support folder can exist there and the migration has nothing to migrate. That classification must be an evidenced decision, not a convenience, and it interacts with whether the owner wants the Windows build to migrate from the separate existing Marrow installation, which is a different product.",
+      "options_neither_of_which_is_approved": [
+        "Port the migration literally, keeping the \"Droppy Code\" destination literal. Exact parity, and under the rename it targets a folder the store never reads.",
+        "Port it with the destination following AppInfo.name so the rename is applied consistently. A recorded owner-approved deviation, NOT parity.",
+        "Classify NOT_APPLICABLE_WITH_EVIDENCE because no prior Windows install exists. Requires the owner to confirm no migration from the separate Marrow product is wanted."
+      ],
+      "quarantined_paths": [
+        "any Windows implementation of the legacy name migration"
+      ],
+      "detection_patterns": [
+        "LegacyMigration",
+        "migratedFromEarlierName",
+        "formerSupportFolder"
+      ],
+      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
     }
   ]
 }
