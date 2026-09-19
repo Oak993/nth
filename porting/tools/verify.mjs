@@ -218,6 +218,50 @@ check('A', 'every critic finding has been adjudicated', () => {
 
 // ------------------------------------------------- Gates B..F (not yet built)
 
+// Quarantine guard. Live from now on, before any implementation exists, because its job is to stop
+// a blocked behavior being implemented by drift. Required by porting/contract_amendments.md AM-0001.
+check('C', 'no quarantined behavior is implemented while its owner decision is open', () => {
+  const doc = readJson('porting/blocked_requirements.json');
+  const open = (doc.entries || []).filter((e) => e.status === 'OPEN');
+  if (!open.length) return 'no open quarantine entries';
+
+  // The Windows implementation tree. Absent until the stack is chosen; absence is not a pass for
+  // Gate C as a whole, only for this specific guard.
+  const treeCandidates = ['src', 'app', 'windows', 'Marrow'];
+  const roots = treeCandidates.filter((d) => existsSync(rel(d)) && statSync(rel(d)).isDirectory());
+  if (!roots.length) {
+    return `${open.length} open quarantine entr${open.length === 1 ? 'y' : 'ies'} (${open.map((e) => e.id).join(', ')}); no implementation tree yet, nothing to scan`;
+  }
+
+  const CODE_EXT = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cs', '.cpp', '.h', '.rs', '.swift', '.xaml']);
+  const hits = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      if (name === 'node_modules' || name === '.git' || name === 'dist' || name === 'build') continue;
+      const p = join(dir, name);
+      const st = statSync(p);
+      if (st.isDirectory()) { walk(p); continue; }
+      const dot = name.lastIndexOf('.');
+      if (dot < 0 || !CODE_EXT.has(name.slice(dot))) continue;
+      const text = readFileSync(p, 'utf8');
+      for (const e of open) {
+        for (const pat of e.detection_patterns || []) {
+          if (text.includes(pat)) hits.push(`${e.id}: "${pat}" in ${p.replace(ROOT + '\\', '').replace(ROOT + '/', '')}`);
+        }
+      }
+    }
+  };
+  for (const r of roots) walk(rel(r));
+
+  if (hits.length) {
+    throw new Error(
+      `quarantined behavior implemented while its owner decision is open:\n    ${hits.join('\n    ')}\n` +
+      '    Neither reproducing nor repairing it is approved. See porting/blocked_requirements.json.',
+    );
+  }
+  return `${open.length} open quarantine entr${open.length === 1 ? 'y' : 'ies'} respected across ${roots.length} tree(s)`;
+});
+
 const PENDING = [
   ['B', 'specification: architecture, parity matrix, UI contract, adaptations complete'],
   ['C', 'no fake-success paths, dead controls or unapproved product changes'],

@@ -203,6 +203,27 @@ carries that dependency in `porting/parity_matrix.json`.
 - **Note:** this is recorded as upstream defect 68 in `porting/upstream_defects.md`. That register
   says "Reproduce, do not fix"; this entry supersedes it pending the owner's decision.
 
+### Owner ruling on this entry, 2026-09-20 (verbatim)
+
+> Keep UNK-0010 explicitly unresolved and isolated pending my decision. Do not silently change the
+> MCP deletion behavior, and do not treat either alternative as approved. This issue must not block
+> unrelated specification or implementation work.
+
+**Effect.** The entry stays OPEN and is now isolated mechanically rather than by note:
+
+- Quarantined as `BLK-0001` in `porting/blocked_requirements.json`, with the two quarantined code
+  paths named (the delete affordance, and the Keychain teardown that delete triggers).
+- A Gate C check in `porting/tools/verify.mjs` **fails** while `BLK-0001` is OPEN and a matching
+  implementation path exists. Neither alternative can satisfy the gate, so neither can be adopted
+  by accident or by drift.
+- Scope is exactly those two paths. Every other MCP requirement proceeds: add, edit, connect,
+  disconnect, OAuth, probe, proxy, catalog, and the `confirmBeforeDeleting` setting itself along
+  with the six paths that already honor it.
+- Recorded as amendment AM-0001 Effect A in `porting/contract_amendments.md`.
+
+**Not approved:** neither reproducing upstream exactly nor honoring `confirmBeforeDeleting` here.
+Both remain open options for the owner alone.
+
 ## UNK-0011 Thirteen findings the repair pass could not settle from source alone
 
 - **Status:** OPEN. None blocks the specification; each names the exact missing evidence.

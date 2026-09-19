@@ -1,0 +1,48 @@
+{
+  "schema": "droppy-windows-port/blocked_requirements/1",
+  "purpose": "Machine-readable quarantine. Behaviors that are neither reproduced nor repaired because the owner has not decided. Gate C reads this file and fails if the Windows implementation ships a code path for an unresolved entry, so neither alternative can be adopted by accident.",
+  "authority": "porting/contract_amendments.md AM-0001 (owner instruction 2026-09-20) and PORT_CONTRACT section 8.",
+  "rules": [
+    "An entry stays here until the owner rules on it in writing.",
+    "An entry blocks ONLY the behavior it names. Sibling requirements in the same subsystem proceed normally.",
+    "Neither reproduction nor repair counts as resolution. Both are product decisions the owner has reserved.",
+    "Gate C fails while any entry has status OPEN and a matching implementation path exists."
+  ],
+  "entries": [
+    {
+      "id": "BLK-0001",
+      "unknown": "UNK-0010",
+      "status": "OPEN",
+      "raised": "2026-09-19",
+      "owner_ruling": null,
+      "title": "Custom MCP server delete is unconfirmed and destroys Keychain secrets",
+      "criteria": ["C1", "C2", "C5"],
+      "source_evidence": [
+        "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:564-566 - PopoverItem(\"Delete\", symbol: \"trash\", isDestructive: true) calls model.mcp.deleteCustom(server) directly on click, with no confirmation step",
+        "DroppyCode/Services/MCP/MCPStore.swift:124 and :193-199 - deleteCustom runs disconnect(), which removes the server's stored secrets from the Keychain",
+        "DroppyCode/App/AppSettings.swift:123 and :209-210 - confirmBeforeDeleting exists and defaults to true",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:361 - the setting is exposed to the user",
+        "Honored by six other destructive paths: SettingsView.swift:851, SettingsView.swift:892, SidebarView.swift:192, SidebarView.swift:360, SidebarView.swift:891"
+      ],
+      "concrete_harm": "A user who has explicitly asked to confirm before deleting can destroy a custom MCP server configuration and its stored credentials with one unconfirmed click. The credentials are not recoverable from the app; they must be re-obtained from the provider.",
+      "options_neither_of_which_is_approved": [
+        "Reproduce upstream exactly: one click, no confirmation, secrets deleted. Exact parity, including the defect.",
+        "Honor confirmBeforeDeleting here as the other six destructive paths do. This is a recorded owner-approved deviation, NOT parity."
+      ],
+      "quarantined_paths": [
+        "any Windows implementation of the custom MCP server delete affordance",
+        "any Windows implementation of the Keychain/credential teardown triggered by that delete"
+      ],
+      "not_blocked": [
+        "every other MCP requirement, including add, edit, connect, disconnect, OAuth, probe, proxy and catalog",
+        "the confirmBeforeDeleting setting itself and the six paths that already honor it"
+      ],
+      "detection_patterns": [
+        "deleteCustom",
+        "deleteCustomServer",
+        "removeCustomServer"
+      ],
+      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented. To satisfy the gate, the owner rules and this entry is closed with owner_ruling set; the identifiers are not to be renamed to evade the scan, which would be exactly the 'edit guard configuration to escape a failure' that PORT_CONTRACT section 14 forbids."
+    }
+  ]
+}
