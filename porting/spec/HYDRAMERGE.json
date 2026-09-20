@@ -1197,6 +1197,62 @@
       "depends_on_unknown": null
     },
     {
+      "id": "PR-HYDRAMERGE-109",
+      "title": "HydraMergeRequestError.gitLabAuth renders one exact four-paragraph message that names the host, the detail, the glab sign-in command and the pushed branch",
+      "source_evidence": [
+        "DroppyCode/App/AppModel+HydraMerge.swift:707-720 private enum HydraMergeRequestError: LocalizedError, case gitLabAuth(host: String, branch: String, detail: String), var errorDescription: String?",
+        "DroppyCode/App/AppModel+HydraMerge.swift:715-716 - case .gitLabAuth(let host, let branch, let detail): return \"GitLab refused the login (401 Unauthorized) for \\(host): the token glab signs in with is missing or expired.\\n\\n\\(detail)\\n\\nSign back in with `glab auth login --hostname \\(host)` (or export a valid GITLAB_TOKEN), then ask for the merge again. The branch `\\(branch)` is already pushed, so the team's work is safe.\"",
+        "DroppyCode/App/AppModel+HydraMerge.swift:350-352 - the pre-check throw site, detail = glab auth status's failure message or \"glab is not signed in to this GitLab host.\"",
+        "DroppyCode/App/AppModel+HydraMerge.swift:364-366 - the post-failure throw site, detail = failure.failureMessage",
+        "DroppyCode/App/AppModel+HydraMerge.swift:263-264 - the two places the rendered text reaches the user: the merge record's detail is title(\"Hydra pushed \\(branch) but could not open a merge request.\") + \": \\(error.localizedDescription)\" and the chat note's body is \"\\(error.localizedDescription)\\n\\nOpen one for `\\(branch)` into `\\(target)` and merge it from there. The work is still in the checkout.\"",
+        "DroppyCode/App/AppModel+HydraMerge.swift:333 - host is git.remoteWebURL()?.host ?? \"your GitLab host\""
+      ],
+      "preconditions": "A Hydra merge request could not be opened on GitLab because glab is not signed in or GitLab answered 401.",
+      "action": "The thrown error is rendered through errorDescription, which localizedDescription returns.",
+      "expected_result": "Exactly this string, with these line breaks, backticks, parentheses and full stops, and no prefix of any kind: \"GitLab refused the login (401 Unauthorized) for {host}: the token glab signs in with is missing or expired.\\n\\n{detail}\\n\\nSign back in with `glab auth login --hostname {host}` (or export a valid GITLAB_TOKEN), then ask for the merge again. The branch `{branch}` is already pushed, so the team's work is safe.\" {host} is the remote web URL's host or the literal \"your GitLab host\" when that is unknown, and it appears TWICE, once in the first sentence and once inside the backticked command. {branch} is the SOURCE branch, backticked. {detail} is glab's own message and is interpolated raw, on its own paragraph, between two blank lines. GITLAB_TOKEN is upper case and unbackticked. The word order, the \"(401 Unauthorized)\" parenthetical and the closing reassurance are part of the string and must not be reworded or reflowed.",
+      "side_effects": [
+        "The rendered string is embedded twice per failure: once in the HydraMergeRecord detail after \": \", once as the first paragraph of the chat note body"
+      ],
+      "persistence": "Through HydraMergeRecord, which is stored with the thread.",
+      "failure_cases": [
+        "An empty detail from glab still leaves the two blank lines around it, so the message shows a gap; reproduce"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Ship the string byte for byte. The backticked `glab auth login --hostname <host>` is the same command on Windows and is not to be rewritten for PowerShell, and GITLAB_TOKEN is the same environment variable name; only the user's way of exporting it differs, which the string does not mention.",
+      "verification_method": "contract fixture asserting the rendered localizedDescription character for character for both throw sites",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-HYDRAMERGE-110",
+      "title": "HydraMergeRequestError.creationFailed renders glab's own message bare, with no prefix and no added guidance",
+      "source_evidence": [
+        "DroppyCode/App/AppModel+HydraMerge.swift:710-711 - /// glab failed for any other reason, recovery retry included. case creationFailed(String)",
+        "DroppyCode/App/AppModel+HydraMerge.swift:717-718 - case .creationFailed(let message): return message",
+        "DroppyCode/App/AppModel+HydraMerge.swift:375 - throw HydraMergeRequestError.creationFailed(failure.failureMessage), the only throw site, reached after the auth branch and after the --recover retry",
+        "DroppyCode/App/AppModel+HydraMerge.swift:263-264 - where the rendered text lands"
+      ],
+      "preconditions": "glab mr create failed for a reason that is not an authentication refusal, and the --recover retry, when one was attempted, failed too.",
+      "action": "The thrown error is rendered through errorDescription.",
+      "expected_result": "errorDescription returns the carried message unchanged: no prefix, no suffix, no \"GitLab\" lead-in, no guidance sentence. The value is the ShellResult's failureMessage from the LAST attempt, so a --recover retry's message replaces the original failure's. The asymmetry with .gitLabAuth, which adds four paragraphs of guidance, is deliberate and must be reproduced: the only text the user reads on this path is glab's own output, wrapped by the call site's own fixed sentences at :263-264.",
+      "side_effects": [
+        "The bare message becomes the chat note's first paragraph and the tail of the merge record's detail"
+      ],
+      "persistence": "Through HydraMergeRecord, which is stored with the thread.",
+      "failure_cases": [
+        "An empty failureMessage renders an empty first paragraph in the note; the call site's own sentences still appear, so the user sees the blank"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Reproduce the bare rendering. Do not add a prefix to make the two cases consistent.",
+      "verification_method": "contract fixture with a stubbed glab failing for a non-auth reason, asserting the rendered text equals the stub's combined output exactly",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
       "id": "PR-HYDRAMERGE-052",
       "title": "isGitLabAuthFailure matches 401, unauthorized, or authentication with a failure word",
       "source_evidence": [

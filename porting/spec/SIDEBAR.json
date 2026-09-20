@@ -2120,7 +2120,6 @@
       "verification_method": "unit test on the trim and the empty rejection.",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -2246,21 +2245,21 @@
     },
     {
       "id": "PR-SIDEBAR-098",
-      "title": "A thread's ellipsis popover and context menu offer the same seven or eight actions in the same order, with Settle and Archive swapping by setting",
+      "title": "A thread's ellipsis popover and context menu offer the same items in the same order, and the two menus differ only in how they dispatch",
       "source_evidence": [
-        "DroppyCode/App/Views/Sidebar/SidebarView.swift:2193-2244 ThreadActions.make - `Rename` (pencil); when `!thread.isHelper, !thread.isSettled` a `Pin`/`Unpin` (pin / pin.slash); `Forward to new thread` (arrowshape.turn.up.right); when `thread.worktreePath != nil` a `Reveal worktree in Finder` (folder); `let settleFirst = !thread.isHelper && model.settings.threadFinishAction == .settle`; `let archive = RowAction(title: \"Archive\", symbol: \"archivebox\", startsGroup: !settleFirst)`; a helper appends only archive, otherwise a `Settle`/`Reopen` action (checkmark.circle / arrow.uturn.backward, `startsGroup: settleFirst`) and `items += settleFirst ? [settle, archive] : [archive, settle]`; finally `Delete…` (trash, destructive)",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:2193-2247 ThreadActions.make - the whole builder, in the order Rename, Pin/Unpin, Forward to new thread, Reveal worktree in Finder, the settle/archive group, Delete…",
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:2251-2315 ThreadActions.makeContextMenu - the identical list built from value snapshots with weak model captures",
         "DroppyCode/UI/Chrome/Popovers.swift:341-351 RowAction - `title`, `symbol`, `isDestructive`, `startsGroup`, `confirms`, `action`, with `id` equal to the title"
       ],
       "preconditions": "A thread row.",
       "action": "User opens the ellipsis popover or right-clicks the row.",
-      "expected_result": "Items in order: `Rename`; `Pin` or `Unpin` (omitted for a helper and for a settled thread); `Forward to new thread`; `Reveal worktree in Finder` (only with a worktree path); then, with the finish action set to settle and the thread not a helper, a group separator followed by `Settle` or `Reopen` then `Archive`; otherwise a group separator followed by `Archive` then `Settle`/`Reopen`; a helper gets only `Archive`, with the separator before it; finally `Delete…`, destructive, with a single-character U+2026 ellipsis. Every string is verbatim. The two menus offer identical items and differ only in how they dispatch.",
+      "expected_result": "This row covers the ORDER and the equivalence of the two menus only; each item has its own row: Rename PR-SIDEBAR-159, Pin/Unpin PR-SIDEBAR-099, Forward to new thread PR-SIDEBAR-100, Reveal worktree in Finder PR-SIDEBAR-101, Archive PR-SIDEBAR-160, Settle/Reopen PR-SIDEBAR-161, the settle-archive swap PR-SIDEBAR-162, Delete… PR-SIDEBAR-163, and the helper case PR-SIDEBAR-102. The order is always: Rename; Pin or Unpin; Forward to new thread; Reveal worktree in Finder; then the settle and archive group; then Delete…. The list is therefore eight items for a non-helper, unsettled, worktree-carrying thread and as few as five for a settled helper with no worktree. The ellipsis popover and the right-click context menu offer exactly the same items with exactly the same titles, symbols, group separators and enablement, and differ only in that the popover calls the row's handlers directly while the context menu captures value snapshots and posts requests (PR-SIDEBAR-103). There is no Copy item and no Reveal item other than the worktree one.",
       "side_effects": [],
       "persistence": "Reads settings.threadFinishAction, thread.isHelper, thread.isSettled, thread.isPinned, thread.worktreePath.",
       "failure_cases": [],
       "cancellation": "Dismissing either menu does nothing.",
-      "windows_path": "The Windows context menu is a native menu; `startsGroup` becomes a separator before the item. `Delete…` keeps the single ellipsis character. All SF Symbols are replaced under UNK-0007.",
-      "verification_method": "contract fixture over the eight combinations of helper, settled, worktree and finish action, asserting the exact title sequence.",
+      "windows_path": "The Windows context menu is a native menu; `startsGroup` becomes a separator before the item. The two menus must be built from one shared list so they cannot drift.",
+      "verification_method": "contract fixture over the combinations of helper, settled, pinned, worktree and finish action, asserting the exact title sequence, and a test that the two builders produce identical title, symbol and separator sequences",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -3001,9 +3000,8 @@
       "cancellation": "Dismissing the menu does nothing.",
       "windows_path": "`Reveal in Finder` names a macOS application; the Windows label is the recorded product-identity adaptation, flagged rather than silently applied. SF Symbols are replaced under UNK-0007.",
       "verification_method": "contract fixture over active, inactive, with and without an override, asserting the exact title sequence and separators.",
-      "status": "DISCOVERED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -3026,10 +3024,10 @@
       "cancellation": "not cancellable and not confirmed.",
       "windows_path": "Direct translation. The absence of confirmation here is upstream behavior; the ellipsis and context-menu paths for project removal are not among the six paths that honour `confirmBeforeDeleting`, and this is not the quarantined MCP affordance (BLK-0001), so it is reproduced as found. It is recorded here explicitly so the difference from thread deletion is not mistaken for an oversight in the port.",
       "verification_method": "contract fixture asserting threads removed, selection cleared, no Git work scheduled.",
-      "status": "SPECIFIED",
+      "status": "DISCOVERED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "blocked_by": "BLK-0009"
     },
     {
       "id": "PR-SIDEBAR-132",
@@ -3679,6 +3677,123 @@
       "upstream_defect": "57",
       "blocked_by": null,
       "depends_on_unknown": null
+    },
+    {
+      "id": "PR-SIDEBAR-159",
+      "title": "\"Rename\" is the first item in every thread menu, with the symbol pencil and no condition",
+      "source_evidence": [
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:2202 `var items = [RowAction(title: \"Rename\", symbol: \"pencil\") { onRename() }]`",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:2252-2260 the context-menu form `RowAction(title: \"Rename\", symbol: \"pencil\") { [weak model, requests, thread] in guard model != nil else { return }; requests.rename = thread }`",
+        "DroppyCode/UI/Chrome/Popovers.swift:341-351 RowAction - `title`, `symbol`, `isDestructive`, `startsGroup`, `confirms`, `action`, with `id` equal to the title"
+      ],
+      "preconditions": "Any thread row, helper or not, settled or not.",
+      "action": "The user opens the ellipsis popover or right-clicks the row.",
+      "expected_result": "The list always begins with an item whose title is exactly \"Rename\" and whose symbol is pencil. It is unconditional: no thread state removes it, it is never destructive and it never starts a group. Its action is the row's own rename handler from the ellipsis popover, and a posted request from the context menu (PR-SIDEBAR-103); either way the rename popover then opens on the row (PR-SIDEBAR-091). The action's identity in the list is its title, so no two items in one menu may share a title.",
+      "side_effects": [],
+      "persistence": "nothing persisted by the item itself",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct translation. The SF Symbol is replaced under UNK-0007.",
+      "verification_method": "contract fixture asserting \"Rename\" is index 0 of the item list for every combination of helper, settled, pinned, worktree and finish action",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": "UNK-0007"
+    },
+    {
+      "id": "PR-SIDEBAR-160",
+      "title": "\"Archive\" is always offered, with the symbol archivebox, and starts a group only when the finish action is not settle",
+      "source_evidence": [
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:2220-2225 `// A helper has no place of its own to settle into: it only archives, with its parent or on its own. A thread offers both, the one Settings chose first.` then `let settleFirst = !thread.isHelper && model.settings.threadFinishAction == .settle` and `let archive = RowAction(title: \"Archive\", symbol: \"archivebox\", startsGroup: !settleFirst) { withAnimation(Chrome.panelSlide) { model.archive(thread.id) } }`",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:2226-2227 `if thread.isHelper { items.append(archive) }`",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:2251-2315 ThreadActions.makeContextMenu builds the identical item from value snapshots with weak model captures"
+      ],
+      "preconditions": "Any thread row.",
+      "action": "The user chooses Archive.",
+      "expected_result": "An item whose title is exactly \"Archive\" and whose symbol is archivebox appears in every thread menu, for helpers and non-helpers alike. It carries the group separator exactly when settleFirst is false, that is whenever the thread is a helper OR the finish-action setting is not settle; when settleFirst is true the separator sits on the Settle item instead (PR-SIDEBAR-161), so the group is opened by whichever of the two comes first and never by both. The action archives the thread inside a Chrome.panelSlide animation, so the row slides out with the list rather than vanishing; the archiving itself and its consequences are PR-SIDEBAR-085. It is not marked destructive and it asks no confirmation from this path.",
+      "side_effects": [
+        "Archives the thread and its helpers, through the model"
+      ],
+      "persistence": "thread.isArchived and the related state, through the model (PR-SIDEBAR-085).",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The separator placement is computed, not fixed: putting it unconditionally on Archive produces two separators in the settle-first arrangement. The SF Symbol is replaced under UNK-0007.",
+      "verification_method": "contract fixture asserting the title, the symbol and the startsGroup flag for helper, settle-first and archive-first arrangements",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": "UNK-0007"
+    },
+    {
+      "id": "PR-SIDEBAR-161",
+      "title": "\"Settle\" or \"Reopen\" is offered to non-helpers only, starts a group when the finish action is settle, and prefers the row's own handlers",
+      "source_evidence": [
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:2226-2243 `if thread.isHelper { items.append(archive) } else { let settle = RowAction(title: thread.isSettled ? \"Reopen\" : \"Settle\", symbol: thread.isSettled ? \"arrow.uturn.backward\" : \"checkmark.circle\", startsGroup: settleFirst) { ... }; items += settleFirst ? [settle, archive] : [archive, settle] }`",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:2234-2242 `// The row's own handlers fly the ghost; without them the thread just moves.` then `if thread.isSettled { if let onReopen { onReopen() } else { model.reopenAnimated(thread.id) } } else if let onSettle { onSettle() } else { model.settleAnimated(thread.id) }`",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:2199-2200 the optional handler parameters `onSettle: (() -> Void)? = nil, onReopen: (() -> Void)? = nil`",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:2288-2297 the context-menu form posts `model.finishRequest = AppModel.FinishRequest(threadID: threadID, reopens: isSettled)` instead of calling a handler"
+      ],
+      "preconditions": "The thread is not a helper. A helper never gets this item at all (PR-SIDEBAR-102).",
+      "action": "The user chooses Settle or Reopen.",
+      "expected_result": "One item whose title is exactly \"Reopen\" with the symbol arrow.uturn.backward when the thread is already settled, and exactly \"Settle\" with the symbol checkmark.circle when it is not. It carries the group separator exactly when settleFirst is true, that is when the thread is not a helper AND the finish-action setting is settle. The action prefers the row's own settle or reopen handler when the caller supplied one, and falls back to the model's animated settle or reopen when it did not; the difference is visible, because only the row's handlers fly the glide ghost and without them the thread simply moves. The context menu supplies neither handler and instead posts a finish request the list takes up (PR-SIDEBAR-103, PR-SIDEBAR-083), which is how a right-click still produces the glide.",
+      "side_effects": [
+        "Settles or reopens the thread, through the row's handler or the model"
+      ],
+      "persistence": "thread.isSettled, settledAt and the related state (PR-SIDEBAR-080, PR-SIDEBAR-082).",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The handler-or-fallback branch is not redundant: dropping the handlers loses the glide on every menu-driven settle. Both titles and both symbols are exact; the SF Symbols are replaced under UNK-0007.",
+      "verification_method": "contract fixture over settled and unsettled threads asserting the title, symbol and startsGroup flag; interaction test that the ellipsis path glides and the bare-model fallback does not",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": "UNK-0007"
+    },
+    {
+      "id": "PR-SIDEBAR-162",
+      "title": "Settle and Archive swap places by the finish-action setting, and a helper gets Archive alone",
+      "source_evidence": [
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:2220-2222 `// A helper has no place of its own to settle into: it only archives, with its parent or on its own. A thread offers both, the one Settings chose first.` with `let settleFirst = !thread.isHelper && model.settings.threadFinishAction == .settle`",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:2226-2228 `if thread.isHelper { items.append(archive) } else {`",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:2243 `items += settleFirst ? [settle, archive] : [archive, settle]`"
+      ],
+      "preconditions": "The thread menu is being built and the finish-action setting is either settle or archive.",
+      "action": "The settle and archive group is appended.",
+      "expected_result": "Exactly three arrangements exist. A helper appends Archive alone, with its separator, and no Settle or Reopen item at all, because a helper has no place of its own to settle into. A non-helper with the finish action set to settle appends Settle (or Reopen), which carries the separator, then Archive, which does not. A non-helper with the finish action set to anything else appends Archive, which carries the separator, then Settle (or Reopen), which does not. The setting therefore changes the ORDER of two items, not which items exist, and the separator always sits on whichever of the two is first.",
+      "side_effects": [],
+      "persistence": "Reads settings.threadFinishAction and thread.isHelper.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The swap is driven by a single boolean computed once; reproducing it as two independent conditions risks a menu with both or neither separator.",
+      "verification_method": "contract fixture over the three arrangements asserting the item titles in order and which one carries the separator",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-SIDEBAR-163",
+      "title": "\"Delete…\" is always the last item, destructive, with the symbol trash and a single ellipsis character",
+      "source_evidence": [
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:2245-2246 `items.append(RowAction(title: \"Delete…\", symbol: \"trash\", isDestructive: true) { onDelete() })` then `return items`",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:2310-2313 the context-menu form sets `requests.delete = thread`",
+        "DroppyCode/UI/Chrome/Popovers.swift:341-351 RowAction carries `isDestructive` as a distinct flag from `confirms`"
+      ],
+      "preconditions": "Any thread row.",
+      "action": "The user chooses Delete….",
+      "expected_result": "The list always ends with an item whose title is exactly \"Delete…\" - the word Delete followed by one U+2026 HORIZONTAL ELLIPSIS character, not three periods - with the symbol trash, marked destructive so it renders in the destructive treatment. It is unconditional: no thread state removes it and no thread state moves it off the end, and it never starts a group, so it sits directly under the settle and archive group with no separator of its own. It does NOT carry the RowAction confirms flag; the confirmation, when the setting asks for one, is the delete popover the row opens afterwards (PR-SIDEBAR-086, PR-SIDEBAR-087). Its action is the row's own delete handler from the ellipsis popover and a posted request from the context menu.",
+      "side_effects": [
+        "Opens the delete popover, or deletes at once when confirmation is off (PR-SIDEBAR-086)"
+      ],
+      "persistence": "nothing persisted by the item itself",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The single ellipsis character is exact. Destructive here is a rendering flag only; the confirmation lives elsewhere, so a Windows menu must not add its own confirmation prompt to this item. The SF Symbol is replaced under UNK-0007.",
+      "verification_method": "contract fixture asserting \"Delete…\" is the last item with the destructive flag and no group separator, for every thread-state combination",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": "UNK-0007"
     }
   ],
   "ui": [

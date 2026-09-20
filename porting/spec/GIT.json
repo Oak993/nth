@@ -1183,7 +1183,7 @@
     },
     {
       "id": "PR-GIT-048",
-      "title": "mergePullRequest retries at most six times, only for GitLab, only on a substring match, with 3, 5, 7, 9, 11 and a wasted 13 second backoff",
+      "title": "mergePullRequest makes at most six attempts, so at most five retries, only for GitLab, only on a substring match, with 3, 5, 7, 9, 11 and a wasted 13 second backoff",
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:213-226 - for attempt in 0..<6; on success return; lastFailure = result.failureMessage; guard link.forge == .gitlab, text.contains(\"405\") || text.contains(\"not allowed\") || text.contains(\"checking\") else break; try? await Task.sleep(for: .seconds(3 + attempt * 2)); throw ShellError(lastFailure)",
         "porting/upstream_defects.md entry 76 - the final 13 s sleep is burned before the loop ends",
@@ -1664,14 +1664,14 @@
     },
     {
       "id": "PR-GIT-067",
-      "title": "The incremental capture walks only the directories the watch saw change, and rebuilds the scratch index whole when that fails",
+      "title": "The incremental capture walks only the directories the watch saw change, and rebuilds the scratch index whole when that fails - QUARANTINED under BLK-0003",
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:441-463 captureTree(scratch:paths:) - GIT_INDEX_FILE is the shared scratch; when paths is non-empty and the scratch file exists and add -A --pathspec-from-file=- --pathspec-file-nul at 300 s succeeds, write-tree and return; otherwise remove the scratch, copy the real index in or read-tree HEAD, add -A -- . at 300 s, write-tree",
         "porting/port_impacts.md entry 219 (C3) - the two distinct fallbacks"
       ],
       "preconditions": "A watch exists and handed over its scratch index.",
       "action": "A snapshot is taken.",
-      "expected_result": "The fast path runs only when all three hold: the caller supplied a non-empty changed-path list, the scratch index file exists on disk, and argv [\"add\", \"-A\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"] at 300 s with those paths NUL-separated on stdin exits zero. Note this add does NOT carry --ignore-errors. Then write-tree at 120 s, checked. If any of the three fails, the scratch file is deleted, the real index is copied in when it exists, else read-tree HEAD when the repository has commits, then add -A -- . at 300 s and write-tree, both checked.",
+      "expected_result": "UPSTREAM BEHAVIOR, DESCRIBED FOR THE RECORD ONLY. The fast path runs only when all three hold: the caller supplied a non-empty changed-path list, the scratch index file exists on disk, and argv [\"add\", \"-A\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"] at 300 s with those paths NUL-separated on stdin exits zero. Note this add does NOT carry --ignore-errors. Then write-tree at 120 s, checked. If any of the three fails, the scratch file is deleted, the real index is copied in when it exists, else read-tree HEAD when the repository has commits, then add -A -- . at 300 s and write-tree, both checked. This is precisely the capture BLK-0003 names as 'any checkpoint capture that can exit successfully on a partial tree': when the watch's changed set was truncated or wrong, the fast path writes a tree that records only a few directories yet exits 0 and is cached and committed as an ordinary checkpoint. Neither reproducing that nor guarding it is approved, so no Windows scratch-index-backed incremental capture may be implemented until the owner rules. Gate C fails on a hit for scratchIndex, scratch_index, cookieTimeout, cookie_timeout or watchTearDown while BLK-0003 is OPEN.",
       "side_effects": [
         "The shared scratch index is written or rebuilt",
         "Objects written"
@@ -1681,12 +1681,12 @@
         "An unreadable path takes the incremental add down and forces the delete-and-reseed path (upstream defect 79)"
       ],
       "cancellation": "The capture runs in a detached task; a caller that goes away does not cancel it.",
-      "windows_path": "Direct port of both fallbacks including the flag asymmetry.",
-      "verification_method": "unit exercising the fast path and each of the three fallback triggers",
-      "status": "SPECIFIED",
+      "windows_path": "NO IMPLEMENTATION of the scratch-index fast path while BLK-0003 is OPEN. The sibling full capture, captureTree(paths:) reached through PR-GIT-068's else branch, is NOT blocked and proceeds normally, so checkpoints still work, they are simply always fresh.",
+      "verification_method": "Gate C scan for the five quarantined identifiers; no functional test of the fast path until the owner rules",
+      "status": "DISCOVERED",
       "upstream_defect": "79",
-      "blocked_by": null,
-      "depends_on_unknown": null
+      "blocked_by": "BLK-0003",
+      "depends_on_unknown": "UNK-0013"
     },
     {
       "id": "PR-GIT-068",
@@ -1821,14 +1821,15 @@
     },
     {
       "id": "PR-GIT-073",
-      "title": "Event classification: lost events mean everything, cookies advance the seen counter, git's own writes are ignored, and anything at or outside the root means the whole tree",
+      "title": "A lost-event flag on any path marks the batch changed, sets everything and skips that path",
       "source_evidence": [
-        "DroppyCode/Services/Git/WorkingTreeWatch.swift:179-226 note(paths:flags:) - the lost mask kFSEventStreamEventFlagMustScanSubDirs | kFSEventStreamEventFlagKernelDropped | kFSEventStreamEventFlagUserDropped; a path under the cookie prefix updates the cookie; a path under the git prefix is skipped; a path not under the root prefix, or exactly the root, sets everything; otherwise the directory holding the entry, relative to the root, or the entry itself at the root",
-        "DroppyCode/Services/Git/WorkingTreeWatch.swift:208-223 - the generation is bumped once per callback when anything changed; waiters whose cookie is at or below the seen counter are resumed outside the lock"
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:180 - let lost = FSEventStreamEventFlags(kFSEventStreamEventFlagMustScanSubDirs | kFSEventStreamEventFlagKernelDropped | kFSEventStreamEventFlagUserDropped)",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:185-190 - for (index, path) in paths.enumerated() { if index < flags.count, flags[index] & lost != 0 { changed = true; everything = true; continue } }",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:172-177 the callback that supplies paths and flags as parallel buffers"
       ],
-      "preconditions": "The stream is running.",
-      "action": "A batch of events arrives.",
-      "expected_result": "For each path, in order: a lost-event flag marks the batch changed and sets the everything flag and skips the path; a path under the cookie prefix updates the highest seen cookie from the decimal suffix and is otherwise ignored; a path under the git prefix is skipped entirely, because git's own writes to objects, refs and the index do not change working files; a path not under the working root prefix, or exactly the root itself, marks changed and sets everything; anything else marks changed and contributes the directory holding it, relative to the root, or the entry itself when it sits at the root. Under the lock, the generation is incremented once per callback when anything changed, the seen cookie is raised, and the changed set is either dropped to nil (everything) or grown. Waiters whose cookie is at or below the seen counter are removed and resumed with true, outside the lock.",
+      "preconditions": "The stream is running and a batch of events has arrived.",
+      "action": "Each path in the batch is classified, in order, and this path carries a lost-event flag.",
+      "expected_result": "The three lost flags are tested as one mask: MustScanSubDirs, KernelDropped and UserDropped. The flag is only consulted when index < flags.count, so a path with no matching flag entry falls through to the other rules instead of being treated as lost. A match sets changed to true AND everything to true, then skips the path: the path's own name is never looked at, so a lost flag on a cookie path or on a path inside the git directory still forces the whole tree. Once everything is set it is never cleared within the batch. The four sibling classification rules are PR-GIT-153 (cookie), PR-GIT-154 (git directory), PR-GIT-155 (at or outside the root) and PR-GIT-156 (the holding directory); the batch's under-lock commit is PR-GIT-157.",
       "side_effects": [
         "Waiters are resumed"
       ],
@@ -1837,12 +1838,134 @@
         "A dropped-event flag collapses the changed set to nil, forcing the next capture to walk the whole tree"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Platform boundary: ReadDirectoryChangesW signals loss by an overflow (zero bytes returned), which maps onto the three lost flags as a single 'everything' case. This mapping is one of the open items under UNK-0011.",
-      "verification_method": "unit over each classification branch with synthetic event batches",
+      "windows_path": "Platform boundary: ReadDirectoryChangesW signals loss by an overflow (zero bytes returned), which maps onto the three lost flags as a single 'everything' case. This mapping is one of the open items under UNK-0011 (unknowns.md item 2 names WorkingTreeWatch.swift:180 explicitly).",
+      "verification_method": "unit feeding a batch whose second path carries each of the three flags in turn, plus a batch with fewer flags than paths",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0011"
+    },
+    {
+      "id": "PR-GIT-153",
+      "title": "A path under the cookie prefix raises the batch's cookie number and is otherwise ignored",
+      "source_evidence": [
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:191-194 - if path.hasPrefix(cookiePrefix) { cookie = max(cookie, UInt64(path.dropFirst(cookiePrefixCharacters)) ?? 0); continue }",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:136 - cookiePrefix = gitRoot + \"/droppy-code-sync-\"",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:138 - cookiePrefixCharacters = cookiePrefix.count, a CHARACTER count, not the byte count used for the root",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:253 - the writer side: let path = cookiePrefix + String(cookie)"
+      ],
+      "preconditions": "The stream is running and a batch of events has arrived; this path was not skipped as lost.",
+      "action": "A path beginning with the cookie prefix is classified.",
+      "expected_result": "The prefix is the resolved git directory, a slash and the literal \"droppy-code-sync-\". The decimal suffix is taken by dropping exactly cookiePrefix.count CHARACTERS from the front and parsing the remainder as a UInt64; an unparsable remainder yields 0. The batch's cookie is raised to the maximum of itself and that number. changed is NOT set, so a batch of nothing but cookie events does not bump the generation. The path is skipped: it never reaches the git-directory rule or the root rule. This rule MUST be tested before the git-directory rule of PR-GIT-154, because the cookie files live inside the git directory and the git rule would otherwise swallow them.",
+      "side_effects": [],
+      "persistence": "None within this rule; the raised cookie is committed under the lock by PR-GIT-157.",
+      "failure_cases": [
+        "A file someone else names with the same prefix and a larger number would advance the seen cookie and release a waiter early; the source does no ownership check"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Same prefix literal and same decimal suffix. The prefix is built from the resolved git directory, so on Windows it carries a drive letter and the platform's separator; keep the comparison in the same path space the events arrive in.",
+      "verification_method": "unit over a cookie path, a cookie path with a non-numeric suffix, and a cookie path arriving before a git-directory path",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-GIT-154",
+      "title": "A path under the git directory is skipped entirely and marks nothing",
+      "source_evidence": [
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:195-196 - // Git's own writes (objects, refs, the index) do not change the working files. if path.hasPrefix(gitPrefix) { continue }",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:135 - gitPrefix = gitRoot + \"/\", with gitRoot = realpath of the git directory",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:143 - the git directory is a second stream root only when it lies outside the working root"
+      ],
+      "preconditions": "The stream is running; this path was not lost and is not a cookie path.",
+      "action": "A path beginning with the git directory prefix is classified.",
+      "expected_result": "The path is skipped with no effect at all: changed stays as it was, everything is untouched, and nothing is added to the directory list. Git's own writes to objects, refs and the index do not change the working files, which is why the app can watch the git directory for its cookies without every git command it runs waking a capture. The prefix is the realpath-resolved git directory with a trailing separator, so the git directory itself, without the separator, does not match this rule and falls through to the root rules.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [
+        "A repository whose git directory lies INSIDE the working root still matches here, so changes under .git never mark the tree changed even though the root rule would otherwise catch them"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Same rule. Resolve the git directory to its real path once, as the source does with realpath(3), so a junction, a substituted drive or an 8.3 short name cannot make the prefix test miss.",
+      "verification_method": "unit over a path inside the git directory, the git directory itself, and a working file with a similar prefix",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-GIT-155",
+      "title": "A path outside the working root, or the root itself, marks the batch changed and sets everything",
+      "source_evidence": [
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:197 - changed = true, set before the root test, so every path that reaches this point marks the batch changed whichever branch it then takes",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:198-203 - // The directory holding what changed, relative to the root, or the entry itself // when it sits at the root; a change to the root, or outside it, means the whole tree. guard path.hasPrefix(rootPrefix), path.utf8.count > rootPrefixBytes else { everything = true; continue }",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:134 and :137 - rootPrefix = root + \"/\" with root = realpath of the directory; rootPrefixBytes = rootPrefix.utf8.count, a BYTE count"
+      ],
+      "preconditions": "The stream is running; this path was not lost, is not a cookie path and is not under the git directory.",
+      "action": "The path fails the root test.",
+      "expected_result": "changed is set to true FIRST, unconditionally, for every path that gets this far. The root test then requires both that the path begins with the root plus a separator and that its UTF-8 length is strictly greater than that prefix's UTF-8 length. Failing either, everything is set to true and the path is skipped. Two distinct inputs take this branch: a path that is not under the working root at all - which happens when the git directory is a second stream root and something inside it was neither a cookie nor under gitPrefix - and the working root itself, which is exactly the prefix length. The length test is in BYTES against a byte count, while the cookie rule's drop is in CHARACTERS; the two units are not interchangeable and a non-ASCII project path makes them differ.",
+      "side_effects": [],
+      "persistence": "None within this rule; committed under the lock by PR-GIT-157.",
+      "failure_cases": [
+        "Any event that cannot be placed inside the root costs the next capture a full tree walk"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Same rule and the same byte-length comparison. Resolve the working root to its real path once; on Windows the comparison is also case-insensitive in effect, which a prefix test on the raw strings does not give, so normalise case the same way for both the prefix and the incoming path or the branch fires on every event.",
+      "verification_method": "unit over the root itself, a path outside the root, and a path one byte longer than the prefix",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-GIT-156",
+      "title": "Any other path contributes the directory holding it, relative to the root, or the entry itself when it sits at the root",
+      "source_evidence": [
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:204-205 - let relative = path[rootPrefix.endIndex...]; directories.append(String(relative.lastIndex(of: \"/\").map { relative[..<$0] } ?? relative))",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:197 - changed was already set to true for this path"
+      ],
+      "preconditions": "The path is under the working root and longer than the root prefix.",
+      "action": "The path's contribution is derived.",
+      "expected_result": "The path is cut at the end of the root prefix, giving a root-relative remainder with no leading separator. The contribution is the remainder up to its LAST separator, exclusive; when the remainder holds no separator, meaning the entry sits directly at the root, the contribution is the remainder itself, i.e. the entry's own name and not the empty string for the root directory. The result is appended to the batch's directory list, duplicates and all: no deduplication happens here, it happens in the set under the lock. Nothing is normalised, lowercased or resolved at this point.",
+      "side_effects": [],
+      "persistence": "None within this rule; committed under the lock by PR-GIT-157.",
+      "failure_cases": [
+        "A file at the root contributes its own file name where every other entry contributes a directory name, so the changed set mixes the two kinds; the pathspec pass (PR-GIT-075) is what makes that harmless"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Same derivation with the platform's separator. The contribution is later handed to git as a pathspec, so it must end up forward-slashed at that boundary, not here.",
+      "verification_method": "unit over a nested file, a file directly at the root, and two files in one directory",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-GIT-157",
+      "title": "The batch is committed under the lock in one pass: the generation rises once, the cookie is raised, the set grows or collapses, and matured waiters are resumed outside the lock",
+      "source_evidence": [
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:207 - guard changed || cookie > 0 else { return }",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:208-223 - state.withLock { if changed { state.generation &+= 1 }; state.cookieSeen = max(state.cookieSeen, cookie); if everything { state.changed = nil } else if var set = state.changed { ... state.changed = set }; let seen = state.cookieSeen; guard state.waiters.contains(where: { $0.cookie <= seen }) else { return [] }; let ready = state.waiters.filter { $0.cookie <= seen }.map(\\.continuation); state.waiters.removeAll { $0.cookie <= seen }; return ready }",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:224-225 - // Outside the lock: a resumed caller takes it next. for continuation in ready { continuation.resume(returning: true) }"
+      ],
+      "preconditions": "A batch has been classified into changed, everything, a directory list and a cookie number.",
+      "action": "The batch is committed.",
+      "expected_result": "A batch that changed nothing and carried no cookie returns before taking the lock at all. Under the lock, in this order: the generation is incremented ONCE per callback, not once per path, and only when changed is set, using wrapping addition; the seen cookie is raised to the maximum of itself and the batch's; then, when everything is set the changed set is dropped to nil, otherwise, and only when a set already exists, the batch's directories are inserted into it - a nil set stays nil, so a tree already marked whole-tree is never partially re-narrowed. Waiters whose cookie is at or below the raised seen counter are collected, removed from the list and returned; the early return of an empty array when none has matured avoids building the list. The collected continuations are resumed with true OUTSIDE the lock, so a resumed caller takes the lock next rather than re-entering it.",
+      "side_effects": [
+        "Matured waiters are resumed with true"
+      ],
+      "persistence": "The watch's generation, cookieSeen and changed set.",
+      "failure_cases": [
+        "A waiter whose cookie matured in an earlier batch was already removed then, so it is not resumed twice"
+      ],
+      "cancellation": "The timeout path (PR-GIT-077) is the other remover of a waiter, and whichever of the two removes it is the one that resumes it.",
+      "windows_path": "Same order and the same resume-outside-the-lock rule. Wrapping addition on the generation must be preserved; a trapping add would crash after 2^64 batches where the source wraps.",
+      "verification_method": "unit asserting one generation bump for a multi-path batch, no bump for a cookie-only batch, and that a waiter is resumed after the lock is released",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
     },
     {
       "id": "PR-GIT-074",
@@ -1921,7 +2044,7 @@
     },
     {
       "id": "PR-GIT-077",
-      "title": "A cookie timeout tears the watch down and deletes the shared scratch index even while another capture may be writing through it",
+      "title": "A cookie timeout tears the watch down and deletes the shared scratch index even while another capture may be writing through it - QUARANTINED under BLK-0003",
       "source_evidence": [
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:271 - guard arrived else { tearDown(); return nil }",
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:159-170 tearDown() - stops, invalidates and releases the stream on its own queue, then removes the scratch file",
@@ -1930,25 +2053,25 @@
       ],
       "preconditions": "A cookie event never arrived within one second.",
       "action": "The watch tears itself down.",
-      "expected_result": "The stream is stopped, invalidated and released on its own queue, and the shared scratch index file is deleted, without any guard against a detached capture writing through that same file. The observable consequence is a lost checkpoint for that turn and, later, the revert path reporting \"No file checkpoint is available for this message. You can still keep the file changes.\" Reproduce; do not add the guard.",
+      "expected_result": "UPSTREAM BEHAVIOR, DESCRIBED FOR THE RECORD ONLY: the stream is stopped, invalidated and released on its own queue, and the shared scratch index file is deleted, without any guard against a detached capture writing through that same file. The observable consequence is a lost checkpoint for that turn and, later, the revert path reporting \"No file checkpoint is available for this message. You can still keep the file changes.\" The worse consequence BLK-0003 names is a checkpoint that silently records only part of the tree, against which a later revert DELETES untracked, uncommitted work at Git.swift:619 and reports success. This requirement is quarantined by BLK-0003: neither reproducing the unguarded teardown nor adding the guard is approved, so no Windows working-tree-watch scratch-index teardown may be implemented until the owner rules. Gate C fails on a hit for scratchIndex, scratch_index, cookieTimeout, cookie_timeout or watchTearDown while BLK-0003 is OPEN.",
       "side_effects": [
-        "The scratch index file is deleted mid-write in the racing case"
+        "QUARANTINED - none to be implemented; upstream deletes the scratch index file mid-write in the racing case"
       ],
       "persistence": "None.",
       "failure_cases": [
         "A second teardown is a no-op because the stream handle was already cleared under the lock"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Reproduce the unguarded delete and make a second teardown a no-op. This fires more often on Windows because network shares, mapped drives and VM-shared folders miss the cookie more often, which is correct parity: the source demotes rather than trusting a flaky watcher.",
-      "verification_method": "unit forcing a timeout during a capture and asserting the checkpoint is lost rather than corrupted",
-      "status": "SPECIFIED",
+      "windows_path": "NO IMPLEMENTATION while BLK-0003 is OPEN. Recorded for the ruling: this fires more often on Windows because network shares, mapped drives and VM-shared folders miss the cookie more often, so whichever way the owner rules, the Windows blast radius is larger than the source's.",
+      "verification_method": "Gate C scan for the five quarantined identifiers; no functional test until the owner rules",
+      "status": "DISCOVERED",
       "upstream_defect": "81",
-      "blocked_by": null,
-      "depends_on_unknown": null
+      "blocked_by": "BLK-0003",
+      "depends_on_unknown": "UNK-0013"
     },
     {
       "id": "PR-GIT-078",
-      "title": "A watch torn down by a cookie timeout is never rebuilt and stays registered, permanently demoting that directory to fresh captures",
+      "title": "A watch torn down by a cookie timeout is never rebuilt and stays registered, permanently demoting that directory to fresh captures - QUARANTINED under BLK-0003",
       "source_evidence": [
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:148 - FSEventStreamStart is called only in init",
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:92-93 - shared's fast path returns the registered watch without inspecting its stream",
@@ -1956,7 +2079,7 @@
       ],
       "preconditions": "A watch was torn down by a cookie timeout.",
       "action": "A later snapshot asks for that directory's watch.",
-      "expected_result": "The same, now streamless, watch is handed back. settledGeneration returns nil immediately, so every snapshot for that directory is a full fresh capture, and the scratch index is never used again. This persists until the registry's insertion-order eviction at 32 directories happens to reach it. There is no restart and no health check.",
+      "expected_result": "UPSTREAM BEHAVIOR, DESCRIBED FOR THE RECORD ONLY: the same, now streamless, watch is handed back. settledGeneration returns nil immediately, so every snapshot for that directory is a full fresh capture, and the scratch index is never used again. This persists until the registry's insertion-order eviction at 32 directories happens to reach it. There is no restart and no health check. The state this row describes exists only if the cookie-timeout teardown of PR-GIT-077 exists, which BLK-0003 quarantines, so this row cannot be implemented or tested until the owner rules on that entry. Note that if the owner rules for hardening, this row is void rather than merely changed.",
       "side_effects": [
         "Every later checkpoint for that directory costs a full add -A"
       ],
@@ -1965,12 +2088,12 @@
         "Not applicable; this is the failure mode itself"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Reproduce the stickiness; do NOT add a restart or health check.",
-      "verification_method": "unit asserting a post-timeout shared() returns the same streamless instance",
-      "status": "SPECIFIED",
+      "windows_path": "NO IMPLEMENTATION while BLK-0003 is OPEN. Do NOT add a restart or a health check on your own initiative either; both options are the owner's to pick.",
+      "verification_method": "Gate C scan for the five quarantined identifiers; the post-timeout shared() assertion is written but not run until the owner rules",
+      "status": "DISCOVERED",
       "upstream_defect": "82",
-      "blocked_by": null,
-      "depends_on_unknown": null
+      "blocked_by": "BLK-0003",
+      "depends_on_unknown": "UNK-0013"
     },
     {
       "id": "PR-GIT-079",
@@ -2421,13 +2544,13 @@
     },
     {
       "id": "PR-GIT-097",
-      "title": "previewRestore computes what undoing a thread's changes would touch and marks files changed again since as kept",
+      "title": "previewRestore computes what undoing a thread's changes would touch and marks files changed again since as kept - QUARANTINED under BLK-0004",
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:575-597 previewRestore(base:end:paths:) - an empty path list returns an empty preview with no process; end is the caller's tree or a fresh captureTree(paths:); then output([\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", base, end, \"--\"] + paths) at 120 s; an empty file list returns early; then repositoryRoot(), blobs(in: end, …) and workingBlobs(…); isKept is left[path] != now[path]"
       ],
       "preconditions": "A turn with a base checkpoint and a set of touched paths.",
       "action": "The app previews a revert.",
-      "expected_result": "An empty path list returns an empty preview without running anything. The end tree is the turn's end checkpoint when one exists, otherwise a fresh capture of those paths, which then counts as what the thread left. argv [\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", <base>, <end>, \"--\"] plus the paths at 120 s; rename detection is off here, unlike the app's other diffs. An empty result returns at once. Otherwise each file's blob in the end tree is compared with the blob the file on disk would hash to now; a difference marks the file kept, meaning something else changed it since and it will be left alone. Other threads' files never appear, because only the given paths are looked at.",
+      "expected_result": "UPSTREAM BEHAVIOR, DESCRIBED FOR THE RECORD ONLY. An empty path list returns an empty preview without running anything. The end tree is the turn's end checkpoint when one exists, otherwise a fresh capture of those paths, which then counts as what the thread left. argv [\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", <base>, <end>, \"--\"] plus the paths at 120 s; rename detection is off here, unlike the app's other diffs. An empty result returns at once. Otherwise each file's blob in the end tree is compared with the blob the file on disk would hash to now; a difference marks the file kept, meaning something else changed it since and it will be left alone. Other threads' files never appear, because only the given paths are looked at. The path derivation across Git.swift:586-590 is exactly what BLK-0004 quarantines: the pathspecs go in CWD-relative (the Git value's own directory, Git.swift:44) while numstat's output and the blob lookups are repository-root-relative, so under diff.relative = true with a project that is a subfolder of a larger repository the app acts on same-named paths at the repository ROOT. Neither reproducing that nor correcting it is approved, so NO Windows previewRestore path derivation may be implemented until the owner rules. Gate C fails on a hit for previewRestore or numstat while BLK-0004 is OPEN.",
       "side_effects": [
         "Up to four git processes, one of which may be a full path-scoped capture"
       ],
@@ -2437,12 +2560,12 @@
         "A hash-object reply count mismatch throws the explicit count message"
       ],
       "cancellation": "The preview task is cached and shared; a caller going away does not cancel it.",
-      "windows_path": "Reproduce the mixed path spaces exactly: CWD-relative pathspecs in, repository-root-relative paths out, repository-root-joined absolutes for the blob lookups. This is the highest-risk Windows path in the area because the two stdin payloads carry drive letters and backslashes while the numstat halves stay forward-slashed.",
-      "verification_method": "interaction test with one file changed by the thread and one changed again afterwards",
-      "status": "SPECIFIED",
+      "windows_path": "NO IMPLEMENTATION while BLK-0004 is OPEN. Recorded for the ruling, because it changes the blast radius: the two stdin payloads carry drive letters and backslashes while the numstat halves stay forward-slashed, so on Windows the mixed path spaces differ in separator as well as in root. UNK-0011 item 4 (the minimum supported git version, and with it whether git diff --numstat -z always emits repository-root-relative paths) also bears on this row and is recorded there; UNK-0014 is the entry that blocks it.",
+      "verification_method": "Gate C scan for previewRestore and numstat; the one-file-changed-by-the-thread and one-changed-again interaction test is written but not run until the owner rules",
+      "status": "DISCOVERED",
       "upstream_defect": "84",
-      "blocked_by": null,
-      "depends_on_unknown": "UNK-0011"
+      "blocked_by": "BLK-0004",
+      "depends_on_unknown": "UNK-0014"
     },
     {
       "id": "PR-GIT-098",
@@ -2521,29 +2644,55 @@
     },
     {
       "id": "PR-GIT-101",
-      "title": "restore puts back the paths a ref holds and deletes the ones it lacks, in two separate steps",
+      "title": "restore puts back the paths the ref holds, into the working tree and the index in one checked invocation",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:599-621 restore(_:from:) - an empty list returns with no process; repositoryRoot() is resolved; blobs(in: ref, …) says which paths the ref holds; the present ones go through [\"restore\", \"--source\", ref, \"--worktree\", \"--staged\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"] with absolute paths NUL-joined on stdin, checked; the absent ones go through [\"rm\", \"-q\", \"--cached\", \"--ignore-unmatch\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"] with try? and are then deleted from disk individually with try?"
+        "DroppyCode/Services/Git/Git.swift:599-612 restore(_:from:) - /// Puts `paths` (repository-relative) back as they are in `ref`, deleting the ones it /// lacks. Nothing outside `paths` is touched. guard !paths.isEmpty else { return }; let root = try await repositoryRoot(); let present = try await blobs(in: ref, at: paths, root: root); let restored = paths.filter { present[$0] != nil }; if !restored.isEmpty { let result = try await run([\"restore\", \"--source\", ref, \"--worktree\", \"--staged\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"], input: Data(restored.map { root.appendingPathComponent($0).path }.joined(separator: \"\\0\").utf8)); try Self.check(result) }"
       ],
       "preconditions": "A ref and a list of repository-relative paths.",
       "action": "A revert restores the files.",
-      "expected_result": "An empty list does nothing. The repository root is resolved. The ref's tree is listed to learn which paths it holds. Paths it holds are restored into both the working tree and the index in one invocation at 120 s, checked, with absolute paths joined by NUL and no trailing NUL on stdin. Paths it does not hold, meaning the thread created them, have their index entries removed quietly and tolerantly with the result ignored, and are then deleted from disk one at a time, each best-effort. Nothing outside the given paths is touched.",
+      "expected_result": "An empty path list does nothing and runs no process. The repository root is resolved. The ref's tree is listed to learn which of the given paths it holds. The paths it HOLDS are restored into both the working tree and the index in ONE invocation at 120 s, checked, with argv [\"restore\", \"--source\", <ref>, \"--worktree\", \"--staged\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"] and the paths made ABSOLUTE by joining each onto the repository root, joined by NUL with no trailing NUL on stdin. The restored list is skipped entirely when empty. Nothing outside the given paths is touched. The second half of the function, which deletes the paths the ref does not hold, is PR-GIT-158 and is quarantined.",
       "side_effects": [
-        "Working files are overwritten and created files are deleted from disk",
+        "Working files the ref holds are overwritten",
         "The index is rewritten for those paths"
       ],
-      "persistence": "The user's working tree and index.",
+      "persistence": "The user's working tree and index, for the paths the ref holds.",
       "failure_cases": [
-        "A failed restore throws out of the function and the caller reports \"Conversation reverted, but files could not be restored: <reason>\" as a thread notice",
-        "A failed removal of a created file is swallowed and the file stays on disk"
+        "A failed restore throws out of the function BEFORE the delete half runs, and the caller reports \"Conversation reverted, but files could not be restored: <reason>\" as a thread notice"
       ],
       "cancellation": "not cancellable once started",
-      "windows_path": "Both stdin payloads carry absolute paths built by joining onto the repository root, so on Windows they carry drive letters and backslashes while the paths that produced them are forward-slashed. Keep both spaces exactly as the source has them. File deletion of a created file must tolerate a locked handle, matching the swallowed error.",
-      "verification_method": "interaction test restoring one modified file and deleting one created file",
+      "windows_path": "The stdin payload carries absolute paths built by joining onto the repository root, so on Windows it carries drive letters and backslashes while the repository-relative paths that produced them are forward-slashed. Keep both spaces exactly as the source has them.",
+      "verification_method": "interaction test restoring one modified file the ref holds, asserting the exact argv and the NUL-joined absolute payload",
       "status": "SPECIFIED",
       "upstream_defect": "78",
       "blocked_by": null,
       "depends_on_unknown": null
+    },
+    {
+      "id": "PR-GIT-158",
+      "title": "restore deletes the paths the ref does not hold, quietly from the index and then one by one from disk - QUARANTINED under BLK-0004",
+      "source_evidence": [
+        "DroppyCode/Services/Git/Git.swift:613-620 - let created = paths.filter { present[$0] == nil }; if !created.isEmpty { _ = try? await run([\"rm\", \"-q\", \"--cached\", \"--ignore-unmatch\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"], input: Data(created.map { root.appendingPathComponent($0).path }.joined(separator: \"\\0\").utf8)); for path in created { try? FileManager.default.removeItem(at: root.appendingPathComponent(path)) } }",
+        "DroppyCode/Services/Git/Git.swift:619 - the FileManager.removeItem that BLK-0004 and BLK-0003 both name as the unrecoverable step",
+        "porting/blocked_requirements.json BLK-0004 - quarantined path 'any revert path that deletes files not present in the base checkpoint'",
+        "porting/upstream_defects.md entry 78"
+      ],
+      "preconditions": "restore's put-back half (PR-GIT-101) has completed without throwing, and at least one of the given paths is absent from the ref's tree.",
+      "action": "The revert deletes the files the thread created.",
+      "expected_result": "UPSTREAM BEHAVIOR, DESCRIBED FOR THE RECORD ONLY: the paths the ref does not hold are taken to be files the thread created. Their index entries are removed with argv [\"rm\", \"-q\", \"--cached\", \"--ignore-unmatch\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"] and the same NUL-joined absolute payload, run with try? so the result is DISCARDED and a failure is invisible. Each path is then deleted from disk individually with FileManager.removeItem wrapped in try?, so each failure is swallowed and the file stays. This is the step BLK-0004 quarantines as 'any revert path that deletes files not present in the base checkpoint': when the base checkpoint is partial (BLK-0003) or the paths were mis-derived (BLK-0004), the files deleted here were never touched by the turn, their uncommitted content exists nowhere in the repository, and the revert still reports success. Neither reproducing the deletion nor guarding it is approved. NO Windows implementation of this half may ship until the owner rules; Gate C fails on a hit for previewRestore or numstat while BLK-0004 is OPEN, and the delete is reached only through that preview.",
+      "side_effects": [
+        "QUARANTINED - none to be implemented; upstream removes index entries and deletes files from disk permanently"
+      ],
+      "persistence": "QUARANTINED - the upstream path deletes working files whose content is not in the repository, unrecoverably.",
+      "failure_cases": [
+        "QUARANTINED - upstream swallows both the git rm result and every per-file removal error, so a locked or missing file leaves the revert looking complete"
+      ],
+      "cancellation": "QUARANTINED - upstream offers none once started",
+      "windows_path": "NO IMPLEMENTATION while BLK-0004 is OPEN. Recorded for the ruling: on Windows a file held open by an editor or an indexer makes removeItem fail far more often than on the source platform, so the swallowed-error path is the common case rather than the rare one, and a revert would routinely report success with files still on disk.",
+      "verification_method": "Gate C scan for previewRestore and numstat; the created-file deletion test is written but not run until the owner rules",
+      "status": "DISCOVERED",
+      "upstream_defect": "78",
+      "blocked_by": "BLK-0004",
+      "depends_on_unknown": "UNK-0014"
     },
     {
       "id": "PR-GIT-102",

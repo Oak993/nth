@@ -1328,11 +1328,12 @@
     "title": "The Top up link appears only for providers with a top-up URL and opens that exact address",
     "source_evidence": [
       "DroppyCode/App/Views/Usage/UsageViews.swift:118-122 if let topUpURL = CreditsReader.topUpURL(provider) { Link(\"Top up\", destination: topUpURL).buttonStyle(.glass).controlSize(.small) }",
-      "DroppyCode/Services/Providers/ProviderCredits.swift:68-75 static func topUpURL - deepseek gives URL(string: \"https://platform.deepseek.com/top_up\"), commandcode gives CommandCodeAPI.billingURL, every other provider nil"
+      "DroppyCode/Services/Providers/ProviderCredits.swift:68-75 static func topUpURL - deepseek gives URL(string: \"https://platform.deepseek.com/top_up\"), commandcode gives CommandCodeAPI.billingURL, every other provider nil",
+      "DroppyCode/Services/Providers/CommandCodeAPI.swift:14 static let billingURL = URL(string: \"https://commandcode.ai/billing\")!"
     ],
     "preconditions": "CreditsView is rendering.",
     "action": "The right-hand group renders.",
-    "expected_result": "A small glass link-button titled exactly \"Top up\" (lowercase u in \"up\", one space, no ellipsis) that opens the provider's dashboard page in the user's browser. For DeepSeek the destination is exactly https://platform.deepseek.com/top_up. For Command Code it is CommandCodeAPI.billingURL. No other provider shows the button. The button is present regardless of whether a balance has been read and regardless of whether the balance is depleted.",
+    "expected_result": "A small glass link-button titled exactly \"Top up\" (lowercase u in \"up\", one space, no ellipsis) that opens the provider's dashboard page in the user's browser. For DeepSeek the destination is exactly https://platform.deepseek.com/top_up. For Command Code the destination is exactly https://commandcode.ai/billing (the value of CommandCodeAPI.billingURL). No other provider shows the button. The button is present regardless of whether a balance has been read and regardless of whether the balance is depleted.",
     "side_effects": [
       "Opens an external browser window at the provider's billing page."
     ],

@@ -88,7 +88,7 @@
       "status": "OPEN",
       "raised": "2026-09-20",
       "owner_ruling": null,
-      "title": "Cookie-timeout tearDown can truncate a checkpoint silently; a later revert then deletes unrecoverable work",
+      "title": "Checkpoint can be silently truncated (cookie timeout OR cookie forgery); a later revert then deletes unrecoverable work",
       "defect_entry": 81,
       "area": "git-and-checkpoints",
       "criteria": [
@@ -96,7 +96,8 @@
         "C4"
       ],
       "source_evidence": [
-        "DroppyCode/Services/Git/WorkingTreeWatch.swift:271 and :159-170, against Git.swift:445-462"
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:271 and :159-170, against Git.swift:445-462",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:191-192 - any writer into the git directory can advance cookieSeen and release a capture waiter early, reaching the same truncated-checkpoint state by a different route than the cookie timeout"
       ],
       "concrete_harm": "Usually benign: the turn simply has no checkpoint and the user later sees \"No file checkpoint is available for this message.\" The bad outcome, which the source itself names, is a checkpoint that silently records only a few directories as though it were the whole tree. A later revert against that base then treats every other touched file as new (Git.swift:613) and DELETES it with FileManager.removeItem (Git.swift:619) instead of restoring its pre-turn content; for an uncommitted file that content is gone, and the app reports the revert as successful.",
       "criteria_detail": [
@@ -109,16 +110,19 @@
       ],
       "quarantined_paths": [
         "any Windows implementation of the working-tree watch scratch-index teardown",
-        "any checkpoint capture that can exit successfully on a partial tree"
+        "any checkpoint capture that can exit successfully on a partial tree",
+        "any Windows implementation of the capture cookie wait and its release condition"
       ],
       "detection_patterns": [
         "scratchIndex",
         "scratch_index",
         "cookieTimeout",
         "cookie_timeout",
-        "watchTearDown"
+        "watchTearDown",
+        "cookieSeen"
       ],
-      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented. Patterns are deliberately specific: a bare tearDown would false-positive across unrelated code, and a noisy guard creates pressure to weaken it, which PORT_CONTRACT section 14 forbids."
+      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented. Patterns are deliberately specific: a bare tearDown would false-positive across unrelated code, and a noisy guard creates pressure to weaken it, which PORT_CONTRACT section 14 forbids.",
+      "scope_extended": "2026-09-20"
     },
     {
       "id": "BLK-0004",
@@ -194,6 +198,265 @@
         "LegacyMigration",
         "migratedFromEarlierName",
         "formerSupportFolder"
+      ],
+      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
+    },
+    {
+      "id": "BLK-0006",
+      "unknown": "UNK-0016",
+      "status": "OPEN",
+      "raised": "2026-09-20",
+      "owner_ruling": null,
+      "title": "A provider API key is written to UserDefaults in plain text whenever protected storage refuses it",
+      "area": "providers",
+      "criteria": [
+        "C2",
+        "C3"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/AppSettings.swift:362-363 - let kept = DeepSeekKeychain.setAPIKey(input); storeAPIKeyFallback(kept ? \"\" : input, forKey: Key.deepseekAPIKey)",
+        "DroppyCode/App/AppSettings.swift:373-374, :386-387, :397-398 - the same pattern for Meta, Z.ai and Command Code",
+        "DroppyCode/App/AppSettings.swift:479-486 - storeAPIKeyFallback writes defaults.set(trimmed, forKey:) for a non-empty value",
+        "DroppyCode/Services/Providers/APIKeychain.swift:22-39 - setKey returns SecItemAdd(...) == errSecSuccess, so false means the store refused the key"
+      ],
+      "concrete_harm": "When protected storage refuses the write, the user's live, paid provider API key is written in clear text to the application's defaults on disk, readable by any process running as that user, with nothing shown to the user. On macOS this is a rare path. On Windows the equivalent store is DPAPI, and reproducing this faithfully means every machine where DPAPI is unavailable silently keeps the key in plaintext.",
+      "criteria_detail": [
+        "C2: a credential is written unencrypted to disk where the app's own protected-storage path was intended.",
+        "C3: it weakens the confidentiality control the Keychain call exists to provide, and does so silently on failure rather than failing closed."
+      ],
+      "lead_correction": "The repair pass also claimed the plaintext mirror is written UNTRIMMED while the Keychain stores a trimmed value, so the two stores could disagree. That is WRONG and is not propagated: APIKeychain.swift:23 trims and AppSettings.swift:480 trims, so both store the same trimmed string. Verified at source by the lead.",
+      "options_neither_of_which_is_approved": [
+        "Reproduce upstream exactly: fall back to plaintext in the settings store when protected storage refuses. Exact parity, including the exposure.",
+        "Fail closed: surface the failure and store nothing. A recorded owner-approved deviation, NOT parity."
+      ],
+      "not_blocked": [
+        "the clearing half of the rule, which writes the empty string on a successful protected-storage write and is safe either way",
+        "every other settings requirement"
+      ],
+      "quarantined_paths": [
+        "any Windows implementation of the API key fallback store"
+      ],
+      "detection_patterns": [
+        "storeAPIKeyFallback",
+        "apiKeyFallback"
+      ],
+      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
+    },
+    {
+      "id": "BLK-0007",
+      "unknown": "UNK-0017",
+      "status": "OPEN",
+      "raised": "2026-09-20",
+      "owner_ruling": null,
+      "title": "Plan limits are obtained by reading other applications' credential files and transmitting their tokens",
+      "area": "providers",
+      "criteria": [
+        "C2",
+        "C3",
+        "C6"
+      ],
+      "source_evidence": [
+        "DroppyCode/Services/Providers/PlanLimits.swift:181-211 - reads ~/.claude/.credentials.json, honouring CLAUDE_CONFIG_DIR, and also runs /usr/bin/security find-generic-password for the 'Claude Code-credentials' item",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:790-801 - reads ~/.grok/auth.json",
+        "DroppyCode/Services/Providers/PiPlanLimits.swift:12-13 - reads Pi's <config>/auth.json",
+        "DroppyCode/Services/Providers/PiPlanLimits.swift:7-8, :27-34 - calls https://api.anthropic.com/api/oauth/usage and https://chatgpt.com/backend-api/wham/usage with the borrowed token",
+        "DroppyCode/Services/Providers/CommandCodeAPI.swift:33-38 - reads ~/.commandcode/auth.json"
+      ],
+      "concrete_harm": "The app reads OAuth access tokens that the user granted to a different program, holds them in its own process, and in the Pi case transmits them to third-party usage endpoints. The user is not asked. This is how the product shows plan limits, so it is a deliberate feature rather than a bug, but it means the Windows build would read another application's credential store and make network requests carrying that application's credential.",
+      "criteria_detail": [
+        "C2: reads credentials the app does not own from another program's store.",
+        "C3: the borrowed token is used to authenticate to a provider API outside the flow the user authorised.",
+        "C6: PiPlanLimits sends the token to api.anthropic.com and chatgpt.com without the user choosing that destination."
+      ],
+      "lead_note": "The repair agent justified this partly by citing a CLAUDE.md rule forbidding reading agent credential files. That rule belongs to the SEPARATE Marrow product at agent-workbench, not to this port, and is not binding here (see instruction_conflicts.md C-06). The escalation stands on its own merits under AM-0001 criteria C2, C3 and C6, not on that rule.",
+      "options_neither_of_which_is_approved": [
+        "Reproduce upstream exactly: read the CLI credential stores and query usage endpoints, so plan limits work as they do on macOS.",
+        "Omit the credential reads, and with them the plan-limit and credit displays for the affected providers. A recorded deviation that removes a visible feature.",
+        "Reproduce the reads but ask the user once per provider before the first read. A recorded deviation, NOT parity."
+      ],
+      "quarantined_paths": [
+        "any Windows implementation that reads a provider CLI's credential or auth file",
+        "any Windows implementation that sends a provider token to a usage or billing endpoint"
+      ],
+      "detection_patterns": [
+        "credentials.json",
+        "auth.json",
+        "find-generic-password",
+        "oauth/usage",
+        "backend-api/wham/usage"
+      ],
+      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
+    },
+    {
+      "id": "BLK-0008",
+      "unknown": "UNK-0018",
+      "status": "OPEN",
+      "raised": "2026-09-20",
+      "owner_ruling": null,
+      "title": "The read-only command classifier is also the auto-approval gate, and three misclassifications auto-run file-writing commands with no prompt and no checkpoint",
+      "area": "providers-and-shell",
+      "criteria": [
+        "C3",
+        "C4"
+      ],
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:707-710 - in .auto permission mode, shell_command, powershell and monitor_command are auto-approved iff !ShellCommandKind.mayWriteFiles(input[\"command\"])",
+        "DroppyCode/Core/Support/Shell.swift:200-201 - case \"sort\": return !arguments.contains { $0.hasPrefix(\"-o\") }, which a double-dashed --output= can never satisfy",
+        "DroppyCode/Core/Support/Shell.swift:162, :198-199 - find and fd read-only unless an argument is in searchActions, which omits -fprintf",
+        "DroppyCode/Core/Support/Shell.swift:154-159 - gitReaders contains config, tag and remote, so git config user.email x, git tag v1 and git remote add origin url all classify as readers",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3232 - a command classified read-only is also skipped for the working-tree snapshot"
+      ],
+      "concrete_harm": "In .auto permission mode a model can run sort --output=victim.txt in.txt, find . -fprintf out.txt '%p', git config, git tag or git remote add with no approval prompt, because each classifies as read-only. The same classification also skips the checkpoint, so there is nothing to revert afterwards. A weakened permission check and a silent loss of the undo path, from one table.",
+      "criteria_detail": [
+        "C3: the classifier is a security control, not only a checkpoint optimisation; reproducing the misclassifications means auto-approving commands that write files and repository configuration.",
+        "C4: because the same predicate gates the snapshot, the affected commands leave no checkpoint, so the change cannot be reverted and the loss is silent."
+      ],
+      "lead_note": "This supersedes the framing in platform_adaptations.md PA-0011, which described the classifier only as deciding whether a turn records a diff. It is also the permission gate. PA-0011 is amended to say so.",
+      "options_neither_of_which_is_approved": [
+        "Reproduce the table verbatim, misclassifications included. Exact parity, including the weakened gate.",
+        "Reproduce the table but correct the three misclassifications. A recorded owner-approved deviation, NOT parity.",
+        "Reproduce the table for checkpointing but require approval for these tools regardless. A recorded deviation."
+      ],
+      "quarantined_paths": [
+        "any Windows implementation of the .auto permission-mode auto-approval predicate for shell tools"
+      ],
+      "detection_patterns": [
+        "mayWriteFiles",
+        "shouldAutoApprove",
+        "autoApproveTool"
+      ],
+      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented. Note the classifier itself is NOT quarantined for checkpoint use; only its use as the approval gate."
+    },
+    {
+      "id": "BLK-0009",
+      "unknown": "UNK-0019",
+      "status": "OPEN",
+      "raised": "2026-09-20",
+      "owner_ruling": null,
+      "title": "Removing a project is destructive, unconfirmed, and ignores confirmBeforeDeleting",
+      "area": "sidebar",
+      "criteria": [
+        "C1",
+        "C5"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:1184-1187 - a Remove project row action calling model.removeProject(project) with no confirmation",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:1213-1215 - a second Remove project row action doing the same",
+        "DroppyCode/App/AppSettings.swift:123, :209-210, :702 - confirmBeforeDeleting exists and defaults to true",
+        "DroppyCode/App/Views/Sidebar/SidebarView.swift:192, :360, :891 - thread deletion in the same file does consult it"
+      ],
+      "concrete_harm": "One click on a row action removes a project from the library with no prompt, for a user who has explicitly asked to be asked before deleting. Same class as BLK-0001, in a different subsystem, and reached from the main sidebar rather than a settings page.",
+      "criteria_detail": [
+        "C1: the project and its association with its threads are removed from the library.",
+        "C5: overrides the user's explicit confirmBeforeDeleting preference, which sibling paths in the same file honour."
+      ],
+      "options_neither_of_which_is_approved": [
+        "Reproduce upstream exactly: one click, no confirmation.",
+        "Honour confirmBeforeDeleting as the thread paths in the same file do. A recorded owner-approved deviation, NOT parity."
+      ],
+      "quarantined_paths": [
+        "any Windows implementation of the Remove project affordance"
+      ],
+      "detection_patterns": [
+        "removeProject"
+      ],
+      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
+    },
+    {
+      "id": "BLK-0010",
+      "unknown": "UNK-0020",
+      "status": "OPEN",
+      "raised": "2026-09-20",
+      "owner_ruling": null,
+      "title": "An undecodable library.json starts the app empty and the first mutation overwrites it",
+      "area": "store",
+      "criteria": [
+        "C1",
+        "C4"
+      ],
+      "source_evidence": [
+        "DroppyCode/Services/Store/Storage.swift:60-63 - loadLibrary returns Library() when the file cannot be read or decoded, with the failure swallowed",
+        "DroppyCode/Services/Store/Storage.swift - saveLibrary writes the in-memory library over libraryURL on the next mutation"
+      ],
+      "concrete_harm": "A library.json that fails to decode for any reason leaves the user facing an empty app with every project and thread apparently gone, and no message. The first action that triggers a save then writes the empty library over the file. The per-thread files under threads/ survive on disk but become unreachable, because the index that names them has been replaced. Same mechanism as BLK-0002 but over the whole library rather than the custom MCP list.",
+      "criteria_detail": [
+        "C1: the index of all of the user's projects and threads is destroyed by the first subsequent save.",
+        "C4: the load failure is silent, so the user has no signal before the overwrite happens."
+      ],
+      "options_neither_of_which_is_approved": [
+        "Reproduce upstream exactly, including the silent empty start and the overwrite.",
+        "Refuse to overwrite after a failed load, and surface the failure. A recorded owner-approved deviation, NOT parity."
+      ],
+      "quarantined_paths": [
+        "any Windows implementation of the library load-failure path and the save that follows it"
+      ],
+      "detection_patterns": [
+        "loadLibrary",
+        "saveLibrary"
+      ],
+      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
+    },
+    {
+      "id": "BLK-0011",
+      "unknown": "UNK-0021",
+      "status": "OPEN",
+      "raised": "2026-09-20",
+      "owner_ruling": null,
+      "title": "An unreadable hasCustomTitle flag silently lets the auto-titler overwrite a name the user typed",
+      "area": "store",
+      "criteria": [
+        "C1"
+      ],
+      "source_evidence": [
+        "DroppyCode/Core/Models/Library.swift:248 - hasCustomTitle decodes to false when the key is missing, null or the wrong type"
+      ],
+      "concrete_harm": "A thread the user deliberately renamed, whose flag is unreadable in library.json, is treated as still auto-titled, and the automatic titler overwrites the user's chosen name on the thread's next turn. The typed name is not recoverable and nothing prompts or warns. This is the one decode default in the store whose faithful reproduction destroys something the user entered by hand.",
+      "criteria_detail": [
+        "C1: irreversible loss of user-entered data with no prompt and no undo."
+      ],
+      "options_neither_of_which_is_approved": [
+        "Reproduce upstream exactly: decode to false and let the titler overwrite.",
+        "Treat an unreadable flag as true so a typed name is never overwritten. A recorded owner-approved deviation, NOT parity."
+      ],
+      "quarantined_paths": [
+        "any Windows implementation of the hasCustomTitle decode default and the auto-title path that reads it"
+      ],
+      "detection_patterns": [
+        "hasCustomTitle"
+      ],
+      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
+    },
+    {
+      "id": "BLK-0012",
+      "unknown": "UNK-0022",
+      "status": "OPEN",
+      "raised": "2026-09-20",
+      "owner_ruling": null,
+      "title": "Credential deletion on disconnect discards its result, so a failed revoke reports success",
+      "area": "mcp",
+      "criteria": [
+        "C2"
+      ],
+      "source_evidence": [
+        "DroppyCode/Services/MCP/MCPKeychain.swift - deleteAll's result is discarded by its caller",
+        "DroppyCode/Services/MCP/MCPStore.swift:124 - disconnect calls MCPKeychain.deleteAll(server:) and proceeds regardless"
+      ],
+      "concrete_harm": "A user who disconnects an MCP server in order to revoke its stored key is told the disconnect succeeded even when the protected store was locked or unavailable and deleted nothing. The credential remains on disk while the user believes it is gone, so they do not rotate it at the provider.",
+      "criteria_detail": [
+        "C2: a credential the user intended to destroy survives, and the interface asserts the opposite."
+      ],
+      "options_neither_of_which_is_approved": [
+        "Reproduce upstream exactly: discard the result and report success.",
+        "Check the result and surface a failed revoke. A recorded owner-approved deviation, NOT parity."
+      ],
+      "not_blocked": [
+        "the disconnect behaviour itself, and every other MCP requirement"
+      ],
+      "quarantined_paths": [
+        "any Windows implementation of the credential teardown result handling on disconnect"
+      ],
+      "detection_patterns": [
+        "deleteAll"
       ],
       "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
     }

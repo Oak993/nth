@@ -1476,14 +1476,14 @@
     },
     {
       "id": "PR-PROVCLI-062",
-      "title": "Claude maps its named tools plus an mcp__ prefix rule to chat rows, returning no row for five",
+      "title": "Claude tool rows are dispatched by an exact-name switch with an mcp__ rule and a catch-all (dispatch contract)",
       "source_evidence": [
         "DroppyCode/Services/Providers/ClaudeSession.swift:693-751 - toolCall(name:input:withEdits:)",
         "DroppyCode/Services/Providers/ProviderSession.swift:188-191 - ToolTitles.relativePath"
       ],
       "preconditions": "A tool name and its input.",
       "action": "A row is built for a tool call or an approval.",
-      "expected_result": "TodoWrite, AskUserQuestion, ExitPlanMode, EnterPlanMode and ToolSearch return nil, so no row is drawn. Bash -> .command, title input.command or \"Shell command\", detail input.description. BashOutput, KillShell, KillBash, Monitor, TaskOutput, TaskStop -> .command titled with the tool name itself. Read -> .read, title the relative file_path or \"Read file\". Write -> .edit, title the relative file_path or \"Write file\", and with edits enabled one FileEdit(path, old: \"\", new: input.content). Edit -> .edit, title the relative file_path or \"Edit file\", one FileEdit from old_string and new_string each defaulting to \"\". MultiEdit -> .edit with the same fallback and one FileEdit per entry of input.edits. NotebookEdit -> .edit, title the relative notebook_path or \"Edit notebook\". Glob -> .search, title input.pattern or \"Find files\", detail the relative path. Grep -> .search, title input.pattern or \"Search\", detail the relative path. LS -> .search, title the relative path or \"List files\". WebFetch -> .web, title input.url or \"Fetch page\". WebSearch -> .web, title input.query or \"Search the web\". Task and Agent -> .agent, title input.description or \"Subagent\", detail input.subagent_type. Skill -> .other, title \"Skill · \" plus input.skill or input.command or the empty string, the separator being U+00B7 with a space each side. Any other name starting with \"mcp__\" -> .mcp, title \"<server> · <tool>\" where the name is split on \"__\" dropping empty parts, server is part 1 or \"MCP\" and tool is parts 2 onward rejoined with \"__\" or else the whole name, detail the compact JSON of the input unless it is JSON null. Everything else -> .other titled with the raw tool name.",
+      "expected_result": "This requirement fixes the DISPATCH and the shared helper; each named tool has its own requirement. The switch is on the exact tool name, case sensitive, with no normalization: the cases are, in source order, the five nil-returning names (PR-PROVCLI-354), \"Bash\" (355), the six shell-management names (356), \"Read\" (357), \"Write\" (358), \"Edit\" (359), \"MultiEdit\" (360), \"NotebookEdit\" (361), \"Glob\" (362), \"Grep\" (363), \"LS\" (364), \"WebFetch\" (365), \"WebSearch\" (366), \"Task\"/\"Agent\" (367), \"Skill\" (368), then a default that tests the mcp__ prefix (369) and otherwise falls through to the catch-all (370). The local helper path(_ key:) is shared by every case that shows a path: it reads input[key] as a string and puts it through ToolTitles.relativePath($0, to: workingDirectory), returning nil when the key is absent or not a string. The withEdits flag is read only by \"Write\", \"Edit\" and \"MultiEdit\"; every other case ignores it.",
       "side_effects": [],
       "persistence": "none",
       "failure_cases": [
@@ -1491,7 +1491,7 @@
       ],
       "cancellation": "not cancellable",
       "windows_path": "relativePath strips a working-directory prefix that has been given a trailing \"/\". On Windows, with backslash separators and case-insensitive paths, a literal port fails to make paths relative. The behaviour to preserve is: strip the working-directory prefix when present, otherwise show the path as given.",
-      "verification_method": "unit test over every named tool plus an mcp__ name and an unknown one",
+      "verification_method": "unit test - the case list and order, plus the shared path helper against an absolute path, a relative path and a missing key",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -4715,14 +4715,14 @@
     },
     {
       "id": "PR-PROVCLI-198",
-      "title": "Copilot maps its tool names to rows, routing any MCP call by its server name first",
+      "title": "Copilot tool rows are dispatched with the MCP server tested first, then an exact-name switch (dispatch contract)",
       "source_evidence": [
         "DroppyCode/Services/Providers/CopilotSession.swift:948-1030 - toolCall(name:arguments:server:mcpTool:)",
         "DroppyCode/Services/Providers/CopilotSession.swift:1032-1035 - lineRange"
       ],
       "preconditions": "A tool name and its arguments.",
       "action": "A row is built.",
-      "expected_result": "When an MCP server name is present it wins over every name rule: kind .mcp, title \"<server> · <mcpTool or the tool name>\", detail the compact arguments unless they are JSON null. Otherwise: the five hidden tools return nil. \"bash\" and \"powershell\" -> .command, title arguments.command or \"Shell command\", detail arguments.description. \"read_bash\", \"write_bash\", \"stop_bash\", \"list_bash\" -> .command titled humanize(name), detail arguments.shellId. \"view\" -> .read, title the relative path or \"Read file\", detail the line range. \"create\" -> .edit, title the relative path or \"Create file\", one FileEdit from an empty old and arguments.file_text. \"edit\" -> .edit, title the relative path or \"Edit file\", one FileEdit from old_str and new_str. \"str_replace_editor\" branches on arguments.command: \"view\" behaves like view; \"create\" like create; \"insert\" makes an edit whose old is empty and whose new is new_str; anything else makes an edit from old_str and new_str. \"apply_patch\" -> .edit, title the single relative patched path or \"Edit <n> files\", with one path-only FileEdit per file. \"grep\" -> .search, title arguments.pattern or \"Search\", detail the relative paths joined by \", \" or nil. \"glob\" -> .search, title arguments.pattern or \"Find files\", same detail rule. \"web_fetch\" -> .web, title arguments.url or \"Fetch page\". \"web_search\" -> .web, title arguments.query or \"Search the web\". \"task\" -> .agent, title arguments.description or \"Subagent\", detail arguments.name and arguments.agent_type joined by \" · \" or nil when empty. \"read_agent\", \"write_agent\", \"list_agents\" -> .agent titled humanize(name), detail arguments.agent_id or arguments.message. \"skill\" -> .other, title \"Skill · \" plus arguments.skill or the empty string. \"sql\" -> .other, title arguments.description or \"SQL query\", detail arguments.query. \"create_pull_request\" -> .other, title arguments.title or \"Create pull request\". Anything else -> .other titled humanize(name) with the compact arguments flattened to a single line as the detail, unless they are JSON null. The line range reads a two-element int array and renders \"from line <first>\" when the second is negative, otherwise \"lines <first>–<second>\" with an EN DASH (U+2013).",
+      "expected_result": "This requirement fixes the DISPATCH and the shared helper; each tool has its own requirement. A non-nil server short-circuits everything (PR-PROVCLI-371). Otherwise the local helper path(_ key:) reads arguments[key] as a string and puts it through ToolTitles.relativePath($0, to: workingDirectory), and the switch runs in this source order: the hidden-tool set test (372), \"bash\"/\"powershell\" (373), the four shell-session tools (374), \"view\" (375), \"create\" (376), \"edit\" (377), \"str_replace_editor\" with its four sub-branches (378, 379, 380, 381), \"apply_patch\" (382), \"grep\" (383), \"glob\" (384), \"web_fetch\" (385), \"web_search\" (386), \"task\" (387), the three agent-management tools (388), \"skill\" (389), \"sql\" (390), \"create_pull_request\" (391), then the humanizing default (392). The helpers are humanize (CopilotSession.swift:1071-1074), lineRange (PR-PROVCLI-393) and patchPaths (PR-PROVCLI-199). There is no withEdits flag anywhere on this path.",
       "side_effects": [],
       "persistence": "none",
       "failure_cases": [
@@ -4730,7 +4730,7 @@
       ],
       "cancellation": "not cancellable",
       "windows_path": "relativePath has the same prefix-stripping caveat as PR-PROVCLI-062. The en dash must survive as a non-ASCII character.",
-      "verification_method": "unit test over every named tool, an MCP call and an unknown name",
+      "verification_method": "unit test - the case list and order, plus the shared path helper",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -5454,7 +5454,6 @@
       "verification_method": "unit test over a known model, an unknown one and a short-name match",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -5817,14 +5816,14 @@
     },
     {
       "id": "PR-PROVCLI-244",
-      "title": "Command Code maps its tool names to rows, with an mcp__ rule and a length-capped fallback detail",
+      "title": "Command Code tool rows are dispatched by an exact-name switch with an mcp__ rule and a length-capped fallback (dispatch contract)",
       "source_evidence": [
         "DroppyCode/Services/Providers/CommandCodeSession.swift:548-620 - makeToolCall",
         "DroppyCode/Services/Providers/CommandCodeSession.swift:622-627 - humanize splits on underscores and capitalizes only the first word"
       ],
       "preconditions": "A tool name and its input.",
       "action": "A row is built for a call or an approval.",
-      "expected_result": "\"shell_command\" and \"powershell\" -> .command, title the unwrapped input.command or \"Shell command\", detail input.description, and when run_in_background is true the detail gains \" · in the background\" appended after any existing detail. \"monitor_command\" -> .command, title the unwrapped command or \"Monitor command\". \"shell_output\" -> .command titled \"Shell output\", detail input.id or input.task_id. \"shell_tasks\" -> .command titled \"Shell tasks\". \"kill_shell\" -> .command titled \"Stop shell\", detail input.id or input.task_id or the decimal input.pid. \"read_file\" -> .read, title the relative file_path or path or \"Read file\", and when BOTH offset and limit are ints the detail is \"lines <offset>–<offset + limit>\" with an EN DASH. \"read_directory\" -> .search, title the relative path or \"List files\". \"write_file\" -> .edit, title the relative file_path or \"Write file\", with one FileEdit from the snapshot (or the empty string) to input.content. \"edit_file\" -> .edit, title the relative file_path or path or \"Edit file\", with one FileEdit whose old is old_string or old_text or old or the empty string and whose new is new_string or new_text or new or the empty string. \"glob\" -> .search, title input.pattern or \"Find files\", detail the relative path. \"grep\" -> .search, title input.pattern or \"Search\", detail the relative path and input.glob joined by \" · \" or nil when empty. \"web_fetch\" -> .web, title input.url or \"Fetch page\". \"web_search\" -> .web, title input.query or \"Search the web\". \"agent\" -> .agent, title input.description, else input.prompt flattened to 96 characters, else \"Sub-agent\"; detail input.subagent_type. \"agent_output\" -> .agent titled \"Agent output\", detail input.agent_id. \"activate_skill\" -> .other, title \"Skill · \" plus input.name or the empty string. \"enter_worktree\" and \"exit_worktree\" -> .other titled humanize(name), detail input.name. \"run_command\" -> .other, title \"Command · \" plus input.command or input.name or the empty string. Any other name starting with \"mcp__\" -> .mcp titled \"<server> · <tool>\" by the same split rule Claude uses, detail the compact input unless JSON null. Everything else -> .other titled humanize(name), with the compact input as the detail ONLY when it is non-empty, is not \"{}\" and is at most 300 characters. humanize splits on underscores and capitalizes ONLY the first word, so \"task_create\" becomes \"Task create\".",
+      "expected_result": "This requirement fixes the DISPATCH and the shared helper; each tool has its own requirement. Unlike the other adapters makeToolCall is NON-OPTIONAL: every tool gets a row and none is hidden. The local helper path(_ key:) reads input[key] as a string and puts it through ToolTitles.relativePath($0, to: workingDirectory). The switch runs in this source order: \"shell_command\"/\"powershell\" (PR-PROVCLI-394), \"monitor_command\" (395), \"shell_output\" (396), \"shell_tasks\" (397), \"kill_shell\" (398), \"read_file\" (399), \"read_directory\" (400), \"write_file\" (401), \"edit_file\" (402), \"glob\" (403), \"grep\" (404), \"web_fetch\" and \"web_search\" (405), \"agent\" (406), \"agent_output\" (407), \"activate_skill\" (408), \"enter_worktree\"/\"exit_worktree\" (409), \"run_command\" (410), then a default that tests the mcp__ prefix (411) and otherwise humanizes the name (412). The third parameter, snapshot, is read by \"write_file\" alone. The humanize helper here splits on underscores only (CommandCodeSession.swift:622-627) and differs from Copilot's.",
       "side_effects": [],
       "persistence": "none",
       "failure_cases": [
@@ -5832,7 +5831,7 @@
       ],
       "cancellation": "not cancellable",
       "windows_path": "relativePath has the same prefix-stripping caveat as PR-PROVCLI-062. Note that \"powershell\" is a first-class tool name here, so a Windows CLI that prefers it produces the same row shape as bash.",
-      "verification_method": "unit test over every named tool, an mcp__ name, an unknown name and a 400-character input",
+      "verification_method": "unit test - the case list and order, the non-optional return, and the shared path helper",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -5907,10 +5906,10 @@
       "cancellation": "not cancellable",
       "windows_path": "ShellCommandKind.mayWriteFiles classifies the command TEXT THE MODEL PRODUCED, so its reader lists are a product constant, not a platform constant, and must be ported verbatim (PA-0011). Whether the Windows build additionally needs Windows tool names depends on what shell the CLI runs commands in on Windows, which is UNK-0005 and must not be guessed.",
       "verification_method": "unit test over all four runtime modes crossed with an edit, a read-only shell command, a writing shell command and each allow-list name",
-      "status": "SPECIFIED",
+      "status": "DISCOVERED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": "UNK-0005"
+      "depends_on_unknown": "UNK-0005",
+      "blocked_by": "BLK-0008"
     },
     {
       "id": "PR-PROVCLI-248",
@@ -5932,7 +5931,6 @@
       "verification_method": "unit test over each row kind and a request with no matching tool row",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -5983,7 +5981,6 @@
       "verification_method": "restart test asserting the file is not rewritten when unchanged",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -6006,7 +6003,6 @@
       "verification_method": "a byte-for-byte comparison of the shipped mod text against the source",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -6030,7 +6026,6 @@
       "verification_method": "interaction test with a stand-in bridge, and a probe of the import form the CLI accepts on Windows",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -6094,19 +6089,20 @@
       "action": "apiKey runs.",
       "expected_result": "COMMAND_CODE_API_KEY from the environment, trimmed of whitespace and newlines, wins whenever it is non-empty - which is how a key pasted into Settings reaches both the CLI and these reads. Otherwise the stored login is read from <home>/.commandcode/auth.json, where home is environment[\"HOME\"] when non-empty else LoginEnvironment.homeDirectory; the file must parse and carry a non-empty trimmed \"apiKey\", and the user name is \"userName\" or \"name\". A missing or unparseable file yields nil.",
       "side_effects": [
-        "A credential file is read"
+        "READS A THIRD-PARTY CREDENTIAL FILE. ~/.commandcode/auth.json is written by `cmd login` and holds the user's Command Code API key; the app reads the key out of it and uses it for its own requests."
       ],
       "persistence": "none written",
       "failure_cases": [
         "No key anywhere: the plan, credits and auth reads all return their own nil or signed-out results."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "HOME is normally unset on Windows, so the home fallback carries this. The path segment uses a forward slash and must be joined as components.",
+      "windows_path": "PLATFORM BOUNDARY AND POLICY DECISION. HOME is normally unset on Windows, so the home fallback carries this, and the path segment uses a forward slash and must be joined as components. Whether the Windows build may read the Command Code CLI's credential file at all is a policy question the source does not answer: the source does read it, and the port's own safety rules forbid reading agent credential files. Decide explicitly; do not transliterate. Treated identically to PR-PROVREG-177, PR-PROVREG-121 and PR-PROVCLI-313.",
       "verification_method": "unit test with the environment key set, with only the file, and with neither",
-      "status": "SPECIFIED",
+      "status": "DISCOVERED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "Whether the Windows build may read a third-party agent CLI's credential store at all. The source does read it; the port's own safety rules forbid reading agent credential files (CLAUDE.md, \"Never read agent credential files (for example ~/.claude/.credentials.json, ~/.codex/auth.json, ~/.pi/agent/auth.json, ~/.commandcode/auth.json)\"). Faithful reproduction and the port's safety rules are in direct conflict, so this needs an owner decision and one registered unknown covering all four reads, not a transliteration. The four are PR-PROVREG-177 (~/.claude/.credentials.json and the \"Claude Code-credentials\" Keychain item), PR-PROVREG-121 (~/.grok/auth.json), PR-PROVCLI-313 (Pi's <config>/auth.json OAuth tokens) and PR-PROVCLI-255 (~/.commandcode/auth.json).",
+      "blocked_by": "BLK-0007"
     },
     {
       "id": "PR-PROVCLI-256",
@@ -6316,7 +6312,6 @@
       "verification_method": "unit test over a direct hit, a short-name fallback and an unknown id",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -6339,7 +6334,6 @@
       "verification_method": "unit test comparing all nine rows field by field against the source text",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -7405,10 +7399,10 @@
       "cancellation": "not cancellable",
       "windows_path": "The sort must be ordinal so the displayed order is stable. Environment variable names are case-insensitive on Windows, so a differently-cased key would also be found, which is a small behavioural widening the port should note.",
       "verification_method": "unit test over a populated auth file, an empty one, each environment key and none",
-      "status": "SPECIFIED",
+      "status": "DISCOVERED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "blocked_by": "BLK-0007"
     },
     {
       "id": "PR-PROVCLI-310",
@@ -7491,19 +7485,20 @@
       "action": "The usage panel reads Pi's limits.",
       "expected_result": "<config>/auth.json is read and must parse to an object, else nil. Its keys are walked SORTED. An entry is skipped unless its \"type\" is exactly \"oauth\" AND its \"access\" is a non-empty string. An entry whose \"expires\" is a double is skipped when that value, read as epoch MILLISECONDS, is already in the past - an expired token buys nothing from the usage endpoint. Then the key decides the reader: exactly \"anthropic\" reads the Anthropic usage endpoint; exactly \"openai-codex\" OR exactly \"openai\" reads the Codex one; EVERY OTHER KEY IS SKIPPED. A nil result from a reader is skipped. Surviving windows are appended in key order and surviving plan names collected. With no windows at all the result is nil; otherwise a PlanLimits whose plan name is the collected names joined by \" · \" (space, U+00B7, space), or nil when none were collected.",
       "side_effects": [
-        "A credential file is read; up to two network requests"
+        "READS A THIRD-PARTY CREDENTIAL FILE. Pi's <config>/auth.json holds the OAuth access tokens of the providers Pi is signed into, and those tokens are then sent to Anthropic's and OpenAI's usage endpoints. Up to two network requests carrying a third party's bearer token."
       ],
       "persistence": "The registry persists the plan limits.",
       "failure_cases": [
         "No usable logins: nil."
       ],
       "cancellation": "Each request has its own 15 second timeout.",
-      "windows_path": "The key sort must be ordinal. The file is read directly from the CLI's own config directory; the app never writes it.",
+      "windows_path": "PLATFORM BOUNDARY AND POLICY DECISION. The key sort must be ordinal. The file is read directly from the CLI's own config directory and the app never writes it. Whether the Windows build may read it at all is a policy question the source does not answer: the source does read it, and the port's own safety rules forbid reading agent credential files. It also forbids calling provider billing endpoints, and this path sends a third party's token to api.anthropic.com and chatgpt.com usage routes. Decide explicitly; do not transliterate. Treated identically to PR-PROVREG-177, PR-PROVREG-121 and PR-PROVCLI-255.",
       "verification_method": "unit test over an expired token, a non-oauth entry, an unknown provider key and two live ones",
-      "status": "SPECIFIED",
+      "status": "DISCOVERED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "Whether the Windows build may read a third-party agent CLI's credential store at all. The source does read it; the port's own safety rules forbid reading agent credential files (CLAUDE.md, \"Never read agent credential files (for example ~/.claude/.credentials.json, ~/.codex/auth.json, ~/.pi/agent/auth.json, ~/.commandcode/auth.json)\"). Faithful reproduction and the port's safety rules are in direct conflict, so this needs an owner decision and one registered unknown covering all four reads, not a transliteration. The four are PR-PROVREG-177 (~/.claude/.credentials.json and the \"Claude Code-credentials\" Keychain item), PR-PROVREG-121 (~/.grok/auth.json), PR-PROVCLI-313 (Pi's <config>/auth.json OAuth tokens) and PR-PROVCLI-255 (~/.commandcode/auth.json).",
+      "blocked_by": "BLK-0007"
     },
     {
       "id": "PR-PROVCLI-314",
@@ -7524,10 +7519,10 @@
       "cancellation": "The 15 second timeout.",
       "windows_path": "Network only.",
       "verification_method": "unit test against a recorded response with and without a subscription_type",
-      "status": "SPECIFIED",
+      "status": "DISCOVERED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "blocked_by": "BLK-0007"
     },
     {
       "id": "PR-PROVCLI-315",
@@ -7549,10 +7544,10 @@
       "cancellation": "The 15 second timeout.",
       "windows_path": "Base64 decoding must be strict about the padding rule described; a decoder that rejects unpadded input would break the header. No credential is ever written anywhere.",
       "verification_method": "unit test over a token with and without the claim, plus a recorded usage response",
-      "status": "SPECIFIED",
+      "status": "DISCOVERED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "blocked_by": "BLK-0007"
     },
     {
       "id": "PR-PROVCLI-316",
@@ -7573,7 +7568,6 @@
       "verification_method": "unit test over both reset shapes, a sub-minute window and a missing percent",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -8104,14 +8098,14 @@
     },
     {
       "id": "PR-PROVCLI-338",
-      "title": "Antigravity lists models from a TSV, collapsing effort variants into one row per base slug",
+      "title": "Antigravity lists models from a TSV, collapsing effort variants into one row per base slug (pipeline contract)",
       "source_evidence": [
         "DroppyCode/Services/Providers/AntigravitySession.swift:443-514 - listModels with its doc comment",
         "DroppyCode/Services/Providers/AntigravitySession.swift:516-520 - isSlug"
       ],
       "preconditions": "A resolved executable.",
       "action": "The registry loads the Antigravity catalog.",
-      "expected_result": "Two Shell.run calls are made CONCURRENTLY, each with a 30 second timeout: [\"models\"] and [\"-p\", \"/model\", \"--output-format\", \"json\"]. The current model id is read from the second's stdout parsed as JSON at the path command.data.id. When the first produced no decodable stdout, ShellError(\"`agy models` produced no output.\") is thrown verbatim. Otherwise the ANSI-stripped text is split into lines; each is trimmed, empties skipped, and split on a TAB with at most one split. The first part must satisfy isSlug - a leading letter or number, then only letters, numbers, hyphen, underscore and period, and no spaces - or the line is skipped, which is how progress output on stderr and any header line is excluded. The name is the second part when present and non-empty, else the slug. The row is parsed into a base slug, base name and effort. A row is current when its slug equals the current id, OR its base slug equals it, OR the current id STARTS WITH its base slug. Rows are grouped by base slug in FIRST-SEEN order: the first occurrence sets the name, the efforts list (one entry when the row carried an effort, empty otherwise) and the current flag; later occurrences append a new effort if it is not already there and set the current flag if that row is current. Each group becomes a ModelOption whose efforts are the intersection with [\"low\", \"medium\", \"high\"] IN THAT ORDER, whose default effort is \"high\" when present and otherwise the LAST of the sorted efforts, and whose isDefault is the group's flag. An empty list throws ShellError(\"`agy models` listed no models.\") verbatim. When NO row is marked default, the FIRST row is rewritten to be the default.",
+      "expected_result": "This requirement fixes the PIPELINE and its order; each step has its own requirement. listModels runs, in order: two concurrent shell calls (PR-PROVCLI-425), the current-model id read (426), the no-output throw (427), a per-line ANSI strip, trim and tab split (428), the isSlug filter (429), the name fallback and parseModelRow call (430, and PR-PROVCLI-320 for parseModelRow itself), the three-way current test (431), the first-occurrence group creation with its order array (432), the later-occurrence merge (433), then per group the fixed-order effort intersection (434) and the option build with its default effort (435), then the empty-list throw (436) and the no-default rewrite (437).",
       "side_effects": [
         "Two short-lived child processes"
       ],
@@ -8121,7 +8115,7 @@
       ],
       "cancellation": "The 30 second timeouts.",
       "windows_path": "ANSI stripping is load-bearing on Windows. The TSV parse depends on the CLI emitting a real tab; a Windows console that pads with spaces instead would drop every row, so the real output must be captured on Windows before this is called verified.",
-      "verification_method": "unit test against a captured `agy models` output, plus a Windows capture comparison",
+      "verification_method": "unit test against a captured `agy models` output asserting the step order, plus a Windows capture comparison for the tab and ANSI assumptions",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -8246,7 +8240,7 @@
     },
     {
       "id": "PR-PROVCLI-344",
-      "title": "Antigravity builds each tool row from ordered parameter key lists, never from the edit content",
+      "title": "Antigravity classifies a tool by name into one of eight kinds, then builds the row from ordered parameter key lists (dispatch contract)",
       "source_evidence": [
         "DroppyCode/Services/Providers/AntigravitySession.swift:626-671 - makeToolCall with the comment at :628-632",
         "DroppyCode/Services/Providers/AntigravitySession.swift:699-713 - path(in:) and string(in:keys:)",
@@ -8255,7 +8249,7 @@
       ],
       "preconditions": "A tool name and its parameters.",
       "action": "makeToolCall runs.",
-      "expected_result": "The path is the first non-empty string among these ELEVEN keys IN THIS ORDER: AbsolutePath, TargetFile, NotebookPath, FilePath, File, file, path, Path, DirectoryPath, directory, dir; when found it is made relative to the working directory. Then by kind: .command -> title the unwrapped first of CommandLine, command, Command, else humanize(name). .read -> title the path, else the first of Url, URL, url, else humanize(name); and when a path was found and StartLine is an int, the detail is \"L<start>–<end>\" with an EN DASH when EndLine is an int greater than start, and \"L<start>\" otherwise. .edit -> title the path or humanize(name), and when a path was found one path-only FileEdit. .search -> the pattern is the first of Query, query, Pattern, pattern and the folder the first of SearchPath, SearchDirectory, DirectoryPath, Path, path made relative; with a pattern the title is the pattern and the detail the folder, without one the title is the folder or humanize(name). .web -> title the first of Url, URL, url, query, Query, else humanize(name). .agent -> title the first of Task, task, Prompt, prompt, Description, description flattened to 96 characters, else humanize(name). .mcp -> title \"<the first of ServerName, server_name, Server, server, or MCP> · <the first of ToolName, tool_name, Tool, tool, or tool>\", detail the compact value of Arguments, else arguments, else Input, unless it is null. .other -> title humanize(name), with the compact parameters as the detail ONLY when non-empty, not \"{}\" and at most 300 characters. humanize splits on underscores and CAPITALIZES ONLY THE FIRST WORD using Swift's capitalized. The stream sends a DISPLAY SUBSET of the parameters and NEVER the edit content, which is why finishEdit snapshots the file before and after instead of reading a diff off the wire.",
+      "expected_result": "This requirement fixes the DISPATCH and the shared helpers; each kind has its own requirement. makeToolCall is NON-OPTIONAL: every tool gets a row and none is hidden. It first calls Self.kind(of: name), a switch over seven literal name lists with a .other default, then resolves the relative path ONCE with Self.path(in:) (PR-PROVCLI-421), then switches on the KIND, not on the name. The eight kind branches are .command (PR-PROVCLI-413), .read (414), .edit (415), .search (416), .web (417), .agent (418), .mcp (419) and .other (420). The shared helpers are string(in:keys:) (422), lineRange(in:) (423) and humanize (424). Per the comment at AntigravitySession.swift:628-632 the stream sends a display subset of the parameters and NEVER the edit content, which is why the edit rows carry a path-only FileEdit.",
       "side_effects": [],
       "persistence": "none",
       "failure_cases": [
@@ -8263,7 +8257,1906 @@
       ],
       "cancellation": "not cancellable",
       "windows_path": "relativePath has the same prefix-stripping caveat as PR-PROVCLI-062. The en dash must survive as a non-ASCII character. Note Antigravity's humanize uses `capitalized` on the first word, which lowercases the remaining characters of that word, unlike Command Code's humanize which only uppercases the first character - the two must not be shared.",
-      "verification_method": "unit test over every kind and every key list, including a word like \"MCP\" passed through humanize",
+      "verification_method": "unit test - the seven name lists and their default, and that the row switch is on the kind rather than the name",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-345",
+      "title": "SlashCommand.claudeCommands takes a command name from an object field or from a bare string entry",
+      "source_evidence": [
+        "DroppyCode/Core/Models/Provider.swift:319-324 - static func claudeCommands(_ entries: [JSONValue]) -> [Self] { entries.compactMap { entry in guard let name = entry[\"name\"]?.string ?? entry.string else { return nil }; return Self(name: name, detail: entry[\"description\"]?.string ?? \"Claude Code command\") } }",
+        "DroppyCode/Core/Models/Provider.swift:277-281 struct SlashCommand - name, detail, isBuiltIn defaulting to false, skillPath defaulting to nil"
+      ],
+      "preconditions": "Claude's initialize response carried a commands array (PR-PROVCLI-021).",
+      "action": "Each entry is mapped.",
+      "expected_result": "The name is entry[\"name\"]?.string when the entry is an object with a string name, and FALLS BACK to entry.string, so a BARE STRING entry such as \"compact\" is accepted and becomes a command of that name. An entry that is neither (a number, an object with no string name, null) yields nil and is dropped by compactMap rather than failing the whole list. The resulting SlashCommand takes the struct defaults for the fields not set here: isBuiltIn false and skillPath nil.",
+      "side_effects": [],
+      "persistence": "none",
+      "failure_cases": [
+        "A malformed entry is dropped silently; the rest of the array still maps."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Both name shapes must be accepted. A port that reads only the object form silently loses every bare-string command Claude publishes.",
+      "verification_method": "unit test - an object entry, a bare string entry and an unusable entry in one array",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-346",
+      "title": "A Claude command with no description shows the literal \"Claude Code command\"",
+      "source_evidence": [
+        "DroppyCode/Core/Models/Provider.swift:322 - return Self(name: name, detail: entry[\"description\"]?.string ?? \"Claude Code command\")"
+      ],
+      "preconditions": "A command entry resolved a name.",
+      "action": "Its detail is computed.",
+      "expected_result": "detail is entry[\"description\"]?.string when present, and otherwise the literal string \"Claude Code command\", with that exact casing and no trailing punctuation. A bare-string entry always takes the fallback, because a string has no \"description\" subscript. The fallback is a real user-visible string: it is the subtitle shown beside the command in the composer's command list.",
+      "side_effects": [],
+      "persistence": "none",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Verbatim string, not a localized or reworded placeholder.",
+      "verification_method": "unit test asserting the exact fallback string",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-347",
+      "title": "SlashCommand.codexSkills walks two levels, data then skills, and tolerates both being absent",
+      "source_evidence": [
+        "DroppyCode/Core/Models/Provider.swift:326-334 - static func codexSkills(_ result: JSONValue) -> [Self] { (result[\"data\"]?.array ?? []).flatMap { entry in (entry[\"skills\"]?.array ?? []).compactMap { skill in ... } } }"
+      ],
+      "preconditions": "A skills/list result came back (PR-PROVCLI-096).",
+      "action": "codexSkills maps it.",
+      "expected_result": "The outer level is result[\"data\"] read as an array, or the empty array when the key is missing or not an array. For each entry of that array the inner level is entry[\"skills\"] read as an array, or the empty array when missing. The two levels are joined with flatMap, so skills from several data entries end up in ONE flat list in data order then skills order, with no grouping and no de-duplication by name. A result with neither key produces an empty list rather than an error.",
+      "side_effects": [],
+      "persistence": "none",
+      "failure_cases": [
+        "A missing key at either level contributes nothing and does not throw."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Two levels, not one. Reading result[\"skills\"] directly returns nothing for every real Codex response.",
+      "verification_method": "unit test with two data entries carrying skills each, and with both keys absent",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-348",
+      "title": "A Codex skill counts as enabled unless it says otherwise",
+      "source_evidence": [
+        "DroppyCode/Core/Models/Provider.swift:329 - guard skill[\"enabled\"]?.bool != false, ..."
+      ],
+      "preconditions": "codexSkills is testing one skill object.",
+      "action": "The enabled filter is applied.",
+      "expected_result": "The test is skill[\"enabled\"]?.bool != false. A skill with enabled explicitly false is dropped. A skill with enabled true is kept, and so is a skill with NO enabled key at all, or one whose enabled value is not a boolean, because the optional chain yields nil and nil != false. Absent therefore means enabled.",
+      "side_effects": [],
+      "persistence": "none",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Do not write it as `skill[\"enabled\"]?.bool ?? true == true` by reflex and then treat a non-boolean value differently; the three cases kept are true, absent and non-boolean.",
+      "verification_method": "unit test - enabled true, enabled false, key absent, enabled as a string",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-349",
+      "title": "A Codex skill needs both a name and a path, and the path becomes the command skillPath",
+      "source_evidence": [
+        "DroppyCode/Core/Models/Provider.swift:330-331 - let name = skill[\"name\"]?.string, let path = skill[\"path\"]?.string else { return nil }; return Self(name: name, detail: ..., skillPath: path)",
+        "DroppyCode/Core/Models/Provider.swift:281 skillPath: String?"
+      ],
+      "preconditions": "The skill passed the enabled filter.",
+      "action": "Its name and path are read.",
+      "expected_result": "BOTH skill[\"name\"] and skill[\"path\"] must be present as strings; a skill missing either is dropped from the list. The resulting SlashCommand has name = the skill name, skillPath = the skill path, and isBuiltIn left at its default false. skillPath being non-nil is what later makes codexInput(for:) build a skill part rather than a plain text part (PR-PROVCLI-352 and PR-PROVCLI-353), so a skill accepted without its path would send the wrong turn content.",
+      "side_effects": [],
+      "persistence": "none",
+      "failure_cases": [
+        "A skill with a name and no path is dropped rather than published as a pathless command."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Both fields required, and the path must survive into the command record.",
+      "verification_method": "unit test - a skill missing path is dropped; an accepted one carries skillPath",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-350",
+      "title": "A Codex skill detail prefers its interface short description, then its description, then an empty string",
+      "source_evidence": [
+        "DroppyCode/Core/Models/Provider.swift:331 - detail: skill[\"interface\"]?[\"shortDescription\"]?.string ?? skill[\"description\"]?.string ?? \"\""
+      ],
+      "preconditions": "The skill passed both filters.",
+      "action": "Its detail is computed.",
+      "expected_result": "A three-step chain in this order: the nested skill[\"interface\"][\"shortDescription\"] read as a string; failing that skill[\"description\"] read as a string; failing that the EMPTY STRING. The key is spelled \"shortDescription\" in camel case and is nested under \"interface\", not at the top level. Unlike the Claude path there is no literal placeholder text: a skill with neither description shows an empty detail.",
+      "side_effects": [],
+      "persistence": "none",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The exact key path interface.shortDescription is part of the contract; a port reading only description silently downgrades every skill that has both.",
+      "verification_method": "unit test - a skill with both, with only description, and with neither",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-351",
+      "title": "codexInput sends one plain text part unless the command owns a skill and the text still names it",
+      "source_evidence": [
+        "DroppyCode/Core/Models/Provider.swift:309-312 - func codexInput(for text: String) -> [JSONValue] { guard let skillPath, Self.name(in: text) == name else { return [[\"type\": \"text\", \"text\": .string(text)]] }",
+        "DroppyCode/Core/Models/Provider.swift:285-288 - static func name(in text: String) -> String? { guard text.first == \"/\" || text.first == \"$\" else { return nil }; return text.dropFirst().split(whereSeparator: \\.isWhitespace).first.map(String.init) }"
+      ],
+      "preconditions": "A Codex turn is being built with a command attached (PR-PROVCLI-081).",
+      "action": "codexInput(for:) runs.",
+      "expected_result": "Two conditions must both hold for the skill shape: the command has a non-nil skillPath, AND SlashCommand.name(in: text) equals this command's name. name(in:) returns nil unless the text starts with \"/\" or \"$\", then takes everything up to the first whitespace after that first character. When either condition fails the result is exactly ONE part, {\"type\":\"text\",\"text\":<the unmodified text>} - so a command the user has edited away from (for example by rewriting the leading word) degrades to a plain message rather than sending a mismatched skill.",
+      "side_effects": [],
+      "persistence": "none",
+      "failure_cases": [
+        "A command with no skillPath, such as a Claude-style command, always takes the plain path."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "The text is passed through unmodified on this path, including its leading slash.",
+      "verification_method": "unit test - matching text, mismatched text, and a command with no skillPath",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-352",
+      "title": "A Codex skill turn rewrites the leading slash into a dollar sign",
+      "source_evidence": [
+        "DroppyCode/Core/Models/Provider.swift:314 - [\"type\": \"text\", \"text\": .string(\"$\" + text.dropFirst())]"
+      ],
+      "preconditions": "Both conditions of PR-PROVCLI-351 held.",
+      "action": "The first part is built.",
+      "expected_result": "The first part is {\"type\":\"text\",\"text\":<rewritten text>} where the rewritten text is the literal \"$\" followed by the ORIGINAL text with its first character dropped. Because name(in:) accepts both \"/\" and \"$\" as openers, the rewrite is a no-op in meaning for text that already began with \"$\" and turns \"/review the diff\" into \"$review the diff\". Exactly one character is dropped, so a text of \"/\" alone becomes \"$\".",
+      "side_effects": [],
+      "persistence": "none",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "String surgery on the first character, not a search and replace of the command name.",
+      "verification_method": "unit test asserting the exact rewritten string for a slash and for a dollar opener",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-353",
+      "title": "A Codex skill turn appends a second part naming the skill and its path",
+      "source_evidence": [
+        "DroppyCode/Core/Models/Provider.swift:315 - [\"type\": \"skill\", \"name\": .string(name), \"path\": .string(skillPath)]"
+      ],
+      "preconditions": "Both conditions of PR-PROVCLI-351 held.",
+      "action": "The second part is built.",
+      "expected_result": "Exactly two parts are returned, in this order: the rewritten text part of PR-PROVCLI-352, then {\"type\":\"skill\",\"name\":<the command name>,\"path\":<the command skillPath>}. The type string is \"skill\" in lower case, and the two value keys are \"name\" and \"path\". Any images are appended after both of these by the caller (PR-PROVCLI-081).",
+      "side_effects": [],
+      "persistence": "none",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The part order matters: Codex reads the text part first and the skill part as its qualifier.",
+      "verification_method": "contract fixture asserting the two-part array shape byte for byte",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-354",
+      "title": "Five Claude tools never make a tool row because the app shows their results itself",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:697-699 - case \"TodoWrite\", \"AskUserQuestion\", \"ExitPlanMode\", \"EnterPlanMode\", \"ToolSearch\": return nil",
+        "DroppyCode/Services/Providers/ClaudeSession.swift:690-691 - private static let hiddenResultTools: Set<String> = [\"AskUserQuestion\", \"ExitPlanMode\", \"EnterPlanMode\", \"TodoWrite\", \"ToolSearch\"] with the comment \"Tools whose results are shown by the app itself, never as a tool row\""
+      ],
+      "preconditions": "A Claude tool_use block arrived and toolCall(name:input:withEdits:) is dispatching on its name.",
+      "action": "One of the five names is dispatched.",
+      "expected_result": "toolCall returns nil for exactly these five names, spelled and cased as written: \"TodoWrite\", \"AskUserQuestion\", \"ExitPlanMode\", \"EnterPlanMode\", \"ToolSearch\". No row is created and no placeholder is drawn. The same five names are held separately in hiddenResultTools, which suppresses their RESULTS as well, so both halves must be reproduced or the result text appears with no row to attach to.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The two lists hold the same five names but are written separately in source; keep both and keep them in step.",
+      "verification_method": "unit test - one case per named tool with a full input and with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-355",
+      "title": "Claude Bash makes a command row titled with the command and subtitled with the model description",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:700-701 - case \"Bash\": return ToolCall(kind: .command, title: input[\"command\"]?.string ?? \"Shell command\", detail: input[\"description\"]?.string)"
+      ],
+      "preconditions": "A Claude tool_use block arrived and toolCall(name:input:withEdits:) is dispatching on its name.",
+      "action": "\"Bash\" is dispatched.",
+      "expected_result": "kind .command. title is input[\"command\"] as a string, falling back to the literal \"Shell command\". detail is input[\"description\"] as a string, or nil when absent - there is NO detail fallback string. This is the only Claude tool whose title is the command line itself.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Both the title fallback literal and the absence of a detail fallback are part of the contract.",
+      "verification_method": "unit test - one case per named tool with a full input and with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-356",
+      "title": "Six Claude shell-management tools make a command row titled with the tool name alone",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:702-703 - case \"BashOutput\", \"KillShell\", \"KillBash\", \"Monitor\", \"TaskOutput\", \"TaskStop\": return ToolCall(kind: .command, title: name)"
+      ],
+      "preconditions": "A Claude tool_use block arrived and toolCall(name:input:withEdits:) is dispatching on its name.",
+      "action": "One of the six names is dispatched.",
+      "expected_result": "kind .command for all six. title is the tool NAME verbatim - \"BashOutput\", \"KillShell\", \"KillBash\", \"Monitor\", \"TaskOutput\", \"TaskStop\" - not a humanized form and not a value from the input. detail is nil. The input is not read at all.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Six literal names in one case; a port that humanizes them shows the wrong row title.",
+      "verification_method": "unit test - one case per named tool with a full input and with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-357",
+      "title": "Claude Read makes a read row titled with the file path relative to the working directory",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:704-705 - case \"Read\": return ToolCall(kind: .read, title: path(\"file_path\") ?? \"Read file\")",
+        "DroppyCode/Services/Providers/ClaudeSession.swift:694-696 - func path(_ key: String) -> String? { input[key]?.string.map { ToolTitles.relativePath($0, to: workingDirectory) } }",
+        "DroppyCode/Services/Providers/ProviderSession.swift:188-191 ToolTitles.relativePath"
+      ],
+      "preconditions": "A Claude tool_use block arrived and toolCall(name:input:withEdits:) is dispatching on its name.",
+      "action": "\"Read\" is dispatched.",
+      "expected_result": "kind .read. title is input[\"file_path\"] put through ToolTitles.relativePath(_:to: workingDirectory), falling back to the literal \"Read file\". detail is nil. No edits are attached.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The relativePath conversion must run on Windows paths too; the fallback literal is exact.",
+      "verification_method": "unit test - one case per named tool with a full input and with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-358",
+      "title": "Claude Write makes an edit row whose single FileEdit has an empty old side",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:706-711 - case \"Write\": var call = ToolCall(kind: .edit, title: path(\"file_path\") ?? \"Write file\"); if withEdits, let file = path(\"file_path\"), let content = input[\"content\"]?.string { call.edits = [FileEdit(path: file, old: \"\", new: content)] }; return call"
+      ],
+      "preconditions": "A Claude tool_use block arrived and toolCall(name:input:withEdits:) is dispatching on its name.",
+      "action": "\"Write\" is dispatched.",
+      "expected_result": "kind .edit. title is the relative file_path, falling back to the literal \"Write file\". The edit is attached only when ALL THREE hold: withEdits is true, the relative path resolves, and input[\"content\"] is a string. The single FileEdit is FileEdit(path: <relative path>, old: \"\", new: <content>) - the old side is the EMPTY STRING, which is what makes the diff read as a whole-file addition. With withEdits false the row is still returned, just without edits.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The empty old side is load-bearing for the diff view; do not read the file from disk to fill it.",
+      "verification_method": "unit test - one case per named tool with a full input and with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-359",
+      "title": "Claude Edit makes an edit row whose single FileEdit takes both sides from the input, defaulting each to empty",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:712-717 - case \"Edit\": var call = ToolCall(kind: .edit, title: path(\"file_path\") ?? \"Edit file\"); if withEdits, let file = path(\"file_path\") { call.edits = [FileEdit(path: file, old: input[\"old_string\"]?.string ?? \"\", new: input[\"new_string\"]?.string ?? \"\")] }; return call"
+      ],
+      "preconditions": "A Claude tool_use block arrived and toolCall(name:input:withEdits:) is dispatching on its name.",
+      "action": "\"Edit\" is dispatched.",
+      "expected_result": "kind .edit. title is the relative file_path, falling back to the literal \"Edit file\" - the SAME fallback MultiEdit uses, and a different one from Write. The edit is attached when withEdits is true and the path resolves; unlike Write there is no third condition on the content, so a call with neither string still attaches one FileEdit with both sides empty. old is input[\"old_string\"] ?? \"\" and new is input[\"new_string\"] ?? \"\".",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Note the asymmetry with Write: two conditions here, three there.",
+      "verification_method": "unit test - one case per named tool with a full input and with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-360",
+      "title": "Claude MultiEdit makes one edit row carrying one FileEdit per entry of its edits array",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:718-725 - case \"MultiEdit\": var call = ToolCall(kind: .edit, title: path(\"file_path\") ?? \"Edit file\"); if withEdits, let file = path(\"file_path\") { call.edits = (input[\"edits\"]?.array ?? []).map { FileEdit(path: file, old: $0[\"old_string\"]?.string ?? \"\", new: $0[\"new_string\"]?.string ?? \"\") } }; return call"
+      ],
+      "preconditions": "A Claude tool_use block arrived and toolCall(name:input:withEdits:) is dispatching on its name.",
+      "action": "\"MultiEdit\" is dispatched.",
+      "expected_result": "kind .edit. title is the relative file_path, falling back to the literal \"Edit file\". When withEdits is true and the path resolves, input[\"edits\"] is read as an array (empty when absent) and EVERY entry becomes a FileEdit against the SAME file path, in array order, with old = entry[\"old_string\"] ?? \"\" and new = entry[\"new_string\"] ?? \"\". map, not compactMap: an entry with neither key still produces an empty-to-empty FileEdit rather than being dropped.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "One row with N edits, not N rows. The shared path comes from the top-level file_path, never from the entries.",
+      "verification_method": "unit test - one case per named tool with a full input and with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-361",
+      "title": "Claude NotebookEdit makes an edit row from notebook_path and attaches no edits",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:726-727 - case \"NotebookEdit\": return ToolCall(kind: .edit, title: path(\"notebook_path\") ?? \"Edit notebook\")"
+      ],
+      "preconditions": "A Claude tool_use block arrived and toolCall(name:input:withEdits:) is dispatching on its name.",
+      "action": "\"NotebookEdit\" is dispatched.",
+      "expected_result": "kind .edit. title is input[\"notebook_path\"] - a DIFFERENT key from every other edit tool - put through relativePath, falling back to the literal \"Edit notebook\". No FileEdit is ever attached, even with withEdits true, so a notebook edit shows a row but no diff.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The key name and the absence of edits are both deliberate; do not map notebook_path onto file_path.",
+      "verification_method": "unit test - one case per named tool with a full input and with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-362",
+      "title": "Claude Glob makes a search row titled with the pattern and subtitled with the relative search path",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:728-729 - case \"Glob\": return ToolCall(kind: .search, title: input[\"pattern\"]?.string ?? \"Find files\", detail: path(\"path\"))"
+      ],
+      "preconditions": "A Claude tool_use block arrived and toolCall(name:input:withEdits:) is dispatching on its name.",
+      "action": "\"Glob\" is dispatched.",
+      "expected_result": "kind .search. title is input[\"pattern\"] as a string, falling back to the literal \"Find files\". detail is input[\"path\"] put through relativePath, or nil when absent - no detail fallback.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The title fallback differs from Grep's; they are not interchangeable.",
+      "verification_method": "unit test - one case per named tool with a full input and with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-363",
+      "title": "Claude Grep makes a search row titled with the pattern and subtitled with the relative search path",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:730-731 - case \"Grep\": return ToolCall(kind: .search, title: input[\"pattern\"]?.string ?? \"Search\", detail: path(\"path\"))"
+      ],
+      "preconditions": "A Claude tool_use block arrived and toolCall(name:input:withEdits:) is dispatching on its name.",
+      "action": "\"Grep\" is dispatched.",
+      "expected_result": "kind .search. title is input[\"pattern\"] as a string, falling back to the literal \"Search\" - NOT \"Find files\", which is Glob's. detail is input[\"path\"] put through relativePath, or nil.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "One word apart from Glob and a separate row, which is exactly the case the granularity rule exists for.",
+      "verification_method": "unit test - one case per named tool with a full input and with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-364",
+      "title": "Claude LS makes a search row titled with the relative path and no subtitle",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:732-733 - case \"LS\": return ToolCall(kind: .search, title: path(\"path\") ?? \"List files\")"
+      ],
+      "preconditions": "A Claude tool_use block arrived and toolCall(name:input:withEdits:) is dispatching on its name.",
+      "action": "\"LS\" is dispatched.",
+      "expected_result": "kind .search. title is input[\"path\"] put through relativePath, falling back to the literal \"List files\". detail is nil. Note the path is the TITLE here and the DETAIL in Glob and Grep.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Same kind as Glob and Grep, opposite field mapping.",
+      "verification_method": "unit test - one case per named tool with a full input and with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-365",
+      "title": "Claude WebFetch makes a web row titled with the URL",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:734-735 - case \"WebFetch\": return ToolCall(kind: .web, title: input[\"url\"]?.string ?? \"Fetch page\")"
+      ],
+      "preconditions": "A Claude tool_use block arrived and toolCall(name:input:withEdits:) is dispatching on its name.",
+      "action": "\"WebFetch\" is dispatched.",
+      "expected_result": "kind .web. title is input[\"url\"] as a string, falling back to the literal \"Fetch page\". detail is nil. The URL is shown raw, not shortened to a host.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The raw URL is the title; any shortening belongs to the row view, not here.",
+      "verification_method": "unit test - one case per named tool with a full input and with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-366",
+      "title": "Claude WebSearch makes a web row titled with the query",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:736-737 - case \"WebSearch\": return ToolCall(kind: .web, title: input[\"query\"]?.string ?? \"Search the web\")"
+      ],
+      "preconditions": "A Claude tool_use block arrived and toolCall(name:input:withEdits:) is dispatching on its name.",
+      "action": "\"WebSearch\" is dispatched.",
+      "expected_result": "kind .web. title is input[\"query\"] as a string, falling back to the literal \"Search the web\". detail is nil.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Different key and different fallback from WebFetch.",
+      "verification_method": "unit test - one case per named tool with a full input and with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-367",
+      "title": "Claude Task and Agent make an agent row titled with the description and subtitled with the subagent type",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:738-739 - case \"Task\", \"Agent\": return ToolCall(kind: .agent, title: input[\"description\"]?.string ?? \"Subagent\", detail: input[\"subagent_type\"]?.string)"
+      ],
+      "preconditions": "A Claude tool_use block arrived and toolCall(name:input:withEdits:) is dispatching on its name.",
+      "action": "\"Task\" or \"Agent\" is dispatched.",
+      "expected_result": "kind .agent for both names. title is input[\"description\"] as a string, falling back to the literal \"Subagent\". detail is input[\"subagent_type\"] as a string, or nil - no detail fallback. Two names, one behaviour.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Both names must map; \"Agent\" alone or \"Task\" alone leaves half of Claude's subagent calls as generic other rows.",
+      "verification_method": "unit test - one case per named tool with a full input and with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-368",
+      "title": "Claude Skill makes an other row titled \"Skill\" with a middle dot and the skill name",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:740-741 - case \"Skill\": return ToolCall(kind: .other, title: \"Skill · \\(input[\"skill\"]?.string ?? input[\"command\"]?.string ?? \"\")\")"
+      ],
+      "preconditions": "A Claude tool_use block arrived and toolCall(name:input:withEdits:) is dispatching on its name.",
+      "action": "\"Skill\" is dispatched.",
+      "expected_result": "kind .other, not a kind of its own. title is the literal \"Skill\" then a SPACE, then U+00B7 MIDDLE DOT, then a SPACE, then the skill name. The name is input[\"skill\"] as a string, falling back to input[\"command\"] as a string, falling back to the EMPTY STRING - so a Skill call with neither key titles the row \"Skill · \" with a trailing space after the dot. detail is nil.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The separator is U+00B7, not a hyphen, a bullet U+2022 or a colon. The empty fallback leaves a visible trailing separator and must be reproduced.",
+      "verification_method": "unit test - one case per named tool with a full input and with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-369",
+      "title": "An unrecognized Claude tool whose name starts with mcp__ becomes an MCP row split into server and tool",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:742-748 - default: if name.hasPrefix(\"mcp__\") { let parts = name.split(separator: \"__\", omittingEmptySubsequences: true); let server = parts.count > 1 ? String(parts[1]) : \"MCP\"; let tool = parts.count > 2 ? parts[2...].joined(separator: \"__\") : name; return ToolCall(kind: .mcp, title: \"\\(server) · \\(tool)\", detail: input.isNull ? nil : input.compactString) }"
+      ],
+      "preconditions": "A Claude tool_use block arrived and toolCall(name:input:withEdits:) is dispatching on its name.",
+      "action": "A name not matched by any case above is dispatched and starts with \"mcp__\".",
+      "expected_result": "The name is split on the two-character separator \"__\" with empty subsequences omitted, so the leading \"mcp\" is parts[0]. server is parts[1] when there are more than one part and otherwise the literal \"MCP\". tool is parts[2...] rejoined with \"__\" when there are more than two parts - so a tool name that itself contains a double underscore is put back together - and otherwise the WHOLE original name including its mcp__ prefix. title is server, a space, U+00B7 MIDDLE DOT, a space, then tool. kind .mcp. detail is nil when the input is JSON null and input.compactString otherwise.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The rejoin with \"__\" and the whole-name fallback are both easy to get wrong; a port that uses a plain three-way split loses the tail of long MCP tool names.",
+      "verification_method": "unit test - mcp__srv__tool, mcp__srv__a__b, mcp__ alone, and a null input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-370",
+      "title": "Any other unrecognized Claude tool becomes an other row titled with its name",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/ClaudeSession.swift:749 - return ToolCall(kind: .other, title: name)"
+      ],
+      "preconditions": "A Claude tool_use block arrived and toolCall(name:input:withEdits:) is dispatching on its name.",
+      "action": "A name matched by no case above and not starting with \"mcp__\" is dispatched.",
+      "expected_result": "kind .other. title is the tool name verbatim, with no humanizing and no truncation. detail is nil and no edits are attached. This is the catch-all, so a Claude release that adds a tool shows a row rather than nothing.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Never drop an unknown tool; the row is the record that something ran.",
+      "verification_method": "unit test - one case per named tool with a full input and with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-371",
+      "title": "A Copilot call that names a server is an MCP row and never reaches the name switch",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:948-952 - if let server { let tool = mcpTool ?? name; return ToolCall(kind: .mcp, title: \"\\(server) · \\(tool)\", detail: arguments.isNull ? nil : arguments.compactString) }"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "The server argument is non-nil.",
+      "expected_result": "The MCP test comes FIRST, before the local path helper and before the switch, so a server-qualified call is never matched against the built-in tool names even when it shares one. tool is mcpTool when given and the plain name otherwise. title is the server, a space, U+00B7 MIDDLE DOT, a space, then the tool. kind .mcp. detail is nil for a JSON-null argument object and arguments.compactString otherwise. Unlike Claude, Copilot is told the server directly rather than having it parsed out of an mcp__ prefix.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Order matters: routing on the name first would show an MCP server's \"edit\" tool as a local edit row.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-372",
+      "title": "Five Copilot tools never get a row because questions, plans and to-dos have their own surfaces",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:945-946 - private static let hiddenTools: Set<String> = [\"ask_user\", \"exit_plan_mode\", \"update_todo\", \"task_complete\", \"report_intent\"] with the comment \"Tools that never get a row: questions, plans and to-dos have their own surfaces\"",
+        "DroppyCode/Services/Providers/CopilotSession.swift:957-958 - case _ where Self.hiddenTools.contains(name): return nil"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "One of the five names is dispatched with no server.",
+      "expected_result": "toolCall returns nil for exactly these five names: \"ask_user\", \"exit_plan_mode\", \"update_todo\", \"task_complete\", \"report_intent\". The test is set membership as the FIRST case of the switch, so it wins over every named case below it. Note the list differs from Claude's five hidden names both in spelling and in membership: Copilot hides task_complete and report_intent, Claude hides ToolSearch.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Five literal snake-case names; a port that reuses Claude's list shows rows Copilot means to hide.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-373",
+      "title": "Copilot bash and powershell make a command row titled with the command",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:959-960 - case \"bash\", \"powershell\": return ToolCall(kind: .command, title: arguments[\"command\"]?.string ?? \"Shell command\", detail: arguments[\"description\"]?.string)"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "\"bash\" or \"powershell\" is dispatched.",
+      "expected_result": "kind .command for both. title is arguments[\"command\"] as a string, falling back to the literal \"Shell command\". detail is arguments[\"description\"] as a string, or nil. \"powershell\" is a first-class Copilot tool name here, so the Windows port must keep it mapped rather than treating it as unknown.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Both names map identically; the shared fallback literal is exact.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-374",
+      "title": "Four Copilot shell-session tools make a humanized command row subtitled with the shell id",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:961-962 - case \"read_bash\", \"write_bash\", \"stop_bash\", \"list_bash\": return ToolCall(kind: .command, title: Self.humanize(name), detail: arguments[\"shellId\"]?.string)",
+        "DroppyCode/Services/Providers/CopilotSession.swift:1071-1074 humanize - name.replacingOccurrences(of: \"-\", with: \" \").replacingOccurrences(of: \"_\", with: \" \") then prefix(1).uppercased() + dropFirst()"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "One of the four names is dispatched.",
+      "expected_result": "kind .command for all four. title is Self.humanize(name): hyphens and underscores become spaces and only the FIRST character is uppercased, giving exactly \"Read bash\", \"Write bash\", \"Stop bash\" and \"List bash\" - lower-case \"bash\", not \"Bash\". detail is arguments[\"shellId\"] as a string, or nil; the key is camel case \"shellId\", unlike the snake-case tool names around it.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "humanize capitalizes one character, not each word. The camel-case argument key is easy to mistype as shell_id.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-375",
+      "title": "Copilot view makes a read row subtitled with its line range",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:963-964 - case \"view\": return ToolCall(kind: .read, title: path(\"path\") ?? \"Read file\", detail: Self.lineRange(arguments[\"view_range\"]))"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "\"view\" is dispatched.",
+      "expected_result": "kind .read. title is arguments[\"path\"] put through ToolTitles.relativePath(_:to: workingDirectory), falling back to the literal \"Read file\". detail is Self.lineRange(arguments[\"view_range\"]) (PR-PROVCLI-393), which is nil unless the value is an array of exactly two integers.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The argument key is \"path\", not \"file_path\" as on Claude.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-376",
+      "title": "Copilot create makes an edit row whose single FileEdit has an empty old side",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:965-970 - case \"create\": var call = ToolCall(kind: .edit, title: path(\"path\") ?? \"Create file\"); if let file = path(\"path\") { call.edits = [FileEdit(path: file, old: \"\", new: arguments[\"file_text\"]?.string ?? \"\")] }; return call"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "\"create\" is dispatched.",
+      "expected_result": "kind .edit. title is the relative path, falling back to the literal \"Create file\". When the path resolves, ONE FileEdit is attached with old = \"\" and new = arguments[\"file_text\"] ?? \"\". There is no withEdits flag on the Copilot path, so the edits are always attached when the path resolves - unlike Claude (PR-PROVCLI-358).",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "No withEdits gate here; do not copy Claude's three-condition shape.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-377",
+      "title": "Copilot edit makes an edit row whose single FileEdit takes both sides from old_str and new_str",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:971-976 - case \"edit\": var call = ToolCall(kind: .edit, title: path(\"path\") ?? \"Edit file\"); if let file = path(\"path\") { call.edits = [FileEdit(path: file, old: arguments[\"old_str\"]?.string ?? \"\", new: arguments[\"new_str\"]?.string ?? \"\")] }; return call"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "\"edit\" is dispatched.",
+      "expected_result": "kind .edit. title is the relative path, falling back to the literal \"Edit file\". When the path resolves, ONE FileEdit is attached with old = arguments[\"old_str\"] ?? \"\" and new = arguments[\"new_str\"] ?? \"\". The keys are \"old_str\" and \"new_str\", NOT Claude's \"old_string\" and \"new_string\".",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The abbreviated key names are the contract; a port sharing one key table across providers breaks this row.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-378",
+      "title": "Copilot str_replace_editor with command \"view\" makes the same read row as view",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:977-980 - case \"str_replace_editor\": switch arguments[\"command\"]?.string { case \"view\": return ToolCall(kind: .read, title: path(\"path\") ?? \"Read file\", detail: Self.lineRange(arguments[\"view_range\"])) ..."
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "\"str_replace_editor\" is dispatched and its command argument is \"view\".",
+      "expected_result": "A second switch on arguments[\"command\"] as a string. For \"view\": kind .read, title the relative path falling back to \"Read file\", detail Self.lineRange(arguments[\"view_range\"]). Identical in every field to the standalone \"view\" tool (PR-PROVCLI-375), but reached through a different argument shape.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The nested switch is on the ARGUMENT named command, not on the tool name.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-379",
+      "title": "Copilot str_replace_editor with command \"create\" makes the same create row",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:981-986 - case \"create\": var call = ToolCall(kind: .edit, title: path(\"path\") ?? \"Create file\"); if let file = path(\"path\") { call.edits = [FileEdit(path: file, old: \"\", new: arguments[\"file_text\"]?.string ?? \"\")] }; return call"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "\"str_replace_editor\" is dispatched with command \"create\".",
+      "expected_result": "kind .edit, title the relative path falling back to the literal \"Create file\", one FileEdit with old = \"\" and new = arguments[\"file_text\"] ?? \"\". Identical to the standalone \"create\" tool (PR-PROVCLI-376).",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Same shape, second call site; both must be implemented.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-380",
+      "title": "Copilot str_replace_editor with command \"insert\" shows the inserted text as a pure addition",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:987-992 - case \"insert\": var call = ToolCall(kind: .edit, title: path(\"path\") ?? \"Edit file\"); if let file = path(\"path\") { call.edits = [FileEdit(path: file, old: \"\", new: arguments[\"new_str\"]?.string ?? \"\")] }; return call"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "\"str_replace_editor\" is dispatched with command \"insert\".",
+      "expected_result": "kind .edit. title is the relative path falling back to the literal \"Edit file\" - \"Edit file\", not \"Create file\". ONE FileEdit with old = the EMPTY STRING and new = arguments[\"new_str\"] ?? \"\", so an insert renders as an addition with nothing removed. This is the only sub-branch that pairs an empty old side with the \"Edit file\" fallback.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Do not fold insert into the default sub-branch; the empty old side is the whole difference.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-381",
+      "title": "Every other Copilot str_replace_editor command falls back to a replace row",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:993-998 - default: var call = ToolCall(kind: .edit, title: path(\"path\") ?? \"Edit file\"); if let file = path(\"path\") { call.edits = [FileEdit(path: file, old: arguments[\"old_str\"]?.string ?? \"\", new: arguments[\"new_str\"]?.string ?? \"\")] }; return call"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "\"str_replace_editor\" is dispatched with any other command value, or with none.",
+      "expected_result": "The default sub-branch, which also catches a MISSING command argument. kind .edit, title the relative path falling back to \"Edit file\", one FileEdit with old = arguments[\"old_str\"] ?? \"\" and new = arguments[\"new_str\"] ?? \"\". Identical to the standalone \"edit\" tool (PR-PROVCLI-377).",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "A missing command argument must land here, not be treated as unknown.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-382",
+      "title": "Copilot apply_patch makes one edit row listing the files the envelope touches, with no diff content",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:1000-1005 - case \"apply_patch\": let patch = arguments.string ?? arguments[\"input\"]?.string ?? arguments[\"patch\"]?.string ?? \"\"; let paths = Self.patchPaths(patch).map { ToolTitles.relativePath($0, to: workingDirectory) }; var call = ToolCall(kind: .edit, title: paths.count == 1 ? paths[0] : \"Edit \\(paths.count) files\"); call.edits = paths.map { FileEdit(path: $0) }; return call",
+        "DroppyCode/Services/Providers/CopilotSession.swift:1038-1048 patchPaths (specified by PR-PROVCLI-199)"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "\"apply_patch\" is dispatched.",
+      "expected_result": "The patch text is read from a THREE-STEP fallback chain: the arguments value read as a bare string, then arguments[\"input\"], then arguments[\"patch\"], then the empty string. The paths come from Self.patchPaths (PR-PROVCLI-199) and are each put through relativePath. kind .edit. title is the single path when there is exactly ONE, and otherwise the literal \"Edit \" then the count then \" files\" - so zero paths titles the row \"Edit 0 files\". Every path becomes a FileEdit built with its path ONLY, with no old or new content, so the row lists what was touched and the diff is read from disk elsewhere.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The three-step patch lookup and the count-based title are both literal; note that a count of 0 and a count of 2 take the same branch.",
+      "verification_method": "unit test - a bare-string patch, an input-keyed patch, one path, two paths and zero paths",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-383",
+      "title": "Copilot grep makes a search row subtitled with its comma-joined relative paths",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:1006-1008 - case \"grep\": let paths = (arguments[\"paths\"]?.array ?? []).compactMap(\\.string).map { ToolTitles.relativePath($0, to: workingDirectory) }; return ToolCall(kind: .search, title: arguments[\"pattern\"]?.string ?? \"Search\", detail: paths.isEmpty ? nil : paths.joined(separator: \", \"))"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "\"grep\" is dispatched.",
+      "expected_result": "kind .search. title is arguments[\"pattern\"] as a string, falling back to the literal \"Search\". The detail is built from arguments[\"paths\"] read as an array, keeping only its string entries, each put through relativePath, then joined with a COMMA AND A SPACE; an empty list gives a nil detail rather than an empty string.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The separator is \", \" exactly. A non-string entry is skipped, not stringified.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-384",
+      "title": "Copilot glob makes the same search row with a different title fallback",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:1009-1011 - case \"glob\": ... return ToolCall(kind: .search, title: arguments[\"pattern\"]?.string ?? \"Find files\", detail: paths.isEmpty ? nil : paths.joined(separator: \", \"))"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "\"glob\" is dispatched.",
+      "expected_result": "Identical to grep (PR-PROVCLI-383) in kind, path handling and detail joining, with ONE difference: the title fallback is the literal \"Find files\" rather than \"Search\".",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "One literal apart from grep and a separate row.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-385",
+      "title": "Copilot web_fetch makes a web row titled with the URL",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:1012-1013 - case \"web_fetch\": return ToolCall(kind: .web, title: arguments[\"url\"]?.string ?? \"Fetch page\")"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "\"web_fetch\" is dispatched.",
+      "expected_result": "kind .web. title is arguments[\"url\"] as a string, falling back to the literal \"Fetch page\". detail is nil.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Same fallback literal as Claude's WebFetch, under a snake-case tool name.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-386",
+      "title": "Copilot web_search makes a web row titled with the query",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:1014-1015 - case \"web_search\": return ToolCall(kind: .web, title: arguments[\"query\"]?.string ?? \"Search the web\")"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "\"web_search\" is dispatched.",
+      "expected_result": "kind .web. title is arguments[\"query\"] as a string, falling back to the literal \"Search the web\". detail is nil.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Same fallback literal as Claude's WebSearch.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-387",
+      "title": "Copilot task makes an agent row whose subtitle joins its name and agent type with a middle dot",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:1016-1018 - case \"task\": let detail = [arguments[\"name\"]?.string, arguments[\"agent_type\"]?.string].compactMap { $0 }.joined(separator: \" · \"); return ToolCall(kind: .agent, title: arguments[\"description\"]?.string ?? \"Subagent\", detail: detail.isEmpty ? nil : detail)"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "\"task\" is dispatched.",
+      "expected_result": "kind .agent. title is arguments[\"description\"] as a string, falling back to the literal \"Subagent\". The detail is arguments[\"name\"] and arguments[\"agent_type\"], in that order, with absent values dropped, joined by a SPACE, U+00B7 MIDDLE DOT, SPACE; when both are absent the joined string is empty and the detail is nil rather than an empty string. With only one present there is no separator at all.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The order name then agent_type, the U+00B7 separator and the empty-to-nil conversion are all part of the contract.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-388",
+      "title": "Three Copilot agent-management tools make a humanized agent row subtitled with an id or a message",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:1019-1020 - case \"read_agent\", \"write_agent\", \"list_agents\": return ToolCall(kind: .agent, title: Self.humanize(name), detail: arguments[\"agent_id\"]?.string ?? arguments[\"message\"]?.string)"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "One of the three names is dispatched.",
+      "expected_result": "kind .agent for all three. title is Self.humanize(name), giving exactly \"Read agent\", \"Write agent\" and \"List agents\" - note \"List agents\" keeps its plural. detail is arguments[\"agent_id\"] as a string, falling back to arguments[\"message\"] as a string, and nil when neither is present.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The two-step detail fallback and the humanized titles are both exact.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-389",
+      "title": "Copilot skill makes an other row titled \"Skill\" with a middle dot and the skill name",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:1021-1022 - case \"skill\": return ToolCall(kind: .other, title: \"Skill · \\(arguments[\"skill\"]?.string ?? \"\")\")"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "\"skill\" is dispatched.",
+      "expected_result": "kind .other. title is the literal \"Skill\", a SPACE, U+00B7 MIDDLE DOT, a SPACE, then arguments[\"skill\"] as a string or the EMPTY STRING. Unlike Claude's Skill row (PR-PROVCLI-368) there is no second fallback to a \"command\" key, so a Copilot skill call with no skill argument titles the row \"Skill · \" with a trailing space.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "One fallback here, two on Claude; do not unify them.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-390",
+      "title": "Copilot sql makes an other row titled with its description and subtitled with the query",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:1023-1024 - case \"sql\": return ToolCall(kind: .other, title: arguments[\"description\"]?.string ?? \"SQL query\", detail: arguments[\"query\"]?.string)"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "\"sql\" is dispatched.",
+      "expected_result": "kind .other. title is arguments[\"description\"] as a string, falling back to the literal \"SQL query\" with that exact casing. detail is arguments[\"query\"] as a string, or nil - the query is shown raw and is not truncated here.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The fallback is \"SQL query\", not \"SQL Query\" and not \"Query\".",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-391",
+      "title": "Copilot create_pull_request makes an other row titled with the pull request title",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:1025-1026 - case \"create_pull_request\": return ToolCall(kind: .other, title: arguments[\"title\"]?.string ?? \"Create pull request\")"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "\"create_pull_request\" is dispatched.",
+      "expected_result": "kind .other. title is arguments[\"title\"] as a string, falling back to the literal \"Create pull request\" in sentence case. detail is nil. The row is informational only: it records that the agent asked for a pull request and carries none of the app's own pull-request confirmation behaviour.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The row must not be wired to any app action; it is a record of the agent's tool call.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-392",
+      "title": "Any other Copilot tool becomes a humanized other row subtitled with its flattened arguments",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:1027-1028 - default: return ToolCall(kind: .other, title: Self.humanize(name), detail: arguments.isNull ? nil : TextCleanup.singleLine(arguments.compactString))"
+      ],
+      "preconditions": "A Copilot tool call arrived and toolCall(name:arguments:server:mcpTool:) is dispatching it.",
+      "action": "A name matched by no case above is dispatched with no server.",
+      "expected_result": "kind .other. title is Self.humanize(name): hyphens and underscores to spaces, first character uppercased only. detail is nil for a JSON-null argument value, and otherwise arguments.compactString put through TextCleanup.singleLine, so a multi-line argument object is flattened to one line. Note this differs from the MCP branch (PR-PROVCLI-371), which uses compactString WITHOUT the singleLine pass.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The singleLine pass here and its absence on the MCP branch are both deliberate.",
+      "verification_method": "unit test - one case with a full argument object and one with an empty object",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-393",
+      "title": "Copilot lineRange renders a two-integer range, using an en dash, and reads a negative end as an open range",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CopilotSession.swift:1032-1035 - private static func lineRange(_ value: JSONValue?) -> String? { guard let range = value?.array?.compactMap(\\.int), range.count == 2 else { return nil }; return range[1] < 0 ? \"from line \\(range[0])\" : \"lines \\(range[0])–\\(range[1])\" }"
+      ],
+      "preconditions": "A view or str_replace_editor view row is being built.",
+      "action": "lineRange is applied to the view_range argument.",
+      "expected_result": "The value must be an array whose INTEGER entries number exactly two; a nil value, a non-array, or an array that yields any count other than two after keeping only integers gives nil. With a negative second number the result is the literal \"from line \" followed by the first number. Otherwise it is the literal \"lines \" followed by the first number, then U+2013 EN DASH, then the second number - an en dash, not a hyphen and not an em dash. There are no spaces around the dash.",
+      "side_effects": [],
+      "persistence": "Part of the row detail.",
+      "failure_cases": [
+        "An array of three integers gives nil, not a truncated range."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "U+2013 is the character; a hyphen here is a defect. compactMap on .int means a mixed array of one integer and one string is rejected by the count test.",
+      "verification_method": "unit test - [10,20], [10,-1], [10], [10,20,30] and a non-array",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-394",
+      "title": "Command Code shell_command and powershell make a command row, marked when it runs in the background",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:553-557 - case \"shell_command\", \"powershell\": let command = input[\"command\"]?.string.map(ToolTitles.unwrapShell) ?? \"Shell command\"; var call = ToolCall(kind: .command, title: command, detail: input[\"description\"]?.string); if input[\"run_in_background\"]?.bool == true { call.detail = [call.detail, \"in the background\"].compactMap { $0 }.joined(separator: \" · \") }; return call"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "\"shell_command\" or \"powershell\" is dispatched.",
+      "expected_result": "kind .command for both names. title is input[\"command\"] put through ToolTitles.unwrapShell, falling back to the literal \"Shell command\". detail starts as input[\"description\"] as a string or nil. When input[\"run_in_background\"] is the boolean TRUE - not merely present, and not a truthy string - the literal \"in the background\" is joined onto the detail with a SPACE, U+00B7 MIDDLE DOT, SPACE; with no description the detail becomes just \"in the background\" with no leading separator. A false or absent flag leaves the detail alone.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "\"powershell\" is a first-class name here and must stay mapped on Windows. The background marker is a detail suffix, not a separate row or badge.",
+      "verification_method": "unit test - background true with and without a description, background false, background absent",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-395",
+      "title": "Command Code monitor_command makes a command row titled with the unwrapped command",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:558-559 - case \"monitor_command\": return ToolCall(kind: .command, title: input[\"command\"]?.string.map(ToolTitles.unwrapShell) ?? \"Monitor command\")"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "\"monitor_command\" is dispatched.",
+      "expected_result": "kind .command. title is input[\"command\"] put through ToolTitles.unwrapShell, falling back to the literal \"Monitor command\". detail is nil, so a monitor call shows no description even when the input carries one.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The fallback literal differs from shell_command's; the missing detail is deliberate.",
+      "verification_method": "unit test - one case with a full input and one with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-396",
+      "title": "Command Code shell_output makes a fixed-title command row subtitled with the task id",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:560-561 - case \"shell_output\": return ToolCall(kind: .command, title: \"Shell output\", detail: input[\"id\"]?.string ?? input[\"task_id\"]?.string)"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "\"shell_output\" is dispatched.",
+      "expected_result": "kind .command. title is always the literal \"Shell output\"; no input value can change it. detail is input[\"id\"] as a string, falling back to input[\"task_id\"] as a string, and nil when neither is present.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Two id keys in this order; the title is a constant.",
+      "verification_method": "unit test - one case with a full input and one with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-397",
+      "title": "Command Code shell_tasks makes a fixed-title command row with no subtitle",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:562-563 - case \"shell_tasks\": return ToolCall(kind: .command, title: \"Shell tasks\")"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "\"shell_tasks\" is dispatched.",
+      "expected_result": "kind .command. title is always the literal \"Shell tasks\". detail is nil. The input is not read at all.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "A constant row; do not humanize the tool name into \"Shell tasks\" by accident and then drift when the name changes.",
+      "verification_method": "unit test - one case with a full input and one with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-398",
+      "title": "Command Code kill_shell makes a \"Stop shell\" row subtitled from three id keys in order",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:564-565 - case \"kill_shell\": return ToolCall(kind: .command, title: \"Stop shell\", detail: input[\"id\"]?.string ?? input[\"task_id\"]?.string ?? input[\"pid\"]?.int.map(String.init))"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "\"kill_shell\" is dispatched.",
+      "expected_result": "kind .command. title is always the literal \"Stop shell\" - the row says Stop although the tool is called kill. detail is a three-step chain: input[\"id\"] as a string, then input[\"task_id\"] as a string, then input[\"pid\"] read as an INTEGER and turned into its decimal string; nil when none is present. The pid step is the only one that converts a number.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The title wording and the three-key order, including the integer-to-string step, are all part of the contract.",
+      "verification_method": "unit test - one case with a full input and one with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-399",
+      "title": "Command Code read_file makes a read row from either path key, subtitled with an offset-derived line range",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:566-571 - case \"read_file\": var call = ToolCall(kind: .read, title: path(\"file_path\") ?? path(\"path\") ?? \"Read file\"); if let offset = input[\"offset\"]?.int, let limit = input[\"limit\"]?.int { call.detail = \"lines \\(offset)–\\(offset + limit)\" }; return call"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "\"read_file\" is dispatched.",
+      "expected_result": "kind .read. title is input[\"file_path\"] put through relativePath, falling back to input[\"path\"] put through relativePath, falling back to the literal \"Read file\". The detail is set only when BOTH input[\"offset\"] and input[\"limit\"] are integers, and is then the literal \"lines \" then the offset, then U+2013 EN DASH, then offset + limit - a SUM, not the limit itself, and with no spaces around the dash. Either value missing leaves the detail nil.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The en dash and the offset + limit arithmetic are both literal. An offset with no limit shows no range at all.",
+      "verification_method": "unit test - offset 10 limit 20 gives \"lines 10–30\"; offset alone gives no detail",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-400",
+      "title": "Command Code read_directory makes a search row titled with the relative path",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:572-573 - case \"read_directory\": return ToolCall(kind: .search, title: path(\"path\") ?? \"List files\")"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "\"read_directory\" is dispatched.",
+      "expected_result": "kind .search, NOT .read, although the tool is named read_directory. title is input[\"path\"] through relativePath, falling back to the literal \"List files\". detail is nil.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The kind and the name disagree deliberately; a listing reads as a search row.",
+      "verification_method": "unit test - one case with a full input and one with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-401",
+      "title": "Command Code write_file makes an edit row whose old side is the queued snapshot",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:574-579 - case \"write_file\": var call = ToolCall(kind: .edit, title: path(\"file_path\") ?? \"Write file\"); if let file = path(\"file_path\"), let content = input[\"content\"]?.string { call.edits = [FileEdit(path: file, old: snapshot ?? \"\", new: content)] }; return call",
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:629-631 - the doc comment on the snapshot: \"A finished write as the file before against after, from the snapshot taken as the call was queued; nil for anything else, so the row's edits stay as queued\""
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "\"write_file\" is dispatched.",
+      "expected_result": "kind .edit. title is input[\"file_path\"] through relativePath - this case has NO fallback to a plain \"path\" key - falling back to the literal \"Write file\". The edit is attached only when the file_path resolves AND input[\"content\"] is a string. The single FileEdit has old = the SNAPSHOT argument when one was taken and the empty string otherwise, and new = the content. The snapshot is the file as it stood when the call was queued, so a finished write shows a real before-and-after rather than a whole-file addition; a call with no snapshot falls back to the empty old side.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The snapshot parameter is what distinguishes this from Claude Write (PR-PROVCLI-358) and Copilot create (PR-PROVCLI-376), which both hard-code an empty old side.",
+      "verification_method": "unit test - one case with a full input and one with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-402",
+      "title": "Command Code edit_file accepts two path keys and three key spellings for each side of the edit",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:580-587 - case \"edit_file\": var call = ToolCall(kind: .edit, title: path(\"file_path\") ?? path(\"path\") ?? \"Edit file\"); if let file = path(\"file_path\") ?? path(\"path\") { let old = input[\"old_string\"]?.string ?? input[\"old_text\"]?.string ?? input[\"old\"]?.string ?? \"\"; let new = input[\"new_string\"]?.string ?? input[\"new_text\"]?.string ?? input[\"new\"]?.string ?? \"\"; call.edits = [FileEdit(path: file, old: old, new: new)] }; return call"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "\"edit_file\" is dispatched.",
+      "expected_result": "kind .edit. title is input[\"file_path\"] then input[\"path\"], each through relativePath, falling back to the literal \"Edit file\". The edit is attached whenever either path key resolves. The old side is a three-step chain in this order: \"old_string\", then \"old_text\", then \"old\", then the empty string. The new side is the matching chain \"new_string\", \"new_text\", \"new\", then empty. The two chains are independent, so a call may take old from \"old_text\" and new from \"new\".",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Six key spellings in two fixed orders. Collapsing them to one spelling silently produces empty-to-empty diffs for the other two shapes.",
+      "verification_method": "unit test - one case per key spelling on each side, plus a mixed pair",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-403",
+      "title": "Command Code glob makes a search row titled with the pattern and subtitled with the relative path",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:588-589 - case \"glob\": return ToolCall(kind: .search, title: input[\"pattern\"]?.string ?? \"Find files\", detail: path(\"path\"))"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "\"glob\" is dispatched.",
+      "expected_result": "kind .search. title is input[\"pattern\"] as a string, falling back to the literal \"Find files\". detail is input[\"path\"] through relativePath, or nil.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Identical in shape to Claude Glob (PR-PROVCLI-362) under a lower-case name.",
+      "verification_method": "unit test - one case with a full input and one with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-404",
+      "title": "Command Code grep makes a search row whose subtitle joins its path and glob with a middle dot",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:590-592 - case \"grep\": let scope = [path(\"path\"), input[\"glob\"]?.string].compactMap { $0 }.joined(separator: \" · \"); return ToolCall(kind: .search, title: input[\"pattern\"]?.string ?? \"Search\", detail: scope.isEmpty ? nil : scope)"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "\"grep\" is dispatched.",
+      "expected_result": "kind .search. title is input[\"pattern\"] as a string, falling back to the literal \"Search\". The detail joins two values in this order - input[\"path\"] through relativePath, then input[\"glob\"] as a raw string, NOT put through relativePath - dropping absent ones and joining with a SPACE, U+00B7 MIDDLE DOT, SPACE. An empty join gives nil rather than an empty string. With only one value present there is no separator.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The glob is deliberately not path-converted; only the path is.",
+      "verification_method": "unit test - one case with a full input and one with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-405",
+      "title": "Command Code web_fetch and web_search make web rows with the same literals as the other CLIs",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:593-594 - case \"web_fetch\": return ToolCall(kind: .web, title: input[\"url\"]?.string ?? \"Fetch page\")",
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:595-596 - case \"web_search\": return ToolCall(kind: .web, title: input[\"query\"]?.string ?? \"Search the web\")"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "\"web_fetch\" or \"web_search\" is dispatched.",
+      "expected_result": "Two cases, both kind .web with a nil detail. web_fetch titles with input[\"url\"] as a string, falling back to the literal \"Fetch page\". web_search titles with input[\"query\"] as a string, falling back to the literal \"Search the web\". The keys and both fallback literals match Claude's and Copilot's exactly.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Two separate cases in source; they are stated together here because every field of both is identical to the already-specified Claude and Copilot rows.",
+      "verification_method": "unit test - one case with a full input and one with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-406",
+      "title": "Command Code agent titles its row from a description, or from a 96-character single line of the prompt",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:597-599 - case \"agent\": let description = input[\"description\"]?.string ?? input[\"prompt\"]?.string.map { TextCleanup.singleLine($0, limit: 96) } ?? \"Sub-agent\"; return ToolCall(kind: .agent, title: description, detail: input[\"subagent_type\"]?.string)"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "\"agent\" is dispatched.",
+      "expected_result": "kind .agent. title is a three-step chain: input[\"description\"] as a string; failing that input[\"prompt\"] as a string put through TextCleanup.singleLine with limit 96; failing that the literal \"Sub-agent\" - HYPHENATED, unlike Claude's \"Subagent\" and Copilot's \"Subagent\". detail is input[\"subagent_type\"] as a string, or nil.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The hyphen in \"Sub-agent\" and the 96-character limit are both exact; the limit differs from the 60 used for head titles elsewhere.",
+      "verification_method": "unit test - one case with a full input and one with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-407",
+      "title": "Command Code agent_output makes a fixed-title agent row subtitled with the agent id",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:600-601 - case \"agent_output\": return ToolCall(kind: .agent, title: \"Agent output\", detail: input[\"agent_id\"]?.string)"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "\"agent_output\" is dispatched.",
+      "expected_result": "kind .agent. title is always the literal \"Agent output\". detail is input[\"agent_id\"] as a string, or nil.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "A constant title with one id key.",
+      "verification_method": "unit test - one case with a full input and one with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-408",
+      "title": "Command Code activate_skill makes an other row titled \"Skill\" with a middle dot and the skill name",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:602-603 - case \"activate_skill\": return ToolCall(kind: .other, title: \"Skill · \\(input[\"name\"]?.string ?? \"\")\")"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "\"activate_skill\" is dispatched.",
+      "expected_result": "kind .other. title is the literal \"Skill\", a SPACE, U+00B7 MIDDLE DOT, a SPACE, then input[\"name\"] as a string or the EMPTY STRING. The key is \"name\" here, against \"skill\" on Claude and Copilot, and the tool name is activate_skill rather than skill.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Same rendered prefix as the other two CLIs, different tool name and different argument key.",
+      "verification_method": "unit test - one case with a full input and one with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-409",
+      "title": "Command Code enter_worktree and exit_worktree make humanized other rows subtitled with the worktree name",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:604-605 - case \"enter_worktree\", \"exit_worktree\": return ToolCall(kind: .other, title: Self.humanize(name), detail: input[\"name\"]?.string)",
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:622-627 humanize with the doc comment '\"Task create\" from task_create' - words = name.split(separator: \"_\"); ([first.prefix(1).uppercased() + first.dropFirst()] + words.dropFirst()).joined(separator: \" \")"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "\"enter_worktree\" or \"exit_worktree\" is dispatched.",
+      "expected_result": "kind .other for both. title is Self.humanize(name), which splits on UNDERSCORES only - not hyphens, unlike Copilot's humanize - and uppercases only the first character of the first word, giving exactly \"Enter worktree\" and \"Exit worktree\". detail is input[\"name\"] as a string, or nil.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The two humanize helpers differ between providers: Copilot replaces hyphens too. Keep them separate.",
+      "verification_method": "unit test - one case with a full input and one with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-410",
+      "title": "Command Code run_command makes an other row titled \"Command\" with a middle dot and the command name",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:606-607 - case \"run_command\": return ToolCall(kind: .other, title: \"Command · \\(input[\"command\"]?.string ?? input[\"name\"]?.string ?? \"\")\")"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "\"run_command\" is dispatched.",
+      "expected_result": "kind .other. title is the literal \"Command\", a SPACE, U+00B7 MIDDLE DOT, a SPACE, then input[\"command\"] as a string, falling back to input[\"name\"] as a string, falling back to the EMPTY STRING - which leaves the visible title \"Command · \" with a trailing space. detail is nil.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Two fallback keys and a U+00B7 separator, mirroring the Skill row.",
+      "verification_method": "unit test - one case with a full input and one with an empty input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-411",
+      "title": "An unrecognized Command Code tool whose name starts with mcp__ becomes an MCP row split into server and tool",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:609-614 - default: if name.hasPrefix(\"mcp__\") { let parts = name.split(separator: \"__\", omittingEmptySubsequences: true); let server = parts.count > 1 ? String(parts[1]) : \"MCP\"; let tool = parts.count > 2 ? parts[2...].joined(separator: \"__\") : name; return ToolCall(kind: .mcp, title: \"\\(server) · \\(tool)\", detail: input.isNull ? nil : input.compactString) }"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "A name matched by no case above is dispatched and starts with \"mcp__\".",
+      "expected_result": "Byte for byte the same rule as Claude's (PR-PROVCLI-369): split on \"__\" omitting empty subsequences, server = parts[1] or the literal \"MCP\", tool = parts[2...] rejoined with \"__\" or the WHOLE original name, title = server + \" · \" + tool with U+00B7, kind .mcp, detail nil for a null input and input.compactString otherwise. Note the detail is NOT length-capped here, unlike the non-MCP default below.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Two providers, one rule, written out twice in source; a shared helper in the port must keep both call sites identical.",
+      "verification_method": "unit test - mcp__srv__a__b and a null input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-412",
+      "title": "Any other Command Code tool becomes a humanized other row whose subtitle is dropped when empty, blank or over 300 characters",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:615-618 - var call = ToolCall(kind: .other, title: Self.humanize(name)); let detail = input.isNull ? nil : input.compactString; if let detail, !detail.isEmpty, detail != \"{}\", detail.count <= 300 { call.detail = detail }; return call"
+      ],
+      "preconditions": "A Command Code tool call arrived and makeToolCall(name:input:snapshot:) is dispatching it.",
+      "action": "A name matched by no case above is dispatched and does not start with \"mcp__\".",
+      "expected_result": "kind .other. title is Self.humanize(name) (underscore split, first character uppercased). The detail is computed as nil for a JSON-null input and input.compactString otherwise, then attached only when FOUR conditions all hold: it is non-nil, it is not the empty string, it is not exactly the two-character literal \"{}\", and its length is at most 300 characters. A detail of 301 characters is dropped entirely rather than truncated with an ellipsis.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "All four conditions, including the literal \"{}\" test and the inclusive 300-character bound, are the contract. Truncating instead of dropping is a defect.",
+      "verification_method": "unit test - empty, \"{}\", 300 characters, 301 characters and a null input",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-413",
+      "title": "Six Antigravity names classify as command rows titled with the unwrapped command line",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:677-678 - case \"run_command\", \"send_command_input\", \"command_status\", \"wait\", \"wait_5_seconds\", \"schedule\": .command",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:637-639 - case .command: let command = Self.string(in: parameters, keys: [\"CommandLine\", \"command\", \"Command\"]).map(ToolTitles.unwrapShell); return ToolCall(kind: .command, title: command ?? Self.humanize(name))"
+      ],
+      "preconditions": "An Antigravity tool call arrived and makeToolCall(name:parameters:) is building its row.",
+      "action": "One of the six names is classified and its row built.",
+      "expected_result": "The names, verbatim: \"run_command\", \"send_command_input\", \"command_status\", \"wait\", \"wait_5_seconds\", \"schedule\". kind .command. title is the first non-empty of parameters[\"CommandLine\"], parameters[\"command\"], parameters[\"Command\"] - in that order - put through ToolTitles.unwrapShell, falling back to Self.humanize(name). detail is always nil for this kind, so a command row on Antigravity never carries a description even when the stream sends one.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Three key spellings in a fixed order, and no detail. \"wait_5_seconds\" is a literal name with a digit in it.",
+      "verification_method": "unit test - one case per name in the group, with and without the parameter keys",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-414",
+      "title": "Eight Antigravity names classify as read rows, titled by path then URL, with an L-prefixed line range",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:679-681 - case \"view_file\", \"view_file_outline\", \"view_code_item\", \"view_content_chunk\", \"read_resource\", \"read_browser_page\", \"capture_browser_screenshot\", \"capture_browser_console_logs\": .read",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:640-643 - case .read: var call = ToolCall(kind: .read, title: path ?? Self.string(in: parameters, keys: [\"Url\", \"URL\", \"url\"]) ?? Self.humanize(name)); if path != nil, let range = Self.lineRange(in: parameters) { call.detail = range }; return call"
+      ],
+      "preconditions": "An Antigravity tool call arrived and makeToolCall(name:parameters:) is building its row.",
+      "action": "One of the eight names is classified and its row built.",
+      "expected_result": "The names, verbatim: \"view_file\", \"view_file_outline\", \"view_code_item\", \"view_content_chunk\", \"read_resource\", \"read_browser_page\", \"capture_browser_screenshot\", \"capture_browser_console_logs\". kind .read. title is the relative path from Self.path(in:) (PR-PROVCLI-421), falling back to the first non-empty of \"Url\", \"URL\", \"url\", falling back to Self.humanize(name). The line-range detail is attached only when a PATH resolved - a URL-titled read never shows a range - and only when Self.lineRange(in:) returns something (PR-PROVCLI-423).",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The path-only gate on the detail is an explicit condition in source, not an accident of the data.",
+      "verification_method": "unit test - one case per name in the group, with and without the parameter keys",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-415",
+      "title": "Six Antigravity names classify as edit rows that list the file and deliberately carry no diff content",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:682-683 - case \"write_to_file\", \"replace_file_content\", \"multi_replace_file_content\", \"sed_file\", \"notebook_edit\", \"notebook_execution\": .edit",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:644-647 - case .edit: var call = ToolCall(kind: .edit, title: path ?? Self.humanize(name)); if let path { call.edits = [FileEdit(path: path)] }; return call",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:628-632 - the comment \"The stream sends a display subset of the parameters (AbsolutePath, TargetFile, SearchDirectory, ...), never the edit content\""
+      ],
+      "preconditions": "An Antigravity tool call arrived and makeToolCall(name:parameters:) is building its row.",
+      "action": "One of the six names is classified and its row built.",
+      "expected_result": "The names, verbatim: \"write_to_file\", \"replace_file_content\", \"multi_replace_file_content\", \"sed_file\", \"notebook_edit\", \"notebook_execution\". kind .edit. title is the relative path, falling back to Self.humanize(name). When a path resolved, exactly ONE FileEdit is attached built from the PATH ALONE, with no old and no new content, because Antigravity streams a display subset of the parameters and never the edit content. A row with no resolvable path carries no edits at all.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Do not try to fill the diff from the parameters; the content is not there. The diff is read from the working tree elsewhere.",
+      "verification_method": "unit test - one case per name in the group, with and without the parameter keys",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-416",
+      "title": "Five Antigravity names classify as search rows, titled by pattern and falling back to the folder",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:684-685 - case \"list_dir\", \"grep_search\", \"find_by_name\", \"list_resources\", \"list_browser_pages\": .search",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:648-655 - case .search: let pattern = Self.string(in: parameters, keys: [\"Query\", \"query\", \"Pattern\", \"pattern\"]); let folder = Self.string(in: parameters, keys: [\"SearchPath\", \"SearchDirectory\", \"DirectoryPath\", \"Path\", \"path\"]).map { ToolTitles.relativePath($0, to: workingDirectory) }; if let pattern { return ToolCall(kind: .search, title: pattern, detail: folder) }; return ToolCall(kind: .search, title: folder ?? Self.humanize(name))"
+      ],
+      "preconditions": "An Antigravity tool call arrived and makeToolCall(name:parameters:) is building its row.",
+      "action": "One of the five names is classified and its row built.",
+      "expected_result": "The names, verbatim: \"list_dir\", \"grep_search\", \"find_by_name\", \"list_resources\", \"list_browser_pages\". kind .search. The pattern is the first non-empty of \"Query\", \"query\", \"Pattern\", \"pattern\". The folder is the first non-empty of \"SearchPath\", \"SearchDirectory\", \"DirectoryPath\", \"Path\", \"path\", put through relativePath. With a pattern the row is titled with it and subtitled with the folder (nil when there is none). WITHOUT a pattern the row is titled with the FOLDER and has NO detail, so the folder moves from subtitle to title rather than the row losing its subject. With neither, the title is Self.humanize(name).",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The folder key list is its own five-key order and is NOT the same list as Self.path(in:); do not share one helper between them.",
+      "verification_method": "unit test - one case per name in the group, with and without the parameter keys",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-417",
+      "title": "Twenty Antigravity names classify as web rows titled with a URL or a query",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:686-691 - case \"search_web\", \"read_url_content\", \"open_browser_url\", \"browser_click_element\", \"browser_drag_pixel_to_pixel\", \"browser_get_dom\", \"browser_get_network_request\", \"browser_input\", \"browser_list_network_requests\", \"browser_mouse_down\", \"browser_mouse_up\", \"browser_move_mouse\", \"browser_press_key\", \"browser_refresh_page\", \"browser_resize_window\", \"browser_scroll\", \"browser_scroll_dom\", \"browser_select_option\", \"click_browser_pixel\", \"execute_browser_javascript\": .web",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:656-658 - case .web: let subject = Self.string(in: parameters, keys: [\"Url\", \"URL\", \"url\", \"query\", \"Query\"]); return ToolCall(kind: .web, title: subject ?? Self.humanize(name))"
+      ],
+      "preconditions": "An Antigravity tool call arrived and makeToolCall(name:parameters:) is building its row.",
+      "action": "One of the twenty names is classified and its row built.",
+      "expected_result": "The twenty names, verbatim and in source order: \"search_web\", \"read_url_content\", \"open_browser_url\", \"browser_click_element\", \"browser_drag_pixel_to_pixel\", \"browser_get_dom\", \"browser_get_network_request\", \"browser_input\", \"browser_list_network_requests\", \"browser_mouse_down\", \"browser_mouse_up\", \"browser_move_mouse\", \"browser_press_key\", \"browser_refresh_page\", \"browser_resize_window\", \"browser_scroll\", \"browser_scroll_dom\", \"browser_select_option\", \"click_browser_pixel\", \"execute_browser_javascript\". kind .web. title is the first non-empty of \"Url\", \"URL\", \"url\", \"query\", \"Query\" - note the lower-case \"query\" comes BEFORE \"Query\" here, the reverse of the search kind's order - falling back to Self.humanize(name). detail is always nil.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "This is the largest name list in the file and the one most likely to be trimmed by accident; every browser_* name belongs to .web, not to .other.",
+      "verification_method": "unit test - one case per name in the group, with and without the parameter keys",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-418",
+      "title": "Four Antigravity names classify as agent rows titled with a 96-character single line of the task",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:692-693 - case \"invoke_subagent\", \"browser_subagent\", \"define_subagent\", \"manage_subagents\": .agent",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:659-661 - case .agent: let task = Self.string(in: parameters, keys: [\"Task\", \"task\", \"Prompt\", \"prompt\", \"Description\", \"description\"]); return ToolCall(kind: .agent, title: task.map { TextCleanup.singleLine($0, limit: 96) } ?? Self.humanize(name))"
+      ],
+      "preconditions": "An Antigravity tool call arrived and makeToolCall(name:parameters:) is building its row.",
+      "action": "One of the four names is classified and its row built.",
+      "expected_result": "The names, verbatim: \"invoke_subagent\", \"browser_subagent\", \"define_subagent\", \"manage_subagents\". kind .agent. title is the first non-empty of \"Task\", \"task\", \"Prompt\", \"prompt\", \"Description\", \"description\", put through TextCleanup.singleLine with limit 96, falling back to Self.humanize(name). detail is always nil, so unlike Claude and Command Code there is no subagent-type subtitle.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Six key spellings in a fixed order and the same 96-character limit Command Code uses (PR-PROVCLI-406).",
+      "verification_method": "unit test - one case per name in the group, with and without the parameter keys",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-419",
+      "title": "Antigravity call_mcp_tool makes an MCP row from named parameters rather than from a prefixed tool name",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:694-695 - case \"call_mcp_tool\": .mcp",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:662-666 - case .mcp: let server = Self.string(in: parameters, keys: [\"ServerName\", \"server_name\", \"Server\", \"server\"]) ?? \"MCP\"; let tool = Self.string(in: parameters, keys: [\"ToolName\", \"tool_name\", \"Tool\", \"tool\"]) ?? \"tool\"; let input = parameters[\"Arguments\"] ?? parameters[\"arguments\"] ?? parameters[\"Input\"] ?? .null; return ToolCall(kind: .mcp, title: \"\\(server) · \\(tool)\", detail: input.isNull ? nil : input.compactString)"
+      ],
+      "preconditions": "An Antigravity tool call arrived and makeToolCall(name:parameters:) is building its row.",
+      "action": "\"call_mcp_tool\" is classified and its row built.",
+      "expected_result": "Exactly one name maps to .mcp: \"call_mcp_tool\". kind .mcp. The server is the first non-empty of \"ServerName\", \"server_name\", \"Server\", \"server\", falling back to the literal \"MCP\". The tool is the first non-empty of \"ToolName\", \"tool_name\", \"Tool\", \"tool\", falling back to the LOWER-CASE literal \"tool\". title is the server, a SPACE, U+00B7 MIDDLE DOT, a SPACE, then the tool. The input is parameters[\"Arguments\"], then parameters[\"arguments\"], then parameters[\"Input\"], then JSON null - note there is no lower-case \"input\" step. detail is nil for a null input and input.compactString otherwise, with no length cap.",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Unlike Claude and Command Code, nothing is parsed out of the tool name here; the server and tool arrive as parameters. The \"tool\" fallback is lower case while the \"MCP\" fallback is upper case.",
+      "verification_method": "unit test - one case per name in the group, with and without the parameter keys",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-420",
+      "title": "Every other Antigravity tool becomes an other row whose subtitle is dropped when empty, blank or over 300 characters",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:696-697 - default: .other",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:667-671 - case .other: var call = ToolCall(kind: .other, title: Self.humanize(name)); let detail = parameters.isNull ? nil : parameters.compactString; if let detail, !detail.isEmpty, detail != \"{}\", detail.count <= 300 { call.detail = detail }; return call"
+      ],
+      "preconditions": "An Antigravity tool call arrived and makeToolCall(name:parameters:) is building its row.",
+      "action": "A name in none of the seven lists is classified and its row built.",
+      "expected_result": "kind .other. title is Self.humanize(name) (PR-PROVCLI-424). The detail is nil for a JSON-null parameter value and parameters.compactString otherwise, then attached only when FOUR conditions all hold: non-nil, not the empty string, not exactly the two-character literal \"{}\", and at most 300 characters. A longer detail is DROPPED, not truncated. The rule is byte for byte the same as Command Code's default (PR-PROVCLI-412).",
+      "side_effects": [],
+      "persistence": "The row is persisted with the timeline.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The same four conditions as Command Code, written out twice in source; both call sites must behave identically.",
+      "verification_method": "unit test - empty, \"{}\", 300 characters, 301 characters and a null parameter value",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-421",
+      "title": "Antigravity resolves a row path from eleven parameter key spellings in a fixed order",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:701-706 - private static func path(in parameters: JSONValue) -> String? { string(in: parameters, keys: [\"AbsolutePath\", \"TargetFile\", \"NotebookPath\", \"FilePath\", \"File\", \"file\", \"path\", \"Path\", \"DirectoryPath\", \"directory\", \"dir\"]) }",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:635 - let path = Self.path(in: parameters).map { ToolTitles.relativePath($0, to: workingDirectory) }"
+      ],
+      "preconditions": "makeToolCall is building any row.",
+      "action": "Self.path(in:) runs, once, before the kind switch.",
+      "expected_result": "The keys are tried in exactly this order and the FIRST non-empty string value wins: \"AbsolutePath\", \"TargetFile\", \"NotebookPath\", \"FilePath\", \"File\", \"file\", \"path\", \"Path\", \"DirectoryPath\", \"directory\", \"dir\". Eleven spellings, with the two case variants of File and of path both present and in the order shown. The result is put through ToolTitles.relativePath(_:to: workingDirectory) once, at the top of makeToolCall, and the same value is then used by the read, edit and other kinds. The search kind does NOT use it; it has its own five-key folder list (PR-PROVCLI-416).",
+      "side_effects": [],
+      "persistence": "Part of the row title.",
+      "failure_cases": [
+        "No key present: nil, and every kind falls back to its own next step."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "The order decides which key wins when a call carries two of them; reordering changes visible titles.",
+      "verification_method": "unit test - a parameter object carrying several of the keys asserts which one wins",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-422",
+      "title": "Antigravity key lookup skips empty strings as well as missing keys",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:708-713 - private static func string(in parameters: JSONValue, keys: [String]) -> String? { for key in keys { if let value = parameters[key]?.string, !value.isEmpty { return value } }; return nil }"
+      ],
+      "preconditions": "Any of the Antigravity key lists is being resolved.",
+      "action": "string(in:keys:) runs.",
+      "expected_result": "Each key is read in list order and accepted only when it holds a STRING that is not empty; a present-but-empty string is skipped and the search CONTINUES to the next key rather than returning \"\". A non-string value is skipped the same way. The function returns nil only when no key yielded a non-empty string. Every Antigravity key list in the tool mapping goes through this one helper, so the empty-skipping rule applies to all of them.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "A port that returns the first PRESENT key rather than the first non-empty one shows blank titles whenever Antigravity sends an empty string for a preferred key.",
+      "verification_method": "unit test - first key empty, second key set, asserts the second wins",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-423",
+      "title": "Antigravity renders a read line range as \"L12–40\", with an en dash, and as \"L12\" when there is no valid end",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:715-720 - the doc comment '\"L12–40\" when a read names a line window, so partial reads read as such'; guard let start = parameters[\"StartLine\"]?.int else { return nil }; if let end = parameters[\"EndLine\"]?.int, end > start { return \"L\\(start)–\\(end)\" }; return \"L\\(start)\""
+      ],
+      "preconditions": "A read row with a resolved path is being built.",
+      "action": "Self.lineRange(in:) runs.",
+      "expected_result": "Without an integer parameters[\"StartLine\"] the result is nil and no detail is shown. With a start and an integer parameters[\"EndLine\"] STRICTLY GREATER than the start, the result is the literal \"L\", the start, U+2013 EN DASH, then the end, with no spaces - for example \"L12–40\". In every other case, including an end equal to or less than the start and a missing end, the result is the literal \"L\" and the start alone, for example \"L12\".",
+      "side_effects": [],
+      "persistence": "Part of the row detail.",
+      "failure_cases": [
+        "An EndLine equal to StartLine renders as the single-line form, not as a zero-length range."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "U+2013, not a hyphen. Note the format differs from the other adapters' \"lines 12–40\" (PR-PROVCLI-393 and PR-PROVCLI-399): here it is an L prefix with no word.",
+      "verification_method": "unit test - start only, start with a greater end, start with an equal end, start with a smaller end",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-424",
+      "title": "Antigravity humanize capitalizes only the first word and lowercases the rest of it",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:722-726 - private static func humanize(_ name: String) -> String { let words = name.split(separator: \"_\").map(String.init); guard let first = words.first else { return name }; return ([first.capitalized] + words.dropFirst()).joined(separator: \" \") }"
+      ],
+      "preconditions": "A row title is falling back to the tool name.",
+      "action": "Self.humanize runs.",
+      "expected_result": "The name is split on UNDERSCORES only. The FIRST word is replaced by its .capitalized form, which upper-cases its first character AND LOWER-CASES the rest, so \"XMLRead_file\" would give \"Xmlread file\". Every other word is left exactly as it came. The words are joined with single spaces. \"run_command\" gives \"Run command\"; \"browser_get_dom\" gives \"Browser get dom\". An empty name returns unchanged.",
+      "side_effects": [],
+      "persistence": "Part of the row title.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "This differs from Command Code's humanize (PR-PROVCLI-409), which uses prefix(1).uppercased() + dropFirst() and therefore preserves the case of the rest of the first word, and from Copilot's, which also replaces hyphens. Three providers, three helpers; keep them apart.",
+      "verification_method": "unit test - \"run_command\", \"browser_get_dom\" and a first word with inner capitals",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-425",
+      "title": "The Antigravity catalog runs two shell calls concurrently, each under a 30 second timeout",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:450-453 - async let modelsFetch: ShellResult = try Shell.run(executable, [\"models\"], environment: environment, timeout: 30); async let defaultFetch: ShellResult = try Shell.run(executable, [\"-p\", \"/model\", \"--output-format\", \"json\"], environment: environment, timeout: 30); let models = try? await modelsFetch; let current = try? await defaultFetch"
+      ],
+      "preconditions": "The registry is loading the Antigravity model catalog through listModels(executable:environment:).",
+      "action": "listModels starts.",
+      "expected_result": "Two child processes are started CONCURRENTLY, not one after the other. The first argv is exactly [\"models\"]. The second is exactly [\"-p\", \"/model\", \"--output-format\", \"json\"], four tokens in that order. Both carry the passed environment and a timeout of 30 seconds. Both results are awaited with try?, so a THROW from either is swallowed into nil rather than propagating: a failed default-model probe never fails the catalog load, and a failed models call is turned into the error of PR-PROVCLI-427 instead of its own.",
+      "side_effects": [],
+      "persistence": "The registry persists the catalog.",
+      "failure_cases": [],
+      "cancellation": "The 30 second timeouts on the two shell calls.",
+      "windows_path": "Concurrency is observable as one round of latency rather than two. The try? on both awaits is deliberate error suppression, not an oversight.",
+      "verification_method": "unit test against a captured `agy models` output",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-426",
+      "title": "The current Antigravity model id is read from a three-level JSON path and is optional",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:454-457 - var currentID: String?; if let stdout = current?.stdout, let json = JSONValue.parse(stdout) { currentID = json[\"command\"]?[\"data\"]?[\"id\"]?.string }"
+      ],
+      "preconditions": "The registry is loading the Antigravity model catalog through listModels(executable:environment:).",
+      "action": "The second shell call returned.",
+      "expected_result": "currentID starts nil and stays nil unless ALL of these hold: the call produced stdout, that stdout parses as JSON, and the path command.data.id resolves to a string. The path is three levels deep, spelled \"command\", then \"data\", then \"id\". A nil currentID means no row can match, which is what makes the fallback of PR-PROVCLI-437 fire.",
+      "side_effects": [],
+      "persistence": "The registry persists the catalog.",
+      "failure_cases": [],
+      "cancellation": "The 30 second timeouts on the two shell calls.",
+      "windows_path": "Do not default the id to the first model here; the fallback happens at the end and rewrites a different field.",
+      "verification_method": "unit test against a captured `agy models` output",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-427",
+      "title": "A models call with no decodable stdout throws a verbatim ShellError",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:458-460 - guard let output = models?.stdout, let text = String(data: output, encoding: .utf8) else { throw ShellError(\"`agy models` produced no output.\") }"
+      ],
+      "preconditions": "The registry is loading the Antigravity model catalog through listModels(executable:environment:).",
+      "action": "The first shell call returned or failed.",
+      "expected_result": "Two conditions: the call produced stdout data, and that data decodes as UTF-8. Failing either throws ShellError with the message exactly \"`agy models` produced no output.\" - including the backticks around `agy models` and the closing full stop. This is the message a failed catalog load shows.",
+      "side_effects": [],
+      "persistence": "The registry persists the catalog.",
+      "failure_cases": [],
+      "cancellation": "The 30 second timeouts on the two shell calls.",
+      "windows_path": "Verbatim message with backticks; UTF-8 is the assumed encoding of the CLI output on Windows too.",
+      "verification_method": "unit test against a captured `agy models` output",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-428",
+      "title": "Each catalog line is ANSI-stripped, trimmed, skipped when empty, and split on one tab",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:465-468 - for line in TextCleanup.stripANSI(text).components(separatedBy: .newlines) { let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines); guard !trimmed.isEmpty else { continue }; let parts = trimmed.split(separator: \"\\t\", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }"
+      ],
+      "preconditions": "The registry is loading the Antigravity model catalog through listModels(executable:environment:).",
+      "action": "The output text is being walked.",
+      "expected_result": "The whole text goes through TextCleanup.stripANSI FIRST, then is split on newlines. Each line is trimmed of whitespace and newlines and skipped when empty. It is then split on a TAB with maxSplits 1, so a name containing tabs is kept whole in the second part, and each resulting part is trimmed of spaces. A line with no tab yields exactly one part.",
+      "side_effects": [],
+      "persistence": "The registry persists the catalog.",
+      "failure_cases": [],
+      "cancellation": "The 30 second timeouts on the two shell calls.",
+      "windows_path": "ANSI stripping is load-bearing: a Windows console that emits colour codes would otherwise break isSlug on every row. The parse depends on a real U+0009 tab, so the real Windows output must be captured before this is called verified.",
+      "verification_method": "unit test against a captured `agy models` output",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-429",
+      "title": "Only a line whose first field is a slug becomes a model, which is what filters progress and header lines out",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:469 - guard let slug = parts.first, Self.isSlug(slug) else { continue }",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:516-520 - private static func isSlug(_ text: String) -> Bool { guard let first = text.first, first.isLetter || first.isNumber else { return false }; return text.allSatisfy { $0.isLetter || $0.isNumber || $0 == \"-\" || $0 == \"_\" || $0 == \".\" } && !text.contains(\" \") }",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:445-446 - the doc comment \"`agy models` prints `slug<TAB>Name` rows on stdout (progress goes to stderr)\""
+      ],
+      "preconditions": "The registry is loading the Antigravity model catalog through listModels(executable:environment:).",
+      "action": "A line has been split.",
+      "expected_result": "The first part must satisfy isSlug or the line is skipped silently. isSlug requires a first character that is a LETTER OR A NUMBER, then every character to be a letter, a number, a hyphen, an underscore or a PERIOD, and the text to contain no space. The space test is redundant with allSatisfy but is written out in source and must be kept for parity of behaviour on any Unicode whitespace the character classes might admit. This filter is how header lines and any progress text that reaches stdout are excluded without a hard-coded header string.",
+      "side_effects": [],
+      "persistence": "The registry persists the catalog.",
+      "failure_cases": [],
+      "cancellation": "The 30 second timeouts on the two shell calls.",
+      "windows_path": "The four allowed punctuation characters are exactly hyphen, underscore, period - and nothing else; a slug with a slash or a colon is rejected.",
+      "verification_method": "unit test against a captured `agy models` output",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-430",
+      "title": "A catalog row with no name falls back to its slug",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:470-471 - let name = parts.count > 1 && !parts[1].isEmpty ? parts[1] : slug; let parsed = parseModelRow(slug: slug, name: name)"
+      ],
+      "preconditions": "The registry is loading the Antigravity model catalog through listModels(executable:environment:).",
+      "action": "A line passed the slug filter.",
+      "expected_result": "The display name is the second part when there IS a second part AND it is non-empty after trimming; otherwise it is the slug itself, so a row with a trailing tab and nothing after it shows its slug rather than an empty name. The slug and name are then handed to parseModelRow (PR-PROVCLI-320), which returns a base slug, a base name and an optional effort.",
+      "side_effects": [],
+      "persistence": "The registry persists the catalog.",
+      "failure_cases": [],
+      "cancellation": "The 30 second timeouts on the two shell calls.",
+      "windows_path": "Both conditions on the name are needed; a present-but-empty second part must fall back.",
+      "verification_method": "unit test against a captured `agy models` output",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-431",
+      "title": "A catalog row counts as the current model by three separate tests",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:473 - let isCurrent = slug == currentID || parsed.baseSlug == currentID || (currentID?.hasPrefix(parsed.baseSlug) == true)"
+      ],
+      "preconditions": "The registry is loading the Antigravity model catalog through listModels(executable:environment:).",
+      "action": "A row has been parsed.",
+      "expected_result": "Three tests joined by OR, in this order: the raw slug equals currentID; the parsed base slug equals currentID; or currentID STARTS WITH the parsed base slug. The third is what matches a current id that carries an effort suffix, such as a currentID of \"gemini-3.1-pro-high\" against a base slug of \"gemini-3.1-pro\". With currentID nil all three are false. Note the prefix test is not anchored on a separator, so a base slug that is a prefix of an unrelated model id would also match.",
+      "side_effects": [],
+      "persistence": "The registry persists the catalog.",
+      "failure_cases": [],
+      "cancellation": "The 30 second timeouts on the two shell calls.",
+      "windows_path": "All three tests, in a port that may be tempted to keep only the equality. The unanchored prefix is upstream behaviour and is reproduced, not fixed.",
+      "verification_method": "unit test against a captured `agy models` output",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-432",
+      "title": "The first row of a base slug fixes its name, seeds its efforts and sets its order",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:462-463 - var grouped: [String: (name: String, efforts: [String], isDefault: Bool)] = [:]; var order: [String] = []",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:475-481 - if grouped[parsed.baseSlug] == nil { order.append(parsed.baseSlug); grouped[parsed.baseSlug] = (name: parsed.baseName, efforts: parsed.effort.map { [$0] } ?? [], isDefault: isCurrent) }"
+      ],
+      "preconditions": "The registry is loading the Antigravity model catalog through listModels(executable:environment:).",
+      "action": "A row is being merged into the grouping.",
+      "expected_result": "The first row seen for a base slug appends that slug to an ORDER array, which is what preserves first-seen order in the final list, and creates the group with: name = the parsed BASE name (not the raw name), efforts = a one-element array when the row carried an effort and an EMPTY array when it did not, and isDefault = this row's current test. A model with no effort variants therefore ends with an empty efforts array rather than a default-filled one.",
+      "side_effects": [],
+      "persistence": "The registry persists the catalog.",
+      "failure_cases": [],
+      "cancellation": "The 30 second timeouts on the two shell calls.",
+      "windows_path": "The order array is separate from the dictionary and is the only thing that fixes output order; a dictionary iteration would be unordered.",
+      "verification_method": "unit test against a captured `agy models` output",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-433",
+      "title": "A later row of the same base slug adds an unseen effort and can only turn the default flag on",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:482-489 - } else { if let eff = parsed.effort, !grouped[parsed.baseSlug]!.efforts.contains(eff) { grouped[parsed.baseSlug]!.efforts.append(eff) }; if isCurrent { grouped[parsed.baseSlug]!.isDefault = true } }"
+      ],
+      "preconditions": "The registry is loading the Antigravity model catalog through listModels(executable:environment:).",
+      "action": "A row for an already-seen base slug is being merged.",
+      "expected_result": "The name is NOT updated - the first row's base name wins for the whole group. An effort is appended only when the row carried one AND it is not already in the list, so duplicates collapse and append order is preserved at this stage. The default flag is only ever set to true, never cleared, so any current row in the group makes the whole group the default.",
+      "side_effects": [],
+      "persistence": "The registry persists the catalog.",
+      "failure_cases": [],
+      "cancellation": "The 30 second timeouts on the two shell calls.",
+      "windows_path": "Three separate rules: name frozen, efforts de-duplicated by value, flag monotonic.",
+      "verification_method": "unit test against a captured `agy models` output",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-434",
+      "title": "A model exposes its efforts in low, medium, high order regardless of the order they were seen in",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:493-495 - for baseSlug in order { guard let data = grouped[baseSlug] else { continue }; let sortedEfforts = [\"low\", \"medium\", \"high\"].filter { data.efforts.contains($0) }"
+      ],
+      "preconditions": "The registry is loading the Antigravity model catalog through listModels(executable:environment:).",
+      "action": "The grouped models are being turned into options.",
+      "expected_result": "The groups are walked in the ORDER array, so the list keeps first-seen order. The efforts are produced by filtering the fixed array [\"low\", \"medium\", \"high\"] down to the ones the group collected - so the result is always in that order, and an effort the CLI reported that is not one of those three literal strings is DROPPED from the option entirely.",
+      "side_effects": [],
+      "persistence": "The registry persists the catalog.",
+      "failure_cases": [],
+      "cancellation": "The 30 second timeouts on the two shell calls.",
+      "windows_path": "The intersection direction matters: it is the fixed list filtered by the collected set, not the collected list sorted.",
+      "verification_method": "unit test against a captured `agy models` output",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-435",
+      "title": "A model defaults to high effort when it has one, and otherwise to the highest it does have",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:496-503 - let defaultEffort = sortedEfforts.contains(\"high\") ? \"high\" : sortedEfforts.last; list.append(ModelOption(id: baseSlug, name: data.name, efforts: sortedEfforts, defaultEffort: defaultEffort, isDefault: data.isDefault))"
+      ],
+      "preconditions": "The registry is loading the Antigravity model catalog through listModels(executable:environment:).",
+      "action": "A model option is being built.",
+      "expected_result": "defaultEffort is the literal \"high\" when the sorted efforts contain it; otherwise it is the LAST element of the sorted efforts, which - because the sort order is low, medium, high - is the highest available, and is nil when the model has no efforts at all. The option is built with id = the base slug, name = the group name, efforts = the sorted list, defaultEffort as above and isDefault = the group flag. The detail field is not set here and takes its own default.",
+      "side_effects": [],
+      "persistence": "The registry persists the catalog.",
+      "failure_cases": [],
+      "cancellation": "The 30 second timeouts on the two shell calls.",
+      "windows_path": "The two-step rule collapses to \"the highest available\" for this fixed order, but must be written as the source has it so a change to the effort list keeps the same behaviour.",
+      "verification_method": "unit test against a captured `agy models` output",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-436",
+      "title": "A catalog that listed no models throws a verbatim ShellError",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:506 - guard !list.isEmpty else { throw ShellError(\"`agy models` listed no models.\") }"
+      ],
+      "preconditions": "The registry is loading the Antigravity model catalog through listModels(executable:environment:).",
+      "action": "The option list has been built.",
+      "expected_result": "An empty list throws ShellError with the message exactly \"`agy models` listed no models.\" - including the backticks and the closing full stop, and distinct from the no-output message of PR-PROVCLI-427. This is what a run whose every line failed the slug filter produces.",
+      "side_effects": [],
+      "persistence": "The registry persists the catalog.",
+      "failure_cases": [],
+      "cancellation": "The 30 second timeouts on the two shell calls.",
+      "windows_path": "Two different verbatim messages for two different failures; do not merge them.",
+      "verification_method": "unit test against a captured `agy models` output",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVCLI-437",
+      "title": "When no catalog row matched the current model, the first model is rewritten to be the default",
+      "source_evidence": [
+        "DroppyCode/Services/Providers/AntigravitySession.swift:507-513 - if !list.contains(where: \\.isDefault), let first = list.first { list[list.startIndex] = ModelOption(id: first.id, name: first.name, detail: first.detail, efforts: first.efforts, defaultEffort: first.defaultEffort, isDefault: true) }"
+      ],
+      "preconditions": "The registry is loading the Antigravity model catalog through listModels(executable:environment:).",
+      "action": "The list is non-empty.",
+      "expected_result": "When NO option carries isDefault, the element at list.startIndex is REPLACED by a copy of itself with isDefault true. The copy carries id, name, detail, efforts and defaultEffort across unchanged, so the rewrite changes exactly one field. Nothing happens when some option already is the default, and nothing happens for an empty list because the throw above already returned.",
+      "side_effects": [],
+      "persistence": "The registry persists the catalog.",
+      "failure_cases": [],
+      "cancellation": "The 30 second timeouts on the two shell calls.",
+      "windows_path": "The rewrite is a whole-value replacement in source; a port with mutable structs may simply set the flag, but every other field must be preserved.",
+      "verification_method": "unit test against a captured `agy models` output",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,

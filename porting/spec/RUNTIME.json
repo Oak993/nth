@@ -427,7 +427,7 @@
     },
     {
       "id": "PR-RUNTIME-021",
-      "title": "SessionSignature has nine fields, six of them populated by a per-provider conditional",
+      "title": "SessionSignature is a nine-field value type compared for equality before any session is reused",
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:504-520 private struct SessionSignature: Equatable - provider, directory, launchRuntimeMode, launchEffort, launchFast, launchModel, launchInteraction, hydra, antiSlopEnabled",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1411-1421 - the construction",
@@ -435,13 +435,13 @@
       ],
       "preconditions": "ensureSession has a thread and a directory.",
       "action": "The signature is built before any session is created.",
-      "expected_result": "provider = thread.provider; directory = the passed directory string; launchRuntimeMode = thread.runtimeMode when the provider is .cursor, .grok, .devin or .antigravity, otherwise copilotLaunchMode, which is .auto when the provider is .copilot and thread.runtimeMode == .auto and nil in every other case; launchEffort = thread.effort when the provider is .claude or .antigravity else nil; launchFast = thread.fastMode when the provider is .claude else nil; launchModel = thread.model when the provider is .antigravity else nil; launchInteraction = thread.interactionMode when the provider is .antigravity else nil; hydra = app.hydraLaunch(for: thread) when keepsHydraPolicyInSystemPrompt(thread.provider) else nil; antiSlopEnabled = app.settings.antiSlopEnabled.",
+      "expected_result": "The type has exactly nine stored fields, in this declared order: provider, directory, launchRuntimeMode, launchEffort, launchFast, launchModel, launchInteraction, hydra, antiSlopEnabled. It is Equatable and the reuse test at ThreadRuntime.swift:1422 is `if let session, session.isRunning, sessionSignature == signature { return session }`, so ANY field differing restarts the session. Three fields are unconditional: provider = thread.provider, directory = the passed directory string, antiSlopEnabled = app.settings.antiSlopEnabled. The other six are populated by per-provider conditionals, each specified in its own requirement: launchRuntimeMode PR-RUNTIME-239, launchEffort PR-RUNTIME-240, launchFast PR-RUNTIME-241, launchModel PR-RUNTIME-242, launchInteraction PR-RUNTIME-243, hydra PR-RUNTIME-244.",
       "side_effects": [],
       "persistence": "Held in memory as sessionSignature (ThreadRuntime.swift:425); cleared by releaseSession.",
       "failure_cases": [],
       "cancellation": "not cancellable",
       "windows_path": "Value equality over all nine fields. Getting one conditional wrong either restarts sessions that should be reused or reuses one launched with the wrong flags.",
-      "verification_method": "unit - one case per provider showing which fields are nil",
+      "verification_method": "unit - equality over all nine fields, and that a change in any one field fails the reuse test",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -1321,7 +1321,6 @@
       "verification_method": "unit plus interaction test",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -2216,7 +2215,6 @@
       "verification_method": "unit - four-way table",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -2740,13 +2738,13 @@
     },
     {
       "id": "PR-RUNTIME-124",
-      "title": "finishTurn decides what continues through a four-branch chain in a fixed order",
+      "title": "finishTurn decides what continues through a four-branch chain in a fixed order (branch order only)",
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2332-2353 - the comment then var continues: Bool; if pendingSend != nil { continues = drainPendingSend() } else if status == .completed, case let delegation = spawnDelegatedHeads(for: turnID), delegation != .none { continues = true; if delegation == .headsOut { _ = drainFollowUps(after: status) } } else if status == .completed, flushHydraReports() { continues = true } else { if status != .completed { dropDelegationBlock(for: turnID, status: status) }; continues = drainFollowUps(after: status) }"
       ],
       "preconditions": "The thread is not archived.",
       "action": "The chain is evaluated.",
-      "expected_result": "In this exact order: a Return-captured pending send jumps the queue and is drained; otherwise a completed turn whose reply carried a delegation block sends heads out, and when heads actually went out the queue is also drained because the lead is free meanwhile; otherwise a completed turn flushes any waiting head reports; otherwise a turn that did not complete has its unsent delegation block stripped from the reply, and the follow-up queue is drained. drainFollowUps only ever starts a turn after a completed turn (PR-RUNTIME-135 note), so a stopped turn leaves the queue for the user.",
+      "expected_result": "This requirement fixes the ORDER of the chain and nothing else; each branch body is specified separately. In this exact order: (1) a Return-captured pending send jumps the queue and is drained; (2) otherwise, a COMPLETED turn calls spawnDelegatedHeads(for: turnID) and, when the outcome is not .none, sets continues true, and additionally drains the follow-up queue when and only when the outcome is .headsOut (PR-RUNTIME-207); (3) otherwise a completed turn flushes any waiting head reports; (4) otherwise, a turn that did NOT complete calls dropDelegationBlock(for: turnID, status: status) and then drains the follow-up queue. drainFollowUps only ever starts a turn after a completed turn (PR-RUNTIME-135 note), so a stopped turn leaves the queue for the user. The bodies of the two functions named here are specified by PR-RUNTIME-207 and PR-RUNTIME-214 to PR-RUNTIME-225 (spawnDelegatedHeads and its seven outcome branches) and PR-RUNTIME-208 to PR-RUNTIME-213 (dropDelegationBlock and its two branches); the nine user-visible strings those paths write are specified individually there and in UI-RUNTIME-019 to UI-RUNTIME-030.",
       "side_effects": [
         "A new turn may start; a reply row may be rewritten; a Hydra note row may be appended."
       ],
@@ -2754,7 +2752,7 @@
       "failure_cases": [],
       "cancellation": "not cancellable",
       "windows_path": "Branch order is the specification; reordering changes which message goes out next.",
-      "verification_method": "integration test - one case per branch",
+      "verification_method": "integration test - one case per branch, asserting only which branch was taken and in what order",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -4023,14 +4021,14 @@
     },
     {
       "id": "PR-RUNTIME-181",
-      "title": "A failed turn that hit a usage limit starts a wait instead of chiming, under six conditions",
+      "title": "A limit note is always consumed, and a wait that starts cancels its predecessor and suppresses the failure chime",
       "source_evidence": [
         "DroppyCode/App/Runtime/AutoContinue.swift:51-64 turnFinished - guard let note = noted.removeValue(forKey: threadID) else { return false }; guard let app, app.settings.autoContinueAfterLimit, status == .failed, !continues, let thread = app.thread(threadID), !thread.isHydraHead else { return false }; waits[threadID]?.cancel(); outcomes[threadID] = nil; let turnID = app.existingRuntime(for: threadID)?.turns.last?.id; let token = UUID(); waitTokens[threadID] = token; waits[threadID] = Task { await self?.wait(threadID, turnID: turnID, resetsAt: note, provider: thread.provider, token: token) }; return true",
         "DroppyCode/App/AppModel.swift:1194 - if autoContinue.turnFinished(id, status: status, continues: continues) { return }"
       ],
       "preconditions": "A turn finished and AppModel is deciding whether to chime and notify.",
       "action": "autoContinue.turnFinished runs.",
-      "expected_result": "The note is consumed whether or not a wait starts, so a limit noted during a turn that then completed is simply forgotten. A wait starts only when the setting autoContinueAfterLimit is on, the turn failed, nothing else continues, the thread resolves and it is not a Hydra head; heads are left to their leads. Any existing wait is cancelled and its outcome cleared. The last turn's id is captured so the wait can tell later whether the user has picked the chat up themselves. A token identifies this wait, so a wait replaced while it slept leaves its successor's countdown alone. Returning true suppresses AppModel's chime, unread marking and notification for this finish.",
+      "expected_result": "The note is consumed whether or not a wait starts (`noted.removeValue(forKey:)`), so a limit noted during a turn that then completed is simply forgotten and cannot start a wait later. A thread with no note returns false at once. When all six gates of PR-RUNTIME-245 to PR-RUNTIME-250 pass: any existing wait for this thread is cancelled and its outcome cleared; the last turn's id is captured from app.existingRuntime(for: threadID)?.turns.last?.id so the wait can tell later whether the user has picked the chat up themselves; a fresh UUID token is stored in waitTokens so a wait replaced while it slept leaves its successor's countdown alone; and the wait task starts holding self weakly. Returning true suppresses AppModel's chime, unread marking and notification for this finish (AppModel.swift:1194).",
       "side_effects": [
         "A long-lived wait task."
       ],
@@ -4038,7 +4036,7 @@
       "failure_cases": [],
       "cancellation": "The previous wait is cancelled here; the new one is cancellable only through this same path, since the user-facing cancel affordance does not ship (dead_code.md items 21 and 22).",
       "windows_path": "port_impacts.md entry 102: reproduce process-lifetime waits with no persistence, no cancel on delete and no relaunch recovery, and with the notice text surviving on disk.",
-      "verification_method": "unit - one negative case per condition",
+      "verification_method": "unit - the note is consumed on every path; the chime is suppressed only when a wait starts",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -4273,7 +4271,6 @@
       "verification_method": "integration test against a real repository",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": "UNK-0005"
     },
     {
@@ -4504,6 +4501,1133 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-202",
+      "title": "settleBatches hands a delegation batch over only when every head is back and nothing of that batch is still waiting to go out",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2609-2615 settleBatches - for (batchID, batch) in hydraBatches where batch.pending.isEmpty && !hydraWaiting.contains(where: { $0.batchID == batchID }) { hydraBatches[batchID] = nil; hydraPendingReports += batch.reports.sorted { $0.headIndex < $1.headIndex } }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:353-356 private struct HydraBatch { var pending: Set<UUID>; var reports: [HydraReport] = [] }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:284 hydraBatches: [UUID: HydraBatch]; :286 hydraWaiting: [(delegation: HydraDelegation, batchID: UUID)]"
+      ],
+      "preconditions": "One or more delegation batches exist for this lead.",
+      "action": "settleBatches runs (called from hydraHeadFinished, dropDelegationBlock and both tails of spawnDelegatedHeads).",
+      "expected_result": "Every batch in hydraBatches is tested against TWO conditions that must both hold: its pending set of head ids is empty, AND no entry of hydraWaiting still carries that batchID. A batch that passes is removed from hydraBatches (set to nil) and its reports are appended to hydraPendingReports sorted ascending by headIndex. A batch failing either test is left untouched, so a batch whose heads are all back but whose remaining tasks are still queued behind the pair cap does NOT report yet. The loop covers the whole dictionary, so several batches can settle in one call; only the order WITHIN one batch is defined.",
+      "side_effects": [
+        "hydraPendingReports grows; hydraBatches shrinks."
+      ],
+      "persistence": "None; both are in-memory ObservationIgnored state.",
+      "failure_cases": [
+        "A batch whose batchID still appears in hydraWaiting is skipped even with an empty pending set."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Swift iterates a copy of the dictionary pairs here, so the body may clear entries safely. A Windows implementation must snapshot the entries before clearing them or it will mutate under its own iterator.",
+      "verification_method": "unit - a batch with a waiting tail does not settle; the same batch settles once the tail goes out",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-203",
+      "title": "flushableHydraReports is every waiting report sorted by head index, so a queued or directly sent head never waits on another delegation batch",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2630-2636 flushableHydraReports - hydraPendingReports.sorted { $0.headIndex < $1.headIndex }, with the doc comment \"a head the user queued or sent out directly has nothing to do with a batch; neither waits on another delegation still out, which can mean waiting out a job of twenty minutes\"",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:276 hydraPendingReports: [HydraReport]"
+      ],
+      "preconditions": "The lead is deciding what it can hear now.",
+      "action": "flushableHydraReports is read by flushHydraReports and by startHydraReportTurn.",
+      "expected_result": "The result is hydraPendingReports sorted ascending by headIndex, with NO filtering at all. A delegation batch reaches hydraPendingReports only through settleBatches, so the batching rule is enforced upstream; a head with origin .queued or .sent was never put in a batch and is therefore immediately flushable. The function never inspects batchID.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Do not add a batch filter here. The batch rule lives in settleBatches (PR-RUNTIME-202); duplicating it here would make a directly sent head wait out an unrelated twenty-minute delegation.",
+      "verification_method": "unit - a pending report from a queued head is flushable while a batch is still out",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-204",
+      "title": "startHydraReportTurn clears the flush flag first and deliberately leaves the reports in place",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2638-2645 startHydraReportTurn - hydraFlushScheduled = false before the guard, with the comment \"Cleared first and the reports left where they are: a turn that cannot run now must be able to be asked for again, by the next head to finish or by the end of whatever the lead is doing instead\"",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2620-2628 flushHydraReports - guard phase == .idle, !hydraFlushScheduled, !flushableHydraReports().isEmpty; hydraFlushScheduled = true"
+      ],
+      "preconditions": "flushHydraReports scheduled this turn and set hydraFlushScheduled true.",
+      "action": "The scheduled task runs startHydraReportTurn.",
+      "expected_result": "hydraFlushScheduled is set to false as the FIRST statement, before any guard. No early-return path removes anything from hydraPendingReports. A run that bails out therefore leaves the reports exactly where they were and leaves the flag clear, so the next head to finish, or the end of whatever the lead is doing instead, can schedule the turn again. Clearing the flag after the guards instead would wedge the lead: the flag would stay true and no further flush would ever be scheduled.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The ordering is the requirement, not an implementation detail.",
+      "verification_method": "unit - a run that bails on a busy lead leaves both the flag clear and the reports queued",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-205",
+      "title": "The heads-report turn runs only on an idle lead that is not reverting, with an app and at least one report",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2645-2647 - guard phase == .idle, !isReverting, let app else { return }; let reports = flushableHydraReports(); guard !reports.isEmpty else { return }"
+      ],
+      "preconditions": "startHydraReportTurn has cleared its flag.",
+      "action": "The four gates are evaluated in order.",
+      "expected_result": "Four separate gates, each of which returns without starting a turn: phase must be .idle (the user got a word in first, so the reports wait for the end of that turn), isReverting must be false, app must resolve, and flushableHydraReports() must be non-empty. The empty check happens AFTER the reports are read, so it is the last gate and not an early one.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [
+        "A lead that is no longer idle keeps the reports waiting for the end of the turn it is running."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Same four gates, same order.",
+      "verification_method": "unit - one negative case per gate",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-206",
+      "title": "The heads-report turn takes its reports by head index, names the heads still working, and starts a turn tagged with those head indexes",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2648-2653 - let sent = Set(reports.map(\\.headIndex)); hydraPendingReports.removeAll { sent.contains($0.headIndex) }; let stillWorking = app.workingHydraHeadNames(of: threadID, excluding: sent); let text = HydraPrompts.reportMessage(reports, stillWorking: stillWorking, reviewsHeads: app.settings.hydraReviewHeads); await ensureLoaded(); await startTurn(text: text, attachments: [], hydraHeads: reports.map(\\.headIndex))",
+        "DroppyCode/Core/Models/Hydra.swift:1221 HydraPrompts.reportMessage(_ reports: [HydraReport], stillWorking: [String] = [], reviewsHeads: Bool = false)"
+      ],
+      "preconditions": "The four gates of PR-RUNTIME-205 passed.",
+      "action": "The turn is built and started.",
+      "expected_result": "The taken reports are identified by a Set of their headIndex values, and hydraPendingReports has every entry with one of those indexes removed - by INDEX, not by identity, so a duplicate report for the same head cannot survive the take. stillWorking is app.workingHydraHeadNames(of: threadID, excluding: sent): the names of this lead's heads still at work, with the taken ones excluded. The message is HydraPrompts.reportMessage(reports, stillWorking: stillWorking, reviewsHeads: app.settings.hydraReviewHeads). ensureLoaded() is awaited before startTurn. The turn is started with an EMPTY attachments array and hydraHeads set to reports.map(\\.headIndex), which is what marks it a report turn and, per PR-RUNTIME-056, is also what stops the delegation-round and refusal counters resetting.",
+      "side_effects": [
+        "A provider turn starts; the timeline gains a user row carrying the head indexes."
+      ],
+      "persistence": "The turn and its message persist in the thread document.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "hydraHeads being non-nil here is load-bearing twice over: it renders the report row and it preserves the round counters.",
+      "verification_method": "integration - assert the reports are removed by index and the started turn carries exactly those indexes",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-207",
+      "title": "DelegationOutcome is a three-case enum and each case means a different thing to finishTurn",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2666-2674 private enum DelegationOutcome { case none; case headsOut; case turnStarted } with the doc comments \"No block, or nothing came of it\", \"Heads went out; the lead is free until they report\", \"The lead is being told something instead, in a turn of its own already on its way\"",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2332-2353 - the finishTurn chain switches on it: delegation != .none makes continues true, and delegation == .headsOut additionally drains the follow-up queue"
+      ],
+      "preconditions": "spawnDelegatedHeads has run.",
+      "action": "It returns one of the three cases.",
+      "expected_result": "Exactly three cases exist, named none, headsOut and turnStarted. .none means no block, or a block that came to nothing, and finishTurn falls through to its next branch. .headsOut means heads actually went out and the lead is free until they report, so finishTurn sets continues true AND drains the follow-up queue. .turnStarted means a turn of its own is already on its way to tell the lead something (refuseBlock), so finishTurn sets continues true but does NOT drain the queue, because the refusal turn owns the lead. Collapsing headsOut and turnStarted into one truthy value would let a queued follow-up cut into the refusal turn.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "A three-member union, not a boolean.",
+      "verification_method": "unit - exhaustiveness over three cases, plus one finishTurn case per case",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-208",
+      "title": "A stopped or failed turn whose stream had already sent heads rewrites the streamed row and keeps the heads that went out",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2678-2691 dropDelegationBlock, first branch - if let stream = hydraStream, stream.turnID == turnID, stream.sent > 0, let streamedEntry = entryIndex[stream.entryID], case .assistant(var streamedMessage) = streamedEntry.item.content { hydraStream = nil; streamedMessage.text = HydraPrompts.withoutDelegationBlock(streamedMessage.text); if streamedMessage.text.isEmpty { streamedMessage.text = \"Asked for heads.\" }; streamedEntry.item.content = .assistant(streamedMessage); saveRevision += 1; scheduleSave(); settleBatches(); appendHydraNote(...); return }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:298 hydraStream: (turnID: UUID, entryID: String, batchID: UUID, sent: Int)?"
+      ],
+      "preconditions": "finishTurn saw a status other than .completed and a hydraStream belonging to this turn that had already sent at least one head.",
+      "action": "dropDelegationBlock runs its first branch.",
+      "expected_result": "Five conditions must all hold to take this branch: a hydraStream exists, its turnID matches the finished turn, its sent count is greater than zero, its entryID still resolves through entryIndex, and that entry holds an assistant message. Then, in this order: hydraStream is cleared; the row text has the delegation block removed with HydraPrompts.withoutDelegationBlock; an emptied text becomes the literal \"Asked for heads.\"; the rewritten message is stored back; saveRevision is incremented; a save is scheduled; settleBatches() is called so a batch whose tail will now never go out can hand its reports over; the note of PR-RUNTIME-209 is appended; and the function RETURNS, so the second branch never runs. The heads already sent are left alone: they keep running and will report.",
+      "side_effects": [
+        "A reply row is rewritten; a batch may settle; a Hydra note row is appended."
+      ],
+      "persistence": "ThreadDocument.items, through scheduleSave.",
+      "failure_cases": [
+        "A stream whose entry has been removed from entryIndex falls through to the second branch."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "settleBatches must be called here. Without it, a batch whose remaining tasks were cancelled with the turn would hold its finished heads' reports forever.",
+      "verification_method": "integration - stop a turn mid-block after one head went out and assert the row, the note and the settled batch",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-209",
+      "title": "The partially sent block note names the head count and whether the turn was stopped or failed",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2689 - appendHydraNote(\"Hydra sent \\(stream.sent == 1 ? \"one head\" : \"\\(stream.sent) heads\") before the turn \\(status == .interrupted ? \"was stopped\" : \"failed\"); the rest of the block never went out. Ask again to send them.\")"
+      ],
+      "preconditions": "The first branch of dropDelegationBlock is running.",
+      "action": "The note is appended.",
+      "expected_result": "The text is built from exactly two substitutions. The count reads \"one head\" when stream.sent == 1 and \"<n> heads\" for every other value. The verb reads \"was stopped\" when status == .interrupted and \"failed\" for every other non-completed status. The full text for one stopped head is, verbatim: \"Hydra sent one head before the turn was stopped; the rest of the block never went out. Ask again to send them.\" For three failed heads: \"Hydra sent 3 heads before the turn failed; the rest of the block never went out. Ask again to send them.\" Note the semicolon before \"the rest\" and the full stop after \"them\".",
+      "side_effects": [
+        "One Hydra note row (see PR-RUNTIME-156 for the row shape)."
+      ],
+      "persistence": "ThreadDocument.items.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Both substitutions are string switches, not pluralization library calls; \"one head\" is spelled out and every other count is a bare integer.",
+      "verification_method": "unit - all four combinations of count and status",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-210",
+      "title": "A stream belonging to this turn that sent nothing is discarded before the block-holding row is looked for",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2692 - if let stream = hydraStream, stream.turnID == turnID, stream.sent == 0 { hydraStream = nil }"
+      ],
+      "preconditions": "The first branch of dropDelegationBlock did not apply.",
+      "action": "The zero-sent stream check runs.",
+      "expected_result": "A hydraStream whose turnID matches the finished turn and whose sent count is exactly zero is cleared, with no row rewrite, no note and no return. A stream belonging to a DIFFERENT turn is left in place. Execution then continues into the second branch. Without this, a scanned-but-empty stream would survive into the next turn and make its entryID and batchID stale.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "This is a separate statement from the first branch and must not be folded into its else.",
+      "verification_method": "unit - a zero-sent stream for this turn is cleared; one for another turn is not",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-211",
+      "title": "A stopped or failed turn strips the block from the last reply row that holds one and leaves \"Asked for heads.\"",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2693-2699 - guard let entry = entries.last(where: { $0.turnID == turnID && $0.kind == .assistant && Self.holdsDelegationBlock($0) }), case .assistant(var message) = entry.item.content else { return }; message.text = HydraPrompts.withoutDelegationBlock(message.text); if message.text.isEmpty { message.text = \"Asked for heads.\" }; entry.item.content = .assistant(message); saveRevision += 1; scheduleSave()"
+      ],
+      "preconditions": "The streamed branch did not apply.",
+      "action": "dropDelegationBlock runs its second branch.",
+      "expected_result": "The row is the LAST entry of this turn that is an assistant row AND holds a delegation block. Unlike spawnDelegatedHeads there is NO fallback to the last assistant row, so a turn with no block-holding row returns having done nothing at all: no rewrite and no note. The block is removed with HydraPrompts.withoutDelegationBlock. A text left empty by that removal becomes the literal \"Asked for heads.\", the same string the streamed branch uses. saveRevision is incremented and a save is scheduled. settleBatches is NOT called on this path, because nothing went out.",
+      "side_effects": [
+        "A reply row is rewritten."
+      ],
+      "persistence": "ThreadDocument.items.",
+      "failure_cases": [
+        "No block-holding assistant row in this turn: the function returns silently and no note is appended."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "The absent last-assistant-row fallback is deliberate and differs from spawnDelegatedHeads (PR-RUNTIME-214).",
+      "verification_method": "unit - a turn with a block; a turn without one",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-212",
+      "title": "The unsent block note says no heads went out and whether the turn was stopped or failed",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2700 - appendHydraNote(\"Hydra sent no heads: the turn \\(status == .interrupted ? \"was stopped\" : \"failed\") before they could go out. Ask again to send them.\")"
+      ],
+      "preconditions": "The second branch of dropDelegationBlock rewrote a row.",
+      "action": "The note is appended.",
+      "expected_result": "One substitution: \"was stopped\" for status == .interrupted, \"failed\" otherwise. Verbatim for a stopped turn: \"Hydra sent no heads: the turn was stopped before they could go out. Ask again to send them.\" For a failed turn: \"Hydra sent no heads: the turn failed before they could go out. Ask again to send them.\" Note the colon after \"no heads\". The note is appended only after the guard of PR-RUNTIME-211 found a row, so a turn with no block gets no note.",
+      "side_effects": [
+        "One Hydra note row."
+      ],
+      "persistence": "ThreadDocument.items.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "None.",
+      "verification_method": "unit - both status variants",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-213",
+      "title": "holdsDelegationBlock is an assistant-only text predicate",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2703-2706 - private static func holdsDelegationBlock(_ entry: TimelineEntry) -> Bool { guard case .assistant(let message) = entry.item.content else { return false }; return HydraPrompts.hasDelegationBlock(in: message.text) }",
+        "DroppyCode/Core/Models/Hydra.swift:1035 static func hasDelegationBlock(in text: String) -> Bool { delegationBlockRange(in: text) != nil }"
+      ],
+      "preconditions": "A timeline entry is being tested.",
+      "action": "holdsDelegationBlock is applied.",
+      "expected_result": "Any entry whose content is not .assistant answers false without further work. An assistant entry answers HydraPrompts.hasDelegationBlock(in: message.text), which is true exactly when a delegation block range is found in the text. The predicate reads the text only; it consults no stream state and no batch state, so it stays true for a row whose block is marked sent and turns false only once withoutDelegationBlock has run.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "This is the single membership test both dropDelegationBlock and spawnDelegatedHeads use to pick their row.",
+      "verification_method": "unit",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-214",
+      "title": "spawnDelegatedHeads picks the last reply row holding a block, and falls back to the last reply row of the turn",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2712-2719 - guard let app, let thread, let launch = app.hydraLaunch(for: thread), let entry = entries.last(where: { $0.turnID == turnID && $0.kind == .assistant && Self.holdsDelegationBlock($0) }) ?? entries.last(where: { $0.turnID == turnID && $0.kind == .assistant }), case .assistant(var message) = entry.item.content else { return .none }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2713-2715 the comment - \"the last reply row that has one, since a reply can come as several rows with tool calls between them and the block may sit in any of them; with none, the last reply row (which may be empty of blocks)\""
+      ],
+      "preconditions": "A turn completed.",
+      "action": "spawnDelegatedHeads resolves its row.",
+      "expected_result": "Four things must resolve or the outcome is .none with no side effects: app, thread, app.hydraLaunch(for: thread) - so a chat with no Hydra pair never delegates - and a row. The row is the last assistant entry of this turn that holds a delegation block; when there is none, it falls back to the last assistant entry of the turn whether or not it holds a block, because the streamed branch below works off hydraStream rather than off the row text. The entry must hold an assistant message. A reply that arrives as several rows with tool calls between them therefore has its block found wherever it sits, and the LAST such row wins.",
+      "side_effects": [],
+      "persistence": "None on this path.",
+      "failure_cases": [
+        "No Hydra launch for the thread: .none.",
+        "No assistant row in the turn at all: .none."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "The two-step lookup with the fallback is the specification; using only the block-holding lookup would break the streamed branch, which needs an entry id even when the row text no longer shows a block.",
+      "verification_method": "unit - block in a middle row, block in the last row, no block at all",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-215",
+      "title": "The block is finished by scanning the streamed entry first, falling back to the resolved row",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2720-2722 - the comment \"A block read as it streamed: an entry that closed after the last flush goes out now, then the block is finished here rather than read again from the top\"; scanStreamedDelegations(entryID: hydraStream?.entryID ?? entry.id, turnID: turnID)",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2854-2876 scanStreamedDelegations"
+      ],
+      "preconditions": "The row of PR-RUNTIME-214 resolved.",
+      "action": "scanStreamedDelegations is called once before any branch is taken.",
+      "expected_result": "The entryID passed is hydraStream?.entryID when a stream exists and the resolved row id otherwise. This is the only call site that can pick up tasks an entry gained after the last streaming flush, so those go out here rather than being reported as lost. The turnID passed is the finished turn. The call happens unconditionally, before the streamed branch is tested, so a stream created BY this call is visible to the branch immediately below it.",
+      "side_effects": [
+        "Heads may be spawned and hydraStream may be created or advanced (see PR-RUNTIME-215 evidence and the scanStreamedDelegations requirement)."
+      ],
+      "persistence": "None directly.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The ?? fallback order matters: a live stream always wins over the freshly resolved row.",
+      "verification_method": "unit - a stream present, and a stream absent",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-216",
+      "title": "The streamed branch marks the block sent and works out the block total from the re-read block, falling back to what went out",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2723-2731 - if let stream = hydraStream, stream.turnID == turnID, let streamedEntry = entryIndex[stream.entryID], case .assistant(var streamedMessage) = streamedEntry.item.content { hydraStream = nil; streamedMessage.text = HydraPrompts.markingDelegationBlockSent(streamedMessage.text); streamedEntry.item.content = .assistant(streamedMessage); saveRevision += 1; let all = HydraPrompts.streamedDelegations(in: streamedMessage.text)?.delegations ?? []; let total = all.isEmpty ? stream.sent : all.count",
+        "DroppyCode/Core/Models/Hydra.swift:1111-1112 markingDelegationBlockSent - guard let opener = delegationOpener(in: text), !hasSentDelegationBlock(in: text) else { return text }"
+      ],
+      "preconditions": "scanStreamedDelegations left or created a hydraStream for this turn whose entry still resolves.",
+      "action": "The streamed branch runs its head.",
+      "expected_result": "Three conditions take this branch: a hydraStream exists, its turnID matches, and its entryID resolves to an assistant entry. Note there is NO sent > 0 test here, unlike dropDelegationBlock: a stream that sent nothing still takes this branch. hydraStream is cleared first. The row text is rewritten with HydraPrompts.markingDelegationBlockSent, which is a no-op on a block already marked sent. saveRevision is incremented. The block is then re-read with HydraPrompts.streamedDelegations(in:), and total is all.count when that read produced anything and stream.sent when the re-read came back empty - so a block that has become unreadable since it streamed reports the count that actually went out rather than zero.",
+      "side_effects": [
+        "The reply row is rewritten into its sent state."
+      ],
+      "persistence": "ThreadDocument.items, saved by the scheduleSave at the branch tail.",
+      "failure_cases": [
+        "A stream whose entry was removed falls through to the non-streamed branches below."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "markingDelegationBlockSent must stay idempotent; the branch relies on it.",
+      "verification_method": "unit - a readable re-read and an unreadable one",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-217",
+      "title": "The streamed branch tops up what the last streaming read missed, capped by the block ceiling and gated on the round cap",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2732-2744 - the comment \"What the app's last read of the block missed goes out here rather than being reported as lost: only the ceiling of a block, or a request that has had all its rounds of heads, holds a task back, and only that is named in the note\"; var sent = stream.sent; if total > sent, hydraDelegationRounds < HydraPrompts.maxDelegationRounds { let rest = Array(all.dropFirst(sent).prefix(max(0, Self.maxDelegatedTasks - sent))); if !rest.isEmpty { hydraWaiting += rest.map { (delegation: $0, batchID: stream.batchID) }; sent += rest.count; hydraStream = (turnID: turnID, entryID: stream.entryID, batchID: stream.batchID, sent: sent); spawnWaitingHeads(launch: launch) } }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2656-2658 maxDelegatedTasks = 32",
+        "DroppyCode/Core/Models/Hydra.swift:847 maxDelegationRounds = 3"
+      ],
+      "preconditions": "The streamed branch has a total greater than what went out.",
+      "action": "The catch-up runs.",
+      "expected_result": "Two gates: total must exceed sent, and hydraDelegationRounds must be strictly less than HydraPrompts.maxDelegationRounds (3). The tasks taken are all.dropFirst(sent).prefix(max(0, maxDelegatedTasks - sent)) with maxDelegatedTasks = 32, so the top-up can never carry the block past 32 tasks in total and the prefix count is clamped at zero rather than going negative. A non-empty rest is appended to hydraWaiting against the SAME batchID the stream already owns - no new batch is made and hydraDelegationRounds is NOT incremented again, because the round was counted when the stream was created. sent is advanced by rest.count, hydraStream is REASSIGNED with the new sent so the count used by the note below is right, and spawnWaitingHeads(launch:) is called with the launch already resolved. When rest is empty nothing at all happens, including no reassignment of hydraStream.",
+      "side_effects": [
+        "Heads may go out immediately if the pair has room."
+      ],
+      "persistence": "None directly.",
+      "failure_cases": [
+        "A request already at its round cap tops up nothing and the tail is reported in the note of PR-RUNTIME-218."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "The clamp max(0, 32 - sent) and the strict less-than on the round cap are both literal.",
+      "verification_method": "unit - a block of 40 tasks with 10 streamed; the same block at the round cap",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-218",
+      "title": "A streamed block that could not send every task writes a two-line note naming what went out and what did not",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2745-2750 - if total > sent { appendHydraNote(\"\"\"\n    Not every task went out\n    \\(sent) of the \\(total) tasks in that block went to heads. The last \\(total - sent) did not: ask for them again once these report back.\n    \"\"\") }"
+      ],
+      "preconditions": "The streamed branch finished its catch-up and total still exceeds sent.",
+      "action": "The note is appended.",
+      "expected_result": "A two-line note whose first line is its title. Line one is exactly \"Not every task went out\" with no trailing punctuation. Line two is \"<sent> of the <total> tasks in that block went to heads. The last <total - sent> did not: ask for them again once these report back.\" The three numbers come from the STREAM: sent is what actually went out after the catch-up, total is the re-read block count (or stream.sent when the re-read was empty), and the shortfall is their difference. This is the streamed variant; PR-RUNTIME-224 is the same wording emitted from the non-streamed path with different count sources, and the two must be kept as separate behaviours because their numbers are derived differently.",
+      "side_effects": [
+        "One Hydra note row."
+      ],
+      "persistence": "ThreadDocument.items.",
+      "failure_cases": [
+        "total == sent: no note at all."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "The two lines are separated by a single newline inside one note string, not by two rows. The word \"tasks\" is plural unconditionally.",
+      "verification_method": "unit - assert the exact two-line string for a 10-of-40 block",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-219",
+      "title": "The streamed branch holds the sent card, settles batches, saves, and reports headsOut only when something is actually out or waiting",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2751-2754 - holdSentDelegationBlock(streamedEntry.id); settleBatches(); scheduleSave(); return hydraBatches.isEmpty && hydraWaiting.isEmpty ? .none : .headsOut"
+      ],
+      "preconditions": "The streamed branch has written its note, if any.",
+      "action": "The branch tail runs.",
+      "expected_result": "In this order: holdSentDelegationBlock is started on the streamed entry id (PR-RUNTIME-226 and PR-RUNTIME-227); settleBatches() runs, which can immediately hand over a batch whose heads are all already back; scheduleSave() runs once for the whole branch. The return value is .none when BOTH hydraBatches and hydraWaiting are empty and .headsOut otherwise. Because settleBatches runs first, a block whose every head finished before the turn ended returns .none, and finishTurn then falls through to flushing the reports rather than parking the lead - which is what gets those reports in front of the lead in the same breath instead of after another turn.",
+      "side_effects": [
+        "A delayed card animation task; possible batch settlement; a save."
+      ],
+      "persistence": "ThreadDocument.items.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "settleBatches BEFORE the emptiness test is the specification; reversing them would park a lead that has nothing to wait for.",
+      "verification_method": "integration - a block whose heads all finished during the turn returns .none",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-220",
+      "title": "A block that cannot be read leaves the reply as \"Asking for heads.\" and the lead is told so in a turn of its own",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2756-2763 - guard let delegations = HydraPrompts.delegations(in: message.text) else { guard HydraPrompts.hasDelegationBlock(in: message.text) else { return .none }; message.text = HydraPrompts.withoutDelegationBlock(message.text); if message.text.isEmpty { message.text = \"Asking for heads.\" }; entry.item.content = .assistant(message); saveRevision += 1; scheduleSave(); return refuseBlock(HydraPrompts.unreadableBlockMessage(reason: nil), dropped: \"Its delegation block could not be read, and it had been told so already.\") }",
+        "DroppyCode/Core/Models/Hydra.swift:1118 unreadableBlockMessage(reason: String?)"
+      ],
+      "preconditions": "The streamed branch did not apply and HydraPrompts.delegations(in:) returned nil.",
+      "action": "The unreadable-block path runs.",
+      "expected_result": "A row with no delegation block at all returns .none untouched - this is the ordinary reply case, reached through the last-assistant-row fallback of PR-RUNTIME-214. A row that HAS a block which cannot be parsed has the block stripped, an emptied text replaced with the literal \"Asking for heads.\" (present participle, distinct from the \"Asked for heads.\" of the dropped paths), the row written back, saveRevision incremented and a save scheduled. The outcome is whatever refuseBlock returns for the message HydraPrompts.unreadableBlockMessage(reason: nil) - the reason argument is always nil at this call site - with the dropped note text \"Its delegation block could not be read, and it had been told so already.\"",
+      "side_effects": [
+        "A reply row is rewritten; a turn may start or a note may be appended (see PR-RUNTIME-228 and PR-RUNTIME-229)."
+      ],
+      "persistence": "ThreadDocument.items.",
+      "failure_cases": [
+        "No block: .none, and nothing is written."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "unreadableBlockMessage is called with reason nil here; do not invent a reason string.",
+      "verification_method": "integration - a malformed block produces the refusal turn and the rewritten row",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-221",
+      "title": "An empty block is the lead saying it did the work itself: the reply becomes \"Done, with no heads.\" and no turn is spent",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2765-2775 - let stripped = HydraPrompts.withoutDelegationBlock(message.text); the comment \"An empty block is the lead saying it did the work itself: the block leaves the reply, a one-line note says no heads went out, and no turn is spent on it\"; if delegations.isEmpty { message.text = stripped.isEmpty ? \"Done, with no heads.\" : stripped; entry.item.content = .assistant(message); saveRevision += 1; scheduleSave(); appendHydraNote(\"No heads went out: the lead did this itself.\"); return .none }"
+      ],
+      "preconditions": "The block parsed to an empty delegation list.",
+      "action": "The empty-block path runs.",
+      "expected_result": "stripped is the reply text with the block removed. The row text becomes the literal \"Done, with no heads.\" when stripped is empty and stripped otherwise. The row is written back, saveRevision is incremented and a save is scheduled. Exactly one note is appended, verbatim: \"No heads went out: the lead did this itself.\" The outcome is .none, so finishTurn spends no turn on it and moves on to its next branch. No batch is made, no round is counted and no refusal is counted.",
+      "side_effects": [
+        "A reply row is rewritten; one Hydra note row."
+      ],
+      "persistence": "ThreadDocument.items.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Returning .none here rather than .turnStarted is what keeps an empty block from costing the user a turn.",
+      "verification_method": "unit - an empty block with and without surrounding reply text",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-222",
+      "title": "A request that has had all its rounds of heads leaves the reply as \"Asking for more heads.\" and the lead hears why",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2776-2784 - the comment \"One request gets so many rounds of heads; past that the lead hears why none went out and finishes by itself, so no request chains heads without end\"; guard hydraDelegationRounds < HydraPrompts.maxDelegationRounds else { message.text = stripped.isEmpty ? \"Asking for more heads.\" : stripped; entry.item.content = .assistant(message); saveRevision += 1; scheduleSave(); return refuseBlock(HydraPrompts.heldBackMessage(count: delegations.count), dropped: \"This request has had all \\(HydraPrompts.maxDelegationRounds) of its rounds of heads, and the lead had been told so already.\") }",
+        "DroppyCode/Core/Models/Hydra.swift:847 maxDelegationRounds = 3",
+        "DroppyCode/Core/Models/Hydra.swift:994-997 heldBackMessage(count:)"
+      ],
+      "preconditions": "The block parsed to a non-empty delegation list and hydraDelegationRounds has reached HydraPrompts.maxDelegationRounds (3).",
+      "action": "The round-cap path runs.",
+      "expected_result": "The row text becomes the literal \"Asking for more heads.\" when the stripped text is empty and the stripped text otherwise. Note this is a THIRD distinct fallback string, separate from \"Asking for heads.\" and \"Asked for heads.\" The row is written back, saveRevision is incremented and a save is scheduled. The outcome is refuseBlock(HydraPrompts.heldBackMessage(count: delegations.count), dropped: \"This request has had all 3 of its rounds of heads, and the lead had been told so already.\") - the count in the dropped note is HydraPrompts.maxDelegationRounds interpolated, so it tracks the constant rather than being a hard 3 in the sentence. No heads go out and no batch is made.",
+      "side_effects": [
+        "A reply row is rewritten; a turn may start or a note may be appended."
+      ],
+      "persistence": "ThreadDocument.items.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The comparison is strictly less-than against 3, so the third round is allowed and the fourth is refused.",
+      "verification_method": "integration - four delegation rounds in one request",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-223",
+      "title": "A readable block counts a round, marks the card sent, opens a batch and queues up to 32 tasks",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2785-2795 - hydraDelegationRounds += 1; the comment \"The card stays a moment in its sent state, then leaves the reply (see holdSentDelegationBlock)\"; message.text = HydraPrompts.markingDelegationBlockSent(message.text); entry.item.content = .assistant(message); saveRevision += 1; let batchID = UUID(); hydraBatches[batchID] = HydraBatch(pending: []); the comment \"The pair's cap paces these out through hydraWaiting, so the ceiling is only on how many tasks one block may hold\"; hydraWaiting += delegations.prefix(Self.maxDelegatedTasks).map { (delegation: $0, batchID: batchID) }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2656-2658 maxDelegatedTasks = 32"
+      ],
+      "preconditions": "The block parsed to a non-empty delegation list and the round cap has not been reached.",
+      "action": "The normal spawn path runs.",
+      "expected_result": "In this order: hydraDelegationRounds is incremented by one, so the count is spent whether or not every task fits; the row text is rewritten with HydraPrompts.markingDelegationBlockSent, which leaves the block in the reply wearing its sent state rather than removing it; saveRevision is incremented; a FRESH batchID (a new UUID) is made and hydraBatches gains an entry with an EMPTY pending set - the pending set is filled later, by spawnWaitingHeads, as each head actually goes out; and the first maxDelegatedTasks (32) delegations, in block order, are appended to hydraWaiting each paired with that batchID. Everything past the 32nd is simply not queued. The pair cap is not consulted here: it paces hydraWaiting, and the only ceiling applied at this point is 32 tasks per block.",
+      "side_effects": [
+        "A batch is opened; the waiting queue grows; hydraWaitingCount changes."
+      ],
+      "persistence": "ThreadDocument.items for the row; the batch and queue are in-memory only and do not survive a relaunch.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "An empty pending set on a freshly opened batch is deliberate. A Windows implementation that pre-fills pending with the queued tasks would make settleBatches wait on heads that never spawned.",
+      "verification_method": "unit - a 40-task block queues exactly 32 against one new batch id and increments the round once",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-224",
+      "title": "A block over the 32-task ceiling writes the same two-line note from the block counts",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2796-2802 - if delegations.count > Self.maxDelegatedTasks { let dropped = delegations.count - Self.maxDelegatedTasks; appendHydraNote(\"\"\"\n    Not every task went out\n    \\(Self.maxDelegatedTasks) of the \\(delegations.count) tasks in that block went to heads. The last \\(dropped) did not: ask for them again once these report back.\n    \"\"\") }"
+      ],
+      "preconditions": "The normal spawn path queued its tasks and the block held more than 32.",
+      "action": "The note is appended.",
+      "expected_result": "The same two-line wording as PR-RUNTIME-218, with its counts drawn from different sources: the first number is the constant maxDelegatedTasks (32) rather than a running sent count, the second is delegations.count from the parsed block rather than a re-read stream, and the shortfall is their difference held in a local named dropped. For a 40-task block the text is exactly \"Not every task went out\\n32 of the 40 tasks in that block went to heads. The last 8 did not: ask for them again once these report back.\" This is a separate emission site from PR-RUNTIME-218 and must be tested separately; a port that shares one helper must still feed it these counts on this path.",
+      "side_effects": [
+        "One Hydra note row."
+      ],
+      "persistence": "ThreadDocument.items.",
+      "failure_cases": [
+        "A block of 32 or fewer tasks: no note."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Strictly greater-than 32, so a block of exactly 32 writes nothing.",
+      "verification_method": "unit - 32 tasks writes nothing, 33 writes \"The last 1 did not\"",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-225",
+      "title": "The normal spawn path sends what the cap allows, holds the sent card, settles and reports headsOut only when something is out or waiting",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2803-2807 - spawnWaitingHeads(launch: launch); holdSentDelegationBlock(entry.id); settleBatches(); scheduleSave(); return hydraBatches.isEmpty && hydraWaiting.isEmpty ? .none : .headsOut"
+      ],
+      "preconditions": "The tasks are queued and the ceiling note, if any, is written.",
+      "action": "The normal path tail runs.",
+      "expected_result": "In this order: spawnWaitingHeads(launch:) is called with the launch resolved at the top of the function, so heads go out up to the pair cap and their ids land in the batch pending set; holdSentDelegationBlock is started on the resolved entry id; settleBatches() runs; scheduleSave() runs once. The return is .none when BOTH hydraBatches and hydraWaiting are empty and .headsOut otherwise. Note the order differs from the streamed branch tail (PR-RUNTIME-219), where the heads were already sent by the catch-up: here the spawn comes FIRST, before the card hold.",
+      "side_effects": [
+        "Heads spawn; a delayed card animation task; possible batch settlement; a save."
+      ],
+      "persistence": "ThreadDocument.items.",
+      "failure_cases": [
+        "Every spawn failing leaves an empty pending set, so settleBatches immediately settles an empty batch and the outcome is .none."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Passing the already-resolved launch avoids a second lookup and, more importantly, pins the cap to the value read at the top of the turn.",
+      "verification_method": "integration - a two-task block with a cap of one leaves one waiting and returns .headsOut",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-226",
+      "title": "scanStreamedDelegations refuses to scan anything but the one entry a live stream is pinned to",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2850-2862 - the doc comment \"Heads go out as their entries close so the first is at work while the lead writes the rest; the batch is made on the first entry and the round counted then; the cap paces the rest through hydraWaiting; spawnDelegatedHeads finishes the block at the end of the turn\"; guard let app, let thread, let entry = entryIndex[entryID], entry.turnID == turnID, case .assistant(let message) = entry.item.content else { return }; guard let launch = app.hydraLaunch(for: thread) else { return }; if let hydraStream, hydraStream.entryID != entryID || hydraStream.turnID != turnID { return }; guard let streamed = HydraPrompts.streamedDelegations(in: message.text) else { return }; let sent = hydraStream?.sent ?? 0; let fresh = Array(streamed.delegations.dropFirst(sent).prefix(max(0, Self.maxDelegatedTasks - sent))); guard !fresh.isEmpty else { return }"
+      ],
+      "preconditions": "A reply is streaming, or a completed turn is finishing its block.",
+      "action": "scanStreamedDelegations is called with an entry id and a turn id.",
+      "expected_result": "Seven gates, each returning without effect: app and thread must resolve; the entry id must resolve through entryIndex; that entry must belong to the given turn; it must hold an assistant message; the thread must have a Hydra launch; and, when a hydraStream already exists, its entryID AND turnID must both match, so a second entry of the same reply is ignored for as long as the first still owns the stream. The block is then read with HydraPrompts.streamedDelegations(in:), which returns nil for a block that is not yet readable. fresh is the delegations past the ones already sent, capped by max(0, maxDelegatedTasks - sent) so one streaming reply can never queue more than 32 tasks, and an empty fresh list returns.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [
+        "A partially written block that does not yet parse simply returns and is read again on the next flush."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "The single-entry pin is what keeps a multi-row reply from opening a second batch mid-stream.",
+      "verification_method": "unit - one negative case per gate, plus a second entry while a stream is live",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-227",
+      "title": "The first streamed read of a block opens the batch and spends the round; later reads only extend it",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2863-2876 - guard hydraDelegationRounds < HydraPrompts.maxDelegationRounds else { return }; let batchID: UUID; if hydraStream == nil { batchID = UUID(); hydraBatches[batchID] = HydraBatch(pending: []); hydraDelegationRounds += 1; hydraStream = (turnID: turnID, entryID: entryID, batchID: batchID, sent: 0) } else { batchID = hydraStream!.batchID }; hydraWaiting += fresh.map { (delegation: $0, batchID: batchID) }; hydraStream?.sent = sent + fresh.count; spawnWaitingHeads(launch: launch)",
+        "DroppyCode/Core/Models/Hydra.swift:847 maxDelegationRounds = 3",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2656-2658 maxDelegatedTasks = 32"
+      ],
+      "preconditions": "The gates of PR-RUNTIME-226 passed and there are fresh delegations.",
+      "action": "The scan queues them.",
+      "expected_result": "The round cap is tested LAST, after the fresh list is known: a request already at HydraPrompts.maxDelegationRounds (3) returns having queued nothing, and spawnDelegatedHeads later reports the whole block as not sent. Otherwise, when hydraStream is nil this is the first read of this block: a fresh batchID is made, hydraBatches gains an entry with an empty pending set, hydraDelegationRounds is incremented ONCE here, and hydraStream is set to (turnID, entryID, batchID, sent: 0). When a stream already exists its batchID is reused and NOTHING else is re-initialised, so a block read five times over five flushes still costs exactly one round and fills exactly one batch. The fresh delegations are appended to hydraWaiting against that batchID, hydraStream.sent is set to sent + fresh.count, and spawnWaitingHeads(launch:) sends out what the pair cap allows.",
+      "side_effects": [
+        "A batch may be opened; heads may spawn while the reply is still streaming."
+      ],
+      "persistence": "None; all of this state is in-memory.",
+      "failure_cases": [
+        "At the round cap nothing is queued and no stream is created, so spawnDelegatedHeads takes its round-cap path at the end of the turn."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Counting the round on the first streamed read, not at the end of the turn, is the specification. spawnDelegatedHeads must not count it again for a streamed block (PR-RUNTIME-217).",
+      "verification_method": "integration - a block streamed in three flushes opens one batch and spends one round",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-228",
+      "title": "The sent delegation card holds its place for the hold duration, then fades where it stands",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2810-2822 holdSentDelegationBlock, first step - the doc comment \"The delegation card keeps its place for HydraPrompts.delegationSentHold once the heads are out, wearing its done wave. Then it fades where it stands, still holding its room (hydra-leaving), and only once it is gone from sight does the block leave the reply and the text below close up: two steps, so the card never fades over content that has already moved up under it\"; Task { [weak self] in try? await Task.sleep(for: HydraPrompts.delegationSentHold); guard let self, let entry = self.entryIndex[entryID], case .assistant(var message) = entry.item.content, HydraPrompts.hasSentDelegationBlock(in: message.text) else { return }; message.text = HydraPrompts.markingDelegationBlockLeaving(message.text); withAnimation(.easeOut(duration: 0.4)) { entry.item.content = .assistant(message) }",
+        "DroppyCode/Core/Models/Hydra.swift:1084 delegationSentHold: Duration = .seconds(3.2)",
+        "DroppyCode/Core/Models/Hydra.swift:1104-1107 markingDelegationBlockLeaving rewrites the opener to \"```hydra-leaving\\n\""
+      ],
+      "preconditions": "spawnDelegatedHeads marked a block sent and passed the entry id.",
+      "action": "The detached task runs its first step.",
+      "expected_result": "The task is detached and holds the runtime WEAKLY, so a closed chat does not keep it alive. It sleeps for exactly HydraPrompts.delegationSentHold = 3.2 seconds, during which the card sits in the reply wearing its done state. It then re-checks three things and gives up silently if any fails: the runtime is still alive, the entry still resolves, it still holds an assistant message, and that text still has a sent block - so a block already rewritten by a revert or by a second call is left alone. The text is rewritten with HydraPrompts.markingDelegationBlockLeaving, which turns the info string into hydra-leaving, and the row is written back inside withAnimation(.easeOut(duration: 0.4)). The block is still IN the reply at this point and still takes up its room.",
+      "side_effects": [
+        "The card begins its fade; no save is scheduled for this step."
+      ],
+      "persistence": "Not saved yet; only the second step increments saveRevision.",
+      "failure_cases": [
+        "A cancelled sleep (try? await) falls through to the guards, which then usually fail and end the task."
+      ],
+      "cancellation": "Not cancellable from outside; the guards make a stale run a no-op.",
+      "windows_path": "port_impacts: the two-step fade exists because a one-step removal glided the card over the closing text and read as a ghost. Reproduce both steps or the animation is wrong, not just different.",
+      "verification_method": "interaction test with a clock - assert hydra-leaving appears at 3.2 seconds and the block is still present",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-229",
+      "title": "Once the card is out of sight the block leaves the reply, and an emptied reply becomes \"Sent out heads.\"",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2823-2831 holdSentDelegationBlock, second step - try? await Task.sleep(for: HydraPrompts.delegationLeaveFade); guard case .assistant(var faded) = entry.item.content, HydraPrompts.hasSentDelegationBlock(in: faded.text) else { return }; faded.text = HydraPrompts.withoutDelegationBlock(faded.text); if faded.text.isEmpty { faded.text = \"Sent out heads.\" }; withAnimation(Chrome.panelSlide) { entry.item.content = .assistant(faded) }; self.saveRevision += 1; self.scheduleSave()",
+        "DroppyCode/Core/Models/Hydra.swift:1088 delegationLeaveFade: Duration = .milliseconds(450)",
+        "DroppyCode/Core/Models/Hydra.swift:1092-1094 hasSentDelegationBlock matches both hydra-sent and hydra-leaving",
+        "DroppyCode/UI/Chrome/Chrome.swift:98-102 panelSlide - .easeOut(duration: 0.18) under reduce motion, otherwise .spring(response: 0.32, dampingFraction: 0.9)"
+      ],
+      "preconditions": "The card was marked leaving.",
+      "action": "The second step runs after the fade.",
+      "expected_result": "A second sleep of exactly HydraPrompts.delegationLeaveFade = 450 milliseconds lets the card finish fading. The entry is re-read and must still hold an assistant message whose text still has a sent block - hasSentDelegationBlock matches BOTH the hydra-sent and the hydra-leaving info strings, which is why the same predicate works for both steps. The block is then removed with HydraPrompts.withoutDelegationBlock, and a text left empty by that removal becomes the literal \"Sent out heads.\" - a fourth distinct fallback string, separate from \"Asked for heads.\", \"Asking for heads.\" and \"Asking for more heads.\" The row is written back inside withAnimation(Chrome.panelSlide), which is .easeOut(duration: 0.18) under reduce-motion and .spring(response: 0.32, dampingFraction: 0.9) otherwise, so the text below closes up with a spring rather than the fade used for the card. Only now are saveRevision incremented and a save scheduled, so the whole two-step animation costs one write.",
+      "side_effects": [
+        "The reply row loses its block; one save."
+      ],
+      "persistence": "ThreadDocument.items.",
+      "failure_cases": [
+        "An entry rewritten between the steps fails the guard and keeps whatever it now holds."
+      ],
+      "cancellation": "Not cancellable from outside.",
+      "windows_path": "The two animations differ deliberately: easeOut 0.4 for the card, panelSlide for the closing text.",
+      "verification_method": "interaction test with a clock - assert the block is gone at 3.65 seconds and the fallback text",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-230",
+      "title": "A request past three refused blocks drops the block with a note instead of telling the lead again",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2834-2844 refuseBlock - the doc comment \"Only so many times per request (see maxRefusedBlocks): a lead that keeps answering with the same block would otherwise be answered with the same refusal, turn after turn, for as long as the app runs. Past the cap the block is dropped with a note in the timeline saying dropped, and the turn ends as a plain reply would\"; guard hydraRefusedBlocks < Self.maxRefusedBlocks else { appendHydraNote(\"No heads went out\\n\\(dropped) The block was dropped from the reply.\"); return .none }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2660-2664 maxRefusedBlocks = 3"
+      ],
+      "preconditions": "An unreadable block or a round-capped block reached refuseBlock and hydraRefusedBlocks has already reached 3.",
+      "action": "The cap branch runs.",
+      "expected_result": "The comparison is hydraRefusedBlocks < maxRefusedBlocks (3), strictly less-than, so three refusals are told to the lead and the fourth is dropped. On the cap branch exactly one note is appended, a two-line string whose first line is the title \"No heads went out\" and whose second line is the caller's dropped sentence followed by a space and the literal \"The block was dropped from the reply.\" The two dropped sentences in the source are \"Its delegation block could not be read, and it had been told so already.\" (PR-RUNTIME-220) and \"This request has had all 3 of its rounds of heads, and the lead had been told so already.\" (PR-RUNTIME-222). The outcome is .none, so the turn ends as a plain reply would: no new turn, and hydraRefusedBlocks is NOT incremented on this branch.",
+      "side_effects": [
+        "One Hydra note row."
+      ],
+      "persistence": "ThreadDocument.items.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The counter is reset per user message, not per turn (PR-RUNTIME-056), which is what \"per request\" means here.",
+      "verification_method": "unit - the fourth refusal of one request drops the block with the note",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-231",
+      "title": "A refused block counts the refusal and starts a turn of its own telling the lead why",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2845-2847 refuseBlock - hydraRefusedBlocks += 1; Task { await ensureLoaded(); await startTurn(text: message, attachments: [], hydraHeads: []) }; return .turnStarted",
+        "DroppyCode/Core/Models/Hydra.swift:1118-1128 unreadableBlockMessage(reason:) - \"[Hydra] Your delegation block could not be read, so no heads went out.\" and the guidance that follows",
+        "DroppyCode/Core/Models/Hydra.swift:994-997 heldBackMessage(count:) - \"None of the heads you asked for went out: this request has had all 3 of its rounds of heads already. Do the rest yourself now, without git status or git diff on the heads' work, and answer the user.\""
+      ],
+      "preconditions": "hydraRefusedBlocks is below the cap.",
+      "action": "The refusal turn is started.",
+      "expected_result": "hydraRefusedBlocks is incremented by one. A detached task awaits ensureLoaded() and then startTurn with the caller's message text, an EMPTY attachments array and hydraHeads set to the EMPTY ARRAY, not nil. The empty array matters: per PR-RUNTIME-056 a non-nil hydraHeads stops the delegation-round and refusal counters resetting, so the refusal turn does not clear the very counters that gate it. The outcome is .turnStarted, which makes finishTurn treat the lead as continuing but, unlike .headsOut, does NOT drain the follow-up queue into that turn.",
+      "side_effects": [
+        "A provider turn starts carrying the refusal message."
+      ],
+      "persistence": "The refusal message persists in the thread document as a user row.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "hydraHeads: [] rather than nil is load-bearing; passing nil would reset the counters and loop the refusal forever.",
+      "verification_method": "integration - two malformed blocks in one request produce two refusal turns and a third produces the dropped note",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-232",
+      "title": "A pair whose heads cannot run on its own provider says so once per job in the lead timeline",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2883-2888 - the comment \"Heads not on the provider the pair names (it is off or not installed): said once per job, in the lead's timeline, rather than never\"; if let pair = app.hydraPair(for: thread), let note = app.hydraHeadsFallbackNote(of: pair), hydraFallbackNoted != pair.id { hydraFallbackNoted = pair.id; appendHydraNote(\"Hydra: \\(note)\") }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:466 hydraFallbackNoted: UUID?"
+      ],
+      "preconditions": "spawnWaitingHeads is about to send tasks out and the thread has a Hydra pair.",
+      "action": "The fallback note is considered.",
+      "expected_result": "Three conditions: the thread resolves to a pair, app.hydraHeadsFallbackNote(of: pair) returns a note, and hydraFallbackNoted does not already equal that pair id. The note is appended as \"Hydra: \" followed by the note text, with a colon and a single space. hydraFallbackNoted is set to the pair id FIRST, so the note is written at most once per pair per runtime; switching the chat to a different pair arms it again. The field is in-memory only, so the note can come back after a relaunch. This check runs before the send loop and independently of whether any head actually goes out.",
+      "side_effects": [
+        "One Hydra note row; hydraFallbackNoted is set."
+      ],
+      "persistence": "None; hydraFallbackNoted is not persisted.",
+      "failure_cases": [
+        "No pair, or no fallback note: nothing is written."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Suppression is per pair id, not per thread and not per app run.",
+      "verification_method": "unit - two spawn rounds on one pair write the note once; changing pair writes it again",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-233",
+      "title": "spawnWaitingHeads drains the queue in order while the pair has room, pinning each head to the name the lead asked for",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2878-2901 spawnWaitingHeads - the doc comment \"Sends out delegated tasks still waiting, as far as the pair's cap allows; without a pair, or an uncapped one, all of them\"; guard let app, let thread, !hydraWaiting.isEmpty else { return }; let launch = launch ?? app.hydraLaunch(for: thread); while !hydraWaiting.isEmpty, launch?.hasRoom(running: app.runningDroppyHeads(of: threadID)) ?? true { let next = hydraWaiting.removeFirst(); let delegation = next.delegation; let preferredIndex = delegation.name.flatMap(HydraRoster.index(named:)); guard let head = app.spawnDroppyHead(from: threadID, task: delegation.task, origin: .delegated, batchID: next.batchID, preferredIndex: preferredIndex, project: delegation.project, profile: delegation.profile, brief: { persona, workplace in HydraPrompts.delegatedHeadPrompt(persona: persona, delegation: delegation, workplace: workplace) }) else { continue }; hydraBatches[next.batchID, default: HydraBatch(pending: [])].pending.insert(head.id) }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2892-2894 the comment \"The lead's announced name is authoritative: resolving it here pins the spawned head to exactly that roster name. Unknown or already-taken names resolve to nil and the head goes out next in order, as before\""
+      ],
+      "preconditions": "Tasks are waiting in hydraWaiting.",
+      "action": "spawnWaitingHeads runs.",
+      "expected_result": "It returns at once when app or thread does not resolve or the queue is empty. The launch is the one passed in, or app.hydraLaunch(for: thread) when none was. The loop continues while the queue is non-empty AND launch?.hasRoom(running: app.runningDroppyHeads(of: threadID)) ?? true - so a thread with NO launch at all sends every waiting task out with no cap, which is the documented behaviour, not a bug. Each iteration removes the FIRST entry, so block order is preserved. preferredIndex is delegation.name.flatMap(HydraRoster.index(named:)): a name the lead announced pins the head to exactly that roster slot, and an unknown or already-taken name resolves to nil so the head takes the next free slot in order. The head is spawned with origin .delegated, the entry's batchID, the delegation's project and profile, and a brief closure building HydraPrompts.delegatedHeadPrompt(persona:delegation:workplace:). A spawn returning nil CONTINUES the loop - the task is already off the queue and is silently lost, and nothing is appended to the batch for it. A successful spawn inserts the head id into that batch's pending set, creating the batch with an empty pending set if it is no longer there.",
+      "side_effects": [
+        "Head processes or sessions start; batch pending sets grow; hydraWaiting shrinks and hydraWaitingCount changes."
+      ],
+      "persistence": "None in this function; the spawned heads persist through their own threads.",
+      "failure_cases": [
+        "A failed spawn drops its task with no note and no retry. Its batch therefore settles without that head's report."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "The ?? true on the room test is the no-pair case and must be preserved. The silent drop on a failed spawn is upstream behaviour; reproduce it rather than adding a note, and see the new-defect note filed against this line.",
+      "verification_method": "integration - a cap of two with four waiting tasks sends two and leaves two, in block order",
+      "status": "SPECIFIED",
+      "upstream_defect": "NEW, not in upstream_defects.md: ThreadRuntime.swift:2890 removes the task from hydraWaiting BEFORE the spawn, and :2898 `guard let head = app.spawnDroppyHead(...) else { continue }` then drops it with no note, no retry and no record. Its batch settles without it (PR-RUNTIME-202), so the lead reports as though the block finished. upstream_defects.md entry 32 covers a different line of the same loop (:2889, the uncapped sweep when hydraLaunch is nil) and does not cover this. REPRODUCE, DO NOT FIX.",
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-234",
+      "title": "A finished Droppy-run head is turned into a nine-field report whose elapsed time is measured from the head start",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2583-2587 hydraHeadFinished, .droppy branch - let report = HydraReport(headIndex: info.index, task: info.task, origin: info.origin, status: status, text: summary ?? \"\", landing: landing, copyPath: copyPath, elapsed: Date.now.timeIntervalSince(info.startedAt), toolCalls: info.toolCalls)",
+        "DroppyCode/Core/Models/Hydra.swift:539-552 struct HydraReport - headIndex, task, origin, status, text, landing, copyPath, elapsed, toolCalls",
+        "DroppyCode/Core/Models/Hydra.swift:335 HydraHeadInfo.startedAt = Date.now"
+      ],
+      "preconditions": "The app finished a Droppy-run head of this lead.",
+      "action": "The .droppy branch builds its report.",
+      "expected_result": "All nine fields are filled from the finish, in this mapping: headIndex = info.index (the roster slot, which is also the sort key everywhere downstream), task = info.task, origin = info.origin (.delegated, .queued or .sent), status = the passed status, text = summary ?? \"\" so a head with no summary reports an EMPTY STRING rather than nil, landing = the passed landing, copyPath = the passed copyPath, elapsed = Date.now.timeIntervalSince(info.startedAt) computed here at finish time rather than read from info.finishedAt, and toolCalls = info.toolCalls. Unlike the .native branch there is no guard on the head status, so a failed or stopped head is reported exactly like a completed one and the status field carries the difference.",
+      "side_effects": [],
+      "persistence": "The report is in-memory until it is written into a report turn message.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "elapsed is wall time from the head start to this call, so a head whose finish was delayed by a busy lead shows the longer time. Do not substitute a provider-reported duration.",
+      "verification_method": "unit - a head with no summary reports an empty text and a positive elapsed",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-235",
+      "title": "A head reporting again replaces its own waiting report, in the pending list and in its batch",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2569-2572 the doc comment - \"A head reporting again (steered on from the panel) replaces any report of its own still waiting\"",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2588-2595 - hydraPendingReports.removeAll { $0.headIndex == info.index }; if let batchID = info.batchID, hydraBatches[batchID] != nil { hydraBatches[batchID]?.pending.remove(headID); hydraBatches[batchID]?.reports.removeAll { $0.headIndex == info.index }; hydraBatches[batchID]?.reports.append(report) } else { hydraPendingReports.append(report) }"
+      ],
+      "preconditions": "The report of PR-RUNTIME-234 is built.",
+      "action": "The report is routed.",
+      "expected_result": "First, unconditionally, every entry of hydraPendingReports with this head index is removed - by INDEX, so a head steered on from the panel and finished a second time replaces its earlier report instead of reporting twice. Then the routing: when info.batchID is non-nil AND that batch is still in hydraBatches, the head id is removed from the batch pending set, any report of the same head index already in the batch is removed, and the new report is appended to the BATCH; otherwise the report is appended to hydraPendingReports and goes to the lead without waiting on anyone. A head whose batch has already settled therefore takes the second path and reports immediately, which is what lets a re-steered head be heard after its siblings.",
+      "side_effects": [
+        "hydraPendingReports and hydraBatches are mutated."
+      ],
+      "persistence": "None.",
+      "failure_cases": [
+        "A batchID naming a batch that no longer exists falls into the else branch by design."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "The removal happens twice on the batch path - once from the pending list and once from the batch reports - and both are keyed on headIndex, not on headID.",
+      "verification_method": "unit - the same head finishing twice leaves exactly one report",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-236",
+      "title": "A finished Droppy-run head makes room in a fixed order and an idle lead hears at once unless the user stopped it",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2596-2606 - the comment \"A finished head makes room: for a task still waiting in a batch first, then for whatever the user queued while every head was busy\"; spawnWaitingHeads(); dispatchQueuedFollowUps(); settleBatches(); the comment \"An idle lead hears at once; one the user stopped waits for their next word\"; if phase == .idle, thread?.lastStatus != .interrupted { flushHydraReports() }; the comment \"After the reports: whatever is still queued behind an idle lead goes next, rather than waiting out the heads still at work\"; flushFollowUpsIfIdle()"
+      ],
+      "preconditions": "The report has been routed.",
+      "action": "The follow-on calls run.",
+      "expected_result": "Five steps in exactly this order, and the order is the specification. 1) spawnWaitingHeads() with no launch argument, so a task still waiting in ANY batch takes the freed slot before a user follow-up does. 2) dispatchQueuedFollowUps(), which only does anything while the lead is still working. 3) settleBatches(), after the spawn, so a batch that just sent its last waiting task is not settled prematurely. 4) flushHydraReports() only when phase == .idle AND thread?.lastStatus != .interrupted, so a lead the user stopped keeps its reports until the user speaks again. 5) flushFollowUpsIfIdle(), after the reports, so what is still queued behind an idle lead goes next rather than waiting out the heads still at work. Moving settleBatches before spawnWaitingHeads would settle a batch whose tail was about to go out.",
+      "side_effects": [
+        "Heads may spawn; turns may start."
+      ],
+      "persistence": "Through the turns that may start.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Five ordered calls; reordering any pair changes which message the user sees next.",
+      "verification_method": "integration - one case per step, asserting call order",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-237",
+      "title": "dispatchHead is the one body both head-dispatch paths share, and it refuses an archived thread or a full pair",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1010-1022 dispatchHead - the doc comment \"Sends a prompt out as a Droppy-run head with a note on what the lead is doing, or that it is idle. Returns whether the head went out\"; guard let app, let thread, !thread.isArchived, let launch = app.hydraLaunch(for: thread), launch.hasRoom(running: app.runningDroppyHeads(of: threadID)) else { return false }; let task = TextCleanup.singleLine(prompt.text, limit: 60); let context = app.hydraChatContext(for: threadID); let leadIsWorking = phase != .idle; let text = prompt.text; return app.spawnDroppyHead(from: threadID, task: task, origin: origin, attachments: prompt.attachments) { persona, workplace in HydraPrompts.queuedHeadPrompt(persona: persona, task: text, context: context, workplace: workplace, leadIsWorking: leadIsWorking) } != nil",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:995-998 dispatchQueuedHead calls it with origin .queued",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1003-1008 dispatchSentHead calls it with origin .sent"
+      ],
+      "preconditions": "dispatchQueuedHead or dispatchSentHead passed its own setting gate.",
+      "action": "dispatchHead runs.",
+      "expected_result": "Five gates, all of which return false: app resolves, thread resolves, the thread is NOT archived, the thread has a Hydra launch, and that launch has room for one more given app.runningDroppyHeads(of: threadID). The head title is TextCleanup.singleLine(prompt.text, limit: 60) - one line, capped at 60 characters. The context is app.hydraChatContext(for: threadID), read BEFORE the spawn so the head sees the chat as it stands now. leadIsWorking is phase != .idle, captured at dispatch time and not re-read inside the closure. The head is spawned with the passed origin and the prompt attachments, with NO batchID, NO preferredIndex, NO project and NO profile - which is exactly why such a head is never part of a batch and its report is immediately flushable (PR-RUNTIME-203). The brief is HydraPrompts.queuedHeadPrompt(persona:task:context:workplace:leadIsWorking:) with the FULL prompt text as task, not the 60-character title. The return is whether the spawn produced a head.",
+      "side_effects": [
+        "A head session starts."
+      ],
+      "persistence": "The head's own thread.",
+      "failure_cases": [
+        "An archived thread never sends heads.",
+        "A pair with no room returns false and the caller falls back to the ordinary path."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "The two captured values, context and leadIsWorking, are snapshots. Re-reading them inside the closure would describe the lead as it is when the head starts rather than when the user sent the message.",
+      "verification_method": "unit - one negative case per gate; assert the title cap and that no batchID is passed",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-238",
+      "title": "dispatchQueuedFollowUps drains bundles to heads only while the lead is working, and stops at the first one that will not go",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1024-1035 dispatchQueuedFollowUps - the doc comment \"Follow-ups queued while the heads were all busy go out as heads once one frees up, as long as the lead is still at work; an idle lead takes them itself, in order\"; guard phase != .idle else { return }; while !followUps.isEmpty { let merged = mergedBundle(startingAt: 0); guard dispatchQueuedHead(merged) else { break }; _ = takeBundle(startingAt: 0); saveRevision += 1; scheduleSave() }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:995-997 dispatchQueuedHead - guard let app, app.settings.hydraQueueHeads || app.settings.hydraAlwaysHeads else { return false }"
+      ],
+      "preconditions": "A head finished and the queue may hold follow-ups.",
+      "action": "dispatchQueuedFollowUps runs.",
+      "expected_result": "An IDLE lead returns immediately and does nothing: an idle lead takes its own queue, in order, through flushFollowUpsIfIdle. While the lead is working, the loop takes the merged bundle starting at index 0 - so a run of prompts the user sent together goes out as ONE head, not as several - and hands it to dispatchQueuedHead, which itself requires hydraQueueHeads OR hydraAlwaysHeads to be on. A dispatch that returns false BREAKS the loop, leaving that bundle and everything behind it queued; it does not skip it and try the next. Only a successful dispatch removes the bundle with takeBundle(startingAt: 0), and each success increments saveRevision and schedules a save, so a drain of three bundles writes three times.",
+      "side_effects": [
+        "Heads spawn; the follow-up queue shrinks; saves are scheduled."
+      ],
+      "persistence": "The follow-up queue is part of the thread document.",
+      "failure_cases": [
+        "Both head settings off: the first dispatch returns false and nothing is drained."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Break rather than continue on a failed dispatch. Continuing would reorder the user's queue.",
+      "verification_method": "unit - a full pair leaves the queue intact and in order",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-239",
+      "title": "SessionSignature.launchRuntimeMode carries the thread mode for four providers and Copilot Auto for a fifth",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1414 - launchRuntimeMode: thread.provider == .cursor || thread.provider == .grok || thread.provider == .devin || thread.provider == .antigravity ? thread.runtimeMode : copilotLaunchMode",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1396-1398 - the comment \"Copilot switches modes live, except that Auto's assisted-approval judge is a session flag: entering or leaving Auto resumes the session with it set right\"; let copilotLaunchMode: RuntimeMode? = thread.provider == .copilot && thread.runtimeMode == .auto ? .auto : nil"
+      ],
+      "preconditions": "ensureSession is building the signature.",
+      "action": "launchRuntimeMode is computed.",
+      "expected_result": "For provider .cursor, .grok, .devin or .antigravity the field is thread.runtimeMode, so changing the mode restarts the session. For every other provider it is copilotLaunchMode, which is .auto when and only when the provider is .copilot AND thread.runtimeMode == .auto, and nil in every other case. Copilot therefore restarts when the thread enters or leaves Auto but not when it moves between its other modes, because only Auto's assisted-approval judge is a launch flag. Every provider not named here contributes nil.",
+      "side_effects": [],
+      "persistence": "Held in sessionSignature.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The four-provider OR list is literal and ordered as written; adding or dropping a provider changes when sessions restart.",
+      "verification_method": "unit - one case per provider, and Copilot moving between Auto and a non-Auto mode",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-240",
+      "title": "SessionSignature.launchEffort is set for Claude and Antigravity only",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1415 - launchEffort: thread.provider == .claude || thread.provider == .antigravity ? thread.effort : nil"
+      ],
+      "preconditions": "ensureSession is building the signature.",
+      "action": "launchEffort is computed.",
+      "expected_result": "thread.effort for provider .claude or .antigravity, nil for every other provider. Changing the effort therefore restarts the session on those two providers and is a live change everywhere else.",
+      "side_effects": [],
+      "persistence": "Held in sessionSignature.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Two providers, no more.",
+      "verification_method": "unit - one case per provider",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-241",
+      "title": "SessionSignature.launchFast is set for Claude only",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1416 - launchFast: thread.provider == .claude ? thread.fastMode : nil"
+      ],
+      "preconditions": "ensureSession is building the signature.",
+      "action": "launchFast is computed.",
+      "expected_result": "thread.fastMode for provider .claude, nil for every other provider. Note the type is Bool?, so nil and false are DIFFERENT signature values: a thread that leaves Claude for another provider changes this field even when fast mode was off.",
+      "side_effects": [],
+      "persistence": "Held in sessionSignature.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "An optional boolean, not a boolean defaulting to false.",
+      "verification_method": "unit - Claude with fast off gives false, not nil",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-242",
+      "title": "SessionSignature.launchModel is set for Antigravity only",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1417 - launchModel: thread.provider == .antigravity ? thread.model : nil",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:510-512 - the comment \"Antigravity pins model, effort, mode and plan state at launch (--model, --effort, --mode), so any of them restarts it\""
+      ],
+      "preconditions": "ensureSession is building the signature.",
+      "action": "launchModel is computed.",
+      "expected_result": "thread.model for provider .antigravity, nil for every other provider. Antigravity pins the model with a --model argument at launch, so a model change restarts it; every other provider switches models inside a live session and contributes nil here.",
+      "side_effects": [],
+      "persistence": "Held in sessionSignature.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "One provider only.",
+      "verification_method": "unit - a model change restarts Antigravity and does not restart Claude",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-243",
+      "title": "SessionSignature.launchInteraction is set for Antigravity only",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1418 - launchInteraction: thread.provider == .antigravity ? thread.interactionMode : nil"
+      ],
+      "preconditions": "ensureSession is building the signature.",
+      "action": "launchInteraction is computed.",
+      "expected_result": "thread.interactionMode for provider .antigravity, nil for every other provider, for the same launch-argument reason as launchModel (--mode).",
+      "side_effects": [],
+      "persistence": "Held in sessionSignature.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "One provider only.",
+      "verification_method": "unit - one case per provider",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-244",
+      "title": "SessionSignature.hydra is the launch only for providers that keep the Hydra policy in their system prompt, and the head provider catalogue loads first",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1406-1410 - the comment \"Providers with heads of their own define them at launch (or, with the heads sent out elsewhere, the policy for asking Droppy Code for them); the API providers put the lead's Hydra policy in their system prompt. Either way the team is part of the session, and a change to it restarts one\"; let hydra = Self.keepsHydraPolicyInSystemPrompt(thread.provider) ? app.hydraLaunch(for: thread) : nil",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1399-1405 - the comment \"A pair that sends its heads out on another provider names their model from that provider's catalogue, which this chat may never have loaded. The lead's brief names the model, and the brief is part of the session's signature, so the catalogue loads first rather than the session restarting once it has\"; if app.hydraIsOn(thread), let pair = app.hydraPair(for: thread), app.hydraHeadsProvider(of: pair) != thread.provider { await app.providers.loadCatalog(app.hydraHeadsProvider(of: pair)) }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:514-516 - the comment \"Providers that run heads natively define them at launch, so the team restarts the session when Hydra is switched or its pair changes\""
+      ],
+      "preconditions": "ensureSession is building the signature.",
+      "action": "The Hydra field is computed, after an awaited catalogue load.",
+      "expected_result": "BEFORE the signature is built, and only when Hydra is on for the thread and the pair sends its heads out on a provider OTHER than the thread's own, app.providers.loadCatalog is awaited for that head provider. This is ordered deliberately: the head model name comes from that catalogue and travels in the lead's brief, which is part of the signature, so loading it afterwards would restart a session that had just started. The field itself is app.hydraLaunch(for: thread) when Self.keepsHydraPolicyInSystemPrompt(thread.provider) is true and nil otherwise. Switching Hydra on or off, or changing its pair, therefore restarts the session on those providers and not on the others.",
+      "side_effects": [
+        "A provider catalogue may be fetched before the session is made."
+      ],
+      "persistence": "Held in sessionSignature; the catalogue is cached by the provider registry.",
+      "failure_cases": [
+        "A catalogue that fails to load leaves the brief naming whatever the launch resolves to; the await does not throw into ensureSession."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "The await must stay before the signature is built.",
+      "verification_method": "integration - a cross-provider pair loads the head provider catalogue once and does not restart the session afterwards",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-245",
+      "title": "The limit wait needs the autoContinueAfterLimit setting on",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/AutoContinue.swift:51-54 turnFinished - guard let note = noted.removeValue(forKey: threadID) else { return false }; guard let app, app.settings.autoContinueAfterLimit, status == .failed, !continues, let thread = app.thread(threadID), !thread.isHydraHead else { return false }",
+        "DroppyCode/App/AppModel.swift:1194 - if autoContinue.turnFinished(id, status: status, continues: continues) { return }"
+      ],
+      "preconditions": "A turn finished with a usage-limit note outstanding for this thread.",
+      "action": "The gate app.settings.autoContinueAfterLimit is evaluated inside turnFinished.",
+      "expected_result": "With the setting off no wait starts, the note has already been consumed, and the app chimes and notifies about the failure as usual. The gate is part of one guard whose failure returns false, which lets AppModel chime, mark unread and notify as it would for any failed turn. The note has already been removed by the statement above the guard, so failing this gate still consumes it.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
+      "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-246",
+      "title": "The limit wait needs a failed turn",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/AutoContinue.swift:51-54 turnFinished - guard let note = noted.removeValue(forKey: threadID) else { return false }; guard let app, app.settings.autoContinueAfterLimit, status == .failed, !continues, let thread = app.thread(threadID), !thread.isHydraHead else { return false }",
+        "DroppyCode/App/AppModel.swift:1194 - if autoContinue.turnFinished(id, status: status, continues: continues) { return }"
+      ],
+      "preconditions": "A turn finished with a usage-limit note outstanding for this thread.",
+      "action": "The gate status == .failed is evaluated inside turnFinished.",
+      "expected_result": "A turn that completed, or one the user stopped (.interrupted), starts no wait even with a limit note outstanding. The gate is part of one guard whose failure returns false, which lets AppModel chime, mark unread and notify as it would for any failed turn. The note has already been removed by the statement above the guard, so failing this gate still consumes it.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
+      "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-247",
+      "title": "The limit wait needs nothing else to be continuing",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/AutoContinue.swift:51-54 turnFinished - guard let note = noted.removeValue(forKey: threadID) else { return false }; guard let app, app.settings.autoContinueAfterLimit, status == .failed, !continues, let thread = app.thread(threadID), !thread.isHydraHead else { return false }",
+        "DroppyCode/App/AppModel.swift:1194 - if autoContinue.turnFinished(id, status: status, continues: continues) { return }"
+      ],
+      "preconditions": "A turn finished with a usage-limit note outstanding for this thread.",
+      "action": "The gate !continues is evaluated inside turnFinished.",
+      "expected_result": "When finishTurn already decided something continues - a pending send, heads going out, a refusal turn or a drained follow-up - no wait starts, because the chat is not idle on a limit. The gate is part of one guard whose failure returns false, which lets AppModel chime, mark unread and notify as it would for any failed turn. The note has already been removed by the statement above the guard, so failing this gate still consumes it.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
+      "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-248",
+      "title": "The limit wait needs the thread to still exist",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/AutoContinue.swift:51-54 turnFinished - guard let note = noted.removeValue(forKey: threadID) else { return false }; guard let app, app.settings.autoContinueAfterLimit, status == .failed, !continues, let thread = app.thread(threadID), !thread.isHydraHead else { return false }",
+        "DroppyCode/App/AppModel.swift:1194 - if autoContinue.turnFinished(id, status: status, continues: continues) { return }"
+      ],
+      "preconditions": "A turn finished with a usage-limit note outstanding for this thread.",
+      "action": "The gate app.thread(threadID) resolves is evaluated inside turnFinished.",
+      "expected_result": "A thread deleted between the limit note and the turn ending starts no wait. The gate is part of one guard whose failure returns false, which lets AppModel chime, mark unread and notify as it would for any failed turn. The note has already been removed by the statement above the guard, so failing this gate still consumes it.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
+      "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-249",
+      "title": "The limit wait never starts for a Hydra head",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/AutoContinue.swift:51-54 turnFinished - guard let note = noted.removeValue(forKey: threadID) else { return false }; guard let app, app.settings.autoContinueAfterLimit, status == .failed, !continues, let thread = app.thread(threadID), !thread.isHydraHead else { return false }",
+        "DroppyCode/App/AppModel.swift:1194 - if autoContinue.turnFinished(id, status: status, continues: continues) { return }"
+      ],
+      "preconditions": "A turn finished with a usage-limit note outstanding for this thread.",
+      "action": "The gate !thread.isHydraHead is evaluated inside turnFinished.",
+      "expected_result": "A head that hits a usage limit is left to its lead; only leads wait. Without this a whole team of heads would each start its own countdown. The gate is part of one guard whose failure returns false, which lets AppModel chime, mark unread and notify as it would for any failed turn. The note has already been removed by the statement above the guard, so failing this gate still consumes it.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
+      "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-RUNTIME-250",
+      "title": "The limit wait needs the app model",
+      "source_evidence": [
+        "DroppyCode/App/Runtime/AutoContinue.swift:51-54 turnFinished - guard let note = noted.removeValue(forKey: threadID) else { return false }; guard let app, app.settings.autoContinueAfterLimit, status == .failed, !continues, let thread = app.thread(threadID), !thread.isHydraHead else { return false }",
+        "DroppyCode/App/AppModel.swift:1194 - if autoContinue.turnFinished(id, status: status, continues: continues) { return }"
+      ],
+      "preconditions": "A turn finished with a usage-limit note outstanding for this thread.",
+      "action": "The gate app resolves is evaluated inside turnFinished.",
+      "expected_result": "A runtime whose weak app reference has gone starts no wait. The gate is part of one guard whose failure returns false, which lets AppModel chime, mark unread and notify as it would for any failed turn. The note has already been removed by the statement above the guard, so failing this gate still consumes it.",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "All six gates are in one guard and are order-independent apart from the two optional bindings; reproduce each as a separate testable condition.",
+      "verification_method": "unit - a negative case for this gate alone, with the other five satisfied",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
     }
   ],
   "ui": [
@@ -4532,9 +5656,9 @@
     {
       "id": "UI-RUNTIME-002",
       "screen": "Chat timeline",
-      "element": "Warning-level notice row",
+      "element": "Warning-level notice row (the row chrome; each message has its own record)",
       "role": "row",
-      "exact_text": "The warning messages this area produces are exactly: \"<provider display name> no longer has this conversation. It starts a new one here, without the messages above.\", the localizedDescription of a failed compact, and \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\"",
+      "exact_text": "This record owns the ROW. The three warning messages this area produces each have their own record: UI-RUNTIME-031 (the provider lost the conversation), UI-RUNTIME-032 (a compact failed) and UI-RUNTIME-033 (a usage limit with no reset time).",
       "geometry": "HStack alignment .firstTextBaseline, spacing 8. padding leading 12, trailing 14, vertical 8. frame maxWidth .infinity, alignment .leading. Background in a continuous rounded rect of corner radius 18.",
       "typography": "font .chat(.callout, zoom: chatZoom).",
       "colors": "Icon foregroundStyle Chrome.warning; text foregroundStyle .primary; background Chrome.warning.opacity(0.1). Chrome.warning is the theme's own warning colour, deliberately not the system orange, and resolves per theme through the Chrome token set.",
@@ -4553,9 +5677,9 @@
     {
       "id": "UI-RUNTIME-003",
       "screen": "Chat timeline",
-      "element": "Error-level notice row",
+      "element": "Error-level notice row (the row chrome; each message has its own record)",
       "role": "row",
-      "exact_text": "The error messages this area produces are exactly: any ProviderError's description (PR-RUNTIME-009 to PR-RUNTIME-012), a provider's own turn error text, \"<provider display name> stopped unexpectedly.\" with the fallback name \"The agent\", \"The stopped message was kept: <error>\", and \"Conversation reverted, but files could not be restored: <error>\"",
+      "exact_text": "This record owns the ROW. The five error messages this area produces each have their own record: UI-RUNTIME-034 (a ProviderError), UI-RUNTIME-035 (a provider turn error), UI-RUNTIME-036 (the agent stopped unexpectedly), UI-RUNTIME-037 (the stopped message was kept) and UI-RUNTIME-038 (files could not be restored after a revert).",
       "geometry": "Identical to the warning row: spacing 8, padding leading 12, trailing 14, vertical 8, corner radius 18, frame maxWidth .infinity alignment .leading.",
       "typography": "font .chat(.callout, zoom: chatZoom).",
       "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1). Chrome.danger is the theme's own failure colour rather than the system red.",
@@ -4787,9 +5911,9 @@
     {
       "id": "UI-RUNTIME-014",
       "screen": "Chat timeline",
-      "element": "Hydra note row",
+      "element": "Hydra note row (the row chrome; each note text has its own record)",
       "role": "row",
-      "exact_text": "The note text, whose first line is its title. The notes this area writes are: \"Hydra sent no heads: the turn was stopped before they could go out. Ask again to send them.\" and its failed variant, and \"Hydra sent one head before the turn was stopped; the rest of the block never went out. Ask again to send them.\" with its count and failed variants.",
+      "exact_text": "The note text, whose first line is its title. This record owns the ROW; the seven note texts this area writes each have their own record: UI-RUNTIME-019 (a stopped or failed turn that had already sent some heads), UI-RUNTIME-020 (a stopped or failed turn whose block never went out), UI-RUNTIME-021 (a streamed block that could not send every task), UI-RUNTIME-022 (a block over the 32-task ceiling), UI-RUNTIME-023 (an empty block), UI-RUNTIME-024 (a block dropped after three refusals) and UI-RUNTIME-025 (the pair's heads cannot run on its provider).",
       "geometry": "TimelineItem(id: <given id or a fresh UUID string>, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: []))).",
       "typography": "Set by the note row, outside this area.",
       "colors": "Set by the note row, outside this area.",
@@ -4802,6 +5926,10 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2908-2912 appendHydraNote",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2678-2701 dropDelegationBlock",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2745-2750 and :2796-2802 the two \"Not every task went out\" sites",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2773 the empty-block note",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2842 the dropped-block note",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2885-2887 the fallback note",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1879-1883 - revert keeps rows with a nil turnID"
       ],
       "notes": "An empty hydraHeads array, not nil, is what marks a user row as a Hydra note. Passing an explicit id lets the note take over the identity the timeline is already drawing for the merging pill, so the pill morphs rather than being replaced."
@@ -4889,6 +6017,414 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1702-1721 compact"
       ],
       "notes": "The six-provider allowlist is exact. On any other provider the user sees no notice at all, because the text goes to the provider instead."
+    },
+    {
+      "id": "UI-RUNTIME-019",
+      "screen": "Chat timeline",
+      "element": "Hydra note row: a stopped or failed turn that had already sent some heads",
+      "role": "row",
+      "exact_text": "Exactly, for one stopped head: \"Hydra sent one head before the turn was stopped; the rest of the block never went out. Ask again to send them.\" For three failed heads: \"Hydra sent 3 heads before the turn failed; the rest of the block never went out. Ask again to send them.\" The count reads \"one head\" at exactly 1 and \"<n> heads\" otherwise; the verb reads \"was stopped\" for status .interrupted and \"failed\" for every other non-completed status.",
+      "geometry": "The row is built by appendHydraNote: TimelineItem(id: <given id or a fresh UUID string>, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: []))). Its drawn geometry is the Hydra note row chrome recorded in UI-RUNTIME-014.",
+      "typography": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "colors": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "states": [
+        "Belongs to no turn, so it survives a revert that removes the turns around it."
+      ],
+      "interactions": [
+        "None owned by this area; text selection only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2689 - appendHydraNote(\"Hydra sent \\(stream.sent == 1 ? \"one head\" : \"\\(stream.sent) heads\") before the turn \\(status == .interrupted ? \"was stopped\" : \"failed\"); the rest of the block never went out. Ask again to send them.\")",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2678-2691 dropDelegationBlock, streamed branch"
+      ],
+      "notes": "Specified by PR-RUNTIME-209. Split out of UI-RUNTIME-014, which named this string only in prose. The semicolon before \"the rest\" is part of the string."
+    },
+    {
+      "id": "UI-RUNTIME-020",
+      "screen": "Chat timeline",
+      "element": "Hydra note row: a stopped or failed turn whose block never went out",
+      "role": "row",
+      "exact_text": "Exactly: \"Hydra sent no heads: the turn was stopped before they could go out. Ask again to send them.\" and its failed variant \"Hydra sent no heads: the turn failed before they could go out. Ask again to send them.\"",
+      "geometry": "The row is built by appendHydraNote: TimelineItem(id: <given id or a fresh UUID string>, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: []))). Its drawn geometry is the Hydra note row chrome recorded in UI-RUNTIME-014.",
+      "typography": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "colors": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "states": [
+        "Belongs to no turn, so it survives a revert that removes the turns around it."
+      ],
+      "interactions": [
+        "None owned by this area; text selection only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2700 - appendHydraNote(\"Hydra sent no heads: the turn \\(status == .interrupted ? \"was stopped\" : \"failed\") before they could go out. Ask again to send them.\")",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2693-2701 dropDelegationBlock, second branch"
+      ],
+      "notes": "Specified by PR-RUNTIME-212. Written only when a block-holding reply row was found; a turn with no block gets no row at all."
+    },
+    {
+      "id": "UI-RUNTIME-021",
+      "screen": "Chat timeline",
+      "element": "Hydra note row: a streamed block that could not send every task",
+      "role": "row",
+      "exact_text": "Two lines in one note. Line one, the title, is exactly \"Not every task went out\" with no trailing punctuation. Line two is exactly \"<sent> of the <total> tasks in that block went to heads. The last <total - sent> did not: ask for them again once these report back.\" The numbers come from the stream: what actually went out, the re-read block count, and their difference.",
+      "geometry": "The row is built by appendHydraNote: TimelineItem(id: <given id or a fresh UUID string>, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: []))). Its drawn geometry is the Hydra note row chrome recorded in UI-RUNTIME-014.",
+      "typography": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "colors": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "states": [
+        "Belongs to no turn, so it survives a revert that removes the turns around it."
+      ],
+      "interactions": [
+        "None owned by this area; text selection only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2745-2750 - the appendHydraNote multi-line string in the streamed branch of spawnDelegatedHeads"
+      ],
+      "notes": "Specified by PR-RUNTIME-218. The same wording is written from a second site with different count sources (UI-RUNTIME-022); both are kept because a port can get one right and the other wrong."
+    },
+    {
+      "id": "UI-RUNTIME-022",
+      "screen": "Chat timeline",
+      "element": "Hydra note row: a block over the 32-task ceiling",
+      "role": "row",
+      "exact_text": "Two lines in one note. Line one is exactly \"Not every task went out\". Line two, for a 40-task block, is exactly \"32 of the 40 tasks in that block went to heads. The last 8 did not: ask for them again once these report back.\" The first number is always the constant maxDelegatedTasks (32), the second is the parsed block's delegations.count, and the third is their difference.",
+      "geometry": "The row is built by appendHydraNote: TimelineItem(id: <given id or a fresh UUID string>, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: []))). Its drawn geometry is the Hydra note row chrome recorded in UI-RUNTIME-014.",
+      "typography": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "colors": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "states": [
+        "Belongs to no turn, so it survives a revert that removes the turns around it."
+      ],
+      "interactions": [
+        "None owned by this area; text selection only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2796-2802 - if delegations.count > Self.maxDelegatedTasks { let dropped = delegations.count - Self.maxDelegatedTasks; appendHydraNote(...) }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2656-2658 maxDelegatedTasks = 32"
+      ],
+      "notes": "Specified by PR-RUNTIME-224. Written only for a block of 33 or more tasks."
+    },
+    {
+      "id": "UI-RUNTIME-023",
+      "screen": "Chat timeline",
+      "element": "Hydra note row: an empty delegation block",
+      "role": "row",
+      "exact_text": "Exactly, one line: \"No heads went out: the lead did this itself.\"",
+      "geometry": "The row is built by appendHydraNote: TimelineItem(id: <given id or a fresh UUID string>, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: []))). Its drawn geometry is the Hydra note row chrome recorded in UI-RUNTIME-014.",
+      "typography": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "colors": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "states": [
+        "Belongs to no turn, so it survives a revert that removes the turns around it."
+      ],
+      "interactions": [
+        "None owned by this area; text selection only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2773 - appendHydraNote(\"No heads went out: the lead did this itself.\")",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2768-2774 the empty-block path"
+      ],
+      "notes": "Specified by PR-RUNTIME-221. No turn is spent on this outcome, so this row is the whole of what the user sees."
+    },
+    {
+      "id": "UI-RUNTIME-024",
+      "screen": "Chat timeline",
+      "element": "Hydra note row: a block dropped after three refusals",
+      "role": "row",
+      "exact_text": "Two lines in one note. Line one, the title, is exactly \"No heads went out\". Line two is the caller's dropped sentence, a single space, then exactly \"The block was dropped from the reply.\" The two dropped sentences in the source are \"Its delegation block could not be read, and it had been told so already.\" and \"This request has had all 3 of its rounds of heads, and the lead had been told so already.\", so the two full second lines are \"Its delegation block could not be read, and it had been told so already. The block was dropped from the reply.\" and \"This request has had all 3 of its rounds of heads, and the lead had been told so already. The block was dropped from the reply.\"",
+      "geometry": "The row is built by appendHydraNote: TimelineItem(id: <given id or a fresh UUID string>, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: []))). Its drawn geometry is the Hydra note row chrome recorded in UI-RUNTIME-014.",
+      "typography": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "colors": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "states": [
+        "Belongs to no turn, so it survives a revert that removes the turns around it."
+      ],
+      "interactions": [
+        "None owned by this area; text selection only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2842 - appendHydraNote(\"No heads went out\\n\\(dropped) The block was dropped from the reply.\")",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2763 the unreadable dropped sentence",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2783 the round-cap dropped sentence"
+      ],
+      "notes": "Specified by PR-RUNTIME-230. The \"3\" in the second variant is HydraPrompts.maxDelegationRounds interpolated, not a literal in the sentence."
+    },
+    {
+      "id": "UI-RUNTIME-025",
+      "screen": "Chat timeline",
+      "element": "Hydra note row: the heads cannot run on the provider the pair names",
+      "role": "row",
+      "exact_text": "Exactly \"Hydra: \" followed by app.hydraHeadsFallbackNote(of: pair), with a colon and one space between them. The note text itself is produced outside this area (PR-HYDRA-102).",
+      "geometry": "The row is built by appendHydraNote: TimelineItem(id: <given id or a fresh UUID string>, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: []))). Its drawn geometry is the Hydra note row chrome recorded in UI-RUNTIME-014.",
+      "typography": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "colors": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "states": [
+        "Belongs to no turn, so it survives a revert that removes the turns around it."
+      ],
+      "interactions": [
+        "None owned by this area; text selection only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2885-2887 - if let pair = app.hydraPair(for: thread), let note = app.hydraHeadsFallbackNote(of: pair), hydraFallbackNoted != pair.id { hydraFallbackNoted = pair.id; appendHydraNote(\"Hydra: \\(note)\") }"
+      ],
+      "notes": "Specified by PR-RUNTIME-232. Written at most once per pair id per runtime, so it can come back after a relaunch."
+    },
+    {
+      "id": "UI-RUNTIME-026",
+      "screen": "Chat timeline",
+      "element": "Assistant reply left empty by a dropped delegation block",
+      "role": "text",
+      "exact_text": "Exactly: \"Asked for heads.\"",
+      "geometry": "The assistant reply row, drawn by the timeline outside this area. This record pins only the text this area writes into message.text when removing a delegation block empties it.",
+      "typography": "Set by the assistant reply row, outside this area.",
+      "colors": "Set by the assistant reply row, outside this area.",
+      "states": [
+        "Replaces an assistant reply that the block removal left empty. A reply with any text of its own keeps that text instead and this string is never shown."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2684 - if streamedMessage.text.isEmpty { streamedMessage.text = \"Asked for heads.\" }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2696 - if message.text.isEmpty { message.text = \"Asked for heads.\" }"
+      ],
+      "notes": "Specified by PR-RUNTIME-208 and PR-RUNTIME-211. Past tense: the heads were asked for but the turn did not finish. Written from two sites with the same string."
+    },
+    {
+      "id": "UI-RUNTIME-027",
+      "screen": "Chat timeline",
+      "element": "Assistant reply left empty by an unreadable delegation block",
+      "role": "text",
+      "exact_text": "Exactly: \"Asking for heads.\"",
+      "geometry": "The assistant reply row, drawn by the timeline outside this area. This record pins only the text this area writes into message.text when removing a delegation block empties it.",
+      "typography": "Set by the assistant reply row, outside this area.",
+      "colors": "Set by the assistant reply row, outside this area.",
+      "states": [
+        "Replaces an assistant reply that the block removal left empty. A reply with any text of its own keeps that text instead and this string is never shown."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2759 - if message.text.isEmpty { message.text = \"Asking for heads.\" }"
+      ],
+      "notes": "Specified by PR-RUNTIME-220. Present participle, one letter group away from UI-RUNTIME-026 and a different outcome: the lead is about to be told its block could not be read."
+    },
+    {
+      "id": "UI-RUNTIME-028",
+      "screen": "Chat timeline",
+      "element": "Assistant reply left empty by an empty delegation block",
+      "role": "text",
+      "exact_text": "Exactly: \"Done, with no heads.\"",
+      "geometry": "The assistant reply row, drawn by the timeline outside this area. This record pins only the text this area writes into message.text when removing a delegation block empties it.",
+      "typography": "Set by the assistant reply row, outside this area.",
+      "colors": "Set by the assistant reply row, outside this area.",
+      "states": [
+        "Replaces an assistant reply that the block removal left empty. A reply with any text of its own keeps that text instead and this string is never shown."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2769 - message.text = stripped.isEmpty ? \"Done, with no heads.\" : stripped"
+      ],
+      "notes": "Specified by PR-RUNTIME-221. Note the comma."
+    },
+    {
+      "id": "UI-RUNTIME-029",
+      "screen": "Chat timeline",
+      "element": "Assistant reply left empty by a round-capped delegation block",
+      "role": "text",
+      "exact_text": "Exactly: \"Asking for more heads.\"",
+      "geometry": "The assistant reply row, drawn by the timeline outside this area. This record pins only the text this area writes into message.text when removing a delegation block empties it.",
+      "typography": "Set by the assistant reply row, outside this area.",
+      "colors": "Set by the assistant reply row, outside this area.",
+      "states": [
+        "Replaces an assistant reply that the block removal left empty. A reply with any text of its own keeps that text instead and this string is never shown."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2779 - message.text = stripped.isEmpty ? \"Asking for more heads.\" : stripped"
+      ],
+      "notes": "Specified by PR-RUNTIME-222. The third of five fallbacks and the only one with \"more\"."
+    },
+    {
+      "id": "UI-RUNTIME-030",
+      "screen": "Chat timeline",
+      "element": "Assistant reply left empty when the sent card finally leaves",
+      "role": "text",
+      "exact_text": "Exactly: \"Sent out heads.\"",
+      "geometry": "The assistant reply row, drawn by the timeline outside this area. This record pins only the text this area writes into message.text when removing a delegation block empties it.",
+      "typography": "Set by the assistant reply row, outside this area.",
+      "colors": "Set by the assistant reply row, outside this area.",
+      "states": [
+        "Replaces an assistant reply that the block removal left empty. A reply with any text of its own keeps that text instead and this string is never shown."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2827 - if faded.text.isEmpty { faded.text = \"Sent out heads.\" }"
+      ],
+      "notes": "Specified by PR-RUNTIME-229. Written 3.65 seconds after the heads went out, inside withAnimation(Chrome.panelSlide)."
+    },
+    {
+      "id": "UI-RUNTIME-031",
+      "screen": "Chat timeline",
+      "element": "Warning notice: the provider lost the conversation",
+      "role": "row",
+      "exact_text": "Exactly: \"<provider display name> no longer has this conversation. It starts a new one here, without the messages above.\" The substitution is thread.provider.displayName.",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout, zoom: chatZoom).",
+      "colors": "Icon foregroundStyle Chrome.warning; text foregroundStyle .primary; background Chrome.warning.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1557 - appendNotice(.warning, \"\\(thread.provider.displayName) no longer has this conversation. It starts a new one here, without the messages above.\")"
+      ],
+      "notes": "Split out of UI-RUNTIME-002 so the string is independently traceable. Icon is SF Symbol \"exclamationmark.triangle\" (UNK-0007 covers the Windows glyph)."
+    },
+    {
+      "id": "UI-RUNTIME-032",
+      "screen": "Chat timeline",
+      "element": "Warning notice: a compact failed",
+      "role": "row",
+      "exact_text": "The localizedDescription of the thrown error, with no wrapper text of Droppy Code's own.",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout, zoom: chatZoom).",
+      "colors": "Icon foregroundStyle Chrome.warning; text foregroundStyle .primary; background Chrome.warning.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1718 - appendNotice(.warning, error.localizedDescription)"
+      ],
+      "notes": "Split out of UI-RUNTIME-002. The only warning in this area whose text comes wholly from outside; on Windows the equivalent is the error message of the failed compact request."
+    },
+    {
+      "id": "UI-RUNTIME-033",
+      "screen": "Chat timeline",
+      "element": "Warning notice: a usage limit with no reset time",
+      "role": "row",
+      "exact_text": "Exactly: \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\"",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout, zoom: chatZoom).",
+      "colors": "Icon foregroundStyle Chrome.warning; text foregroundStyle .primary; background Chrome.warning.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/AutoContinue.swift:94 - notice(threadID, .warning, \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\")"
+      ],
+      "notes": "Split out of UI-RUNTIME-002. Its paired system notification is a DIFFERENT string, \"Usage limit reached. Send a message to continue.\" (AutoContinue.swift:95)."
+    },
+    {
+      "id": "UI-RUNTIME-034",
+      "screen": "Chat timeline",
+      "element": "Error notice: a ProviderError",
+      "role": "row",
+      "exact_text": "The description of the ProviderError, exactly as PR-RUNTIME-009 to PR-RUNTIME-012 record it.",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout, zoom: chatZoom).",
+      "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1343 - appendNotice(.error, error.localizedDescription)"
+      ],
+      "notes": "Split out of UI-RUNTIME-003. Appended only when currentTurnID still matches the turn that threw, then the turn is finished as .failed."
+    },
+    {
+      "id": "UI-RUNTIME-035",
+      "screen": "Chat timeline",
+      "element": "Error notice: a provider turn error",
+      "role": "row",
+      "exact_text": "The provider's own error text, carried by .turnCompleted(status:error:) and shown with no wrapper of Droppy Code's own.",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout, zoom: chatZoom).",
+      "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2161-2163 - case .turnCompleted(let status, let error): flushDeltas(); if let error { appendNotice(.error, error) }"
+      ],
+      "notes": "Split out of UI-RUNTIME-003. A nil error appends nothing, so a failed turn can end with no notice row at all."
+    },
+    {
+      "id": "UI-RUNTIME-036",
+      "screen": "Chat timeline",
+      "element": "Error notice: the agent stopped unexpectedly",
+      "role": "row",
+      "exact_text": "Exactly: \"<provider display name> stopped unexpectedly.\" with the fallback name \"The agent\" when the thread does not resolve, giving \"The agent stopped unexpectedly.\" This text is used only when the exit carried no error of its own; an exit error is shown instead, unwrapped.",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout, zoom: chatZoom).",
+      "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2176-2179 - stopNativeHeads(); if currentTurnID != nil { let name = thread?.provider.displayName ?? \"The agent\"; appendNotice(.error, error ?? \"\\(name) stopped unexpectedly.\") }"
+      ],
+      "notes": "Split out of UI-RUNTIME-003. Appended only while a turn is in flight; an exit with no current turn is silent."
+    },
+    {
+      "id": "UI-RUNTIME-037",
+      "screen": "Chat timeline",
+      "element": "Error notice: the stopped message was kept",
+      "role": "row",
+      "exact_text": "Exactly: \"The stopped message was kept: \" followed by the error's localizedDescription.",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout, zoom: chatZoom).",
+      "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:698 - appendNotice(.error, \"The stopped message was kept: \\(error.localizedDescription)\")"
+      ],
+      "notes": "Split out of UI-RUNTIME-003. Written when the revert that should have removed a stopped message itself failed; the colon and single space are part of the string."
+    },
+    {
+      "id": "UI-RUNTIME-038",
+      "screen": "Chat timeline",
+      "element": "Error notice: files could not be restored after a revert",
+      "role": "row",
+      "exact_text": "Exactly: \"Conversation reverted, but files could not be restored: \" followed by the error's localizedDescription.",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout, zoom: chatZoom).",
+      "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1875 - fileError = \"Conversation reverted, but files could not be restored: \\(error.localizedDescription)\"",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1891 - if let fileError { appendNotice(.error, fileError) }"
+      ],
+      "notes": "Split out of UI-RUNTIME-003. The string is built at :1875 and appended at :1891, and the same value decides revert's return at :1895."
     }
   ]
 }

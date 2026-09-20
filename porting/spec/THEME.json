@@ -1548,13 +1548,16 @@
       "id": "PR-THEME-066",
       "title": "Softness blurs with a radius of softness times 28, clamped at the edges so the frame stays solid",
       "source_evidence": [
-        "DroppyCode/UI/Theme/Wallpaper.swift:249-260 blurred(_:softness:radiusScale:): `let radius = softness * 28 * radiusScale`; `guard radius > 0.01 else { return base }`; a Gaussian blur filter; the input is `CIImage(cgImage: base).clampedToExtent()`; the output is cropped back to the base's own extent",
+        "DroppyCode/UI/Theme/Wallpaper.swift:247-248 the doc comment: 'Softens the base picture per `softness`, scaled by `radiusScale` so a smaller copy gets a proportionally smaller radius. Runs anywhere: Core Image does the work.'",
+        "DroppyCode/UI/Theme/Wallpaper.swift:250-251 `let radius = softness * 28 * radiusScale` and `guard radius > 0.01 else { return base }`",
+        "DroppyCode/UI/Theme/Wallpaper.swift:252 `guard let blur = CIFilter(name: \"CIGaussianBlur\") else { return base }` - the filter identity is the literal string \"CIGaussianBlur\"",
         "DroppyCode/UI/Theme/Wallpaper.swift:253-254 comment: \"The blur shrinks opaque edges toward transparent, so the image is clamped first and cropped back to its own extent: the middle softens while the frame stays solid.\"",
+        "DroppyCode/UI/Theme/Wallpaper.swift:255-259 `let extent = CGRect(origin: .zero, size: CGSize(width: base.width, height: base.height))`, `blur.setValue(CIImage(cgImage: base).clampedToExtent(), forKey: kCIInputImageKey)`, `blur.setValue(radius, forKey: kCIInputRadiusKey)`, `guard let output = blur.outputImage?.cropped(to: extent) else { return nil }`, `return ciContext.createCGImage(output, from: extent)`",
         "DroppyCode/UI/Theme/Wallpaper.swift:26 `nonisolated static let ciContext = CIContext(options: [.useSoftwareRenderer: false])` with the comment that making one per picture stalls the softness slider"
       ],
       "preconditions": "A downsampled base picture exists.",
       "action": "The picture is softened for a softness value.",
-      "expected_result": "The Gaussian radius is softness multiplied by 28 and by the radius scale (1 for the full-size render, the preview-to-base width ratio for a live preview). A radius of 0.01 or less returns the base unchanged, so softness 0 costs nothing. The source is clamped to its own extent before blurring and the result cropped back to it, so the picture's outer pixels stay opaque instead of fading to transparent at the window edges. One shared GPU-backed render context is used for every blur, never one per picture.",
+      "expected_result": "The Gaussian radius is softness multiplied by 28 and by the radius scale (1 for the full-size render, the preview-to-base width ratio for a live preview). A radius of 0.01 or less returns the base unchanged, so softness 0 costs nothing. The filter is created by name, and the name is exactly \"CIGaussianBlur\"; the input image is set under kCIInputImageKey and the radius under kCIInputRadiusKey. The source is clamped to its own extent before blurring and the result cropped back to that extent, taken as the origin plus the base image's pixel width and height, so the picture's outer pixels stay opaque instead of fading to transparent at the window edges. One shared GPU-backed render context is used for every blur, never one per picture.",
       "side_effects": [
         "GPU image work"
       ],
@@ -1564,7 +1567,7 @@
         "The filter produces no output: nothing is returned, and the caller drops the render."
       ],
       "cancellation": "not cancellable once started",
-      "windows_path": "Platform boundary: a Direct2D or equivalent Gaussian blur. The 28 multiplier, the 0.01 short-circuit, and the clamp-then-crop edge handling are all observable and must match; a blur without edge clamping puts a soft translucent band around the whole window.",
+      "windows_path": "Platform boundary: \"CIGaussianBlur\" is a Core Image filter identifier with no Windows counterpart, so the Windows build substitutes its own Gaussian blur (Direct2D's Gaussian blur effect or equivalent). The filter's IDENTITY is recorded here so the substitution is a named one rather than a guess, and so the radius semantics can be matched: Core Image's radius parameter is the Gaussian's standard-deviation-derived radius, and a Windows blur whose parameter means something else must be converted rather than passed through. The 28 multiplier, the 0.01 short-circuit, and the clamp-then-crop edge handling are all observable and must match; a blur without edge clamping puts a soft translucent band around the whole window.",
       "verification_method": "unit: radius formula and the short-circuit; capture comparison: the picture's corner pixels stay opaque at softness 1",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3429,25 +3432,25 @@
     },
     {
       "id": "PR-THEME-143",
-      "title": "Head mentions render as a tinted dragon glyph, a space and the head's bold name, carrying a custom attribute rather than a link",
+      "title": "In the native attributed path a head mention is a tinted dragon glyph, a space and the bold name, carrying a custom attribute and deliberately not a link",
       "source_evidence": [
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:179-244 appendProse(): with no mentions the run is appended plainly; otherwise names are matched longest first and word-bounded (the character before and after must be neither a letter nor a number); a match emits an attachment whose image is the tinted dragon at `glyphSize = (base.pointSize * 1.25).rounded()` with bounds `NSRect(x: 0, y: base.descender + 1, width: glyphSize, height: glyphSize)`, then a space in the base font and the text colour, then the name in the bold face in the persona's own colour",
-        "DroppyCode/UI/Markdown/LinkParagraphView.swift:223-239 when the paragraph's chat has a target for that name, both the attachment and the name carry `.hydraHead` holding the target URL, with the comment that a real link attribute would recolour the name in the accent and would give it a pointing hand, which a head chip must not have",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:223-230 the comment 'Custom attribute, not .link: linkTextAttributes would recolour the name in the accent. No pointing hand either: a head chip keeps the normal arrow cursor. Its hover popover and its click still work; the hand is what a real link wears.' with `let headAttributes: [NSAttributedString.Key: Any] = [.hydraHead: target.url]` applied over the attachment's whole range",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:234-238 the name run `NSAttributedString(string: persona.name, attributes: [.font: bold, .foregroundColor: nsColor(persona), .hydraHead: target.url])`",
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:247-249 `extension NSAttributedString.Key { static let hydraHead = NSAttributedString.Key(\"droppycode.hydraHead\") }`",
-        "DroppyCode/UI/Markdown/LinkParagraphView.swift:158-177 the dragon image is cached per asset, colour and size and is drawn by filling the persona's colour over the source art with the source-atop operation",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:387 the SwiftUI path's glyph offset is `-(size * 0.2)` at a glyph size of `16 * zoom`"
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:158-177 the dragon image is cached per asset, colour and size and is drawn by filling the persona's colour over the source art with the source-atop operation"
       ],
       "preconditions": "A paragraph names one or more heads.",
       "action": "The paragraph is built.",
-      "expected_result": "Each mention becomes a tinted dragon glyph at 1.25 times the base point size, rounded, baseline-offset by the descender plus one, then a space, then the head's name in bold in the head's own colour. Matching is longest name first and word-bounded, so \"Hank 2\" beats \"Hank\" and \"Hanky\" does not match \"Hank\". When the chat has a target for that head, both the glyph and the name carry the custom attribute \"droppycode.hydraHead\" holding the URL; they are deliberately not links, so the name keeps the head's colour and the pointer keeps the normal arrow. In the SwiftUI text path the glyph is 16 points times the chat zoom, raised by 20 percent of its size.",
+      "expected_result": "This row covers the native NSAttributedString path only; the SwiftUI Text path is PR-THEME-177 and the no-target fallback common to both is PR-THEME-178. Each mention becomes a tinted dragon glyph at 1.25 times the base point size, rounded, baseline-offset by the base font's descender plus one, then a space in the base font and the surrounding text colour, then the head's name in the bold face in the head's own colour. Matching is longest name first and word-bounded, so \"Hank 2\" beats \"Hank\" and \"Hanky\" does not match \"Hank\". When the chat has a target for that head, both the attachment and the name carry the custom attribute key \"droppycode.hydraHead\" holding the target URL, and NOT a link attribute: the source's comment records that a real link would recolour the name in the accent through linkTextAttributes and would give it a pointing-hand cursor, which a head chip must not have. Its hover popover and its click still work; only the hand cursor and the accent recolouring are what a real link would add.",
       "side_effects": [],
       "persistence": "not persisted",
       "failure_cases": [
         "A named head with no target renders decorated but inert."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The custom attribute name is a string constant that both the builder and the hit tester use; keep it exactly. The two paths use different glyph sizes (1.25 times the point size in the native path, a flat 16 times zoom in the text path) and that difference is upstream behaviour.",
-      "verification_method": "unit: longest-first word-bounded matching; capture comparison of the two glyph sizes",
+      "windows_path": "The custom attribute name \"droppycode.hydraHead\" is a string constant that both the builder and the hit tester use; keep it exactly. Do NOT model this run as a hyperlink in the Windows text control: the whole point of the custom key is that the platform's own link styling (accent recolouring, hand cursor) must not apply. The SwiftUI Text path takes the opposite decision for its own reasons and is specified separately in PR-THEME-177.",
+      "verification_method": "unit: longest-first word-bounded matching and the attribute key on both the attachment and the name run; interaction test that the pointer stays an arrow over a mention",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -3924,6 +3927,418 @@
       "cancellation": "Detaching the view stops the clock and clears the paint.",
       "windows_path": "Platform boundary: a temporary per-range foreground colour that does not invalidate layout. The difference in frame-rate pinning between this clock and the shared one is upstream behaviour (markdown-link-grammar extract, gotcha 11).",
       "verification_method": "interaction test: a streaming link paragraph's links stay accent-coloured as they fade in; the clock stops when the row scrolls away",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-THEME-162",
+      "title": "The spinner's three row tints are the accent blended 0.38 toward white, the accent itself, and the accent blended 0.22 toward black, in sRGB",
+      "source_evidence": [
+        "DroppyCode/UI/Common/WorkingIndicators.swift:18-21 the doc comment: 'Row tints drawn from the theme's accent (the system accent for System, Light and Dark): a lighter shade on top, the accent itself in the middle and a deeper shade below, so the wave keeps Zeron's sunrise gradient in whatever colour the theme wears. A dynamic accent resolves for the appearance current when this is called.'",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:22-29 `static func rowTints(accent: NSColor) -> [NSColor] { let base = accent.usingColorSpace(.sRGB) ?? accent; return [base.blended(withFraction: 0.38, of: .white) ?? base, base, base.blended(withFraction: 0.22, of: .black) ?? base] }`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:30-31 `static let dim = 0.1` and `static let period: Double = 0.75`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:1-11 the file header recording the Zeron (MIT) provenance and that the pulse is a repeating Core Animation keyframe the render server plays on its own, with no timer, no view update and no main-thread layout for as long as it runs"
+      ],
+      "preconditions": "A spinner is being tinted for the current theme and appearance.",
+      "action": "Row tints are computed from the theme accent.",
+      "expected_result": "The accent is first converted to sRGB, falling back to the accent unchanged when that conversion is unavailable. Three tints are returned in row order top to bottom: the sRGB accent blended 0.38 of the way toward pure white, the sRGB accent itself, and the sRGB accent blended 0.22 of the way toward pure black. Each blend falls back to the unblended base when the blend is unavailable. The resting opacity floor is 0.1 and one full pulse takes 0.75 seconds. Because the accent may be dynamic, the tints resolve for whichever appearance is current when they are computed, not for the appearance at launch.",
+      "side_effects": [],
+      "persistence": "Not persisted; recomputed on each retint.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The blend fractions, the blend targets and the sRGB conversion are exact and observable. A Windows colour mix must be in sRGB, not in a linear or perceptual space, or the top row reads visibly lighter or darker than upstream.",
+      "verification_method": "unit test over a fixed accent asserting the three sRGB component triples",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-THEME-163",
+      "title": "A spinner cell's opacity curve is full at 0, smoothsteps to 0.1 by 45 percent, holds to 92 percent, then rises linearly back to full",
+      "source_evidence": [
+        "DroppyCode/UI/Common/WorkingIndicators.swift:33 the doc comment: 'Full at 0, eases down to dim by 45%, holds to 92%, rises to full by 100%.'",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:34-44 `static func opacity(phase: Double) -> Double { var p = phase.truncatingRemainder(dividingBy: 1); if p < 0 { p += 1 }; if p < 0.45 { let t = p / 0.45; return 1 - (1 - dim) * (t * t * (3 - 2 * t)) }; if p < 0.92 { return dim }; let t = (p - 0.92) / 0.08; return dim + (1 - dim) * t }`"
+      ],
+      "preconditions": "A phase value, which may be negative because a cell's lag is subtracted from it.",
+      "action": "The curve is evaluated for that phase.",
+      "expected_result": "The phase is first wrapped into [0, 1) by taking the remainder modulo 1 and adding 1 when the result is negative, so a negative phase (a cell lagging the wave) is valid input. Below 0.45 the value is 1 minus (1 - 0.1) times the smoothstep t*t*(3 - 2*t) with t = p / 0.45, so it falls from 1 to 0.1 with zero slope at both ends. From 0.45 up to 0.92 the value is exactly 0.1. From 0.92 to 1 the value rises linearly from 0.1 back to 1 with t = (p - 0.92) / 0.08. The fall takes 45 percent of the period, the hold 47 percent and the rise 8 percent: the curve has one soft edge and one sharp one and is not symmetric.",
+      "side_effects": [],
+      "persistence": "Pure function; nothing stored.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Reproduce the piecewise function exactly, including the negative-phase wrap and the asymmetric 0.45 / 0.92 / 0.08 split. A symmetric ease reads as a different animation.",
+      "verification_method": "unit test sampling the curve at 0, 0.2, 0.45, 0.7, 0.92, 0.96 and 1, and at a negative phase, against pinned values",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-THEME-164",
+      "title": "The 3 by 3 working spinner's cell lag is the distance from bottom-centre over 2.5, so the wave travels upward",
+      "source_evidence": [
+        "DroppyCode/UI/Common/WorkingIndicators.swift:46-52 `/// One cell of a spinner: its row (for the tint) and how far behind the wave it pulses, as a fraction of the period.` with `struct SpinnerCell { var row: Int; var column: Int; var lag: Double }`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:54-61 the doc comment on WorkingSpinner: 'The 3×3 working indicator shown while a reply is being written. Hosted as layers, exactly like the sidebar's mini spinners... It used to be a Canvas on a 30 Hz `TimelineView`, which woke SwiftUI thirty times a second for the whole length of a turn — inside the lazy stack, so every one of those ticks landed on the main thread while the reader scrolled. The layers take the row's opacity like any other view, so the working line still fades and moves with the words beside it.'",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:62-63 `struct WorkingSpinner: View { var cellSize: CGFloat = 3.5 }`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:66-74 `/// Phase = distance from bottom-center, so the wave travels upward.` with `static let cells: [SpinnerCell] = (0..<3).flatMap { row in (0..<3).map { column in let dx = Double(column - 1); let dy = Double(2 - row); return SpinnerCell(row: row, column: column, lag: (dx * dx + dy * dy).squareRoot() / 2.5) } }`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:76-79 `SpinnerCells(cells: Self.cells, columns: 3, cellSize: cellSize, animated: !reduceMotion, theme: ThemeManager.current).accessibilityHidden(true)`"
+      ],
+      "preconditions": "The working line is drawing its indicator.",
+      "action": "The 3 by 3 spinner is built.",
+      "expected_result": "Nine cells, built row-major over rows 0 to 2 and columns 0 to 2. A cell's lag is the Euclidean distance from the bottom-centre cell (column 1, row 2), that is hypot(column - 1, 2 - row), divided by 2.5. The bottom-centre cell therefore has lag 0 and the two top corners the largest lag, so the pulse starts at the bottom middle and travels upward and outward. The default cell size is 3.5 points. The grid is hidden from assistive technology entirely, because the surrounding working line already carries the label. Animation is disabled when Reduce Motion is on. The theme is read at this level so a theme change reaches the cells at once rather than waiting for a notification.",
+      "side_effects": [],
+      "persistence": "A compile-time constant.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The divisor 2.5 and the bottom-centre origin are exact. The indicator must not be redrawn on a per-frame timer: the source's own comment records that a 30 Hz timeline inside a lazy list was the cost this replaced, so the Windows build drives it from a composited animation, not from a render loop on the UI thread.",
+      "verification_method": "unit test asserting the nine lag values against pinned numbers, and that the 3 by 3 is hidden from accessibility",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-THEME-165",
+      "title": "The 2 by 3 mini spinner's lag is its index in a fixed clockwise perimeter ring over six, and it is labelled \"Working\"",
+      "source_evidence": [
+        "DroppyCode/UI/Common/WorkingIndicators.swift:81 the doc comment: 'The 2×3 mini indicator whose cells snake clockwise, for working threads in lists.'",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:82-83 `struct MiniSpinner: View { var cellSize: CGFloat = 2.4 }`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:88-90 `private static let ring: [(row: Int, column: Int)] = [(0, 0), (0, 1), (1, 1), (2, 1), (2, 0), (1, 0)]`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:92-97 `static let cells: [SpinnerCell] = (0..<3).flatMap { row in (0..<2).map { column in let index = ring.firstIndex { $0.row == row && $0.column == column } ?? 0; return SpinnerCell(row: row, column: column, lag: Double(index) / Double(ring.count)) } }`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:99-110 the body, hosting either StillSpinnerCells or SpinnerCells at 2 columns, closing with `.accessibilityLabel(Text(\"Working\"))`"
+      ],
+      "preconditions": "A list row, helper stub, team panel or MCP row is showing a working mark.",
+      "action": "The mini spinner is built.",
+      "expected_result": "Six cells over rows 0 to 2 and columns 0 to 1. A cell's lag is its position in the fixed ring [(0,0), (0,1), (1,1), (2,1), (2,0), (1,0)] divided by 6, so the pulse walks that perimeter clockwise: top-left, top-right, middle-right, bottom-right, bottom-left, middle-left. A cell not found in the ring would take index 0, but every one of the six is in it. The default cell size is 2.4 points. The whole indicator carries the accessibility label exactly \"Working\"; unlike the 3 by 3 it is not hidden from assistive technology, because in a list row it is the only thing saying that the thread is working.",
+      "side_effects": [],
+      "persistence": "A compile-time constant.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The ring order is the animation and must be copied literally; deriving it from an angle sweep gives a different order. The accessibility label \"Working\" is a user-visible assistive string and is kept verbatim.",
+      "verification_method": "unit test asserting the six lag values in ring order and the accessibility label string",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-THEME-166",
+      "title": "Spinner cells are laid out with a gap of 0.8 times the cell size, centred in the offered frame, with row 0 at the top",
+      "source_evidence": [
+        "DroppyCode/UI/Common/WorkingIndicators.swift:196-205 `var contentSize: CGSize { let rows = (cells.map(\\.row).max() ?? -1) + 1; let gap = cellSize * 0.8; return CGSize(width: CGFloat(columns) * cellSize + CGFloat(max(0, columns - 1)) * gap, height: CGFloat(rows) * cellSize + CGFloat(max(0, rows - 1)) * gap) }`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:206 `override var intrinsicContentSize: NSSize { contentSize }`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:274-293 placeCells(): `let gap = cellSize * 0.8`, the comment 'Centred in whatever frame SwiftUI hands out; the origin is at the top-left of the grid.' with `let originX = ((bounds.width - content.width) / 2).rounded()` and the same for Y, then the comment 'AppKit's coordinates start at the bottom; row 0 sits at the top of the grid.' with `let x = originX + CGFloat(cell.column) * (cellSize + gap)` and `let y = originY + CGFloat(rows - 1 - cell.row) * (cellSize + gap)`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:115-138 StillSpinnerCells lays the same grid out as a VStack(spacing: cellSize * 0.8) of HStack(spacing: cellSize * 0.8)",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:160-163 `func sizeThatFits(_ proposal: ProposedViewSize, nsView: SpinnerLayerView, context: Context) -> CGSize? { nsView.contentSize }`"
+      ],
+      "preconditions": "A spinner has its cells, its column count and its cell size.",
+      "action": "The grid is measured and laid out.",
+      "expected_result": "The inter-cell gap, both horizontally and vertically, is exactly 0.8 times the cell size. The content size is columns times cellSize plus (columns - 1) times gap wide, and rows times cellSize plus (rows - 1) times gap tall, with the subtraction floored at zero so a single row or column adds no gap. That content size is both the intrinsic size and the size reported to the layout system. Within whatever frame the layout offers, the grid is centred, with the centring origin rounded to whole points on both axes so cells land on pixel boundaries. Row 0 draws at the top of the grid and the highest row number at the bottom, which in a bottom-origin coordinate system means the row index is reversed when computing y. The still variant produces the same geometry through nested stacks with the same 0.8 spacings.",
+      "side_effects": [],
+      "persistence": "Not persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "A top-origin coordinate system removes the row reversal but must keep row 0 at the top; getting this backwards flips the 3 by 3's wave to travel downward and reverses the mini spinner's ring. The rounding of the centring origin is deliberate and keeps 2.4-point cells crisp.",
+      "verification_method": "unit test over both grids asserting content size and every cell frame for a known bounds rectangle",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-THEME-167",
+      "title": "Each spinner cell pulses on a 40-sample linear keyframe animation on layer opacity, begun from one shared clock origin",
+      "source_evidence": [
+        "DroppyCode/UI/Common/WorkingIndicators.swift:174-178 `private static let animationKey = \"pulse\"` and `/// Samples per period. The curve has one soft edge and one sharp one; forty points keep both without a visible step.` with `private static let sampleCount = 40`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:295-316 installAnimations(): `layer.removeAnimation(forKey: Self.animationKey)`, then `layer.opacity = 1`, `let animation = CAKeyframeAnimation(keyPath: \"opacity\")`, the comment 'The curve, shifted by the cell's lag, so every cell shares one clock and the wave comes from the offsets alone.' with `animation.values = (0...Self.sampleCount).map { step in GradientSpin.opacity(phase: Double(step) / Double(Self.sampleCount) - cell.lag) }`, `animation.calculationMode = .linear`, `animation.duration = GradientSpin.period`, `animation.repeatCount = .infinity`, the comment 'One fixed origin on the shared clock, so every spinner in the app pulses in step.' with `animation.beginTime = layer.convertTime(1, from: nil)`, `animation.isRemovedOnCompletion = false`, `layer.add(animation, forKey: Self.animationKey)`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:182-184 `wantsLayer = true` and `layerContentsRedrawPolicy = .never`"
+      ],
+      "preconditions": "A spinner's cell layers exist and animation is not suppressed.",
+      "action": "Animations are installed, which happens on configure, on joining a window, and after any rebuild.",
+      "expected_result": "Any existing pulse animation is removed first, so installing twice does not stack two animations. The layer's own opacity is set to 1 before the animation is added. The animation is a keyframe animation on the opacity key path carrying 41 values, sampled at step/40 for step 0 through 40 inclusive, each evaluated through the opacity curve at that fraction minus the cell's lag; interpolation between samples is linear. Its duration is exactly one period, 0.75 seconds, and it repeats indefinitely and is not removed on completion. Its begin time is converted from absolute time 1 into the layer's time space, which is the same fixed origin for every spinner in the application, so every spinner anywhere in the app pulses in step with every other rather than from whenever it appeared. The layer never redraws its contents; only its opacity animates.",
+      "side_effects": [
+        "A repeating render-server animation per cell, which continues without waking the UI thread"
+      ],
+      "persistence": "Not persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The shared begin-time origin is the observable part: two working threads in the sidebar must not pulse out of phase. A Windows composition animation needs the same absolute-clock anchor, not a per-view start time. Forty samples is the stated minimum that keeps both the soft and the sharp edge of the curve without a visible step; using the curve directly as an easing function is acceptable only if it is sampled at least this finely.",
+      "verification_method": "unit test asserting 41 sample values against the curve, the duration, the repeat and the non-removal; capture comparison of two spinners appearing at different times and pulsing in step",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-THEME-168",
+      "title": "Under Reduce Motion a spinner installs no animation and freezes each cell at its own lag",
+      "source_evidence": [
+        "DroppyCode/UI/Common/WorkingIndicators.swift:63 and :86 `@Environment(\\.accessibilityReduceMotion) private var reduceMotion` on both spinners",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:76-77 and :105 both spinners pass `animated: !reduceMotion` into SpinnerCells",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:296-300 `layer.removeAnimation(forKey: Self.animationKey)` then `guard animated else { layer.opacity = Float(GradientSpin.opacity(phase: -cell.lag)); continue }`"
+      ],
+      "preconditions": "Reduce Motion is on in the system's accessibility settings.",
+      "action": "A spinner is built or reconfigured.",
+      "expected_result": "No animation is added to any cell. Each cell's opacity is set once to the curve evaluated at minus its own lag, which is the value it would hold at the very start of the wave, so the frozen grid still shows the tint gradient and the lag pattern rather than a flat block. Any previously installed animation is removed first, so turning Reduce Motion on while a spinner is on screen stops it rather than leaving it running. The still-frame variant (PR-THEME-171) uses this same frozen evaluation.",
+      "side_effects": [],
+      "persistence": "Not persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Reduce Motion maps to the Windows 'Show animations' accessibility preference. Freezing at the start of the wave, not at full opacity, is the observable behaviour.",
+      "verification_method": "unit test asserting no animation and the per-cell frozen opacity values under the reduced-motion flag",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-THEME-169",
+      "title": "A spinner retints on a theme change, on an appearance change and on joining a window, and reinstalls its animation on the last of those",
+      "source_evidence": [
+        "DroppyCode/UI/Common/WorkingIndicators.swift:185-188 the comment 'The cells' colours are set once, not resolved on every draw, so a theme change has to reach them here: a row that never re-renders (a thread working away in the sidebar) would otherwise keep the old theme's colours.' with `NotificationCenter.default.addObserver(self, selector: #selector(themeDidChange), name: ThemeManager.didChange, object: nil)`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:194-195 `deinit { NotificationCenter.default.removeObserver(self) }`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:236-246 `override func viewDidMoveToWindow()` with the comment 'A layer that left the window loses nothing, but one that joins it late (a row built off screen) needs its animation running from the shared clock, and its tints resolved for the window's appearance.' then `guard window != nil else { return }; applyTints(); installAnimations()`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:248-252 `override func viewDidChangeEffectiveAppearance()` with the comment 'The system accent is dynamic; re-resolve it for the new appearance.' then `applyTints()`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:253-255 `@objc private func themeDidChange() { applyTints() }`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:257-271 applyTints(): re-reads `ThemeManager.current`, resolves `GradientSpin.rowTints(accent: Chrome.accentNSColor)` inside `effectiveAppearance.performAsCurrentDrawingAppearance`, and assigns each cell layer its row's colour inside a CATransaction with actions disabled",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:208-234 configure(): `let rebuild = cells.count != cellLayers.count`, `let retint = rebuild || theme != self.theme`, and the early return `guard retint || columns != self.columns || cellSize != self.cellSize || animated != self.animated else { return }`"
+      ],
+      "preconditions": "A spinner is on screen, possibly in a row that never re-renders.",
+      "action": "The theme changes, the effective appearance changes, or the view joins a window.",
+      "expected_result": "Three separate triggers retint the cells: the theme-change notification, an effective-appearance change (because the system accent resolves differently in light and dark), and joining a window. Joining a window additionally reinstalls the animations, so a spinner built off screen starts from the shared clock rather than from whenever it appeared; leaving a window does nothing at all. Retinting re-reads the current theme and resolves the accent inside the view's own drawing appearance, then writes every cell layer's background colour inside one transaction with implicit actions disabled, so colours change instantly and do not crossfade. Reconfiguration is short-circuited when nothing relevant differs, and cell layers are rebuilt only when the cell count itself changed. The notification observer is removed when the view is torn down.",
+      "side_effects": [],
+      "persistence": "Not persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The critical case is a spinner in a row that never re-renders: without an explicit theme signal it keeps the old accent indefinitely. A Windows implementation needs the same three triggers, including a light/dark change, and must write the colours without an implicit transition.",
+      "verification_method": "interaction test switching the theme and the system appearance while a sidebar row is working, asserting the new tints and, for the window case, a reinstalled in-phase animation",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-THEME-170",
+      "title": "Spinner layers take no hit tests and suppress implicit animation on opacity, bounds, position and background colour",
+      "source_evidence": [
+        "DroppyCode/UI/Common/WorkingIndicators.swift:208 `override func hitTest(_ point: NSPoint) -> NSView? { nil }`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:222-226 the comment 'Never implicitly animated: frames are set once, colours on a theme change and opacity belongs to the keyframes.' with `layer.actions = [\"opacity\": NSNull(), \"bounds\": NSNull(), \"position\": NSNull(), \"backgroundColor\": NSNull()]`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:266-270 the tint write wrapped in `CATransaction.begin(); CATransaction.setDisableActions(true); ...; CATransaction.commit()`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:285-292 the cell placement wrapped in the same disabled-action transaction",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:190-192 `@available(*, unavailable) required init?(coder: NSCoder) { nil }`"
+      ],
+      "preconditions": "A spinner is drawn inside a clickable row.",
+      "action": "The pointer moves over it, or its frame, colour or opacity is written.",
+      "expected_result": "The spinner is transparent to hit testing, so a click on it reaches the row underneath and the row's hover state is unaffected by the indicator sitting in it. Every cell layer explicitly disables the implicit animation on opacity, bounds, position and background colour, and both the tint write and the placement write additionally run inside a transaction with actions disabled. The consequence is that a frame change, a theme change or a layout pass snaps rather than sliding or crossfading, and only the pulse keyframes ever animate opacity.",
+      "side_effects": [],
+      "persistence": "Not persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "A Windows composition layer that animates property changes by default will crossfade the tint on a theme switch and slide the cells on a layout pass; both must be suppressed. The pass-through hit test is required or a working row becomes partly unclickable.",
+      "verification_method": "interaction test that a click on the indicator selects the row; unit test that a frame and colour write produce no transition",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-THEME-171",
+      "title": "The still spinner draws the same grid as plain shapes frozen at the start of the wave, for image renderers that cannot capture hosted views",
+      "source_evidence": [
+        "DroppyCode/UI/Common/WorkingIndicators.swift:84-86 `/// Draws one still frame with plain shapes instead of hosting a layer view. For image renderers, which cannot capture AppKit views: the archive ghost is rendered this way.` with `var isStill = false`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:101-107 `if isStill { StillSpinnerCells(cells: Self.cells, columns: 2, cellSize: cellSize, tints: GradientSpin.rowTints(accent: Chrome.accentNSColor)) } else { SpinnerCells(...) }`",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:112-138 `/// A spinner's cells as plain shapes, frozen at the start of the wave.` with the VStack/HStack of `Rectangle().fill(Color(nsColor: tints[row])).frame(width: cellSize, height: cellSize).opacity(GradientSpin.opacity(phase: -lag))`, both stack spacings `cellSize * 0.8`, and the lag looked up per (row, column) defaulting to 0",
+        "porting/dead_code.md:89 records this variant as NOT dead; its call site is DroppyCode/App/Views/Sidebar/SidebarView.swift:2101 `MiniSpinner(cellSize: 2.4, isStill: true)`, the archive ghost face"
+      ],
+      "preconditions": "A row is being rendered into a flat image, such as the archive genie ghost.",
+      "action": "The mini spinner is asked for its still form.",
+      "expected_result": "Instead of hosting a layer-backed view, the spinner draws plain rectangles: one per cell, each the cell size square, filled with its row's tint, at the opacity the curve gives for minus that cell's lag, laid out as a vertical stack of horizontal stacks both spaced at 0.8 times the cell size. The tints are resolved at build time from the current accent. The result is a single frozen frame identical to the first frame of the wave, and it is what appears in the flying archive ghost because an image renderer cannot capture a hosted platform view. The row count is derived from the cells, and a cell missing from the lag lookup would take lag 0. The still form still carries the \"Working\" accessibility label, because the label is applied outside the branch.",
+      "side_effects": [],
+      "persistence": "Not persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "If the Windows archive ghost is rendered by a mechanism that CAN capture the live indicator, this variant collapses to an implementation detail; but as long as the ghost is produced by an offscreen renderer, the frozen-shape fallback is required or the ghost shows an empty gap where the indicator was.",
+      "verification_method": "capture comparison of the archive ghost against a live row, asserting the indicator is present and frozen at the wave's first frame",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-THEME-172",
+      "title": "A morph refuses when either rectangle is one point or smaller in either dimension, or under Reduce Motion, and says so to its caller",
+      "source_evidence": [
+        "DroppyCode/UI/Common/Genie.swift:27-43 `/// A surface that changes shape on its way between two places: a rounded rectangle whose frame and corner radius run from one to the other, as one geometry. The Hydra panel grows out of its button this way and shrinks back into it.` with `struct Morph: Identifiable { let id = UUID(); let from: CGRect; let fromRadius: CGFloat; let to: CGRect; let toRadius: CGFloat; let fadeIn: Double; let holdsFor: Double; let surface: (CGFloat) -> AnyView }`",
+        "DroppyCode/UI/Common/Genie.swift:36-41 the field comments: fadeIn is 'How long the surface takes to fade in at the start, over what it is replacing'; holdsFor is 'How long the surface holds its first shape before it sets off, so a fade-in can finish over the thing it stands in for'; surface is 'The surface, drawn for the corner radius it has at that moment'",
+        "DroppyCode/UI/Common/Genie.swift:47-51 `/// How long a morph takes to change shape, not counting its hold at the start.` `nonisolated static let morphDuration: Double = 0.5`; `/// The surface's crossfade at either end, with what it stands in for.` `nonisolated static let morphCrossfade: Double = 0.12`; `static var morphAnimation: Animation { .smooth(duration: morphDuration) }`",
+        "DroppyCode/UI/Common/Genie.swift:53-70 `/// Morphs a surface from one frame and corner radius to another, both in the layer's coordinates. Returns false when nothing moves (reduced motion, or nothing to draw), so the caller can show the real thing instead.` with `@discardableResult func morph(...) -> Bool` whose guard is `from.width > 1, from.height > 1, to.width > 1, to.height > 1, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion`",
+        "DroppyCode/UI/Common/Genie.swift:72-74 `func finishMorph(_ id: UUID) { morphs.removeAll { $0.id == id } }`",
+        "DroppyCode/UI/Common/Genie.swift:8-13 the animator is a `@MainActor @Observable final class GenieAnimator` with `static let shared`, `nonisolated static let coordinateSpace = \"droppy-code-window\"` and `nonisolated static let duration: Double = 0.58`"
+      ],
+      "preconditions": "A caller wants a surface to change shape between two frames, for example the Hydra panel growing out of its button.",
+      "action": "morph is called with a source and destination rectangle and corner radius.",
+      "expected_result": "The call returns false, and queues nothing, when any of the four dimensions (source width, source height, destination width, destination height) is 1 point or smaller, or when the system's reduce-motion accessibility flag is set. The return value is meaningful: a caller that gets false shows the real surface immediately instead of waiting for an animation that will never run. Otherwise a morph record is appended carrying both rectangles, both corner radii, the fade-in duration, the hold duration and a closure that draws the surface for whatever corner radius it has at that moment, and the call returns true. The shape change itself takes 0.5 seconds on a smooth animation, the crossfade at either end takes 0.12 seconds, and a morph is removed by identity when its view finishes. All morph records live in one shared main-actor observable animator whose window coordinate space is named \"droppy-code-window\".",
+      "side_effects": [
+        "Appends a morph to the shared animator, which the window-wide layer draws"
+      ],
+      "persistence": "Process state only.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The greater-than-1 test guards against a zero or degenerate frame captured before layout; reproduce it rather than testing for non-empty. The boolean return is a contract with the caller and must not be discarded at the call sites that branch on it.",
+      "verification_method": "unit test over a degenerate rectangle, a reduced-motion run and a normal run, asserting the return value and whether anything was queued",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-THEME-173",
+      "title": "A morph fades in, holds, changes frame and corner radius as one geometry, then fades out over the last 0.12 seconds",
+      "source_evidence": [
+        "DroppyCode/UI/Common/Genie.swift:178-181 the doc comment: 'One surface on its way between two shapes: its frame and corner radius animate as one, so it reads as a single thing growing or shrinking rather than two views swapped. It fades in over what it replaces, holds while that finishes, changes shape, and fades out over the last stretch so the real thing can take over underneath.'",
+        "DroppyCode/UI/Common/Genie.swift:190-201 `let frame = hasLanded ? morph.to : morph.from`, `let radius = hasLanded ? morph.toRadius : morph.fromRadius`, then `morph.surface(radius).frame(width: frame.width, height: frame.height).position(x: frame.midX, y: frame.midY).frame(width: canvas.width, height: canvas.height, alignment: .topLeading).animation(GenieAnimator.morphAnimation.delay(morph.holdsFor), value: hasLanded).opacity(isFading ? 0 : 1).animation(.easeOut(duration: GenieAnimator.morphCrossfade), value: isFading).opacity(hasStarted || morph.fadeIn <= 0 ? 1 : 0).animation(.easeOut(duration: morph.fadeIn), value: hasStarted)`",
+        "DroppyCode/UI/Common/Genie.swift:202-205 `.onAppear { hasStarted = true; hasLanded = true }`",
+        "DroppyCode/UI/Common/Genie.swift:206-212 `.task { let lands = morph.holdsFor + GenieAnimator.morphDuration; try? await Task.sleep(for: .seconds(lands - GenieAnimator.morphCrossfade)); isFading = true; try? await Task.sleep(for: .seconds(GenieAnimator.morphCrossfade + 0.05)); GenieAnimator.shared.finishMorph(morph.id) }`"
+      ],
+      "preconditions": "A morph has been queued and its view has appeared.",
+      "action": "The morph runs.",
+      "expected_result": "On appear, the surface fades in over the morph's own fade-in duration with an ease-out curve, and simultaneously begins its shape change, which is delayed by the hold duration so the fade-in can finish over whatever the surface stands in for. When the fade-in duration is zero or less the surface is fully opaque from the first frame instead of animating from zero. The frame and the corner radius change together under one smooth 0.5-second animation, driven by a single state flag, so the surface reads as one thing growing or shrinking rather than two views swapped; the surface closure is re-invoked with the live corner radius. The landing time is the hold plus 0.5 seconds. A fade-out to zero opacity, ease-out over 0.12 seconds, starts 0.12 seconds before that landing time, so the real surface can take over underneath while the stand-in is still on screen. The morph removes itself 0.12 plus 0.05 seconds after the fade begins, that is 0.05 seconds after it has fully faded.",
+      "side_effects": [
+        "Removes itself from the shared animator when it is done"
+      ],
+      "persistence": "Not persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The frame and the radius must be interpolated by a single animation, not two: independently animated they desynchronise and the corner visibly lags the edge. The 0.05-second grace after the fade is what keeps the stand-in from being torn out a frame early.",
+      "verification_method": "capture comparison over the morph's timeline at the hold, at landing minus 0.12 and at landing; unit test of the two sleep durations",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-THEME-174",
+      "title": "A genie flight refuses a degenerate frame, Reduce Motion or a failed render, and captures the ghost at the main screen's backing scale",
+      "source_evidence": [
+        "DroppyCode/UI/Common/Genie.swift:4-7 the type doc comment: 'Archived rows fly into the window's bottom-left corner with a genie effect. The row is rendered once into a flat image, and that image is what flies: a small GPU distortion over one layer for about half a second, with nothing left running afterwards.'",
+        "DroppyCode/UI/Common/Genie.swift:15-23 `struct Flight: Identifiable { let id = UUID(); let image: NSImage; let frame: CGRect; /// Where the flight lands, in the layer's coordinates; nil flies to the archive corner. var target: CGPoint?; /// Played backwards: the ghost comes out of the target and settles into `frame`. var isArrival = false }`",
+        "DroppyCode/UI/Common/Genie.swift:76-91 `/// Flies a ghost of a row from `frame`. The ghost draws exactly what `ghost` returns, so pass the row as it looks — background included — and the row hands over to it without a visible change. Arriving, the ghost flies the other way: out of `target` and into `frame`. Returns false when nothing flies (reduced motion, or nothing to draw), so the caller can show the real thing instead.` with the guard `frame.width > 1, frame.height > 1, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion`, then `let renderer = ImageRenderer(content: GenieGhost(size: frame.size, content: ghost()).environment(\\.colorScheme, colorScheme))`, `renderer.scale = NSScreen.main?.backingScaleFactor ?? 2`, `guard let image = renderer.nsImage else { return false }`",
+        "DroppyCode/UI/Common/Genie.swift:93-95 `func finish(_ id: UUID) { flights.removeAll { $0.id == id } }`",
+        "DroppyCode/UI/Common/Genie.swift:98-109 `/// The flat stand-in a row becomes for its flight. It adds no fill of its own: the ghost already carries the row's background, so a transparent row stays transparent instead of flashing opaque when archiving starts.` with `GenieGhost` being only `content.frame(width: size.width, height: size.height, alignment: .topLeading)`"
+      ],
+      "preconditions": "A row is about to be archived, settled or reopened and its frame has been measured.",
+      "action": "launch is called with that frame, the current colour scheme, an optional landing point and an arriving flag.",
+      "expected_result": "The call returns false, and queues nothing, when the frame is 1 point or smaller in either dimension, when the system's reduce-motion accessibility flag is set, or when the offscreen render produces no image. The return value is meaningful: false means the caller moves the real row instead. Otherwise the row is rendered once into a flat image at the main screen's backing scale factor, defaulting to 2 when no main screen is available, with the caller's colour scheme forced into the render so an off-screen or differently-themed render does not come back in the wrong appearance. The stand-in wrapper adds no fill and no background of its own: it only sizes the caller's content top-leading, so a transparent row stays transparent rather than flashing opaque as the flight starts. The resulting flight record carries the image, the source frame, the optional landing point and the arriving flag, and is removed by identity when its view finishes.",
+      "side_effects": [
+        "One offscreen render of the row",
+        "Appends a flight to the shared animator"
+      ],
+      "persistence": "Process state only.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Capturing at the display's own scale factor is what keeps the ghost from looking soft on a high-DPI monitor; the fallback of 2 applies only when no display can be queried. The no-fill wrapper is load-bearing: adding a background here makes every archived transparent row flash.",
+      "verification_method": "unit test over a degenerate frame, a reduced-motion run and a failed render, asserting the return value; capture comparison of a transparent row's ghost",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-THEME-175",
+      "title": "A genie flight is one cubic keyframe over 0.58 seconds driving a distortion shader, fading out over the last tenth and removed 0.03 seconds early",
+      "source_evidence": [
+        "DroppyCode/UI/Common/Genie.swift:13 `nonisolated static let duration: Double = 0.58`",
+        "DroppyCode/UI/Common/Genie.swift:137 `let target = flight.target ?? CGPoint(x: 24, y: canvas.height - 12)`",
+        "DroppyCode/UI/Common/Genie.swift:139-141 the comment 'An arrival is the same flight run backwards: all the way in at the start, and out of the funnel into place by the end.' with `let (start, end) = flight.isArrival ? (1.0, 0.0) : (0.0, 1.0)`",
+        "DroppyCode/UI/Common/Genie.swift:142-149 the comment 'How far a destination pixel can reach for its source: the shader maps the funnel's pixels back into the row's frame, so the row's size plus its distance to the neck bounds it. The offscreen pass the effect rasterizes is padded by this on every side; the whole canvas padded it by the whole window.' with `let reach = CGSize(width: abs(target.x - frame.midX) + frame.width, height: abs(target.y - frame.midY) + frame.height)`",
+        "DroppyCode/UI/Common/Genie.swift:150-168 `Image(nsImage: flight.image).resizable().frame(width: frame.width, height: frame.height).position(x: frame.midX, y: frame.midY).frame(width: canvas.width, height: canvas.height, alignment: .topLeading).keyframeAnimator(initialValue: start, trigger: hasStarted) { content, progress in content.distortionEffect(ShaderLibrary.genie(.float(progress), .float4(frame.minX, frame.minY, frame.width, frame.height), .float2(target.x, target.y)), maxSampleOffset: reach).opacity(progress > 0.9 ? max(0, (1 - progress) / 0.1) : 1) } keyframes: { _ in CubicKeyframe(end, duration: GenieAnimator.duration) }`",
+        "DroppyCode/UI/Common/Genie.swift:169-174 `.onAppear { hasStarted = true }` and `.task { // Removed just before the keyframes finish, so the flight never springs back.` `try? await Task.sleep(for: .seconds(GenieAnimator.duration - 0.03)); GenieAnimator.shared.finish(flight.id) }`"
+      ],
+      "preconditions": "A flight has been queued and its view has appeared.",
+      "action": "The flight runs.",
+      "expected_result": "The landing point is the flight's own target when it has one, and otherwise the fixed point x 24, y the canvas height minus 12, which is the archive corner at the bottom left of the window. A departure animates progress from 0 to 1 and an arrival animates the identical keyframes backwards from 1 to 0, so an arrival is the same flight reversed rather than a separate animation. The flat image is drawn at the source frame's size, positioned at that frame's centre, inside a canvas-sized top-leading frame. Progress drives a distortion effect calling the genie shader with three arguments in this order: the progress as a float, the source frame as a float4 of minX, minY, width, height, and the landing point as a float2. The effect's maximum sample offset is the distance from the frame's centre to the landing point plus the frame's own size, on each axis independently; this bounds the offscreen pass to the funnel's reach rather than padding it by the whole window. Opacity is 1 until progress passes 0.9 and then ramps linearly to 0 over the last tenth, floored at 0. The whole flight is a single cubic keyframe to the end value over exactly 0.58 seconds. The flight is removed 0.03 seconds before that, so it is gone before the keyframes settle and can never spring back.",
+      "side_effects": [
+        "One GPU distortion pass over one layer for the flight's duration",
+        "Removes itself from the shared animator"
+      ],
+      "persistence": "Not persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Platform boundary: the genie shader itself has no cross-platform form and must be reimplemented against the Windows rendering stack, keeping the same three inputs and the same progress semantics. The reach calculation is not an optimisation to skip: padding the offscreen pass by the whole window is the cost the comment records. The early removal at duration minus 0.03 and the last-tenth opacity ramp are both observable.",
+      "verification_method": "capture comparison at progress 0, 0.5, 0.9 and 0.95 for both a departure and an arrival; unit test of the reach formula, the default landing point and the removal delay",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": "UNK-0004"
+    },
+    {
+      "id": "PR-THEME-176",
+      "title": "The genie layer draws every flight and morph in one window-wide top-leading stack and never takes clicks",
+      "source_evidence": [
+        "DroppyCode/UI/Common/Genie.swift:111-127 `/// The window-wide layer the flights draw in. It never takes clicks.` with `struct GenieLayer: View { var body: some View { GeometryReader { proxy in ZStack(alignment: .topLeading) { ForEach(GenieAnimator.shared.flights) { flight in GenieFlightView(flight: flight, canvas: proxy.size) }; ForEach(GenieAnimator.shared.morphs) { morph in MorphView(morph: morph, canvas: proxy.size) } }.frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading) }.allowsHitTesting(false).accessibilityHidden(true) } }`",
+        "DroppyCode/UI/Common/Genie.swift:25 `private(set) var flights: [Flight] = []`",
+        "DroppyCode/UI/Common/Genie.swift:45 `private(set) var morphs: [Morph] = []`",
+        "DroppyCode/UI/Common/Genie.swift:12 `nonisolated static let coordinateSpace = \"droppy-code-window\"`"
+      ],
+      "preconditions": "The main window is on screen.",
+      "action": "Any number of flights and morphs are in the air at once.",
+      "expected_result": "One layer, sized to the whole window, holds every in-flight ghost and every in-flight morph in a single top-leading z-stack: flights below, morphs above, each keyed by its own identity. Every child is handed the window's size as its canvas, and all the coordinates the animator's records carry are in that window coordinate space, named \"droppy-code-window\". The layer takes no hit tests at all, so a flight passing over a control never intercepts a click, and it is hidden from assistive technology entirely. Both collections are readable but writable only through the animator's own launch, morph, finish and finishMorph calls.",
+      "side_effects": [],
+      "persistence": "Not persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "A single click-through overlay above the content and below the command palette (PR-WIN-067). Per-row overlays are not equivalent: a ghost must be able to fly out of the row that spawned it and across the whole window.",
+      "verification_method": "interaction test that a click lands on the control under a flight in progress; structural test that flights draw under morphs",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-THEME-177",
+      "title": "A head mention in the SwiftUI text path is a real link carrying the head's colour and strong emphasis",
+      "source_evidence": [
+        "DroppyCode/UI/Markdown/MarkdownView.swift:490-494 `private func mentionText(_ persona: HydraPersona) -> Text { let size = 16 * zoom; let glyph = Text(Self.mentionGlyph(persona, size: size)).foregroundColor(persona.color).baselineOffset(Self.mentionGlyphOffset(size: size))`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:495 the comment `// A link in a Text keeps the colour the attribute sets and opens through the environment.`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:496-502 `if let target = hydraMentionTargets[persona.name] { var name = AttributedString(persona.name); name.link = target.url; name.foregroundColor = persona.color; name.inlinePresentationIntent = .stronglyEmphasized; return Text(\"\\(glyph) \\(Text(name))\") }`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:503-504 `let name = Text(verbatim: persona.name).fontWeight(.bold).foregroundColor(persona.color); return Text(\"\\(glyph) \\(name)\")`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:386-387 `/// Lifts the 16pt glyph off the baseline onto the surrounding text's x-height.` with `private static func mentionGlyphOffset(size: CGFloat) -> CGFloat { -(size * 0.2) }`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:389-394 `/// The head's dragon as a template image small enough to sit in a Text run. Redrawn once per (asset, size), then kept; tinted like the name.` with the cache keyed `persona.asset + \"@\\(size)\"`"
+      ],
+      "preconditions": "A paragraph naming a head is being rendered through the SwiftUI text path (not the native attributed path, which is PR-THEME-143).",
+      "action": "A mention is turned into text.",
+      "expected_result": "The glyph is the head's dragon at 16 points times the chat zoom, coloured with the persona's colour and raised by 20 percent of that size off the baseline onto the surrounding x-height, drawn from a cache keyed by the asset name and the size. When the chat has a target for that head, the name is an attributed string carrying THREE attributes: a real link whose value is the target's URL, the persona's own foreground colour, and the strongly-emphasized inline presentation intent. The link attribute is deliberate here, contrary to the native path: the source's own comment records that a link inside a Text keeps whatever colour the attribute sets and opens through the environment, so the persona colour survives and the accent recolouring that afflicts a native text view does not apply. The result is the glyph, a space, and the attributed name.",
+      "side_effects": [],
+      "persistence": "A process-lifetime glyph cache keyed by asset and size.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "This path and the native path differ in kind, not only in glyph size: this one produces a real hyperlink attribute and the native one a custom non-link attribute (PR-THEME-143). Both must be reproduced as written. If the Windows text stack recolours links the way a native macOS text view does, the explicit foreground colour must be applied after the link so the persona colour still wins.",
+      "verification_method": "unit test asserting the three attributes on the name run, plus a capture comparison of the glyph size and baseline offset against the native path's",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-THEME-178",
+      "title": "A head mention with no target renders as bold verbatim text in the persona colour, with no link and no attribute",
+      "source_evidence": [
+        "DroppyCode/UI/Markdown/MarkdownView.swift:503-504 `let name = Text(verbatim: persona.name).fontWeight(.bold).foregroundColor(persona.color); return Text(\"\\(glyph) \\(name)\")`",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:231-232 the native path's matching no-target branch `out.append(NSAttributedString(attachment: attachment))`",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:236-238 the native path's no-target name `out.append(NSAttributedString(string: persona.name, attributes: [.font: bold, .foregroundColor: nsColor(persona)]))`"
+      ],
+      "preconditions": "A paragraph names a head for which the chat holds no target.",
+      "action": "The mention is rendered, in either path.",
+      "expected_result": "The mention is still decorated and still carries the head's identity: the tinted dragon glyph, a space, and the head's name in bold in the persona's own colour. It carries no link attribute and no custom head attribute in either path, so it is inert: it cannot be clicked, it shows no hover popover, and the pointer does not change over it. The name is emitted verbatim, so a name containing markdown-significant characters is not reinterpreted.",
+      "side_effects": [],
+      "persistence": "Not persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The inert form must look identical to the live one. A Windows implementation that styles targeted and untargeted mentions differently, or that omits the glyph when there is no target, diverges visibly.",
+      "verification_method": "capture comparison of a targeted and an untargeted mention in both paths, plus an interaction test that the untargeted one is inert",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -4971,6 +5386,77 @@
         "DroppyCode/UI/Chrome/Chrome.swift:117"
       ],
       "notes": "Exactly two sections exist at this commit. These are the only colours in the theme area declared as floating-point components rather than hex, and they take the framework's default colour space, which is sRGB."
+    },
+    {
+      "id": "UI-THEME-049",
+      "screen": "Chat, working line; also sidebar rows, helper stubs, team panels and MCP rows",
+      "element": "Working spinner (3 by 3)",
+      "role": "status indicator",
+      "exact_text": null,
+      "geometry": "3 columns by 3 rows; cell size 3.5 points by default; inter-cell gap 0.8 times the cell size on both axes; content size 3*3.5 + 2*2.8 = 16.1 points square at the default size; centred in the offered frame with the origin rounded to whole points; row 0 at the top",
+      "typography": "Not text",
+      "colors": "Three row tints from the theme accent in sRGB: accent blended 0.38 toward white (top row), the accent itself (middle row), accent blended 0.22 toward black (bottom row)",
+      "states": [
+        "running: each cell pulses once per 0.75 s on a 41-sample linear keyframe, lagged by hypot(column-1, 2-row)/2.5 so the wave travels upward from the bottom-centre cell",
+        "reduce motion: no animation; each cell frozen at the curve evaluated at minus its lag",
+        "theme or appearance change: cells retint instantly, with no crossfade"
+      ],
+      "interactions": [
+        "none; hit tests pass straight through to the row beneath"
+      ],
+      "source_evidence": [
+        "DroppyCode/UI/Common/WorkingIndicators.swift:54-79",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:196-205",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:295-316"
+      ],
+      "notes": "Hidden from assistive technology; the working line's own text carries the meaning. Every spinner in the app shares one animation clock origin, so two of them never pulse out of phase."
+    },
+    {
+      "id": "UI-THEME-050",
+      "screen": "Sidebar thread rows, helper stubs, team panels, MCP rows",
+      "element": "Mini working spinner (2 by 3)",
+      "role": "status indicator",
+      "exact_text": "Working",
+      "geometry": "2 columns by 3 rows; cell size 2.4 points by default; inter-cell gap 0.8 times the cell size; content size 2*2.4 + 1*1.92 = 6.72 wide by 3*2.4 + 2*1.92 = 11.04 tall at the default size; centred with the origin rounded; row 0 at the top",
+      "typography": "Not text",
+      "colors": "The same three accent-derived row tints as the 3 by 3",
+      "states": [
+        "running: the pulse walks the perimeter ring (0,0), (0,1), (1,1), (2,1), (2,0), (1,0) clockwise, each cell lagging by its ring index over 6",
+        "reduce motion: frozen at the start of the wave",
+        "still: drawn as plain shapes for an image renderer, used by the archive ghost"
+      ],
+      "interactions": [
+        "none; hit tests pass through"
+      ],
+      "source_evidence": [
+        "DroppyCode/UI/Common/WorkingIndicators.swift:81-110",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:112-138"
+      ],
+      "notes": "Accessibility label exactly \"Working\", applied outside the still/animated branch so both forms carry it. Its still form is the one that appears in the flying archive ghost (SidebarView.swift:2101)."
+    },
+    {
+      "id": "UI-THEME-051",
+      "screen": "Main window, overlay above the content",
+      "element": "Genie layer",
+      "role": "decorative overlay",
+      "exact_text": null,
+      "geometry": "Fills the window; a ZStack aligned top-leading with flights below and morphs above; every child is handed the window size as its canvas; coordinates are in the window coordinate space named \"droppy-code-window\"",
+      "typography": "Not text",
+      "colors": "None of its own; each flight draws a flat capture of its row and each morph draws its caller's surface",
+      "states": [
+        "idle: nothing drawn",
+        "flight in progress: one distorted flat image per flight, fading out over the last tenth of its 0.58 s",
+        "morph in progress: one rounded surface changing frame and corner radius together over 0.5 s after its hold"
+      ],
+      "interactions": [
+        "none; allowsHitTesting is false and the whole layer is hidden from assistive technology"
+      ],
+      "source_evidence": [
+        "DroppyCode/UI/Common/Genie.swift:111-127",
+        "DroppyCode/UI/Common/Genie.swift:130-176",
+        "DroppyCode/UI/Common/Genie.swift:182-213"
+      ],
+      "notes": "The default landing point for a flight with no target is x 24, y canvas height minus 12: the archive corner at the bottom left. The command palette sits above this layer (PR-WIN-067)."
     }
   ]
 }

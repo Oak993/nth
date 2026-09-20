@@ -1,0 +1,242 @@
+{
+  "scope": "runtime-and-providers (RUNTIME, PROVCLI, PROVACP, PROVAPI, PROVREG)",
+  "requirements_added": 143,
+  "requirements_amended": 25,
+  "requirements_split": 9,
+  "ui_added": 20,
+  "files_edited": [
+    "E:/Droppy/port/porting/spec/RUNTIME.json",
+    "E:/Droppy/port/porting/spec/PROVCLI.json",
+    "E:/Droppy/port/porting/spec/PROVREG.json"
+  ],
+  "resolutions": [
+    {
+      "finding": "Missing 19 - ThreadRuntime.swift:2609-2907, the whole Hydra delegation-block lifecycle has zero requirements",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Confirmed by line-level scan. Before this pass the only citations in 2600-2910 across all 20 spec files were PR-RUNTIME-056 @2656, PR-RUNTIME-156 @2908 and PR-HYDRAMERGE-084 @2908. I read ThreadRuntime.swift:2560-2915 and 990-1060 in full. The critic's list was also INCOMPLETE: scanStreamedDelegations (ThreadRuntime.swift:2854-2876) is named in no finding but its body was equally unspecified, and it is the function that opens the batch and spends the delegation round.",
+      "action_taken": "Added PR-RUNTIME-202 through PR-RUNTIME-238 (37 requirements) covering settleBatches, flushableHydraReports, startHydraReportTurn (3 rows), DelegationOutcome, dropDelegationBlock (5 rows), holdsDelegationBlock, spawnDelegatedHeads (12 rows), scanStreamedDelegations (2 rows, beyond the critic's list), holdSentDelegationBlock (2 rows), refuseBlock (2 rows), spawnWaitingHeads (2 rows), hydraHeadFinished .droppy (3 rows), dispatchHead and dispatchQueuedFollowUps."
+    },
+    {
+      "finding": "Missing 20 - dropDelegationBlock:2678-2701, two branches, neither specified, nor the literal \"Asked for heads.\"",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ThreadRuntime.swift:2679-2691 is the streamed branch (five conditions, clears hydraStream, calls settleBatches, returns early); :2693-2699 is the block-holding-row branch with NO fallback to the last assistant row. Both replace an emptied reply with \"Asked for heads.\" (:2684, :2696). The string appeared in no spec file.",
+      "action_taken": "Added PR-RUNTIME-208 (streamed branch), PR-RUNTIME-210 (the separate zero-sent stream reset at :2692, which the critic did not name), PR-RUNTIME-211 (second branch) and UI-RUNTIME-026 for the verbatim string."
+    },
+    {
+      "finding": "Missing 21 - the two dropDelegationBlock note strings at :2689 and :2700 exist only inside UI-RUNTIME-014's prose",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Verified verbatim at ThreadRuntime.swift:2689 and :2700, including the \"one head\" / \"<n> heads\" switch and the \"was stopped\" / \"failed\" switch.",
+      "action_taken": "Added PR-RUNTIME-209 and PR-RUNTIME-212 stating which branch emits which, plus UI records UI-RUNTIME-019 and UI-RUNTIME-020 carrying the exact strings."
+    },
+    {
+      "finding": "Missing 22 - spawnDelegatedHeads:2712-2806 has no requirement of its own",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Every sub-behaviour the critic listed is real: the row selection with its last-assistant-row fallback (:2716-2718), the scanStreamedDelegations(entryID: hydraStream?.entryID ?? entry.id) call (:2722), total = all.isEmpty ? stream.sent : all.count (:2731), the catch-up bounded by max(0, maxDelegatedTasks - sent) and gated on hydraDelegationRounds < maxDelegationRounds (:2736-2744), and the return rule hydraBatches.isEmpty && hydraWaiting.isEmpty ? .none : .headsOut (:2754, :2807).",
+      "action_taken": "Added PR-RUNTIME-214 through PR-RUNTIME-225, one row per atomic behaviour, including the settleBatches-before-the-emptiness-test ordering that makes a fully finished block return .none."
+    },
+    {
+      "finding": "Missing 23 - the two-line \"Not every task went out\" note is in no spec file and is emitted from two sites with different count sources",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ThreadRuntime.swift:2745-2750 uses the running sent and the re-read total; :2796-2802 uses the constant maxDelegatedTasks (32) and delegations.count, with the shortfall in a local named dropped. Same wording, different derivations.",
+      "action_taken": "Added two requirements, PR-RUNTIME-218 and PR-RUNTIME-224, and two UI records, UI-RUNTIME-021 and UI-RUNTIME-022, rather than one shared row."
+    },
+    {
+      "finding": "Missing 24 - the unreadable-block path at :2755-2762, \"Asking for heads.\" and the dropped sentence",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ThreadRuntime.swift:2756-2763. The critic's line range is one line short: the guard opens at :2756 and the refuseBlock call is at :2763. unreadableBlockMessage is called with reason nil at that call site, and a row with no block at all returns .none untouched at :2757.",
+      "action_taken": "Added PR-RUNTIME-220 and UI-RUNTIME-027."
+    },
+    {
+      "finding": "Missing 25 - the empty-block path at :2766-2774, \"Done, with no heads.\" and the one-line note",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ThreadRuntime.swift:2768-2775. The reply becomes \"Done, with no heads.\" only when the stripped text is empty, the note is \"No heads went out: the lead did this itself.\" and the outcome is .none so no turn is spent.",
+      "action_taken": "Added PR-RUNTIME-221, UI-RUNTIME-023 (the note) and UI-RUNTIME-028 (the reply fallback)."
+    },
+    {
+      "finding": "Missing 26 - the round-cap path at :2777-2783, \"Asking for more heads.\" and its dropped sentence",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ThreadRuntime.swift:2778-2784. The dropped sentence interpolates HydraPrompts.maxDelegationRounds rather than hard-coding 3.",
+      "action_taken": "Added PR-RUNTIME-222 and UI-RUNTIME-029."
+    },
+    {
+      "finding": "Missing 27 - refuseBlock:2840-2848, the cap test, the dropped note, the .turnStarted return and the self-started turn",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ThreadRuntime.swift:2841 tests hydraRefusedBlocks < maxRefusedBlocks (3, declared at :2664); :2842 appends \"No heads went out\\n<dropped> The block was dropped from the reply.\"; :2845-2847 increments the counter and starts a turn with hydraHeads: [] - an EMPTY ARRAY, not nil, which is what stops PR-RUNTIME-056 resetting the counters that gate the refusal.",
+      "action_taken": "Added PR-RUNTIME-230 (cap branch) and PR-RUNTIME-231 (refusal turn), plus UI-RUNTIME-024 carrying both dropped variants in full."
+    },
+    {
+      "finding": "Missing 28 - holdSentDelegationBlock:2815-2832, the two-step hold-then-fade and \"Sent out heads.\"",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ThreadRuntime.swift:2816-2831. delegationSentHold is .seconds(3.2) and delegationLeaveFade is .milliseconds(450) (Hydra.swift:1084, :1088). The first step animates with .easeOut(duration: 0.4) and the second with Chrome.panelSlide, which is .easeOut(duration: 0.18) under reduce motion and .spring(response: 0.32, dampingFraction: 0.9) otherwise (Chrome.swift:98-102). Only the second step writes.",
+      "action_taken": "Added PR-RUNTIME-228 and PR-RUNTIME-229, and UI-RUNTIME-030 for the string."
+    },
+    {
+      "finding": "Missing 29 - spawnWaitingHeads:2880-2901, the once-per-pair fallback note, the room loop, the preferredIndex pin and the batch insert",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ThreadRuntime.swift:2885-2887 guards on hydraFallbackNoted != pair.id and writes \"Hydra: <note>\"; hydraFallbackNoted is declared at :466 and appeared in no spec file. The loop at :2889 uses launch?.hasRoom(...) ?? true, :2895 pins with HydraRoster.index(named:) and :2899 inserts into the batch pending set.",
+      "action_taken": "Added PR-RUNTIME-232 (the note, once per pair id per runtime) and PR-RUNTIME-233 (the loop), plus UI-RUNTIME-025."
+    },
+    {
+      "finding": "Missing 30 - the .droppy branch of hydraHeadFinished at :2582-2607",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ThreadRuntime.swift:2584-2587 builds the nine-field HydraReport with elapsed = Date.now.timeIntervalSince(info.startedAt); :2588-2595 removes by headIndex then routes on info.batchID; :2598-2605 calls spawnWaitingHeads, dispatchQueuedFollowUps and settleBatches in that order, then flushHydraReports gated on phase == .idle AND thread?.lastStatus != .interrupted, then flushFollowUpsIfIdle. That is FIVE ordered steps, not the three the critic named.",
+      "action_taken": "Added PR-RUNTIME-234 (report construction), PR-RUNTIME-235 (replacement and routing) and PR-RUNTIME-236 (the five-step order including the two the critic omitted)."
+    },
+    {
+      "finding": "Missing 31 - settleBatches:2610-2615 and flushableHydraReports:2634-2636 have no requirements",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "settleBatches requires BOTH an empty pending set and no hydraWaiting entry carrying the batchID, and appends sorted by headIndex. flushableHydraReports is hydraPendingReports sorted by headIndex with no filtering at all - the batch rule lives entirely upstream in settleBatches.",
+      "action_taken": "Added PR-RUNTIME-202 and PR-RUNTIME-203, the latter stating explicitly that duplicating the batch filter here would break a directly sent head."
+    },
+    {
+      "finding": "Missing 32 - startHydraReportTurn:2640-2653",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "hydraFlushScheduled is cleared at :2644 before any guard and no early-return path removes reports; the guards are phase == .idle, !isReverting, app, then non-empty reports; :2648-2653 take by headIndex Set, read workingHydraHeadNames(of:excluding:), build HydraPrompts.reportMessage(..., reviewsHeads: app.settings.hydraReviewHeads) and start the turn with hydraHeads: reports.map(\\.headIndex).",
+      "action_taken": "Added PR-RUNTIME-204 (flag first), PR-RUNTIME-205 (the four gates) and PR-RUNTIME-206 (take, name and start)."
+    },
+    {
+      "finding": "Missing 33 - enum DelegationOutcome:2667-2674",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Three cases none / headsOut / turnStarted at ThreadRuntime.swift:2667-2674, and the finishTurn chain at :2332-2353 treats headsOut and turnStarted differently: both set continues, only headsOut drains the follow-up queue.",
+      "action_taken": "Added PR-RUNTIME-207 stating the case set and, for each case, what finishTurn does with it."
+    },
+    {
+      "finding": "Missing 34 - dispatchHead:1012-1024 and dispatchQueuedFollowUps:1026-1036 appear in no spec file",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Confirmed by grep across all 20 spec files: dispatchQueuedHead and dispatchSentHead had hits, dispatchHead and dispatchQueuedFollowUps had none. dispatchHead is at ThreadRuntime.swift:1012-1022 with five gates including !thread.isArchived and launch.hasRoom, a 60-character singleLine title, and a spawn with NO batchID, which is why such a head is never batched. dispatchQueuedFollowUps at :1026-1035 returns immediately on an idle lead and BREAKS rather than continues on a failed dispatch.",
+      "action_taken": "Added PR-RUNTIME-237 and PR-RUNTIME-238."
+    },
+    {
+      "finding": "Missing 35 - Provider.swift:319-324 SlashCommand.claudeCommands, bare-string names and the literal \"Claude Code command\"",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "DroppyCode/Core/Models/Provider.swift:321 is `entry[\"name\"]?.string ?? entry.string`, so a bare string entry is accepted; :322 falls back to the literal \"Claude Code command\". The string was in no spec file. (The critic's path is one level off: the file is Core/Models/Provider.swift, not Services/Providers/Provider.swift.)",
+      "action_taken": "Added PR-PROVCLI-345 (name resolution) and PR-PROVCLI-346 (the verbatim detail fallback)."
+    },
+    {
+      "finding": "Missing 36 - Provider.swift:326-334 SlashCommand.codexSkills",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Provider.swift:327-331. Two-level flatMap over result[\"data\"] then entry[\"skills\"]; the filter is skill[\"enabled\"]?.bool != false so absent means enabled; both name and path are required; detail is skill[\"interface\"]?[\"shortDescription\"] ?? skill[\"description\"] ?? \"\".",
+      "action_taken": "Added PR-PROVCLI-347 (two-level traversal), -348 (enabled filter), -349 (name and path required, skillPath carried) and -350 (the three-step detail chain including the nested interface.shortDescription key)."
+    },
+    {
+      "finding": "Missing 37 - Provider.swift:309-317 SlashCommand.codexInput(for:)",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Provider.swift:310 guards on a non-nil skillPath AND SlashCommand.name(in: text) == name; :314 is \"$\" + text.dropFirst(); :315 is [\"type\": \"skill\", \"name\": name, \"path\": skillPath]. name(in:) at :285-288 accepts both \"/\" and \"$\" openers.",
+      "action_taken": "Added PR-PROVCLI-351 (the guard and the single plain text part), -352 (the dollar rewrite) and -353 (the skill part shape and part order)."
+    },
+    {
+      "finding": "Missing 38 - all 13 DISCOVERED records in PROVREG.json carry no open_question",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Verified: PR-PROVREG-026, -039, -088, -095, -096, -097, -177, -179, -196, -233, -234, -235, -236 were status DISCOVERED with no open_question field, while RUNTIME, PROVCLI, PROVACP and PROVAPI had zero offenders.",
+      "action_taken": "Added an open_question to all 13, each stating the specific unresolved question (the cmd.exe collision, the gh data directory on Windows, the two Unix path lists, the credential-read policy, the login-script launcher, and the three unproven-dead ProviderRegistry members)."
+    },
+    {
+      "finding": "Missing 39 - PR-PROVREG-177 is registered in neither unknowns.md nor blocked_requirements.json, and the four third-party credential reads are treated inconsistently",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Grep of unknowns.md and blocked_requirements.json for credentials.json, find-generic-password, Claude Code-credentials, grok/auth.json, pi/agent/auth.json and commandcode/auth.json returns ZERO hits. The four reads were PR-PROVREG-177 DISCOVERED and raising the question, PR-PROVREG-121 SPECIFIED and raising it, PR-PROVCLI-313 SPECIFIED and silent (PiPlanLimits.swift:12-13 reads <config>/auth.json and then sends those OAuth tokens to api.anthropic.com and chatgpt.com usage routes), and PR-PROVCLI-255 SPECIFIED and silent (CommandCodeAPI.swift:33-38 reads ~/.commandcode/auth.json).",
+      "action_taken": "Set PR-PROVREG-121, PR-PROVCLI-313 and PR-PROVCLI-255 to DISCOVERED, gave all four the identical open_question naming the CLAUDE.md prohibition, and rewrote their side_effects and windows_path to state the policy conflict. The register entry itself could NOT be made: unknowns.md and blocked_requirements.json are outside my editable set. See consequential_candidates."
+    },
+    {
+      "finding": "Missing 40 - LimitHandoff.swift has zero spec citations AND no dead_code.md entry, so its exclusion is implicit",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Traced the call chain: LimitHandoff.text is called only from AutoContinue.handOff (AutoContinue.swift:80); handOff is called only from LimitResumeBadge.swift:31; grep for LimitResumeBadge across the whole checkout returns only its own declaration at LimitResumeBadge.swift:5, so it is never instantiated. The file is transitively dead and correctly gets no requirement.",
+      "action_taken": "None in my files - dead code gets no requirement, and dead_code.md is outside my editable set. Reported so the ledger entry can be added."
+    },
+    {
+      "finding": "Missing 47 - LimitHandoff.swift is entirely unspecified and RUNTIME or USAGE should own it (nine verbatim strings, the 40-line and 400-character caps)",
+      "kind": "missing",
+      "verdict": "CRITIC_WRONG",
+      "truth": "This finding contradicts finding 40 by the same audit and loses. LimitHandoff.swift:1-78 is reachable only through AutoContinue.swift:80, itself reachable only through LimitResumeBadge.swift:31, and LimitResumeBadge is never constructed anywhere in the checkout (grep returns only ./DroppyCode/App/Views/Chat/LimitResumeBadge.swift:5, its own declaration). dead_code.md entry 21 already proves LimitResumeBadge dead. Under the standing rule that dead code gets no requirement, specifying its nine strings and its caps would add unreachable requirements a Windows implementation would be graded on.",
+      "action_taken": "none - no requirement added. The only real gap is the missing dead_code.md entry, which is finding 40 and not mine to write."
+    },
+    {
+      "finding": "Wrong 2 - a verification note asserting PR-RUNTIME-004, -001, PR-PROVCLI-004, -062, -244, PR-PROVAPI-151, PR-PROVACP-151 and PR-PROVREG-151 are all accurate, with no contradictions found in my areas",
+      "kind": "wrong",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "I spot-checked the two I was going to rewrite anyway: ClaudeSession.swift:693-751 does contain exactly the map PR-PROVCLI-062 records, including the five nil-returning names, the mcp__ split and input.isNull ? nil : input.compactString; and CommandCodeSession.swift:548-620 does contain the EN DASH at :569 and the underscore-only humanize at :623-627. No contradiction found.",
+      "action_taken": "none - no record changed on correctness grounds. PR-PROVCLI-062 and -244 were split for granularity only (too_coarse 6), with every value carried across verbatim."
+    },
+    {
+      "finding": "Too coarse 5 - PR-RUNTIME-124 compresses two functions, seven outcome branches, nine strings and two caps into one clause",
+      "kind": "too_coarse",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "PR-RUNTIME-124 was the only place spawnDelegatedHeads and dropDelegationBlock were named anywhere in the 20 spec files.",
+      "action_taken": "Amended PR-RUNTIME-124 to fix branch ORDER only, with its expected_result now pointing at the new rows; added PR-RUNTIME-207 and PR-RUNTIME-214 to -225 for spawnDelegatedHeads and PR-RUNTIME-208 to -213 for dropDelegationBlock."
+    },
+    {
+      "finding": "Too coarse 6 - PR-PROVCLI-062, -198, -244, -344 and -338 each hold a 20-to-25 entry mapping table in one row",
+      "kind": "too_coarse",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Confirmed by reading all five source regions: ClaudeSession.swift:690-751, CopilotSession.swift:945-1035, CommandCodeSession.swift:546-627, AntigravitySession.swift:626-726 and :443-520. Each mapping is a distinct observable row with its own kind, title, title fallback, detail source and edit extraction.",
+      "action_taken": "Split all five. Claude per TOOL NAME (PR-PROVCLI-354 to -370, 17 rows, so a Grep failure and a MultiEdit failure are separate); Copilot per tool with its four str_replace_editor sub-branches broken out plus the lineRange helper (PR-PROVCLI-371 to -393, 23 rows); Command Code per tool (PR-PROVCLI-394 to -412, 19 rows); Antigravity per ToolCall.Kind group with each kind's name list stated verbatim, plus the four helpers (PR-PROVCLI-413 to -424, 12 rows); and the Antigravity model TSV per pipeline step (PR-PROVCLI-425 to -437, 13 rows). All five parent rows were rewritten as dispatch or pipeline contracts that fix the case order and the shared helpers."
+    },
+    {
+      "finding": "Too coarse 7 - UI-RUNTIME-014 names 2 of at least 7 distinct note texts",
+      "kind": "too_coarse",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Seven distinct note texts are written by this area: ThreadRuntime.swift:2689, :2700, :2746, :2798, :2773, :2842 and :2886.",
+      "action_taken": "Added UI-RUNTIME-019 to UI-RUNTIME-025, one per note text with the exact string and every substitution spelled out, and amended UI-RUNTIME-014 to own the row chrome and index the seven. Also added UI-RUNTIME-026 to -030 for the five distinct assistant-reply fallback strings, which no finding named."
+    },
+    {
+      "finding": "Too coarse 8 - UI-RUNTIME-002 and UI-RUNTIME-003 each bundle every warning or error string into one exact_text field",
+      "kind": "too_coarse",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Verified each string at its site: ThreadRuntime.swift:1557 and :1718 and AutoContinue.swift:94 for the three warnings; ThreadRuntime.swift:1343, :2163, :2179, :698 and :1875 (appended at :1891) for the five errors. The enumerations were closed and verbatim but no individual string was traceable.",
+      "action_taken": "Added UI-RUNTIME-031 to -033 (warnings) and UI-RUNTIME-034 to -038 (errors), each carrying the pill geometry and colours, and amended UI-RUNTIME-002 and -003 to own the row chrome and index their strings."
+    },
+    {
+      "finding": "Too coarse 9 - PR-PROVREG-088 covers four accounts, one service, the write, the read and the plaintext mirror in one row, and is DISCOVERED with no open_question",
+      "kind": "too_coarse",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "AppSettings.swift:359-365 and its three siblings call setAPIKey and then storeAPIKeyFallback(kept ? \"\" : <input>, forKey:). APIKeychain.swift:22-39 trims the value and returns TRUE for an empty key after deleting the item, so clearing also clears the mirror. The mirror is written UNTRIMMED from the input property while the Keychain stores the trimmed value - an asymmetry the critic did not notice.",
+      "action_taken": "Narrowed PR-PROVREG-088 to the four account strings and the write path, added PR-PROVREG-239 for the plaintext mirror as its own DISCOVERED row with the security consequence and the trim asymmetry stated, and gave both an open_question."
+    },
+    {
+      "finding": "Too coarse 10 - PR-RUNTIME-021 (nine fields, six conditional) and PR-RUNTIME-181 (six conditions) are self-reporting as composite",
+      "kind": "too_coarse",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ThreadRuntime.swift:1411-1421 builds the signature with six per-provider conditionals, and :1399-1405 awaits a head-provider catalogue load BEFORE the build for an ordering reason the original row did not state. AutoContinue.swift:51-54 is one guard holding six independently testable gates.",
+      "action_taken": "Amended PR-RUNTIME-021 to the nine-field equality contract and added PR-RUNTIME-239 to -244, one per conditional field, with -244 also capturing the awaited catalogue load. Amended PR-RUNTIME-181 to the note consumption and the wait's effects, and added PR-RUNTIME-245 to -250, one negative case per gate."
+    },
+    {
+      "finding": "Paraphrased 4 - none found in the provider and runtime files; every user-reaching string segment is verbatim except the nine ThreadRuntime delegation strings (absent entirely) and dead LimitHandoff strings",
+      "kind": "paraphrased",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "I independently confirmed the two the finding singles out as preserved: the EN DASH in CommandCodeSession.swift:569 and the U+00B7 separators. The nine absent delegation strings were the real gap and are now specified verbatim.",
+      "action_taken": "none on paraphrase grounds. The nine missing strings are covered under Missing 21 and 23 to 28 above."
+    }
+  ],
+  "new_upstream_defects": [
+    "ThreadRuntime.swift:2890 and :2898 - spawnWaitingHeads removes a delegated task from hydraWaiting BEFORE attempting the spawn, then `guard let head = app.spawnDroppyHead(...) else { continue }` drops it with no note, no retry and no record. Because settleBatches only waits on the batch's pending set and on hydraWaiting (ThreadRuntime.swift:2611), the batch then settles without that head, the lead is handed the surviving reports and reports as though the whole block finished. Realistic worst outcome: a user delegates ten tasks, one spawn fails (no head slot resolvable, thread insert refused), and the work is silently never done while the chat says it is. upstream_defects.md entry 32 covers a DIFFERENT line of the same loop (:2889, the uncapped sweep when hydraLaunch is nil) and does not cover this. Recorded on PR-RUNTIME-233 as REPRODUCE, DO NOT FIX.",
+    "AppSettings.swift:363, :374 and the two sibling didSet blocks, with APIKeychain.swift:22-39 - when the Keychain refuses an API key write, the key is written to UserDefaults in plain text under deepseekAPIKey / metaAPIKey / zaiAPIKey / commandcodeAPIKey (AppSettings.swift:151-154), with nothing telling the user. Realistic worst outcome: a provider API key sits unencrypted in the app's defaults, readable by any process running as the user, on any machine where protected storage is unavailable. Not in upstream_defects.md. Recorded on the new PR-PROVREG-239.",
+    "AppSettings.swift:363 versus APIKeychain.swift:23 - the plaintext mirror is written UNTRIMMED from the input property while the Keychain stores the value trimmed of whitespace and newlines, so the two stores can hold different strings for the same key and a key pasted with trailing whitespace behaves differently depending on which store answered. Minor but observable. Not in upstream_defects.md. Recorded on PR-PROVREG-239.",
+    "AntigravitySession.swift:473 - the current-model test `currentID?.hasPrefix(parsed.baseSlug) == true` is not anchored on a separator, so a base slug that happens to be a prefix of an unrelated model id marks the wrong model as the default in the catalog. Realistic worst outcome: a new thread opens on a model the user did not choose. Not in upstream_defects.md. Recorded inside PR-PROVCLI-431 as upstream behaviour to reproduce, not fix."
+  ],
+  "consequential_candidates": [
+    "Four third-party credential reads whose faithful reproduction would violate the port's own safety rules: PlanLimits.swift:181-211 (~/.claude/.credentials.json under CLAUDE_CONFIG_DIR or ~/.claude, plus /usr/bin/security find-generic-password for the 'Claude Code-credentials' item), ProviderRegistry.swift:790-801 (~/.grok/auth.json), PiPlanLimits.swift:12-13 (Pi's <config>/auth.json) and CommandCodeAPI.swift:33-38 (~/.commandcode/auth.json). CLAUDE.md states 'Never read agent credential files' and names three of these paths explicitly. Concrete harm: the Windows build would read and, in the Pi case, TRANSMIT another agent's OAuth bearer token to api.anthropic.com and chatgpt.com usage endpoints - exposing a secret the app does not own to a third party over the network. I set all four to status DISCOVERED with an identical open_question naming the conflict, but the matching entry in unknowns.md and blocked_requirements.json could NOT be made because those two files are outside my editable set. One registered unknown covering all four still needs to be written by whoever owns the register, or Gate C will not fail on these paths.",
+    "PiPlanLimits.swift:27-34 additionally calls provider usage endpoints (https://api.anthropic.com/api/oauth/usage and https://chatgpt.com/backend-api/wham/usage, PiPlanLimits.swift:7-8) with that borrowed token. CLAUDE.md also forbids calling provider billing endpoints. Concrete harm: a network request carrying a third party's credential, attributable to the user's account, made without the user asking. Escalated on PR-PROVCLI-313 rather than reproduced.",
+    "AppSettings.swift:363 with APIKeychain.swift:39 - the plaintext API key mirror. Concrete harm: reproducing it faithfully writes a user's provider API key to disk unencrypted on every Windows PC where DPAPI is unavailable, which is exactly the fallback CLAUDE.md forbids ('If protected storage is unavailable, fail and say so; never fall back to plain text'). PR-PROVREG-239 is DISCOVERED with the decision left open; the clearing half of the rule (writing the empty string on a successful write) is safe and should be kept whatever is decided about the mirror."
+  ]
+}

@@ -1258,7 +1258,6 @@
       "verification_method": "unit covering the empty-string draft, a secret with only a plaintext value present, and a text field with only a credential-store value present",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -1331,7 +1330,6 @@
       "verification_method": "unit",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -1430,7 +1428,6 @@
       "verification_method": "unit plus an integration test with a failing credential store",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -1459,14 +1456,13 @@
     },
     {
       "id": "PR-MCP-061",
-      "title": "disconnect forgets the connection, its values, its secrets and its provider entries",
+      "title": "disconnect cancels the probe, destroys the entry's secrets, signs an OAuth server out, and forgets the connection, its values and its draft",
       "source_evidence": [
-        "DroppyCode/Services/MCP/MCPStore.swift:121-134 disconnect(_:)",
-        "DroppyCode/Services/MCP/MCPKeychain.swift:63-67 deleteAll(server:)"
+        "DroppyCode/Services/MCP/MCPStore.swift:120-134 disconnect(_:) - /// Forgets the connection, its values and its secrets, and removes it from every provider config. probes[entry.id]?.cancel(); probes[entry.id] = nil; MCPKeychain.deleteAll(server: entry); if entry.isOAuth { MCPOAuth.signOut(serverID: entry.id); MCPProxy.shared.unregister(serverID: entry.id) }; connections[entry.id] = nil; states[entry.id] = nil; drafts[entry.id] = nil; save(); exportAll()"
       ],
       "preconditions": "A connected or failed server.",
       "action": "The user picks Disconnect from a connected row's or custom row's menu.",
-      "expected_result": "In order: cancel and clear the probe task for that id; MCPKeychain.deleteAll(server: entry), which deletes account \"MCP <id> <field key>\" for every field the ENTRY declares (the entry object, not a catalog lookup, so a custom server's variables are actually deleted); if entry.isOAuth, MCPOAuth.signOut(serverID:) and MCPProxy.shared.unregister(serverID:); connections[id] = nil; states[id] = nil; drafts[id] = nil; save(); exportAll(). The server disappears from the Connected section and from every provider config file.",
+      "expected_result": "In this order, with no early exit: cancel and clear the probe task for that id; MCPKeychain.deleteAll(server: entry), whose own contract is PR-MCP-228; if entry.isOAuth, MCPOAuth.signOut(serverID:) and MCPProxy.shared.unregister(serverID:), in that order and only for an OAuth server; connections[id] = nil; states[id] = nil; drafts[id] = nil; save(); exportAll(). The server disappears from the Connected section and from every provider config file. Nothing here is conditional on the server being connected: a failed server takes the same path.",
       "side_effects": [
         "deletes one protected-storage item per declared field, plus two more for an OAuth server",
         "rewrites or deletes claude.json, codex.json, copilot.json and gemini-settings.json",
@@ -1478,12 +1474,40 @@
         "a field the entry no longer declares keeps an orphaned protected-storage item"
       ],
       "cancellation": "not cancellable once started",
-      "windows_path": "Same order. Disconnect is NOT the blocked path - only custom-server Delete is (BLK-0001). Disconnect is reached from the connected row menu and the custom row menu and is specified and implementable.",
-      "verification_method": "integration test asserting the four config files and the credential store afterwards",
+      "windows_path": "Same order. Disconnect is NOT the blocked path - only the custom-server Delete affordance and the credential teardown it triggers are (BLK-0001). Disconnect is reached from the connected row menu and the custom row menu and is specified and implementable. The credential half is PR-MCP-228 and carries its own Windows decision.",
+      "verification_method": "integration test asserting the call order and the four config files afterwards",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
+    },
+    {
+      "id": "PR-MCP-228",
+      "title": "MCPKeychain.deleteAll destroys one protected-storage item per field the ENTRY declares, under the account \"MCP <id> <field key>\"",
+      "source_evidence": [
+        "DroppyCode/Services/MCP/MCPKeychain.swift:61-67 - /// Forgets every secret the entry declares. The entry, not its id: a custom server /// is not in the catalog, so looking it up there would silently delete nothing. static func deleteAll(server entry: MCPCatalogEntry) { for field in entry.fields { delete(server: entry.id, field: field.key) } }",
+        "DroppyCode/Services/MCP/MCPKeychain.swift:52-59 delete(server:field:) - a kSecClassGenericPassword query with kSecAttrService = AppInfo.name and kSecAttrAccount = account(server:field:), passed to SecItemDelete with the result DISCARDED",
+        "DroppyCode/Services/MCP/MCPKeychain.swift:7-9 - private static func account(server: String, field: String) -> String { \"MCP \" + server + \" \" + field }",
+        "DroppyCode/Services/MCP/MCPStore.swift:124 - the one call site inside disconnect",
+        "porting/blocked_requirements.json BLK-0001 - quarantined path 'any Windows implementation of the Keychain/credential teardown triggered by that delete'"
+      ],
+      "preconditions": "A catalog entry or custom-server entry with zero or more declared fields.",
+      "action": "Its stored secrets are destroyed.",
+      "expected_result": "One delete per field the ENTRY object declares, iterated in the entry's own field order. The account string is the literal \"MCP \", the server id, a single space, and the field's key - three parts joined by single spaces, with no separator characters of any other kind. The service is AppInfo.name, one service for the whole app. The delete result is discarded, so a missing item, a locked store and a refusal are all indistinguishable and none is reported. Crucially the fields come from the ENTRY, not from a catalog lookup by id: a custom server is not in the catalog, so looking it up there would iterate an empty field list and silently delete nothing. An entry with no declared fields deletes nothing and is not an error. A field the entry NO LONGER declares keeps an orphaned item forever, because nothing enumerates the store.",
+      "side_effects": [
+        "One protected-storage item destroyed per declared field, unrecoverably"
+      ],
+      "persistence": "The secrets leave protected storage permanently; they must be re-obtained from the provider.",
+      "failure_cases": [
+        "A locked or unavailable store silently deletes nothing and disconnect still reports success",
+        "An entry whose declared fields changed since the values were written leaves orphans"
+      ],
+      "cancellation": "not cancellable once started",
+      "windows_path": "SECURITY-RELEVANT, DECIDE SEPARATELY. The Windows analogue is a DPAPI-protected store or Credential Manager, and the teardown must destroy exactly the items the entry declares under the same three-part account string, with the same discarded result. Reached from disconnect (PR-MCP-061) this path is implementable. Reached from the custom-server Delete affordance it is quarantined by BLK-0001, so the implementation must not be wired to any delete path while that entry is OPEN. Never fall back to a plaintext store if protected storage is unavailable: fail and leave the item alone, which matches the source's own silence.",
+      "verification_method": "integration test asserting one delete per declared field with the exact account string, a no-op for an entry with no fields, and that a custom server's fields are taken from the entry rather than the catalog",
+      "status": "DISCOVERED",
+      "upstream_defect": null,
+      "depends_on_unknown": null,
+      "blocked_by": "BLK-0012"
     },
     {
       "id": "PR-MCP-062",
@@ -1838,7 +1862,6 @@
       "verification_method": "integration test with a failing credential store asserting the popover stays open",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -1862,7 +1885,6 @@
       "verification_method": "unit removing a locked and an unlocked variable and asserting both stores",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -1886,7 +1908,6 @@
       "verification_method": "unit toggling a variable both ways and asserting the other store is empty",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -2331,7 +2352,6 @@
       "verification_method": "integration test asserting the exact account strings written",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -2355,7 +2375,6 @@
       "verification_method": "unit with a whitespace-only stored value",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -2379,7 +2398,6 @@
       "verification_method": "unit",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -2403,7 +2421,6 @@
       "verification_method": "unit over the three status outcomes",
       "status": "SPECIFIED",
       "upstream_defect": "21",
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -2427,7 +2444,6 @@
       "verification_method": "unit with a custom server asserting its variables are actually deleted",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -3989,11 +4005,15 @@
       "id": "PR-MCP-163",
       "title": "The callback page is a fixed dark HTML document with an inline logo and a 1500 ms self-close",
       "source_evidence": [
-        "DroppyCode/Services/MCP/MCPOAuth.swift:853-912 page(headTitle:heading:message:)"
+        "DroppyCode/Services/MCP/MCPOAuth.swift:853-912 page(headTitle:heading:message:)",
+        "DroppyCode/Services/MCP/MCPOAuth.swift:903 - the logo line, one line, verbatim: <svg width=\"56\" height=\"56\" viewBox=\"0 0 100 100\" opacity=\"0.9\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"#FFFFFF\" fill-rule=\"nonzero\" d=\"M16.00 94.00 C16.00 94.00 16.17 80.33 17.00 74.00 C17.83 67.67 19.50 61.00 21.00 56.00 C22.50 51.00 25.50 47.33 26.00 44.00 C26.50 40.67 26.17 38.83 24.00 36.00 C21.83 33.17 15.83 30.17 13.00 27.00 C10.17 23.83 7.00 17.00 7.00 17.00 C7.00 17.00 16.50 24.50 20.00 27.00 C23.50 29.50 27.50 33.17 28.00 32.00 C28.50 30.83 24.33 24.50 23.00 20.00 C21.67 15.50 20.00 5.00 20.00 5.00 C20.00 5.00 27.50 12.67 31.00 16.00 C34.50 19.33 37.17 23.67 41.00 25.00 C44.83 26.33 50.17 23.33 54.00 24.00 C57.83 24.67 61.00 26.67 64.00 29.00 C67.00 31.33 68.67 34.50 72.00 38.00 C75.33 41.50 80.33 46.33 84.00 50.00 C87.67 53.67 92.17 57.33 94.00 60.00 C95.83 62.67 95.33 64.33 95.00 66.00 C94.67 67.67 93.83 69.00 92.00 70.00 C90.17 71.00 87.33 71.67 84.00 72.00 C80.67 72.33 75.33 71.50 72.00 72.00 C68.67 72.50 67.33 72.67 64.00 75.00 C60.67 77.33 55.33 83.17 52.00 86.00 C48.67 88.83 46.00 90.67 44.00 92.00 C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z M63.00 38.00 C60.24 38.00 58.00 40.24 58.00 43.00 C58.00 45.76 60.24 48.00 63.00 48.00 C65.76 48.00 68.00 45.76 68.00 43.00 C68.00 40.24 65.76 38.00 63.00 38.00 Z M86.00 61.20 C85.01 61.20 84.20 62.01 84.20 63.00 C84.20 63.99 85.01 64.80 86.00 64.80 C86.99 64.80 87.80 63.99 87.80 63.00 C87.80 62.01 86.99 61.20 86.00 61.20 Z\"/></svg>",
+        "DroppyCode/Services/MCP/MCPOAuth.swift:906 - <div class=\"wordmark\">Droppy Code</div>",
+        "DroppyCode/Services/MCP/MCPOAuth.swift:908 - <script>setTimeout(() => window.close(), 1500);</script>",
+        "porting/extracts/mcp-protocol-and-oauth.md:813-896 section 4 'The OAuth callback page, verbatim' - the frozen copy of the whole document, with the logo line at :888; verified byte-for-byte identical to MCPOAuth.swift:903 during this repair pass"
       ],
       "preconditions": "A page is being built.",
       "action": "The HTML is produced.",
-      "expected_result": "A complete document with lang=\"en\", charset utf-8, the viewport meta \"width=device-width, initial-scale=1\" and color-scheme meta \"dark\". The inline stylesheet is exact: universal box-sizing border-box; html and body margin 0 padding 0; body background #0B0B0F, colour #F5F5F7, font-family -apple-system, \"SF Pro Text\", \"Helvetica Neue\", Helvetica, sans-serif, min-height 100vh, flex centred both axes. .card width 420px, max-width calc(100vw - 48px), padding 40px, border-radius 22px, background rgba(255, 255, 255, 0.06), text-align center. h1 font-size 22px, weight 600, colour #F5F5F7, margin 20px 0 8px. p font-size 14px, colour rgba(255, 255, 255, 0.62), line-height 1.5, margin 0 0 24px. .wordmark font-size 12px, colour rgba(255, 255, 255, 0.4), letter-spacing 0.04em. The body holds a div.card containing a 56 by 56 inline SVG with viewBox \"0 0 100 100\", opacity 0.9 and a single white nonzero-filled path, then the h1, then the p, then a div.wordmark reading \"Droppy Code\", followed by the script setTimeout(() => window.close(), 1500).",
+      "expected_result": "A complete document with lang=\"en\", charset utf-8, the viewport meta \"width=device-width, initial-scale=1\" and color-scheme meta \"dark\". The inline stylesheet is exact: universal box-sizing border-box; html and body margin 0 padding 0; body background #0B0B0F, colour #F5F5F7, font-family -apple-system, \"SF Pro Text\", \"Helvetica Neue\", Helvetica, sans-serif, min-height 100vh, flex centred both axes. .card width 420px, max-width calc(100vw - 48px), padding 40px, border-radius 22px, background rgba(255, 255, 255, 0.06), text-align center. h1 font-size 22px, weight 600, colour #F5F5F7, margin 20px 0 8px. p font-size 14px, colour rgba(255, 255, 255, 0.62), line-height 1.5, margin 0 0 24px. .wordmark font-size 12px, colour rgba(255, 255, 255, 0.4), letter-spacing 0.04em. The body holds a div.card containing the logo, then the h1, then the p, then a div.wordmark reading \"Droppy Code\", followed by the script setTimeout(() => window.close(), 1500). The logo is this one line, verbatim, and is the whole of it - one <svg> element on one line with a single <path> and no whitespace between the tags:\n<svg width=\"56\" height=\"56\" viewBox=\"0 0 100 100\" opacity=\"0.9\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"#FFFFFF\" fill-rule=\"nonzero\" d=\"M16.00 94.00 C16.00 94.00 16.17 80.33 17.00 74.00 C17.83 67.67 19.50 61.00 21.00 56.00 C22.50 51.00 25.50 47.33 26.00 44.00 C26.50 40.67 26.17 38.83 24.00 36.00 C21.83 33.17 15.83 30.17 13.00 27.00 C10.17 23.83 7.00 17.00 7.00 17.00 C7.00 17.00 16.50 24.50 20.00 27.00 C23.50 29.50 27.50 33.17 28.00 32.00 C28.50 30.83 24.33 24.50 23.00 20.00 C21.67 15.50 20.00 5.00 20.00 5.00 C20.00 5.00 27.50 12.67 31.00 16.00 C34.50 19.33 37.17 23.67 41.00 25.00 C44.83 26.33 50.17 23.33 54.00 24.00 C57.83 24.67 61.00 26.67 64.00 29.00 C67.00 31.33 68.67 34.50 72.00 38.00 C75.33 41.50 80.33 46.33 84.00 50.00 C87.67 53.67 92.17 57.33 94.00 60.00 C95.83 62.67 95.33 64.33 95.00 66.00 C94.67 67.67 93.83 69.00 92.00 70.00 C90.17 71.00 87.33 71.67 84.00 72.00 C80.67 72.33 75.33 71.50 72.00 72.00 C68.67 72.50 67.33 72.67 64.00 75.00 C60.67 77.33 55.33 83.17 52.00 86.00 C48.67 88.83 46.00 90.67 44.00 92.00 C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z M63.00 38.00 C60.24 38.00 58.00 40.24 58.00 43.00 C58.00 45.76 60.24 48.00 63.00 48.00 C65.76 48.00 68.00 45.76 68.00 43.00 C68.00 40.24 65.76 38.00 63.00 38.00 Z M86.00 61.20 C85.01 61.20 84.20 62.01 84.20 63.00 C84.20 63.99 85.01 64.80 86.00 64.80 C86.99 64.80 87.80 63.99 87.80 63.00 C87.80 62.01 86.99 61.20 86.00 61.20 Z\"/></svg>\nThe d attribute is 1,000-odd characters of two-decimal cubic segments in three closed subpaths: the body starting M16.00 94.00, the eye starting M63.00 38.00, and the small dot starting M86.00 61.20 and ending ... 87.80 62.01 86.99 61.20 86.00 61.20 Z. Every coordinate carries exactly two decimal places. fill=\"#FFFFFF\" and fill-rule=\"nonzero\" are attributes on the path, not CSS.",
       "side_effects": [
         "the browser tab closes itself 1.5 seconds after the page loads, when the browser permits it"
       ],
@@ -4002,8 +4022,8 @@
         "a browser that refuses window.close leaves the tab open, which the success text already tells the user to close"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Ship the document byte for byte, including the inline path data, the dark color-scheme meta, the 1500 ms close and the exact CSS. The -apple-system and SF Pro Text font names do not resolve on Windows and fall through to the generic sans-serif; that is the upstream stack rendered on a different platform, not a change to make. The wordmark and the logo path are product identity and follow the rename decision.",
-      "verification_method": "contract fixture comparing the generated HTML byte for byte against a frozen copy",
+      "windows_path": "Ship the document byte for byte: the inline path data exactly as given above, the dark color-scheme meta, the 1500 ms close and the exact CSS. The -apple-system and SF Pro Text font names do not resolve on Windows and fall through to the generic sans-serif; that is the upstream stack rendered on a different platform, not a change to make. The wordmark and the logo path are product identity and follow the rename decision (OD-0002); everything else in the document is not identity and must not be touched.",
+      "verification_method": "contract fixture comparing the generated HTML byte for byte against the frozen copy in porting/extracts/mcp-protocol-and-oauth.md:839-896 (section 4), which is the named frozen copy this requirement is tested against",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -4630,16 +4650,14 @@
     },
     {
       "id": "PR-MCP-189",
-      "title": "The hub uses three distinct timeouts: 30 for the initialized notification, 60 for initialize and listing, 120 for a tool call",
+      "title": "The hub's tools/list request has a 60-second deadline",
       "source_evidence": [
-        "DroppyCode/Services/MCP/MCPHub.swift:198 listTools timeout 60",
-        "DroppyCode/Services/MCP/MCPHub.swift:227 callTool timeout 120",
-        "DroppyCode/Services/MCP/MCPHub.swift:377 the stdio initialize timeout 60",
-        "DroppyCode/Services/MCP/MCPHub.swift:428 and :439 the http initialize 60 and notification 30"
+        "DroppyCode/Services/MCP/MCPHub.swift:198 - let reply = try await rpc(method: \"tools/list\", params: .object(params), timeout: 60), inside the up-to-ten-page cursor loop at :195",
+        "porting/extracts/mcp-protocol-and-oauth.md:284-313 section 1.9 'Timeouts and intervals, exact numbers' - the full table of the area's eighteen deadlines. Its row for this call and the one for tools/call cite MCPHub.swift:200 and :237; the real call sites are :198 and :227, so trust the source lines given here"
       ],
-      "preconditions": "none",
-      "action": "Any hub request is made.",
-      "expected_result": "tools/list uses 60 seconds; tools/call uses 120; initialize uses 60 on both transports; the notifications/initialized post uses 30. These are per-request deadlines, enforced by the polling loop for stdio and by the request timeout for http. They are deliberately different from the probe's flat 30-second remote leg and 90-second stdio deadline, and from the proxy's 3600-second upstream hold.",
+      "preconditions": "A hub client is listing a server's tools.",
+      "action": "tools/list is sent.",
+      "expected_result": "60 seconds, per REQUEST and therefore per page: a listing that walks ten cursor pages may take up to 600 seconds in total, because the deadline is not shared across the loop. Enforced by the polling loop for stdio and by the request timeout for http, the same value on both transports.",
       "side_effects": [
         "none"
       ],
@@ -4648,8 +4666,86 @@
         "a stdio overrun gives \"The server didn't answer in time.\"; an http overrun surfaces as the platform's timeout error wrapped as a server error"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Do not unify the timeouts across the probe, the hub and the proxy.",
-      "verification_method": "unit asserting each call site's value",
+      "windows_path": "60 seconds, per page. Do not unify the hub's timeouts with the probe's (a flat 30-second remote leg and a 90-second stdio deadline) or the proxy's 3600-second upstream hold.",
+      "verification_method": "unit asserting the value at this call site and that a ten-page listing does not share one deadline",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-MCP-225",
+      "title": "The hub's tools/call request has a 120-second deadline",
+      "source_evidence": [
+        "DroppyCode/Services/MCP/MCPHub.swift:224-228 - let reply = try await rpc(method: \"tools/call\", params: .object([\"name\": .string(name), \"arguments\": args]), timeout: 120)",
+        "porting/extracts/mcp-protocol-and-oauth.md:284-313 section 1.9, the tools/call row (its cited line :237 is stale; the call site is :224-228)"
+      ],
+      "preconditions": "A hub client is invoking a tool on a connected server.",
+      "action": "tools/call is sent.",
+      "expected_result": "120 seconds, twice the listing deadline, on both transports. It is the longest deadline the hub uses and it is per call, so a model issuing several tool calls in one turn gets 120 seconds each.",
+      "side_effects": [
+        "none"
+      ],
+      "persistence": "none",
+      "failure_cases": [
+        "a stdio overrun gives \"The server didn't answer in time.\"; an http overrun surfaces as the platform's timeout error wrapped as a server error"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "120 seconds. Do not unify with the listing deadline or with the probe's and proxy's values.",
+      "verification_method": "unit asserting the value at this call site",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-MCP-226",
+      "title": "The hub's initialize has a 60-second deadline on both transports, at two separate call sites",
+      "source_evidence": [
+        "DroppyCode/Services/MCP/MCPHub.swift:377 - the stdio handshake: let reply = try await waitStdio(process: proc, id: id, timeout: 60)",
+        "DroppyCode/Services/MCP/MCPHub.swift:428 - the http handshake: let posted = try await post(url: url, headers: headers, payload: request(id: id, method: \"initialize\", params: initializeParams()), timeout: 60)",
+        "porting/extracts/mcp-protocol-and-oauth.md:284-313 section 1.9, the two initialize rows"
+      ],
+      "preconditions": "A hub client is handshaking with a server.",
+      "action": "initialize is sent.",
+      "expected_result": "60 seconds at BOTH call sites, and they are two separate literals in the source, not one shared constant: the stdio path waits on the child's reply with that deadline, the http path posts with it. The value happens to equal the tools/list deadline (PR-MCP-189) and is independent of it. A stdio initialize that answers in time but carries no result object fails with \"The server sent something unexpected: missing result.\" rather than a timeout.",
+      "side_effects": [
+        "none"
+      ],
+      "persistence": "none",
+      "failure_cases": [
+        "a stdio overrun gives \"The server didn't answer in time.\"",
+        "an http overrun surfaces as the platform's timeout error wrapped as a server error"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "60 seconds on both transports. Keep them as two values at two sites so one can be changed without the other, exactly as the source has them. Note the stdio leg starts a child process, which is slower on Windows; do not raise the deadline to compensate.",
+      "verification_method": "unit asserting the value at each of the two call sites separately",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-MCP-227",
+      "title": "The hub's notifications/initialized post has a 30-second deadline and its failure is swallowed unless it is a cancellation",
+      "source_evidence": [
+        "DroppyCode/Services/MCP/MCPHub.swift:438-442 - do { _ = try await post(url: url, headers: headers, payload: notification(method: \"notifications/initialized\"), timeout: 30) } catch { if error is CancellationError { throw error } }",
+        "DroppyCode/Services/MCP/MCPHub.swift:437 - initialized = true is set BEFORE the notification is posted, so a failed notification still leaves the client initialized",
+        "porting/extracts/mcp-protocol-and-oauth.md:284-313 section 1.9, the http notifications/initialized row"
+      ],
+      "preconditions": "A hub HTTP client has just completed initialize.",
+      "action": "notifications/initialized is posted.",
+      "expected_result": "30 seconds, the shortest deadline in the hub and half the initialize value, on the http transport only. The post is wrapped so that ANY error is swallowed and the client carries on, with the single exception of a CancellationError, which is rethrown. The initialized flag was already set before the post, so a swallowed failure does not make the client retry the handshake.",
+      "side_effects": [
+        "one HTTP POST that nobody reads the reply of"
+      ],
+      "persistence": "none",
+      "failure_cases": [
+        "a server that rejects the notification is treated as initialized anyway; upstream behaviour, reproduced"
+      ],
+      "cancellation": "A CancellationError from this post is the one error that propagates.",
+      "windows_path": "30 seconds, and keep the swallow-except-cancellation shape exactly: a blanket catch that also swallowed cancellation would leave a stopping client running.",
+      "verification_method": "unit asserting the value, that a server error is swallowed, and that a cancellation propagates",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,

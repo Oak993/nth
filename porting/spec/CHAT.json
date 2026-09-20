@@ -2545,22 +2545,24 @@
     },
     {
       "id": "PR-CHAT-117",
-      "title": "The running turn shows one working line: a card with a breathing title, a progress bar, the elapsed clock and a chevron",
+      "title": "The running turn shows one working line: a 380-point card or a word-hugging badge, chosen by the working-card setting",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2071-2126 WorkingIndicator - the label is the work-group summary when the live work holds tools, else the rotating word with a horizontal ellipsis while running, else the literal Earlier steps; canExpand is thinking steps or live work; the header row holds HydraWorkingTitle, HydraElapsedTime and, only when there is something to open, a chevron.right at caption2 semibold in tertiary rotated 90 degrees when open; the card also holds a HydraProgressBar; the card is padded 14 on each side and 11 vertically and fixed at 380 points wide, the badge is padded with the pill insets and hugs its words; the hit shape is a pillRadius continuous rounded rect; the whole line sits on a .quaternary at 0.32 pillRadius rounded rect",
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2069 cardWidth = 380",
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2110-2112 the bar is drawn only when showsCard",
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2253 showsCard comes from model.settings.showsWorkingCard"
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2093-2094 `VStack(alignment: .leading, spacing: 10) { HStack(alignment: .firstTextBaseline, spacing: 8) {`",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2096 `.frame(maxWidth: showsCard ? .infinity : nil, alignment: .leading)` on the title",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2114-2121 the comment 'The badge is a pill like the others in the column; the card keeps an even 14 on both sides so its bar sits centred.' with `.padding(.leading, showsCard ? 14 : TimelineMetrics.pillLeading)`, `.padding(.trailing, showsCard ? 14 : TimelineMetrics.pillTrailing)`, `.padding(.vertical, showsCard ? 11 : TimelineMetrics.pillVertical)`, `.frame(width: showsCard ? Self.cardWidth : nil)`, `.contentShape(RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`, `.geometryGroup()`",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2068-2069 `/// The panel's card needs room for the bar; a badge hugging its words would leave the bar no width.` with `private static let cardWidth: CGFloat = 380`",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2079-2091 the press body: `guard canExpand else { return }` then, with the comment 'Both directions run the one animation: the card closes with the glide it opens with.', `withAnimation(.snappy(duration: 0.24)) { isExpanded = false }` or `withAnimation(.snappy(duration: 0.24)) { isExpanded = true; revealBox?.follow() }`",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2253 `showsCard` comes from `model.settings.showsWorkingCard`"
       ],
       "preconditions": "A turn is running.",
       "action": "The working line renders.",
-      "expected_result": "With the working card setting on, a 380-point card with the bar; with it off, a one-line badge that hugs its words. The chevron appears only once there is something to open, because an empty slot held for it left the time short of the card's edge as if misaligned. The label follows the work: the group summary while tools run, otherwise the rotating word with an ellipsis.",
+      "expected_result": "This row covers the card-versus-badge layout only; the label derivation is PR-CHAT-186, the progress bar is PR-CHAT-187 and the chevron is PR-CHAT-188. With the working-card setting on, the line is a fixed 380 points wide, padded 14 leading, 14 trailing and 11 vertically, and the title takes the full width so the elapsed time sits at the trailing edge. With the setting off, the line is a badge that hugs its words: no fixed width, and the pill insets TimelineMetrics.pillLeading, pillTrailing and pillVertical instead of the card's 14/14/11. Either way the header row is an HStack aligned on the first text baseline with spacing 8, the inner column has spacing 10, the hit shape is a continuous rounded rectangle at TimelineMetrics.pillRadius, and the content is wrapped in a geometry group so the card resizes as one. Pressing an expandable line opens or closes it with the one animation .snappy(duration: 0.24), and opening also asks the timeline-end reveal box to follow.",
       "side_effects": [],
       "persistence": "The showsWorkingCard setting.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Do not hard-code the string Earlier steps; derive the label from whether there are tools and whether the segment has finished, exactly as the source does (port_impacts.md 278).",
-      "verification_method": "capture comparison with the setting on and off",
+      "windows_path": "The two padding sets and the fixed-versus-hugging width are the whole difference between the two forms. The open and close animations are deliberately the same token; do not give the close a different curve.",
+      "verification_method": "capture comparison with the setting on and off, plus an interaction test asserting the same animation token in both directions and the reveal-box follow on open only",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -3772,6 +3774,422 @@
       "cancellation": "not cancellable",
       "windows_path": "No quarantined code path is to be created in this area.",
       "verification_method": "static check that none of deleteCustom, deleteCustomServer or removeCustomServer appears in the chat implementation",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-CHAT-171",
+      "title": "The chat chrome row is one glass pass holding eight control slots in a fixed left-to-right order",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1110 the doc comment `/// The sticky glass controls across the top of the conversation.` on `private struct ChatChromeRow`",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1121-1126 the comment 'One glass pass for the whole row. The row floats over the conversation, so its capsules sample fresh content on every scrolled frame; drawn separately, each was a pass of its own. The spacing is well under the gaps, so nothing morphs together.' with `GlassEffectContainer(spacing: 2) { HStack(alignment: .center, spacing: 10) {`",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1127-1177 the slot order: ThreadsButton, the New thread ChromeCircleButton, HydraButton, PermissionMenu, BranchMenu, ChatChromeTitle, then `HStack(spacing: 8)` holding a ChromeCapsule of OpenInMenu/ScriptsMenu/GitActionsMenu and a ChromeCapsule of the Terminal and Changes toggles",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1137-1145 `if let thread = model.thread(runtime.threadID)` guards HydraButton and PermissionMenu; HydraButton is drawn only when `model.settings.hydraEnabled, !thread.isHelper` and arrives on `.transition(.softAppear)`",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1146-1148 `if git.isRepository { BranchMenu(runtime: runtime, directory: directory, git: git) }`",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1159-1168 inside the first ChromeCapsule, ScriptsMenu is preceded by a `ChromeDivider()` and drawn only `if let project`; GitActionsMenu is preceded by a `ChromeDivider()` and drawn only `if git.isRepository`"
+      ],
+      "preconditions": "A chat is open on a thread, with or without a project and with or without a git repository under it.",
+      "action": "The chrome row renders.",
+      "expected_result": "One glass effect container with spacing 2 wraps the whole row, so the row is a single material pass rather than one per control. Inside it a horizontal stack, centre-aligned with spacing 10, lays out in exactly this order: the Threads button (conditional, see PR-CHAT-173), the New thread circle button, the Hydra button (only when the thread record resolves, Hydra is enabled in Settings and the thread is not a helper, arriving on the soft-appear transition), the permissions menu (only when the thread record resolves), the branch menu (only when the directory is a git repository), the thread title, then a trailing horizontal stack with spacing 8 holding two capsules: the first is Open in, then a divider and Scripts when there is a project, then a divider and Git actions when there is a repository; the second is Terminal, a divider, and Changes. No other control appears in the row and the order never varies.",
+      "side_effects": [],
+      "persistence": "Reads model.settings.hydraEnabled; nothing written.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "One composited material pass for the whole row, not one per control, because the row floats over scrolling content and per-control sampling was the cost the source is avoiding. The slot order, the two spacings (10 outer, 8 between the trailing capsules), the container spacing 2 and the three conditional slots are all directly reproducible. Glass itself is subject to UNK-0004.",
+      "verification_method": "capture comparison plus a structural test asserting the control order under the four combinations of project present and repository present",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": "UNK-0004"
+    },
+    {
+      "id": "PR-CHAT-172",
+      "title": "The chrome row steps clear of the window buttons by following holdsTrafficLights, not the sidebar's own visibility",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1119-1121 `let sidebarVisible = model.sidebar.holdsTrafficLights` with the comment 'Follows the buttons, not the sidebar's state: they leave for the sidebar only once it is wide enough to hold them, and the row closes up as they go.'",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1178-1183 `.padding(.leading, sidebarVisible ? 0 : Chrome.trafficLightsWidth + Chrome.trafficLightClearance)`, `.padding(.horizontal, Chrome.chromeHorizontalPadding)`, `.padding(.top, Chrome.chromeTopPadding)`, `.animation(Chrome.panelSlide, value: sidebarVisible)`, with the comment 'With the sidebar hidden the native window buttons sit over this row, so it steps clear of them.'",
+        "DroppyCode/UI/Chrome/Chrome.swift:20-21 `static var trafficLightsWidth: CGFloat { trafficLightDiameter * 3 + trafficLightSpacing * 2 }` and `static let trafficLightClearance: CGFloat = 10`",
+        "DroppyCode/UI/Chrome/Chrome.swift:31-32 `static let chromeHorizontalPadding: CGFloat = 14` and `static let chromeTopPadding: CGFloat = 12`"
+      ],
+      "preconditions": "The sidebar is being shown, hidden or resized.",
+      "action": "model.sidebar.holdsTrafficLights changes.",
+      "expected_result": "While the sidebar does not hold the window buttons, the row takes a leading inset of the traffic-lights width plus the 10-point clearance, so the caption buttons drawn over the row do not sit on top of a control; once the sidebar holds them the inset is zero. The row always takes 14 points of horizontal padding and 12 points of top padding on top of that. The inset change is animated with Chrome.panelSlide keyed on that same value. The trigger is holdsTrafficLights, never the sidebar's visible or width state directly, so the row closes up exactly as the buttons leave it.",
+      "side_effects": [],
+      "persistence": "Not persisted; derived from the sidebar model.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The caption-button band, not the sidebar, is the trigger. If the Windows build mirrors the caption buttons to the trailing edge (the open question recorded against WIN), the inset moves with them; the rule stays 'clear the caption buttons, animated on the same value'.",
+      "verification_method": "interaction test toggling the sidebar across the holdsTrafficLights threshold and asserting the leading inset and the animation token",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-CHAT-173",
+      "title": "The Threads button is shown only when the sidebar is away and is not the only sidebar, and toggles instead of opening when the sidebar floats",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1127-1132 `if !sidebarVisible, !(model.settings.sidebarFloats && model.settings.sidebarOnlyFloats) { ThreadsButton().transition(.softAppear) }` with the comment 'With the sidebar away, its list is one press away: the button arrives with the window buttons and leaves with them. Not when the list floats as the only sidebar (see `AppSettings.sidebarOnlyFloats`): there is nothing to open.'",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1252-1259 `let floats = model.settings.sidebarFloats` then `ChromeCircleButton(symbol: \"list.bullet\", help: floats ? \"Show the sidebar\" : \"Threads\") { if floats { model.sidebar.toggle() } else { isPresented.toggle() } }`, with the comment 'With the list floating over the chat, the button brings the column back instead; the floating panel is the list while the column is away.'",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1246-1247 the doc comment: 'The sidebar's list in a popover, for a hidden sidebar: the same search, the same rows, the same footer, at the sidebar's own width. Picking a thread closes it.'"
+      ],
+      "preconditions": "A chat is open.",
+      "action": "The chrome row renders, and the user presses the Threads button.",
+      "expected_result": "The button exists only when the sidebar does not hold the window buttons AND it is not the case that both sidebarFloats and sidebarOnlyFloats are on. It arrives and leaves on the soft-appear transition. Its symbol is list.bullet. Its tooltip is exactly \"Show the sidebar\" when sidebarFloats is on and exactly \"Threads\" otherwise. Pressing it toggles the sidebar when sidebarFloats is on, and otherwise toggles its own popover.",
+      "side_effects": [],
+      "persistence": "Reads settings.sidebarFloats and settings.sidebarOnlyFloats; nothing written.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Both tooltip strings are user-visible and are kept verbatim. The two-way behaviour (toggle the panel versus open a popover) is a real branch, not a presentation detail.",
+      "verification_method": "interaction test over the four combinations of sidebarFloats and sidebarOnlyFloats, asserting presence, tooltip text and the action taken",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-CHAT-174",
+      "title": "The Threads popover holds the sidebar list at the sidebar's width by a fixed height of 560, and publishes its frame for capture runs",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1260-1264 `.popover(isPresented: $isPresented, arrowEdge: .bottom) { SidebarView(inPopover: true, dismiss: { isPresented = false }).frame(width: model.sidebar.width, height: 560).presentedChrome() }`",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1265-1268 `.onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in if WebsiteCaptures.isEnabled { WebsiteCaptures.threadsButtonFrame = frame } }` with the comment 'The capture run hangs the list's still from the button, where the app shows it.'"
+      ],
+      "preconditions": "The sidebar does not hold the window buttons and it does not float as the only sidebar.",
+      "action": "The user presses the Threads button while the sidebar does not float.",
+      "expected_result": "A popover opens with its arrow on the bottom edge, holding the sidebar view in its in-popover form with a dismiss closure that closes the popover. Its content is the sidebar's own current width by a fixed 560 points, wearing the presented-chrome treatment. Independently of the popover, the button publishes its global frame to WebsiteCaptures.threadsButtonFrame on every geometry change, but only while captures are enabled.",
+      "side_effects": [
+        "Writes WebsiteCaptures.threadsButtonFrame while captures are enabled"
+      ],
+      "persistence": "Not persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The width follows the live sidebar width; only the 560 height is fixed. The capture-frame publication belongs to the capture subsystem whose porting is an unresolved port decision (the first LAUNCH open question); if that subsystem is dropped the geometry observer goes with it and nothing else in this requirement changes.",
+      "verification_method": "interaction test asserting the popover size and arrow edge, and that the frame is published only under the capture flag",
+      "status": "DISCOVERED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-CHAT-175",
+      "title": "The New thread chrome button is a square.and.pencil circle whose tooltip carries the New thread shortcut hint",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1134-1136 `ChromeCircleButton(symbol: \"square.and.pencil\", help: \"New thread\" + ShortcutStore.hint(for: .newThread)) { model.newThread(in: project) }`"
+      ],
+      "preconditions": "A chat is open; the project may be nil.",
+      "action": "The user presses the New thread button in the chrome row.",
+      "expected_result": "The control is a chrome circle button carrying the symbol square.and.pencil. Its tooltip is the literal \"New thread\" with the shortcut hint for the newThread action appended, so the hint is not a separate label and is not omitted. Pressing it asks the model for a new thread in the row's project, passing nil through unchanged when there is none. The button is unconditional: unlike the Threads button it is never removed from the row.",
+      "side_effects": [
+        "Creates a thread and selects it, through the model"
+      ],
+      "persistence": "The new thread is written to the library by the model's own path.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct translation. The tooltip is a concatenation, so the Windows shortcut-hint formatter feeds the same slot.",
+      "verification_method": "interaction test asserting the symbol, the concatenated tooltip and the newThread call with the row's project",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-CHAT-176",
+      "title": "The chrome thread title is a plain button showing the title or \"New thread\", and never crossfades on a thread switch",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1186-1192 the doc comment on ChatChromeTitle: 'A real Button so the extended title bar (which drags the window from this row's gaps) never swallows the click: buttons take their presses while the gaps around them still move the window. Always visible; the scroll-faded compact title it replaces stayed invisible and untappable at rest.'",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1207-1213 `Text(verbatim: title.isEmpty ? \"New thread\" : title).font(.system(size: 15, weight: .semibold)).foregroundStyle(title.isEmpty ? Chrome.secondaryText : Chrome.primaryText).lineLimit(1).truncationMode(.tail).padding(.vertical, 6).contentShape(.rect)`",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1215-1218 `.buttonStyle(.plain)`, `.help(\"Thread title — click to copy or rename\")`, `.accessibilityLabel(Text(\"Thread title\"))`, `.accessibilityAddTraits(.isButton)`",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1241 `.frame(maxWidth: .infinity, alignment: .leading)`",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1149-1153 the call site's `.animation(nil, value: title)` with the comment 'The thread's title cuts on a switch; it must never crossfade. Animated, the old and new titles ghost over each other mid-flight. Scroll progress still drives it per frame.'",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1203-1206 the press body `renameText = title; isPresented.toggle()`"
+      ],
+      "preconditions": "A chat is open on a thread whose title may be empty.",
+      "action": "The title renders, and the user clicks it.",
+      "expected_result": "The label is verbatim text: the literal \"New thread\" when the title is empty, otherwise the title itself, at system size 15 semibold, in Chrome.secondaryText when empty and Chrome.primaryText otherwise, one line, truncating at the tail, with 6 points of vertical padding and a rectangular hit shape. It is a plain-styled real button, not a label, so the extended title bar around it cannot swallow the press; it takes the whole leftover width, leading-aligned. Its tooltip is exactly \"Thread title — click to copy or rename\" (with a U+2014 em dash), its accessibility label is exactly \"Thread title\" and it carries the button trait. Animation is explicitly disabled on the title value, so a thread switch cuts the text rather than crossfading it. Clicking seeds the rename field with the current title and toggles the title popover.",
+      "side_effects": [],
+      "persistence": "Not persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The em dash in the tooltip is part of the reproduced upstream string and is kept; the port repository's own no-em-dash rule governs its own code and prose, not text copied verbatim from the source. The disabled animation is load-bearing and must not be left to a default crossfade.",
+      "verification_method": "capture comparison of the empty and non-empty title, plus an interaction test that a thread switch shows no crossfade",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-CHAT-177",
+      "title": "The thread title popover offers Copy title and Rename… under a \"Thread title\" header",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1222-1234 `.popover(isPresented: $isPresented, arrowEdge: .bottom) { PopoverMenu { PopoverSectionHeader(\"Thread title\"); PopoverItem(\"Copy title\", symbol: \"doc.on.doc\") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(title, forType: .string) }; PopoverItem(\"Rename…\", symbol: \"pencil\") { renameText = title; isRenaming = true } } }`",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1219-1221 the comment: 'The popover hangs off the title's own width, so it opens under the words; the row's leftover width (below) is not the button's, or a short title opened its menu far off to the right, over the middle of the chat.'"
+      ],
+      "preconditions": "The title popover is open.",
+      "action": "The user picks Copy title or Rename….",
+      "expected_result": "A popover menu with its arrow on the bottom edge, anchored to the title button's own width rather than the leftover row width, holding a section header reading exactly \"Thread title\" and two items: \"Copy title\" with the symbol doc.on.doc, and \"Rename…\" with the symbol pencil and a single U+2026 character. Copy title clears the pasteboard first and then writes the title as a string; it does not append. Rename… seeds the rename field with the current title and raises the rename alert.",
+      "side_effects": [
+        "Copy title replaces the system pasteboard contents"
+      ],
+      "persistence": "Not persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Clear-then-set is observable (a prior clipboard flavour does not survive), so the Windows clipboard write empties the clipboard first. The item strings and the single-character ellipsis are kept verbatim.",
+      "verification_method": "interaction test asserting the header and item strings and that the clipboard is cleared before the write",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-CHAT-178",
+      "title": "Rename from the chrome title is a \"Rename thread\" alert with a Title field, Rename and a cancel-role Cancel",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1235-1240 `.alert(\"Rename thread\", isPresented: $isRenaming) { TextField(\"Title\", text: $renameText); Button(\"Rename\") { model.rename(runtime.threadID, to: renameText) }; Button(\"Cancel\", role: .cancel) {} }`"
+      ],
+      "preconditions": "Rename… was picked from the title popover, so the rename field already holds the current title.",
+      "action": "The user edits the field and presses Rename, or presses Cancel.",
+      "expected_result": "An alert titled exactly \"Rename thread\" holding a text field whose placeholder is exactly \"Title\", a button reading exactly \"Rename\" and a button reading exactly \"Cancel\" in the cancel role. Rename asks the model to rename this runtime's thread to the field's current text, with no trimming and no emptiness check at this call site; the model's rename path owns those (see PR-SIDEBAR-092). Cancel does nothing at all.",
+      "side_effects": [
+        "Renames the thread through the model"
+      ],
+      "persistence": "The thread title, through the model.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "A modal dialog with the same three strings and the same placeholder. Cancel must be the cancel-role button so Escape dismisses it.",
+      "verification_method": "interaction test asserting the three strings, the placeholder, and that Cancel performs no write",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-CHAT-179",
+      "title": "The permissions menu shows the thread's mode as a circle and lists every RuntimeMode with a check on the current one",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1338-1345 `ChromeCircleMenu(symbol: thread.runtimeMode.symbol, help: \"\\(thread.runtimeMode.title) · \\(thread.runtimeMode.summary)\") { PopoverSectionHeader(\"Permissions\"); ForEach(RuntimeMode.allCases) { mode in PopoverItem(mode.title, symbol: mode.symbol, isChecked: thread.runtimeMode == mode) { model.updateThread(thread.id) { $0.runtimeMode = mode } } } }`"
+      ],
+      "preconditions": "The chrome row resolved a thread record.",
+      "action": "The user opens the permissions menu and picks a mode.",
+      "expected_result": "The control is a chrome circle menu whose symbol is the current runtime mode's own symbol. Its tooltip is the current mode's title, then a space, then U+00B7 MIDDLE DOT, then a space, then the current mode's summary. The menu holds a section header reading exactly \"Permissions\" followed by one item per case of RuntimeMode in the enum's own declaration order, each showing that case's title and symbol, with the check mark on the case equal to the thread's current mode. Picking one writes that mode onto the thread.",
+      "side_effects": [
+        "Writes thread.runtimeMode through the model"
+      ],
+      "persistence": "thread.runtimeMode, persisted in the library.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The tooltip separator is U+00B7 with a space on each side, not a hyphen and not a comma. The item list is generated from the enum, never hard-coded, so adding a mode cannot leave the menu stale.",
+      "verification_method": "contract fixture asserting the tooltip format and one item per RuntimeMode case in order, with the check on the current mode",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-CHAT-180",
+      "title": "The Open in menu lists Finder, every installed editor, a divider and Copy path",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1415-1436 `ChromeMenuButton(symbol: \"arrow.up.forward.app\", help: \"Open in another app\") { PopoverSectionHeader(\"Open in\"); PopoverItem(\"Finder\", image: Workspace.finderIcon) { NSWorkspace.shared.open(URL(fileURLWithPath: directory)) }; ForEach(Workspace.installedEditors) { editor in PopoverItem(editor.name, symbol: \"chevron.left.forwardslash.chevron.right\", image: Workspace.icon(for: editor)) { Workspace.open(directory, with: editor) } }; PopoverDivider(); PopoverItem(\"Copy path\", symbol: \"doc.on.doc\") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(directory, forType: .string) } }`"
+      ],
+      "preconditions": "A chat is open on a directory.",
+      "action": "The user opens the Open in menu and picks an item.",
+      "expected_result": "A chrome menu button with the symbol arrow.up.forward.app whose tooltip is exactly \"Open in another app\". Its menu holds a section header reading exactly \"Open in\"; then an item reading exactly \"Finder\" carrying the Finder application icon, which opens the chat's directory in the system file browser; then one item per installed editor, in the catalogue's own order, each labelled with that editor's display name, carrying the fallback symbol chevron.left.forwardslash.chevron.right and the editor's own application icon, opening the directory with that editor; then a divider; then an item reading exactly \"Copy path\" with the symbol doc.on.doc, which clears the pasteboard and writes the directory path. When no editor is installed the editor items are simply absent and the divider and Copy path still follow Finder.",
+      "side_effects": [
+        "Launches other applications",
+        "Copy path replaces the system pasteboard contents"
+      ],
+      "persistence": "Not persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "\"Finder\" is a macOS application name and is the same class of user-visible string as PR-SIDEBAR-101's \"Reveal worktree in Finder\": the Windows label must be chosen and recorded as a named deviation rather than silently translated. \"Open in another app\", \"Open in\" and \"Copy path\" are platform-neutral and are kept verbatim.",
+      "verification_method": "interaction test asserting the header, the Finder item, the editor items in catalogue order, the divider and Copy path, and the clear-then-set clipboard write",
+      "status": "DISCOVERED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-CHAT-181",
+      "title": "The editor catalogue is seven fixed entries with exact display names and bundle identifiers",
+      "source_evidence": [
+        "DroppyCode/UI/Common/Components.swift:102-107 `struct Editor: Identifiable { var id: String { bundleID }; var name: String; var bundleID: String }`",
+        "DroppyCode/UI/Common/Components.swift:109-117 `static let editors = [Editor(name: \"Visual Studio Code\", bundleID: \"com.microsoft.VSCode\"), Editor(name: \"Cursor\", bundleID: \"com.todesktop.230313mzl4w4u92\"), Editor(name: \"Zed\", bundleID: \"dev.zed.Zed\"), Editor(name: \"Xcode\", bundleID: \"com.apple.dt.Xcode\"), Editor(name: \"Terminal\", bundleID: \"com.apple.Terminal\"), Editor(name: \"Ghostty\", bundleID: \"com.mitchellh.ghostty\"), Editor(name: \"iTerm\", bundleID: \"com.googlecode.iterm2\")]`"
+      ],
+      "preconditions": "The application has launched.",
+      "action": "The Open in menu asks for the editor catalogue.",
+      "expected_result": "Exactly seven entries, in this order, with these exact display names and these exact bundle identifiers: \"Visual Studio Code\" / com.microsoft.VSCode; \"Cursor\" / com.todesktop.230313mzl4w4u92; \"Zed\" / dev.zed.Zed; \"Xcode\" / com.apple.dt.Xcode; \"Terminal\" / com.apple.Terminal; \"Ghostty\" / com.mitchellh.ghostty; \"iTerm\" / com.googlecode.iterm2. An entry's identity is its bundle identifier, not its name. No eighth entry exists and none is discovered at runtime.",
+      "side_effects": [],
+      "persistence": "A compile-time constant.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Platform boundary: bundle identifiers have no Windows counterpart, so the detection key becomes a Windows one per editor (an executable path, a registry App Paths entry or an installed-app record). Xcode, Terminal and iTerm are macOS-only applications with no Windows build, so the Windows catalogue cannot be a translation of all seven and the substitutions must be chosen and recorded rather than derived. The four display names that do carry over (\"Visual Studio Code\", \"Cursor\", \"Zed\", \"Ghostty\") are kept verbatim.",
+      "verification_method": "contract fixture over the seven name and identifier pairs and their order",
+      "status": "DISCOVERED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-CHAT-182",
+      "title": "Installed editors are resolved once per launch and their icons are cached at 16 by 16 per bundle identifier",
+      "source_evidence": [
+        "DroppyCode/UI/Common/Components.swift:137-141 `/// Looked up once per launch: the chat's controls build this list on every render, and each entry is a Launch Services query.` with `static let installedEditors: [Editor] = editors.filter { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0.bundleID) != nil }`",
+        "DroppyCode/UI/Common/Components.swift:144-147 `static func open(_ path: String, with editor: Editor)` resolves the application URL again and returns silently when it is gone, otherwise opens the path with that application",
+        "DroppyCode/UI/Common/Components.swift:149-161 `/// Icons by bundle id. Each is a Launch Services lookup plus an icon read, and the \"Open in\" menu asks for every editor's whenever the chat's chrome is rebuilt.` with the `[String: NSImage]` cache keyed by bundle id, the icon read from the resolved application path and `image.size = NSSize(width: 16, height: 16)`",
+        "DroppyCode/UI/Common/Components.swift:163 `@MainActor static let finderIcon = NSWorkspace.shared.icon(forFile: \"/System/Library/CoreServices/Finder.app\")`",
+        "DroppyCode/UI/Common/Components.swift:165-167 `static func revealInFinder(_ path: String) { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)]) }`"
+      ],
+      "preconditions": "The chrome row is being rebuilt, which happens on every render.",
+      "action": "The Open in menu asks for the installed editors and their icons.",
+      "expected_result": "The installed list is computed exactly once for the process lifetime, by filtering the catalogue down to the entries the system can resolve. An editor installed after launch does not appear until the next launch, and one uninstalled after launch still appears but opens nothing, because the open path re-resolves and returns silently when the application is gone. Each editor's icon is read at most once per bundle identifier and resized to 16 by 16 before being cached; a second menu build reads no icons. The Finder icon is read once, from the fixed path /System/Library/CoreServices/Finder.app. Revealing a path selects that path in the file viewer rather than opening its parent.",
+      "side_effects": [
+        "One application-lookup query per catalogue entry at first use",
+        "One icon read per resolved editor at first use"
+      ],
+      "persistence": "Process-lifetime caches only.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The once-per-launch resolution is deliberate and must survive: the menu is rebuilt on every chrome render, so a per-render installed-application query is exactly the cost the source is avoiding. The stale-after-install and stale-after-uninstall consequences above are upstream behaviour, not defects to repair. The icon cache keyed by the Windows detection key, resized once, carries over unchanged.",
+      "verification_method": "unit test that the resolution runs once and the icon cache is consulted on the second build; interaction test that an uninstalled editor's item opens nothing",
+      "status": "DISCOVERED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-CHAT-183",
+      "title": "The Terminal and Changes toggles are one capsule of two active-state icon buttons split by a divider, with chord-suffixed tooltips",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1169-1177 `ChromeCapsule { ChromeIconButton(symbol: \"terminal\", isActive: runtime.isTerminalVisible, help: \"Terminal\" + ShortcutStore.hint(for: .toggleTerminal)) { runtime.isTerminalVisible.toggle() }; ChromeDivider(); ChromeIconButton(symbol: \"plusminus\", isActive: runtime.isDiffVisible, help: \"Changes\" + ShortcutStore.hint(for: .toggleChanges)) { runtime.toggleDiff() } }`"
+      ],
+      "preconditions": "A chat is open on a thread runtime.",
+      "action": "The user presses either toggle.",
+      "expected_result": "One chrome capsule holds two icon buttons separated by a chrome divider. The first carries the symbol terminal, takes its active state from the runtime's isTerminalVisible, and has the tooltip \"Terminal\" with the toggleTerminal shortcut hint appended; pressing it flips isTerminalVisible directly. The second carries the symbol plusminus, takes its active state from the runtime's isDiffVisible, and has the tooltip \"Changes\" with the toggleChanges shortcut hint appended; pressing it calls the runtime's toggleDiff, not a direct flag flip, so the changes panel's own open path runs. Both active states are read live from the runtime, so a panel opened from anywhere else lights the matching button.",
+      "side_effects": [
+        "Shows or hides the terminal panel",
+        "Shows or hides the changes panel"
+      ],
+      "persistence": "isTerminalVisible and isDiffVisible live on the runtime, not in user defaults.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The asymmetry is real and must be kept: the terminal button writes the flag, the changes button calls toggleDiff. Both tooltips are concatenations with the shortcut hint.",
+      "verification_method": "interaction test asserting the two symbols, both concatenated tooltips, the active binding in both directions and that Changes routes through toggleDiff",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-CHAT-184",
+      "title": "Scroll activity is the union over reporting timelines, and a watchdog drops timelines whose reporter went away or stopped",
+      "source_evidence": [
+        "DroppyCode/UI/Common/RenderBudget.swift:5-10 the doc comment: 'Whether the reader is scrolling a timeline right now: the drag, the flick and the coast after it, and wheel ticks, until the content has been still for a beat. Each timeline reports its own; this is the union. It flips at most twice per scroll, so a view that reads it re-renders at the start and at the end, never per frame. Motion that has no business running under a moving finger (a progress sweep, a shimmer, a breathing ring) pauses on it and gives the frame back to the scroll.'",
+        "DroppyCode/UI/Common/RenderBudget.swift:16-17 `private(set) var isScrolling = false` and `@ObservationIgnored private var scrolling: Set<UUID> = []`",
+        "DroppyCode/UI/Common/RenderBudget.swift:41-43 `let now = !scrolling.isEmpty; if now != isScrolling { isScrolling = now }`",
+        "DroppyCode/UI/Common/RenderBudget.swift:44-63 the watch task: started only when the set is non-empty and no watch exists; each pass sleeps 2 seconds, then drops every id whose reporter is gone or whose `isScrollingNow` is false, re-publishes the union, and returns after clearing `watch` once the set is empty",
+        "DroppyCode/UI/Common/RenderBudget.swift:64-67 `} else if !now { watch?.cancel(); watch = nil }`",
+        "DroppyCode/UI/Common/RenderBudget.swift:72-75 `@MainActor protocol ScrollActivityReporter: AnyObject { var isScrollingNow: Bool { get } }`"
+      ],
+      "preconditions": "One or more timelines report their scrolling.",
+      "action": "A timeline starts or stops scrolling, or a reporting timeline goes away without withdrawing.",
+      "expected_result": "The shared flag is true exactly while at least one timeline is on record as scrolling, so a settings pane being scrolled suppresses motion app-wide. The flag is written only when it actually changes, so readers re-render at the start and the end of a scroll and never per frame. While any timeline is on record a single watchdog task wakes every 2 seconds, asks each recorded reporter whether it is still scrolling, and drops every timeline whose reporter has gone away or answers no; it then re-publishes the union and, once nothing is left, clears itself and returns. At most one watchdog exists at a time. Clearing the set by an explicit stop cancels the watchdog immediately rather than waiting for its next pass.",
+      "side_effects": [
+        "Pauses animation in every view that reads the flag"
+      ],
+      "persistence": "Process state only.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The union, the single watchdog, the 2-second poll and the change-only publication are all directly reproducible. This is the receiving half of PR-CHAT-136 and PR-CHAT-163 and of the settings-pane reporter (PR-SETTINGS-018, PR-SETTINGS-019); without it a window closed mid-flick pins the whole app to 'scrolling' and every shimmer, sweep and breathing ring stops for good.",
+      "verification_method": "unit test: two timelines reporting, one withdrawing, one released without withdrawing, asserting the flag over the watchdog's passes",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-CHAT-185",
+      "title": "Scroll reporters are held weakly and a stop removes the reporter entry as well as the timeline id",
+      "source_evidence": [
+        "DroppyCode/UI/Common/RenderBudget.swift:18-22 the comment 'Who reported each timeline, held weakly: a reporter that went away without withdrawing (a window closed mid-flick, a subtree dropped without its disappearance) would otherwise keep the app \"scrolling\" for good. The watch below asks each reporter while any is on record and drops the ones gone or resting.' with `private var reporters: [UUID: WeakReporter] = [:]`",
+        "DroppyCode/UI/Common/RenderBudget.swift:25-27 `private struct WeakReporter { weak var object: (any ScrollActivityReporter)? }`",
+        "DroppyCode/UI/Common/RenderBudget.swift:30-39 `func setScrolling(_ active: Bool, timeline: UUID, reporter: (any ScrollActivityReporter)? = nil)`: active inserts the id and stores the weak reporter; inactive removes the id AND sets `reporters[timeline] = nil`; both call `update()`"
+      ],
+      "preconditions": "A timeline is reporting its scrolling.",
+      "action": "The timeline reports a stop, or its reporter is released without reporting one.",
+      "expected_result": "The registry never keeps a strong reference to a reporter, so a reporter released without withdrawing is collected and the watchdog drops its timeline on the next pass rather than holding the app at 'scrolling' forever. A reported stop removes both the timeline id and its reporter entry, so the map cannot grow with dead entries for timelines that scroll repeatedly. The reporter argument is optional; a report made without one still registers the timeline, and the watchdog then finds no reporter and drops it on the next pass.",
+      "side_effects": [],
+      "persistence": "Process state only.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Weak references are the load-bearing detail: a strong map here is both a leak and an app-wide animation freeze. If the Windows object model offers no weak reference for this type, an explicit unregister on teardown plus the watchdog's liveness check must produce the same result.",
+      "verification_method": "unit test that releasing a reporter without withdrawing clears the flag within one watchdog pass, and that a stop empties both maps",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-CHAT-186",
+      "title": "The working line's label is one of three things: the work-group summary, the rotating word with an ellipsis, or \"Earlier steps\"",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2073-2076 `let word = WorkingWords.word(seed: seed, elapsedSeconds: Int64(max(0, elapsed)))`, `let isRunning = finishedAt == nil`, `let hasTools = liveWork.contains { $0.kind == .tool }`, `let label = hasTools ? WorkGroupSummary.text(for: liveWork) : (isRunning ? \"\\(word)…\" : \"Earlier steps\")`",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2095 `HydraWorkingTitle(text: label, isRunning: isRunning, alignment: .leading)`"
+      ],
+      "preconditions": "A working line is rendering for a turn segment.",
+      "action": "The label is derived.",
+      "expected_result": "Exactly three outcomes, tested in this order. When the live work holds at least one entry of kind tool, the label is the work-group summary computed over that live work; this is the only place that summary is selected. Otherwise, while the segment is still running (no finish timestamp), the label is the rotating working word with a single U+2026 HORIZONTAL ELLIPSIS appended directly, with no space between them. Otherwise the label is the literal \"Earlier steps\". The tool test wins over the running test, so a finished segment that still holds tool work shows the summary and not \"Earlier steps\".",
+      "side_effects": [],
+      "persistence": "Not persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Do not hard-code \"Earlier steps\" as the finished label without the preceding tool test; the branch order is observable. The appended character is one ellipsis, not three periods.",
+      "verification_method": "unit test over the four combinations of hasTools and isRunning, asserting the exact label including the ellipsis character",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-CHAT-187",
+      "title": "The working card's progress bar is drawn only with the working-card setting on",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2109-2112 `// The bar is the card's; the badge is the line above alone, hugging its words.` then `if showsCard { HydraProgressBar(runtime: runtime, startedAt: startedAt, finishedAt: finishedAt, status: isRunning ? .running : .stopped, tint: Chrome.accent, entries: turnEntries) }`",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2253 `showsCard` comes from `model.settings.showsWorkingCard`",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2068-2069 `/// The panel's card needs room for the bar; a badge hugging its words would leave the bar no width.` with `private static let cardWidth: CGFloat = 380`"
+      ],
+      "preconditions": "A working line is rendering.",
+      "action": "The working-card setting is on or off.",
+      "expected_result": "With the setting on, a progress bar is drawn under the header row, tinted with Chrome.accent, taking the turn's entries, with its status running while the segment has no finish timestamp and stopped otherwise. With the setting off, no bar is built at all: it is not merely hidden, and the badge form has no room for one because it hugs its words. The 380-point fixed card width exists to give that bar its width.",
+      "side_effects": [],
+      "persistence": "Reads settings.showsWorkingCard.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The bar must not be laid out and then hidden in the badge form, because the badge sizes itself to its content and a zero-width bar would still claim a row.",
+      "verification_method": "capture comparison with the setting on and off, plus a structural test that no bar is constructed when it is off",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-CHAT-188",
+      "title": "The working line's chevron is laid out only when there is something to open",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2077 `let canExpand = !thinkingSteps.isEmpty || !liveWork.isEmpty`",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2098-2107 the comment 'The chevron only once there is something to open: an empty slot held for it left the time short of the card's edge, as if misaligned. The card's `canExpand` animation glides the time over when it comes.' with `if canExpand { Image(systemName: \"chevron.right\").font(.chat(.caption2, weight: .semibold, zoom: zoom)).foregroundStyle(.tertiary).rotationEffect(.degrees(isExpanded ? 90 : 0)).transition(.opacity) }`",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2079-2080 `Button { guard canExpand else { return }` so the whole line is inert when nothing can open",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2124-2125 `.help(canExpand ? (isExpanded ? \"Hide these steps\" : \"Show these steps\") : \"\")` and `.accessibilityHint(canExpand ? Text(\"Shows what the agent is doing\") : Text(\"\"))`"
+      ],
+      "preconditions": "A working line is rendering.",
+      "action": "Thinking steps or live work arrive or are absent.",
+      "expected_result": "Expandability is true when there is at least one thinking step or at least one live work entry. The chevron is built only then; it is not laid out at zero opacity, because an always-present empty slot pushed the elapsed time short of the card's trailing edge and read as a misalignment. It is chevron.right at the chat caption2 font in semibold at the current zoom, in the tertiary style, rotated 90 degrees when open, arriving and leaving on an opacity transition. When nothing can open, pressing the line does nothing, the tooltip is the empty string and the accessibility hint is the empty string; when something can open, the tooltip is exactly \"Hide these steps\" while open and exactly \"Show these steps\" while closed, and the hint is exactly \"Shows what the agent is doing\".",
+      "side_effects": [],
+      "persistence": "Not persisted.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The empty tooltip and empty hint in the inert state are the source's values, not omissions. Reserving the chevron's slot is the specific mistake the comment records.",
+      "verification_method": "capture comparison with and without steps; interaction test asserting the four tooltip and hint values",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -5375,6 +5793,209 @@
         "DroppyCode/App/Views/Chat/MessageEditor.swift:399-400"
       ],
       "notes": "The same literal is used in the message editor's file list."
+    },
+    {
+      "id": "UI-CHAT-073",
+      "screen": "Chat, top of the conversation",
+      "element": "Chat chrome row",
+      "role": "toolbar",
+      "exact_text": null,
+      "geometry": "One GlassEffectContainer(spacing: 2) around an HStack(alignment: .center, spacing: 10); a trailing inner HStack(spacing: 8) holds the two capsules; leading padding Chrome.trafficLightsWidth + Chrome.trafficLightClearance (10) while the sidebar does not hold the window buttons, otherwise 0; horizontal padding Chrome.chromeHorizontalPadding = 14; top padding Chrome.chromeTopPadding = 12",
+      "typography": "Per control; the title is system 15 semibold",
+      "colors": "Liquid Glass, one pass for the whole row; controls tinted with Chrome.glassTint at 0.3 (PR-WIN-180)",
+      "states": [
+        "sidebar holds the window buttons: no leading inset and no Threads button",
+        "sidebar away: leading inset applied and the Threads button present",
+        "sidebar floats as the only sidebar: leading inset applied but no Threads button",
+        "no project: the Scripts item and its divider are absent",
+        "not a git repository: the branch menu, the Git actions item and its divider are absent"
+      ],
+      "interactions": [
+        "the gaps between controls drag the window",
+        "the inset change animates with Chrome.panelSlide"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1110-1183"
+      ],
+      "notes": "Left to right: Threads, New thread, Hydra, Permissions, Branch, Title, capsule[Open in | Scripts | Git actions], capsule[Terminal | Changes]. WIN's UI-WIN-005 covers only the drag region between these controls, not the controls themselves."
+    },
+    {
+      "id": "UI-CHAT-074",
+      "screen": "Chat, chrome row",
+      "element": "Threads button",
+      "role": "button",
+      "exact_text": "Show the sidebar",
+      "geometry": "ChromeCircleButton; its popover is model.sidebar.width by a fixed 560, arrow on the bottom edge",
+      "typography": "Chrome circle button default",
+      "colors": "Chrome glass circle",
+      "states": [
+        "sidebar floats: tooltip \"Show the sidebar\", press toggles the sidebar",
+        "sidebar does not float: tooltip \"Threads\", press opens the popover",
+        "sidebar holds the window buttons: absent",
+        "sidebarFloats and sidebarOnlyFloats both on: absent"
+      ],
+      "interactions": [
+        "click",
+        "arrives and leaves on Chrome.softAppear"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1127-1132",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1248-1269"
+      ],
+      "notes": "Symbol list.bullet. The second tooltip string is exactly \"Threads\". The popover holds SidebarView(inPopover: true, dismiss:) with .presentedChrome()."
+    },
+    {
+      "id": "UI-CHAT-075",
+      "screen": "Chat, chrome row",
+      "element": "New thread button",
+      "role": "button",
+      "exact_text": "New thread",
+      "geometry": "ChromeCircleButton, unconditional, second slot",
+      "typography": "Chrome circle button default",
+      "colors": "Chrome glass circle",
+      "states": [
+        "always present"
+      ],
+      "interactions": [
+        "click creates a thread in the row's project, or with no project at all"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1134-1136"
+      ],
+      "notes": "Symbol square.and.pencil. The tooltip is \"New thread\" with ShortcutStore.hint(for: .newThread) appended."
+    },
+    {
+      "id": "UI-CHAT-076",
+      "screen": "Chat, chrome row",
+      "element": "Thread title button",
+      "role": "button",
+      "exact_text": "New thread",
+      "geometry": "Fills the leftover row width, leading-aligned; 6 points of vertical padding; one line, tail truncation; rectangular hit shape",
+      "typography": "system size 15, weight semibold",
+      "colors": "Chrome.secondaryText when the title is empty, Chrome.primaryText otherwise",
+      "states": [
+        "empty title: shows the literal \"New thread\" in the secondary colour",
+        "non-empty title: shows the title in the primary colour",
+        "thread switch: the text cuts, never crossfades"
+      ],
+      "interactions": [
+        "click opens the title popover",
+        "tooltip \"Thread title — click to copy or rename\"",
+        "accessibility label \"Thread title\", button trait added"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1193-1241",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1149-1153"
+      ],
+      "notes": "A real button, not a label, so the extended title bar cannot swallow the press. The tooltip carries a U+2014 em dash."
+    },
+    {
+      "id": "UI-CHAT-077",
+      "screen": "Chat, thread title popover",
+      "element": "Title popover menu",
+      "role": "menu",
+      "exact_text": "Thread title",
+      "geometry": "PopoverMenu anchored to the title button's own width, arrow on the bottom edge",
+      "typography": "Popover menu defaults",
+      "colors": "Popover chrome",
+      "states": [
+        "always the same two items"
+      ],
+      "interactions": [
+        "Copy title clears the pasteboard and writes the title",
+        "Rename… raises the rename alert"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1219-1234"
+      ],
+      "notes": "Header \"Thread title\"; items \"Copy title\" (doc.on.doc) and \"Rename…\" (pencil, single U+2026)."
+    },
+    {
+      "id": "UI-CHAT-078",
+      "screen": "Chat, rename thread alert",
+      "element": "Rename thread alert",
+      "role": "dialog",
+      "exact_text": "Rename thread",
+      "geometry": "System alert",
+      "typography": "System alert",
+      "colors": "System alert",
+      "states": [
+        "field seeded with the current title"
+      ],
+      "interactions": [
+        "Rename commits the field's text through the model",
+        "Cancel (cancel role) dismisses and does nothing"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1235-1241"
+      ],
+      "notes": "Field placeholder \"Title\"; buttons \"Rename\" and \"Cancel\"."
+    },
+    {
+      "id": "UI-CHAT-079",
+      "screen": "Chat, chrome row",
+      "element": "Permissions menu",
+      "role": "menu button",
+      "exact_text": "Permissions",
+      "geometry": "ChromeCircleMenu",
+      "typography": "Popover menu defaults",
+      "colors": "Chrome glass circle",
+      "states": [
+        "one item per RuntimeMode case, the current one checked"
+      ],
+      "interactions": [
+        "click opens the menu",
+        "picking a mode writes thread.runtimeMode"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1333-1347"
+      ],
+      "notes": "The symbol is the current mode's own symbol; the tooltip is \"<title> · <summary>\" with U+00B7 and one space on each side. Section header \"Permissions\"."
+    },
+    {
+      "id": "UI-CHAT-080",
+      "screen": "Chat, chrome row",
+      "element": "Open in menu",
+      "role": "menu button",
+      "exact_text": "Open in another app",
+      "geometry": "ChromeMenuButton, first item of the first trailing capsule",
+      "typography": "Popover menu defaults",
+      "colors": "Chrome glass capsule",
+      "states": [
+        "no editor installed: only Finder, the divider and Copy path"
+      ],
+      "interactions": [
+        "Finder opens the directory",
+        "an editor item opens the directory in that editor",
+        "Copy path clears the pasteboard and writes the directory"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1415-1436",
+        "DroppyCode/UI/Common/Components.swift:109-167"
+      ],
+      "notes": "Symbol arrow.up.forward.app. Header \"Open in\"; items \"Finder\" (Finder's own icon), each installed editor by display name with chevron.left.forwardslash.chevron.right and its own 16x16 icon, a divider, then \"Copy path\" (doc.on.doc). \"Finder\" is a macOS application name and needs a recorded Windows label."
+    },
+    {
+      "id": "UI-CHAT-081",
+      "screen": "Chat, chrome row",
+      "element": "Terminal and Changes capsule",
+      "role": "toggle group",
+      "exact_text": "Terminal",
+      "geometry": "One ChromeCapsule holding two ChromeIconButtons split by a ChromeDivider; last slot in the row",
+      "typography": "Chrome icon button default",
+      "colors": "Chrome glass capsule; active state per Chrome's active treatment",
+      "states": [
+        "Terminal active while runtime.isTerminalVisible",
+        "Changes active while runtime.isDiffVisible"
+      ],
+      "interactions": [
+        "Terminal toggles runtime.isTerminalVisible directly",
+        "Changes calls runtime.toggleDiff()"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1169-1177"
+      ],
+      "notes": "Symbols terminal and plusminus. The tooltips are \"Terminal\" and \"Changes\" with the toggleTerminal and toggleChanges shortcut hints appended."
     }
   ]
 }

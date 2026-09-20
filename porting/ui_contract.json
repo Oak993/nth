@@ -5,10 +5,10 @@
   },
   "note": "Source-defined geometry, typography, colors and interactions. Values delegated to macOS rendering are marked and remain UNVERIFIED per UNK-0003.",
   "counts": {
-    "total": 990,
+    "total": 1029,
     "by_area": {
-      "CHAT": 72,
-      "COMPOSER": 80,
+      "CHAT": 81,
+      "COMPOSER": 82,
       "GIT": 60,
       "HYDRA": 74,
       "HYDRAMERGE": 34,
@@ -18,12 +18,12 @@
       "PROVAPI": 30,
       "PROVCLI": 34,
       "PROVREG": 44,
-      "RUNTIME": 18,
-      "SETTINGS": 72,
+      "RUNTIME": 38,
+      "SETTINGS": 77,
       "SIDEBAR": 60,
       "STORE": 19,
       "TERM": 35,
-      "THEME": 48,
+      "THEME": 51,
       "UPDATE": 55,
       "USAGE": 45,
       "WIN": 73
@@ -1698,6 +1698,218 @@
         "DroppyCode/App/Views/Chat/MessageEditor.swift:399-400"
       ],
       "notes": "The same literal is used in the message editor's file list."
+    },
+    {
+      "area": "CHAT",
+      "id": "UI-CHAT-073",
+      "screen": "Chat, top of the conversation",
+      "element": "Chat chrome row",
+      "role": "toolbar",
+      "exact_text": null,
+      "geometry": "One GlassEffectContainer(spacing: 2) around an HStack(alignment: .center, spacing: 10); a trailing inner HStack(spacing: 8) holds the two capsules; leading padding Chrome.trafficLightsWidth + Chrome.trafficLightClearance (10) while the sidebar does not hold the window buttons, otherwise 0; horizontal padding Chrome.chromeHorizontalPadding = 14; top padding Chrome.chromeTopPadding = 12",
+      "typography": "Per control; the title is system 15 semibold",
+      "colors": "Liquid Glass, one pass for the whole row; controls tinted with Chrome.glassTint at 0.3 (PR-WIN-180)",
+      "states": [
+        "sidebar holds the window buttons: no leading inset and no Threads button",
+        "sidebar away: leading inset applied and the Threads button present",
+        "sidebar floats as the only sidebar: leading inset applied but no Threads button",
+        "no project: the Scripts item and its divider are absent",
+        "not a git repository: the branch menu, the Git actions item and its divider are absent"
+      ],
+      "interactions": [
+        "the gaps between controls drag the window",
+        "the inset change animates with Chrome.panelSlide"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1110-1183"
+      ],
+      "notes": "Left to right: Threads, New thread, Hydra, Permissions, Branch, Title, capsule[Open in | Scripts | Git actions], capsule[Terminal | Changes]. WIN's UI-WIN-005 covers only the drag region between these controls, not the controls themselves."
+    },
+    {
+      "area": "CHAT",
+      "id": "UI-CHAT-074",
+      "screen": "Chat, chrome row",
+      "element": "Threads button",
+      "role": "button",
+      "exact_text": "Show the sidebar",
+      "geometry": "ChromeCircleButton; its popover is model.sidebar.width by a fixed 560, arrow on the bottom edge",
+      "typography": "Chrome circle button default",
+      "colors": "Chrome glass circle",
+      "states": [
+        "sidebar floats: tooltip \"Show the sidebar\", press toggles the sidebar",
+        "sidebar does not float: tooltip \"Threads\", press opens the popover",
+        "sidebar holds the window buttons: absent",
+        "sidebarFloats and sidebarOnlyFloats both on: absent"
+      ],
+      "interactions": [
+        "click",
+        "arrives and leaves on Chrome.softAppear"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1127-1132",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1248-1269"
+      ],
+      "notes": "Symbol list.bullet. The second tooltip string is exactly \"Threads\". The popover holds SidebarView(inPopover: true, dismiss:) with .presentedChrome()."
+    },
+    {
+      "area": "CHAT",
+      "id": "UI-CHAT-075",
+      "screen": "Chat, chrome row",
+      "element": "New thread button",
+      "role": "button",
+      "exact_text": "New thread",
+      "geometry": "ChromeCircleButton, unconditional, second slot",
+      "typography": "Chrome circle button default",
+      "colors": "Chrome glass circle",
+      "states": [
+        "always present"
+      ],
+      "interactions": [
+        "click creates a thread in the row's project, or with no project at all"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1134-1136"
+      ],
+      "notes": "Symbol square.and.pencil. The tooltip is \"New thread\" with ShortcutStore.hint(for: .newThread) appended."
+    },
+    {
+      "area": "CHAT",
+      "id": "UI-CHAT-076",
+      "screen": "Chat, chrome row",
+      "element": "Thread title button",
+      "role": "button",
+      "exact_text": "New thread",
+      "geometry": "Fills the leftover row width, leading-aligned; 6 points of vertical padding; one line, tail truncation; rectangular hit shape",
+      "typography": "system size 15, weight semibold",
+      "colors": "Chrome.secondaryText when the title is empty, Chrome.primaryText otherwise",
+      "states": [
+        "empty title: shows the literal \"New thread\" in the secondary colour",
+        "non-empty title: shows the title in the primary colour",
+        "thread switch: the text cuts, never crossfades"
+      ],
+      "interactions": [
+        "click opens the title popover",
+        "tooltip \"Thread title — click to copy or rename\"",
+        "accessibility label \"Thread title\", button trait added"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1193-1241",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1149-1153"
+      ],
+      "notes": "A real button, not a label, so the extended title bar cannot swallow the press. The tooltip carries a U+2014 em dash."
+    },
+    {
+      "area": "CHAT",
+      "id": "UI-CHAT-077",
+      "screen": "Chat, thread title popover",
+      "element": "Title popover menu",
+      "role": "menu",
+      "exact_text": "Thread title",
+      "geometry": "PopoverMenu anchored to the title button's own width, arrow on the bottom edge",
+      "typography": "Popover menu defaults",
+      "colors": "Popover chrome",
+      "states": [
+        "always the same two items"
+      ],
+      "interactions": [
+        "Copy title clears the pasteboard and writes the title",
+        "Rename… raises the rename alert"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1219-1234"
+      ],
+      "notes": "Header \"Thread title\"; items \"Copy title\" (doc.on.doc) and \"Rename…\" (pencil, single U+2026)."
+    },
+    {
+      "area": "CHAT",
+      "id": "UI-CHAT-078",
+      "screen": "Chat, rename thread alert",
+      "element": "Rename thread alert",
+      "role": "dialog",
+      "exact_text": "Rename thread",
+      "geometry": "System alert",
+      "typography": "System alert",
+      "colors": "System alert",
+      "states": [
+        "field seeded with the current title"
+      ],
+      "interactions": [
+        "Rename commits the field's text through the model",
+        "Cancel (cancel role) dismisses and does nothing"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1235-1241"
+      ],
+      "notes": "Field placeholder \"Title\"; buttons \"Rename\" and \"Cancel\"."
+    },
+    {
+      "area": "CHAT",
+      "id": "UI-CHAT-079",
+      "screen": "Chat, chrome row",
+      "element": "Permissions menu",
+      "role": "menu button",
+      "exact_text": "Permissions",
+      "geometry": "ChromeCircleMenu",
+      "typography": "Popover menu defaults",
+      "colors": "Chrome glass circle",
+      "states": [
+        "one item per RuntimeMode case, the current one checked"
+      ],
+      "interactions": [
+        "click opens the menu",
+        "picking a mode writes thread.runtimeMode"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1333-1347"
+      ],
+      "notes": "The symbol is the current mode's own symbol; the tooltip is \"<title> · <summary>\" with U+00B7 and one space on each side. Section header \"Permissions\"."
+    },
+    {
+      "area": "CHAT",
+      "id": "UI-CHAT-080",
+      "screen": "Chat, chrome row",
+      "element": "Open in menu",
+      "role": "menu button",
+      "exact_text": "Open in another app",
+      "geometry": "ChromeMenuButton, first item of the first trailing capsule",
+      "typography": "Popover menu defaults",
+      "colors": "Chrome glass capsule",
+      "states": [
+        "no editor installed: only Finder, the divider and Copy path"
+      ],
+      "interactions": [
+        "Finder opens the directory",
+        "an editor item opens the directory in that editor",
+        "Copy path clears the pasteboard and writes the directory"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1415-1436",
+        "DroppyCode/UI/Common/Components.swift:109-167"
+      ],
+      "notes": "Symbol arrow.up.forward.app. Header \"Open in\"; items \"Finder\" (Finder's own icon), each installed editor by display name with chevron.left.forwardslash.chevron.right and its own 16x16 icon, a divider, then \"Copy path\" (doc.on.doc). \"Finder\" is a macOS application name and needs a recorded Windows label."
+    },
+    {
+      "area": "CHAT",
+      "id": "UI-CHAT-081",
+      "screen": "Chat, chrome row",
+      "element": "Terminal and Changes capsule",
+      "role": "toggle group",
+      "exact_text": "Terminal",
+      "geometry": "One ChromeCapsule holding two ChromeIconButtons split by a ChromeDivider; last slot in the row",
+      "typography": "Chrome icon button default",
+      "colors": "Chrome glass capsule; active state per Chrome's active treatment",
+      "states": [
+        "Terminal active while runtime.isTerminalVisible",
+        "Changes active while runtime.isDiffVisible"
+      ],
+      "interactions": [
+        "Terminal toggles runtime.isTerminalVisible directly",
+        "Changes calls runtime.toggleDiff()"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/ChatView.swift:1169-1177"
+      ],
+      "notes": "Symbols terminal and plusminus. The tooltips are \"Terminal\" and \"Changes\" with the toggleTerminal and toggleChanges shortcut hints appended."
     },
     {
       "area": "COMPOSER",
@@ -3490,6 +3702,51 @@
         "DroppyCode/App/Views/Composer/AttachmentFlight.swift:186-207"
       ],
       "notes": "The armed drop is consumed before the flight decides whether to play, so under reduced motion it is silently discarded; the chip appears regardless."
+    },
+    {
+      "area": "COMPOSER",
+      "id": "UI-COMPOSER-081",
+      "screen": "Composer and prompt editor, attachment strip",
+      "element": "Video attachment thumbnail",
+      "role": "image",
+      "exact_text": null,
+      "geometry": "Square, default 56 points (48 in the prompt editor's strip, per PR-COMPOSER-180); continuous rounded rectangle at corner radius 12; the frame is aspect-filled and cropped to the square; the whole stack is clipped to the same rounded rectangle",
+      "typography": "Not text",
+      "colors": "Placeholder: the .quaternary style at 0.6 opacity. Badge: pure black at 0.45 with a pure white glyph",
+      "states": [
+        "before the frame lands: placeholder fill plus the play badge",
+        "after the frame lands: the frame fades in over 0.15 s ease-out, badge still on top",
+        "frame grab failed: the placeholder fill stays, with the badge"
+      ],
+      "interactions": [
+        "click opens the large preview, exactly as a photo tile does"
+      ],
+      "source_evidence": [
+        "DroppyCode/UI/Common/AttachmentPreview.swift:193-223",
+        "DroppyCode/UI/Common/AttachmentPreview.swift:153-165"
+      ],
+      "notes": "Deliberately identical to the photo thumbnail in box, radius, placeholder fill and content mode; the only difference is the badge and the frame source. The frame is taken 0.5 s into the movie so a black first frame is not used."
+    },
+    {
+      "area": "COMPOSER",
+      "id": "UI-COMPOSER-082",
+      "screen": "Composer and prompt editor, attachment strip",
+      "element": "Video play badge",
+      "role": "decoration",
+      "exact_text": null,
+      "geometry": "A 30 by 30 circle centred in the thumbnail, with a play.fill glyph at system size 13 semibold offset 1 point to the right; inside the thumbnail's clip",
+      "typography": "system size 13, weight semibold (the glyph)",
+      "colors": "Circle: pure black at opacity 0.45. Glyph: pure white",
+      "states": [
+        "always drawn on a video tile, over the placeholder and over the frame alike"
+      ],
+      "interactions": [
+        "none of its own; hidden from assistive technology"
+      ],
+      "source_evidence": [
+        "DroppyCode/UI/Common/AttachmentPreview.swift:176-191"
+      ],
+      "notes": "The 1-point rightward offset optically centres the triangle in the circle; without it the glyph reads as sitting left."
     },
     {
       "area": "GIT",
@@ -12724,9 +12981,9 @@
       "area": "RUNTIME",
       "id": "UI-RUNTIME-002",
       "screen": "Chat timeline",
-      "element": "Warning-level notice row",
+      "element": "Warning-level notice row (the row chrome; each message has its own record)",
       "role": "row",
-      "exact_text": "The warning messages this area produces are exactly: \"<provider display name> no longer has this conversation. It starts a new one here, without the messages above.\", the localizedDescription of a failed compact, and \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\"",
+      "exact_text": "This record owns the ROW. The three warning messages this area produces each have their own record: UI-RUNTIME-031 (the provider lost the conversation), UI-RUNTIME-032 (a compact failed) and UI-RUNTIME-033 (a usage limit with no reset time).",
       "geometry": "HStack alignment .firstTextBaseline, spacing 8. padding leading 12, trailing 14, vertical 8. frame maxWidth .infinity, alignment .leading. Background in a continuous rounded rect of corner radius 18.",
       "typography": "font .chat(.callout, zoom: chatZoom).",
       "colors": "Icon foregroundStyle Chrome.warning; text foregroundStyle .primary; background Chrome.warning.opacity(0.1). Chrome.warning is the theme's own warning colour, deliberately not the system orange, and resolves per theme through the Chrome token set.",
@@ -12746,9 +13003,9 @@
       "area": "RUNTIME",
       "id": "UI-RUNTIME-003",
       "screen": "Chat timeline",
-      "element": "Error-level notice row",
+      "element": "Error-level notice row (the row chrome; each message has its own record)",
       "role": "row",
-      "exact_text": "The error messages this area produces are exactly: any ProviderError's description (PR-RUNTIME-009 to PR-RUNTIME-012), a provider's own turn error text, \"<provider display name> stopped unexpectedly.\" with the fallback name \"The agent\", \"The stopped message was kept: <error>\", and \"Conversation reverted, but files could not be restored: <error>\"",
+      "exact_text": "This record owns the ROW. The five error messages this area produces each have their own record: UI-RUNTIME-034 (a ProviderError), UI-RUNTIME-035 (a provider turn error), UI-RUNTIME-036 (the agent stopped unexpectedly), UI-RUNTIME-037 (the stopped message was kept) and UI-RUNTIME-038 (files could not be restored after a revert).",
       "geometry": "Identical to the warning row: spacing 8, padding leading 12, trailing 14, vertical 8, corner radius 18, frame maxWidth .infinity alignment .leading.",
       "typography": "font .chat(.callout, zoom: chatZoom).",
       "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1). Chrome.danger is the theme's own failure colour rather than the system red.",
@@ -12991,9 +13248,9 @@
       "area": "RUNTIME",
       "id": "UI-RUNTIME-014",
       "screen": "Chat timeline",
-      "element": "Hydra note row",
+      "element": "Hydra note row (the row chrome; each note text has its own record)",
       "role": "row",
-      "exact_text": "The note text, whose first line is its title. The notes this area writes are: \"Hydra sent no heads: the turn was stopped before they could go out. Ask again to send them.\" and its failed variant, and \"Hydra sent one head before the turn was stopped; the rest of the block never went out. Ask again to send them.\" with its count and failed variants.",
+      "exact_text": "The note text, whose first line is its title. This record owns the ROW; the seven note texts this area writes each have their own record: UI-RUNTIME-019 (a stopped or failed turn that had already sent some heads), UI-RUNTIME-020 (a stopped or failed turn whose block never went out), UI-RUNTIME-021 (a streamed block that could not send every task), UI-RUNTIME-022 (a block over the 32-task ceiling), UI-RUNTIME-023 (an empty block), UI-RUNTIME-024 (a block dropped after three refusals) and UI-RUNTIME-025 (the pair's heads cannot run on its provider).",
       "geometry": "TimelineItem(id: <given id or a fresh UUID string>, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: []))).",
       "typography": "Set by the note row, outside this area.",
       "colors": "Set by the note row, outside this area.",
@@ -13006,6 +13263,10 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2908-2912 appendHydraNote",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2678-2701 dropDelegationBlock",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2745-2750 and :2796-2802 the two \"Not every task went out\" sites",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2773 the empty-block note",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2842 the dropped-block note",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2885-2887 the fallback note",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1879-1883 - revert keeps rows with a nil turnID"
       ],
       "notes": "An empty hydraHeads array, not nil, is what marks a user row as a Hydra note. Passing an explicit id lets the note take over the identity the timeline is already drawing for the merging pill, so the pill morphs rather than being replaced."
@@ -13097,6 +13358,434 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1702-1721 compact"
       ],
       "notes": "The six-provider allowlist is exact. On any other provider the user sees no notice at all, because the text goes to the provider instead."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-019",
+      "screen": "Chat timeline",
+      "element": "Hydra note row: a stopped or failed turn that had already sent some heads",
+      "role": "row",
+      "exact_text": "Exactly, for one stopped head: \"Hydra sent one head before the turn was stopped; the rest of the block never went out. Ask again to send them.\" For three failed heads: \"Hydra sent 3 heads before the turn failed; the rest of the block never went out. Ask again to send them.\" The count reads \"one head\" at exactly 1 and \"<n> heads\" otherwise; the verb reads \"was stopped\" for status .interrupted and \"failed\" for every other non-completed status.",
+      "geometry": "The row is built by appendHydraNote: TimelineItem(id: <given id or a fresh UUID string>, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: []))). Its drawn geometry is the Hydra note row chrome recorded in UI-RUNTIME-014.",
+      "typography": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "colors": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "states": [
+        "Belongs to no turn, so it survives a revert that removes the turns around it."
+      ],
+      "interactions": [
+        "None owned by this area; text selection only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2689 - appendHydraNote(\"Hydra sent \\(stream.sent == 1 ? \"one head\" : \"\\(stream.sent) heads\") before the turn \\(status == .interrupted ? \"was stopped\" : \"failed\"); the rest of the block never went out. Ask again to send them.\")",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2678-2691 dropDelegationBlock, streamed branch"
+      ],
+      "notes": "Specified by PR-RUNTIME-209. Split out of UI-RUNTIME-014, which named this string only in prose. The semicolon before \"the rest\" is part of the string."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-020",
+      "screen": "Chat timeline",
+      "element": "Hydra note row: a stopped or failed turn whose block never went out",
+      "role": "row",
+      "exact_text": "Exactly: \"Hydra sent no heads: the turn was stopped before they could go out. Ask again to send them.\" and its failed variant \"Hydra sent no heads: the turn failed before they could go out. Ask again to send them.\"",
+      "geometry": "The row is built by appendHydraNote: TimelineItem(id: <given id or a fresh UUID string>, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: []))). Its drawn geometry is the Hydra note row chrome recorded in UI-RUNTIME-014.",
+      "typography": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "colors": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "states": [
+        "Belongs to no turn, so it survives a revert that removes the turns around it."
+      ],
+      "interactions": [
+        "None owned by this area; text selection only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2700 - appendHydraNote(\"Hydra sent no heads: the turn \\(status == .interrupted ? \"was stopped\" : \"failed\") before they could go out. Ask again to send them.\")",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2693-2701 dropDelegationBlock, second branch"
+      ],
+      "notes": "Specified by PR-RUNTIME-212. Written only when a block-holding reply row was found; a turn with no block gets no row at all."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-021",
+      "screen": "Chat timeline",
+      "element": "Hydra note row: a streamed block that could not send every task",
+      "role": "row",
+      "exact_text": "Two lines in one note. Line one, the title, is exactly \"Not every task went out\" with no trailing punctuation. Line two is exactly \"<sent> of the <total> tasks in that block went to heads. The last <total - sent> did not: ask for them again once these report back.\" The numbers come from the stream: what actually went out, the re-read block count, and their difference.",
+      "geometry": "The row is built by appendHydraNote: TimelineItem(id: <given id or a fresh UUID string>, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: []))). Its drawn geometry is the Hydra note row chrome recorded in UI-RUNTIME-014.",
+      "typography": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "colors": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "states": [
+        "Belongs to no turn, so it survives a revert that removes the turns around it."
+      ],
+      "interactions": [
+        "None owned by this area; text selection only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2745-2750 - the appendHydraNote multi-line string in the streamed branch of spawnDelegatedHeads"
+      ],
+      "notes": "Specified by PR-RUNTIME-218. The same wording is written from a second site with different count sources (UI-RUNTIME-022); both are kept because a port can get one right and the other wrong."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-022",
+      "screen": "Chat timeline",
+      "element": "Hydra note row: a block over the 32-task ceiling",
+      "role": "row",
+      "exact_text": "Two lines in one note. Line one is exactly \"Not every task went out\". Line two, for a 40-task block, is exactly \"32 of the 40 tasks in that block went to heads. The last 8 did not: ask for them again once these report back.\" The first number is always the constant maxDelegatedTasks (32), the second is the parsed block's delegations.count, and the third is their difference.",
+      "geometry": "The row is built by appendHydraNote: TimelineItem(id: <given id or a fresh UUID string>, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: []))). Its drawn geometry is the Hydra note row chrome recorded in UI-RUNTIME-014.",
+      "typography": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "colors": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "states": [
+        "Belongs to no turn, so it survives a revert that removes the turns around it."
+      ],
+      "interactions": [
+        "None owned by this area; text selection only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2796-2802 - if delegations.count > Self.maxDelegatedTasks { let dropped = delegations.count - Self.maxDelegatedTasks; appendHydraNote(...) }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2656-2658 maxDelegatedTasks = 32"
+      ],
+      "notes": "Specified by PR-RUNTIME-224. Written only for a block of 33 or more tasks."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-023",
+      "screen": "Chat timeline",
+      "element": "Hydra note row: an empty delegation block",
+      "role": "row",
+      "exact_text": "Exactly, one line: \"No heads went out: the lead did this itself.\"",
+      "geometry": "The row is built by appendHydraNote: TimelineItem(id: <given id or a fresh UUID string>, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: []))). Its drawn geometry is the Hydra note row chrome recorded in UI-RUNTIME-014.",
+      "typography": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "colors": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "states": [
+        "Belongs to no turn, so it survives a revert that removes the turns around it."
+      ],
+      "interactions": [
+        "None owned by this area; text selection only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2773 - appendHydraNote(\"No heads went out: the lead did this itself.\")",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2768-2774 the empty-block path"
+      ],
+      "notes": "Specified by PR-RUNTIME-221. No turn is spent on this outcome, so this row is the whole of what the user sees."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-024",
+      "screen": "Chat timeline",
+      "element": "Hydra note row: a block dropped after three refusals",
+      "role": "row",
+      "exact_text": "Two lines in one note. Line one, the title, is exactly \"No heads went out\". Line two is the caller's dropped sentence, a single space, then exactly \"The block was dropped from the reply.\" The two dropped sentences in the source are \"Its delegation block could not be read, and it had been told so already.\" and \"This request has had all 3 of its rounds of heads, and the lead had been told so already.\", so the two full second lines are \"Its delegation block could not be read, and it had been told so already. The block was dropped from the reply.\" and \"This request has had all 3 of its rounds of heads, and the lead had been told so already. The block was dropped from the reply.\"",
+      "geometry": "The row is built by appendHydraNote: TimelineItem(id: <given id or a fresh UUID string>, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: []))). Its drawn geometry is the Hydra note row chrome recorded in UI-RUNTIME-014.",
+      "typography": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "colors": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "states": [
+        "Belongs to no turn, so it survives a revert that removes the turns around it."
+      ],
+      "interactions": [
+        "None owned by this area; text selection only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2842 - appendHydraNote(\"No heads went out\\n\\(dropped) The block was dropped from the reply.\")",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2763 the unreadable dropped sentence",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2783 the round-cap dropped sentence"
+      ],
+      "notes": "Specified by PR-RUNTIME-230. The \"3\" in the second variant is HydraPrompts.maxDelegationRounds interpolated, not a literal in the sentence."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-025",
+      "screen": "Chat timeline",
+      "element": "Hydra note row: the heads cannot run on the provider the pair names",
+      "role": "row",
+      "exact_text": "Exactly \"Hydra: \" followed by app.hydraHeadsFallbackNote(of: pair), with a colon and one space between them. The note text itself is produced outside this area (PR-HYDRA-102).",
+      "geometry": "The row is built by appendHydraNote: TimelineItem(id: <given id or a fresh UUID string>, turnID: nil, content: .user(UserMessage(text: text, hydraHeads: []))). Its drawn geometry is the Hydra note row chrome recorded in UI-RUNTIME-014.",
+      "typography": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "colors": "Set by the Hydra note row, outside this area (UI-RUNTIME-014).",
+      "states": [
+        "Belongs to no turn, so it survives a revert that removes the turns around it."
+      ],
+      "interactions": [
+        "None owned by this area; text selection only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2885-2887 - if let pair = app.hydraPair(for: thread), let note = app.hydraHeadsFallbackNote(of: pair), hydraFallbackNoted != pair.id { hydraFallbackNoted = pair.id; appendHydraNote(\"Hydra: \\(note)\") }"
+      ],
+      "notes": "Specified by PR-RUNTIME-232. Written at most once per pair id per runtime, so it can come back after a relaunch."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-026",
+      "screen": "Chat timeline",
+      "element": "Assistant reply left empty by a dropped delegation block",
+      "role": "text",
+      "exact_text": "Exactly: \"Asked for heads.\"",
+      "geometry": "The assistant reply row, drawn by the timeline outside this area. This record pins only the text this area writes into message.text when removing a delegation block empties it.",
+      "typography": "Set by the assistant reply row, outside this area.",
+      "colors": "Set by the assistant reply row, outside this area.",
+      "states": [
+        "Replaces an assistant reply that the block removal left empty. A reply with any text of its own keeps that text instead and this string is never shown."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2684 - if streamedMessage.text.isEmpty { streamedMessage.text = \"Asked for heads.\" }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2696 - if message.text.isEmpty { message.text = \"Asked for heads.\" }"
+      ],
+      "notes": "Specified by PR-RUNTIME-208 and PR-RUNTIME-211. Past tense: the heads were asked for but the turn did not finish. Written from two sites with the same string."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-027",
+      "screen": "Chat timeline",
+      "element": "Assistant reply left empty by an unreadable delegation block",
+      "role": "text",
+      "exact_text": "Exactly: \"Asking for heads.\"",
+      "geometry": "The assistant reply row, drawn by the timeline outside this area. This record pins only the text this area writes into message.text when removing a delegation block empties it.",
+      "typography": "Set by the assistant reply row, outside this area.",
+      "colors": "Set by the assistant reply row, outside this area.",
+      "states": [
+        "Replaces an assistant reply that the block removal left empty. A reply with any text of its own keeps that text instead and this string is never shown."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2759 - if message.text.isEmpty { message.text = \"Asking for heads.\" }"
+      ],
+      "notes": "Specified by PR-RUNTIME-220. Present participle, one letter group away from UI-RUNTIME-026 and a different outcome: the lead is about to be told its block could not be read."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-028",
+      "screen": "Chat timeline",
+      "element": "Assistant reply left empty by an empty delegation block",
+      "role": "text",
+      "exact_text": "Exactly: \"Done, with no heads.\"",
+      "geometry": "The assistant reply row, drawn by the timeline outside this area. This record pins only the text this area writes into message.text when removing a delegation block empties it.",
+      "typography": "Set by the assistant reply row, outside this area.",
+      "colors": "Set by the assistant reply row, outside this area.",
+      "states": [
+        "Replaces an assistant reply that the block removal left empty. A reply with any text of its own keeps that text instead and this string is never shown."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2769 - message.text = stripped.isEmpty ? \"Done, with no heads.\" : stripped"
+      ],
+      "notes": "Specified by PR-RUNTIME-221. Note the comma."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-029",
+      "screen": "Chat timeline",
+      "element": "Assistant reply left empty by a round-capped delegation block",
+      "role": "text",
+      "exact_text": "Exactly: \"Asking for more heads.\"",
+      "geometry": "The assistant reply row, drawn by the timeline outside this area. This record pins only the text this area writes into message.text when removing a delegation block empties it.",
+      "typography": "Set by the assistant reply row, outside this area.",
+      "colors": "Set by the assistant reply row, outside this area.",
+      "states": [
+        "Replaces an assistant reply that the block removal left empty. A reply with any text of its own keeps that text instead and this string is never shown."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2779 - message.text = stripped.isEmpty ? \"Asking for more heads.\" : stripped"
+      ],
+      "notes": "Specified by PR-RUNTIME-222. The third of five fallbacks and the only one with \"more\"."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-030",
+      "screen": "Chat timeline",
+      "element": "Assistant reply left empty when the sent card finally leaves",
+      "role": "text",
+      "exact_text": "Exactly: \"Sent out heads.\"",
+      "geometry": "The assistant reply row, drawn by the timeline outside this area. This record pins only the text this area writes into message.text when removing a delegation block empties it.",
+      "typography": "Set by the assistant reply row, outside this area.",
+      "colors": "Set by the assistant reply row, outside this area.",
+      "states": [
+        "Replaces an assistant reply that the block removal left empty. A reply with any text of its own keeps that text instead and this string is never shown."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2827 - if faded.text.isEmpty { faded.text = \"Sent out heads.\" }"
+      ],
+      "notes": "Specified by PR-RUNTIME-229. Written 3.65 seconds after the heads went out, inside withAnimation(Chrome.panelSlide)."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-031",
+      "screen": "Chat timeline",
+      "element": "Warning notice: the provider lost the conversation",
+      "role": "row",
+      "exact_text": "Exactly: \"<provider display name> no longer has this conversation. It starts a new one here, without the messages above.\" The substitution is thread.provider.displayName.",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout, zoom: chatZoom).",
+      "colors": "Icon foregroundStyle Chrome.warning; text foregroundStyle .primary; background Chrome.warning.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1557 - appendNotice(.warning, \"\\(thread.provider.displayName) no longer has this conversation. It starts a new one here, without the messages above.\")"
+      ],
+      "notes": "Split out of UI-RUNTIME-002 so the string is independently traceable. Icon is SF Symbol \"exclamationmark.triangle\" (UNK-0007 covers the Windows glyph)."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-032",
+      "screen": "Chat timeline",
+      "element": "Warning notice: a compact failed",
+      "role": "row",
+      "exact_text": "The localizedDescription of the thrown error, with no wrapper text of Droppy Code's own.",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout, zoom: chatZoom).",
+      "colors": "Icon foregroundStyle Chrome.warning; text foregroundStyle .primary; background Chrome.warning.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1718 - appendNotice(.warning, error.localizedDescription)"
+      ],
+      "notes": "Split out of UI-RUNTIME-002. The only warning in this area whose text comes wholly from outside; on Windows the equivalent is the error message of the failed compact request."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-033",
+      "screen": "Chat timeline",
+      "element": "Warning notice: a usage limit with no reset time",
+      "role": "row",
+      "exact_text": "Exactly: \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\"",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout, zoom: chatZoom).",
+      "colors": "Icon foregroundStyle Chrome.warning; text foregroundStyle .primary; background Chrome.warning.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/AutoContinue.swift:94 - notice(threadID, .warning, \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\")"
+      ],
+      "notes": "Split out of UI-RUNTIME-002. Its paired system notification is a DIFFERENT string, \"Usage limit reached. Send a message to continue.\" (AutoContinue.swift:95)."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-034",
+      "screen": "Chat timeline",
+      "element": "Error notice: a ProviderError",
+      "role": "row",
+      "exact_text": "The description of the ProviderError, exactly as PR-RUNTIME-009 to PR-RUNTIME-012 record it.",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout, zoom: chatZoom).",
+      "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1343 - appendNotice(.error, error.localizedDescription)"
+      ],
+      "notes": "Split out of UI-RUNTIME-003. Appended only when currentTurnID still matches the turn that threw, then the turn is finished as .failed."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-035",
+      "screen": "Chat timeline",
+      "element": "Error notice: a provider turn error",
+      "role": "row",
+      "exact_text": "The provider's own error text, carried by .turnCompleted(status:error:) and shown with no wrapper of Droppy Code's own.",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout, zoom: chatZoom).",
+      "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2161-2163 - case .turnCompleted(let status, let error): flushDeltas(); if let error { appendNotice(.error, error) }"
+      ],
+      "notes": "Split out of UI-RUNTIME-003. A nil error appends nothing, so a failed turn can end with no notice row at all."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-036",
+      "screen": "Chat timeline",
+      "element": "Error notice: the agent stopped unexpectedly",
+      "role": "row",
+      "exact_text": "Exactly: \"<provider display name> stopped unexpectedly.\" with the fallback name \"The agent\" when the thread does not resolve, giving \"The agent stopped unexpectedly.\" This text is used only when the exit carried no error of its own; an exit error is shown instead, unwrapped.",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout, zoom: chatZoom).",
+      "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2176-2179 - stopNativeHeads(); if currentTurnID != nil { let name = thread?.provider.displayName ?? \"The agent\"; appendNotice(.error, error ?? \"\\(name) stopped unexpectedly.\") }"
+      ],
+      "notes": "Split out of UI-RUNTIME-003. Appended only while a turn is in flight; an exit with no current turn is silent."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-037",
+      "screen": "Chat timeline",
+      "element": "Error notice: the stopped message was kept",
+      "role": "row",
+      "exact_text": "Exactly: \"The stopped message was kept: \" followed by the error's localizedDescription.",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout, zoom: chatZoom).",
+      "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:698 - appendNotice(.error, \"The stopped message was kept: \\(error.localizedDescription)\")"
+      ],
+      "notes": "Split out of UI-RUNTIME-003. Written when the revert that should have removed a stopped message itself failed; the colon and single space are part of the string."
+    },
+    {
+      "area": "RUNTIME",
+      "id": "UI-RUNTIME-038",
+      "screen": "Chat timeline",
+      "element": "Error notice: files could not be restored after a revert",
+      "role": "row",
+      "exact_text": "Exactly: \"Conversation reverted, but files could not be restored: \" followed by the error's localizedDescription.",
+      "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
+      "typography": "font .chat(.callout, zoom: chatZoom).",
+      "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
+      "states": [
+        "No interactive states. Text selectable."
+      ],
+      "interactions": [
+        "Text selection and copy only."
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1875 - fileError = \"Conversation reverted, but files could not be restored: \\(error.localizedDescription)\"",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1891 - if let fileError { appendNotice(.error, fileError) }"
+      ],
+      "notes": "Split out of UI-RUNTIME-003. The string is built at :1875 and appended at :1891, and the same value decides revert's return at :1895."
     },
     {
       "area": "SETTINGS",
@@ -14559,23 +15248,28 @@
       "area": "SETTINGS",
       "id": "UI-SETTINGS-063",
       "screen": "Settings, sidebar",
-      "element": "Providers, MCP, Models, Source control, Shortcuts and Archive page rows",
+      "element": "Providers page row",
       "role": "row",
-      "exact_text": "Providers | MCP | Models | Source control | Shortcuts | Archive",
-      "geometry": "SidebarRow metrics; symbols at 14 x 14 (scale 1)",
+      "exact_text": "Providers",
+      "geometry": "SidebarRow metrics: height 28, radius 7, leading 8, icon frame 20; the symbol is drawn at 14 x 14, because SidebarSymbol is called with scale 1 for every page except General (1.15), and Chrome.symbolSize is 14",
       "typography": ".system(size: 13), medium when selected",
-      "colors": "As every sidebar row; the page tints are not used by the row itself",
+      "colors": "As every sidebar row: selected fill Chrome.overlay(0.12), hover 0.06, icon at Chrome.primaryText 0.85. The page's declared tint is NOT used by the row; the row is built from title and symbol only",
       "states": [
         "Selected",
-        "Hover"
+        "Hover",
+        "Hidden when the sidebar search query matches neither the title nor any of this page's keywords"
       ],
       "interactions": [
-        "Click selects"
+        "Click selects the page and swaps the detail pane to it"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:18-30, :32-46, :143-159"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:21 title - \"Providers\"",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:35 symbol - \"cpu\"",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:51 tint (declared, unread by the row)",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:143-152 - SidebarRow(title: item.title, ...) { SidebarIconBadge { ... SidebarSymbol(item.symbol, scale: item == .general ? 1.15 : 1) } }",
+        "DroppyCode/UI/Chrome/Chrome.swift:52 - static let symbolSize: CGFloat = 14"
       ],
-      "notes": "Symbols \"cpu\", \"puzzlepiece.extension\", \"slider.horizontal.3\", \"arrow.triangle.branch\", \"command\", \"archivebox\". Note \"Source control\" is sentence case and \"MCP\" is all caps."
+      "notes": "SF Symbol \"cpu\". The title is a single plural word with a capital P. It carries no badge; only the About row can (UI-SETTINGS-064)."
     },
     {
       "area": "SETTINGS",
@@ -14782,6 +15476,141 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:934-944"
       ],
       "notes": "Unlike the Made by Droppy row, these do not change opacity on hover. Their tooltip is the absolute URL string, not a sentence."
+    },
+    {
+      "area": "SETTINGS",
+      "id": "UI-SETTINGS-073",
+      "screen": "Settings, sidebar",
+      "element": "MCP page row",
+      "role": "row",
+      "exact_text": "MCP",
+      "geometry": "SidebarRow metrics: height 28, radius 7, leading 8, icon frame 20; the symbol is drawn at 14 x 14, because SidebarSymbol is called with scale 1 for every page except General (1.15), and Chrome.symbolSize is 14",
+      "typography": ".system(size: 13), medium when selected",
+      "colors": "As every sidebar row: selected fill Chrome.overlay(0.12), hover 0.06, icon at Chrome.primaryText 0.85. The page's declared tint is NOT used by the row; the row is built from title and symbol only",
+      "states": [
+        "Selected",
+        "Hover",
+        "Hidden when the sidebar search query matches neither the title nor any of this page's keywords"
+      ],
+      "interactions": [
+        "Click selects the page and swaps the detail pane to it"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Settings/SettingsView.swift:22 title - \"MCP\"",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:36 symbol - \"puzzlepiece.extension\"",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:52 tint (declared, unread by the row)",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:143-152 - SidebarRow(title: item.title, ...) { SidebarIconBadge { ... SidebarSymbol(item.symbol, scale: item == .general ? 1.15 : 1) } }",
+        "DroppyCode/UI/Chrome/Chrome.swift:52 - static let symbolSize: CGFloat = 14"
+      ],
+      "notes": "SF Symbol \"puzzlepiece.extension\". The title is all caps, \"MCP\", not \"Mcp\" and not \"MCP servers\". It carries no badge; only the About row can (UI-SETTINGS-064)."
+    },
+    {
+      "area": "SETTINGS",
+      "id": "UI-SETTINGS-074",
+      "screen": "Settings, sidebar",
+      "element": "Models page row",
+      "role": "row",
+      "exact_text": "Models",
+      "geometry": "SidebarRow metrics: height 28, radius 7, leading 8, icon frame 20; the symbol is drawn at 14 x 14, because SidebarSymbol is called with scale 1 for every page except General (1.15), and Chrome.symbolSize is 14",
+      "typography": ".system(size: 13), medium when selected",
+      "colors": "As every sidebar row: selected fill Chrome.overlay(0.12), hover 0.06, icon at Chrome.primaryText 0.85. The page's declared tint is NOT used by the row; the row is built from title and symbol only",
+      "states": [
+        "Selected",
+        "Hover",
+        "Hidden when the sidebar search query matches neither the title nor any of this page's keywords"
+      ],
+      "interactions": [
+        "Click selects the page and swaps the detail pane to it"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Settings/SettingsView.swift:23 title - \"Models\"",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:37 symbol - \"slider.horizontal.3\"",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:53 tint (declared, unread by the row)",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:143-152 - SidebarRow(title: item.title, ...) { SidebarIconBadge { ... SidebarSymbol(item.symbol, scale: item == .general ? 1.15 : 1) } }",
+        "DroppyCode/UI/Chrome/Chrome.swift:52 - static let symbolSize: CGFloat = 14"
+      ],
+      "notes": "SF Symbol \"slider.horizontal.3\", including the trailing \".3\". It carries no badge; only the About row can (UI-SETTINGS-064)."
+    },
+    {
+      "area": "SETTINGS",
+      "id": "UI-SETTINGS-075",
+      "screen": "Settings, sidebar",
+      "element": "Source control page row",
+      "role": "row",
+      "exact_text": "Source control",
+      "geometry": "SidebarRow metrics: height 28, radius 7, leading 8, icon frame 20; the symbol is drawn at 14 x 14, because SidebarSymbol is called with scale 1 for every page except General (1.15), and Chrome.symbolSize is 14",
+      "typography": ".system(size: 13), medium when selected",
+      "colors": "As every sidebar row: selected fill Chrome.overlay(0.12), hover 0.06, icon at Chrome.primaryText 0.85. The page's declared tint is NOT used by the row; the row is built from title and symbol only",
+      "states": [
+        "Selected",
+        "Hover",
+        "Hidden when the sidebar search query matches neither the title nor any of this page's keywords"
+      ],
+      "interactions": [
+        "Click selects the page and swaps the detail pane to it"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Settings/SettingsView.swift:25 title - \"Source control\"",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:41 symbol - \"arrow.triangle.branch\"",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:55 tint (declared, unread by the row)",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:143-152 - SidebarRow(title: item.title, ...) { SidebarIconBadge { ... SidebarSymbol(item.symbol, scale: item == .general ? 1.15 : 1) } }",
+        "DroppyCode/UI/Chrome/Chrome.swift:52 - static let symbolSize: CGFloat = 14"
+      ],
+      "notes": "SF Symbol \"arrow.triangle.branch\". The title is sentence case with a lowercase c: \"Source control\", not \"Source Control\". It carries no badge; only the About row can (UI-SETTINGS-064)."
+    },
+    {
+      "area": "SETTINGS",
+      "id": "UI-SETTINGS-076",
+      "screen": "Settings, sidebar",
+      "element": "Shortcuts page row",
+      "role": "row",
+      "exact_text": "Shortcuts",
+      "geometry": "SidebarRow metrics: height 28, radius 7, leading 8, icon frame 20; the symbol is drawn at 14 x 14, because SidebarSymbol is called with scale 1 for every page except General (1.15), and Chrome.symbolSize is 14",
+      "typography": ".system(size: 13), medium when selected",
+      "colors": "As every sidebar row: selected fill Chrome.overlay(0.12), hover 0.06, icon at Chrome.primaryText 0.85. The page's declared tint is NOT used by the row; the row is built from title and symbol only",
+      "states": [
+        "Selected",
+        "Hover",
+        "Hidden when the sidebar search query matches neither the title nor any of this page's keywords"
+      ],
+      "interactions": [
+        "Click selects the page and swaps the detail pane to it"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Settings/SettingsView.swift:26 title - \"Shortcuts\"",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:42 symbol - \"command\"",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:56 tint (declared, unread by the row)",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:143-152 - SidebarRow(title: item.title, ...) { SidebarIconBadge { ... SidebarSymbol(item.symbol, scale: item == .general ? 1.15 : 1) } }",
+        "DroppyCode/UI/Chrome/Chrome.swift:52 - static let symbolSize: CGFloat = 14"
+      ],
+      "notes": "SF Symbol \"command\" (the loop glyph), not \"keyboard\". It carries no badge; only the About row can (UI-SETTINGS-064)."
+    },
+    {
+      "area": "SETTINGS",
+      "id": "UI-SETTINGS-077",
+      "screen": "Settings, sidebar",
+      "element": "Archive page row",
+      "role": "row",
+      "exact_text": "Archive",
+      "geometry": "SidebarRow metrics: height 28, radius 7, leading 8, icon frame 20; the symbol is drawn at 14 x 14, because SidebarSymbol is called with scale 1 for every page except General (1.15), and Chrome.symbolSize is 14",
+      "typography": ".system(size: 13), medium when selected",
+      "colors": "As every sidebar row: selected fill Chrome.overlay(0.12), hover 0.06, icon at Chrome.primaryText 0.85. The page's declared tint is NOT used by the row; the row is built from title and symbol only",
+      "states": [
+        "Selected",
+        "Hover",
+        "Hidden when the sidebar search query matches neither the title nor any of this page's keywords"
+      ],
+      "interactions": [
+        "Click selects the page and swaps the detail pane to it"
+      ],
+      "source_evidence": [
+        "DroppyCode/App/Views/Settings/SettingsView.swift:27 title - \"Archive\"",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:43 symbol - \"archivebox\"",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:57 tint (declared, unread by the row)",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:143-152 - SidebarRow(title: item.title, ...) { SidebarIconBadge { ... SidebarSymbol(item.symbol, scale: item == .general ? 1.15 : 1) } }",
+        "DroppyCode/UI/Chrome/Chrome.swift:52 - static let symbolSize: CGFloat = 14"
+      ],
+      "notes": "SF Symbol \"archivebox\", one word, no dot. It carries no badge; only the About row can (UI-SETTINGS-064)."
     },
     {
       "area": "SIDEBAR",
@@ -16219,7 +17048,7 @@
         "DroppyCode/Services/Store/Storage.swift:43-48"
       ],
       "notes": "The detail text is the literal value of Storage.worktreesDirectory.path, so on Windows it reads C:\\Users\\<user>\\.droppy-code\\worktrees with backslashes. It is user-visible, which is one of the two reasons port_impacts.md entry 113 says the home state directory name must stay byte-identical. The row is shared with the settings area; the path it prints is owned here.",
-      "screen": "Settings > Advanced page, section \"Worktrees and pull requests\"",
+      "screen": "Settings, Source control, section \"Worktrees and pull requests\"",
       "element": "Worktrees location row",
       "role": "row"
     },
@@ -16241,7 +17070,7 @@
         "DroppyCode/UI/Common/Components.swift:165 - Workspace.revealInFinder(_ path: String)"
       ],
       "notes": "The label is the single word \"Reveal\", not \"Reveal in Finder\"; the sidebar’s project menu uses the longer \"Reveal in Finder\" (SidebarView.swift:1212) and the worktree menu uses \"Reveal worktree in Finder\" (SidebarView.swift:2218). On Windows the action opens File Explorer at that folder; the button label must still be exactly \"Reveal\", and the two longer sidebar labels belong to the sidebar area, which must decide whether \"Finder\" is renamed there.",
-      "screen": "Settings > Advanced page, section \"Worktrees and pull requests\", \"Worktrees\" row",
+      "screen": "Settings, Source control, section \"Worktrees and pull requests\", \"Worktrees\" row",
       "element": "Reveal button",
       "role": "button"
     },
@@ -18524,6 +19353,80 @@
         "DroppyCode/UI/Chrome/Chrome.swift:117"
       ],
       "notes": "Exactly two sections exist at this commit. These are the only colours in the theme area declared as floating-point components rather than hex, and they take the framework's default colour space, which is sRGB."
+    },
+    {
+      "area": "THEME",
+      "id": "UI-THEME-049",
+      "screen": "Chat, working line; also sidebar rows, helper stubs, team panels and MCP rows",
+      "element": "Working spinner (3 by 3)",
+      "role": "status indicator",
+      "exact_text": null,
+      "geometry": "3 columns by 3 rows; cell size 3.5 points by default; inter-cell gap 0.8 times the cell size on both axes; content size 3*3.5 + 2*2.8 = 16.1 points square at the default size; centred in the offered frame with the origin rounded to whole points; row 0 at the top",
+      "typography": "Not text",
+      "colors": "Three row tints from the theme accent in sRGB: accent blended 0.38 toward white (top row), the accent itself (middle row), accent blended 0.22 toward black (bottom row)",
+      "states": [
+        "running: each cell pulses once per 0.75 s on a 41-sample linear keyframe, lagged by hypot(column-1, 2-row)/2.5 so the wave travels upward from the bottom-centre cell",
+        "reduce motion: no animation; each cell frozen at the curve evaluated at minus its lag",
+        "theme or appearance change: cells retint instantly, with no crossfade"
+      ],
+      "interactions": [
+        "none; hit tests pass straight through to the row beneath"
+      ],
+      "source_evidence": [
+        "DroppyCode/UI/Common/WorkingIndicators.swift:54-79",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:196-205",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:295-316"
+      ],
+      "notes": "Hidden from assistive technology; the working line's own text carries the meaning. Every spinner in the app shares one animation clock origin, so two of them never pulse out of phase."
+    },
+    {
+      "area": "THEME",
+      "id": "UI-THEME-050",
+      "screen": "Sidebar thread rows, helper stubs, team panels, MCP rows",
+      "element": "Mini working spinner (2 by 3)",
+      "role": "status indicator",
+      "exact_text": "Working",
+      "geometry": "2 columns by 3 rows; cell size 2.4 points by default; inter-cell gap 0.8 times the cell size; content size 2*2.4 + 1*1.92 = 6.72 wide by 3*2.4 + 2*1.92 = 11.04 tall at the default size; centred with the origin rounded; row 0 at the top",
+      "typography": "Not text",
+      "colors": "The same three accent-derived row tints as the 3 by 3",
+      "states": [
+        "running: the pulse walks the perimeter ring (0,0), (0,1), (1,1), (2,1), (2,0), (1,0) clockwise, each cell lagging by its ring index over 6",
+        "reduce motion: frozen at the start of the wave",
+        "still: drawn as plain shapes for an image renderer, used by the archive ghost"
+      ],
+      "interactions": [
+        "none; hit tests pass through"
+      ],
+      "source_evidence": [
+        "DroppyCode/UI/Common/WorkingIndicators.swift:81-110",
+        "DroppyCode/UI/Common/WorkingIndicators.swift:112-138"
+      ],
+      "notes": "Accessibility label exactly \"Working\", applied outside the still/animated branch so both forms carry it. Its still form is the one that appears in the flying archive ghost (SidebarView.swift:2101)."
+    },
+    {
+      "area": "THEME",
+      "id": "UI-THEME-051",
+      "screen": "Main window, overlay above the content",
+      "element": "Genie layer",
+      "role": "decorative overlay",
+      "exact_text": null,
+      "geometry": "Fills the window; a ZStack aligned top-leading with flights below and morphs above; every child is handed the window size as its canvas; coordinates are in the window coordinate space named \"droppy-code-window\"",
+      "typography": "Not text",
+      "colors": "None of its own; each flight draws a flat capture of its row and each morph draws its caller's surface",
+      "states": [
+        "idle: nothing drawn",
+        "flight in progress: one distorted flat image per flight, fading out over the last tenth of its 0.58 s",
+        "morph in progress: one rounded surface changing frame and corner radius together over 0.5 s after its hold"
+      ],
+      "interactions": [
+        "none; allowsHitTesting is false and the whole layer is hidden from assistive technology"
+      ],
+      "source_evidence": [
+        "DroppyCode/UI/Common/Genie.swift:111-127",
+        "DroppyCode/UI/Common/Genie.swift:130-176",
+        "DroppyCode/UI/Common/Genie.swift:182-213"
+      ],
+      "notes": "The default landing point for a flight with no target is x 24, y canvas height minus 12: the archive corner at the bottom left. The command palette sits above this layer (PR-WIN-067)."
     },
     {
       "area": "UPDATE",

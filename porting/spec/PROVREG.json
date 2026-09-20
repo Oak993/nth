@@ -648,7 +648,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0006"
+      "depends_on_unknown": "UNK-0006",
+      "open_question": "How a Windows build distinguishes the Command Code CLI from the system command interpreter, given that the bare name \"cmd\" resolves to cmd.exe on every Windows PATH and the source contains no identity check. Not resolvable from source; needs an owner decision on the probe (for example a --version identity check, or dropping the bare name on Windows)."
     },
     {
       "id": "PR-PROVREG-027",
@@ -962,7 +963,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0006"
+      "depends_on_unknown": "UNK-0006",
+      "open_question": "Whether the detail sentence that quotes `cmd login` verbatim is shown unchanged on Windows, where that command line means something else. The string is a source fact; whether it is shown as-is depends on the resolution of PR-PROVREG-026."
     },
     {
       "id": "PR-PROVREG-040",
@@ -2080,7 +2082,6 @@
       "verification_method": "restart test plus unit on the trim and removal rules",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -2110,7 +2111,7 @@
     },
     {
       "id": "PR-PROVREG-088",
-      "title": "API keys live in four Keychain items under one service, with UserDefaults holding a copy only when the Keychain refuses",
+      "title": "API keys live in four Keychain items under one service, distinguished only by their account strings",
       "source_evidence": [
         "DroppyCode/Services/Providers/APIKeychain.swift:29-33 setKey - kSecClassGenericPassword with kSecAttrService = AppInfo.name and kSecAttrAccount = the account string",
         "DroppyCode/Services/Providers/DeepSeekKeychain.swift - account \"DeepSeek API Key\"",
@@ -2122,21 +2123,21 @@
       ],
       "preconditions": "The user edits an API key field.",
       "action": "setAPIKeyInput is called for that provider.",
-      "expected_result": "The key is trimmed of whitespace and newlines and written as a generic password under the app service name with one of exactly these four account strings: \"DeepSeek API Key\", \"Meta API Key\", \"Z.ai API Key\", \"Command Code API Key\". Accessibility is kSecAttrAccessibleWhenUnlocked. An empty key deletes the item. When the Keychain write returns false, and only then, the plaintext value is written to the matching UserDefaults key; when it succeeds the empty string is stored there, which removes the key.",
+      "expected_result": "The key is trimmed of whitespace and newlines and written as a generic password under the service name AppInfo.name with one of exactly these four account strings: \"DeepSeek API Key\", \"Meta API Key\", \"Z.ai API Key\", \"Command Code API Key\". Accessibility is kSecAttrAccessibleWhenUnlocked. Each write is a delete followed by an add. An empty key deletes the item rather than storing an empty value. The plaintext mirror that runs when this write REFUSES is a separate behaviour and is specified by PR-PROVREG-239.",
       "side_effects": [
-        "A Keychain delete followed by an add on every write; optionally a defaults write."
+        "A Keychain delete followed by an add on every write."
       ],
-      "persistence": "Keychain service = the app display name, four fixed account strings. Fallback defaults keys: deepseekAPIKey, metaAPIKey, zaiAPIKey, commandcodeAPIKey.",
+      "persistence": "Keychain service = the app display name, four fixed account strings.",
       "failure_cases": [
-        "Keychain unavailable: SecItemAdd returns non-success, setKey returns false and the plaintext fallback is written."
+        "Keychain unavailable: SecItemAdd returns non-success and setKey returns false; what happens next is PR-PROVREG-239."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PLATFORM BOUNDARY: the Windows SecretStore must keep the same one-container-many-accounts partitioning and the same four account strings verbatim, because MCP secrets share the container and are distinguished only by account string. The plaintext fallback must be reconsidered explicitly rather than transliterated, since it writes a secret to disk.",
+      "windows_path": "PLATFORM BOUNDARY: the Windows SecretStore must keep the same one-container-many-accounts partitioning and the same four account strings verbatim, because MCP secrets share the container and are distinguished only by account string.",
       "verification_method": "restart test on each of the four accounts plus a contract fixture on the account strings",
-      "status": "DISCOVERED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "Whether the Windows build keeps the plaintext mirror at all when protected storage refuses the write (PR-PROVREG-239). The source writes the secret to UserDefaults in the clear; the port's own rules say to fail and say so rather than fall back to plain text. Needs an owner decision, not a transliteration."
     },
     {
       "id": "PR-PROVREG-089",
@@ -2304,7 +2305,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0005"
+      "depends_on_unknown": "UNK-0005",
+      "open_question": "Where the gh CLI stores its data on Windows. The source names three Unix locations and gives no Windows equivalent, so the directory must be established by probing a real installation. Not resolvable from source."
     },
     {
       "id": "PR-PROVREG-096",
@@ -2328,7 +2330,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0006"
+      "depends_on_unknown": "UNK-0006",
+      "open_question": "The Windows equivalent of the five fixed Unix directories in the Command Code fallback list. The source gives none, so they must be probed rather than transliterated, and the \"cmd\" name question of PR-PROVREG-026 applies to the name list as well."
     },
     {
       "id": "PR-PROVREG-097",
@@ -2352,7 +2355,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0005"
+      "depends_on_unknown": "UNK-0005",
+      "open_question": "The Windows equivalent of the six fixed absolute Unix paths in the Pi fallback list. The source gives none; a probed Windows list is needed."
     },
     {
       "id": "PR-PROVREG-098",
@@ -2821,7 +2825,6 @@
       "verification_method": "unit over sample outputs including CRLF line endings",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -2902,7 +2905,7 @@
       "action": "The auth probe runs.",
       "expected_result": "No process is spawned for Grok auth. The file is read directly. An unreadable file or a root that is not a JSON object gives unknown.",
       "side_effects": [
-        "One file read. This is a credential file read, and it reads a token store the app does not own."
+        "READS A THIRD-PARTY CREDENTIAL FILE. This is the Grok CLI's own token store, not an app-owned secret; the app only reads it and never writes it."
       ],
       "persistence": "None.",
       "failure_cases": [
@@ -2910,12 +2913,13 @@
         "Root object empty: signedOut."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PLATFORM BOUNDARY: the home directory and the path separator. The Windows build must also decide whether reading a third-party credential file is acceptable under its own safety rules; the source does read it.",
+      "windows_path": "PLATFORM BOUNDARY AND POLICY DECISION. The home directory and the path separator change. Beyond that, whether the Windows build may read the Grok CLI's credential file at all is a policy question the source does not answer: the source does read it, and the port's own safety rules forbid reading agent credential files. Decide explicitly; do not transliterate. Treated identically to PR-PROVREG-177, PR-PROVCLI-313 and PR-PROVCLI-255.",
       "verification_method": "contract fixture with a synthetic auth.json",
-      "status": "SPECIFIED",
+      "status": "DISCOVERED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "Whether the Windows build may read a third-party agent CLI's credential store at all. The source does read it; the port's own safety rules forbid reading agent credential files (CLAUDE.md, \"Never read agent credential files (for example ~/.claude/.credentials.json, ~/.codex/auth.json, ~/.pi/agent/auth.json, ~/.commandcode/auth.json)\"). Faithful reproduction and the port's safety rules are in direct conflict, so this needs an owner decision and one registered unknown covering all four reads, not a transliteration. The four are PR-PROVREG-177 (~/.claude/.credentials.json and the \"Claude Code-credentials\" Keychain item), PR-PROVREG-121 (~/.grok/auth.json), PR-PROVCLI-313 (Pi's <config>/auth.json OAuth tokens) and PR-PROVCLI-255 (~/.commandcode/auth.json).",
+      "blocked_by": "BLK-0007"
     },
     {
       "id": "PR-PROVREG-122",
@@ -2936,7 +2940,6 @@
       "verification_method": "unit over synthetic auth files",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -2983,7 +2986,6 @@
       "verification_method": "unit on the switch plus an interaction test proving refresh diverts first",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -3492,7 +3494,6 @@
       "verification_method": "unit against a golden fixture plus the sentinel equality",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -4250,8 +4251,9 @@
       "verification_method": "contract fixture with a synthetic credentials file",
       "status": "DISCOVERED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "Whether the Windows build may read a third-party agent CLI's credential store at all. The source does read it; the port's own safety rules forbid reading agent credential files (CLAUDE.md, \"Never read agent credential files\"). Faithful reproduction and the port's safety rules are in direct conflict here, so this needs an owner decision and a registered unknown, not a transliteration. The same question governs PR-PROVREG-121 (~/.grok/auth.json), PR-PROVCLI-313 (~/.pi/agent/auth.json) and PR-PROVCLI-255 (~/.commandcode/auth.json), which are treated identically.",
+      "blocked_by": "BLK-0007"
     },
     {
       "id": "PR-PROVREG-178",
@@ -4273,7 +4275,6 @@
       "verification_method": "unit over sample credential blobs",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -4296,7 +4297,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "Whether this decoder is needed at all on Windows, which depends on whether the Keychain branch of PR-PROVREG-177 has any analogue. If that branch is not ported, the hex decode has no caller."
     },
     {
       "id": "PR-PROVREG-180",
@@ -4696,7 +4698,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "Whether this property is ported at all, which depends on the reachability question of PR-PROVREG-236: it is written correctly but has no reader anywhere in the checkout and is not recorded in dead_code.md."
     },
     {
       "id": "PR-PROVREG-197",
@@ -5568,7 +5571,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "What a Windows Login button launches. The zsh shebang, the .command extension, the POSIX permission bits and the workspace open verb all have no Windows equivalent, and the source names no alternative. Needs an owner decision on the Windows terminal launch, after which the per-CLI file naming rule can be kept or dropped."
     },
     {
       "id": "PR-PROVREG-234",
@@ -5594,7 +5598,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "Whether ProviderRegistry.signIn is reachable at all. No caller exists in the pinned checkout and it is NOT recorded in dead_code.md, so it has not been proven dead by the dead-code pass. Until that is settled the port must not implement it; if it is dead it belongs in dead_code.md."
     },
     {
       "id": "PR-PROVREG-235",
@@ -5618,7 +5623,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "Whether ProviderRegistry.signingIn is reachable at all. It guards re-entry into signIn, which itself has no caller, and it is not recorded in dead_code.md. Tied to the resolution of PR-PROVREG-234."
     },
     {
       "id": "PR-PROVREG-236",
@@ -5643,7 +5649,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "Whether ProviderRegistry.redeemingReset is reachable at all. It is published and written but no view observes it, and it is not recorded in dead_code.md, so it has not been proven dead. Do not build UI against it until this is settled."
     },
     {
       "id": "PR-PROVREG-237",
@@ -5691,6 +5698,37 @@
       "upstream_defect": "45",
       "blocked_by": null,
       "depends_on_unknown": null
+    },
+    {
+      "id": "PR-PROVREG-239",
+      "title": "A refused Keychain write mirrors the API key into UserDefaults in plain text, and a successful one clears that mirror",
+      "source_evidence": [
+        "DroppyCode/App/AppSettings.swift:359-365 - deepseekAPIKeyInput didSet: guard !isReadingKeychain, deepseekAPIKeyInput != oldValue else { return }; let kept = DeepSeekKeychain.setAPIKey(deepseekAPIKeyInput); storeAPIKeyFallback(kept ? \"\" : deepseekAPIKeyInput, forKey: Key.deepseekAPIKey)",
+        "DroppyCode/App/AppSettings.swift:370-376, :381-387 and the Command Code input - the same three-line didSet repeated for metaAPIKeyInput, zaiAPIKeyInput and commandcodeAPIKeyInput",
+        "DroppyCode/App/AppSettings.swift:151-154 - static let deepseekAPIKey = \"deepseekAPIKey\", metaAPIKey = \"metaAPIKey\", zaiAPIKey = \"zaiAPIKey\", commandcodeAPIKey = \"commandcodeAPIKey\"",
+        "DroppyCode/App/AppSettings.swift:356 - the comment \"Stored in the Keychain when available, with a UserDefaults fallback for migration\"",
+        "DroppyCode/Services/Providers/APIKeychain.swift:22-39 setKey - the value is trimmed; an EMPTY trimmed key deletes the item and returns TRUE; otherwise SecItemAdd's success is returned",
+        "DroppyCode/Services/Providers/APIKeychain.swift:13-17 key(for:fallback:) - the Keychain value wins when non-empty, otherwise the fallback is returned"
+      ],
+      "preconditions": "A Keychain write of an API key has just returned.",
+      "action": "storeAPIKeyFallback runs for that provider.",
+      "expected_result": "Each of the four API key inputs runs the same three lines on change, guarded so the initial Keychain read does not trigger it and so an unchanged value does nothing. setAPIKey trims the value of whitespace and newlines and returns whether the Keychain KEPT it; note an empty key deletes the item and returns TRUE, so clearing a key also clears the mirror. When the return is FALSE, and only then, storeAPIKeyFallback writes the key to the matching UserDefaults key - deepseekAPIKey, metaAPIKey, zaiAPIKey or commandcodeAPIKey. When it is true the EMPTY STRING is written to that same key, which removes any mirror an earlier refusal left behind. The mirror is written UNTRIMMED, from the input property, while the Keychain stores the trimmed value, so the two stores can hold different strings for the same key. On read, APIKeychain.key(for:fallback:) prefers a non-empty Keychain value and returns the mirror otherwise, making the two a single logical slot.",
+      "side_effects": [
+        "SECURITY-RELEVANT: a provider API key is written to disk in plain text, in the app's user defaults, readable by any process running as the user."
+      ],
+      "persistence": "UserDefaults keys deepseekAPIKey, metaAPIKey, zaiAPIKey, commandcodeAPIKey.",
+      "failure_cases": [
+        "Nothing tells the user their key is now stored in the clear.",
+        "A key with leading or trailing whitespace is mirrored with that whitespace while the Keychain copy is trimmed."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "PLATFORM BOUNDARY AND POLICY DECISION. This is the one half of the API key store that must NOT be transliterated. The port's own rules require SecretStore (DPAPI through Electron safeStorage) and say that when protected storage is unavailable the app must fail and say so, never fall back to plain text. Reproducing the mirror faithfully would write user API keys to disk unencrypted on every Windows PC where DPAPI is unavailable. The clearing half of the rule - writing the empty string on success - is safe and should be kept whatever is decided about the mirror itself.",
+      "verification_method": "unit test with a refusing secret store, asserting both the mirror write and the clear-on-success",
+      "status": "DISCOVERED",
+      "upstream_defect": "NEW, not in upstream_defects.md: a provider API key is written to UserDefaults in plain text whenever the Keychain refuses the write (AppSettings.swift:363, :374 and the two siblings), and the mirror is written untrimmed while the Keychain copy is trimmed.",
+      "depends_on_unknown": null,
+      "open_question": "Whether the Windows build keeps the plaintext mirror at all. The source writes the secret in the clear; the port's rules forbid a plaintext fallback. Needs an owner decision, and a registered unknown, before any Windows implementation.",
+      "blocked_by": "BLK-0006"
     }
   ],
   "ui": [

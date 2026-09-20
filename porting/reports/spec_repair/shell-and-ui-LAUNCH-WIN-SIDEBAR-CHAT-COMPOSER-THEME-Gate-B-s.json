@@ -1,0 +1,219 @@
+{
+  "scope": "shell-and-ui (LAUNCH, WIN, SIDEBAR, CHAT, COMPOSER, THEME) — Gate B spec repair pass",
+  "requirements_added": 53,
+  "requirements_amended": 7,
+  "requirements_split": 4,
+  "ui_added": 14,
+  "files_edited": [
+    "E:/Droppy/port/porting/spec/LAUNCH.json",
+    "E:/Droppy/port/porting/spec/WIN.json",
+    "E:/Droppy/port/porting/spec/SIDEBAR.json",
+    "E:/Droppy/port/porting/spec/CHAT.json",
+    "E:/Droppy/port/porting/spec/COMPOSER.json",
+    "E:/Droppy/port/porting/spec/THEME.json"
+  ],
+  "resolutions": [
+    {
+      "finding": "Missing 1 — CHAT: the chat chrome row itself (ChatChromeRow) has no requirement and no UI record",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ChatView.swift:1110-1183 is a complete unspecified view. Grep of all 20 spec files for ChatChromeRow, ThreadsButton, ChatChromeTitle, PermissionMenu and \"Show the sidebar\" returned zero hits (OpenInMenu appeared only once, in TERM.json, in passing). Verified GlassEffectContainer(spacing: 2) at :1124, HStack(alignment: .center, spacing: 10) at :1126, inner HStack(spacing: 8) at :1158, the exact slot order at :1127-1177, and the four modifiers at :1179-1182. sidebarVisible is model.sidebar.holdsTrafficLights (:1121) with the comment at :1119-1120 confirming it follows the buttons, not the sidebar.",
+      "action_taken": "Added PR-CHAT-171 (glass container, spacings, exact slot order, the three conditional slots) and PR-CHAT-172 (holdsTrafficLights trigger, the leading inset formula from Chrome.trafficLightsWidth + trafficLightClearance = 10, chromeHorizontalPadding 14, chromeTopPadding 12, Chrome.panelSlide). Added UI-CHAT-073."
+    },
+    {
+      "finding": "Missing 2 — CHAT: Threads button, including the tooltips \"Show the sidebar\" and \"Threads\"",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ChatView.swift:1127-1132 gates it on !sidebarVisible AND !(sidebarFloats && sidebarOnlyFloats) with .transition(.softAppear). ChatView.swift:1252-1259 confirms the ternary tooltip and the float branch (model.sidebar.toggle() vs isPresented.toggle()). :1260-1264 the popover at model.sidebar.width by 560 with .presentedChrome(). :1265-1268 publishes frame(in: .global) to WebsiteCaptures.threadsButtonFrame only when captures are enabled.",
+      "action_taken": "Added PR-CHAT-173 (visibility gate, transition, both verbatim tooltips, the two-way press) and PR-CHAT-174 (popover geometry, arrowEdge .bottom, capture-frame publication, status DISCOVERED because the capture subsystem's porting is unresolved). Added UI-CHAT-074."
+    },
+    {
+      "finding": "Missing 3 — CHAT: the New thread chrome button instance",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ChatView.swift:1134-1136 ChromeCircleButton(symbol: \"square.and.pencil\", help: \"New thread\" + ShortcutStore.hint(for: .newThread)) { model.newThread(in: project) }. square.and.pencil appeared only in SIDEBAR.json and WIN.json, for other buttons.",
+      "action_taken": "Added PR-CHAT-175 and UI-CHAT-075."
+    },
+    {
+      "finding": "Missing 4 — CHAT: thread title button, its popover and its rename alert; every string absent",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ChatView.swift:1207-1241 verified in full: Text(verbatim:) with the \"New thread\" empty case, .system(size: 15, weight: .semibold), the secondaryText/primaryText split, lineLimit 1, .tail, padding(.vertical, 6), .buttonStyle(.plain), .help(\"Thread title — click to copy or rename\") with a U+2014 em dash at :1216, .accessibilityLabel(Text(\"Thread title\")) at :1217, the popover header \"Thread title\" and items \"Copy title\"/\"Rename…\" at :1224-1232, and the alert \"Rename thread\" with TextField(\"Title\"), Button(\"Rename\"), Button(\"Cancel\", role: .cancel) at :1235-1240. .animation(nil, value: title) is at the call site, :1152.",
+      "action_taken": "Split into three rows: PR-CHAT-176 (label, typography, colours, the no-crossfade rule), PR-CHAT-177 (popover header and both items, clear-then-set pasteboard), PR-CHAT-178 (the alert's four strings). Added UI-CHAT-076, UI-CHAT-077, UI-CHAT-078."
+    },
+    {
+      "finding": "Missing 5 — CHAT: permissions menu and the \"<title> · <summary>\" help format",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ChatView.swift:1338-1345 verified: ChromeCircleMenu(symbol: thread.runtimeMode.symbol, help: \"\\(thread.runtimeMode.title) · \\(thread.runtimeMode.summary)\"), PopoverSectionHeader(\"Permissions\"), ForEach(RuntimeMode.allCases) with isChecked on the current mode.",
+      "action_taken": "Added PR-CHAT-179 pinning the U+00B7 separator format and the enum-generated item list. Added UI-CHAT-079."
+    },
+    {
+      "finding": "Missing 6 — CHAT: Open in menu; \"Open in another app\", \"Open in\" and \"Copy path\" in no spec file",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ChatView.swift:1415-1435 verified verbatim, including the PopoverDivider() before Copy path and the clear-then-set pasteboard write.",
+      "action_taken": "Added PR-CHAT-180 (status DISCOVERED: \"Finder\" is a macOS application name needing an owner-approved Windows label, the same class as PR-SIDEBAR-101). Added UI-CHAT-080."
+    },
+    {
+      "finding": "Missing 7 — CHAT/WIN: the seven-entry editor catalogue and the Workspace lookup/cache behaviour",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Components.swift:109-117 has exactly the seven name/bundleID pairs the critic listed, in that order, with id = bundleID (:103). installedEditors is a static let filtered once per launch (:137-141). icon(for:) caches per bundle id and sets NSSize(16, 16) (:149-161). finderIcon reads /System/Library/CoreServices/Finder.app (:163). revealInFinder uses activateFileViewerSelecting (:165-167). open(_:with:) re-resolves and returns silently when the app is gone (:144-147) — a detail the critic did not mention.",
+      "action_taken": "Added PR-CHAT-181 (the seven pairs verbatim, status DISCOVERED: three of the seven are macOS-only apps, so the Windows catalogue needs recorded substitutions) and PR-CHAT-182 (once-per-launch resolution and its stale-after-install/uninstall consequences, the 16x16 icon cache, the Finder icon path, reveal-selects semantics; status DISCOVERED)."
+    },
+    {
+      "finding": "Missing 8 — CHAT: the Terminal and Changes toggles with chord-suffixed tooltips and isActive bindings",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ChatView.swift:1169-1177 verified. The critic missed one real asymmetry: Terminal writes runtime.isTerminalVisible.toggle() directly while Changes calls runtime.toggleDiff(), which is a different path.",
+      "action_taken": "Added PR-CHAT-183, stating the asymmetry explicitly. Added UI-CHAT-081."
+    },
+    {
+      "finding": "Missing 9 — THEME: the working spinner has no rendering requirement at all",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "WorkingIndicators.swift is cited exactly twice across all 20 spec files (PR-THEME-036 and PR-CHAT-118), neither about rendering. Every value the critic listed checks out: rowTints 0.38/white, accent, 0.22/black in sRGB (:22-29); dim 0.1 and period 0.75 (:30-31); the opacity curve's 0.45/0.92/0.08 split (:34-44); WorkingSpinner 3x3, cellSize 3.5, lag = hypot(column-1, 2-row)/2.5 (:63-74); MiniSpinner 2x3, the ring [(0,0),(0,1),(1,1),(2,1),(2,0),(1,0)]/6, cellSize 2.4 (:84-100); gap = cellSize * 0.8 and the rounded centred origin (:124-126, :198-203, :277-293); accessibilityHidden on the 3x3 (:79) and accessibilityLabel(\"Working\") on the mini (:110); the 40-sample keyframe at :295-316 including beginTime = layer.convertTime(1, from: nil) at :312; the reduce-motion freeze (:298-300); the three retint triggers (:236-254); hitTest nil (:208); the implicit-action suppression (:225).",
+      "action_taken": "Split the whole file into nine rows: PR-THEME-162 (row tints, dim, period), -163 (the opacity curve including the negative-phase wrap), -164 (3x3 cells and lag), -165 (mini ring, lag and the \"Working\" label), -166 (gap, content size, centring, row-0-at-top), -167 (the 41-sample keyframe and the shared clock origin), -168 (reduce motion), -169 (the three retint triggers and the configure short-circuit), -170 (hit test and implicit-action suppression). Added UI-THEME-049 and UI-THEME-050."
+    },
+    {
+      "finding": "Missing 10 — THEME: the still-frame spinner variant, recorded in dead_code.md:89 as NOT dead",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "WorkingIndicators.swift:84-86 isStill, :101-106 the branch, :112-138 StillSpinnerCells with the same 0.8 spacings and opacity(GradientSpin.opacity(phase: -lag)). The accessibility label at :110 is applied outside the branch, so the still form carries it too — a detail the critic did not state.",
+      "action_taken": "Added PR-THEME-171."
+    },
+    {
+      "finding": "Missing 11 — THEME/WIN: GenieAnimator's morph half (Morph, morphDuration, morphCrossfade)",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Genie.swift:48-51 morphDuration 0.5, morphCrossfade 0.12, morphAnimation .smooth(duration: 0.5). :63-64 the guard is from.width > 1, from.height > 1, to.width > 1, to.height > 1 and !accessibilityDisplayShouldReduceMotion, returning false. :190-212 MorphView's sequence matches the critic's description exactly, including the fade-out starting at holdsFor + 0.5 - 0.12 and removal 0.12 + 0.05 later. The zero-fadeIn short-circuit at :200 (hasStarted || morph.fadeIn <= 0) is an extra the critic did not name.",
+      "action_taken": "Added PR-THEME-172 (constants, fields, the refuse-and-return-false contract) and PR-THEME-173 (the four-phase sequence, the single-geometry frame-plus-radius animation, the zero-fadeIn case)."
+    },
+    {
+      "finding": "Missing 12 — THEME/WIN: the genie flight's mechanics",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Genie.swift:13 duration 0.58; :137 the default landing point CGPoint(x: 24, y: canvas.height - 12); :146-149 the reach formula; :157-163 the three shader arguments in order with maxSampleOffset: reach; :165 the opacity ramp progress > 0.9 ? max(0, (1 - progress) / 0.1) : 1; :167 the single CubicKeyframe over the duration; :170-173 removal at duration - 0.03; :141 the arrival's reversed (1.0, 0.0); :83-88 the launch guards and renderer.scale = NSScreen.main?.backingScaleFactor ?? 2; :98-109 GenieGhost adding no fill; :112-127 GenieLayer allowsHitTesting(false) and accessibilityHidden(true) in one top-leading ZStack. All confirmed.",
+      "action_taken": "Added PR-THEME-174 (launch guards, render scale, the no-fill ghost), PR-THEME-175 (default target, reach, shader arguments, opacity ramp, keyframe, early removal, the reversed arrival; depends_on_unknown UNK-0004 because the shader itself is a platform boundary) and PR-THEME-176 (the layer's stacking, click-through and accessibility). Added UI-THEME-051."
+    },
+    {
+      "finding": "Missing 13 / Paraphrased 1 — WIN: Chrome.panelControlFill recorded as prose, formula never given",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "RenderBudget.swift:94-97 is exactly `let lift = hovered ? (isDark ? 0.24 : 0.12) : (isDark ? 0.12 : 0.04); return Chrome.glassTint.mix(with: isDark ? .white : .black, by: lift).opacity(isDark ? 0.55 : 0.42)`. Six literals. PR-WIN-180 said only 'the panel's flat control fill, brighter under the pointer'. I also found a detail neither the critic nor the old row states: Chrome.swift:171 takes the on-panel branch BEFORE the isInteractive test, so a field capsule on a glass panel does brighten under the pointer, unlike off-panel.",
+      "action_taken": "Added PR-WIN-214 with all six literals, the mix targets, the post-mix opacity, the Chrome.hover animation and the branch-order consequence. Added PR-WIN-215 for EnvironmentValues.isOnGlassPanel (default false, set true in the three named panels, with the render-budget reason from :80-85)."
+    },
+    {
+      "finding": "Missing 14 / Missing 48 — the shared scroll-activity reaper (ScrollActivity) is unowned",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "RenderBudget.swift:11-75 verified in full: the union at :41-43, the 2-second watchdog dropping dead or resting reporters and cancelling itself at :44-63, WeakReporter at :25-27, and setScrolling(false) removing both the id and the reporter entry at :34-37. No spec file cites the path; setScrolling appears in zero spec files. Findings 14 and 48 are the same gap; 14 assigns it to CHAT, 48 suggests SETTINGS or a shared UI area. CHAT is my area and owns two of the three reporter-side rows (PR-CHAT-136, PR-CHAT-163), so I took it there.",
+      "action_taken": "Added PR-CHAT-184 (the union, the change-only publication, the single watchdog and its 2-second poll, immediate cancel on an explicit stop) and PR-CHAT-185 (weak reporters, the both-maps removal, the optional-reporter case). Both cross-reference PR-SETTINGS-018/019."
+    },
+    {
+      "finding": "Missing 15 — COMPOSER/CHAT: video attachments entirely unspecified",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "AttachmentPreview.swift:145-147 the eight extensions exactly as listed; :149-151 lowercased extension match; :170-173 isVideo tests the \"video/\" MIME prefix first; :154-165 the detached userInitiated frame grab with appliesPreferredTrackTransform, maximumSize = ceil(pointSize * 2) square, CMTime(seconds: 0.5, preferredTimescale: 600); :178-191 the 30pt circle at black 0.45 with play.fill at 13 semibold offset x: 1, accessibilityHidden; :197-223 the video thumbnail matching the photo box at 56 / radius 12 continuous / .quaternary 0.6 / .fill, badge inside the clip, 0.15s ease-out fade.",
+      "action_taken": "Split into four rows: PR-COMPOSER-201 (the eight extensions and the MIME-first test), -202 (the frame grab), -203 (the play badge), -204 (the thumbnail container). Added UI-COMPOSER-081 and UI-COMPOSER-082. Amended PR-COMPOSER-075 to point at -201 for which attachments reach its branch."
+    },
+    {
+      "finding": "Missing 16 — COMPOSER: the FileIcons cache key and its 64-entry bound",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "AttachmentPreview.swift:129-140 the four-way key (lowercased extension, else \"folder\", else \"type:\" + identifier, else \"file\"); :118-125 the bound of 64 with insertion-order eviction in a while loop; :109 the comment about one lookup per row per render stalling scrolling. One detail beyond the critic's: insertion order is not refreshed on a hit, so this is FIFO, not LRU.",
+      "action_taken": "Added PR-COMPOSER-205, stating the key order, the FIFO bound and why the key order matters (the directory test must precede the content-type lookup)."
+    },
+    {
+      "finding": "Missing 17 — COMPOSER: the image-attachment MIME fallback \"image/*\"",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "AttachmentPreview.swift:86-93: one cached Attachment per path, and the literal \"image/*\" appears twice in one expression at :89-90 (once as the nil-coalescing fallback, once as the non-image-prefix fallback). \"image/*\" is in no spec file. :80-81 records that the per-path identity is what makes the preview panel's toggle close instead of reopen.",
+      "action_taken": "Added PR-COMPOSER-206, recording both fallback sites, the identity contract and that the cache is unbounded."
+    },
+    {
+      "finding": "Missing 18 — LAUNCH: the forwarded-thread title prefix \"Continued: \"",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "AppModel.swift:636 `thread.title = \"Continued: \" + resolved.title` and :637 hasCustomTitle = true. Grep of all 20 spec files for \"Continued: \" returned zero. PR-SIDEBAR-100 defers it explicitly. Also verified the critic's four unspecified call-site behaviours at :625, :629, :639-640 and :642.",
+      "action_taken": "Added PR-LAUNCH-081 (the exact eleven-character prefix and the custom-title flag, with the auto-titler consequence) and PR-LAUNCH-082 (the double guard around the await, the capture-after-load, the append/expand/remember ordering and the failure path)."
+    },
+    {
+      "finding": "Missing 44 — COMPOSER: DiffPopoverCoordinator.sync's thread-switch branch does three separate things",
+      "kind": "missing",
+      "verdict": "PARTIALLY_CORRECT",
+      "truth": "DiffInspector.swift:552-559 confirms all three writes: close() at :553, the OUTGOING runtime cleared at :554, the INCOMING runtime cleared at :557. The critic omitted that the incoming clear is guarded by !WebsiteCaptures.isEnabled while the outgoing clear is not, and that the first-appearance branch (:560-567) applies the same incoming clear with the same guard.",
+      "action_taken": "Added PR-COMPOSER-207 with all three writes, the asymmetric capture guard and the first-appearance branch. Amended PR-COMPOSER-008 to delegate to it. Status DISCOVERED because the capture guard depends on the unresolved capture-subsystem port decision."
+    },
+    {
+      "finding": "Missing 45 — COMPOSER: seenOpenRequest adoption is in no spec record",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "DiffInspector.swift:593-594 the field and its doc comment; adopted at :556 and :562; the guard chain at :600-602, where a reopen naming an unserved runtime is redirected into sync rather than ignored — a branch the critic did not mention.",
+      "action_taken": "Added PR-COMPOSER-208 covering adoption on both entry points, the redirect, the bump comparison and the re-adoption that makes a bump fire once."
+    },
+    {
+      "finding": "Missing 49 — RenderBudget's glass half is uncited by path though its two symbols are covered elsewhere",
+      "kind": "missing",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "The critic explicitly records this 'only so the Gate B file-coverage check is not read as a gap' and states the gap is the ScrollActivity half. Nothing to repair as written.",
+      "action_taken": "none as a separate item; PR-WIN-214 and PR-WIN-215 now cite RenderBudget.swift:89-98 and :79-87 by path, so the file is covered by path in WIN as well as by symbol."
+    },
+    {
+      "finding": "Wrong 1 — PR-THEME-143 claims head mentions are 'deliberately not links', which source contradicts for the SwiftUI path",
+      "kind": "wrong",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "MarkdownView.swift:496-501 sets name.link = target.url together with name.foregroundColor = persona.color and name.inlinePresentationIntent = .stronglyEmphasized, with the comment at :495 explaining why. The non-link claim holds only for LinkParagraphView.swift:223-239, whose own comment at :224-226 gives the opposite reason. The row cited MarkdownView.swift:387 in its evidence, so that path was in scope for the row.",
+      "action_taken": "Amended PR-THEME-143 to cover the native NSAttributedString path only, with the custom-attribute reason quoted, and rewrote its windows_path to forbid modelling that run as a hyperlink."
+    },
+    {
+      "finding": "Too coarse 1 — PR-THEME-143 hides two render paths; split it and state the no-target fallback separately",
+      "kind": "too_coarse",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Same source as Wrong 1. The no-target fallback at MarkdownView.swift:503 is Text(verbatim: persona.name).fontWeight(.bold).foregroundColor(persona.color), mirrored at LinkParagraphView.swift:231-232 and :236-238.",
+      "action_taken": "Split into three: PR-THEME-143 (native attributed path, custom attribute, no link), PR-THEME-177 (SwiftUI Text path, real link attribute plus persona colour plus stronglyEmphasized, glyph at 16 * zoom raised 20 percent), PR-THEME-178 (the no-target fallback, common to both paths, inert)."
+    },
+    {
+      "finding": "Too coarse 2 — PR-CHAT-117 folds four separable behaviours into one row",
+      "kind": "too_coarse",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "ThreadTimeline.swift:2076 is the label derivation and the only place WorkGroupSummary.text(for: liveWork) is selected; :2110-2112 the bar gated on showsCard; :2077 and :2101-2107 the chevron's canExpand gate; :2116-2119 the two padding sets and the fixed-versus-hugging width. Also found two string triples the critic did not mention: the help values \"Hide these steps\"/\"Show these steps\"/\"\" and the accessibility hint \"Shows what the agent is doing\"/\"\" at :2124-2125 (present in CHAT.json but not tied to the chevron gate).",
+      "action_taken": "Split into four: PR-CHAT-117 narrowed to the card-versus-badge layout, the two padding sets, the shared .snappy(duration: 0.24) open/close animation and the reveal-box follow; PR-CHAT-186 the three-way label derivation with its branch order and the U+2026 ellipsis; PR-CHAT-187 the progress bar's showsCard gate; PR-CHAT-188 the chevron gate with all four tooltip and hint values."
+    },
+    {
+      "finding": "Too coarse 3 — PR-SIDEBAR-098 is a count-and-order row standing in for eight actions; Rename, Delete, Copy, Reveal in Finder and the Settle/Archive swap lack their own rows",
+      "kind": "too_coarse",
+      "verdict": "PARTIALLY_CORRECT",
+      "truth": "SidebarView.swift:2193-2247 read in full. The critic is right that Rename (:2202), Archive (:2223), Settle/Reopen (:2229-2242), the settleFirst swap (:2222, :2243) and Delete… (:2245) have no rows of their own. The critic is WRONG on two items: there is no Copy action anywhere in ThreadActions.make, and 'Reveal in Finder as applicable' already has its own row — PR-SIDEBAR-101 covers \"Reveal worktree in Finder\" (:2217-2218), which is the only reveal item the builder emits.",
+      "action_taken": "Split into five new rows: PR-SIDEBAR-159 Rename, -160 Archive (with the computed startsGroup: !settleFirst), -161 Settle/Reopen (both titles, both symbols, the non-helper gate, the handler-or-fallback branch that decides whether the glide ghost flies), -162 the settleFirst swap and its three arrangements, -163 Delete… (single U+2026, destructive flag, and that it does NOT carry the RowAction confirms flag). Amended PR-SIDEBAR-098 to an order-and-equivalence row that delegates to all nine item rows and records explicitly that there is no Copy item. No row invented for a Copy action."
+    },
+    {
+      "finding": "Too coarse 4 / Paraphrased 1 — PR-WIN-180 covers three surfaces in one row",
+      "kind": "too_coarse",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Chrome.swift:169-182 has three distinct branches, tested in the order isOnGlassPanel, then isInteractive, then the plain glass. The field capsule's reason is at :131-134 verbatim. The on-panel formula is RenderBudget.swift:93-98.",
+      "action_taken": "Split into four: PR-WIN-180 narrowed to the interactive glass capsule and circle at the 0.3 tint; PR-WIN-213 the field capsule's omitted press response with the flicker reason; PR-WIN-214 the exact panelControlFill formula; PR-WIN-215 the isOnGlassPanel environment value."
+    },
+    {
+      "finding": "Paraphrased 2 — THEME never records the literal \"CIGaussianBlur\"",
+      "kind": "paraphrased",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Wallpaper.swift:252 `guard let blur = CIFilter(name: \"CIGaussianBlur\") else { return base }`. PR-THEME-066 said only 'a Gaussian blur filter'; grep for CIGaussianBlur across all 20 spec files returned zero. The critic's path was slightly off (the file is DroppyCode/UI/Theme/Wallpaper.swift, not UI/Common), but the line number and the string are right.",
+      "action_taken": "Amended PR-THEME-066 to quote the filter name verbatim, name kCIInputImageKey and kCIInputRadiusKey, and extend windows_path to say the radius semantics must be converted rather than passed through to a Windows blur whose parameter means something else."
+    },
+    {
+      "finding": "Paraphrased 3 — MiniSpinner's accessibility label \"Working\" is not recorded for any shell-and-ui use",
+      "kind": "paraphrased",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "WorkingIndicators.swift:110 `.accessibilityLabel(Text(\"Working\"))`, applied outside the still/animated branch so both forms carry it. \"Working\" as a bare accessibility label appeared only in HYDRA.json for a different element.",
+      "action_taken": "Recorded verbatim in PR-THEME-165 (with the contrast to the 3x3's accessibilityHidden at :79) and in UI-THEME-050's exact_text."
+    }
+  ],
+  "new_upstream_defects": [
+    "AppModel.swift:638 vs :642 — forwardThread appends the new thread to `threads` (:638), expands its project (:639) and records it as the last project (:640) BEFORE awaiting installContinuation, then returns nil on failure (:642) without removing it. Realistic worst outcome: after a forward whose continuation fails to install, an empty thread titled \"Continued: <source title>\" is left in the sidebar, unselected and unexplained; the next scheduleSave from any other cause persists it. No data is lost and nothing is overwritten, so this is a stray-record defect, not a destructive one. Specified as written in PR-LAUNCH-082 rather than repaired.",
+    "AttachmentPreview.swift:82 — `PreviewImages.attachments` is an unbounded `[String: Attachment]` keyed by path with no eviction, in direct contrast to `FileIcons` twenty lines below it (:112-125), which is explicitly bounded at 64 with a comment saying why (\"Bounded: icons are small but unbounded kinds are not\"). Realistic worst outcome: a long session that previews many distinct images grows the map without limit. The records are three small strings each, so the growth is slow and this is a minor leak rather than a user-visible failure; the per-path identity it provides is load-bearing (the preview panel's toggle compares it), so it cannot simply be dropped. Recorded in PR-COMPOSER-206 as unbounded.",
+    "AttachmentPreview.swift:217-221 (latent) — `AttachmentVideoThumbnail`'s `.task(id: attachment.path)` opens with `guard image == nil else { return }`, so a view instance rebound to a different path keeps the previous video's frame on screen. The photo path handles the same case correctly: TimelineRows.swift:1346-1355 re-resolves the memoized image for the NEW path and assigns it. I could not demonstrate a reachable failure: all three call sites (ComposerView.swift:1001, EditorAttachments.swift:22, TimelineRows.swift:1229) use `ForEach(attachments)` keyed by Attachment's own Identifiable id, so a different attachment gets fresh @State. Reporting it as a latent inconsistency, not a confirmed defect, so it is on record if a future strip is keyed by index or if an Attachment's path can change under a stable id."
+  ],
+  "consequential_candidates": []
+}

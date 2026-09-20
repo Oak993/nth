@@ -3923,18 +3923,19 @@
       "blocked_by": null,
       "depends_on_unknown": "UNK-0004",
       "id": "PR-WIN-180",
-      "title": "A chrome control's surface is interactive glass on the window, or the panel's flat fill inside a glass panel",
+      "title": "A chrome button's surface is the regular glass material tinted with the theme surface at exactly 0.3 opacity, clipped to a continuous capsule or a circle",
       "source_evidence": [
-        "DroppyCode/UI/Chrome/Chrome.swift:124-147 the comment 'Capsule buttons stay Liquid Glass, washed with a tad of the theme. On a glass panel they draw flat instead (see isOnGlassPanel): glass on glass samples the same pixels twice, once for the panel and once for the button.' with chromeGlassCapsule(), chromeGlassFieldCapsule() and chromeGlassCircle()",
-        "DroppyCode/UI/Chrome/Chrome.swift:169-182 `if isOnGlassPanel { content.background(shape.fill(Chrome.panelControlFill(isDark: colorScheme == .dark, hovered: isHovered))).contentShape(shape).onHover { isHovered = $0 }.animation(Chrome.hover, value: isHovered) } else if isInteractive { content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape) } else { content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)), in: shape) }`",
-        "DroppyCode/UI/Chrome/Chrome.swift:132-137 the comment for the field capsule: 'A field is clicked to place the caret, and interactive glass answered the click with its press bounce at the same moment the field took focus, so the capsule flickered on every tap.'",
+        "DroppyCode/UI/Chrome/Chrome.swift:124-129 the comment 'Capsule buttons stay Liquid Glass, washed with a tad of the theme. On a glass panel they draw flat instead (see isOnGlassPanel): glass on glass samples the same pixels twice, once for the panel and once for the button.' with `func chromeGlassCapsule() -> some View { modifier(ChromeGlassSurface(shape: .capsule)) }`",
+        "DroppyCode/UI/Chrome/Chrome.swift:139-141 `func chromeGlassCircle() -> some View { modifier(ChromeGlassSurface(shape: .circle)) }`",
+        "DroppyCode/UI/Chrome/Chrome.swift:160-167 the shape choice `case .capsule: surface(content, in: Capsule(style: .continuous))` and `case .circle: surface(content, in: Circle())`",
+        "DroppyCode/UI/Chrome/Chrome.swift:177-178 `} else if isInteractive { content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape) }`",
         "porting/port_impacts.md entry 163 (G5): 'Chrome controls carry the theme surface at exactly 0.3 alpha'"
       ],
       "preconditions": "A chrome control is drawn on the window or inside a glass panel.",
       "action": "The control draws and the pointer hovers it.",
-      "expected_result": "On the window: the regular glass material tinted with the theme surface at exactly 0.3 opacity, clipped to a continuous capsule or a circle. Buttons additionally get the interactive press response; a FIELD capsule deliberately does not, because the press bounce and the caret landing at the same moment made the capsule flicker. Inside a glass panel the control drops the material entirely and draws the panel's flat control fill, brighter under the pointer, animated with the 0.1-second ease-out hover token.",
-      "windows_path": "Same three-way choice and the same 0.3 tint. Glass is subject to UNK-0004; the flat on-panel branch is exactly reproducible and is the closest thing the source itself offers to a non-glass fallback, but it is NOT a licence to use it on the window, where the source uses glass.",
-      "verification_method": "capture comparison of a chrome button on the window and the same control inside a panel"
+      "expected_result": "This row covers the interactive glass surface on the window only; the field capsule's omitted press response is PR-WIN-213, the flat on-panel fill is PR-WIN-214 and the environment value that selects between them is PR-WIN-215. Off a glass panel, a chrome button capsule or circle draws the regular glass material tinted with Chrome.glassTint at exactly 0.3 opacity, clipped to a continuous-style capsule or to a circle, with the interactive press response applied. The tint opacity is exactly 0.3 in both appearances; it is not derived from the theme and does not vary with hover.",
+      "windows_path": "The 0.3 tint is exact. Glass is subject to UNK-0004; the flat on-panel branch (PR-WIN-214) is exactly reproducible and is the closest thing the source itself offers to a non-glass fallback, but it is NOT a licence to use it on the window, where the source uses glass.",
+      "verification_method": "capture comparison of a chrome button capsule and a chrome circle on the window, against the same controls inside a panel"
     },
     {
       "side_effects": [],
@@ -4610,6 +4611,72 @@
       "expected_result": "The content begins 12 + 32 + 28 = 72 points below the pane's top edge. The veil is also 72 points tall, but through an unrelated literal.",
       "windows_path": "Keep the two as separate constants. Folding them means a change to one silently moves the other.",
       "verification_method": "unit assertion that both resolve to 72 through different expressions"
+    },
+    {
+      "id": "PR-WIN-213",
+      "title": "A field capsule takes the same glass without the press response, because the bounce and the caret landing together made it flicker",
+      "source_evidence": [
+        "DroppyCode/UI/Chrome/Chrome.swift:131-137 `/// The capsule for a field rather than a button: the same glass, without the press response. A field is clicked to place the caret, and interactive glass answered the click with its press bounce at the same moment the field took focus, so the capsule flickered on every tap.` with `func chromeGlassFieldCapsule() -> some View { modifier(ChromeGlassSurface(shape: .capsule, isInteractive: false)) }`",
+        "DroppyCode/UI/Chrome/Chrome.swift:154-155 `/// Whether the glass answers a press; off for a field that takes the caret instead.` with `var isInteractive = true`",
+        "DroppyCode/UI/Chrome/Chrome.swift:177-181 `} else if isInteractive { content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape) } else { content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)), in: shape) }`"
+      ],
+      "preconditions": "A chrome capsule holds a text field rather than a button, and it is not inside a glass panel.",
+      "action": "The user clicks the field to place the caret.",
+      "expected_result": "The field capsule draws the identical glass material with the identical theme tint at 0.3 opacity as a button capsule, but without the interactive press response. Clicking it places the caret and the capsule does not bounce. The reason is recorded in the source and is observable: with the press response on, the bounce fired at the same moment the field took focus and the capsule flickered on every tap. This distinction applies only off a glass panel; on a glass panel the on-panel branch is taken first and a field gets the same hover brightening a button does (PR-WIN-214).",
+      "side_effects": [],
+      "persistence": "nothing persisted",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "If the Windows chrome control has no press animation at all, this requirement is satisfied trivially, but the reverse is the failure to avoid: giving every capsule a press animation for consistency reintroduces exactly the flicker the source removed. Glass itself is subject to UNK-0004.",
+      "verification_method": "capture comparison of a click on a field capsule and on a button capsule, frame by frame through the press",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": "UNK-0004"
+    },
+    {
+      "id": "PR-WIN-214",
+      "title": "Inside a glass panel a control drops the material and fills with the theme tint lifted toward white or black by one of four exact amounts",
+      "source_evidence": [
+        "DroppyCode/UI/Common/RenderBudget.swift:89-93 `/// The fill of a control drawn flat on a glass panel (see `isOnGlassPanel`): the theme's tint over the panel's scrim, lifted a touch, and brighter under the pointer the way interactive glass brightens.` with `static func panelControlFill(isDark: Bool, hovered: Bool = false) -> Color {`",
+        "DroppyCode/UI/Common/RenderBudget.swift:94-97 `let lift = hovered ? (isDark ? 0.24 : 0.12) : (isDark ? 0.12 : 0.04)` then `return Chrome.glassTint.mix(with: isDark ? .white : .black, by: lift).opacity(isDark ? 0.55 : 0.42)`",
+        "DroppyCode/UI/Chrome/Chrome.swift:171-176 `if isOnGlassPanel { content.background(shape.fill(Chrome.panelControlFill(isDark: colorScheme == .dark, hovered: isHovered))).contentShape(shape).onHover { isHovered = $0 }.animation(Chrome.hover, value: isHovered) }`",
+        "DroppyCode/UI/Chrome/Chrome.swift:149-150 the type comment: 'A control's surface: interactive Liquid Glass, or, inside a glass panel, the panel's flat control fill, a shade brighter under the pointer the way the glass would be.'"
+      ],
+      "preconditions": "A chrome capsule or circle is drawn inside a floating glass panel, so the on-glass-panel environment value is true.",
+      "action": "The control draws, and the pointer enters and leaves it.",
+      "expected_result": "The glass material is not applied at all. Instead the control's shape is filled with Chrome.glassTint mixed toward pure white in dark mode and toward pure black in light mode by a lift of exactly: 0.24 when hovered and dark, 0.12 when hovered and light, 0.12 at rest and dark, 0.04 at rest and light. The mixed colour is then taken at opacity exactly 0.55 in dark mode and exactly 0.42 in light mode. The shape is also the hit shape, hover is tracked on the control itself, and the lift change is animated with the Chrome.hover token. Note that the hovered dark lift (0.24) and the resting dark lift (0.12) are the same numbers as the hovered light lift (0.12) and a different resting light lift (0.04): the four values are not two pairs. This branch is taken before the interactive test, so a field capsule inside a glass panel brightens under the pointer exactly as a button does, unlike off-panel (PR-WIN-213).",
+      "side_effects": [],
+      "persistence": "nothing persisted",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "These six literals (four lifts, two opacities) are the entire definition of the on-panel control surface and are directly reproducible with no glass dependency. The mix is toward pure white or pure black, not toward the surrounding surface, and the opacity is applied after the mix, not before.",
+      "verification_method": "unit test evaluating the fill for all four (isDark, hovered) combinations against pinned colour values, plus a capture comparison of a hovered control inside a helper panel",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-WIN-215",
+      "title": "The on-glass-panel environment value defaults to false and is set true for everything inside a floating glass panel",
+      "source_evidence": [
+        "DroppyCode/UI/Common/RenderBudget.swift:79-87 `extension EnvironmentValues {` with the doc comment 'True for everything inside a floating glass panel: a helper's, the team's, the usage panel. Liquid Glass samples what lies behind it on every frame that content moves, and a panel already does that for its whole surface; a capsule or a circle drawn as glass on top of it is a second sampling pass for the same pixels, and with a few panels open those added up to twenty-odd passes over a scrolling timeline. Controls read this and draw as a flat tinted fill on a panel instead.' and `@Entry var isOnGlassPanel = false`",
+        "DroppyCode/UI/Chrome/Chrome.swift:156 `@Environment(\\.isOnGlassPanel) private var isOnGlassPanel` read by every chrome surface"
+      ],
+      "preconditions": "A control is drawn somewhere in the view tree.",
+      "action": "The control resolves whether it is on a glass panel.",
+      "expected_result": "The value is false by default, so a control anywhere outside a glass panel draws as glass. It is set true for the whole subtree of a floating glass panel: a helper's panel, the team panel and the usage panel. The value propagates down the tree, so a control nested any depth inside a panel reads it without the panel having to reach into it. The reason recorded in the source is a render budget, not an appearance preference: glass sampling inside glass is a second pass over the same pixels, and with a few panels open that reached roughly twenty passes over a scrolling timeline.",
+      "side_effects": [],
+      "persistence": "nothing persisted",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Whatever the Windows equivalent of the glass surface turns out to be under UNK-0004, the inherited on-panel flag and the three panels that set it are reproducible today, and the flat fill it selects (PR-WIN-214) is fully specified. Keep the default false: a control that reads true outside a panel loses its material entirely.",
+      "verification_method": "structural test that a control inside each of the three panels reads true and the same control on the window reads false",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
     }
   ],
   "ui": [

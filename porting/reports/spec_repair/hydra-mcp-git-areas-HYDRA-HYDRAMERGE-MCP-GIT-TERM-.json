@@ -1,0 +1,133 @@
+{
+  "scope": "hydra-mcp-git (areas HYDRA, HYDRAMERGE, MCP, GIT, TERM)",
+  "resolutions": [
+    {
+      "finding": "Missing #41 (HYDRA) - hydraCheckout(of lead:) and hydraCheckout(of head:lead:) have no requirement and zero citations in any spec file",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "AppModel+Hydra.swift:270 `lead.worktreePath ?? project(lead.projectID)?.path`; :304-305 `head.projectID == lead.projectID ? hydraCheckout(of: lead) : project(head.projectID)?.path`. Consumed at :456 (startDroppyHead guards and returns silently) and :782 (applyHydraHead returns the landing unchanged). Grep of all 20 spec files: zero hits for the identifier.",
+      "action_taken": "Added PR-HYDRA-237 (the lead overload: worktreePath else project path, nil semantics, no existence check) and PR-HYDRA-238 (the head overload: same-project heads work where the LEAD works including inside its worktree, other-project heads work in THAT project's folder, one value serves both dispatch and landing, both nil paths silent)."
+    },
+    {
+      "finding": "Missing #42 (HYDRAMERGE) - the verbatim text of HydraMergeRequestError.gitLabAuth is in no spec file",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "AppModel+HydraMerge.swift:715-716 renders exactly the quoted four-paragraph string; it reaches the user at :263 (merge record detail) and :264 (chat note body). Neither 'GitLab refused the login', 'glab auth login --hostname' nor 'GITLAB_TOKEN' appeared anywhere under porting/spec/.",
+      "action_taken": "Added PR-HYDRAMERGE-109 carrying the string verbatim with both throw sites (:350-352 pre-check, :364-366 post-failure), the {host} default literal 'your GitLab host' (:333), and the fact that {host} appears twice."
+    },
+    {
+      "finding": "Missing #43 (HYDRAMERGE) - HydraMergeRequestError.creationFailed returns the bare message, an asymmetry HYDRAMERGE records nowhere",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "AppModel+HydraMerge.swift:717-718 `case .creationFailed(let message): return message` - no prefix, no guidance. Single throw site at :375 carrying failure.failureMessage of the LAST attempt (a --recover retry replaces the original).",
+      "action_taken": "Added PR-HYDRAMERGE-110 specifying the bare rendering, the last-attempt message source, and an explicit instruction not to make the two cases consistent."
+    },
+    {
+      "finding": "Missing #46 (MCP) - MCP.json contains zero citations of porting/extracts/ although the brief names mcp-protocol-and-oauth.md as the source of exact values",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "grep count before this pass: 0 in MCP.json against 34 HYDRA / 22 GIT / 12 HYDRAMERGE / 8 TERM. The extract does hold the missing values (section 4 at :813-896 for the callback page, section 1.9 at :284-313 for the timeouts).",
+      "action_taken": "MCP.json now carries 6 citations of porting/extracts/mcp-protocol-and-oauth.md across PR-MCP-163, -189, -225, -226 and -227."
+    },
+    {
+      "finding": "Wrong #3 (GIT) - GIT.json does not honor BLK-0003 (PR-GIT-077, -078) or BLK-0004 (PR-GIT-097, -101); all four were SPECIFIED with blocked_by null",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Verified against source and the register. BLK-0003 quarantines 'the working-tree watch scratch-index teardown' (WorkingTreeWatch.swift:159-170, reached from :271) and 'any checkpoint capture that can exit successfully on a partial tree' (Git.swift:445-462). BLK-0004 quarantines 'previewRestore path derivation' (Git.swift:586-590) and 'any revert path that deletes files not present in the base checkpoint' (Git.swift:613-619). Grep for BLK-0003/4 and UNK-0013/14 across the five files returned zero.",
+      "action_taken": "PR-GIT-077, -078 -> status DISCOVERED, blocked_by BLK-0003, depends_on_unknown UNK-0013, titles suffixed '- QUARANTINED under BLK-0003', expected_result reframed 'FOR THE RECORD ONLY', windows_path 'NO IMPLEMENTATION'. PR-GIT-097 -> DISCOVERED, BLK-0004, UNK-0014, same framing. The delete half of restore was split out as PR-GIT-158 and carries BLK-0004 (see Too coarse #16). I also extended the quarantine to PR-GIT-067 (the scratch-index incremental capture), which the critic did not name but which IS BLK-0003's second quarantined path verbatim: Git.swift:447-451 exits 0 on a partial walk and the result is cached and committed as an ordinary checkpoint. Its sibling full capture (PR-GIT-068's else branch) is explicitly left unblocked so checkpoints still work."
+    },
+    {
+      "finding": "Wrong #4 (GIT) - PR-GIT-097's depends_on_unknown points at UNK-0011 when UNK-0014/BLK-0004 governs previewRestore",
+      "verdict": "PARTIALLY_CORRECT",
+      "truth": "UNK-0014 (unknowns.md:290-296, source_evidence Git.swift:586-590 with :603-619 and :43) is indeed the governing quarantine and the row carried none. But UNK-0011 is not simply wrong: its item 4 (unknowns.md:250-252) is 'the minimum git version the app supports, which is needed to settle whether git diff --numstat -z always emits repository-root-relative paths', which is exactly this row's output path space.",
+      "action_taken": "Set PR-GIT-097 depends_on_unknown to UNK-0014 and blocked_by BLK-0004, and preserved the UNK-0011 item-4 dependency explicitly in windows_path so the git-version question is not lost."
+    },
+    {
+      "finding": "Wrong #5 (MCP) - BLK-0002 and UNK-0012 name the custom-server store 'mcp-customs.json' when the source path is custom-mcp.json",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "MCP.swift:246 `static let customsURL = Storage.root.appendingPathComponent(\"custom-mcp.json\")`, used at MCPStore.swift:246 (load) and :275 (atomic overwrite). MCP.json uses custom-mcp.json 21 times and mcp-customs.json 0 times, so the spec is right and the quarantine register is wrong.",
+      "action_taken": "none - the error is in porting/blocked_requirements.json (BLK-0002 concrete_harm) and porting/unknowns.md (UNK-0012), neither of which this pass may edit. Escalated below for the register's owner: BLK-0002's concrete_harm names a file that does not exist, and Gate C reads that register."
+    },
+    {
+      "finding": "Wrong #6 (HYDRA) - PR-HYDRA-117 says 'The project must be a git repository with at least one commit' where source tests the resolved checkout",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "AppModel+Hydra.swift:490-491 `let git = Git(checkout)` then `guard await git.isRepository(), await git.hasCommits() else { return nil }`. The value tested is the parameter `checkout`, i.e. the lead's worktree or the head's own project folder, not project(head.projectID). The row's own evidence already quoted Git(checkout) correctly.",
+      "action_taken": "Rewrote PR-HYDRA-117's expected_result to test the RESOLVED CHECKOUT, cross-referenced PR-HYDRA-238, and recorded the asymmetry the source has: the repository test runs against the checkout while the folder slug comes from project(head.projectID).name (:492), so a lead in a worktree gets a copy named after the project. Also split the failure_cases so the :486 project-gone guard is separate from the :491 repository guard, and tightened source_evidence to per-line citations."
+    },
+    {
+      "finding": "Wrong #7 (GIT) - PR-GIT-048's title says 'retries at most six times' where Git.swift:213 is `for attempt in 0..<6`",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Git.swift:213-226: six ATTEMPTS, therefore at most five retries. The expected_result already said 'At most six attempts' and is correct; only the title was off by one.",
+      "action_taken": "Retitled PR-GIT-048 to 'makes at most six attempts, so at most five retries, ...'. Body untouched."
+    },
+    {
+      "finding": "Too coarse #11 (TERM) - PR-TERM-097 hides six independent classifier rules",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Shell.swift:195-197 awk/gawk/mawk (substring over the whole part), :198-199 find/fd against the seven-member searchActions set at :162, :200-201 sort (-o PREFIX), :205-206 xcodebuild (exact equality against four flags, inverted polarity), :207-208 six version tools (WHOLE-ARRAY equality against three arrays), :209-211 env (allSatisfy hasPrefix '-'). Six different matching modes.",
+      "action_taken": "Narrowed PR-TERM-097 to awk/gawk/mawk alone and added PR-TERM-118 (find/fd), -119 (sort), -120 (xcodebuild), -121 (the six version tools), -122 (env). Each carries its own matching mode, its own false-positive surface and its own negative tests. Note: I rejected the critic's implied example for env - `env -i ls` is classified as a WRITER, because 'ls' fails the dash test - and recorded that the rule is closed by that accident rather than by a check."
+    },
+    {
+      "finding": "Too coarse #12 (GIT) - PR-GIT-073 hides four distinct WorkingTreeWatch classification rules",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "WorkingTreeWatch.swift:186-190 lost flags, :191-194 cookie prefix, :195-196 git prefix, :200-203 at-or-outside-root, :204-205 the holding-directory derivation, :207-225 the under-lock commit. Five per-path branches plus the commit, not four; the guard at :200-203 has two outcomes the critic folded into one.",
+      "action_taken": "Narrowed PR-GIT-073 to the lost-flag rule (keeping its UNK-0011 FSEvents-mapping dependency, which unknowns.md item 2 names at WorkingTreeWatch.swift:180) and added PR-GIT-153 (cookie prefix, including that it MUST be tested before the git rule because cookies live inside the git directory, and that cookiePrefixCharacters is a CHARACTER count), -154 (git prefix skip), -155 (root test, including that `changed = true` is set at :197 before the test and that rootPrefixBytes is a BYTE count), -156 (holding-directory derivation, entry's own name at the root), -157 (the under-lock commit: early return, one wrapping generation bump per callback, cookie raise, nil-stays-nil, resume outside the lock)."
+    },
+    {
+      "finding": "Too coarse #13 (MCP) - PR-MCP-061 bundles MCPKeychain.deleteAll, a credential destruction, inside a four-part sentence",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "MCPStore.swift:120-134 is five ordered steps; MCPKeychain.swift:61-67 deleteAll iterates entry.fields and calls delete(server:field:) at :52-59, whose account string is 'MCP ' + server + ' ' + field (:7-9) under service AppInfo.name, with the SecItemDelete result discarded.",
+      "action_taken": "Narrowed PR-MCP-061 to the disconnect sequence and added PR-MCP-228 for deleteAll: the exact three-part account string, the service, the discarded result, the entry-not-catalog rule the source comments on, the orphan-on-field-change consequence, and a windows_path that keeps the DPAPI/Credential Manager decision separate and forbids a plaintext fallback. Recorded there that this path is implementable from disconnect but quarantined by BLK-0001 when reached from the custom-server Delete."
+    },
+    {
+      "finding": "Too coarse #14 (HYDRA) - PR-HYDRA-167 bundles four lifecycle events plus a theme recolor, and the occlusion guard is in evidence but not in expected_result",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "HydraButton.swift:493-501 configure (installs only when ring.animation(forKey: 'turn') == nil; recolors only on a value change), :503-510 viewDidMoveToWindow (guard window != nil, applyColors then installAnimations), :512-516 viewDidChangeEffectiveAppearance (applyColors only, accent NOT re-read), :518-521 appDidBecomeActive (guard window != nil), :523-528 windowDidChangeOcclusionState (three gates: window exists, `(note.object as? NSWindow) === window`, and occlusionState contains .visible), :530-533 themeDidChange (re-reads Chrome.accentNSColor then recolors).",
+      "action_taken": "Narrowed PR-HYDRA-167 to the constants and the one-fixed-origin install, and added PR-HYDRA-239 (configure), -240 (join/leave a window), -241 (app activation), -242 (occlusion, all three gates including the reference-identity test), -243 (theme vs effective-appearance recolor, and that only the theme path re-reads the accent). Also corrected -167's expected_result to state the turn angle is NEGATIVE (-2 pi) and that installAnimations removes all animations first."
+    },
+    {
+      "finding": "Too coarse #15 (MCP) - PR-MCP-189 carries three timeouts and '60 for initialize and listing' itself covers two call sites",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "MCPHub.swift:198 tools/list 60, :224-228 tools/call 120, :377 stdio initialize 60, :428 http initialize 60, :438-442 notifications/initialized 30 with a catch that rethrows only CancellationError, after initialized = true is already set at :437.",
+      "action_taken": "Narrowed PR-MCP-189 to tools/list (adding that the deadline is per PAGE, so a ten-page listing can take 600 s) and added PR-MCP-225 (tools/call 120), -226 (initialize 60 at two separate literals on two transports), -227 (the 30 s notification and its swallow-except-cancellation shape)."
+    },
+    {
+      "finding": "Too coarse #16 (GIT) - PR-GIT-101 bundles the put-back with the FileManager.removeItem delete that BLK-0004 quarantines",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "Git.swift:601-612 is the put-back (blobs lookup, one checked restore invocation with NUL-joined absolute paths); :613-619 is a separate branch that runs `git rm -q --cached --ignore-unmatch` with try? (result discarded) and then deletes each file with FileManager.removeItem wrapped in try?. A throw from the put-back skips the delete entirely.",
+      "action_taken": "Narrowed PR-GIT-101 to the put-back half (SPECIFIED, implementable) and added PR-GIT-158 for the delete half with status DISCOVERED, blocked_by BLK-0004, depends_on_unknown UNK-0014, plus the Windows note that a file held open makes the swallowed-error path the common case rather than the rare one."
+    },
+    {
+      "finding": "Too coarse #17 (TERM) - PR-TERM-043 covers a plain tab's empty argv and a script tab's constructed four-element vector",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "TerminalStore.swift:36 `var arguments: [String] = []`; :37-38 `if let command { arguments = [\"-l\", \"-i\", \"-c\", \"\\(command); exec \\(shell) -l\"] }`; :40 passes them. The interpolated shell is the same absolute path used as the executable (:28), and neither it nor the command is quoted.",
+      "action_taken": "Narrowed PR-TERM-043 to the plain tab (adding the argv[0] hyphen rule from :35, which is what makes it a login shell) and added PR-TERM-123 for the script tab: exactly four elements, the fourth built from the command, '; exec ', the shell's ABSOLUTE path and ' -l', no escaping, semicolon not && so the exec runs whether the command succeeded or failed. Both remain DISCOVERED on UNK-0005."
+    },
+    {
+      "finding": "Paraphrased #5 (MCP) - PR-MCP-163 describes the callback logo in prose, its path data is nowhere, and its 'frozen copy' is unnamed",
+      "verdict": "CRITIC_CORRECT",
+      "truth": "MCPOAuth.swift:903 is a single 1,448-character line holding the whole <svg>. I compared it byte for byte against porting/extracts/mcp-protocol-and-oauth.md:888 during this pass: identical, 1448 == 1448 characters.",
+      "action_taken": "Embedded the MCPOAuth.swift:903 line verbatim (read programmatically from the pinned tree, not retyped) in both source_evidence and expected_result, described the three closed subpaths and the two-decimal coordinate convention, and named the frozen copy: porting/extracts/mcp-protocol-and-oauth.md:839-896 section 4. Updated windows_path to state that only the wordmark and the logo path follow the rename decision and nothing else in the document may be touched."
+    }
+  ],
+  "requirements_added": 25,
+  "requirements_amended": 14,
+  "requirements_split": 7,
+  "ui_added": 0,
+  "files_edited": [
+    "E:/Droppy/port/porting/spec/HYDRA.json",
+    "E:/Droppy/port/porting/spec/HYDRAMERGE.json",
+    "E:/Droppy/port/porting/spec/MCP.json",
+    "E:/Droppy/port/porting/spec/GIT.json",
+    "E:/Droppy/port/porting/spec/TERM.json"
+  ],
+  "new_upstream_defects": [
+    "DroppyCode/Core/Support/Shell.swift:200-201 - the sort classifier tests `$0.hasPrefix(\"-o\")`, which a double-dashed long option can never satisfy. `sort --output=victim.txt in.txt` is therefore classified as a READER. Worst outcome: in Command Code's .auto permission mode the command is auto-approved without the user seeing it (CommandCodeSession.swift:710), and ThreadRuntime.swift:3232 takes no checkpoint for it, so the overwritten file has no base to revert to. Not in upstream_defects.md; no Shell.swift classifier entry exists there at all.",
+    "DroppyCode/Core/Support/Shell.swift:198-199 with :162 - searchActions holds only -delete, -exec, -execdir, -ok, -okdir, -x, -X. `find . -fprintf out.txt '%p\\n'` writes a file and is classified as a READER. Same two consequences as the sort case (auto-approval plus no checkpoint). Not in upstream_defects.md.",
+    "DroppyCode/Core/Support/Shell.swift:202-204 with :153-159 - gitReaders contains tag, config and remote, so `git config user.email x`, `git tag v1` and `git remote add origin <url>` are classified as READERS. The spec already records this inside PR-TERM-098's failure_cases as upstream behaviour, but the defect register has no entry for it, so it reads as a spec aside rather than a known defect. Worst outcome: a repository-config write is auto-approved in .auto mode and never checkpointed.",
+    "DroppyCode/Services/Git/WorkingTreeWatch.swift:191-192 - the cookie rule accepts ANY path under <gitdir>/droppy-code-sync- and raises cookieSeen to its decimal suffix, with no check that this watch wrote it. Any process that can create a file in the git directory (a hook, another tool, a second copy of the app) can release a pending waiter early by naming a large number. Worst outcome: settledGeneration returns while events are still in flight, the capture trusts a stale changed set, and the resulting checkpoint records only part of the tree - which is exactly the harm BLK-0003 is open over, reachable without any cookie timeout. Not in upstream_defects.md.",
+    "DroppyCode/Services/MCP/MCPKeychain.swift:61-67 - deleteAll iterates entry.fields only, so a secret written under a field key the entry no longer declares is never deleted and never enumerated. Worst outcome: a credential the user believes they removed by disconnecting stays in protected storage indefinitely, under an account string nothing in the app will ever look up again. Not in upstream_defects.md (entry 21 covers a different MCPKeychain problem, the missing kSecAttrAccessible on update).",
+    "DroppyCode/App/AppModel+HydraMerge.swift:715-716 - the gitLabAuth string interpolates {detail} between two hard '\\n\\n' pairs. When glab's failure message is empty the user reads four consecutive newlines, i.e. a visible gap, in the chat note. Cosmetic only. Not in upstream_defects.md.",
+    "NOT AN UPSTREAM DEFECT, a porting-artifact error: porting/extracts/mcp-protocol-and-oauth.md section 1.9 cites MCPHub.swift:200 for the tools/list timeout and :237 for tools/call. The real call sites are :198 and :224-228. The extract is otherwise byte-accurate (I verified its section 4 SVG against MCPOAuth.swift:903 character for character). The new MCP rows cite the source lines and flag the stale ones, but the extract itself is outside this pass's editable set.",
+    "NOT AN UPSTREAM DEFECT, a register error confirming audit finding Wrong #5: porting/blocked_requirements.json BLK-0002 concrete_harm and porting/unknowns.md UNK-0012 both name 'mcp-customs.json'. The source path is custom-mcp.json (MCP.swift:246, read at MCPStore.swift:246, atomically overwritten at :275). Gate C reads that register, and its stated harm currently names a file that does not exist. Neither file is editable by this pass."
+  ],
+  "consequential_candidates": [
+    "Shell.swift's read-only classifier is a SECURITY CONTROL, not just a checkpoint optimisation: CommandCodeSession.swift:710 uses ShellCommandKind.mayWriteFiles as the auto-approval gate for shell_command, powershell and monitor_command in .auto permission mode. Faithfully reproducing the three misclassifications above (`sort --output=file`, `find -fprintf file`, `git config`/`git tag`/`git remote add`) means a Windows build auto-runs file-writing and repository-config-writing commands with no user prompt, AND ThreadRuntime.swift:3232 skips the checkpoint for them, so there is nothing to revert. Weakened security control plus silent loss. I specified the behaviour verbatim as parity demands and recorded each misclassification in the new rows' failure_cases, but the decision to reproduce it belongs to the owner and is not covered by any existing BLK entry.",
+    "WorkingTreeWatch.swift:191-192 cookie forgery: any writer into the git directory can advance cookieSeen and release a capture's waiter early, producing a checkpoint that silently records only part of the tree. That truncated checkpoint is the precondition BLK-0003 is open over, and a later revert against it deletes untracked, uncommitted work at Git.swift:619 while reporting success. BLK-0003's quarantine is scoped to the cookie-TIMEOUT teardown and to partial captures; this reaches the same harm through a path the entry does not name. Recommend extending BLK-0003's scope or raising a sibling entry before PR-GIT-153 is implemented - I marked PR-GIT-153 SPECIFIED because it is not inside any currently open quarantine, and flag that as the judgement most worth a second look.",
+    "MCPKeychain.deleteAll (new PR-MCP-228) destroys credentials with the result discarded, so a locked or unavailable store deletes nothing and disconnect still reports success. Reproduced faithfully, a Windows user who disconnects a server to revoke its key can be told it worked while the key is still in DPAPI/Credential Manager. I recorded it as a failure case and forbade any plaintext fallback in windows_path; whether to keep the silence is a product decision."
+  ]
+}

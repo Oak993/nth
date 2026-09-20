@@ -391,3 +391,25 @@ incomplete until the reading gate closes.
   produces data loss and intermittent failures that a happy-path test will not catch.
 - **Verification method:** targeted tests that hold a handle open while the app attempts the
   operation, plus the Gate E child-process-cleanup check. To be written with the persistence tests.
+
+### Amendment 2026-09-20: this classifier is also a SECURITY CONTROL
+
+PA-0011 originally described the classifier only as deciding whether a turn records a diff. That
+understated it. `Services/Providers/CommandCodeSession.swift:707-710` uses the same predicate as
+the AUTO-APPROVAL GATE: in `.auto` permission mode, `shell_command`, `powershell` and
+`monitor_command` are approved without asking the user precisely when
+`!ShellCommandKind.mayWriteFiles(command)`.
+
+Three misclassifications therefore auto-run file-writing commands with no prompt, and, because
+`App/Runtime/ThreadRuntime.swift:3232` skips the snapshot on the same predicate, with no checkpoint
+to revert:
+
+- `sort --output=victim.txt in.txt` - the test is `$0.hasPrefix("-o")` (`Shell.swift:200-201`),
+  which a double-dashed long option can never satisfy.
+- `find . -fprintf out.txt "%p"` - `searchActions` (`Shell.swift:162`) omits `-fprintf`.
+- `git config user.email x`, `git tag v1`, `git remote add origin <url>` - `config`, `tag` and
+  `remote` are all in `gitReaders` (`Shell.swift:154-159`), yet each writes repository state.
+
+All four facts verified at source by the lead. Quarantined as BLK-0008 / UNK-0018: the classifier
+remains unquarantined for checkpoint use, but its use as the approval gate is neither reproduced
+nor repaired until the owner rules.

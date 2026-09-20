@@ -2534,7 +2534,6 @@
       "verification_method": "unit over all four title shapes",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
       "depends_on_unknown": null
     },
     {
@@ -2635,22 +2634,71 @@
       "depends_on_unknown": null
     },
     {
+      "id": "PR-HYDRA-237",
+      "title": "hydraCheckout(of lead:) is the lead's worktree when it has one, otherwise its project's folder",
+      "source_evidence": [
+        "DroppyCode/App/AppModel+Hydra.swift:269-272 - /// The checkout a lead works in: its worktree, else the project folder. private func hydraCheckout(of lead: ChatThread) -> String? { lead.worktreePath ?? project(lead.projectID)?.path }",
+        "DroppyCode/App/AppModel+Hydra.swift:304-306 - its only caller, the two-argument overload"
+      ],
+      "preconditions": "A lead thread exists.",
+      "action": "The checkout a lead works in is resolved.",
+      "expected_result": "ChatThread.worktreePath when it is non-nil, taken exactly as stored with no existence check and no normalisation. Otherwise the path of the project whose id is the lead's projectID. Nil when the lead has no worktree AND no project with that id is in the sidebar; that nil is never reported and every caller simply stops (PR-HYDRA-238). The lead's branch, archived state and running status are not consulted.",
+      "side_effects": [],
+      "persistence": "None; a pure read of ChatThread.worktreePath and the project list.",
+      "failure_cases": [
+        "A stored worktreePath whose folder was deleted outside the app is still returned, so the caller runs git in a directory that does not exist"
+      ],
+      "cancellation": "not cancellable; synchronous",
+      "windows_path": "Direct port. The stored worktreePath and the project path are both absolute host paths and stay in the platform's own path space: the value goes straight to Git(checkout) as a process working directory and into HydraPrompts.Workplace, which puts it in the head's brief text.",
+      "verification_method": "unit over the three cases: worktree present, worktree absent with a project, worktree absent with no project",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-HYDRA-238",
+      "title": "hydraCheckout(of head:lead:) sends a head to the lead's checkout only when it shares the lead's project, otherwise to its own project's folder",
+      "source_evidence": [
+        "DroppyCode/App/AppModel+Hydra.swift:303-306 - /// The checkout a head's copy is made from and its work lands in: the lead's own for /// a head in the lead's project, else the head's project folder. private func hydraCheckout(of head: ChatThread, lead: ChatThread) -> String? { head.projectID == lead.projectID ? hydraCheckout(of: lead) : project(head.projectID)?.path }",
+        "DroppyCode/App/AppModel+Hydra.swift:455-456 - startDroppyHead's guard: guard let head = thread(id), let info = head.hydra, let parentID = head.parentThreadID, let lead = thread(parentID), let checkout = hydraCheckout(of: head, lead: lead) else { return }",
+        "DroppyCode/App/AppModel+Hydra.swift:781-782 - applyHydraHead's guard: ... let checkout = hydraCheckout(of: head, lead: lead) else { return landing }; the resolved value becomes Git(checkout) at :783",
+        "DroppyCode/App/AppModel+Hydra.swift:273-298 hydraProject(named:for:) - what puts a head in another project in the first place"
+      ],
+      "preconditions": "A head thread and its lead.",
+      "action": "The directory a head is started in, and the checkout its work lands in, is resolved.",
+      "expected_result": "When head.projectID equals lead.projectID the answer is exactly hydraCheckout(of: lead) - the lead's worktree when it has one, else the lead's project folder - so a head in the lead's own project works where the LEAD works, inside the lead's worktree included. When the ids differ, because the delegation entry named another project, the answer is that OTHER project's own folder and the lead's worktree is never used. One value serves both sending the head out and landing its patch, so a head's work lands in the checkout it was copied from. Nil when the head's project id resolves to no project. The nil is silent at both call sites: startDroppyHead returns without sending the brief, so the head sits with no turn and nothing is reported to the user, and applyHydraHead returns the landing unchanged.",
+      "side_effects": [],
+      "persistence": "None; a pure read.",
+      "failure_cases": [
+        "A head whose project was removed from the sidebar after it was spawned never receives its brief and no note is written; reproduce, do not add a message"
+      ],
+      "cancellation": "not cancellable; synchronous",
+      "windows_path": "Direct port. This is the rule an implementation cannot derive from the head-start requirements alone: a head delegated to another project must work in THAT project's folder, never in the lead's worktree. Both branches return an absolute host path used as a process working directory.",
+      "verification_method": "interaction test with one head in the lead's project while the lead has a worktree, one head in a second project, and one head whose project has been removed",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
       "id": "PR-HYDRA-117",
       "title": "makeHydraCopy waits for the lead's pending landing, requires a git repository with commits, and names the worktree folder <project slug>-<persona slug>-<8 hex>",
       "source_evidence": [
-        "DroppyCode/App/AppModel+Hydra.swift:485-507 private func makeHydraCopy(for head:of checkout:) - awaits the parent runtime's pending hydraLanding first; guard await git.isRepository() and await git.hasCommits(); folder = project.name with spaces replaced by hyphens, lowercased; name = persona name with spaces replaced by hyphens, lowercased; suffix = the first 8 characters of the lowercased thread UUID string; path = Storage.worktreesDirectory / \"\\(folder)-\\(name)-\\(suffix)\"; capture the shared tree, commit it, add a detached worktree at the path; on any error remove the folder and return nil",
+        "DroppyCode/App/AppModel+Hydra.swift:485-507 private func makeHydraCopy(for head:of checkout:) - guard let info = head.hydra, let project = project(head.projectID) else { return nil } (:486); awaits the parent runtime's pending hydraLanding first (:489); let git = Git(checkout) (:490) then guard await git.isRepository(), await git.hasCommits() else { return nil } (:491), i.e. the test is on the RESOLVED CHECKOUT, not on the project; folder = project.name with spaces replaced by hyphens, lowercased (:492); name = persona name with spaces replaced by hyphens, lowercased (:493); suffix = the first 8 characters of the lowercased thread UUID string (:494); path = Storage.worktreesDirectory / \"\\(folder)-\\(name)-\\(suffix)\" (:495); capture the shared tree, commit it, add a detached worktree at the path; on any error remove the folder and return nil",
         "porting/port_impacts.md:170 entry 81 - keep writer and sweeper consistent"
       ],
       "preconditions": "AppSettings.hydraIsolateHeads is on and a Droppy-run head needs a copy.",
       "action": "The worktree copy is made.",
-      "expected_result": "The lead's pending landing is awaited first, so the copy starts from the checkout whole rather than half-way through a patch. The project must be a git repository with at least one commit; otherwise nil and the head works in the checkout. The folder name is the project name with SPACES ONLY replaced by hyphens and the whole lowercased, a hyphen, the persona name with spaces replaced by hyphens and lowercased (so 'Hank 2' becomes 'hank-2'), a hyphen, and the first 8 characters of the lowercased thread UUID string. The worktree is added detached at the shared starting-point commit. Any throw removes the folder and returns nil.",
+      "expected_result": "The lead's pending landing is awaited first, so the copy starts from the checkout whole rather than half-way through a patch. The RESOLVED CHECKOUT the copy is made from - the lead's worktree, or the head's own project folder when the head was delegated elsewhere (PR-HYDRA-238) - must be a git repository with at least one commit, because the guard is built as Git(checkout) and tests that value, not the project; otherwise nil and the head works in the checkout. Note the asymmetry the source has: the repository test runs against the checkout while the folder slug is taken from project(head.projectID).name, so a lead working in a worktree has its copy named after the project while the test runs against the worktree. The folder name is the project name with SPACES ONLY replaced by hyphens and the whole lowercased, a hyphen, the persona name with spaces replaced by hyphens and lowercased (so 'Hank 2' becomes 'hank-2'), a hyphen, and the first 8 characters of the lowercased thread UUID string. The worktree is added detached at the shared starting-point commit. Any throw removes the folder and returns nil.",
       "side_effects": [
         "A git worktree is created under the app's worktrees directory",
         "A commit that no branch ever sees is created in the project"
       ],
       "persistence": "The folder on disk; the head's baseTree and worktreePath.",
       "failure_cases": [
-        "No git, no commits, or git refuses: nil, and the head works in the checkout itself"
+        "The resolved checkout is not a git repository or has no commits, or git refuses: nil, and the head works in the checkout itself",
+        "The head's project has gone: the guard at :486 returns nil before the checkout is ever looked at"
       ],
       "cancellation": "not cancellable once begun; a head stopped meanwhile is caught by the status re-check afterwards.",
       "windows_path": "Any sanitizing added to the writer's slug for Windows-illegal characters MUST be added to the sweeper too, or the orphan sweep stops matching and leaks worktrees. The worktrees directory is the app's own data folder.",
@@ -3772,26 +3820,149 @@
     },
     {
       "id": "PR-HYDRA-167",
-      "title": "The moving charge is drawn by layers with exactly these constants and is reinstalled on four lifecycle events from one fixed clock origin",
+      "title": "The moving charge is drawn by layers with exactly these constants, every animation from one fixed clock origin",
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraButton.swift:428-438 HydraChargeLayerView constants - turnKey \"turn\", breathKey \"breathe\", ringRestOpacity 0.85, glowRestOpacity 0.6, turnDuration 4 seconds, breathDuration 1.4 seconds, lineWidth 2, glowStartRadius 2, glowEndRadius 15",
-        "DroppyCode/App/Views/Chat/HydraButton.swift:583-612 installAnimations - the turn is a transform.rotation.z from 0 to -2π over 4 s, linear, repeating forever, beginning at ring.convertTime(1, from: nil); the two breaths are opacity animations from the rest value to 1 over 1.4 s, autoreversing, repeating forever, ease-in-ease-out, from the same origin; all are not removed on completion",
-        "DroppyCode/App/Views/Chat/HydraButton.swift:474-479 observers for didBecomeActive, didChangeOcclusionState and ThemeManager.didChange",
-        "DroppyCode/App/Views/Chat/HydraButton.swift:503-528 the animations are reinstalled on joining a window, on the app becoming active and on this window becoming visible",
+        "DroppyCode/App/Views/Chat/HydraButton.swift:583-612 installAnimations - ring.removeAllAnimations() and glow.removeAllAnimations() first; let origin = ring.convertTime(1, from: nil); the turn is a transform.rotation.z from 0 to -2 * Double.pi over 4 s, linear, repeatCount .infinity, beginTime origin, isRemovedOnCompletion false, added on the ring for key \"turn\"; then for (ring, 0.85) and (glow, 0.6) an opacity animation from the rest value to 1 over 1.4 s, autoreverses true, repeatCount .infinity, easeInEaseOut, beginTime origin, isRemovedOnCompletion false, added for key \"breathe\"",
         "DroppyCode/App/Views/Chat/HydraButton.swift:535-562 layout - the glow is the bounds inset by 2 with a corner radius of half its smaller side and an end point of 0.5 plus 15 divided by its width and height; the ring is the bounds inset by 1, its mask an ellipse inset by half the line width",
         "DroppyCode/App/Views/Chat/HydraButton.swift:568-579 the ring's conic colours are the six plus the first, REVERSED, because the gradient's angle grows counter-clockwise on a y-up layer"
       ],
       "preconditions": "A head is working and Reduce Motion is off.",
       "action": "The charge animates.",
-      "expected_result": "The ring turns once every 4 seconds, clockwise on screen, linearly. Both the ring and the glow breathe between their rest opacity and 1 over 1.4 seconds, autoreversing, ease-in-ease-out. Every animation begins at one fixed origin on the shared clock, so reinstalling it after the app comes to the front, the window is uncovered, or the view joins a window late changes nothing on screen. Geometry matches the still charge exactly, so the swap between the two states moves nothing. A theme change re-resolves the accent into the glow's stops.",
+      "expected_result": "The ring turns once every 4 seconds, clockwise on screen (a NEGATIVE angle, -2 pi, because the layer is y-up), linearly, forever. Both the ring and the glow breathe from their rest opacity (0.85 ring, 0.6 glow) to 1 over 1.4 seconds, autoreversing, ease-in-ease-out, forever. Every animation is installed with beginTime = ring.convertTime(1, from: nil), one fixed origin on the shared render-server clock, and isRemovedOnCompletion false; installAnimations removes all animations from both layers first, so reinstalling is idempotent and changes nothing on screen. Geometry matches the still charge exactly, so the swap between the two states moves nothing. The five events that reinstall or recolor are separate requirements: PR-HYDRA-239 (configure), PR-HYDRA-240 (joining a window), PR-HYDRA-241 (the app becoming active), PR-HYDRA-242 (this window becoming visible) and PR-HYDRA-243 (theme and appearance recolor).",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
         "The render server drops the animation: it is reinstalled on the next lifecycle event"
       ],
       "cancellation": "The animations are torn down with the view when the last head finishes.",
-      "windows_path": "4000 ms turn, 1400 ms breath. CSS animations or the Web Animations API give the same shared timeline; drive them from one absolute origin, not from element creation, so two marks stay in step.",
-      "verification_method": "capture comparison at fixed phases plus a unit test on the constants",
+      "windows_path": "4000 ms turn, 1400 ms breath, and the turn runs clockwise on screen. CSS animations or the Web Animations API give the same shared timeline; drive them from one absolute origin, not from element creation, so two marks stay in step.",
+      "verification_method": "capture comparison at fixed phases plus a unit test asserting each of the nine constants and the negative turn angle",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-HYDRA-239",
+      "title": "configure reinstalls the animations only when the ring has lost its turn animation, and recolors only on a real change",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/HydraButton.swift:493-501 configure(colors:accent:) - let recolor = colors != self.colors || accent != self.accent; self.colors = colors; self.accent = accent; if recolor { applyColors() }; // The animations go on once; the lifecycle below puts them back wherever they can // be lost. A re-render of the button (every hover) is not one of those. if ring.animation(forKey: Self.turnKey) == nil { installAnimations() }"
+      ],
+      "preconditions": "The charge view exists; configure runs on every re-render of the button, hover included.",
+      "action": "configure(colors:accent:) runs.",
+      "expected_result": "The colours and accent are stored unconditionally. applyColors runs only when the incoming colour array or accent differs from the stored one, so a hover-driven re-render does not re-resolve the gradients. The animations are reinstalled ONLY when ring.animation(forKey: \"turn\") is nil. A re-render while the turn is still attached must not reinstall; that is what the source comment rules out.",
+      "side_effects": [
+        "At most one recolor pass and at most one animation install per call"
+      ],
+      "persistence": "None.",
+      "failure_cases": [
+        "A view whose animations the render server dropped is repaired by the next configure, which is the point of the nil test"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Keep both guards. The recolor test compares the whole colour array plus the accent by value, not by identity.",
+      "verification_method": "unit asserting no install on a second configure with equal values, and one install after the turn animation is removed",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-HYDRA-240",
+      "title": "Joining a window recolors and reinstalls; leaving one does nothing",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/HydraButton.swift:503-510 viewDidMoveToWindow - super first; // Joining a window late (a button built off screen), the layers need their colours // resolved for its appearance and their animations running from the shared clock. guard window != nil else { return }; applyColors(); installAnimations()"
+      ],
+      "preconditions": "The charge view's window membership changes.",
+      "action": "viewDidMoveToWindow fires.",
+      "expected_result": "When the view now has a window, the colours are re-resolved for that window's appearance and the animations are installed unconditionally - there is no turn-animation test on this path, unlike configure. When window is nil, meaning the view left a window, nothing happens at all: no recolor and no install.",
+      "side_effects": [
+        "One recolor pass and one animation install per join"
+      ],
+      "persistence": "None.",
+      "failure_cases": [
+        "A button built off screen and inserted later would otherwise show unresolved colours and a frozen ring"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "The analogue is the element being attached to the document: recolor and restart from the shared origin on attach, do nothing on detach.",
+      "verification_method": "unit asserting a recolor and an install on attach and neither on detach",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-HYDRA-241",
+      "title": "The app becoming active reinstalls the animations, but only for a view that is in a window",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/HydraButton.swift:475 - center.addObserver(self, selector: #selector(appDidBecomeActive), name: NSApplication.didBecomeActiveNotification, object: nil)",
+        "DroppyCode/App/Views/Chat/HydraButton.swift:518-521 - @objc private func appDidBecomeActive() { guard window != nil else { return }; installAnimations() }",
+        "DroppyCode/App/Views/Chat/HydraButton.swift:487-489 deinit - NotificationCenter.default.removeObserver(self)"
+      ],
+      "preconditions": "The charge view is alive and observing.",
+      "action": "The application becomes active.",
+      "expected_result": "installAnimations runs when the view has a window; nothing happens when it does not. There is no recolor on this path, unlike joining a window. The observer carries no object filter, so the notification reaches every live charge view, and it is removed in deinit.",
+      "side_effects": [
+        "One animation install per live in-window charge view per activation"
+      ],
+      "persistence": "None.",
+      "failure_cases": [
+        "Animations the render server dropped while the app was in the background come back on the next activation"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "The analogue is the window regaining focus or the page becoming visible; reinstall from the shared origin so nothing jumps.",
+      "verification_method": "unit posting the activation notification with and without a window",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-HYDRA-242",
+      "title": "An occlusion change reinstalls only for this view's own window and only when that window became visible",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/HydraButton.swift:476 - center.addObserver(self, selector: #selector(windowDidChangeOcclusionState(_:)), name: NSWindow.didChangeOcclusionStateNotification, object: nil)",
+        "DroppyCode/App/Views/Chat/HydraButton.swift:523-528 - // Every window ordered in posts this, popovers and tooltips included: only this // view's own window coming back into view concerns it. guard let window, (note.object as? NSWindow) === window, window.occlusionState.contains(.visible) else { return }; installAnimations()"
+      ],
+      "preconditions": "The charge view is alive and observing.",
+      "action": "Any window posts a didChangeOcclusionState notification.",
+      "expected_result": "Three gates, all required before anything happens: the view has a window; the notification's object is THAT window by reference identity (===), not merely some window; and that window's occlusionState contains .visible. Only then are the animations reinstalled. A popover or tooltip being ordered in posts the same notification and is ignored, and a window going OUT of view is ignored. There is no recolor on this path.",
+      "side_effects": [
+        "One animation install when all three gates pass"
+      ],
+      "persistence": "None.",
+      "failure_cases": [
+        "Without the identity test every tooltip in the app would reinstall every charge view's animations"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "The analogue is a visibility or occlusion signal for this view's own window. Reproduce all three gates, including the identity test, not just 'this window became visible'.",
+      "verification_method": "unit posting the notification for a different window, for this window while hidden, and for this window while visible",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-HYDRA-243",
+      "title": "A theme change re-reads the accent and recolors; an effective-appearance change recolors without re-reading it",
+      "source_evidence": [
+        "DroppyCode/App/Views/Chat/HydraButton.swift:477-479 - // The accent is set on the glow once, not resolved on every draw, so a theme // change has to reach it here. center.addObserver(self, selector: #selector(themeDidChange), name: ThemeManager.didChange, object: nil)",
+        "DroppyCode/App/Views/Chat/HydraButton.swift:530-533 - @objc private func themeDidChange() { accent = Chrome.accentNSColor; applyColors() }",
+        "DroppyCode/App/Views/Chat/HydraButton.swift:512-516 - override func viewDidChangeEffectiveAppearance() { super.viewDidChangeEffectiveAppearance(); // The system accent is dynamic; re-resolve it for the new appearance. applyColors() }"
+      ],
+      "preconditions": "The charge view is alive and observing.",
+      "action": "The theme changes, or the view's effective appearance changes.",
+      "expected_result": "On ThemeManager.didChange the stored accent is replaced with the current Chrome accent colour and then the layers are recolored. On an effective-appearance change the stored accent is NOT re-read; only applyColors runs, which re-resolves the dynamic colour for the new appearance. Neither path touches the animations, so a theme switch leaves the phase alone, and neither path is gated on having a window.",
+      "side_effects": [
+        "The glow's gradient stops and the ring's conic colours are rebuilt"
+      ],
+      "persistence": "None.",
+      "failure_cases": [
+        "Without the theme observer the glow would keep the accent it was built with, because the accent is set once rather than resolved per draw"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Recolor on the theme signal and on the light/dark signal; only the theme signal re-reads the accent value.",
+      "verification_method": "unit posting each notification and asserting which of the two values changed",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
