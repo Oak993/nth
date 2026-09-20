@@ -101,3 +101,33 @@ instruction may change one.
   exact fixture content behind each one. The Windows port will mirror this harness so that Windows
   captures are produced in the same states, at the same sizes, with the same fixtures, making the
   comparison meaningful rather than ad hoc.
+
+## OD-0005 Liquid Glass: Acrylic, no screen capture
+
+- **Asked:** 2026-09-20, after the owner requested a side-by-side probe.
+- **Answer, verbatim:** "I choose acrylic edge . Option A"
+- **Naming collision, recorded because it was the lead's error:** ADR-0001 labels the
+  CAPTURE-BASED option "Option A", while the probe image labels the ACRYLIC panel "A". They are
+  opposites. The owner's words name the material, "acrylic edge", which is unambiguous, so the
+  ruling is read as **Acrylic, no screen capture**, which is ADR-0001's Option B. Surfaced to the
+  owner in the same message so it could be corrected in one word.
+- **What is now settled:**
+  - `Windows.Graphics.Capture` is **off the table**. No consent prompt, no capture indicator, no
+    `WDA_EXCLUDEFROMCAPTURE`, so the app behaves normally in the user's own screenshots, screen
+    recordings and screen shares. No frame-late backdrop, no rebuild on display topology change,
+    no per-panel capture session.
+  - Where the window shows the **desktop**, it uses a Windows system material of the Acrylic
+    class. Lensing, refraction and chromatic fringing are **not** reproduced there.
+  - Where the app draws its **own** backdrop, the full source-defined material is reproduced:
+    shape, corner radius, tint colour and opacity, `.interactive()` and container spacing at all
+    22 sites.
+- **This is an owner-approved deviation, not parity.** Contract section 18 therefore caps the final
+  statement at "VERIFIED WITH USER-APPROVED DEVIATIONS". UNK-0004 moves from BLOCKED_ON_OWNER to
+  RESOLVED-as-accepted-deviation, and the deviation stays named in the final report.
+- **Consequence for the stack choice:** the one capability that only a native Win32 + Direct3D
+  stack could deliver is no longer required. Stack selection now turns on the remaining eleven
+  constraints, and WinUI 3 and Avalonia, previously disqualified or unresolved solely on the
+  desktop-sampling question, re-enter the comparison.
+- **Still open under this ruling:** whether the app should always draw a backdrop so that the
+  richer material applies more often, which would change an upstream default (upstream ships a
+  clear window over the desktop with the wallpaper unset). Raised as UNK-0023.

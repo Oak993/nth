@@ -380,12 +380,11 @@
         "Not found on PATH and there are no fallback candidates for codex, so executable(for:) returns nil and the provider reads as not installed."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATH is split on ';' and each candidate is tried against PATHEXT (codex.cmd, codex.exe) instead of the POSIX execute-bit test. Platform boundary: executable resolution.",
+      "windows_path": "PATH is split on ';' and each candidate is tried against PATHEXT (codex.cmd, codex.exe) instead of the POSIX execute-bit test. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture over a synthetic PATH",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": "UNK-0006"
+      "blocked_by": null
     },
     {
       "id": "PR-PROVREG-016",
@@ -404,12 +403,11 @@
         "Not found: there are no fallback candidates for claude, executable(for:) returns nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATHEXT-aware lookup, PATH split on ';'. Platform boundary: executable resolution.",
+      "windows_path": "PATHEXT-aware lookup, PATH split on ';'. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": "UNK-0006"
+      "blocked_by": null
     },
     {
       "id": "PR-PROVREG-017",
@@ -428,12 +426,11 @@
         "Not found: returns nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution.",
+      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": "UNK-0006"
+      "blocked_by": null
     },
     {
       "id": "PR-PROVREG-018",
@@ -452,12 +449,11 @@
         "Not found: returns nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution.",
+      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": "UNK-0006"
+      "blocked_by": null
     },
     {
       "id": "PR-PROVREG-019",
@@ -476,12 +472,11 @@
         "Not found: returns nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution.",
+      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": "UNK-0006"
+      "blocked_by": null
     },
     {
       "id": "PR-PROVREG-020",
@@ -570,12 +565,11 @@
         "Not found: returns nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution.",
+      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": "UNK-0006"
+      "blocked_by": null
     },
     {
       "id": "PR-PROVREG-024",
@@ -594,12 +588,11 @@
         "Not found: returns nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution.",
+      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": "UNK-0006"
+      "blocked_by": null
     },
     {
       "id": "PR-PROVREG-025",
@@ -618,12 +611,11 @@
         "Neither PATH nor the gh fallback yields an executable: returns nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution.",
+      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": "UNK-0006"
+      "blocked_by": null
     },
     {
       "id": "PR-PROVREG-026",
@@ -643,12 +635,11 @@
         "Nothing found: returns nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PLATFORM BOUNDARY AND COLLISION. On Windows the bare name cmd resolves to the system command interpreter cmd.exe on the machine PATH, so a direct PATHEXT lookup finds the wrong program and would make Command Code read as installed on every Windows PC. The source contains no identity check, so the rule for distinguishing them is an open decision and must not be guessed.",
+      "windows_path": "PLATFORM BOUNDARY AND COLLISION. On Windows the bare name cmd resolves to the system command interpreter cmd.exe on the machine PATH, so a direct PATHEXT lookup finds the wrong program and would make Command Code read as installed on every Windows PC. The source contains no identity check, so the rule for distinguishing them is an open decision and must not be guessed. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture plus an interaction test proving a system cmd.exe is never accepted as Command Code",
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0006",
       "open_question": "How a Windows build distinguishes the Command Code CLI from the system command interpreter, given that the bare name \"cmd\" resolves to cmd.exe on every Windows PATH and the source contains no identity check. Not resolvable from source; needs an owner decision on the probe (for example a --version identity check, or dropping the bare name on Windows)."
     },
     {
@@ -669,12 +660,11 @@
         "Nothing found: returns nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution.",
+      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": "UNK-0006"
+      "blocked_by": null
     },
     {
       "id": "PR-PROVREG-028",
@@ -958,12 +948,11 @@
         "Script write failure opens nothing, silently."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The command string is kept verbatim including the backticks in the detail text. The launcher must resolve the Command Code CLI rather than the Windows interpreter (see PR-PROVREG-026).",
+      "windows_path": "The command string is kept verbatim including the backticks in the detail text. The launcher must resolve the Command Code CLI rather than the Windows interpreter (see PR-PROVREG-026). Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "interaction test plus capture comparison of the detail string",
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0006",
       "open_question": "Whether the detail sentence that quotes `cmd login` verbatim is shown unchanged on Windows, where that command line means something else. The string is a source fact; whether it is shown as-is depends on the resolution of PR-PROVREG-026."
     },
     {
@@ -2275,12 +2264,11 @@
         "Custom path set but unresolvable: nil, so the section shows Not installed and the Install row, even though a bare-name copy exists on PATH."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PLATFORM BOUNDARY: the is-a-path test must also accept backslash and a drive prefix, PATH must split on semicolon, and the execute-bit test must become a PATHEXT-aware existence test.",
+      "windows_path": "PLATFORM BOUNDARY: the is-a-path test must also accept backslash and a drive prefix, PATH must split on semicolon, and the execute-bit test must become a PATHEXT-aware existence test. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture over a synthetic filesystem and PATH",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": "UNK-0006"
+      "blocked_by": null
     },
     {
       "id": "PR-PROVREG-095",
@@ -2325,12 +2313,11 @@
         "Nothing found: nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PLATFORM BOUNDARY: all five directories are Unix locations with no Windows meaning, and the \"cmd\" name collides with the Windows interpreter. The alternate-name list and its order are source facts and should be preserved; the directory list needs a probed Windows equivalent and must not be transliterated.",
+      "windows_path": "PLATFORM BOUNDARY: all five directories are Unix locations with no Windows meaning, and the \"cmd\" name collides with the Windows interpreter. The alternate-name list and its order are source facts and should be preserved; the directory list needs a probed Windows equivalent and must not be transliterated. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture asserting candidate ordering",
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0006",
       "open_question": "The Windows equivalent of the five fixed Unix directories in the Command Code fallback list. The source gives none, so they must be probed rather than transliterated, and the \"cmd\" name question of PR-PROVREG-026 applies to the name list as well."
     },
     {

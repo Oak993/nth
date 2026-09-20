@@ -826,12 +826,11 @@
         "Archived thread: skipped."
       ],
       "cancellation": "not cancellable by the user",
-      "windows_path": "Same guards. Process launch per porting/extracts/provider-argv-and-handshakes.md, with the Windows executable resolution of UNK-0006 for the cmd provider.",
+      "windows_path": "Same guards. Process launch per porting/extracts/provider-argv-and-handshakes.md, with the Windows executable resolution of UNK-0006 for the cmd provider. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "integration test with the offline agent counting process launches",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": "UNK-0006"
+      "blocked_by": null
     },
     {
       "id": "PR-COMPOSER-037",

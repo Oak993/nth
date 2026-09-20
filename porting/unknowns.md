@@ -100,7 +100,9 @@ carries that dependency in `porting/parity_matrix.json`.
 
 ## UNK-0006 Distinguishing the `cmd` provider from the Windows command interpreter
 
-- **Status:** OPEN. Named explicitly by contract section 11.
+- **Status:** RESOLVED 2026-09-20 by PA-0016, with version-resource evidence measured on this
+  machine. Kept here for the trail; the decision and its justification live in
+  `porting/platform_adaptations.md` PA-0016.
 - **What source establishes:** the pinned tree contains a Command Code provider
   (`Services/Providers/CommandCodeSession.swift`, `CommandCodeAPI.swift`, `CommandCodeKeychain.swift`,
   a `provider-commandcode` icon, and a tracked `.commandcode/` directory at the repository root).
@@ -327,3 +329,18 @@ Both remain open options for the owner alone.
   - Port the migration literally, keeping the "Droppy Code" destination literal. Exact parity, and under the rename it targets a folder the store never reads.
   - Port it with the destination following AppInfo.name so the rename is applied consistently. A recorded owner-approved deviation, NOT parity.
   - Classify NOT_APPLICABLE_WITH_EVIDENCE because no prior Windows install exists. Requires the owner to confirm no migration from the separate Marrow product is wanted.
+
+## UNK-0023 Whether the app should always draw its own backdrop
+
+- **Status:** OPEN. Follows from OD-0005. Does not block the stack choice or implementation of
+  anything else; it decides how often the richer material is visible.
+- **The facts:** `UI/Chrome/WindowChrome.swift:116-117` sets `isOpaque = false` and
+  `backgroundColor = .clear`; `UI/Theme/Wallpaper.swift` makes the app wallpaper optional and it
+  is unset by default. So upstream, out of the box, the glass sits over the desktop.
+- **Why it matters now:** under OD-0005 the desktop-backed case gets an Acrylic-class material
+  with no lensing. If the app always drew a backdrop, the full source-defined material would
+  apply everywhere, at the cost of changing an upstream default, which contract section 2 forbids
+  doing silently.
+- **Options, neither assumed:** keep the upstream default (clear window, Acrylic over the desktop,
+  richer material only once the user sets a wallpaper), or ship a default backdrop so the richer
+  material is the normal case and record that as a second named deviation.

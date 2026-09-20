@@ -2465,12 +2465,11 @@
         "Nothing found: nil, which the by-name run overload turns into the not-found error (PR-TERM-090)."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PLATFORM BOUNDARY, tracked as PA-0010 and UNK-0006. Split PATH on semicolons, resolve through PATHEXT, and treat a backslash as well as a forward slash as the path marker. Contract section 11 requires validating the actual executable identity rather than the name for the provider whose command name is cmd, because a bare cmd resolves to the Windows command interpreter long before any provider CLI.",
+      "windows_path": "PLATFORM BOUNDARY, tracked as PA-0010 and UNK-0006. Split PATH on semicolons, resolve through PATHEXT, and treat a backslash as well as a forward slash as the path marker. Contract section 11 requires validating the actual executable identity rather than the name for the provider whose command name is cmd, because a bare cmd resolves to the Windows command interpreter long before any provider CLI. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture over path-like names, bare names and a PATHEXT shim",
       "status": "DISCOVERED",
       "upstream_defect": null,
-      "blocked_by": null,
-      "depends_on_unknown": "UNK-0006"
+      "blocked_by": null
     },
     {
       "id": "PR-TERM-101",

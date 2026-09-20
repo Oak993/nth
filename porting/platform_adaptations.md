@@ -413,3 +413,64 @@ to revert:
 All four facts verified at source by the lead. Quarantined as BLK-0008 / UNK-0018: the classifier
 remains unquarantined for checkpoint use, but its use as the approval gate is neither reproduced
 nor repaired until the owner rules.
+
+## PA-0016 Distinguishing the Command Code provider from the Windows command interpreter
+
+- **Status:** DECIDED, with probe evidence from this machine. Resolves UNK-0006, which
+  PORT_CONTRACT section 11 names explicitly: "where a provider uses the command name cmd,
+  establish how to distinguish that provider from the Windows command interpreter and validate the
+  actual executable identity."
+- **The hazard, confirmed:** `Core/Models/Provider.swift:51` gives Command Code the
+  `executableName` `"cmd"`. `Services/Providers/ProviderRegistry.swift:220` resolves a provider by
+  `LoginEnvironment.which(...)`, which walks PATH and takes the first executable match. On this
+  Windows 11 machine, `where cmd` returns `C:\Windows\System32\cmd.exe`. So a naive port would
+  report Command Code as INSTALLED on every Windows machine in existence, then launch the Windows
+  command interpreter with Command Code's argument vector
+  (`--output-format json --skip-onboarding --no-auto-update --trust --tools-enable todo_write
+  --max-turns 400 ...`), which it cannot parse.
+- **Source-defined escape hatch, found rather than invented:**
+  `ProviderRegistry.swift:218` reads `settings.binaryPath(for: provider)` and, when it is non-empty,
+  resolves that instead of the bare name, and returns nil rather than falling back if the custom
+  path does not resolve. So the source already supports pointing a provider at an explicit
+  executable, and the Windows port inherits that without adding anything.
+- **Identity validation, measured on this machine 2026-09-20:**
+
+  | Field | `C:\Windows\System32\cmd.exe` | `claude.exe` (a real provider CLI) |
+  | --- | --- | --- |
+  | CompanyName | `Microsoft Corporation` | `Anthropic PBC` |
+  | FileDescription | `Windows Command Processor` | `Claude Code` |
+  | OriginalFilename | `Cmd.Exe.MUI` | (empty) |
+  | ProductName | `Microsoft(R) Windows(R) Operating System` | - |
+  | FileVersion | `10.0.26100.8875 (WinBuild.160101.0800)` | - |
+
+  The Windows version resource is therefore a sufficient discriminator, and it is available without
+  executing the candidate, which matters: launching `System32\cmd.exe` to interrogate it would
+  start an interactive shell.
+
+- **Decision (ENGINEERING DECISION, justified):** provider executable resolution on Windows
+  validates identity before reporting a provider installed.
+  1. Resolve through PATH honouring `PATHEXT`, as Windows requires and as PA-0010 records.
+  2. Reject a candidate whose version resource identifies it as the operating system's own command
+     interpreter: `CompanyName` of `Microsoft Corporation` together with an `OriginalFilename` of
+     `Cmd.Exe` or `Cmd.Exe.MUI`, or a `FileDescription` of `Windows Command Processor`. Rejecting on
+     the version resource rather than on the literal path also covers a copy of `cmd.exe` placed
+     elsewhere on PATH.
+  3. Additionally reject the two canonical paths `%SystemRoot%\System32\cmd.exe` and
+     `%SystemRoot%\SysWOW64\cmd.exe` outright, as a cheap first test before reading any resource.
+  4. If the only match is rejected, report Command Code as NOT INSTALLED, exactly as the source
+     does when `which` finds nothing, and let the user set an explicit path through the existing
+     `binaryPath` setting.
+- **Why this is not an invented product change:** the observable behaviour is the one the source
+  already specifies, that a provider whose executable cannot be found reports not installed. The
+  addition is confined to not mistaking the operating system's shell for a provider, which upstream
+  never had to consider because macOS has no `cmd` on its PATH. No new UI, no new setting, no new
+  string.
+- **Verification method:** a Windows contract test asserting that with no Command Code installed,
+  resolution returns not-installed rather than `System32\cmd.exe`; and that a stub executable whose
+  version resource does not identify the command interpreter IS accepted. Both runnable without a
+  Command Code account.
+- **Residual risk to record:** if Command Code ships its Windows CLI as an npm shim named
+  `cmd.cmd`, PATHEXT resolution could find that first, which is the desired outcome, but the port
+  must not then reject it for being a `.cmd` file. The rule keys on version-resource identity and
+  the two canonical interpreter paths, not on the extension. Unverified against a real Command Code
+  Windows install, because none is available here; recorded as a live-verification item.
