@@ -224,3 +224,63 @@ Port commits: `9f66288` (Gate A evidence), `ddfff51` (line-ending pin).
    seeded from the Chrome token extract, the reference captures and the UI-layer ledger records.
 4. Implement the Gate B checks in verify.mjs so completeness is machine-checked, not asserted.
 5. Only then the Windows stack evaluation, with Liquid Glass fidelity primary (OD-0003).
+
+---
+
+# GATE B PASSES (2026-09-20)
+
+node porting/tools/verify.mjs -> Gate A 12/12, Gate B 8/8, 21 checks PASS,
+Gates C-F NOT_IMPLEMENTED and failing by design. Exit 1, RESULT: NOT ACCEPTABLE. Correct.
+
+Port commits: 4cf7e30 (Gate B tooling), d0d2086 (defect triage + architecture),
+9875483 (BLK-0005), 418651b (Gate B passes).
+
+## Specification produced
+
+| Artifact | Value |
+| --- | --- |
+| Parity requirements | 3827 (3742 SPECIFIED, 85 DISCOVERED) |
+| UI contract records | 1029 |
+| Areas | 20 |
+| Controls enumerated by exact label | 1433 |
+| Persisted fields | 570 |
+| Background tasks | 294 |
+| Architecture record | 63 KB, 29 modules, 194 source citations |
+| Layering violations found vs AGENTS.md | 8 |
+| Verbatim extracts | 7 files, 520 KB |
+
+## Quarantine (owner decides individually, neither option approved)
+
+| Entry | Criteria | Behaviour |
+| --- | --- | --- |
+| BLK-0001 | C1,C2,C5 | custom MCP delete: unconfirmed, destroys Keychain secrets |
+| BLK-0002 | C4 | malformed custom-MCP variable discards every server, next save overwrites |
+| BLK-0003 | C1,C4 | checkpoint truncation by cookie timeout OR forgery; revert then deletes work |
+| BLK-0004 | C1,C4 | previewRestore path mixing; revert deletes wrong files, reports success |
+| BLK-0005 | C1,C4 | legacy migration folder literal vs AppInfo.name under the rename |
+| BLK-0006 | C2,C3 | API key written to defaults in PLAIN TEXT when protected storage refuses |
+| BLK-0007 | C2,C3,C6 | plan limits read other apps credential files; Pi transmits the token |
+| BLK-0008 | C3,C4 | read-only classifier is ALSO the auto-approval gate; 3 misclassifications |
+| BLK-0009 | C1,C5 | Remove project unconfirmed, ignores confirmBeforeDeleting |
+| BLK-0010 | C1,C4 | undecodable library.json starts empty, first save overwrites |
+| BLK-0011 | C1 | unreadable hasCustomTitle lets auto-titler overwrite a typed name |
+| BLK-0012 | C2 | credential deletion on disconnect discards its result |
+
+27 requirements held at DISCOVERED across these. 19 marked by hand after two rounds of
+over-broad automatic matching were caught and reverted (76 then 32, both wrong).
+
+## Decisions
+
+- 57 engineering decisions taken and recorded in porting/engineering_decisions.md
+- 27 owner decisions still needed, in porting/owner_decisions_pending.md
+- 78 spec questions resolved from source
+
+## Next: Windows architecture selection (contract section 9)
+
+Workflow wf_468d7feb-688 evaluating 8 candidate stacks against the 12 derived constraints, with
+Liquid Glass fidelity as the primary weighted criterion per OD-0003, then an adversary pass
+against the leaders. No stack chosen yet. No Windows code written yet.
+
+Machine constraint found: .NET 10 RUNTIME only (no SDK), no MSVC, no cmake, no Rust. Node 24,
+Python 3.14 and winget are present. Toolchain will be installed only for the chosen stack, after
+the decision record, rather than speculatively.
