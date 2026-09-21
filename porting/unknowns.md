@@ -344,3 +344,31 @@ Both remain open options for the owner alone.
 - **Options, neither assumed:** keep the upstream default (clear window, Acrylic over the desktop,
   richer material only once the user sets a wallpaper), or ship a default backdrop so the richer
   material is the normal case and record that as a second named deviation.
+
+## UNK-0024 The port and the owner's existing Marrow app would share one data folder
+
+- **Status:** OPEN for the shipping default. **Mitigated immediately for development** by the isolation
+  rule below, so it blocks nothing today.
+- **The collision, from two independent records:**
+  - Engineering decision ED (STORE Q171): the port's store root is `%LOCALAPPDATA%\<display name>`.
+    Under OD-0002 the display name is `Marrow`, so the root is `%LOCALAPPDATA%\Marrow`.
+  - The owner's EXISTING Marrow app (the separate project at
+    `C:\Users\omera\Downloads\Claude outputs\agent-workbench`) already lives in
+    `%LOCALAPPDATA%\Marrow`; its own CLAUDE.md records that it took over `Agent Workbench` and
+    became `Marrow`.
+- **Why it matters now, not at release:** the owner intends to RUN the existing Marrow app to build
+  this port. The first time a worker launches the port to test it, the port would read and write
+  `library.json`, the thread histories and the settings of the very app driving the work. Contract
+  section 3 forbids touching the owner's working application or its data; section 2 forbids changing
+  user data. This is data loss in the owner's own tool.
+- **Development rule, binding on every worker and every test (ENGINEERING DECISION):** the port reads
+  its store root from the environment variable `MARROW_PORT_DATA_DIR` and, when it is set, uses that
+  folder instead of `%LOCALAPPDATA%\Marrow`. Every test, probe and manual run sets it to a disposable
+  folder. The name is deliberately DIFFERENT from the existing app's `MARROW_DATA_DIR`, so neither app
+  can pick up the other's override by accident. A Gate C check fails if the port can resolve its
+  store root to `%LOCALAPPDATA%\Marrow` while running under test.
+- **Still the owner's to decide:** the shipping data folder once both apps exist on one machine.
+  Options: the port takes `%LOCALAPPDATA%\Marrow` and the old app is retired first; or the port ships
+  under a distinct folder until then, which is a visible deviation from the source's
+  `AppInfo.name`-derived root. The same collision applies to the installer identity, the Start menu
+  entry and any single-instance lock, which are packaging decisions for M8.

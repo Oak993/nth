@@ -1,5 +1,8 @@
 # Droppy Code Windows port
 
+> **Work is now assigned through `HANDOFF.md`** (orchestrator) and `WORKER_BRIEF.md` (workers).
+> Task packets are in `porting/tasks/`. Read those before anything else.
+
 Exact-parity Windows 11 x64 port of the macOS app Droppy Code. Read
 `porting/PORT_CONTRACT.md` before doing anything; it is the authority and it overrides
 this file. This file is the short index, not a substitute.

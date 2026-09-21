@@ -253,13 +253,30 @@ check('C', 'no quarantined behavior is implemented while its owner decision is o
   };
   for (const r of roots) walk(rel(r));
 
-  if (hits.length) {
+  // MARKER mode: the quarantined behaviour is a sub-path of code the app needs, so identifier
+  // presence proves nothing. Once a host file exists it must carry the explicit BLOCKED marker.
+  const markerMisses = [];
+  for (const e of open.filter((x) => x.detection_mode === 'marker')) {
+    for (const host of e.marker_hosts || []) {
+      if (!existsSync(rel(host))) continue;           // not ported yet: nothing to check
+      if (!readFileSync(rel(host), 'utf8').includes(e.marker)) {
+        markerMisses.push(`${e.id}: ${host} exists but lacks "${e.marker}" at ${e.quarantined_subpath}`);
+      }
+    }
+  }
+
+  if (hits.length || markerMisses.length) {
     throw new Error(
-      `quarantined behavior implemented while its owner decision is open:\n    ${hits.join('\n    ')}\n` +
-      '    Neither reproducing nor repairing it is approved. See porting/blocked_requirements.json.',
+      [
+        hits.length ? `quarantined behaviour implemented while its owner decision is open:\n    ${hits.join('\n    ')}` : '',
+        markerMisses.length ? `quarantined sub-path not marked:\n    ${markerMisses.join('\n    ')}` : '',
+        '    Neither reproducing nor repairing it is approved. See porting/blocked_requirements.json.',
+      ].filter(Boolean).join('\n'),
     );
   }
-  return `${open.length} open quarantine entr${open.length === 1 ? 'y' : 'ies'} respected across ${roots.length} tree(s)`;
+  const ids = open.filter((x) => x.detection_mode !== 'marker').length;
+  const mks = open.length - ids;
+  return `${open.length} open entries respected (${ids} by identifier, ${mks} by required marker) across ${roots.length} tree(s)`;
 });
 
 // ---------------------------------------------------------------- Gate B
@@ -447,6 +464,66 @@ check('B', 'platform adaptation register covers the identified boundaries', () =
   const entries = (text.match(/^## PA-\d+/gm) || []).length;
   if (entries < 10) throw new Error(`only ${entries} adaptation entries; the boundaries found so far are not all recorded`);
   return `${entries} adaptation entries`;
+});
+
+// Live from the first line of production code: contract section 13 requires temporary stubs to be
+// "visibly tracked as incomplete and removed or replaced before acceptance". This lists every one.
+check('C', 'no temporary stub remains in the implementation', () => {
+  if (!existsSync(rel('src'))) return { status: 'FAIL', detail: 'no implementation tree yet' };
+  const MARKERS = [
+    [/throw\s+new\s+NotImplementedException/, 'NotImplementedException'],
+    [/MARROW_STUB/, 'MARROW_STUB marker'],
+    [/\/\/\s*(TODO|FIXME|HACK|STUB)\b/i, 'TODO/FIXME/HACK/STUB comment'],
+  ];
+  const hits = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      if (['bin', 'obj', 'node_modules', '.git'].includes(name)) continue;
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) { walk(p); continue; }
+      if (!/\.(cs|axaml)$/.test(name)) continue;
+      readFileSync(p, 'utf8').split('\n').forEach((line, i) => {
+        for (const [re, what] of MARKERS) {
+          if (re.test(line)) hits.push(`${p.replace(ROOT, '').replace(/^[\\/]/, '')}:${i + 1} ${what}`);
+        }
+      });
+    }
+  };
+  walk(rel('src'));
+  if (hits.length) {
+    throw new Error(`${hits.length} stub(s) remain:\n    ${hits.slice(0, 12).join('\n    ')}` +
+      (hits.length > 12 ? `\n    ... and ${hits.length - 12} more` : ''));
+  }
+  return 'no stubs in src/';
+});
+
+// Gate D's floor, not its ceiling: the solution builds with warnings as errors and every test passes,
+// with none skipped. Skipped counts as failed, because contract section 18 forbids equating SKIPPED
+// with acceptance. Visual comparison, persistence and cancellation checks are still to be built.
+check('D', 'the solution builds and every test passes, none skipped', () => {
+  if (!existsSync(rel('Marrow.sln'))) return { status: 'FAIL', detail: 'no Marrow.sln yet' };
+  const dotnet = existsSync('C:/Program Files/dotnet/dotnet.exe') ? 'C:/Program Files/dotnet/dotnet.exe' : 'dotnet';
+  const run = (args) => {
+    try {
+      return { ok: true, out: execFileSync(dotnet, args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 26 }) };
+    } catch (e) {
+      return { ok: false, out: `${e.stdout || ''}${e.stderr || ''}` };
+    }
+  };
+  const b = run(['build', 'Marrow.sln', '-c', 'Debug', '-v', 'q', '--nologo']);
+  if (!b.ok) {
+    const errs = b.out.split('\n').filter((l) => /error/.test(l)).slice(0, 6);
+    throw new Error(`build failed:\n    ${errs.join('\n    ')}`);
+  }
+  const t = run(['test', 'Marrow.sln', '--no-build', '-v', 'q', '--nologo']);
+  let passed = 0, failed = 0, skipped = 0;
+  for (const m of t.out.matchAll(/Failed:\s*(\d+),\s*Passed:\s*(\d+),\s*Skipped:\s*(\d+)/g)) {
+    failed += Number(m[1]); passed += Number(m[2]); skipped += Number(m[3]);
+  }
+  if (!t.ok || failed) throw new Error(`${failed} test(s) failed, ${passed} passed`);
+  if (skipped) throw new Error(`${skipped} test(s) SKIPPED; a skipped test is not a pass`);
+  if (!passed) throw new Error('no tests ran');
+  return `build clean with warnings as errors; ${passed} tests passed, 0 failed, 0 skipped`;
 });
 
 const PENDING = [

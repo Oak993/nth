@@ -46,7 +46,8 @@
         "deleteCustomServer",
         "removeCustomServer"
       ],
-      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented. To satisfy the gate, the owner rules and this entry is closed with owner_ruling set; the identifiers are not to be renamed to evade the scan, which would be exactly the 'edit guard configuration to escape a failure' that PORT_CONTRACT section 14 forbids."
+      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented. To satisfy the gate, the owner rules and this entry is closed with owner_ruling set; the identifiers are not to be renamed to evade the scan, which would be exactly the 'edit guard configuration to escape a failure' that PORT_CONTRACT section 14 forbids.",
+      "detection_mode": "identifier"
     },
     {
       "id": "BLK-0002",
@@ -75,12 +76,19 @@
         "any Windows implementation of custom MCP server decoding that swallows a decode failure",
         "any save path that overwrites the custom-server store after a failed load"
       ],
-      "detection_patterns": [
+      "detection_note": "MARKER mode. The quarantined behaviour is a sub-path of code the app needs, so an identifier cannot detect it without blocking legitimate work (the earlier identifier patterns would have failed the gate on the first ordinary storage task). Instead, once a host file exists, it must contain the literal marker \"BLOCKED BLK-0002\" at the quarantined sub-path. Gate C fails if a host file exists without it. The orchestrator confirms in review that the marker sits at the sub-path and that neither alternative was implemented.",
+      "detection_mode": "marker",
+      "marker": "BLOCKED BLK-0002",
+      "marker_hosts": [
+        "src/Marrow.Services/MCP/MCPStore.cs",
+        "src/Marrow.Core/Models/MCPCustom.cs"
+      ],
+      "quarantined_subpath": "the decode-failure path that drops every custom server and the save that then overwrites the file",
+      "previous_detection_patterns_retired": [
         "decodeCustoms",
         "loadCustoms",
         "saveCustoms"
-      ],
-      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
+      ]
     },
     {
       "id": "BLK-0003",
@@ -113,16 +121,22 @@
         "any checkpoint capture that can exit successfully on a partial tree",
         "any Windows implementation of the capture cookie wait and its release condition"
       ],
-      "detection_patterns": [
+      "detection_note": "MARKER mode. The quarantined behaviour is a sub-path of code the app needs, so an identifier cannot detect it without blocking legitimate work (the earlier identifier patterns would have failed the gate on the first ordinary storage task). Instead, once a host file exists, it must contain the literal marker \"BLOCKED BLK-0003\" at the quarantined sub-path. Gate C fails if a host file exists without it. The orchestrator confirms in review that the marker sits at the sub-path and that neither alternative was implemented.",
+      "scope_extended": "2026-09-20",
+      "detection_mode": "marker",
+      "marker": "BLOCKED BLK-0003",
+      "marker_hosts": [
+        "src/Marrow.Services/Git/WorkingTreeWatch.cs"
+      ],
+      "quarantined_subpath": "the cookie-timeout teardown of the shared scratch index and the cookie release condition",
+      "previous_detection_patterns_retired": [
         "scratchIndex",
         "scratch_index",
         "cookieTimeout",
         "cookie_timeout",
         "watchTearDown",
         "cookieSeen"
-      ],
-      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented. Patterns are deliberately specific: a bare tearDown would false-positive across unrelated code, and a noisy guard creates pressure to weaken it, which PORT_CONTRACT section 14 forbids.",
-      "scope_extended": "2026-09-20"
+      ]
     },
     {
       "id": "BLK-0004",
@@ -153,11 +167,17 @@
         "any Windows implementation of previewRestore path derivation",
         "any revert path that deletes files not present in the base checkpoint"
       ],
-      "detection_patterns": [
+      "detection_note": "MARKER mode. The quarantined behaviour is a sub-path of code the app needs, so an identifier cannot detect it without blocking legitimate work (the earlier identifier patterns would have failed the gate on the first ordinary storage task). Instead, once a host file exists, it must contain the literal marker \"BLOCKED BLK-0004\" at the quarantined sub-path. Gate C fails if a host file exists without it. The orchestrator confirms in review that the marker sits at the sub-path and that neither alternative was implemented.",
+      "detection_mode": "marker",
+      "marker": "BLOCKED BLK-0004",
+      "marker_hosts": [
+        "src/Marrow.Services/Git/Git.cs"
+      ],
+      "quarantined_subpath": "previewRestore path derivation and the delete of files absent from the base checkpoint",
+      "previous_detection_patterns_retired": [
         "previewRestore",
         "numstat"
-      ],
-      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
+      ]
     },
     {
       "id": "BLK-0005",
@@ -199,7 +219,8 @@
         "migratedFromEarlierName",
         "formerSupportFolder"
       ],
-      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
+      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented.",
+      "detection_mode": "identifier"
     },
     {
       "id": "BLK-0006",
@@ -240,7 +261,8 @@
         "storeAPIKeyFallback",
         "apiKeyFallback"
       ],
-      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
+      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented.",
+      "detection_mode": "identifier"
     },
     {
       "id": "BLK-0007",
@@ -285,7 +307,8 @@
         "oauth/usage",
         "backend-api/wham/usage"
       ],
-      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
+      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented.",
+      "detection_mode": "identifier"
     },
     {
       "id": "BLK-0008",
@@ -320,12 +343,18 @@
       "quarantined_paths": [
         "any Windows implementation of the .auto permission-mode auto-approval predicate for shell tools"
       ],
-      "detection_patterns": [
+      "detection_note": "MARKER mode. The quarantined behaviour is a sub-path of code the app needs, so an identifier cannot detect it without blocking legitimate work (the earlier identifier patterns would have failed the gate on the first ordinary storage task). Instead, once a host file exists, it must contain the literal marker \"BLOCKED BLK-0008\" at the quarantined sub-path. Gate C fails if a host file exists without it. The orchestrator confirms in review that the marker sits at the sub-path and that neither alternative was implemented.",
+      "detection_mode": "marker",
+      "marker": "BLOCKED BLK-0008",
+      "marker_hosts": [
+        "src/Marrow.Services/Providers/CommandCodeSession.cs"
+      ],
+      "quarantined_subpath": "using ShellCommandKind.mayWriteFiles as the .auto auto-approval gate (its checkpoint use is NOT quarantined)",
+      "previous_detection_patterns_retired": [
         "mayWriteFiles",
         "shouldAutoApprove",
         "autoApproveTool"
-      ],
-      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented. Note the classifier itself is NOT quarantined for checkpoint use; only its use as the approval gate."
+      ]
     },
     {
       "id": "BLK-0009",
@@ -360,7 +389,8 @@
       "detection_patterns": [
         "removeProject"
       ],
-      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
+      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented.",
+      "detection_mode": "identifier"
     },
     {
       "id": "BLK-0010",
@@ -390,11 +420,17 @@
       "quarantined_paths": [
         "any Windows implementation of the library load-failure path and the save that follows it"
       ],
-      "detection_patterns": [
+      "detection_note": "MARKER mode. The quarantined behaviour is a sub-path of code the app needs, so an identifier cannot detect it without blocking legitimate work (the earlier identifier patterns would have failed the gate on the first ordinary storage task). Instead, once a host file exists, it must contain the literal marker \"BLOCKED BLK-0010\" at the quarantined sub-path. Gate C fails if a host file exists without it. The orchestrator confirms in review that the marker sits at the sub-path and that neither alternative was implemented.",
+      "detection_mode": "marker",
+      "marker": "BLOCKED BLK-0010",
+      "marker_hosts": [
+        "src/Marrow.Services/Store/Storage.cs"
+      ],
+      "quarantined_subpath": "loadLibrary returning an empty library on a decode failure, and the save that then overwrites library.json (ordinary load and save are NOT quarantined)",
+      "previous_detection_patterns_retired": [
         "loadLibrary",
         "saveLibrary"
-      ],
-      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
+      ]
     },
     {
       "id": "BLK-0011",
@@ -421,10 +457,16 @@
       "quarantined_paths": [
         "any Windows implementation of the hasCustomTitle decode default and the auto-title path that reads it"
       ],
-      "detection_patterns": [
-        "hasCustomTitle"
+      "detection_note": "MARKER mode. The quarantined behaviour is a sub-path of code the app needs, so an identifier cannot detect it without blocking legitimate work (the earlier identifier patterns would have failed the gate on the first ordinary storage task). Instead, once a host file exists, it must contain the literal marker \"BLOCKED BLK-0011\" at the quarantined sub-path. Gate C fails if a host file exists without it. The orchestrator confirms in review that the marker sits at the sub-path and that neither alternative was implemented.",
+      "detection_mode": "marker",
+      "marker": "BLOCKED BLK-0011",
+      "marker_hosts": [
+        "src/Marrow.Core/Models/Library.cs"
       ],
-      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
+      "quarantined_subpath": "the hasCustomTitle decode default when the key is missing, null or wrong-typed (the field itself is NOT quarantined)",
+      "previous_detection_patterns_retired": [
+        "hasCustomTitle"
+      ]
     },
     {
       "id": "BLK-0012",
@@ -455,10 +497,17 @@
       "quarantined_paths": [
         "any Windows implementation of the credential teardown result handling on disconnect"
       ],
-      "detection_patterns": [
-        "deleteAll"
+      "detection_note": "MARKER mode. The quarantined behaviour is a sub-path of code the app needs, so an identifier cannot detect it without blocking legitimate work (the earlier identifier patterns would have failed the gate on the first ordinary storage task). Instead, once a host file exists, it must contain the literal marker \"BLOCKED BLK-0012\" at the quarantined sub-path. Gate C fails if a host file exists without it. The orchestrator confirms in review that the marker sits at the sub-path and that neither alternative was implemented.",
+      "detection_mode": "marker",
+      "marker": "BLOCKED BLK-0012",
+      "marker_hosts": [
+        "src/Marrow.Services/MCP/MCPStore.cs",
+        "src/Marrow.Services/MCP/MCPKeychain.cs"
       ],
-      "detection_note": "Gate C scans the Windows implementation tree for these identifiers. Any hit while this entry is OPEN fails the gate, whichever alternative was implemented."
+      "quarantined_subpath": "discarding the result of MCPKeychain.deleteAll on disconnect",
+      "previous_detection_patterns_retired": [
+        "deleteAll"
+      ]
     }
   ]
 }

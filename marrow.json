@@ -1,0 +1,10 @@
+{
+  "scripts": [
+    { "name": "Build", "command": "dotnet build Marrow.sln -c Debug", "icon": "build" },
+    { "name": "Test", "command": "dotnet test Marrow.sln", "icon": "test" },
+    { "name": "Verify all gates", "command": "node porting/tools/verify.mjs", "icon": "lint" },
+    { "name": "Check protected files", "command": "node porting/tools/check_protected.mjs", "icon": "lint" },
+    { "name": "Negative gate test", "command": "node porting/tools/negative_test.mjs", "icon": "lint" },
+    { "name": "Regenerate task packets", "command": "node porting/tools/gen_tasks.mjs", "icon": "configure" }
+  ]
+}

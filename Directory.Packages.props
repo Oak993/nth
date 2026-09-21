@@ -1,0 +1,19 @@
+<Project>
+  <!--
+    Every package version in the solution is pinned here and nowhere else.
+    Avalonia is PINNED deliberately: the glass compositor depends on ISkiaSharpApiLeaseFeature,
+    which is [Unstable] with no cross-minor compatibility promise (ADR-0002, deviation 3).
+    Any change to these versions is an orchestrator decision, gated behind the probe P10
+    screenshot regression harness. Worker models must not edit this file.
+  -->
+  <ItemGroup>
+    <PackageVersion Include="Avalonia" Version="12.1.2" />
+    <PackageVersion Include="Avalonia.Desktop" Version="12.1.2" />
+    <PackageVersion Include="Avalonia.Skia" Version="12.1.2" />
+    <PackageVersion Include="Avalonia.Headless" Version="12.1.2" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+  </ItemGroup>
+</Project>

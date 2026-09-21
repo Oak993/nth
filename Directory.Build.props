@@ -1,0 +1,15 @@
+<Project>
+  <!--
+    Shared settings for every project in the Marrow Windows port.
+    Owned by the orchestrator. Worker models must not edit this file (see WORKER_BRIEF.md).
+  -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- "No new warnings" is a done-condition for every task. Enforced by the compiler, not by trust. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>
