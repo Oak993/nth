@@ -197,3 +197,25 @@ instruction may change one.
 - **Effect:** provider verification may send minimal prompts ("reply with OK") through the installed,
   signed-in CLIs in a throwaway repository, using a little plan quota. The test harness itself never
   reads a credential file. This authorizes the chargeable calls contract section 12 requires.
+
+
+## OD-0012 Decision batch 2: every recommendation accepted
+
+- **Asked:** 2026-09-22, as `porting/decision_batch_20260922b.md`, after the 1.6.2 spec refresh left
+  wording and identity points no ruling or source line settled.
+- **Answer, verbatim (selected option):** "Accept all (Recommended)"
+- **Effect, exactly as the sheet words it:**
+  - E1-E6: the wording of the prompts and errors the batch-1 safety fixes create, in upstream's own
+    confirmation style (question, note, red action button).
+  - F1: every remaining "Droppy Code" / "droppy-code" the app shows or sends out becomes "Marrow" /
+    "marrow", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT. F2: welcome tagline "A calm, native
+    home for your coding agents." F3: About line "Based on Droppy Code by Jordy Spruit (Droppy),
+    https://getdroppycode.app".
+  - G1 "this PC"; G2 "Credential Manager" in the provider key rows; G3 the ninth em dash kept; G4 "Open
+    in" offers File Explorer and Terminal only; G5 "Welcome tour" in the command palette; G6 Ctrl+0 is
+    Actual Size and "Show Marrow" has no default chord.
+  - H: the exact About and tour rewrites listed in the sheet; the terminal credit names the component the
+    Windows build ships.
+  - I1: the update feed is an internal value, empty by default, no settings UI; while empty no request is
+    made and the pill shows "Check failed" with the note "No update feed is set."
+  Every item is a named deviation in the final report.
