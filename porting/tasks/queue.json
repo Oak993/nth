@@ -1549,9 +1549,9 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "IMPLEMENTING",
+      "status": "DONE",
       "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: All34 Swift lines read at both identical snapshots. Tests reviewed for recursive sorted compact JSON, escaped slashes, UTC date seconds, strict invalid dates, lazy missing/null/type fallback and shared immutable options. macOS-produced byte oracle unavailable; full parity remains unverified."
+      "notes": "2026-09-22 TESTS_REVIEW: All34 Swift lines read at both identical snapshots. Tests reviewed for recursive sorted compact JSON, escaped slashes, UTC date seconds, strict invalid dates, lazy missing/null/type fallback and shared immutable options. macOS-produced byte oracle unavailable; full parity remains unverified. | 2026-09-22 DONE: Director final review matched field defaults, shared codec lifetime, sorted compact slash-escaped storage and ISO8601. Added independent integer regression fixtures after checking swift-foundation6.0;4 initially failed then fixed production only.70 tests zero skipped, gates A12 B8 quarantine pass. macOS byte/capture oracle still unavailable."
     },
     {
       "id": "T-M2-060",

@@ -409,14 +409,15 @@
       "cancellation": "not cancellable",
       "windows_path": "One shared serializer configured for ISO 8601 dates, sorted keys, no pretty printing and slash escaping. Slash escaping must be kept: the attachment sweep matches on the escaped form.",
       "verification_method": "contract fixture: byte-compare encoded output against a macOS-produced file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "The shared storage encoder writes ISO 8601 dates and sorted keys, and does not pretty-print",
       "source_evidence": [
         "DroppyCode/Core/Support/Coding.swift:19-26 - JSONEncoder.storage with dateEncodingStrategy = .iso8601 and outputFormatting = [.sortedKeys]"
-      ]
+      ],
+      "implemented_by_task": "T-M2-059"
     },
     {
       "id": "PR-STORE-018",
@@ -431,14 +432,15 @@
       "cancellation": "not cancellable",
       "windows_path": "One shared ISO 8601 deserializer.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "The shared storage decoder reads ISO 8601 dates",
       "source_evidence": [
         "DroppyCode/Core/Support/Coding.swift:28-33 - JSONDecoder.storage with dateDecodingStrategy = .iso8601"
-      ]
+      ],
+      "implemented_by_task": "T-M2-059"
     },
     {
       "id": "PR-STORE-019",
@@ -475,14 +477,15 @@
       "cancellation": "not cancellable",
       "windows_path": "One helper with exactly these three collapse cases, used by every model decoder in this area. A port that only handles the missing-key case will turn a hand-edited file into a decode failure and lose the record.",
       "verification_method": "unit with all three shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "value(_:default:) turns a missing key, a null and a type mismatch alike into the default",
       "source_evidence": [
         "DroppyCode/Core/Support/Coding.swift:3-8 - func value<T: Decodable>(_ key: Key, default fallback: @autoclosure () -> T) -> T { ((try? decodeIfPresent(T.self, forKey: key)) ?? nil) ?? fallback() }"
-      ]
+      ],
+      "implemented_by_task": "T-M2-059"
     },
     {
       "id": "PR-STORE-021",
