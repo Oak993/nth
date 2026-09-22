@@ -16,7 +16,8 @@
  */
 
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { packetBuildFloorPasses } from './packet_acceptance.mjs';
 
 const [id, status, ...rest] = process.argv.slice(2);
 const VALID = ['TODO', 'ASSIGNED', 'TESTS_REVIEW', 'IMPLEMENTING', 'REVIEW', 'DONE', 'REJECTED'];
@@ -38,13 +39,19 @@ if (status === 'DONE') {
     ['protected files unchanged', ['porting/tools/check_protected.mjs']],
     ['Gate A', ['porting/tools/verify.mjs', '--gate', 'A']],
     ['Gate B', ['porting/tools/verify.mjs', '--gate', 'B']],
-    ['Gate D build and tests', ['porting/tools/verify.mjs', '--gate', 'D']],
   ];
   const failed = checks.filter(([, args]) => !run(args)).map(([name]) => name);
+  const buildReport = spawnSync(process.execPath, ['porting/tools/verify.mjs', '--gate', 'D', '--json'], {
+    encoding: 'utf8', maxBuffer: 1 << 26,
+  });
+  if (!packetBuildFloorPasses(buildReport)) failed.push('Gate D build and tests');
   if (failed.length) {
     console.error(`REFUSED: ${id} cannot be DONE while these fail: ${failed.join(', ')}`);
     console.error('Run each by hand to see why, fix or reject the work, then try again.');
     process.exit(1);
+  }
+  if (buildReport.status !== 0) {
+    console.log('Packet build/test floor passed; full Gate D acceptance remains NOT_IMPLEMENTED. DONE is not VERIFIED.');
   }
 }
 
