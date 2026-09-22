@@ -102,11 +102,38 @@ public sealed record MCPResolvedServer(string Id, string Name)
     public bool IsRemote => Url is not null;
 }
 
+[JsonConverter(typeof(MCPToolSummaryConverter))]
 public sealed record MCPToolSummary(
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("summary")] string? Summary = null)
 {
     [JsonIgnore] public string Id => Name;
+}
+
+internal sealed class MCPToolSummaryConverter : JsonConverter<MCPToolSummary>
+{
+    public override MCPToolSummary Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("name", out var name) || name.ValueKind != JsonValueKind.String)
+            throw new JsonException();
+        string? summary = null;
+        if (root.TryGetProperty("summary", out var value) && value.ValueKind != JsonValueKind.Null)
+        {
+            if (value.ValueKind != JsonValueKind.String) throw new JsonException();
+            summary = value.GetString();
+        }
+        return new(name.GetString()!, summary);
+    }
+
+    public override void Write(Utf8JsonWriter writer, MCPToolSummary value, JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("name", value.Name);
+        if (value.Summary is not null) writer.WriteString("summary", value.Summary);
+        writer.WriteEndObject();
+    }
 }
 
 // Construction defaults do not make synthesized Swift Codable fields optional during decoding.
