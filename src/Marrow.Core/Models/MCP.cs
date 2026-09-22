@@ -131,6 +131,7 @@ internal sealed class MCPToolSummaryConverter : JsonConverter<MCPToolSummary>
 
     public override void Write(Utf8JsonWriter writer, MCPToolSummary value, JsonSerializerOptions options)
     {
+        if (value is null) { writer.WriteNullValue(); return; }
         writer.WriteStartObject();
         writer.WriteString("name", value.Name);
         if (value.Summary is not null) writer.WriteString("summary", value.Summary);
@@ -224,6 +225,7 @@ internal sealed class MCPConnectionConverter : JsonConverter<MCPConnection>
 
     public override void Write(Utf8JsonWriter writer, MCPConnection value, JsonSerializerOptions options)
     {
+        if (value is null) { writer.WriteNullValue(); return; }
         writer.WriteStartObject();
         writer.WriteString("catalogID", value.CatalogID);
         writer.WriteBoolean("isEnabled", value.IsEnabled);
