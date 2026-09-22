@@ -7,9 +7,9 @@
   "counts": {
     "total": 3827,
     "by_status": {
-      "SPECIFIED": 3691,
+      "SPECIFIED": 3681,
       "DISCOVERED": 85,
-      "IMPLEMENTED": 51
+      "IMPLEMENTED": 61
     },
     "by_area": {
       "CHAT": 188,
@@ -24596,10 +24596,11 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "area": "MCP",
@@ -24621,10 +24622,11 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "area": "MCP",
@@ -24646,10 +24648,11 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "area": "MCP",
@@ -24671,10 +24674,11 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "area": "MCP",
@@ -24696,10 +24700,11 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "area": "MCP",
@@ -24721,10 +24726,11 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture; contract fixture replaying Stripe's bare resource_metadata challenge",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "area": "MCP",
@@ -24746,10 +24752,11 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "area": "MCP",
@@ -24771,10 +24778,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. Note the DSN reaching argv and the four on-disk provider configs is upstream behavior for every secret field that resolves into args; the Windows port reproduces it.",
       "verification_method": "unit test against a frozen catalog fixture; contract fixture for the resolved argv",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "area": "MCP",
@@ -24796,10 +24804,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data; the placeholder \"/path/to/app.db\" stays verbatim.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "area": "MCP",
@@ -24822,10 +24831,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data, including the U+2192 arrow in the help string.",
       "verification_method": "unit test against a frozen catalog fixture with byte-exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "area": "MCP",

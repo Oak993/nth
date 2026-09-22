@@ -44,6 +44,26 @@ public static partial class MCPCatalog
         new("atlassian", "Atlassian", "Atlassian", "Jira issues and Confluence pages", MCPCategory.Work, "mcp-atlassian", 0x0052CC, new MCPTransport.OAuth("https://mcp.atlassian.com/v2/mcp"), "https://developer.atlassian.com/cloud/rovo-mcp/")
         { SampleTools = ["searchJiraIssuesUsingJql", "createJiraIssue", "getConfluenceContent"] },
         new("figma", "Figma", "Figma", "Design details and screenshots from files", MCPCategory.Work, "mcp-figma", 0xF24E1E, new MCPTransport.OAuth("https://mcp.figma.com/mcp"), "https://help.figma.com/hc/en-us/articles/32132100833559")
-        { SampleTools = ["get_design_context", "get_screenshot", "get_metadata"] }
+        { SampleTools = ["get_design_context", "get_screenshot", "get_metadata"] },
+        new("sentry", "Sentry", "Sentry", "Error reports and which projects they hit", MCPCategory.Developer, "mcp-sentry", 0x7B61FF, new MCPTransport.OAuth("https://mcp.sentry.dev/mcp"), "https://mcp.sentry.dev")
+        { SampleTools = ["search_issues", "get_issue_details", "find_projects"] },
+        new("vercel", "Vercel", "Vercel", "Projects, deployments and their build logs", MCPCategory.Cloud, "mcp-vercel", 0x000000, new MCPTransport.OAuth("https://mcp.vercel.com"), "https://vercel.com/docs/agent-resources/vercel-mcp")
+        { IsMonochrome = true, SampleTools = ["list_projects", "list_deployments", "get_deployment_build_logs"] },
+        new("cloudflare", "Cloudflare", "Cloudflare", "Workers, storage buckets and databases", MCPCategory.Cloud, "mcp-cloudflare", 0xF38020, new MCPTransport.OAuth("https://bindings.mcp.cloudflare.com/mcp"), "https://github.com/cloudflare/mcp-server-cloudflare")
+        { SampleTools = ["workers_list", "kv_namespaces_list", "r2_buckets_list", "d1_databases_list"] },
+        new("netlify", "Netlify", "Netlify", "Sites, deploys, forms and environment variables", MCPCategory.Cloud, "mcp-netlify", 0x00C7B7, new MCPTransport.OAuth("https://netlify-mcp.netlify.app/mcp"), "https://docs.netlify.com/welcome/build-with-ai/netlify-mcp-server/")
+        { SampleTools = ["get-projects", "deploy-site", "manage-env-vars", "get-deploy"] },
+        new("supabase", "Supabase", "Supabase", "Projects, SQL queries and database changes", MCPCategory.Data, "mcp-supabase", 0x3ECF8E, new MCPTransport.OAuth("https://mcp.supabase.com/mcp"), "https://supabase.com/docs/guides/ai-tools/mcp")
+        { SampleTools = ["list_projects", "execute_sql", "apply_migration", "query_logs"] },
+        new("stripe", "Stripe", "Stripe", "Customers, payment links and balances", MCPCategory.Work, "mcp-stripe", 0x635BFF, new MCPTransport.OAuth("https://mcp.stripe.com"), "https://docs.stripe.com/mcp")
+        { SampleTools = ["create_customer", "list_customers", "create_payment_link", "retrieve_balance"] },
+        new("resend", "Resend", "Resend", "Sends email and manages contacts, broadcasts and domains", MCPCategory.Work, "mcp-resend", 0x000000, new MCPTransport.OAuth("https://mcp.resend.com/mcp"), "https://github.com/resend/resend-mcp")
+        { IsMonochrome = true, SampleTools = ["send-email", "list-contacts", "create-broadcast", "list-domains"] },
+        new("postgres", "PostgreSQL", "PostgreSQL", "Runs SQL and explores the schema of a Postgres database", MCPCategory.Data, "mcp-postgres", 0x4169E1, new MCPTransport.Stdio("npx", ["-y", "@bytebase/dbhub@latest", "--transport", "stdio", "--dsn", "{url}"]), "https://github.com/bytebase/dbhub")
+        { Fields = [new MCPField("url", "Connection string", "postgresql://user:pass@host:5432/db", MCPField.Kind.Secret, Help: "The connection string; a read-only user is safest")], SampleTools = ["execute_sql", "search_objects"] },
+        new("sqlite", "SQLite", "SQLite", "Reads and writes a local database file", MCPCategory.Data, "mcp-sqlite", 0x0F80CC, new MCPTransport.Stdio("uvx", ["mcp-server-sqlite", "--db-path", "{path}"]), "https://github.com/modelcontextprotocol/servers-archived/tree/main/src/sqlite")
+        { Fields = [new MCPField("path", "Database file", "/path/to/app.db", MCPField.Kind.Path, Help: "Created if it does not exist")], SampleTools = ["read_query", "write_query", "list_tables", "describe-table"] },
+        new("mongodb", "MongoDB", "MongoDB", "Finds and changes documents in your collections", MCPCategory.Data, "mcp-mongodb", 0x47A248, new MCPTransport.Stdio("npx", ["-y", "mongodb-mcp-server"]), "https://github.com/mongodb-js/mongodb-mcp-server")
+        { Fields = [new MCPField("url", "Connection string", "mongodb+srv://…", MCPField.Kind.Secret, Help: "In Atlas: Connect → Drivers, then copy the string")], Env = new Dictionary<string, string> { ["MDB_MCP_CONNECTION_STRING"] = "{url}" }, SampleTools = ["find", "aggregate", "list-collections", "insert-many"], KeysUrl = "https://cloud.mongodb.com" }
     });
 }

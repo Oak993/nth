@@ -806,9 +806,9 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "IMPLEMENTING",
+      "status": "DONE",
       "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: Independent complete Expected table for PR-MCP-021..030 and argument/env fixtures reviewed against Swift; two expected failures before entries exist."
+      "notes": "2026-09-22 TESTS_REVIEW: Independent complete Expected table for PR-MCP-021..030 and argument/env fixtures reviewed against Swift; two expected failures before entries exist. | 2026-09-22 DONE: PR-MCP-021..030 exact catalog fixtures and synthetic DB argv/env contracts, 106 tests passed. Director reviewed source diff; approved fixtures unchanged. Stripe challenge-parser integration remains OAuth Services packet; no network/process/database actions."
     },
     {
       "id": "T-M2-028",

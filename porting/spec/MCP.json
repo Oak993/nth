@@ -525,10 +525,11 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "id": "PR-MCP-022",
@@ -549,10 +550,11 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "id": "PR-MCP-023",
@@ -573,10 +575,11 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "id": "PR-MCP-024",
@@ -597,10 +600,11 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "id": "PR-MCP-025",
@@ -621,10 +625,11 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "id": "PR-MCP-026",
@@ -645,10 +650,11 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture; contract fixture replaying Stripe's bare resource_metadata challenge",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "id": "PR-MCP-027",
@@ -669,10 +675,11 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "id": "PR-MCP-028",
@@ -693,10 +700,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. Note the DSN reaching argv and the four on-disk provider configs is upstream behavior for every secret field that resolves into args; the Windows port reproduces it.",
       "verification_method": "unit test against a frozen catalog fixture; contract fixture for the resolved argv",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "id": "PR-MCP-029",
@@ -717,10 +725,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data; the placeholder \"/path/to/app.db\" stays verbatim.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "id": "PR-MCP-030",
@@ -742,10 +751,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data, including the U+2192 arrow in the help string.",
       "verification_method": "unit test against a frozen catalog fixture with byte-exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-027"
     },
     {
       "id": "PR-MCP-031",
