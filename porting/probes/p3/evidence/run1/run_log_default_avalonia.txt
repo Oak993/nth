@@ -1,0 +1,44 @@
+18:57:16.920Z P3 start composition=default mode=avalonia cursor0=(2276,612)
+18:57:16.929Z avalonia 12.1.2+d3c867a9e2de379249b03dbeb3495bd7f076a81a
+18:57:16.929Z skiasharp 3.119.4+release-3.119.4.f568ac94dd768ef9a2f593537cfde2dd0d348ef5.f568ac94dd768ef9a2f593537cfde2dd0d348ef5
+18:57:16.929Z os Microsoft Windows NT 10.0.26200.0; MARROW_PORT_DATA_DIR=C:\Users\omera\AppData\Local\Temp\marrow-p3-1093583852
+18:57:16.930Z primary work area (physical) [0,0]-[2560,1392] 2560x1392
+18:57:17.104Z checker hwnd=0x210828 dpi=96 ex=0x00200008 LAYERED=False NOREDIRECTIONBITMAP=True TRANSPARENT=False TOPMOST=True
+18:57:19.150Z acrylic hwnd=0x2308A8 dpi=96 ex=0x00200108 LAYERED=False NOREDIRECTIONBITMAP=True TRANSPARENT=False TOPMOST=True
+18:57:19.151Z acrylic TransparencyLevelHint=[AcrylicBlur] ActualTransparencyLevel=AcrylicBlur ExtendClientAreaToDecorationsHint=True IsExtendedIntoWindowDecorations=True ActualThemeVariant=Dark
+18:57:19.152Z acrylic GetWindowRect=[800,376]-[1760,1016] 960x640 DWM frame bounds=[807,376]-[1753,1009] 946x633
+18:57:20.668Z focus acrylic via SetForegroundWindow; foreground==acrylic True; IsActive=True
+18:57:20.695Z CAPTURE acrylic_focused          rect=[807,376]-[1753,1009] 946x633 rawSha256=389de57efb9e1e9921c3b0343d7aa69ab49e498d3119bcb9261e315dc0b9539b pngSha256=46cb5ee482890eca0de458820956bb26f862d493ebab81f203cf5ecac80e758c file=acrylic_focused.png (3405 B)
+18:57:21.115Z CAPTURE acrylic_focused_repeat   rect=[807,376]-[1753,1009] 946x633 rawSha256=389de57efb9e1e9921c3b0343d7aa69ab49e498d3119bcb9261e315dc0b9539b pngSha256=46cb5ee482890eca0de458820956bb26f862d493ebab81f203cf5ecac80e758c file=acrylic_focused_repeat.png (3405 B)
+18:57:21.115Z foreground==acrylic after focused captures True; ex=0x00200108 LAYERED=False NOREDIRECTIONBITMAP=True TRANSPARENT=False TOPMOST=True
+18:57:22.637Z focus checker via SetForegroundWindow; foreground==checker True; acrylic.IsActive=False
+18:57:22.654Z CAPTURE acrylic_unfocused        rect=[807,376]-[1753,1009] 946x633 rawSha256=7ffae0cf05afe82723d281f69b2fb84c7ad7e31a8ba281613f11da33a0b4c562 pngSha256=c01af74e8673b65a9444767c94c4a3d0cd65c5b3cd4312eaaaf771fe7239b02e file=acrylic_unfocused.png (3620 B)
+18:57:24.173Z refocus acrylic via SetForegroundWindow; foreground==acrylic True
+18:57:24.187Z CAPTURE acrylic_refocused        rect=[807,376]-[1753,1009] 946x633 rawSha256=389de57efb9e1e9921c3b0343d7aa69ab49e498d3119bcb9261e315dc0b9539b pngSha256=46cb5ee482890eca0de458820956bb26f862d493ebab81f203cf5ecac80e758c file=acrylic_refocused.png (3405 B)
+18:57:25.211Z CAPTURE control_hidden           rect=[807,376]-[1753,1009] 946x633 rawSha256=a98707c4e984db545c9324c9a932ad8bb272e2c674e644135de6952260a615ce pngSha256=7c701f89aab8524f16f8e4e79f68930a2a796b468234a5e2d0b244624dcb8223 file=control_hidden.png (2871 B)
+18:57:25.629Z CAPTURE control_hidden_repeat    rect=[807,376]-[1753,1009] 946x633 rawSha256=a98707c4e984db545c9324c9a932ad8bb272e2c674e644135de6952260a615ce pngSha256=7c701f89aab8524f16f8e4e79f68930a2a796b468234a5e2d0b244624dcb8223 file=control_hidden_repeat.png (2871 B)
+18:57:28.669Z ctl_none_opaque: hwnd=0x6508C8 frame=[807,376]-[1753,1009] 946x633 focus via SetForegroundWindow fg=True ActualTransparencyLevel=None ex=0x00200108 LAYERED=False NOREDIRECTIONBITMAP=True TRANSPARENT=False TOPMOST=True
+18:57:28.684Z CAPTURE ctl_none_opaque          rect=[807,376]-[1753,1009] 946x633 rawSha256=09ba098164413ad25dc249eb9721a3037a683916c1fa030244e776e4fe101b2e pngSha256=44369ef0d8204864ddbba668e1d662cd05b6bc1d36432d6b107543c045900541 file=ctl_none_opaque.png (2197 B)
+18:57:32.343Z ctl_transparent_tint_only: hwnd=0x6608C8 frame=[807,376]-[1753,1009] 946x633 focus via SetForegroundWindow fg=True ActualTransparencyLevel=Transparent ex=0x00200108 LAYERED=False NOREDIRECTIONBITMAP=True TRANSPARENT=False TOPMOST=True
+18:57:32.359Z CAPTURE ctl_transparent_tint_only rect=[807,376]-[1753,1009] 946x633 rawSha256=e912905dbdb50ec9e425120bc3b7d8238f3cf2d10b0a8db43c9c7770782ffbd0 pngSha256=3cacac6890f0645187329ec8e36c2a520cade68fa56c070204a0f9d83a491482 file=ctl_transparent_tint_only.png (3542 B)
+18:57:32.988Z ctl_layered_acrylic: forced WS_EX_LAYERED + SetLayeredWindowAttributes(alpha 255) ok=True
+18:57:36.020Z ctl_layered_acrylic: hwnd=0x6708C8 frame=[807,376]-[1753,1009] 946x633 focus via SetForegroundWindow fg=True ActualTransparencyLevel=AcrylicBlur ex=0x00280108 LAYERED=True NOREDIRECTIONBITMAP=True TRANSPARENT=False TOPMOST=True
+18:57:36.034Z CAPTURE ctl_layered_acrylic      rect=[807,376]-[1753,1009] 946x633 rawSha256=389de57efb9e1e9921c3b0343d7aa69ab49e498d3119bcb9261e315dc0b9539b pngSha256=46cb5ee482890eca0de458820956bb26f862d493ebab81f203cf5ecac80e758c file=ctl_layered_acrylic.png (3405 B)
+18:57:36.652Z CONTROL control_hidden meanRGB=(255.0,255.0,255.0) lumaStd=0.00 twoValuedFraction=1.0000 sqGrad=0.00 repeatIdentical=True metricsInterior=850x489
+18:57:36.652Z screenLive (control shows our checkerboard, not a uniform or foreign image) = False
+18:57:36.659Z METRIC acrylic_focused          meanRGB=(255.0,255.0,255.0) lumaStd=0.00 pixCorr=0.0000 blockCorr=0.0000 slope=0.0000 sqGrad=0.00 sqGradRatio=NaN sharpNorm=Infinity meanDelta=0.00 shaDiffers=True seesThrough=False blurred=False tinted=False => blurredAndTinted=False
+18:57:36.665Z METRIC acrylic_focused_repeat   meanRGB=(255.0,255.0,255.0) lumaStd=0.00 pixCorr=0.0000 blockCorr=0.0000 slope=0.0000 sqGrad=0.00 sqGradRatio=NaN sharpNorm=Infinity meanDelta=0.00 shaDiffers=True seesThrough=False blurred=False tinted=False => blurredAndTinted=False
+18:57:36.671Z METRIC acrylic_unfocused        meanRGB=(255.0,255.0,255.0) lumaStd=0.00 pixCorr=0.0000 blockCorr=0.0000 slope=0.0000 sqGrad=0.00 sqGradRatio=NaN sharpNorm=Infinity meanDelta=0.00 shaDiffers=True seesThrough=False blurred=False tinted=False => blurredAndTinted=False
+18:57:36.677Z METRIC acrylic_refocused        meanRGB=(255.0,255.0,255.0) lumaStd=0.00 pixCorr=0.0000 blockCorr=0.0000 slope=0.0000 sqGrad=0.00 sqGradRatio=NaN sharpNorm=Infinity meanDelta=0.00 shaDiffers=True seesThrough=False blurred=False tinted=False => blurredAndTinted=False
+18:57:36.677Z focused repeat rawSha identical=True; unfocused==focused False; refocused==focused True
+18:57:36.683Z METRIC ctl_none_opaque          meanRGB=(0.0,0.0,0.0) lumaStd=0.00 pixCorr=0.0000 blockCorr=0.0000 slope=0.0000 sqGrad=0.00 sqGradRatio=NaN sharpNorm=Infinity meanDelta=441.67 shaDiffers=True seesThrough=False blurred=False tinted=True => blurredAndTinted=False
+18:57:36.689Z METRIC ctl_transparent_tint_only meanRGB=(142.0,142.0,143.0) lumaStd=0.00 pixCorr=0.0000 blockCorr=0.0000 slope=0.0000 sqGrad=0.00 sqGradRatio=NaN sharpNorm=Infinity meanDelta=195.15 shaDiffers=True seesThrough=False blurred=False tinted=True => blurredAndTinted=False
+18:57:36.695Z METRIC ctl_layered_acrylic      meanRGB=(255.0,255.0,255.0) lumaStd=0.00 pixCorr=0.0000 blockCorr=0.0000 slope=0.0000 sqGrad=0.00 sqGradRatio=NaN sharpNorm=Infinity meanDelta=0.00 shaDiffers=True seesThrough=False blurred=False tinted=False => blurredAndTinted=False
+18:57:36.697Z METRIC control_hidden_repeat    meanRGB=(255.0,255.0,255.0) lumaStd=0.00 pixCorr=0.0000 blockCorr=0.0000 slope=0.0000 sqGrad=0.00 sqGradRatio=NaN sharpNorm=Infinity meanDelta=0.00 shaDiffers=False seesThrough=False blurred=False tinted=False => blurredAndTinted=False
+18:57:36.698Z ASSERT acrylic GWL_EXSTYLE after show: 0x00200108 LAYERED=False NOREDIRECTIONBITMAP=True TRANSPARENT=False TOPMOST=True
+18:57:36.698Z ASSERT acrylic GWL_EXSTYLE focused: 0x00200108 LAYERED=False NOREDIRECTIONBITMAP=True TRANSPARENT=False TOPMOST=True
+18:57:36.698Z ASSERT acrylic GWL_EXSTYLE unfocused: 0x00200108 LAYERED=False NOREDIRECTIONBITMAP=True TRANSPARENT=False TOPMOST=True
+18:57:36.698Z ASSERT acrylic GWL_EXSTYLE refocused: 0x00200108 LAYERED=False NOREDIRECTIONBITMAP=True TRANSPARENT=False TOPMOST=True
+18:57:36.698Z SUMMARY neverLayered=True actualAcrylic=True screenLive=False focusHeld=True focusedBlurredAndTinted=False focusedRepeatBlurredAndTinted=False unfocusedBlurredAndTinted=False refocusedBlurredAndTinted=False allControlsFail=True
+18:57:36.698Z RESULT: INCONCLUSIVE
+18:57:36.707Z windows closed; cursor restored to (2276,612) (was (2276,612))

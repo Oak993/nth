@@ -11,6 +11,8 @@
     <PackageVersion Include="Avalonia.Desktop" Version="12.1.2" />
     <PackageVersion Include="Avalonia.Skia" Version="12.1.2" />
     <PackageVersion Include="Avalonia.Headless" Version="12.1.2" />
+    <!-- OD-0009: the text face is Inter (measured closer to the Mac oracle than Segoe UI Variable, probe P9 INTER.md). -->
+    <PackageVersion Include="Avalonia.Fonts.Inter" Version="12.1.2" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />

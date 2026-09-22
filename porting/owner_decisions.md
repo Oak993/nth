@@ -180,6 +180,10 @@ instruction may change one.
   harness against the tour oracle; the face that matches more wrap points becomes the port's text
   face. Either way wrap points are a named deviation. Monospace: Cascadia Mono, as recommended in
   the sheet (D3). Closes the typography half of UNK-0007.
+- **Measured result, 2026-09-22 (porting/probes/p9/INTER.md):** Inter matched 6/10 oracle fixtures (3/7
+  multi-line) against Segoe UI Variable's 3/10 (0/7); mean width ratio 1.024 against 0.957. The rule
+  gives **Inter**, shipped from the Avalonia.Fonts.Inter 12.1.2 package (Inter 3.019), added to
+  Directory.Packages.props. Wrap points still differ on 4 fixtures: a named deviation.
 
 ## OD-0010 Icons: Lucide
 
