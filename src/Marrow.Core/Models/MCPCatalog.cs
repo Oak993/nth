@@ -64,6 +64,29 @@ public static partial class MCPCatalog
         new("sqlite", "SQLite", "SQLite", "Reads and writes a local database file", MCPCategory.Data, "mcp-sqlite", 0x0F80CC, new MCPTransport.Stdio("uvx", ["mcp-server-sqlite", "--db-path", "{path}"]), "https://github.com/modelcontextprotocol/servers-archived/tree/main/src/sqlite")
         { Fields = [new MCPField("path", "Database file", "/path/to/app.db", MCPField.Kind.Path, Help: "Created if it does not exist")], SampleTools = ["read_query", "write_query", "list_tables", "describe-table"] },
         new("mongodb", "MongoDB", "MongoDB", "Finds and changes documents in your collections", MCPCategory.Data, "mcp-mongodb", 0x47A248, new MCPTransport.Stdio("npx", ["-y", "mongodb-mcp-server"]), "https://github.com/mongodb-js/mongodb-mcp-server")
-        { Fields = [new MCPField("url", "Connection string", "mongodb+srv://…", MCPField.Kind.Secret, Help: "In Atlas: Connect → Drivers, then copy the string")], Env = new Dictionary<string, string> { ["MDB_MCP_CONNECTION_STRING"] = "{url}" }, SampleTools = ["find", "aggregate", "list-collections", "insert-many"], KeysUrl = "https://cloud.mongodb.com" }
+        { Fields = [new MCPField("url", "Connection string", "mongodb+srv://…", MCPField.Kind.Secret, Help: "In Atlas: Connect → Drivers, then copy the string")], Env = new Dictionary<string, string> { ["MDB_MCP_CONNECTION_STRING"] = "{url}" }, SampleTools = ["find", "aggregate", "list-collections", "insert-many"], KeysUrl = "https://cloud.mongodb.com" },
+        new("huggingface", "Hugging Face", "Hugging Face", "Searches models, datasets and papers", MCPCategory.Knowledge, "mcp-huggingface", 0xFFB000, new MCPTransport.Http("https://huggingface.co/mcp", new Dictionary<string, string> { ["Authorization"] = "Bearer {token}" }), "https://github.com/huggingface/hf-mcp-server")
+        { Fields = [new MCPField("token", "Access token", "hf_…", MCPField.Kind.Secret, Help: "Optional. Raises the limits", IsRequired: false)], SampleTools = ["hub_repo_search", "hub_repo_details", "hf_fs", "hf_whoami"], KeysUrl = "https://huggingface.co/settings/tokens" },
+        new("deepwiki", "DeepWiki", "Cognition", "Reads docs and answers questions about repos", MCPCategory.Knowledge, "mcp-deepwiki", 0x1D1D1F, new MCPTransport.Http("https://mcp.deepwiki.com/mcp", new Dictionary<string, string> {  }), "https://docs.devin.ai/work-with-devin/deepwiki-mcp")
+        { IsMonochrome = true, SampleTools = ["read_wiki_structure", "read_wiki_contents", "ask_question"] },
+        new("aws-docs", "AWS Docs", "Amazon Web Services", "Searches and reads the AWS documentation", MCPCategory.Cloud, "mcp-aws-docs", 0xFF9900, new MCPTransport.Stdio("uvx", ["awslabs.aws-documentation-mcp-server@latest"]), "https://awslabs.github.io/mcp/servers/aws-documentation-mcp-server")
+        { Env = new Dictionary<string, string> { ["FASTMCP_LOG_LEVEL"] = "ERROR" }, SampleTools = ["read_documentation", "search_documentation", "recommend"] }
     });
+
+    public static MCPCatalogEntry? Entry(string id) => Entries.FirstOrDefault(entry => entry.Id == id);
+
+    public static MCPCatalogEntry? EntryMatching(string serverName)
+    {
+        static string Normalize(string value) => value.ToLowerInvariant().Replace('_', '-').Replace(' ', '-');
+        var wanted = Normalize(serverName);
+        return Entries.FirstOrDefault(entry => Normalize(entry.Id) == wanted)
+            ?? Entries.FirstOrDefault(entry => Normalize(entry.Name) == wanted);
+    }
+
+    public static IReadOnlyList<(MCPCategory Category, IReadOnlyList<MCPCatalogEntry> Entries)> ByCategory =>
+        Array.AsReadOnly(Enum.GetValues<MCPCategory>()
+            .Select(category => (Category: category, Entries: (IReadOnlyList<MCPCatalogEntry>)Array.AsReadOnly(Entries.Where(entry => entry.Category == category).ToArray())))
+            .Where(group => group.Entries.Count > 0).ToArray());
+
+    public static IReadOnlyList<string> Ids { get; } = Array.AsReadOnly(Entries.Select(entry => entry.Id).ToArray());
 }

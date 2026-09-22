@@ -7,9 +7,9 @@
   "counts": {
     "total": 3827,
     "by_status": {
-      "SPECIFIED": 3681,
+      "SPECIFIED": 3674,
       "DISCOVERED": 85,
-      "IMPLEMENTED": 61
+      "IMPLEMENTED": 68
     },
     "by_area": {
       "CHAT": 188,
@@ -24857,10 +24857,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-028"
     },
     {
       "area": "MCP",
@@ -24882,10 +24883,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture; contract fixture asserting the four provider files differ for this server",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-028"
     },
     {
       "area": "MCP",
@@ -24907,10 +24909,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-028"
     },
     {
       "area": "MCP",
@@ -24933,10 +24936,11 @@
       "cancellation": "not cancellable",
       "windows_path": "One ordered array, not a map, because the order drives the grid within each category section.",
       "verification_method": "unit test on count, order and the OAuth subset",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-028"
     },
     {
       "area": "MCP",
@@ -24958,10 +24962,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct lookup; must stay case-sensitive.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-028"
     },
     {
       "area": "MCP",
@@ -24983,10 +24988,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-pass lookup and the same three-rule normalizer. Do not add extra normalization (stripping spaces, removing hyphens): it would change which names resolve.",
       "verification_method": "unit with id and normalized-name lookup, the positive \"Hugging Face\" name fallback, and negative whitespace/punctuation cases; review id-before-name precedence against source",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-028"
     },
     {
       "area": "MCP",
@@ -25009,10 +25015,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Preserve declaration order explicitly; do not sort alphabetically.",
       "verification_method": "unit asserting the seven-group order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-028"
     },
     {
       "area": "MCP",
