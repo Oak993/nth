@@ -50,6 +50,7 @@ const PROTECTED = [
   'tests/Marrow.Core.Tests/Marrow.Core.Tests.csproj',
   'tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj',
   'tests/Marrow.UI.Tests/Marrow.UI.Tests.csproj',
+  'tests/Marrow.App.Tests/Marrow.App.Tests.csproj',
   'tests/Marrow.Core.Tests/LayeringTests.cs', 'tests/Marrow.Services.Tests/LayeringTests.cs',
   'tests/Marrow.UI.Tests/LayeringTests.cs',
   // the instructions workers are given
