@@ -708,9 +708,9 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": null,
-      "notes": ""
+      "status": "IMPLEMENTING",
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: Read all 263 MCP.swift lines. Latest diff only replaces whitespace trim with Text.swift:132 identical helper. Tests cover PR-MCP-038..047 including ordered fill, host normalization, transport isolation, strict wire schema. Services resolver takes lazy route supplier; proxy lifecycle remains its Services packet."
     },
     {
       "id": "T-M2-024",
