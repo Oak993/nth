@@ -1,0 +1,253 @@
+{
+  "bundle_id": "R2-27",
+  "reader": "R2-27-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/MCP/MCPProxy.swift",
+      "sha256": "12b5cb00891ae0244748889f0520276fbe94e69f10d4850cd6c40b9ee437f0ce",
+      "lines_total": 460,
+      "ranges_read": [
+        [
+          1,
+          460
+        ]
+      ],
+      "purpose": "Implements a singleton loopback HTTP/1.1 reverse proxy (Network.framework NWListener on 127.0.0.1) that sits between agent CLIs and remote MCP servers which need OAuth: each registered server id gets a route at http://127.0.0.1:<port>/mcp/<serverID>, and the proxy forwards the request upstream with URLSession, injecting a 'Bearer' access token from MCPOAuth and retrying once on a 401. It hand-parses the request head and body with fixed size limits, answers every unroutable path with 502 'unknown server' (never 404), and streams text/event-stream responses back to the client as one-byte HTTP chunks while buffering all other responses with a Content-Length. The listening port is persisted to the file <Storage.root>/mcp/proxy-port (MCPPaths.directory, MCP.swift:237-241) so provider config files written on one launch still point at the proxy on the next, and it is re-picked once when the saved port cannot be bound.",
+      "key_symbols": [
+        "final class MCPProxy: @unchecked Sendable",
+        "static let shared = MCPProxy()",
+        "static var port: UInt16 { portBox.withLock { $0 } }",
+        "private static let portBox = Mutex<UInt16>(loadPort())",
+        "private static let portFile = MCPPaths.directory.appendingPathComponent(\"proxy-port\")",
+        "private static func loadPort() -> UInt16",
+        "private static func repickPort() -> UInt16",
+        "static func url(for serverID: String) -> String  // \"http://127.0.0.1:\\(port)/mcp/\\(serverID)\"",
+        "private struct Route: Sendable { var upstream: String; var headers: [String: String]; var usesOAuth: Bool }",
+        "private struct ConnectionBox: @unchecked Sendable { let connection: NWConnection }",
+        "private static let headLimit = 65_536",
+        "private static let bodyLimit = 32 * 1_024 * 1_024",
+        "private static let divider = Data(\"\\r\\n\\r\\n\".utf8)",
+        "private let queue = DispatchQueue(label: \"MCPProxy\")",
+        "private struct State { var routes: [String: Route] = [:]; var listener: NWListener?; var connections: [ObjectIdentifier: NWConnection] = [:]; var running = false }",
+        "private let state = Mutex(State())",
+        "private init() {}",
+        "func register(serverID: String, upstream: String, headers: [String: String], usesOAuth: Bool)",
+        "func unregister(serverID: String)",
+        "func replaceAll(_ routes: [(serverID: String, upstream: String, headers: [String: String], usesOAuth: Bool)])",
+        "func start()",
+        "private func listen(on port: UInt16, canRepick: Bool)",
+        "func stop()",
+        "private static func pickFreePort() -> UInt16",
+        "private func accept(_ connection: NWConnection)",
+        "private func forget(_ connection: NWConnection)",
+        "private func readHead(_ connection: NWConnection, _ prefix: Data)",
+        "private static func parseHead(_ head: Data) -> (method: String, path: String, headers: [String: String])?",
+        "private func handleExchange(connection: NWConnection, head: Data, rest: Data)",
+        "private func readBody(connection: NWConnection, method: String, path: String, clientHeaders: [String: String], buffer: Data, need: Int)",
+        "private func routeRequest(connection: NWConnection, method: String, path: String, clientHeaders: [String: String], body: Data)",
+        "private func sendUpstream(box: ConnectionBox, serverID: String, route: Route, method: String, clientHeaders: [String: String], body: Data) async throws",
+        "private func writeBack(box: ConnectionBox, response: HTTPURLResponse, stream: URLSession.AsyncBytes) async throws",
+        "private func send(_ connection: NWConnection, _ data: Data) async",
+        "private func respond(connection: NWConnection, status: Int, body: Data)",
+        "private static func statusHead(status: Int, headers: [(String, String)]) -> String",
+        "private static func reasonPhrase(for status: Int) -> String",
+        "private static func jsonError(_ message: String) -> Data"
+      ],
+      "calls_into": [
+        "MCPPaths.directory (MCP.swift:237-241: Storage.root.appendingPathComponent(\"mcp\", isDirectory: true), created on first access with try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)); location of the 'proxy-port' file",
+        "MCPOAuth.accessToken(serverID:) async throws -> String (called for every OAuth-routed request, and again after an upstream 401)",
+        "String.trimmed (project extension, defined in DroppyCode/Core/Support/Text.swift:132 as trimmingCharacters(in: .whitespacesAndNewlines))",
+        "Network: NWListener, NWParameters.tcp, NWEndpoint.Port, NWEndpoint.hostPort, NWConnection.start/receive/send/cancel",
+        "Synchronization.Mutex.withLock",
+        "URLSession.shared.bytes(for:) and URLSession.AsyncBytes iteration",
+        "Darwin.socket, bind, getsockname, close, inet_addr (BSD sockets)",
+        "Swift concurrency: Task, withCheckedContinuation"
+      ],
+      "state_owned": [
+        "static portBox: Mutex<UInt16> initialised from loadPort() (lazily, on first access of MCPProxy.port or repickPort)",
+        "state: Mutex<State> holding routes [serverID: Route], the current NWListener?, open connections keyed by ObjectIdentifier(NWConnection), and the running flag",
+        "queue: serial DispatchQueue labelled \"MCPProxy\" on which the listener and every accepted connection run"
+      ],
+      "side_effects": [
+        "Reads and writes the file <Storage.root>/mcp/proxy-port (MCPPaths.directory) (UTF-8 decimal port, written atomically with try?, errors ignored) in loadPort() when no valid saved port exists and in repickPort().",
+        "Binds a TCP listener on 127.0.0.1:<port> restricted to the loopback interface with allowLocalEndpointReuse = true.",
+        "Opens and immediately closes a throwaway AF_INET SOCK_STREAM socket bound to 127.0.0.1:0 to learn a free port.",
+        "Makes outbound HTTP(S) requests to each route's upstream URL with URLSession.shared.bytes(for:) (no delegate, no custom session), request.timeoutInterval = 3_600 (URLRequest.timeoutInterval is the idle interval allowed between received data, not a total deadline), including an Authorization: Bearer header from MCPOAuth for OAuth routes.",
+        "Writes to stdout with print: \"MCPProxy: could not listen on \\(port)\", \"MCPProxy: listening on \\(port)\", \"MCPProxy: listener on \\(port) failed: \\(error)\", \"MCPProxy: request to '\\(serverID)' failed: \\(error.localizedDescription)\".",
+        "Cancels client connections after every response (Connection: close on every reply)."
+      ],
+      "platform_assumptions": [
+        "Network.framework (NWListener, NWConnection, NWParameters, NWEndpoint) for the loopback server: Windows needs a Node/Electron http.Server or net.Server bound to 127.0.0.1.",
+        "Synchronization.Mutex (Swift 6 / macOS 15) for port and state locking; a single-threaded JS event loop replaces it.",
+        "Darwin BSD sockets (Darwin.socket, sockaddr_in with sin_len, bind, getsockname, inet_addr, close) in pickFreePort; the comment says a listener asked for an ephemeral port 'fails with EINVAL on current macOS'. On Windows, listening on port 0 and reading address().port works.",
+        "Comment on listen(): passing the port both in requiredLocalEndpoint and via NWListener(using:on:) is rejected with EINVAL; this is a Network.framework quirk that a Windows port does not share.",
+        "URLSession.shared.bytes(for:) async byte stream and HTTPURLResponse; Windows replaces with fetch/undici or Node http(s) streaming.",
+        "Foundation String(contentsOf:encoding:) / write(to:atomically:encoding:) for the port file; String(data:encoding: .isoLatin1) for head decoding.",
+        "DispatchQueue for NW callbacks; Swift structured concurrency Task/withCheckedContinuation.",
+        "MCPPaths.directory is Storage.root/mcp (MCP.swift:237-241), created on first access; the same enum puts claude.json, codex.json and copilot.json beside proxy-port (MCP.swift:248-252). The port file path must map to the Windows data folder.",
+        "Fallback port 48123 is a fixed constant, platform neutral.",
+        "Line 103 `parameters.allowLocalEndpointReuse = true`: the re-pick design (lines 8-11 'the second to launch would answer nothing'; lines 96-98 'A port already taken (another copy of the app) fails only once the listener starts') depends on the second bind of a taken port FAILING on macOS despite this flag. Do not map the flag to SO_REUSEADDR on Windows: Winsock SO_REUSEADDR lets a second socket bind a port already in use, so the collision would never be detected. A Windows port should listen plainly on 127.0.0.1 and treat EADDRINUSE from listen as the re-pick trigger.",
+        "Line 315 `request.timeoutInterval = 3_600`: on URLRequest/URLSession this is an inactivity timeout (seconds allowed between received data), not a total request deadline; the overall cap is the session's timeoutIntervalForResource (URLSession.shared default 7 days). A port must not use a total deadline such as AbortSignal.timeout(3600000), which would kill a still-active text/event-stream response after one hour; it needs a 3_600 s idle timer reset on every chunk.",
+        "Lines 344 and 349 use URLSession.shared.bytes(for:), which brings URLSession.shared defaults not written in this file: HTTP redirects are followed automatically, a gzip/deflate Content-Encoding response is transparently decoded (Accept-Encoding is added automatically), and cookies go to the shared HTTPCookieStorage. writeBack (lines 360-370) copies only Content-Type, Mcp-Session-Id and Cache-Control, never Content-Encoding or Set-Cookie. A port on raw Node http must decode compressed bodies (or not request compression) and follow redirects itself, or it would pass compressed bytes with no Content-Encoding header."
+      ],
+      "persisted_fields": [
+        "File <Storage.root>/mcp/proxy-port (MCPPaths.directory, MCP.swift:237-241): plain UTF-8 text holding the decimal port (written as \"\\(picked)\"). On read it is trimmed of whitespace and newlines and parsed as UInt16; a value that fails to parse or equals 0 is ignored and a new port is picked and written. No default value other than the pickFreePort() fallback 48123."
+      ],
+      "ui_elements": [
+        "None. The file has no UI; its only user-visible strings are the JSON error bodies and console print lines listed in feature_notes."
+      ],
+      "feature_notes": [
+        "Port: MCPProxy.port reads portBox; portBox is seeded by loadPort(): saved port from 'proxy-port' if it parses as a non-zero UInt16, otherwise pickFreePort() whose result is written to the file. repickPort() picks a new free port, stores it in portBox and writes it to the file. repickPort() re-exports nothing: no code in MCPProxy.swift or MCPStore.swift rewrites the provider configs or reloads MCPHub after a re-pick.",
+        "Comment on port: re-picked when the saved port cannot be bound because 'the Dev build runs over a mirror of the release library, so both would otherwise ask for the same one'.",
+        "pickFreePort(): socket(AF_INET, SOCK_STREAM, 0); on failure returns 48123; binds 127.0.0.1 port 0, then getsockname; if bind or getsockname fails returns 48123; converts sin_port with UInt16(bigEndian:), and returns 48123 if the result is 0. The socket is closed in a defer.",
+        "url(for:) returns \"http://127.0.0.1:\\(port)/mcp/\\(serverID)\" with no escaping of serverID.",
+        "register stores Route(upstream, headers, usesOAuth) under serverID; unregister removes it; replaceAll replaces the whole routes dictionary with Dictionary(uniqueKeysWithValues:) (a duplicate serverID in the input would trap). Every B2 call passes `headers: [:], usesOAuth: true` (MCPStore.swift:284 and 311), so the route.headers override loop (lines 328-330) and the usesOAuth == false path are unreachable in B2.",
+        "start(): atomically checks and sets running; if already running returns; otherwise listen(on: Self.port, canRepick: true).",
+        "listen(on:canRepick:): returns if NWEndpoint.Port(rawValue:) fails (line 100 `guard let endpointPort = NWEndpoint.Port(rawValue: port) else { return }`) WITHOUT resetting running, which start() already set to true (line 87), so every later start() is a no-op (unlike the NWListener-throws path, which sets running = false); NWParameters.tcp with requiredInterfaceType = .loopback, allowLocalEndpointReuse = true, requiredLocalEndpoint = .hostPort(host: \"127.0.0.1\", port:). If NWListener(using:) throws: prints \"MCPProxy: could not listen on \\(port)\", sets running = false, returns (no repick in that path). On state .ready prints \"MCPProxy: listening on \\(port)\". On .failed(error): prints \"MCPProxy: listener on \\(port) failed: \\(error)\", cancels the listener, clears state.listener only if it is the same instance, then if canRepick calls listen(on: Self.repickPort(), canRepick: false), else sets running = false. So a bind failure is retried exactly once on a fresh port. newConnectionHandler calls accept; listener.start(queue: queue).",
+        "stop(): under the lock takes the listener and all open connections, clears both, sets running = false; then cancels the listener and every connection outside the lock. stop() has no caller in B2: the only references to MCPProxy outside this file are MCP.swift:12 (a doc comment), MCP.swift:165 (url(for:)) and MCPStore.swift:26 (start), 95/101/127/326/331 (unregister), 282 (replaceAll) and 311 (register).",
+        "accept: records the connection under ObjectIdentifier, starts it on queue, calls readHead with empty prefix. forget removes it from the table.",
+        "readHead: receive(minimumIncompleteLength: 1, maximumLength: 65_536). Appends data; if \"\\r\\n\\r\\n\" is found, splits into head (before) and rest (after) and calls handleExchange. Else if buffer.count > 65_536 responds 413 {\"error\":\"request head too large\"}. Else if isComplete or error: cancels and forgets the connection silently. Else recurses with the accumulated buffer. If self is gone, cancels the connection. Order matters: the divider check (line 193) runs before the size check (line 199), and each receive is capped at maximumLength 65_536, so a buffer of at most 65_536 bytes can grow to 131_072 in one receive and is still accepted if it contains \\r\\n\\r\\n; heads up to 131_068 bytes pass. The 413 fires only when no divider is found and buffer.count > 65_536. It is not a hard 64 KiB head limit.",
+        "parseHead: decodes the head as ISO Latin-1; splits on \"\\r\\n\"; request line split on single spaces with maxSplits 2 omitting empty subsequences; requires exactly 3 parts with non-empty method and path (the HTTP version is not checked). Header lines without ':' are skipped; name is trimmed of whitespace and lowercased, value trimmed of whitespace; later duplicates overwrite earlier ones; empty names ignored. Returns (method, path, headers).",
+        "handleExchange order: parse failure -> 400 {\"error\":\"bad request\"}; transfer-encoding containing \"chunked\" (case-insensitive) -> 411 {\"error\":\"chunked request bodies are not supported\"}; contentLength = max(0, Int(content-length) ?? 0) (an unparsable header counts as 0); contentLength > 33_554_432 (32 MiB) -> 413 {\"error\":\"request body too large\"}; if rest already holds contentLength bytes, routeRequest with rest.prefix(contentLength) (extra bytes discarded), else readBody.",
+        "readBody: receives up to min(need - buffer.count, 65_536) bytes per call; when the buffer reaches need, routes with exactly need bytes; if the peer completes or errors early, routes with the short body it has (does not reject a truncated body); otherwise recurses.",
+        "routeRequest: strips the query string at the first '?'; path must start with \"/mcp/\", the remainder must be non-empty and contain no '/', and a route must exist, else 502 {\"error\":\"unknown server\"} in all three cases. Comment: 'A path the proxy holds no route for is a bad gateway, never a 404: the app reads a 404 seen through the proxy as the server's own answer (GitLab answers 404 while MCP is off).' The HTTP method is not restricted. The upstream call runs in an unstructured `Task { [weak self] in` (line 295), not Task.detached; if self is gone it cancels the connection; any thrown error prints \"MCPProxy: request to '\\(serverID)' failed: \\(error.localizedDescription)\" and responds 502 {\"error\":\"upstream request failed\"}.",
+        "sendUpstream: invalid route.upstream URL throws URLError(.badURL) (-> 502). URLRequest with the client's method and timeoutInterval 3_600. Passes through only these client headers, in this order, renamed to canonical case: content-type -> Content-Type, accept -> Accept, mcp-session-id -> Mcp-Session-Id, mcp-protocol-version -> MCP-Protocol-Version, last-event-id -> Last-Event-ID. Then applies route.headers (overriding). If usesOAuth: token = try await MCPOAuth.accessToken(serverID:); if that throws, responds 401 with {\"error\":\"<error.localizedDescription>\"} and returns. Sets Authorization: \"Bearer \\(token)\". Body set only when non-empty. Sends with URLSession.shared.bytes(for:). If usesOAuth and upstream status is 401, calls MCPOAuth.accessToken(serverID:) again (try?, errors swallowed; the same call with no force-refresh flag, so whether a different token comes back is MCPOAuth's decision) and if a token comes back, resends once with the new Bearer header; the first 401 stream is replaced without being drained or cancelled. If that second token fetch fails (nil), the ORIGINAL upstream 401 status and body are passed to writeBack and reach the client. A throw from the resend -> 502. A non-HTTP response throws URLError(.badServerResponse) (-> 502). Then writeBack.",
+        "writeBack: copies only Content-Type, Mcp-Session-Id and Cache-Control from the upstream response (in that order), and the upstream status code. If Content-Type lowercased contains \"text/event-stream\": adds Transfer-Encoding: chunked and Connection: close, sends the status head, then for every single byte of the upstream stream sends a chunk frame \"1\\r\\n\" + byte + \"\\r\\n\" (one byte per chunk, one send per byte, awaited); a stream error is swallowed silently (lines 383-384 empty catch); then sends terminator \"0\\r\\n\\r\\n\", cancels and forgets the connection. Otherwise buffers the whole body with no size limit (lines 389-392 `var payload = Data(); for try await byte in stream { payload.append(byte) }`; bodyLimit 32 MiB applies only to request bodies, line 241), then adds Content-Length: <count> and Connection: close, sends head + payload in one send, then cancels and forgets. On this path the head is built and sent only after the buffering loop completes (lines 393-397), so a stream error throws before anything was sent and routeRequest's 502 {\"error\":\"upstream request failed\"} (line 304) is the only response; there is no double-response risk here.",
+        "send(_:_:) awaits connection.send completion `.contentProcessed { _ in continuation.resume() }` and ignores the send error. Consequence: nothing watches the client side once the request is read, so when the agent CLI closes its connection mid-SSE, the `for try await byte in stream` loop (line 377) keeps reading the upstream until it ends or times out; the upstream request is never cancelled on client disconnect.",
+        "respond(connection:status:body:): head with Content-Type: application/json, Content-Length, Connection: close, then body; on send completion cancels and forgets the connection.",
+        "statusHead: \"HTTP/1.1 <status> <reason>\\r\\n\" + each \"<name>: <value>\\r\\n\" + \"\\r\\n\".",
+        "reasonPhrase map: 200 \"OK\", 201 \"Created\", 202 \"Accepted\", 204 \"No Content\", 400 \"Bad Request\", 401 \"Unauthorized\", 404 \"Not Found\", 405 \"Method Not Allowed\", 411 \"Length Required\", 413 \"Content Too Large\", 500 \"Internal Server Error\", 502 \"Bad Gateway\"; any other 2xx -> \"OK\", anything else -> \"Error\".",
+        "jsonError(message): escapes each backslash as two backslashes and each double quote as backslash plus quote, replaces \\n and \\r with a space (other control characters are not escaped), and returns {\"error\":\"<escaped>\"} as UTF-8 bytes.",
+        "Verbatim error strings: \"request head too large\", \"bad request\", \"chunked request bodies are not supported\", \"request body too large\", \"unknown server\", \"upstream request failed\".",
+        "B1->B2: Concurrency refactor only, no behavior change intended. (1) loadPort now parses UInt16(text.trimmed) instead of text.trimmingCharacters(in: .whitespacesAndNewlines) (same semantics via the String.trimmed extension). (2) The NSLock `lock` and the four separate instance vars (routes, listener, connections, running) were replaced by a private struct State with those four fields wrapped in `private let state = Mutex(State())`; register, unregister, replaceAll, start, listen, stop, accept, forget and routeRequest now use state.withLock. start() computes alreadyRunning inside the lock. The listener stateUpdateHandler closure parameter was renamed from `state` to `newState`. stop() returns (listener, open) from the locked closure. File went from 470 lines (B1 ledger) to 460 lines; diff stat 44 insertions, 54 deletions across this bundle, of which only 1 line is MCPStore.",
+        "Launch ordering hazard (MCPStore.swift:22-28 + MCP.swift:164-166 + lines 111-126): MCPStore.init runs MCPProxy.shared.start() and then exportAll() synchronously. exportAll resolves every enabled OAuth server through `server.url = MCPProxy.url(for: id)` (MCP.swift:165) with the port current at that moment. A taken saved port 'fails only once the listener starts' (lines 96-98): the .failed case of stateUpdateHandler runs asynchronously on `queue` and calls Self.repickPort(). Nothing orders the two and nothing re-exports after the re-pick, so the provider configs and MCPHub written at launch keep the old port until the next exportAll (probe success, disconnect, setEnabled, saveCustom with a connection). A port that re-picks synchronously before exporting, or re-exports on re-pick, would behave differently."
+      ],
+      "unresolved_questions": [
+        "Where MCPProxy.url(for:) is consumed (provider config writers) is not in this file; the port's use in configs must be confirmed in MCPProviderConfig / MCPExternalSync.",
+        "Storage.root's concrete location is defined outside this bundle (not read here).",
+        "Whether MCPOAuth.accessToken(serverID:) returns a different token on the second call after a 401 is decided in MCPOAuth, not read in this bundle."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/MCP/MCPStore.swift",
+      "sha256": "6823eaf09814ea4c07fcbaf06cc00aea1d0a62654c8b814e3fc70aa834cf2c0d",
+      "lines_total": 356,
+      "ranges_read": [
+        [
+          1,
+          356
+        ]
+      ],
+      "purpose": "MCPStore is the @MainActor @Observable model behind the MCP connections page: it owns which catalog and custom servers the user has connected, their per-field values and card drafts, each server's live connection state, and the user's own custom server definitions. Connecting stores drafts (secrets to the Keychain via MCPKeychain), optionally runs the OAuth browser sign-in and registers a proxy route, probes the server with MCPProbe, and on success records tools and server version. Every change is persisted to mcp.json / custom-mcp.json and, via exportAll(), republished to the MCPProxy route table, every provider config file under MCPPaths.directory (MCPProviderConfig.writeAll), the file-based CLIs the doc comment names 'Cursor, OpenCode, Gemini' (MCPExternalSync.sync) and the in-app MCPHub.",
+      "key_symbols": [
+        "@MainActor @Observable final class MCPStore",
+        "private(set) var connections: [String: MCPConnection] = [:]",
+        "private(set) var states: [String: MCPConnectionState] = [:]",
+        "var drafts: [String: [String: String]] = [:]",
+        "private(set) var customs: [MCPCustomServer] = []",
+        "@ObservationIgnored private var probes: [String: Task<Void, Never>] = [:]",
+        "init()  // load(); MCPProxy.shared.start(); exportAll()",
+        "func state(for id: String) -> MCPConnectionState",
+        "func connection(for id: String) -> MCPConnection?",
+        "var enabledServers: [MCPResolvedServer]",
+        "var allEntries: [MCPCatalogEntry]",
+        "func entry(for id: String) -> MCPCatalogEntry?",
+        "func value(for field: MCPField, of entry: MCPCatalogEntry) -> String",
+        "func setDraft(_ value: String, for field: MCPField, of entry: MCPCatalogEntry)",
+        "func canConnect(_ entry: MCPCatalogEntry) -> Bool",
+        "func connect(_ entry: MCPCatalogEntry)",
+        "func disconnect(_ entry: MCPCatalogEntry)",
+        "func refresh(_ entry: MCPCatalogEntry)",
+        "func setEnabled(_ enabled: Bool, for entry: MCPCatalogEntry)",
+        "@discardableResult func saveCustom(_ server: MCPCustomServer, replacing oldID: String? = nil) -> MCPCustomError?",
+        "func deleteCustom(_ server: MCPCustomServer)",
+        "func storedValue(server id: String, field: String, secret: Bool) -> String?",
+        "@discardableResult func saveCustomValues(_ values: [(key: String, value: String, isSecret: Bool)], for id: String, replacingFieldsOf oldEntry: MCPCatalogEntry?) -> Bool",
+        "private func load()",
+        "private func save()",
+        "private func saveCustoms()",
+        "private func exportAll()",
+        "private func storedValues(for entry: MCPCatalogEntry) -> [String: String]",
+        "private func probeOnce(_ entry: MCPCatalogEntry, resolved: MCPResolvedServer) async throws -> MCPProbeResult",
+        "private func startProbe(_ entry: MCPCatalogEntry)"
+      ],
+      "calls_into": [
+        "MCPProxy.shared.start(), .register(serverID:upstream:headers:usesOAuth:), .unregister(serverID:), .replaceAll(_:)",
+        "MCPOAuth.signOut(serverID:), .isSignedIn(serverID:), .signIn(serverID:serverName:url:) async throws",
+        "MCPKeychain.value(server:field:), .set(_:server:field:) -> Bool (used as discardable in connect, checked in saveCustomValues), .delete(server:field:), .deleteAll(server:)",
+        "MCPProbe.probe(_:) async throws -> MCPProbeResult; MCPProbeError cases .unauthorizedOAuth, .http(status, _), .needsSetup(guide)",
+        "MCPCatalog.entries, MCPCatalog.entry(id:)",
+        "MCPCatalogEntry: .id, .name, .fields, .isOAuth, .oauthURL(values:), .resolve(values:)",
+        "MCPField: .key, .kind (.secret), .isRequired, .defaultValue",
+        "MCPCustomServer: .id, .name, .catalogEntry(), static makeID(_:)",
+        "MCPCustomError.validate(_:existingIDs:)",
+        "MCPConnection(catalogID:) with .isEnabled, .connectedAt, .serverVersion, .tools, .values",
+        "MCPConnectionState cases .notConnected, .connecting, .connected(toolCount:), .needsSetup(_), .failed(message:)",
+        "MCPResolvedServer: .id, .oauthUpstream",
+        "MCPProviderConfig.writeAll(_:), MCPExternalSync.sync(_:), MCPHub.shared.reload() (async, in a Task)",
+        "MCPPaths.connectionsURL, MCPPaths.customsURL",
+        "String.trimmed (project extension)"
+      ],
+      "state_owned": [
+        "connections: every connection the user made, connected or not, keyed by catalog id",
+        "states: live state per id; missing entry means .notConnected",
+        "drafts: per-entry per-field-key text the user is typing before connecting",
+        "customs: user-defined servers in creation order",
+        "probes: in-flight probe Task per id (ObservationIgnored)"
+      ],
+      "side_effects": [
+        "Reads mcp.json (MCPPaths.connectionsURL) and custom-mcp.json (MCPPaths.customsURL) at init; writes them atomically on save()/saveCustoms().",
+        "Starts the MCPProxy listener at init (comment: it must be 'Up before anything resolves a route to it: the probe, the hub and every launch reach signed-in servers through the proxy').",
+        "Reads, writes and deletes Keychain secrets through MCPKeychain.",
+        "Runs the OAuth browser sign-in (MCPOAuth.signIn) and sign-out.",
+        "Calls MCPProbe.probe(resolved) (line 313) to probe the server; what the probe does (network or process) is in MCPProbe, which was not read in this bundle.",
+        "exportAll rewrites every provider config file (under MCPPaths.directory, per the doc comment at lines 4-7), syncs the file-based CLIs (doc comment: 'Cursor, OpenCode, Gemini'), replaces proxy routes and reloads MCPHub."
+      ],
+      "platform_assumptions": [
+        "Observation framework (@Observable, @ObservationIgnored) and @MainActor isolation: a Windows port uses a main-process store with change events to the renderer.",
+        "Keychain (via MCPKeychain) for secret field values: Windows must use DPAPI/safeStorage.",
+        "Foundation JSONEncoder/JSONDecoder: the JSON byte layout must be reproduced for file compatibility. save() (lines 262-268) sets outputFormatting [.prettyPrinted, .sortedKeys] WITHOUT .withoutEscapingSlashes, so '/' is written as '\\/' (for example in URL values stored in `values`); .prettyPrinted writes 2-space indentation and '\"key\" : value' (space before the colon). dateEncodingStrategy .iso8601 writes whole seconds with 'Z' and no fractional part (sub-second precision of connectedAt = .now is lost), and the matching .iso8601 decoder (line 252) rejects fractional seconds, so a JS toISOString() writer ('.000Z') would produce a file that fails to decode and, per the load() note, empties the list. Written with Data.write(options: .atomic).",
+        "Swift structured concurrency (Task, cancellation, Task.checkCancellation, CancellationError).",
+        "MCPPaths resolve under the macOS Storage.root (MCP.swift:236-252): connectionsURL is Storage.root/'mcp.json', customsURL is Storage.root/'custom-mcp.json', directory is Storage.root/'mcp' (created on first access), holding claude.json, codex.json, copilot.json and MCPProxy's proxy-port.",
+        "MCPOAuth browser flow ('Droppy Code's own, with its branded page' per comment) and MCPProxy loopback server."
+      ],
+      "persisted_fields": [
+        "mcp.json (MCPPaths.connectionsURL): JSON array of MCPConnection sorted by catalogID ascending; encoder outputFormatting [.prettyPrinted, .sortedKeys], dateEncodingStrategy .iso8601; decoded with .iso8601 dates. Fields touched here: catalogID, isEnabled, connectedAt (Date?, nil when not connected), serverVersion, tools (array), values ([String: String], non-secret only). Encode failure or write failure is silently ignored; a decode failure leaves connections empty. Decoding is all-or-nothing over the array (`decoder.decode([MCPConnection].self, from: data)`, line 253), so one element that fails to decode drops every connection. Consequence: init then calls exportAll (line 27), which rewrites every provider config and the proxy routes with zero servers, and the next save() (from connect, disconnect, setEnabled, saveCustom with a connection, saveCustomValues or a probe success) overwrites mcp.json with only the entries created since, destroying the saved list. save() is not called at init, so the file survives until then.",
+        "custom-mcp.json (MCPPaths.customsURL): JSON array of MCPCustomServer in creation order; outputFormatting [.prettyPrinted, .sortedKeys]; default (non-ISO) date strategy. Loaded first in load(); decode failure leaves customs empty (all-or-nothing `JSONDecoder().decode([MCPCustomServer].self, from: data)`, line 247); the next saveCustoms() then overwrites custom-mcp.json with only the customs created since, and connections whose catalogID named a lost custom resolve to no entry and drop out of exportAll.",
+        "Keychain: secret field values keyed by (server id, field key) through MCPKeychain."
+      ],
+      "ui_elements": [
+        "None rendered here. The store feeds the MCP page; it supplies card values (value(for:of:)), drafts, canConnect and per-id MCPConnectionState values, but defines no views, labels, geometry or state strings. The only text it produces is `.failed(message: error.localizedDescription)` (line 352); `.needsSetup(guide)` (line 349) passes through a value from MCPProbeError."
+      ],
+      "feature_notes": [
+        "init order: load(), then MCPProxy.shared.start(), then exportAll().",
+        "load(): customs decoded from customsURL if present; connections decoded from connectionsURL with ISO-8601 dates; each connection with connectedAt != nil gets states[id] = .connected(toolCount: connection.tools.count) (no re-probe at launch).",
+        "state(for:) defaults to .notConnected.",
+        "enabledServers: connections with isEnabled && connectedAt != nil, whose entry(for: catalogID) resolves, resolved with storedValues(for:), sorted by id ascending.",
+        "allEntries: customs' catalogEntry() first, then MCPCatalog.entries (comment: customs first on a name collision). entry(for:) likewise prefers a custom with that id over the catalog.",
+        "value(for:of:): draft if present (even empty); else for .secret fields the Keychain value; else for non-secret the stored connection value; else field.defaultValue ?? \"\". Note: a secret field with no Keychain value falls back to defaultValue, and a non-secret lookup never checks the Keychain.",
+        "canConnect: every isRequired field has a non-empty value(for:of:).",
+        "connect(entry): cancels any probe; takes the existing connection or MCPConnection(catalogID:), sets isEnabled = true. If entry.isOAuth and a draft exists and entry.oauthURL(values: current) != entry.oauthURL(values: current merged with draft, draft wins), signs out and unregisters the proxy route (comment: pointing the server elsewhere, e.g. another GitLab instance, drops the old token). If entry.isOAuth and states[id] is .failed, also signs out and unregisters ('A Try again after a rejection must not reuse the rejected token'). Draft values: secret fields -> MCPKeychain.set(text, ...) (result ignored) with no emptiness check, so an empty secret draft is written to the Keychain; others -> `connection.values[field.key] = text`, so an empty plain draft is stored as \"\" (saveCustomValues, line 231, stores nil for an empty plain value instead). Only fields declared by entry.fields are copied. Then stores the connection, clears the draft, save(), states = .connecting, startProbe. exportAll is not called here; it runs after a successful probe.",
+        "disconnect(entry): cancels and clears the probe, MCPKeychain.deleteAll(server: entry), OAuth sign-out and proxy unregister when isOAuth, clears connection, state and draft, save(), exportAll().",
+        "refresh(entry): cancels probe, state = .connecting, startProbe (values unchanged). It does not check that a connection exists: if the probe then succeeds, `states[entry.id] = .connected(toolCount:)` (line 341) is set even when connections[entry.id] is nil (the `if var connection` at line 335 only skips the field update), so the card shows connected with no persisted connection, and nothing is exported for it (enabledServers reads connections).",
+        "setEnabled: no-op when there is no connection; else sets isEnabled, save(), exportAll(). State is not changed.",
+        "saveCustom(server, replacing: oldID): old = customs with id oldID; taken = all catalog ids plus custom ids, minus old.id if replacing; name trimmed of whitespace and newlines; id = old?.id ?? MCPCustomServer.makeID(trimmedName) (comment: id made once at creation from the first name, a rename never moves it, so the connection and Keychain secrets stay). MCPCustomError.validate(server, existingIDs: taken) returning an error aborts with nothing written. Otherwise cancels and clears the probe and draft for that id, replaces in place or appends, saveCustoms(). If a connection exists: connectedAt = nil, serverVersion = nil, tools = [], states = .notConnected, save(), exportAll() (the server leaves provider configs until the editor's re-probe succeeds). Returns nil on success. The incoming server.id is always overwritten (line 165). If oldID is given but no custom has that id, old is nil: oldID is silently ignored, taken keeps every custom id, and the server is handled as new with MCPCustomServer.makeID(server.name); if validate passes, it replaces a custom whose id equals the new id or is appended (lines 170-174).",
+        "deleteCustom(server): if the custom exists, disconnect(its catalogEntry()); then removes it from customs and saveCustoms().",
+        "storedValue(server:field:secret:): Keychain value if secret, else connections[id]?.values[field].",
+        "saveCustomValues(values, for: id, replacingFieldsOf: oldEntry): first writes every secret item to the Keychain, returning false immediately on the first failed set (earlier secrets stay written, nothing else changes). Then: for each field of oldEntry not in the new key set, deletes its Keychain secret; connection.values keeps only keys in the new set; for each item: secret -> removes any plain copy from values; plain -> stores value, or nil when empty, and deletes any Keychain copy. Note a secret item with an empty value is still passed to MCPKeychain.set. The connection is stored and save() called only if a connection already existed or the new values are non-empty (comment: 'A server whose values are all empty needs no connection yet: it gets one on connect.'). Returns true. No exportAll here.",
+        "save(): connections sorted by catalogID, JSON pretty-printed with sorted keys, ISO-8601 dates, written atomically; failures ignored.",
+        "saveCustoms(): customs array, pretty-printed with sorted keys, written atomically; failures ignored.",
+        "exportAll(): servers = enabledServers; MCPProxy.shared.replaceAll with one route per server that has an oauthUpstream (headers [:], usesOAuth true); MCPProviderConfig.writeAll(servers); MCPExternalSync.sync(servers); Task { await MCPHub.shared.reload() }. Doc comment says it also 'runs the one-time external-CLI cleanup'.",
+        "storedValues(for:): connection's plain values overlaid by Keychain secrets for every .secret field of the entry.",
+        "probeOnce: if resolved.oauthUpstream is set, runs MCPOAuth.signIn(serverID:, serverName: entry.name, url: remote) unless already signed in, then registers the proxy route (headers [:], usesOAuth true); then MCPProbe.probe(resolved). Race: the route is registered for a server that may not be in enabledServers yet (connectedAt == nil on a first connect or after saveCustom cleared it), while exportAll replaces the whole route table with enabled AND connected servers only (line 43 filter `$0.isEnabled && $0.connectedAt != nil`, line 282 replaceAll). Any exportAll during that probe (another server's probe succeeding, setEnabled, disconnect, saveCustom) wipes the probed server's route, and the proxy then answers 502 'unknown server' (MCPProxy.swift:289-292). A port that keeps the route table additive would behave differently.",
+        "startProbe: Task (inherits MainActor). Resolves with storedValues. On MCPProbeError.unauthorizedOAuth or MCPProbeError.http(status 401 or 403) and only when oauthUpstream != nil: checks cancellation, signs out, unregisters, and retries probeOnce once (which re-runs the browser sign-in). After success and a cancellation check: if the connection exists sets connectedAt = .now, serverVersion, tools; states = .connected(toolCount: result.tools.count); save(); exportAll(). CancellationError: nothing. MCPProbeError.needsSetup(guide): if not cancelled, states = .needsSetup(guide), sign-in kept ('Keep the sign-in so Check again re-probes without another browser round trip'). Any other error: if not cancelled, states = .failed(message: error.localizedDescription). Errors from the retry itself fall through to these outer handlers. Finished probe Tasks are never removed from `probes`: only disconnect (line 123) and saveCustom (line 168) set probes[id] = nil; connect and refresh cancel the old Task and then overwrite it.",
+        "B1->B2: One line changed. saveCustom now trims the name with server.name.trimmed instead of server.name.trimmingCharacters(in: .whitespacesAndNewlines); String.trimmed is defined in DroppyCode/Core/Support/Text.swift:132 as exactly that call, so behavior is unchanged. Line count stays 356."
+      ],
+      "unresolved_questions": [
+        "The exact Codable key names and optionality of MCPConnection and MCPCustomServer live in DroppyCode/Core/Models/MCP.swift, outside this bundle; the JSON field list above names only the properties this file touches.",
+        "Which caller passes oldEntry to saveCustomValues and whether it calls saveCustom before or after saveCustomValues is in the custom-server editor view, not this file.",
+        "The 'one-time external-CLI cleanup' named in exportAll's doc comment is not visible here; where it lives (MCPExternalSync.sync is the candidate) is not verified in this read."
+      ]
+    }
+  ]
+}

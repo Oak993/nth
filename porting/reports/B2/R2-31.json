@@ -1,0 +1,404 @@
+{
+  "bundle_id": "R2-31",
+  "reader": "R2-31-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/Providers/CopilotSession.swift",
+      "sha256": "4444765295049ed866107ab26fb4884d4a77dfef081759e27d24460cd846a79c",
+      "lines_total": 1072,
+      "ranges_read": [
+        [
+          1,
+          360
+        ],
+        [
+          361,
+          720
+        ],
+        [
+          721,
+          1072
+        ]
+      ],
+      "purpose": "CopilotSession is the @MainActor ProviderSession that drives the GitHub Copilot CLI as a child process started with `--headless --stdio`, speaking the Copilot SDK's Content-Length framed JSON-RPC protocol (one process per thread, session created or resumed under Droppy Code's own lowercased UUID so history survives relaunches in `~/.copilot/session-state`). It maps the CLI's `session.event` notifications (assistant deltas, reasoning, usage, tool execution, sub-agents, permissions, mode/title changes, errors, compaction, idle, shutdown) onto ProviderEvent values, answers the CLI's server requests (`userInput.request`, `exitPlanMode.request`, `autoModeSwitch.request`), translates Droppy's RuntimeMode/InteractionMode, model and effort into CLI RPCs, and implements approvals, questions, interrupt, compaction, rewind-based rollback and slash-command invocation. It also exposes static one-shot helpers that spawn a throwaway connection in the temp directory to list models (`models.list`), read sign-in status (`account.getCurrentAuth`) and read plan limits (`account.getQuota`), plus pure mapping helpers (tool-call titles, apply_patch path extraction, update_todo checklist parsing, permission descriptions, session-approval decisions, error-message enrichment). With Hydra on it creates the session with custom agents, appends the Hydra policy to the system message and forwards head (sub-agent) events wrapped in `.agentEvent`.",
+      "key_symbols": [
+        "@MainActor final class CopilotSession: ProviderSession",
+        "var onEvent: ((ProviderEvent) -> Void)?",
+        "private enum PendingRequest { case permission(request: JSONValue, toolCallID: String?); case question(RPCID, choices: [String]); case planExit(RPCID) }",
+        "private let configuration: SessionConfiguration",
+        "private var connection: JSONRPCConnection?",
+        "private var sessionID: String?",
+        "private var runtimeMode: RuntimeMode",
+        "private var interactionMode: InteractionMode = .build",
+        "private var permissionMode = \"manual\"",
+        "private var model: String?; private var effort: String?",
+        "private var pendingRequests: [String: PendingRequest] = [:]",
+        "private var turnActive = false; private var turnError: String?; private var interruptRequested = false; private var isStopping = false",
+        "private var toolNames: [String: String] = [:]",
+        "private var declinedTools: Set<String> = []",
+        "private var streamedMessages: Set<String> = []",
+        "private var shownReasoning: Set<Int> = []",
+        "private lazy var leadSink: (ProviderEvent) -> Void",
+        "private var commandNames: Set<String> = []",
+        "private var taskBriefs: [String: (description: String, prompt: String?)] = [:]",
+        "private static let ownCommands: Set<String> = [\"allow-all\", \"yolo\", \"permissions\", \"model\", \"models\", \"plan\", \"session\", \"sessions\", \"cwd\", \"cd\"]",
+        "init(configuration: SessionConfiguration)",
+        "var isRunning: Bool",
+        "private var workingDirectory: String { configuration.workingDirectory.path }",
+        "func start() async throws -> String",
+        "private func sessionParameters() -> [String: JSONValue]",
+        "func send(_ input: TurnInput) async throws",
+        "private func beginTurn()",
+        "private func sendPrompt(_ text: String, images: [Attachment]) async throws",
+        "private func invokeCommand(_ name: String, input: String) async throws",
+        "private static let slashCommandPattern = #/^/([A-Za-z][\\w-]*)(?:\\s+([\\s\\S]*))?$/#",
+        "static func slashCommand(in text: String) -> (name: String, input: String)?",
+        "func interrupt() async",
+        "func compact() async throws",
+        "func rollback(turns: Int) async throws",
+        "func resolveApproval(_ requestID: String, optionID: String)",
+        "func answerQuestion(_ requestID: String, answers: [String: [String]])",
+        "func stop()",
+        "private func applyModes(runtime: RuntimeMode, interaction: InteractionMode) async",
+        "private func applySelection(model: String?, effort: String?) async",
+        "static func permissionModeName(_ mode: RuntimeMode) -> String",
+        "private func loadCommands()",
+        "static func listModels(executable: URL, environment: [String: String]) async throws -> [ModelOption]",
+        "static func authStatus(executable: URL, environment: [String: String]) async -> ProviderStatus.Auth",
+        "static func readPlanLimits(executable: URL, environment: [String: String]) async throws -> PlanLimits?",
+        "private static func parseDate(_ text: String) -> Date?",
+        "private static func connect(executable: URL, directory: URL, environment: [String: String], configure: (JSONRPCConnection) -> Void) async throws -> JSONRPCConnection",
+        "private func handleNotification(_ method: String, _ params: JSONValue)",
+        "private func handleMessage(_ data: JSONValue, sink: (ProviderEvent) -> Void)",
+        "private func toolRequested(id: String, name: String, arguments: JSONValue, server: String?, mcpTool: String?, sink: (ProviderEvent) -> Void)",
+        "private func handleToolResult(_ data: JSONValue, sink: (ProviderEvent) -> Void)",
+        "private func finishTurn(aborted: Bool)",
+        "static func errorMessage(_ data: JSONValue) -> String",
+        "private func handleRequest(_ id: RPCID, _ method: String, _ params: JSONValue)",
+        "private func handlePermission(_ data: JSONValue)",
+        "private func automaticDecision(_ request: JSONValue, prompt: JSONValue?) -> JSONValue?",
+        "private func describePermission(_ request: JSONValue) -> ApprovalRequest",
+        "static func sessionApproval(for request: JSONValue) -> JSONValue?",
+        "private func respondPermission(_ requestID: String, _ decision: JSONValue)",
+        "private func cancelPendingRequests()",
+        "private func handleClose(_ tail: String)",
+        "private static let hiddenTools: Set<String> = [\"ask_user\", \"exit_plan_mode\", \"update_todo\", \"task_complete\", \"report_intent\"]",
+        "private func toolCall(name: String, arguments: JSONValue, server: String?, mcpTool: String?) -> ToolCall?",
+        "private static func lineRange(_ value: JSONValue?) -> String?",
+        "static func patchPaths(_ patch: String) -> [String]",
+        "private static let todoLinePattern = #/^(?:[-*+]|\\d+[.)])\\s*\\[(.?)\\]\\s*(.+)$/#",
+        "static func todos(from markdown: String) -> [TodoStep]",
+        "private static func reasoningKey(_ text: String) -> Int",
+        "private static func humanize(_ name: String) -> String"
+      ],
+      "calls_into": [
+        "JSONRPCConnection(process:sendsVersion: true), .request(_:_:), .respond(to:result:), .respond(to:errorCode:message:), .start(), .close(), .isClosed, .onNotification/.onRequest/.onClose",
+        "StdioProcess(executable:arguments:directory:environment:framing: .contentLength)",
+        "MCPSessionOverrides.copilotArguments()",
+        "HydraPrompts.copilotAgents(_:), HydraPrompts.policy(for: .copilot, _:), HydraPrompts.fallbackPolicy(_:), HydraPrompts.profileName(forAgentName:)",
+        "AntiSlopPolicy.instructions(enabled:)",
+        "ProviderRegistry.copilotAuto (first entry of listModels)",
+        "PlanLimitsReader.planName(_:)",
+        "ISO8601.date(from:), ISO8601.dateOnly(from:) (Core/Support/ISO8601.swift)",
+        "String.trimmed (Core/Support/Text.swift line 132: trimmingCharacters(in: .whitespacesAndNewlines))",
+        "TextCleanup.stripANSI, TextCleanup.lastLines, TextCleanup.singleLine",
+        "ToolTitles.relativePath(_:to:), ToolTitles.diffStats(_:), ToolTitles.unwrapShell(_:)",
+        "TokenLedger.shared.record(spend:)",
+        "JSONValue.parse, JSONValue subscripts/.string/.int/.double/.bool/.array/.isNull/.compactString/.optional",
+        "ProviderEvent cases: turnStarted, messageDelta, messageCompleted, reasoningDelta, reasoningCompleted, tokenSpend, usage, toolStarted, toolUpdated, toolOutput, todos, agentEvent, agentStarted, agentFinished, requestResolved, approval, question, planCompleted, modeChanged, title, notice, commands, turnCompleted, exited",
+        "Types: ApprovalRequest, QuestionRequest, ToolCall, ToolUpdate, FileEdit, TodoStep, TokenSpend, ContextUsage, AgentSpawn, SlashCommand, Notice, ModelOption, PlanLimits, PlanLimits.Window, ProviderStatus.Auth, ProviderError, RPCID, Attachment, TurnInput, SessionConfiguration"
+      ],
+      "state_owned": [
+        "connection, sessionID, runtimeMode, interactionMode (default .build), permissionMode (default \"manual\"), model, effort",
+        "pendingRequests keyed by permission requestId, \"question-<rpc id key>\" or \"plan-<rpc id key>\"",
+        "turnActive, turnError, interruptRequested, isStopping",
+        "Per-turn caches, cleared in two places: beginTurn() (lines 179-186) sets turnActive = true, turnError = nil, interruptRequested = false and clears shownReasoning and streamedMessages; finishTurn() (lines 700-703) clears only toolNames, declinedTools, taskBriefs and shownReasoning (streamedMessages is NOT cleared there). shownReasoning holds hashes of trimmed reasoning text (reasoningKey = text.trimmed.hashValue).",
+        "commandNames (CLI slash command names plus aliases, excluding ownCommands)"
+      ],
+      "side_effects": [
+        "Spawns the `copilot` executable with arguments [\"--headless\", \"--stdio\", \"--no-auto-update\", \"--log-level\", \"error\"] + MCPSessionOverrides.copilotArguments(), in the thread working directory (session) or FileManager.default.temporaryDirectory (static helpers)",
+        "The CLI persists session history under ~/.copilot/session-state (per header comment); session.create or session.resume keyed by Droppy's id",
+        "TokenLedger.shared.record(spend:) on every assistant.usage with inputTokens+outputTokens > 0",
+        "stop(): sends `runtime.shutdown` then close(), plus a backstop Task that closes after 3 seconds",
+        "Permission responses sent asynchronously in an unstructured Task via session.permissions.handlePendingPermissionRequest"
+      ],
+      "platform_assumptions": [
+        "Foundation Process-based StdioProcess with Content-Length framing over stdio; on Windows the `copilot` CLI (likely copilot.cmd / node shim) must be launched with equivalent pipes",
+        "FileManager.default.temporaryDirectory as cwd for one-shot helper connections",
+        "UUID().uuidString.lowercased() for session ids",
+        "Swift Regex literals (slashCommandPattern, todoLinePattern), Swift Concurrency (@MainActor, Task, Task.sleep(for: .seconds(3)))",
+        "String.localizedCaseInsensitiveContains for the \"not authorized to use this Copilot feature\" match",
+        "Date.ISO8601FormatStyle via ISO8601 helper for quota resetDate parsing",
+        "Hashable hashValue of trimmed reasoning text as de-dup key (per-process random seed; only used in-memory)",
+        "URL(string:)?.host for the URL permission domain",
+        "Paths assumed POSIX via ToolTitles.relativePath and workingDirectory path comparisons (resolvedWorkingDirectory != workingDirectory)"
+      ],
+      "persisted_fields": [
+        "No app-side persistence in this file. The session id (configuration.resumeID or a new lowercased UUID) is returned from start() for the caller to store; the CLI keeps the conversation in ~/.copilot/session-state."
+      ],
+      "ui_elements": [
+        "Approval options for permissions: \"Approve\" (id allow, role .approve), \"Approve for session\" (id always, role .approveAlways, only when sessionApproval(for:) != nil), \"Decline\" (id deny, role .decline)",
+        "Plan-exit approval: kind .plan, title \"Implement this plan\", options \"Implement plan\" (id allow, .approve) and \"Keep planning\" (id deny, .decline), toolItemID = key",
+        "Question from userInput.request: single question id \"answer\", header \"\", prompt = params.question, choices as QuestionRequest.Choice(label:detail: nil), allowsMultiple false, allowsOther = allowFreeform ?? true, isSecret false",
+        "Notice strings: \"/<name> opens a dialog that only Copilot's own terminal UI can show.\" (warning), \"Context compacted.\" (info)",
+        "Permission ApprovalRequest per request.kind (describePermission, lines 826-870): shell -> kind .command, title ToolTitles.unwrapShell(request[\"fullCommandText\"] ?? \"Command\"), reason intention; write -> kind .fileChange, title relativePath(resolvedPath ?? fileName ?? \"file\"), reason intention; read -> kind .permissions, title \"Read <relativePath(resolvedPath ?? path ?? \"file\")>\", reason intention; url -> kind .permissions, title \"Fetch <url ?? \"a URL\">\", detail \"Redirected from <redirectedFrom>\", reason intention; mcp -> kind .tool, title \"<serverName ?? \"MCP\"> · <toolTitle ?? toolName ?? \"tool\">\" (request[\"toolTitle\"] preferred over toolName), detail request[\"args\"].map(\\.compactString) unless it equals \"null\", no reason; memory -> kind .tool, title \"Remember: <fact ?? \"something about this project\">\", reason request[\"reason\"]; custom-tool -> kind .tool, title toolName ?? \"Tool\", detail request[\"toolDescription\"]; hook -> kind .tool, title hookMessage ?? (toolName ?? \"Tool\"), detail = the tool name when hookMessage is present else nil; extension-management -> kind .tool, title \"<operation ?? \"manage\">.capitalized <extensionName ?? \"an extension\">\"; default -> kind .tool, title humanize(kind ?? \"action\"), reason intention. intention = request[\"intention\"] when non-empty. handlePermission then sets reason from promptRequest.assistedApproval.reason when reason is nil and that is non-empty.",
+        "Shell detail joins relative resolvedWorkingDirectory and sandbox bypass reason (fallback \"Runs outside the sandbox.\") with \" · \"",
+        "Model detail strings (listModels, lines 407-419): \"<N>× premium requests\" from billing.multiplier (Int when multiplier == multiplier.rounded(), else the raw double) and \"Enable it in your GitHub Copilot settings first\" added ONLY when model[\"policy\"][\"state\"] == \"unconfigured\"; joined with \" · \", nil when empty. Models without an \"id\" string are skipped; name = model[\"name\"] ?? id.",
+        "Plan limit window titles: \"Premium requests\" (premium_interactions), \"Chat messages\" (chat), \"Code completions\" (completions); plan name prefixed \"Copilot \"",
+        "Auth account suffix \" · no Copilot access\" (default account \"GitHub\")",
+        "Tool rows (toolCall, lines 945-1026): the constant strings are fallbacks only. MCP (server set) -> kind .mcp, title \"<server> · <mcpTool ?? name>\", detail arguments.compactString (NOT singleLine) unless arguments.isNull; bash/powershell -> .command, title arguments[\"command\"] ?? \"Shell command\", detail arguments[\"description\"]; read_bash/write_bash/stop_bash/list_bash -> .command, title humanize(name), detail arguments[\"shellId\"]; view -> .read, title path(\"path\") ?? \"Read file\", detail lineRange(view_range); create -> .edit, title path ?? \"Create file\", edits [FileEdit(path:, old: \"\", new: file_text ?? \"\")]; edit -> .edit, title path ?? \"Edit file\", edits [FileEdit(path:, old: old_str ?? \"\", new: new_str ?? \"\")]; str_replace_editor by arguments.command: view as view, create as create, insert -> .edit \"Edit file\" with FileEdit(old: \"\", new: new_str), default -> .edit \"Edit file\" with old_str/new_str; apply_patch -> .edit, input = arguments.string ?? arguments[\"input\"] ?? arguments[\"patch\"] ?? \"\", title the single path or \"Edit <n> files\" (so zero paths gives \"Edit 0 files\"), edits paths.map { FileEdit(path:) } with no diff; grep -> .search, title arguments[\"pattern\"] ?? \"Search\", detail relative `paths` joined with \", \"; glob -> .search, title pattern ?? \"Find files\", detail paths joined \", \"; web_fetch -> .web, title arguments[\"url\"] ?? \"Fetch page\"; web_search -> .web, title arguments[\"query\"] ?? \"Search the web\"; task -> .agent, title description ?? \"Subagent\", detail [name, agent_type] joined \" · \"; read_agent/write_agent/list_agents -> .agent, title humanize(name), detail agent_id ?? message; skill -> .other, \"Skill · <skill ?? \"\">\"; sql -> .other, title arguments[\"description\"] ?? \"SQL query\", detail arguments[\"query\"]; create_pull_request -> .other, title arguments[\"title\"] ?? \"Create pull request\"; default -> .other, humanize(name), detail TextCleanup.singleLine(arguments.compactString) unless null. path(key) = relativePath(arguments[key]) to the working directory.",
+        "Command output body wrapped in a ``` fence unless result.markdown == true; message id \"command-<UUID>\"",
+        "lineRange (line 1029-1032): requires view_range to compactMap to exactly 2 ints, else nil; returns \"from line <a>\" only when range[1] < 0, otherwise \"lines <a>–<b>\" (en dash)."
+      ],
+      "feature_notes": [
+        "start(): throws ProviderError.notInstalled when configuration.executable is nil; calls \"session.create\" when resumeID is nil, else \"session.resume\", with sessionParameters() plus sessionId (line 108, `_ = try await connection.request(...)`); a failed resume is rethrown, and per the comment at line 107 (\"Resume fails for an id the CLI no longer has; the thread then starts a fresh session.\") the fallback to a fresh session lives in the caller, not here. Then applyModes (resumed sessions come back interactive/manual, verified live) and loadCommands().",
+        "sessionParameters: clientName \"droppy-code\", workingDirectory, streaming true, requestPermission true, requestUserInput true, requestExitPlanMode true, includeSubAgentStreamingEvents = hydra?.runsNatively == true, isExperimentalMode = runtimeMode == .auto, optional model and reasoningEffort, customAgents when Hydra runs natively; systemMessage {mode: \"append\", content: [hydraPolicy, AntiSlopPolicy.instructions(enabled:)] compactMap joined by \"\\n\\n\"}. The system message is always sent so a resumed thread drops earlier guidance.",
+        "send(): throws notRunning if connection is nil/closed; applies modes and selection, beginTurn() (emits turnStarted(providerTurnID: nil)), then invokes a CLI slash command when the text matches slashCommandPattern and the name is in commandNames, else session.send; on error resets turnActive and rethrows.",
+        "session.send params: sessionId, prompt, and attachments [{type: \"file\", path, displayName, mimeType}] for image attachments only.",
+        "invokeCommand: session.commands.invoke {sessionId, name, input}; a result.mode sets interactionMode (plan vs build) and emits modeChanged; kind \"agent-prompt\" sends result.prompt ?? input; kind \"text\"/\"completed\" emits the ANSI-stripped text/message (if non-blank) then finishTurn; anything else emits the warning notice and finishTurn.",
+        "interrupt(): only while turnActive; sets interruptRequested, cancels pending requests, sends session.abort {sessionId, reason: \"user_initiated\"}.",
+        "compact(): session.history.compact {sessionId, trigger: \"manual\"}.",
+        "rollback(turns:): `guard let connection, let sessionID, turns > 0 else { return }` (line 253) returns silently when not connected or turns <= 0, unlike compact(), which throws ProviderError.notRunning. Then session.history.listRewindPoints, picks points[points.count - turns].eventId (needs points.count >= turns), else throws \"Copilot has no rewind point for that turn.\"; then session.history.rewind {sessionId, eventId, mode: \"conversation\"}; outcome != \"success\" throws result.error ?? \"Copilot could not rewind the conversation.\". Files are not touched (Droppy checkpoints restore them).",
+        "resolveApproval: allow -> {kind: \"approve-once\", approvedInteractively: true}; always -> sessionApproval(for:) or approve-once; otherwise {kind: \"reject\", feedback: \"The user declined this action.\"} and marks the tool declined (toolUpdated status .declined). Question dismissed -> {answer: \"\", wasFreeform: true}. Plan allow -> {approved: true, selectedAction: \"interactive\"} and modeChanged(.build); deny -> {approved: false, feedback: \"The user wants to keep planning. Wait for their feedback before changing anything.\"}. Always emits requestResolved.",
+        "answerQuestion: answer = first answers value joined by \", \"; wasFreeform = !choices.contains(answer).",
+        "permissionModeName: .supervised/.autoAcceptEdits -> \"manual\"; .auto -> \"assisted\"; .fullAccess -> \"allow-all\". applyModes (lines 328-348), after `guard let connection, let sessionID`: sets runtimeMode = runtime unconditionally; sends session.permissions.setMode {sessionId, mode, source: \"rpc\"} via try? only when wanted differs and adopts `result?[\"mode\"]?.string ?? permissionMode` (the only value that waits for the reply); when interaction differs sends session.mode.set with \"plan\" or \"interactive\" via `try?` and sets interactionMode = interaction even if that call failed.",
+        "applySelection: model change -> session.model.switchTo {sessionId, modelId, reasoningEffort?}; effort change -> session.model.setReasoningEffort; local state updates only on success.",
+        "loadCommands: session.commands.list, skips ownCommands, collects names and aliases, emits .commands([SlashCommand]) when non-empty.",
+        "listModels: starts with ProviderRegistry.copilotAuto; skips entries without an \"id\" string and those whose policy.state == \"disabled\"; name = model[\"name\"] ?? id; efforts from supportedReasoningEfforts, defaultEffort from defaultReasoningEffort.",
+        "authStatus: connection failure or request failure -> .unknown; null authInfo -> .signedOut; access_type_sku == \"no_access\" appends \" · no Copilot access\"; else .signedIn(login).",
+        "readPlanLimits: for each quotaSnapshots key skips null, unlimited, or entitlementRequests <= 0; percent = clamp(100 - remainingPercentage, 0...100) or min(100, used/entitlement*100); resetsAt from resetDate via parseDate; nil when no windows; plan from authInfo.copilotUser.copilot_plan.",
+        "connect(): JSONRPCConnection(sendsVersion: true); ping {message: \"droppy-code\"}; missing protocolVersion closes and throws \"This `copilot` does not speak the SDK protocol. Update it with `copilot update`.\"",
+        "handleNotification (lines 504-518): only method \"session.event\"; reads params.sessionId, params.event.type, params.event.agentId and params.event.data (data defaults to .null); ignores events whose sessionId differs from ours. Sub-agent events (agentId set) of type assistant.* or tool.* except assistant.usage are dropped when configuration.hydra == nil. `sink` wraps in .agentEvent(agentID:) when agentId is set, else is leadSink (= onEvent). Only assistant.turn_start (agent branch), assistant.message_delta, assistant.message, assistant.reasoning_delta, assistant.reasoning and tool.* go through sink. assistant.usage, session.usage_info, subagent.*, permission.* and session.* call onEvent directly, so a head's spend is a top-level .tokenSpend carrying agentID, not an .agentEvent.",
+        "assistant.usage: spend = inputTokens + outputTokens; TokenSpend(provider: .copilot, totalTokens, inputTokens, outputTokens, cachedInputTokens: cacheReadTokens, model: data.model ?? model, agentID). session.usage_info -> ContextUsage(usedTokens: currentTokens, windowTokens: tokenLimit).",
+        "subagent.started (Hydra only): description = taskBriefs[toolCallId].description ?? agentDisplayName ?? agentName ?? \"Subagent\"; profile from HydraPrompts.profileName. subagent.completed -> .interrupted if cancelled else .completed; subagent.failed -> .failed with error summary.",
+        "session.mode_changed newMode \"plan\" -> .plan; \"interactive\"/\"autopilot\" -> .build. session.error stored as turnError while a turn is active, else an error notice. session.idle -> finishTurn(aborted:). session.shutdown with shutdownType \"error\" posts errorReason as an error notice.",
+        "handleMessage: reasoningText shown as \"<id>-reasoning\" only if non-whitespace and not already shown (trimmed hash); messageCompleted when content non-empty or deltas streamed; toolRequests replayed through toolRequested.",
+        "toolRequested: de-duplicated by call id; update_todo emits .todos parsed from arguments.todos and no row; task stores brief (description ?? name ?? \"Subagent\", prompt ?? task); emits toolStarted and a toolUpdated with edits when present.",
+        "handleToolResult: hidden tools ignored; success defaults true; output = error.message on failure else result.detailedContent ?? result.content; status completed / declined / failed.",
+        "finishTurn(aborted:) (lines 695-715): `guard turnActive else { return }`, so a session.idle outside a turn emits nothing. Sets turnActive = false, clears toolNames, declinedTools, taskBriefs and shownReasoning (not streamedMessages), cancels pending requests; turnCompleted status .interrupted if aborted or interruptRequested, .failed with turnError, else .completed; resets interruptRequested.",
+        "errorMessage: default \"Copilot reported an error.\"; after \"GenericFailure, \" parses JSON {status, body} into \"HTTP <status>: <trimmed body>\"; statusCode 403, remediation \"sign_in\" or \"not authorized to use this Copilot feature\" appends \" Check that your GitHub account has Copilot access, or sign in again with `copilot login`.\"",
+        "handleRequest: autoModeSwitch.request answered {response: \"no\"}; unknown methods get error -32601 \"Droppy Code does not support <method>.\"; plan content = planContent (non-empty) ?? summary ?? \"\".",
+        "handlePermission: ignores resolvedByHook; automaticDecision first ({kind: \"approve-once\"}: fullAccess always; autoAcceptEdits for kind write/read; auto for write/read or assistedApproval.recommendation == \"approve\" from promptRequest or request; supervised never); a write prompt with a diff updates the tool row with the CLI's patch and diffStats; reason falls back to promptRequest.assistedApproval.reason.",
+        "sessionApproval: shell needs canOfferSessionApproval and commands[].identifier -> {kind: \"commands\", commandIdentifiers}; write needs canOfferSessionApproval -> {kind: \"write\"}; read -> {kind: \"read\"}; url -> returns {kind: \"approve-for-session\", domain: host} directly; mcp -> {kind: \"mcp\", serverName, toolName}; custom-tool -> {kind: \"custom-tool\", toolName}; memory -> {kind: \"memory\"}; wrapped as {kind: \"approve-for-session\", approval}.",
+        "cancelPendingRequests: permission -> {kind: \"cancelled\", reason: \"The user stopped the turn.\"}; question -> error -32800 \"The user stopped the turn.\"; plan -> {approved: false, feedback: \"The user stopped the turn.\"}.",
+        "handleClose (lines 931-938): emits .requestResolved for every pending key WITHOUT answering it (the connection is gone), clears pendingRequests and turnActive, emits no .turnCompleted, and unless isStopping emits .exited(error: TextCleanup.lastLines(tail)).",
+        "toolCall mapping covers MCP (\"<server> · <tool>\"), bash/powershell, read_bash/write_bash/stop_bash/list_bash, view, create, edit, str_replace_editor (view/create/insert/default), apply_patch, grep, glob, web_fetch, web_search, task, read_agent/write_agent/list_agents, skill, sql, create_pull_request, and a default humanized row with single-line compact arguments.",
+        "patchPaths: headers \"*** Update File: \", \"*** Add File: \", \"*** Delete File: \", de-duplicated in order. todos: pattern accepts -, *, + or N. / N) bullets; [x]/[X] done, [ ] or [] pending, anything else active.",
+        "humanize: '-' and '_' to spaces, first character uppercased.",
+        "B1->B2: Five mechanical changes, no behavior change except date parsing. (1) invokeCommand line 218 uses `text.trimmed.isEmpty` instead of trimmingCharacters(in: .whitespacesAndNewlines); (2) slashCommand lines 233 and 235 use `.trimmed`; (3) parseDate (lines 470-472) now returns `ISO8601.date(from: text) ?? ISO8601.dateOnly(from: text)` instead of building an ISO8601DateFormatter and retrying with formatOptions [.withFullDate]; the shared ISO8601.date accepts both fractional and whole-second stamps (the old default ISO8601DateFormatter did not accept fractional seconds); file shrank from 1075 to 1072 lines; (4) errorMessage line 724 uses `body.trimmed`; (5) reasoningKey line 1065 uses `text.trimmed.hashValue`. `.trimmed` is defined in Core/Support/Text.swift as trimmingCharacters(in: .whitespacesAndNewlines), so those four are equivalent.",
+        "isExperimentalMode is a session setting (comment lines 117-120): \"the thread restarts the session when it switches into or out of Auto\". The restart is done by the caller; applyModes alone does not toggle experimental mode.",
+        "assistant.turn_start (lines 520-526): with an agentId -> sink(.turnStarted(providerTurnID: data[\"turnId\"])); without one and when !turnActive -> turnActive = true and onEvent(.turnStarted(providerTurnID: data[\"turnId\"])), i.e. a turn the CLI began itself. That path skips beginTurn(), so turnError, interruptRequested, streamedMessages and shownReasoning are not reset.",
+        "Wire keys per event: assistant.message_delta data.messageId + data.deltaContent (id inserted in streamedMessages, .messageDelta); assistant.reasoning_delta data.reasoningId + data.deltaContent (.reasoningDelta); assistant.reasoning data.reasoningId + data.content (default \"\", key inserted in shownReasoning, .reasoningCompleted); assistant.usage data.inputTokens/outputTokens/cacheReadTokens/model; session.usage_info data.currentTokens/tokenLimit; tool.execution_start data.toolCallId/toolName/arguments/mcpServerName/mcpToolName; tool.execution_complete data.toolCallId/success/error.message/result.detailedContent/result.content; subagent.* data.toolCallId/agentDisplayName/agentName/model, subagent.completed data.cancelled, subagent.failed data.error (summary); session.idle data.aborted; session.mode_changed data.newMode; session.title_changed data.title (non-empty); session.shutdown data.shutdownType/errorReason; permission.requested data.requestId/permissionRequest/promptRequest/resolvedByHook, permissionRequest.toolCallId/kind/diff/resolvedPath/fileName; handleMessage data.messageId/reasoningText/content/toolRequests[].{toolCallId,name,arguments,mcpServerName,mcpToolName}.",
+        "tool.execution_partial_result (lines 569-572): data.toolCallId + data.partialOutput -> sink(.toolOutput(id:text:)). tool.execution_progress (lines 573-576): data.toolCallId + data.progressMessage -> sink(.toolUpdated(id:, update: ToolUpdate(detail: message))).",
+        "permission.completed (lines 599-602): `if let requestID = data[\"requestId\"]?.string, pendingRequests.removeValue(forKey: requestID) != nil { onEvent?(.requestResolved(id: requestID)) }`, so an approval the CLI resolved itself leaves the UI.",
+        "session.warning (lines 623-624): data.message -> Notice(level: .warning). session.compaction_complete (lines 625-630): success == true -> info \"Context compacted.\"; otherwise data.error (when present) -> warning notice with that text.",
+        "exitPlanMode.request (lines 753-767): stores .planExit under \"plan-<id.key>\", emits .planCompleted(id: key, markdown: plan) BEFORE the .approval (kind .plan)."
+      ],
+      "unresolved_questions": [
+        "Exact shape of MCPSessionOverrides.copilotArguments() and HydraPrompts.copilotAgents output is defined elsewhere and not verified here.",
+        "How the Windows port will locate and launch the `copilot` CLI (npm shim .cmd vs node entry) with Content-Length stdio framing is outside this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Providers/DeepSeekAPI.swift",
+      "sha256": "0d86620a374a0bbab26db8e874feec70cd71352f2311ef8bbc0f0f3889221bb8",
+      "lines_total": 99,
+      "ranges_read": [
+        [
+          1,
+          99
+        ]
+      ],
+      "purpose": "DeepSeekAPI is a caseless enum holding the lightweight HTTP calls for the DeepSeek OpenAI-compatible API that the provider registry needs outside a chat session: key validation, model catalog listing, and the prepaid balance read for the usage panel. It also owns the static DeepSeek model catalog policy: which ids map to named ModelOptions, which retired ids are hidden, the shared effort list, the 1M context window, and which ids accept images (chat streaming itself lives in DeepSeekSession).",
+      "key_symbols": [
+        "enum DeepSeekAPI",
+        "static let baseURL = URL(string: \"https://api.deepseek.com\")!",
+        "static let chatURL = URL(string: \"https://api.deepseek.com/chat/completions\")!",
+        "static let modelsURL = URL(string: \"https://api.deepseek.com/models\")!",
+        "static let balanceURL = URL(string: \"https://api.deepseek.com/user/balance\")!",
+        "static func validate(apiKey: String) async -> Bool",
+        "static func listModels(apiKey: String) async throws -> [ModelOption]",
+        "static func balance(apiKey: String) async -> ProviderCredits?",
+        "static func credits(from json: JSONValue) -> ProviderCredits?",
+        "static let deepseekEfforts = [\"low\", \"high\", \"max\"]",
+        "static let contextWindow = 1_048_576",
+        "static func option(for id: String) -> ModelOption?",
+        "static func isVisionModel(_ id: String?) -> Bool"
+      ],
+      "calls_into": [
+        "URLSession.shared.data(for:)",
+        "URLRequest(url:timeoutInterval: 15), setValue(_:forHTTPHeaderField:)",
+        "JSONValue.parse(_:) and JSONValue subscripts",
+        "String.trimmed",
+        "ModelOption(id:name:detail:efforts:defaultEffort:isDefault:)",
+        "ProviderCredits(total:currency:toppedUp:granted:isUsable:)"
+      ],
+      "state_owned": [
+        "None; only static constants."
+      ],
+      "side_effects": [
+        "GET https://api.deepseek.com/models (validate, listModels) and GET https://api.deepseek.com/user/balance (balance), each with Authorization: Bearer <trimmed key>, Accept: application/json, 15 second timeout"
+      ],
+      "platform_assumptions": [
+        "Foundation URLSession/URLRequest/HTTPURLResponse networking (replace with Node fetch/Electron net)",
+        "Double.init(String) parsing of balance amounts (locale-independent in Swift)"
+      ],
+      "persisted_fields": [
+        "None. The API key is passed in by the caller."
+      ],
+      "ui_elements": [
+        "Model names and details: \"V4 Pro\" / \"Best reasoning and coding quality\" (isDefault true); \"V4.1 Flash\" / \"Newest, fast, reads images\"; unknown ids shown with name = id and no detail",
+        "Efforts offered: low, high, max; default effort \"high\" for every option"
+      ],
+      "feature_notes": [
+        "validate: blank key after trim -> false; any transport error or non-HTTPURLResponse -> false; true only for status 200.",
+        "listModels: blank key -> []; transport errors propagate (throws); non-200 or unparsable JSON -> []; ids from data[].id; empty -> []; mapped through option(for:) and sorted (lines 35-37) by the tuple `(lhs.isDefault ? 0 : 1, lhs.id) < (rhs.isDefault ? 0 : 1, rhs.id)`: default first, then Swift String < on the id (Unicode-ordered, case-sensitive, not a locale compare).",
+        "balance: blank key -> nil; transport error, non-200 or unparsable -> nil, so the usage panel shows nothing rather than a wrong number.",
+        "credits(from:): uses the first balance_infos entry; total_balance parsed from a string via Double.init (nil total -> nil); currency default \"\"; toppedUp from topped_up_balance, granted from granted_balance (strings); isUsable = is_available ?? true.",
+        "option(for:): \"deepseek-v4-pro\" -> V4 Pro default; \"deepseek-flash\" -> V4.1 Flash; \"deepseek-v4-flash\", \"deepseek-v4-flash-vision-exp\", \"deepseek-chat\", \"deepseek-reasoner\" -> nil (hidden; comments say v4-flash names are retired and routed to V4.1 Flash, chat/reasoner discontinued 2026-07-24, per api-docs.deepseek.com 2026-09-10); any other id shown verbatim.",
+        "isVisionModel: true only for \"deepseek-flash\", \"deepseek-v4-flash\", \"deepseek-v4-flash-vision-exp\" (nil id -> \"\" -> false); V4 Pro errors on images.",
+        "contextWindow 1_048_576 for both current models.",
+        "baseURL and chatURL are declared here but not used in this file.",
+        "B1->B2: Only the three key-trimming lines changed: validate (line 14), listModels (line 25) and balance (line 44) now use `apiKey.trimmed` instead of `apiKey.trimmingCharacters(in: .whitespacesAndNewlines)`. Equivalent behavior; line count unchanged at 99."
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Services/Providers/MetaAPI.swift",
+      "sha256": "2c77dec22046b70f48f086375af04472065b7b452402ebd6dfc6a2ae5a0abebd",
+      "lines_total": 89,
+      "ranges_read": [
+        [
+          1,
+          89
+        ]
+      ],
+      "purpose": "MetaAPI is a caseless enum with the lightweight HTTP calls for Meta's OpenAI-compatible Muse API at https://api.meta.ai/v1 (key validation and model listing) used by the provider registry, while chat streaming lives in MetaSession. It also fixes the Muse Spark catalog policy: context and output token limits, per-model effort lists (only muse-spark-1.3 gets \"max\"), named options for known checkpoints, a filter that drops non-chat Muse models, and the vision check.",
+      "key_symbols": [
+        "enum MetaAPI",
+        "static let baseURL = URL(string: \"https://api.meta.ai/v1\")!",
+        "static let chatURL = URL(string: \"https://api.meta.ai/v1/chat/completions\")!",
+        "static let modelsURL = URL(string: \"https://api.meta.ai/v1/models\")!",
+        "static let contextWindow = 1_048_576",
+        "static let maxOutputTokens = 131_072",
+        "static func validate(apiKey: String) async -> Bool",
+        "static func listModels(apiKey: String) async throws -> [ModelOption]",
+        "static let maxEfforts = [\"minimal\", \"low\", \"medium\", \"high\", \"xhigh\", \"max\"]",
+        "static let standardEfforts = [\"minimal\", \"low\", \"medium\", \"high\", \"xhigh\"]",
+        "static func efforts(for id: String) -> [String]",
+        "static func option(for id: String) -> ModelOption?",
+        "static func isVisionModel(_ id: String?) -> Bool"
+      ],
+      "calls_into": [
+        "URLSession.shared.data(for:)",
+        "URLRequest(url:timeoutInterval: 15)",
+        "JSONValue.parse(_:)",
+        "String.trimmed",
+        "ModelOption(id:name:detail:efforts:defaultEffort:isDefault:)"
+      ],
+      "state_owned": [
+        "None; only static constants."
+      ],
+      "side_effects": [
+        "GET https://api.meta.ai/v1/models with Authorization: Bearer <trimmed key>, Accept: application/json, 15 second timeout (validate and listModels)"
+      ],
+      "platform_assumptions": [
+        "Foundation URLSession/URLRequest/HTTPURLResponse networking",
+        "String.lowercased().hasPrefix for id filtering"
+      ],
+      "persisted_fields": [
+        "None. The API key is supplied by the caller."
+      ],
+      "ui_elements": [
+        "\"Spark 1.3\" / \"Latest Muse Spark · best agentic coding · 1M context\" (isDefault true)",
+        "\"Spark 1.3 Contributor\" / \"Cheaper 1.3 · Meta may train on your chats · no max effort\"",
+        "\"Spark 1.2\" / \"Previous checkpoint · Standard tier · 1M context\"",
+        "\"Spark 1.2 Contributor\" / \"Cheaper 1.2 · Meta may train on your chats\"",
+        "\"Spark 1.1\" / \"Original checkpoint · Standard tier · 1M context\"",
+        "Unknown muse-spark ids shown with name = id; default effort \"high\" for all"
+      ],
+      "feature_notes": [
+        "validate: blank trimmed key -> false; transport error -> false; true only for HTTP 200.",
+        "listModels: blank key -> []; transport errors throw; non-200 or unparsable -> []; ids from data[].id; mapped by option(for:) and sorted (lines 47-48) by `(lhs.isDefault ? 0 : 1, lhs.id) < (rhs.isDefault ? 0 : 1, rhs.id)`: default first, then Swift String < on the id (Unicode-ordered, case-sensitive, not a locale compare).",
+        "efforts(for:): \"muse-spark-1.3\" -> maxEfforts; every other id -> standardEfforts (comment: probed live 2026-09-13, other checkpoints including muse-spark-1.3-contributor reject \"max\" with a 400 \"The request contains invalid parameters\").",
+        "option(for:) default: only ids whose lowercase starts with \"muse-spark\" are kept; others (e.g. muse-image-1.0, muse-voice-transcribe-1.0) return nil.",
+        "isVisionModel: nil or empty id -> true; otherwise true when lowercase id starts with \"muse-spark\".",
+        "maxOutputTokens 131_072 and contextWindow 1_048_576 (Muse Spark per dev.meta.ai docs).",
+        "Header comment documents that Chat Completions is used rather than the Responses API (`POST /v1/responses`) to keep the agent loop OpenAI-compatible; baseURL and chatURL are not used in this file.",
+        "B1->B2: Only validate (line 26) and listModels (line 37) changed, from `apiKey.trimmingCharacters(in: .whitespacesAndNewlines)` to `apiKey.trimmed`. Equivalent behavior; line count unchanged at 89."
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Services/Providers/NativeFileTools.swift",
+      "sha256": "8917f2913159f11a70e2c646580481ce8a89f3f2d7aab45bee2bd99d44ee9366",
+      "lines_total": 160,
+      "ranges_read": [
+        [
+          1,
+          160
+        ]
+      ],
+      "purpose": "NativeFileTools is a Sendable struct bound to a project working directory that implements the file tools Droppy's native API providers expose to models: read_file, write_file, edit_file and list_files, plus the path resolution that confines every model-supplied path to the project root. Reads are capped at 1,000,000 bytes and long text is truncated to 60,000 characters with a line-range hint; writes and edits are serialised through a private static actor so concurrent tool calls cannot interleave mutations, and edits require an exact, unique match of old_string.",
+      "key_symbols": [
+        "struct NativeFileTools: Sendable",
+        "let workingDirectory: String",
+        "private static let readLimit = 1_000_000",
+        "private static let mutations = Mutations()",
+        "private actor Mutations { func run(_ operation: @Sendable () throws -> Void) rethrows }",
+        "private static let skippedDirectories: Set<String> = [\".git\", \"node_modules\", \".build\", \"build\", \"dist\", \"DerivedData\", \"Pods\", \"target\", \".venv\", \"venv\"]",
+        "func resolveURL(_ path: String) throws -> URL",
+        "func displayPath(_ path: String) -> String",
+        "@concurrent func readFile(_ path: String, startLine: Int? = nil, lineCount: Int? = nil) async throws -> String",
+        "@concurrent func writeFile(path: String, content: String) async throws",
+        "@concurrent func editFile(path: String, old: String, new: String) async throws",
+        "@concurrent func listFiles(_ path: String, recursive: Bool) async throws -> String"
+      ],
+      "calls_into": [
+        "ProviderError.failed(_:)",
+        "ToolTitles.relativePath(_:to:)",
+        "String.trimmed",
+        "FileManager.default fileExists/createDirectory/enumerator/contentsOfDirectory, FileHandle(forReadingFrom:) read(upToCount:) seekToEnd(), Data.write(to:options: .atomic), NSString range(of:options:range:) / replacingCharacters(in:with:) / write(to:atomically:encoding:)",
+        "Task.checkCancellation()"
+      ],
+      "state_owned": [
+        "workingDirectory (immutable)",
+        "Static Mutations actor instance shared by all NativeFileTools values (serialises every write and edit process-wide)"
+      ],
+      "side_effects": [
+        "writeFile creates intermediate directories and writes UTF-8 atomically",
+        "editFile rewrites the file atomically as UTF-8",
+        "Reads files and enumerates directories inside the project"
+      ],
+      "platform_assumptions": [
+        "POSIX paths: absolute detection by hasPrefix(\"/\") or \"~\", NSString.expandingTildeInPath, containment check `hasPrefix(root.path + \"/\")`; Windows needs drive letters, backslashes and case-insensitive comparison",
+        "URL.standardizedFileURL for .. normalisation (does not resolve symlinks)",
+        "FileManager enumerator options .skipsHiddenFiles and .skipsPackageDescendants (macOS package bundles) and ObjCBool isDirectory",
+        "NSString UTF-16 range search for edit matching; String(data:encoding: .utf8) falling back to .isoLatin1",
+        "Data.write(options: .atomic) and String.write(atomically: true) atomic replace semantics",
+        "Swift 6.2 @concurrent attribute and actor isolation",
+        ".DS_Store filtering is macOS specific"
+      ],
+      "persisted_fields": [
+        "None."
+      ],
+      "ui_elements": [
+        "No UI. Model-facing strings: \"(lines <first>-<last> of <n>)\\n\" prefix; \"(the file has <n> lines; start_line <first> is past the end)\"; \"\\n…(truncated, <n> chars total; read the rest with start_line and line_count)\"; list entries \"…(truncated)\" and \"(empty)\"; directories suffixed \"/\""
+      ],
+      "feature_notes": [
+        "resolveURL: trims; empty -> \"A file path is required.\"; \"/\" or \"~\" prefixes are absolute (tilde expanded), otherwise appended to the standardized root; path must equal root or start with root + \"/\" else \"That path is outside the project. Stay inside <workingDirectory>.\". Used by search_text too (per comment).",
+        "displayPath (lines 33-38): trimmed empty -> workingDirectory; `trimmed.hasPrefix(workingDirectory)` is a raw string prefix with no separator boundary, then ToolTitles.relativePath (ProviderSession.swift line 194-197) strips `root + \"/\"` only when present, else returns the path unchanged. So \"/proj2/x\" under \"/proj\" passes the prefix test but comes back unchanged, and displayPath(workingDirectory) returns workingDirectory itself; any other input returns the trimmed input.",
+        "readFile: resolveURL, then `FileManager.default.fileExists(atPath:)` (true for directories too, so a directory path gets whatever FileHandle(forReadingFrom:) or read(upToCount:) throws, not a Droppy message); missing -> \"No such file: <display>.\"; reads in chunks of min(65_536, readLimit + 1 - count) until more than 1,000,000 bytes; over limit -> \"That file is too large to read (<byteCount> bytes).\" using seekToEnd; decode UTF-8 then ISO Latin-1 (`String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1)`), else \"That file is not readable as text.\".",
+        "readFile with startLine or lineCount: `text.split(separator: \"\\n\", omittingEmptySubsequences: false)` on a Swift String splits by Character, and \"\\r\\n\" is one Character that is not equal to \"\\n\", so a CRLF file is not split (it is one \"line\": \"(lines 1-1 of 1)\" plus the whole file). Parity decision for the port: a JS split('\\n') would split CRLF files. first = max(1, startLine ?? 1); first > count -> \"(the file has <n> lines; start_line <first> is past the end)\"; count = max(1, lineCount ?? 200); returns \"(lines first-last of total)\\n\" plus the slice joined with \"\\n\".",
+        "readFile without range: returns text unchanged when `text.utf8.count <= 60_000` (UTF-8 bytes); otherwise characterCount = `text.count` (Swift grapheme clusters, not UTF-16 units) and if > 60,000 returns `String(text.prefix(60_000))` (first 60,000 grapheme clusters) plus \"\\n…(truncated, <characterCount> chars total; read the rest with start_line and line_count)\". A JS .length/.slice port would cut and count differently.",
+        "writeFile: inside the Mutations actor; \"Could not encode that content.\" if UTF-8 encoding fails; cancellation checked between each step.",
+        "editFile (lines 92-120), inside the Mutations actor: the empty-old check (\"old_string must not be empty. Read the file first, then edit an exact block.\") runs BEFORE resolveURL, so an empty old_string with an outside path gets the empty-old error. Reads with `String(contentsOf: url, encoding: .utf8)` and has no existence check: a missing or non-UTF-8 file throws Foundation's error, not a Droppy string, and Latin-1 files readFile accepts cannot be edited. Counts non-overlapping matches with `current.range(of: old, options: [], range: remaining)` on NSString: no .literalSearch, so canonically equivalent composed/decomposed sequences match (precomposed \"é\" matches \"e\" + combining accent) and ranges are UTF-16; a JS indexOf port is stricter. 0 -> \"That exact text was not found in <display>. Read the file and copy it exactly.\"; >1 -> \"That text appears <n> times in <display>. Include more context so it matches once.\"; replaces the single match and writes UTF-8 atomically.",
+        "listFiles: base = working directory when `path.trimmed.isEmpty`, else resolveURL(path); non-directory -> \"No such directory: <displayPath(path.isEmpty ? workingDirectory : path)>.\" (untrimmed check here, though displayPath trims, so the text is the same). Recursive: FileManager enumerator with [.skipsHiddenFiles, .skipsPackageDescendants], in enumerator order (NOT sorted); any entry whose lastPathComponent is in skippedDirectories is skipped (skipDescendants) even when it is a FILE named e.g. build, dist or target; directories are not listed; entries are ToolTitles.relativePath(url.path, to: workingDirectory), i.e. relative to the project root, not to base. Non-recursive: contentsOfDirectory sorted with Swift String < (case-sensitive); drops names in skippedDirectories (files too) and names starting with \".DS_Store\"; each entry is relativePath(full, to: workingDirectory) + \"/\" for directories, so listing \"src\" yields \"src/a.swift\", not bare names; other hidden files are kept. Both: `if results.count >= 300 { results.append(\"…(truncated)\"); break }` fires on the 300th entry even if nothing follows, so exactly 300 entries return 301 lines with the marker. Empty -> \"(empty)\".",
+        "B1->B2: Three trimming call sites changed to `.trimmed`: resolveURL (line 20), displayPath (line 34) and listFiles base check (line 124, `path.trimmed.isEmpty`), replacing `trimmingCharacters(in: .whitespacesAndNewlines)`. Equivalent behavior; line count unchanged at 160."
+      ],
+      "unresolved_questions": [
+        "Symlinks inside the project that point outside are not rejected because standardizedFileURL does not resolve them; whether the port should match that exactly or harden it is a contract decision."
+      ]
+    }
+  ]
+}

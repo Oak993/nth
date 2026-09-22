@@ -1,0 +1,345 @@
+{
+  "bundle_id": "R2-26",
+  "reader": "R2-26-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/MCP/MCPHub.swift",
+      "sha256": "ab3a29a05d7e0c32af72470bb95e4cb5215cb953432df42993163bc8a0b53288",
+      "lines_total": 557,
+      "ranges_read": [
+        [
+          1,
+          557
+        ]
+      ],
+      "purpose": "MCPHub is the in-app MCP client used by the app's own model sessions (OpenAICompatibleSession): it reads the generated Claude-format MCP config (MCPPaths.claudeConfigURL, i.e. <Storage.root>/mcp/claude.json, key \"mcpServers\"), lazily starts one MCPClient per server, lists their tools and forwards tool calls named \"mcp__<server>__<tool>\". Each MCPClient speaks JSON-RPC 2.0 either over a child process's stdio (newline-delimited) or over streamable HTTP POST (JSON or first SSE data message), with a one-time initialize handshake, protocol version \"2025-06-18\". The file also owns a static registry (MCPLiveProcesses) of the server processes MCPHub's own stdio clients spawn, so AppDelegate can kill them synchronously at quit: `MCPHub.track(proc)` is called only from MCPClient.startStdio (line 371); MCPProbe's processes (MCPProbe.swift:122-167) are never tracked.",
+      "key_symbols": [
+        "enum MCPHubError: LocalizedError, Sendable { case unknownTool(String); case server(String) } errorDescription: unknownTool -> \"Unknown tool: \\(name).\"; server -> message verbatim",
+        "actor MCPHub; static let shared = MCPHub()",
+        "private static let liveProcesses = MCPLiveProcesses()",
+        "nonisolated static func track(_ process: Process)",
+        "nonisolated static func terminateAll()",
+        "struct MCPHub.Tool: Sendable, Hashable { let server: String; let name: String; let description: String; let inputSchema: JSONValue; var callName: String { \"mcp__\" + server + \"__\" + name } }",
+        "struct MCPHub.Result: Sendable { let text: String; let isError: Bool }",
+        "private var specs: [String: MCPServerSpec]?; private var clients: [String: MCPClient] = [:]; private var toolCache: [String: [Tool]] = [:]; private var failed: Set<String> = []",
+        "func tools() async -> [Tool]",
+        "func call(_ callName: String, arguments: JSONValue) async throws -> Result",
+        "func reload()",
+        "nonisolated static func parse(callName: String) -> (server: String, tool: String)?",
+        "private func client(for id: String, spec: MCPServerSpec) -> MCPClient",
+        "nonisolated private static func readSpecs() -> [String: MCPServerSpec]",
+        "private enum MCPServerSpec: Sendable { case stdio(command: String, args: [String], env: [String: String]); case http(url: String, headers: [String: String]) }",
+        "private actor MCPClient { let id: String; let spec: MCPServerSpec; process: Process?; conversation: HubConversation?; stdinHandle: FileHandle?; nextID = 1; initialized = false; didRestart = false; dead = false; sessionID: String?; replies: [Int: JSONValue] = [:] }",
+        "MCPClient.stop(); listTools() async throws -> [MCPHub.Tool]; callTool(name:arguments:) async throws -> MCPHub.Result; rpc(method:params:timeout:); initializeParams(); request(id:method:params:); notification(method:); checkReply(_:); static terminate(_ process: Process); stdioRPC(...); ensureStdio(...); startStdio(...); waitStdio(process:id:timeout:); httpRPC(urlString:headers:method:params:timeout:); post(url:headers:payload:timeout:) -> (sessionID: String?, body: JSONValue?); static firstSSEMessage(_ data: Data) -> JSONValue?",
+        "private final class HubConversation: Sendable { struct State { buffer: Data; pending: [Data]; exitStatus: Int32? }; let state = Mutex(State()); appendStdout(_:), setExit(_:), takeLines() -> [Data], exitCode() -> Int32? }",
+        "private final class MCPLiveProcesses: Sendable { let state = Mutex<[Process]>([]); add(_:), terminateAll() }"
+      ],
+      "calls_into": [
+        "MCPPaths.claudeConfigURL (Core/Models/MCP.swift: directory.appendingPathComponent(\"claude.json\"), directory = Storage.root/\"mcp\")",
+        "JSONValue.parse, JSONValue subscripts/.object/.string/.array/.int/.bool/.isNull/.data()",
+        "LoginEnvironment.which(command, in: LoginEnvironment.current) and LoginEnvironment.current (login-shell environment)",
+        "Foundation Process, Pipe, FileHandle.readabilityHandler, URLSession.shared.data(for:), URLRequest, HTTPURLResponse",
+        "Darwin kill/getpgid/SIGKILL, DispatchQueue.global(qos: .utility).asyncAfter",
+        "Synchronization.Mutex",
+        "Callers: OpenAICompatibleSession (MCPHub.shared.tools(), MCPHub.parse(callName:), MCPHub.shared.call), MCPStore (Task { await MCPHub.shared.reload() }), AppDelegate (MCPHub.terminateAll() in applicationWillTerminate)"
+      ],
+      "state_owned": [
+        "MCPHub actor: specs cache (nil until first tools()/call), clients map by server id, toolCache by server id, failed set of server ids",
+        "MCPClient actor per server: child process, stdin handle, HubConversation buffer, nextID counter starting 1, initialized flag, didRestart (one restart allowed), dead flag, HTTP sessionID (Mcp-Session-Id), out-of-order replies map keyed by JSON-RPC id",
+        "MCPLiveProcesses: static list of Process objects added by MCPHub.track, which only MCPClient.startStdio calls (line 371); pruned of non-running processes on each add (line 542). MCPProbe processes are not in it, so MCPHub.terminateAll() at applicationWillTerminate (AppDelegate.swift:54) does not kill a probe still running when the app quits."
+      ],
+      "side_effects": [
+        "Spawns MCP server child processes with the login environment merged with per-server env, cwd = user home directory, stdin/stdout/stderr piped; stderr is drained and discarded",
+        "Writes JSON-RPC lines to child stdin; writes are try? (errors ignored)",
+        "HTTP POSTs to remote MCP servers with configured headers",
+        "Terminates processes: SIGTERM via Process.terminate(), then after 1 s (per-client stop) SIGKILL to the process group if the pid leads its group, else to the pid; terminateAll sends SIGTERM to all running then immediately SIGKILL to any still running",
+        "print(\"MCPHub: \\(id): \\(error.localizedDescription)\") to stdout when a server fails to list tools"
+      ],
+      "platform_assumptions": [
+        "Foundation Process/Pipe/FileHandle.readabilityHandler for child stdio (Windows: CreateProcess/pipes or Node child_process)",
+        "POSIX signals: kill(), getpgid(), SIGKILL, process-group kill (-pid) - Windows needs job objects or process-tree termination",
+        "LoginEnvironment (macOS login-shell env capture and PATH lookup via which) - Windows must resolve executables incl. .cmd/.bat shims such as npx.cmd",
+        "FileManager.default.homeDirectoryForCurrentUser as cwd (Windows: %USERPROFILE%)",
+        "URLSession.shared for HTTP (system proxy/TLS behavior)",
+        "Swift Synchronization.Mutex and actors (concurrency model)",
+        "applicationWillTerminate (AppKit) as the synchronous quit hook for terminateAll"
+      ],
+      "persisted_fields": [
+        "Reads only: <Storage.root>/mcp/claude.json top-level key \"mcpServers\" object; per entry: \"command\" (non-empty string selects stdio), \"args\" (array, non-string items dropped, default []), \"env\" (object, non-string values dropped, default {}); else \"url\" (non-empty string selects http), \"headers\" (object, non-string values dropped, default {}). Entries with neither are skipped. Missing/unparseable file yields no servers. Nothing is written by this file."
+      ],
+      "ui_elements": [
+        "No UI. User-visible strings are error messages surfaced through tool results: \"Unknown tool: <callName>.\", \"The server quit.\", \"The server quit (exit <code>).\", \"<command> isn't installed.\", \"The server sent something unexpected: missing result.\", \"The server didn't answer in time.\", \"The server address is invalid.\", \"The server sent something unexpected: empty reply.\", \"The server sent something unexpected: invalid reply.\", \"The server answered <status>.\", JSON-RPC error message or \"unknown error\"."
+      ],
+      "feature_notes": [
+        "tools(): specs loaded once (readSpecs) until reload(); iterates server ids in sorted order; cached lists reused; ids in failed skipped; on listTools error prints log, inserts id into failed, and stops the client. Result sorted by server then tool name (plain String <).",
+        "call(): parse callName; unknown server -> MCPHubError.unknownTool(callName); if the server's tools are cached and do not contain the tool -> unknownTool; if not cached the call proceeds anyway. MCPHubError rethrown as-is, CancellationError rethrown as a new CancellationError, any other error wrapped as MCPHubError.server(localizedDescription).",
+        "parse(callName:): requires prefix \"mcp__\", splits at the FIRST \"__\" after the prefix, so server ids cannot contain \"__\" but tool names can; empty server or tool -> nil.",
+        "reload() (lines 100-107): copies `clients`, clears clients, toolCache, failed and specs, then `for client in existing.values { Task { await client.stop() } }` (line 106): a plain unstructured `Task {}` per old client (inheriting the MCPHub actor context), not `Task.detached`; each awaits stop() on its MCPClient actor, and reload() does not wait for them.",
+        "listTools: up to 10 pages of \"tools/list\" with params {} or {\"cursor\": <nextCursor>}, timeout 60 s each; tools without a string name skipped; description = `String(rawDescription.prefix(400))` (line 213), i.e. the first 400 Swift Characters (extended grapheme clusters), not UTF-16 units or bytes; inputSchema used only if it is an object, else {\"type\":\"object\",\"properties\":{}}; stops when nextCursor is absent or empty.",
+        "callTool: arguments null -> {}; \"tools/call\" params {\"name\", \"arguments\"}, timeout 120 s; content items: \"text\" string appended, type \"image\" -> \"[image]\", type \"resource\" -> \"[resource: <resource.uri or empty>]\", other items dropped; joined with \"\\n\"; isError from result.isError, default false.",
+        "initialize params: {\"protocolVersion\":\"2025-06-18\",\"capabilities\":{},\"clientInfo\":{\"name\":\"Droppy Code\",\"version\":\"1.0\"}}. After a result, notification \"notifications/initialized\" (no id, no params).",
+        "checkReply: a reply whose \"error\" is an object throws MCPHubError.server(error.message ?? \"unknown error\").",
+        "stdio: ensureStdio throws \"The server quit.\" when dead; returns if process running and initialized; if a process exists but is not usable, the first time sets didRestart and restarts, the second time sets dead and throws \"The server quit.\". startStdio failures call stop() which sets process = nil, so a failed initialize does not consume the restart allowance (observed from code). Executable lookup failure -> \"<command> isn't installed.\" run() failure -> server(localizedDescription). Initialize wait 60 s; reply without object result -> \"The server sent something unexpected: missing result.\".",
+        "waitStdio (lines 393-418) polls every 10 ms: drains complete stdout lines; line 398 `guard let value = JSONValue.parse(line), value.object != nil, let replyID = value[\"id\"]?.int else { continue }` then `replies[replyID] = value`. JSONValue.int (JSONValue.swift:83-89) is `.int(v) -> v; .double(v) -> v.isFinite ? Int(v) : nil; .string(v) -> Int(v)`, so an id of 3, 3.0, 3.7 (truncated) or \"3\" all match request 3 (Int(\" 3\") is nil; a finite double outside Int range would trap in Int(v)). There is no check for a \"method\" key: a server-to-client request (ping, roots/list, sampling/createMessage) carrying an id from the server's own id space is stored in `replies` and returned as the reply to the client request with the same number (checkReply passes; listTools then sees no result.tools and yields no tools, initialize fails \"missing result\"). The Hub never answers server requests. Replies for ids nobody waits on (late replies after a timeout, server requests) stay in `replies` until stop(). Then: returns replies[id] after checkReply; exit code -> \"The server quit (exit <code>).\"; !proc.isRunning -> \"The server quit.\"; deadline (a true wall-clock Date deadline, line 394) passed -> `replies[id] = nil` and \"The server didn't answer in time.\".",
+        "HubConversation splits stdout on byte 0x0A only, so a CRLF line keeps its trailing CR. JSONValue.parse (JSONValue.swift:15-19) is `JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])`, and CR (U+000D) is JSON insignificant whitespace (RFC 8259 ws), so a CRLF line from a Windows server still parses; a JS port using JSON.parse also accepts the trailing \\r. .fragmentsAllowed means a bare scalar line parses too, but it is then skipped by the `value.object != nil` check.",
+        "HTTP (httpRPC lines 422-453, post lines 455-479): invalid URL -> \"The server address is invalid.\"; while `initialized` is false the call first sends initialize (timeout 60), requires non-nil body, checkReply, object result; line 437 `sessionID = posted.sessionID ?? sessionID` is the ONLY place the Hub records Mcp-Session-Id: the notifications/initialized response (line 440, `_ =`) and every later response (line 447, whose `posted.sessionID` is never read) are discarded, unlike MCPProbe which updates it on every response (MCPProbe.swift:249). Sets initialized; sends notifications/initialized (timeout 30) ignoring all errors except CancellationError. Then the actual request with the caller timeout. `initialized` and sessionID are reset only by stop() (lines 188-189), which runs from tools() after a listTools failure and from reload(); call() never calls stop(), so a server that expires the session and answers 404 gives \"The server answered 404.\" on every call() until reload() (or a tools() failure). didRestart/dead apply only to stdio (ensureStdio). Headers: user headers first, then Content-Type \"application/json\", Accept \"application/json, text/event-stream\", \"MCP-Protocol-Version\": \"2025-06-18\", \"Mcp-Session-Id\" when known (these override same-named user headers). `URLRequest(url:, timeoutInterval: timeout)` (line 456) sets URLSession's idle timeout (no data for that long), not a total deadline, so the 60/30/120 s values are inter-packet limits; an AbortSignal.timeout total deadline would behave differently. `URLSession.shared.data(for:)` (line 465) returns only after the WHOLE body is received, so an SSE response that stays open blocks until the server closes it or the idle timeout fires; there is no early return on the first data line. Non-HTTP response -> \"The server sent something unexpected: invalid reply.\"; non-2xx -> \"The server answered <status>.\"; Content-Type containing \"text/event-stream\" -> firstSSEMessage (lines 481-493): text split with `components(separatedBy: .newlines)` (any Unicode newline), each line whitespace-trimmed, only lines starting \"data:\" whose remainder alone parses as a JSON object with `value[\"id\"] != nil` (so `\"id\": null` also counts, as does a server request with an id); multi-line data fields are never joined; none -> nil. Otherwise empty body -> nil, and `JSONValue.parse(data)` (line 478) is also nil for a non-empty body that is not JSON; every nil body becomes \"The server sent something unexpected: empty reply.\" (lines 431, 449). Transport errors (URLError) propagate from line 465 and call() wraps them as MCPHubError.server(error.localizedDescription) (line 96), so Foundation's own text (e.g. \"The request timed out.\") reaches the tool result; in tools() they are only printed.",
+        "Hub HTTP requests carry no OAuth token themselves; OAuth for remote servers is handled elsewhere (MCPProxy uses MCPOAuth.accessToken).",
+        "terminate(_:) in MCPClient: SIGTERM, then after 1 s on a utility queue SIGKILL to -pid if getpgid(pid) == pid else pid. MCPLiveProcesses.terminateAll: SIGTERM all running, then immediately SIGKILL any still running (no delay).",
+        "B1->B2: Added `import Synchronization`; HubConversation changed from `@unchecked Sendable` with NSLock and separate vars to `Sendable` with `Mutex(State())` holding buffer/pending/exitStatus; MCPLiveProcesses changed from NSLock + `[Process]` var to `Mutex<[Process]>([])`. Behavior (line splitting, exit tracking, add/prune, terminateAll) is unchanged."
+      ],
+      "unresolved_questions": [
+        "Windows equivalent for process-group SIGKILL (-pid) semantics: must decide how npx-spawned grandchildren are killed (job object) - ENGINEERING DECISION pending.",
+        "Whether a failed initialize retrying without limit on each call is intended; tools() marks such a server failed, but call() for an uncached server can retry repeatedly (source behavior, recorded not repaired)."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/MCP/MCPKeychain.swift",
+      "sha256": "68068d97f06f8f8137ef884ca28bb25a33e0659faa74f1bd90ac1d92f1342638",
+      "lines_total": 68,
+      "ranges_read": [
+        [
+          1,
+          68
+        ]
+      ],
+      "purpose": "MCPKeychain is the secret store for MCP connector fields and OAuth material: values are kept as macOS Keychain generic passwords so mcp.json never holds them in plaintext. It exposes read, write-or-delete, delete and delete-all-fields-of-a-catalog-entry operations, keyed by service = app display name and account = \"MCP <server> <field>\", and returns nothing during capture runs.",
+      "key_symbols": [
+        "enum MCPKeychain",
+        "private static func account(server: String, field: String) -> String { \"MCP \" + server + \" \" + field }",
+        "static func value(server: String, field: String) -> String?",
+        "@discardableResult static func set(_ value: String, server: String, field: String) -> Bool",
+        "static func delete(server: String, field: String)",
+        "static func deleteAll(server entry: MCPCatalogEntry)"
+      ],
+      "calls_into": [
+        "Security framework: SecItemCopyMatching, SecItemUpdate, SecItemAdd, SecItemDelete with kSecClassGenericPassword",
+        "AppInfo.name (Core/Support/Text.swift: CFBundleDisplayName or \"Droppy Code\")",
+        "CaptureRun.isEnabled",
+        "String.trimmed (Core/Support/Text.swift line 132: trimmingCharacters(in: .whitespacesAndNewlines))",
+        "MCPCatalogEntry.id and .fields[].key",
+        "Callers: MCPStore (value/set/delete/deleteAll), MCPOAuth (fields \"oauth\" and \"oauth-client\")"
+      ],
+      "state_owned": [
+        "None in memory; the state is Keychain items."
+      ],
+      "side_effects": [
+        "Reads, updates, adds and deletes Keychain generic-password items in the login keychain."
+      ],
+      "platform_assumptions": [
+        "macOS Keychain Services (Security.framework) - Windows port needs protected storage (e.g. Windows Credential Manager or DPAPI); never plaintext per contract section 11",
+        "kSecAttrAccessibleWhenUnlocked accessibility class (no direct Windows analogue; record adaptation)",
+        "Service name derived from the bundle's CFBundleDisplayName via Bundle.main"
+      ],
+      "persisted_fields": [
+        "Keychain generic password: kSecAttrService = AppInfo.name (default \"Droppy Code\"), kSecAttrAccount = \"MCP <server> <field>\" (single spaces), kSecValueData = UTF-8 of the trimmed value, kSecAttrAccessible = kSecAttrAccessibleWhenUnlocked (set on add only).",
+        "Field names used elsewhere: catalog field keys (MCPStore), \"oauth\" (OAuth session JSON) and \"oauth-client\" (registered client JSON) from MCPOAuth."
+      ],
+      "ui_elements": [
+        "None."
+      ],
+      "feature_notes": [
+        "value(): returns nil immediately when CaptureRun.isEnabled; otherwise SecItemCopyMatching with kSecReturnData true and kSecMatchLimitOne; returns nil on any failure, non-UTF-8 data, or a value that is empty after trimming whitespace and newlines; otherwise returns the trimmed value.",
+        "set(): trims; an empty trimmed value deletes the item and returns true. Otherwise tries SecItemUpdate with the new data; errSecSuccess -> true; any status other than errSecItemNotFound -> false; not found -> SecItemAdd with data and kSecAttrAccessibleWhenUnlocked, returns whether it succeeded. set/delete are not gated by CaptureRun.",
+        "delete(): SecItemDelete, result ignored.",
+        "deleteAll(server:) (lines 63-67): `for field in entry.fields { delete(server: entry.id, field: field.key) }` deletes only the entry's declared field keys (by entry.id, not by catalog lookup, so custom servers are covered, doc comment lines 61-62). It does NOT remove the \"oauth\" or \"oauth-client\" items: MCPStore.disconnect calls `MCPKeychain.deleteAll(server: entry)` (MCPStore.swift:124) and then, `if entry.isOAuth`, `MCPOAuth.signOut(serverID: entry.id)` (MCPStore.swift:125-126) for those.",
+        "B1->B2: value() and set() now call the `.trimmed` String extension instead of `trimmingCharacters(in: .whitespacesAndNewlines)`; `.trimmed` is defined as exactly that call (Core/Support/Text.swift:132), so behavior is unchanged.",
+        "set() is @discardableResult (line 29); MCPOAuth ignores its Bool at both call sites (MCPOAuth.swift:397 and 712), so a failed Keychain write is silent there."
+      ],
+      "unresolved_questions": [
+        "Windows storage target and naming for the service/account pair (e.g. Credential Manager target \"Droppy Code/MCP <server> <field>\") is an ENGINEERING DECISION not settled by source.",
+        "Windows has no \"when unlocked\" accessibility class; how to record this adaptation is open."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/MCP/MCPOAuth.swift",
+      "sha256": "58912b3c8f0407eb88637c164782ee9c96c112c653311c434ef741eddca2dfcd",
+      "lines_total": 930,
+      "ranges_read": [
+        [
+          1,
+          930
+        ]
+      ],
+      "purpose": "MCPOAuth implements browser-based OAuth 2.1 sign-in for remote MCP servers: protected-resource and authorization-server metadata discovery, dynamic client registration, PKCE S256, a loopback HTTP callback listener on 127.0.0.1 with a random port, code exchange, and refresh-token renewal with per-server single-flight. Tokens and registered clients are stored as JSON strings in MCPKeychain under fields \"oauth\" and \"oauth-client\", and the callback answers the browser with branded dark HTML success or failure pages that close themselves after 1.5 s.",
+      "key_symbols": [
+        "enum MCPOAuthError: LocalizedError, Sendable { discoveryFailed(String), metadataFailed(String), registrationUnsupported, registrationFailed(String), tokenFailed(String), callbackFailed(String), stateMismatch, timedOut, cancelled, signedOut, network(String) }",
+        "private struct AuthServerMetadata { issuer: String; authorizationEndpoint: String; tokenEndpoint: String; registrationEndpoint: String?; resource: String?; resourceScopes: [String]? }",
+        "private struct RegisteredClient { clientID: String; clientSecret: String? }",
+        "private actor OAuthRefreshGate { flights: [String: Task<String, Error>]; func token(for serverID: String, refresh: @Sendable @escaping () async throws -> String) async throws -> String }",
+        "private struct CallbackResult { code: String; redirectURI: String; client: RegisteredClient }",
+        "private final class CallbackState: Sendable { Mutex(State{redirectURI = \"\", client: RegisteredClient?}); store(redirectURI:client:); current() -> (redirectURI: String, client: RegisteredClient?) }",
+        "private final class CallbackWait: @unchecked Sendable { finished = Mutex<Bool>(false); continuation; listener: NWListener; finish(_ result: Result<CallbackResult, Error>); var isFinished: Bool }",
+        "enum MCPOAuth; private static let refreshGate = OAuthRefreshGate(); private static let callbackTimeout: TimeInterval = 300",
+        "static func signIn(serverID: String, serverName: String, url: String) async throws",
+        "static func accessToken(serverID: String) async throws -> String",
+        "static func isSignedIn(serverID: String) -> Bool",
+        "static func signOut(serverID: String)",
+        "static func refreshIfNeeded(serverID: String) async",
+        "private static func discover(url: String) async throws -> AuthServerMetadata",
+        "private static func protectedResourceMetadataURL(baseURL: String) async -> (metadataURL: String?, challengeScopes: [String]?)",
+        "private static func resourceMetadataURL(from header: String) -> String?",
+        "private static func challengeParameter(_ name: String, in header: String) -> String?",
+        "private static func challengeScopes(from header: String) -> [String]?",
+        "private static func fetchAuthorizationServerMetadata(issuer: String, resource: String?, resourceScopes: [String]?) async throws -> AuthServerMetadata",
+        "private static func clientRegistration(serverID: String, metadata: AuthServerMetadata, redirectURI: String) async throws -> RegisteredClient",
+        "private static func runCallbackServer(serverName: String, expectedState: String, onReady: @Sendable @escaping (String) async throws -> (url: URL, client: RegisteredClient)) async throws -> CallbackResult",
+        "private static func receiveRequest(wait:shared:serverName:expectedState:connection:buffer:queue:)",
+        "private static func handleRequest(wait:shared:serverName:expectedState:connection:head:)",
+        "private static func sendHTML(_ html: String, status: Int, statusText: String, on connection: NWConnection, done: @escaping @Sendable () -> Void)",
+        "private static func authorizationURL(metadata:clientID:redirectURI:state:challenge:) -> URL?",
+        "private static func exchangeCode(serverID:metadata:client:code:redirectURI:verifier:) async throws",
+        "private static func performRefresh(serverID: String, stored: JSONValue, refreshToken: String) async throws -> String",
+        "private static func storeSession(serverID:accessToken:refreshToken:expiresIn:tokenEndpoint:clientID:clientSecret:resource:)",
+        "private static func fetchJSON(url: String) async throws -> JSONValue; post(url: String, body: [String: Any]) -> (Data, HTTPURLResponse); postForm(url: String, fields: [(String, String)]) -> (Data, HTTPURLResponse); oauthErrorMessage(data: Data) -> String?; origin(of url: String) throws -> String",
+        "private static func randomToken(byteCount: Int) -> String; pkceChallenge(for verifier: String) -> String; base64url(_ data: Data) -> String",
+        "static func successPage(serverName: String) -> String; static func failurePage(serverName: String, message: String) -> String; private static func page(headTitle:heading:message:) -> String; private static func escapeHTML(_ string: String) -> String"
+      ],
+      "calls_into": [
+        "MCPKeychain.value/set/delete with fields \"oauth\" and \"oauth-client\"",
+        "JSONValue.parse and accessors (.string, .array, .double, .int)",
+        "URLSession.shared.data(for:), URLRequest, URLComponents, URLQueryItem, JSONSerialization",
+        "Network.framework NWListener, NWParameters.tcp, NWEndpoint.hostPort, NWConnection receive/send",
+        "AppKit NSWorkspace.shared.open(url) on MainActor",
+        "CryptoKit SHA256.hash",
+        "Synchronization.Mutex, DispatchQueue(label: \"MCPOAuth.callback\")",
+        "Callers: MCPStore (signIn when !isSignedIn before probe; signOut on removal/auth failure), MCPProxy (accessToken, retry after refresh)"
+      ],
+      "state_owned": [
+        "OAuthRefreshGate: in-flight refresh Task per server id (single-flight; cleared after completion)",
+        "Per sign-in: CallbackState (redirect URI and registered client), CallbackWait (one-shot continuation guard with its NWListener)",
+        "Persistent: Keychain items \"oauth\" and \"oauth-client\" per server"
+      ],
+      "side_effects": [
+        "HTTP GET to the MCP URL (expecting 401 + WWW-Authenticate), to protected-resource metadata and authorization-server metadata endpoints",
+        "HTTP POST JSON to the registration endpoint; POST form to the token endpoint",
+        "Opens a TCP listener on 127.0.0.1 with an OS-assigned port for up to 300 s",
+        "Opens the authorization URL in the default browser",
+        "Writes/deletes Keychain items"
+      ],
+      "platform_assumptions": [
+        "AppKit NSWorkspace.shared.open for launching the browser (Windows: ShellExecute / shell.openExternal)",
+        "Network.framework NWListener/NWConnection for the loopback callback server (Windows: a TCP/HTTP listener bound to 127.0.0.1, port 0)",
+        "CryptoKit SHA256 (Windows: any SHA-256)",
+        "URLSession HTTP stack and its header dictionary (allHeaderFields as String or [String])",
+        "UInt8.random with the system RNG for PKCE verifier/state (Windows needs a CSPRNG equivalent)",
+        "MCPKeychain (macOS Keychain) as token storage",
+        "Callback page CSS font stack -apple-system, \"SF Pro Text\", \"Helvetica Neue\", Helvetica, sans-serif renders in the user's browser (on Windows falls to Helvetica/sans-serif as the browser resolves it; the HTML itself must be kept verbatim)"
+      ],
+      "persisted_fields": [
+        "Keychain field \"oauth\": JSON written by `JSONSerialization.data(withJSONObject: session, options: [.sortedKeys])` (line 709) WITHOUT .withoutEscapingSlashes, so every \"/\" is escaped as \"\\/\" (e.g. \"token_endpoint\":\"https:\\/\\/...\"), unlike JSONValue.data() which passes .withoutEscapingSlashes (JSONValue.swift:60). Keys: {\"access_token\": String, \"client_id\": String, \"client_secret\"?: String (only if non-empty), \"expires_at\"?: Double (Date().timeIntervalSince1970 + Double(expiresIn)), present whenever `json[\"expires_in\"]?.int` is non-nil (lines 634, 673): JSONValue.int (JSONValue.swift:83-89) accepts a JSON integer, a finite JSON float (truncated toward zero by Int(v)) and a string that Int() parses (e.g. \"3600\"; not \" 3600\" or \"3600.0\"); only a missing, null, bool, array, object, non-integer string or non-finite value omits expires_at, \"refresh_token\"?: String (only if non-empty), \"resource\"?: String (only if non-empty), \"token_endpoint\": String}. The stored value is trimmed by MCPKeychain.set.",
+        "Keychain field \"oauth-client\": JSON serialized with .sortedKeys only (line 394, no .withoutEscapingSlashes, so the issuer URL is stored as \"https:\\/\\/...\"): {\"client_id\": String, \"client_secret\"?: String (only if non-empty), \"issuer\": String (normalized issuer without surrounding slashes)}. Reused only when stored issuer equals the current metadata.issuer (JSONValue.parse unescapes \"\\/\", so the comparison is on the real string)."
+      ],
+      "ui_elements": [
+        "Browser callback page (not an app window): <!DOCTYPE html>, <html lang=\"en\">, meta charset utf-8, viewport \"width=device-width, initial-scale=1\", color-scheme \"dark\".",
+        "CSS: * box-sizing border-box; html, body margin 0 padding 0; body background #0B0B0F, color #F5F5F7, font-family -apple-system, \"SF Pro Text\", \"Helvetica Neue\", Helvetica, sans-serif, min-height 100vh, flex centered both axes.",
+        ".card width 420px, max-width calc(100vw - 48px), padding 40px, border-radius 22px, background rgba(255, 255, 255, 0.06), text-align center.",
+        "h1 font-size 22px, font-weight 600, color #F5F5F7, margin 20px 0 8px; p font-size 14px, color rgba(255, 255, 255, 0.62), line-height 1.5, margin 0 0 24px; .wordmark font-size 12px, color rgba(255, 255, 255, 0.4), letter-spacing 0.04em.",
+        "Inline SVG logo 56x56, viewBox 0 0 100 100, opacity 0.9, single white (#FFFFFF) nonzero-fill path (bird/whale silhouette with two circular holes at (63,43) r5 and (86,63) r1.8); path data verbatim at line 904.",
+        "Success page: <title> and <h1> \"Signed in to <escaped serverName>\"; <p> \"You can close this tab and head back to Droppy Code.\"",
+        "Failure page: <title> \"Sign-in didn't finish \\u2014 <escaped serverName>\" (U+2014 em dash), <h1> \"Sign-in didn't finish\", <p> escaped message.",
+        "Wordmark div text \"Droppy Code\"; script setTimeout(() => window.close(), 1500).",
+        "Plain error bodies: \"<html><body>Method not allowed.</body></html>\" (405 Method Not Allowed) and \"<html><body>Not found.</body></html>\" (404 Not Found)."
+      ],
+      "feature_notes": [
+        "Error strings verbatim: discoveryFailed -> \"Couldn't find the sign-in page.\" (+ \" <detail>\" when non-empty); metadataFailed -> \"The server's sign-in details didn't make sense.\" (+ \" <detail>\"); registrationUnsupported -> \"This server doesn't let apps sign in on their own.\"; registrationFailed -> \"Sign-in setup failed.\" (+ \" <detail>\"); tokenFailed -> \"Couldn't finish signing in.\" (+ \" <detail>\"); callbackFailed -> detail or \"Sign-in didn't finish.\" when empty; stateMismatch -> \"Sign-in didn't finish. Try again.\"; timedOut -> \"Sign-in timed out. Try again and complete it in the browser.\"; cancelled -> \"Sign-in was cancelled.\"; signedOut -> \"You're signed out. Sign in again to continue.\"; network -> detail or \"The network didn't answer.\" when empty.",
+        "signIn order: discover(url) -> verifier = randomToken(32 bytes) -> challenge = base64url(SHA256(verifier UTF-8)) -> state = randomToken(24 bytes) -> start callback server; when listener is ready, redirectURI = \"http://127.0.0.1:<port>/callback\", then clientRegistration and authorizationURL (nil -> metadataFailed(\"The authorization address isn't valid.\")), store redirect+client, open URL in browser on the main actor -> wait for callback -> exchangeCode.",
+        "randomToken: byteCount random bytes, base64url (+ -> -, / -> _, = removed).",
+        "accessToken: reads \"oauth\"; missing/unparseable/empty access_token -> signedOut. Refresh needed only if expires_at present and now >= expires_at - 90 s. Needs refresh without non-empty refresh_token -> signedOut. Refresh is single-flight per server via OAuthRefreshGate (Task.detached; concurrent callers await the same task; entry removed after completion).",
+        "isSignedIn: Keychain \"oauth\" value non-nil. signOut: deletes \"oauth\" and \"oauth-client\". `static func refreshIfNeeded(serverID:) async { _ = try? await accessToken(serverID: serverID) }` (lines 194-196) has NO caller in B2: `git grep refreshIfNeeded -- DroppyCode` finds only this definition plus the unrelated TokenLedger.refreshIfNeeded() (TokenLedger.swift:157, called from TokenActivitySection.swift:97). Upstream has no proactive refresh; refresh happens only inside accessToken().",
+        "discover: URL(string:) nil -> discoveryFailed(\"That address doesn't look like a URL.\"). GET the MCP URL (timeout 30, Accept application/json); only a 401 is inspected; all WWW-Authenticate header values (case-insensitive name, String or [String]) are scanned for the first resource_metadata and first scope parameter. If a resource_metadata URL was found, fetch it (failures ignored) and read authorization_servers[0], resource, scopes_supported (non-empty strings; empty list -> nil). Otherwise (lines 217-237) `let path = requestURL.path.isEmpty ? \"\" : requestURL.path` uses Foundation URL.path, which is percent-decoded, excludes query and fragment, and strips a trailing slash except that a root URL keeps \"/\": for \"https://h/\" the first candidate is \"https://h/.well-known/oauth-protected-resource/\" (trailing slash); for \"https://h\" the path is \"\" and both candidates are the same URL, so it is fetched a second time when the first try fails or lacks both fields; for \"https://h/mcp/\" the path is \"/mcp\". JS `new URL().pathname` (\"/\" for both root forms, \"/mcp/\" keeps the slash, stays percent-encoded) differs on all three. Candidates in order: origin + \"/.well-known/oauth-protected-resource\" + path, then origin + \"/.well-known/oauth-protected-resource\"; a document counts only if it has an authorization_servers array or a resource string. If no scopes found, use the challenge scope list. Issuer = authorization_servers[0] or the URL origin, trimmed of leading/trailing \"/\"; empty -> discoveryFailed(\"That address doesn't look like a URL.\").",
+        "challengeParameter: finds the first occurrence of \"<name>=\" anywhere in the header (substring match, so \"scope=\" can also match inside another parameter name); quoted value up to the next quote (unterminated -> nil) or bare value up to the next comma or space (Stripe sends resource_metadata bare); empty -> nil. challengeScopes (lines 305-308): `value.split(separator: \" \").map(String.init).filter { !$0.isEmpty }`: Swift split omits empty subsequences by default and the filter drops any that remain, so runs of spaces collapse and no empty scope is produced (a JS `split(' ')` alone would keep empty strings); only U+0020 separates, not tabs; an all-space value -> nil.",
+        "fetchAuthorizationServerMetadata candidates in order: if the issuer has a non-root path: origin + \"/.well-known/oauth-authorization-server\" + path, origin + \"/.well-known/openid-configuration\" + path (RFC 8414, Stripe issuer https://access.stripe.com/mcp); then issuer + \"/.well-known/oauth-authorization-server\", issuer + \"/.well-known/openid-configuration\". First document with non-empty authorization_endpoint and token_endpoint wins; missing ones set lastError \"It's missing the addresses needed to sign in.\"; a fetch error sets `lastError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription` (line 348), i.e. the FULL description of the MCPOAuthError that fetchJSON threw; each candidate overwrites lastError; all failing -> `throw MCPOAuthError.metadataFailed(lastError)` (line 351), whose description prefixes it again. So the user sees \"The server's sign-in details didn't make sense. The server's sign-in details didn't make sense. The server answered 404.\" (last candidate non-2xx or non-JSON), \"The server's sign-in details didn't make sense. The network didn't answer.\" (transport error, network(\"\")), \"The server's sign-in details didn't make sense. The server didn't answer properly.\" or \"... That address isn't valid.\", or, when the last candidate lacked the endpoints, \"The server's sign-in details didn't make sense. It's missing the addresses needed to sign in.\". The doubled prefix is source behavior to reproduce.",
+        "clientRegistration: reuse stored \"oauth-client\" when client_id non-empty and issuer matches. Else no registration_endpoint -> registrationUnsupported. POST JSON {\"client_name\":\"Droppy Code\",\"redirect_uris\":[redirectURI],\"grant_types\":[\"authorization_code\",\"refresh_token\"],\"response_types\":[\"code\"],\"token_endpoint_auth_method\":\"none\", \"scope\": space-joined resourceScopes when non-empty}. Non-2xx or no client_id -> registrationFailed(error_description or error from body, else for 403 \"The server only signs in apps it has approved (403), so this one can't yet.\", else \"The server refused to set things up (<status>).\"). Note the redirect URI (with its random port) is registered once and reused on later sign-ins with a different port.",
+        "Callback listener: NWParameters.tcp with requiredLocalEndpoint 127.0.0.1 port any; creation failure or missing port -> network(\"Couldn't listen for the sign-in reply.\"); listener .failed -> network(\"The connection to the browser broke.\"); .cancelled -> cancelled; timeout 300 s -> timedOut; Task cancellation cancels the listener. finish() is one-shot and cancels the listener.",
+        "receiveRequest: reads chunks up to 65536 bytes until \"\\r\\n\\r\\n\"; drops the connection if complete/error or the head exceeds 1024*1024 bytes without a terminator; ignores connections after finish.",
+        "handleRequest: request line split on spaces; not GET -> 405; target must be \"/callback\" or start with \"/callback?\" else 404; query parsed via URLComponents. error param non-empty -> message = error_description if non-empty else \"The sign-in was refused (<error>).\"; failure page and callbackFailed(message). Missing/empty code -> failure page and callbackFailed(\"The browser didn't send back a code.\"). state != expected -> failure page \"Sign-in didn't finish. Try again.\" and stateMismatch. Success page, then if no stored client/redirect -> callbackFailed(\"Sign-in didn't finish.\") else success. All pages sent with status 200; wait.finish runs after send completion.",
+        "sendHTML head: \"HTTP/1.1 <status> <text>\\r\\nContent-Type: text/html; charset=utf-8\\r\\nContent-Length: <n>\\r\\nConnection: close\\r\\n\\r\\n\".",
+        "authorizationURL (lines 581-598): `URLComponents(string: authorization_endpoint)`, items = existing `components.queryItems` (decoded) then response_type=code, client_id, redirect_uri, code_challenge, code_challenge_method=S256, state, then resource (if non-empty), then scope (space-joined resourceScopes if non-empty); `components.queryItems = items` (line 597) re-encodes ALL items, the endpoint's existing ones included. URLComponents query-item encoding leaves \":\" \"/\" \"?\" \"@\" and \"+\" literal and encodes space as %20, so the URL carries `redirect_uri=http://127.0.0.1:<port>/callback` and `scope=a%20b` literally, and a resource URL likewise stays unescaped. URLSearchParams would give %3A%2F and \"+\" for space, so a port needs RFC 3986 query encoding with that allowed set. nil components or nil url -> metadataFailed(\"The authorization address isn't valid.\").",
+        "exchangeCode form fields in order: grant_type=authorization_code, code, redirect_uri, client_id, code_verifier, client_secret (if non-empty), resource (if non-empty). Failure -> tokenFailed(error_description/error or \"The server didn't hand back a token.\"). performRefresh: requires stored token_endpoint and client_id else signedOut; fields grant_type=refresh_token, refresh_token, client_id, client_secret?, resource?; failure -> tokenFailed(error_description/error or \"The sign-in expired.\"); new refresh_token falls back to the old one; returns new access token.",
+        "HTTP helpers: `URLRequest(url:, timeoutInterval: 30)` at lines 252, 721, 750 and 774 sets URLSession's idle (no-data) timeout, not a total deadline; Accept application/json. fetchJSON: bad URL -> network(\"That address isn't valid.\"); non-HTTP -> network(\"The server didn't answer properly.\"); transport error -> network(\"\") (shows \"The network didn't answer.\"); non-2xx or non-JSON -> metadataFailed(\"The server answered <status>.\"). post: JSON body Content-Type application/json; postForm: application/x-www-form-urlencoded, body = `URLComponents().queryItems = fields` then percentEncodedQuery (lines 772-778), the same URLComponents query encoding as authorizationURL (\":\" \"/\" \"?\" \"@\" \"+\" literal, space %20), so a \"+\" inside a value (e.g. a client_secret or token) is sent literally and a form decoder reads it as a space. oauthErrorMessage: error_description if non-empty else error.",
+        "origin(of:): scheme://host[:port]; missing scheme/host -> discoveryFailed(\"That address doesn't look like a URL.\").",
+        "escapeHTML: & < > \" ' -> &amp; &lt; &gt; &quot; &#39;.",
+        "B1->B2: Added `import Synchronization`; CallbackState changed from `@unchecked Sendable` with NSLock and two vars to `Sendable` with `Mutex(State())` holding redirectURI (default \"\") and client; CallbackWait's lock+Bool replaced by `Mutex<Bool>(false)` with finish() computing shouldResume inside withLock, then cancelling the listener and resuming outside the lock (as before). Observable behavior unchanged.",
+        "storeSession (lines 682-713): if JSONSerialization or UTF-8 conversion fails it silently returns (lines 709-711), and `MCPKeychain.set(string, server: serverID, field: \"oauth\")` (line 712) ignores the Bool result; clientRegistration likewise ignores set's result (line 397). exchangeCode therefore returns normally and signIn (lines 134-160) completes without error even when the token was not stored: with no earlier \"oauth\" item isSignedIn stays false; with an earlier item a failed SecItemUpdate leaves the OLD blob in place. performRefresh returns the new access token even if storing it failed."
+      ],
+      "unresolved_questions": [
+        "postForm and authorizationURL use URLComponents query-item encoding (\":\" \"/\" \"?\" \"@\" \"+\" literal, space %20, recorded in feature_notes); how that encoder treats \"&\", \"=\", \";\" and \"#\" inside a value was not exercised against Foundation here and must be checked before a byte-exact Windows encoder is written.",
+        "challengeParameter substring matching (\"scope=\" inside another parameter) is a source quirk to reproduce, not repair; confirm no test depends on it.",
+        "Windows protected storage size limits for the \"oauth\" JSON (Credential Manager blob limit 2560 bytes) could be exceeded by long tokens; an adaptation is needed."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/MCP/MCPProbe.swift",
+      "sha256": "52265ebb6205c4791dcee1887edbfc34ca6e0619865664985cc56649fa1fbf9c",
+      "lines_total": 430,
+      "ranges_read": [
+        [
+          1,
+          430
+        ]
+      ],
+      "purpose": "MCPProbe performs a one-shot connection check of a resolved MCP server (used by MCPStore when a connector is added or checked): it starts a local stdio server or POSTs to a remote streamable-HTTP URL, runs initialize, notifications/initialized and up to 10 pages of tools/list, and returns the server name, version and tool summaries. It maps failures to user-facing MCPProbeError messages, including GitLab's disabled-MCP setup guide and OAuth rejection detection for mcp-remote bridges, and then tears the process down.",
+      "key_symbols": [
+        "enum MCPProbeError: LocalizedError, Sendable { commandMissing(String); exited(code: Int32, stderr: String); timedOut; http(status: Int, body: String); unauthorizedOAuth; needsSetup(MCPSetupGuide); unavailable(host: String); malformed(String) }",
+        "enum MCPProbe",
+        "@concurrent static func probe(_ server: MCPResolvedServer) async throws -> MCPProbeResult",
+        "private static func initializeParams() -> JSONValue; request(id:method:params:) -> JSONValue; notification(method:) -> JSONValue; checkReply(_:) throws; firstLine(_ text: String?) -> String?; toolSummaries(from result: JSONValue?) -> [MCPToolSummary]",
+        "private static func probeStdio(_ server: MCPResolvedServer) async throws -> MCPProbeResult (local funcs send(_:), nextReply(id:))",
+        "private static func exitError(code: Int32?, isOAuth: Bool, stderr: String) -> MCPProbeError",
+        "private static func terminate(_ process: Process)",
+        "private static func probeRemote(_ server: MCPResolvedServer, _ urlString: String) async throws -> MCPProbeResult (local funcs post(_:), nearest(_:))",
+        "private static func postJSON(to url: URL, headers: [String: String], sessionID: String?, payload: JSONValue) async throws -> (sessionID: String?, body: JSONValue?)",
+        "private static func firstSSEMessage(_ data: Data) -> JSONValue?",
+        "static func isGitLabMCP(_ upstream: String) -> Bool",
+        "static func gitLabServerDisabled(upstream: String) -> MCPSetupGuide",
+        "private final class StdioConversation: Sendable { Mutex(State{buffer, pending, stderr, exitStatus}); appendStdout, appendStderr, setExit, takeLines, stderrText, exitCode }"
+      ],
+      "calls_into": [
+        "MCPResolvedServer (command, args, env, url, headers, oauthUpstream), MCPProbeResult(serverName:serverVersion:tools:), MCPToolSummary(name:summary:), MCPSetupGuide(title:reason:steps:pageLabel:pageURL:note:) from Core/Models/MCP.swift",
+        "LoginEnvironment.which / LoginEnvironment.current",
+        "Foundation Process, Pipe, FileHandle.readabilityHandler, URLSession.shared, Darwin kill/getpgid/SIGKILL",
+        "String.trimmed, JSONValue",
+        "Caller: MCPStore (try await MCPProbe.probe(resolved), after OAuth sign-in when needed)"
+      ],
+      "state_owned": [
+        "Per-probe only: the child process and StdioConversation buffers (stdout lines, stderr capped, exit status), remote Mcp-Session-Id, request id counter."
+      ],
+      "side_effects": [
+        "Spawns and then terminates the server process (defer: clear handlers, terminate, close stdin)",
+        "HTTP POSTs to remote MCP URL"
+      ],
+      "platform_assumptions": [
+        "Foundation Process/Pipe for stdio; POSIX kill/getpgid/SIGKILL process-group kill after 1 s",
+        "LoginEnvironment PATH resolution (npx, uvx) - Windows must resolve npx.cmd and similar shims",
+        "Error text for missing uvx says \"Run `brew install uv` in Terminal\" (Homebrew/Terminal are macOS; string is source text and must be kept verbatim unless an approved deviation)",
+        "FileManager homeDirectoryForCurrentUser as cwd",
+        "URLSession HTTP; Swift @concurrent executor semantics",
+        "Synchronization.Mutex"
+      ],
+      "persisted_fields": [
+        "None."
+      ],
+      "ui_elements": [
+        "No view code; user-visible strings surfaced by callers: commandMissing: \"npx isn't installed. Install Node.js from nodejs.org, then try again.\", \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\", \"<name> isn't installed. Install it, then try again.\"; exited: \"The server quit (exit <code>). <last non-empty trimmed stderr line>\" or \"The server quit (exit <code>).\"; timedOut: \"The server didn't answer in time.\"; http 401/403: \"That key was refused. Press Try again and paste a new one.\"; http 404: \"Nothing answered at that address. Check the address and try again.\"; other: \"The server answered <status>.\"; unauthorizedOAuth: \"Sign-in was rejected. Sign in again in your browser.\"; needsSetup: guide.reason; unavailable: \"<host> didn't answer (404). If the address is right, try again in a few minutes.\"; malformed: \"The server sent something unexpected: <detail>\" (no trailing period).",
+        "GitLab setup guide: title \"Turn on GitLab's MCP server\"; reason \"You're signed in, but GitLab keeps its MCP server off until a group owner turns it on. Until then, the address answers not found.\"; steps in order: \"Open your groups and pick the top-level group your projects live in\", \"Go to Settings › General and expand Permissions and group features\" (U+203A single right angle quote, bytes E2 80 BA), \"Under MCP client access, tick Allow connection to GitLab and save\", \"Come back here and press Check again\"; pageLabel \"Open my groups\"; pageURL <origin> + \"/dashboard/groups\" (origin = scheme (default https) :// host of upstream, fallback \"https://gitlab.com\" when unparseable or host-less; port not included); note \"GitLab can take a minute to apply the change.\""
+      ],
+      "feature_notes": [
+        "probe (lines 54-62): `if server.command != nil` -> probeStdio (a nil check, not non-empty); else `if let url = server.url` -> remote; else malformed(\"missing command or URL\"). An empty command still goes to probeStdio with `command = server.command ?? \"\"` (line 112); the result then depends on LoginEnvironment.which(\"\") (Shell.swift:415-427): \"\" has no \"/\", so it returns the first PATH entry for which `isExecutableFile(atPath: URL(fileURLWithPath: dir).appendingPathComponent(\"\").path)` is true (not exercised here). If it returns nil the error is commandMissing(\"\") -> \" isn't installed. Install it, then try again.\" with a leading space; otherwise process.run() fails and its raw error is rethrown. MCPCustom validation rejects a trimmed-empty stdio command on save (MCPCustom.swift:157, .emptyCommand \"A stdio server needs a command.\"), and catalog commands are \"npx\"/\"uvx\".",
+        "initialize params identical to MCPHub: protocolVersion \"2025-06-18\", capabilities {}, clientInfo {name \"Droppy Code\", version \"1.0\"}; ids: initialize 1, tools/list from 2 upward.",
+        "stdio: executable not found -> commandMissing(command). isOAuth = args contains exactly \"mcp-remote\"; single overall wall-clock deadline (Date, line 117) of 240 s for OAuth bridges else 90 s (shared by all steps). env = LoginEnvironment.current overlaid with server.env; cwd home. run() failure rethrows the raw error. The probe process is never passed to MCPHub.track, so MCPHub.terminateAll() at quit does not reach it; only the defer (lines 162-167) ends it. nextReply (lines 175-191) polls every 5 ms: `for line in conversation.takeLines()` takes ALL pending lines, and on the first line whose `value[\"id\"]?.int == id` it runs checkReply and returns from inside the loop, so any later lines of that batch are dropped for good; lines with another id (including server-to-client requests and notifications) are discarded, never answered. JSONValue.int (JSONValue.swift:83-89) makes an id of 1, 1.0 or \"1\" match request 1, and there is no \"method\" check, so a server request whose id equals the pending request id is taken as the reply. checkReply: error object -> malformed(message or \"unknown error\"); then exit code (set only by the terminationHandler; there is no `process.isRunning` check, unlike MCPHub.waitStdio line 409) -> exitError(code); deadline -> exitError(nil). exitError: isOAuth and stderr contains \"Unauthorized\" or \"invalid_grant\" -> unauthorizedOAuth; else exited(code, stderr) or timedOut.",
+        "Initialize reply must have an object result else malformed(\"missing result\"); serverInfo.name and serverInfo.version captured. tools/list loop max 10 pages, cursor from nextCursor (non-empty). toolSummaries: tools with string name; summary = first line of description, trimmed, nil if empty.",
+        "StdioConversation: stdout split on 0x0A; stderr appended and, when over 64_000 bytes, reduced to its last 16_000 bytes; stderrText decoded as UTF-8.",
+        "terminate: SIGTERM then after 1 s SIGKILL to process group (-pid) if pid is group leader else pid. defer order: remove readability handlers, terminate, close stdin write handle.",
+        "remote: URL(string:) nil -> malformed(\"invalid URL\"). postJSON: `URLRequest(url: url, timeoutInterval: 30)` (line 309) is URLSession's idle timeout per request, not a total deadline; headers user first then Content-Type application/json, Accept \"application/json, text/event-stream\", MCP-Protocol-Version \"2025-06-18\", Mcp-Session-Id when known. `URLSession.shared.data(for:)` (line 318) reads the whole body before firstSSEMessage scans it, so an SSE stream left open blocks until close or idle timeout. Non-HTTP response -> malformed(\"invalid reply\") (line 320). Non-2xx -> http(status, body) where body = `String(String(decoding: data, as: UTF8.self).prefix(2000)).trimmed` (line 324): the first 2000 Swift Characters (grapheme clusters) of the lossily decoded body, then trimmed. SSE -> first single-line \"data:\" payload that is a JSON object with `value[\"id\"] != nil` (so \"id\": null counts); multi-line data fields are not joined. Empty body -> nil, and `JSONValue.parse(data)` (line 333) is also nil for a non-empty non-JSON body; nearest() turns every nil into malformed(\"empty reply\") -> \"The server sent something unexpected: empty reply\". Session id updated from each response when present (line 249). Transport failures (URLError) are not caught by post()'s `catch MCPProbeError.http` clauses and propagate raw, so the caller shows Foundation's localizedDescription (e.g. \"The request timed out.\").",
+        "remote error mapping only when server.oauthUpstream != nil: 401/403 -> 403 with body containing \"MCP server disabled\" (case-insensitive) -> needsSetup(gitLabServerDisabled(upstream)); otherwise unauthorizedOAuth. 404 -> if isGitLabMCP(upstream) needsSetup(gitLab guide) else unavailable(host of upstream or \"The server\"). Without oauthUpstream the raw http error propagates.",
+        "nearest(): nil body -> malformed(\"empty reply\"); checkReply; non-object -> malformed(\"invalid reply\"). notifications/initialized errors ignored except CancellationError.",
+        "isGitLabMCP (lines 354-357): `url.path.lowercased().hasSuffix(\"/api/v4/mcp\")` on Foundation URL.path, which is percent-decoded and strips a trailing slash, so \"https://gitlab.com/api/v4/mcp/\" also matches (it covers relative URL roots too). A port on JS pathname (\"/api/v4/mcp/\") would not match and would turn such a GitLab 404 into unavailable(host) instead of the setup guide.",
+        "B1->B2: Added `import Synchronization`; three `.trimmingCharacters(in: .whitespacesAndNewlines)` calls (exited stderr lines, firstLine, HTTP error body) replaced by the equivalent `.trimmed` extension; StdioConversation changed from `@unchecked Sendable` with NSLock and separate vars to `Sendable` with `Mutex(State())` holding buffer/pending/stderr/exitStatus. The 64_000/16_000 stderr cap and all messages are unchanged; no behavioral change."
+      ],
+      "unresolved_questions": [
+        "The uvx missing-command message references `brew install uv` and Terminal; whether the Windows port keeps it verbatim or records an approved deviation is an owner decision (contract sections 2 and 10).",
+        "@concurrent executor semantics have no direct Windows analogue; only the non-main-thread execution matters (ENGINEERING DECISION)."
+      ]
+    }
+  ]
+}

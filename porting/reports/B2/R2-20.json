@@ -1,0 +1,532 @@
+{
+  "bundle_id": "R2-20",
+  "reader": "R2-20-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Terminal/TerminalFont.swift",
+      "sha256": "b0de807b0962e56fface02e67fa51eb2b564d364534061486b3618b72966cf01",
+      "lines_total": 138,
+      "ranges_read": [[1, 138]],
+      "purpose": "New in 1.6.2: a @MainActor enum TerminalFont whose single public entry point preferred(fallbackSize:) picks the NSFont the embedded SwiftTerm view draws with, so that a Starship or powerline prompt's Nerd Font icons render instead of empty boxes. It reads the font the user configured in Ghostty (plain-text config), iTerm2 (defaults 'New Bookmarks' / 'Normal Font') and Terminal.app (archived NSFont in the default profile), ordering running terminals first, then prefers a configured font that covers four Nerd Font probe glyphs, else that font's installed Nerd Font sibling family, else any installed family whose name contains 'nerd font', else the configured font itself, and finally the monospaced system font.",
+      "key_symbols": [
+        "@MainActor enum TerminalFont",
+        "static func preferred(fallbackSize: CGFloat = 12) -> NSFont",
+        "private static func configuredFonts() -> [NSFont]",
+        "private static func ghosttyFont() -> NSFont?",
+        "private static var ghosttyConfigURLs: [URL]",
+        "private static func terminalFont() -> NSFont?",
+        "private static func iTermFont() -> NSFont?",
+        "private static let nerdProbes: [UnicodeScalar] = [UInt32(0xE0B0), UInt32(0xE0B6), UInt32(0xF015), UInt32(0xF0035)].compactMap(UnicodeScalar.init)",
+        "private static func hasNerdGlyphs(_ font: NSFont) -> Bool",
+        "private static func nerdSibling(of font: NSFont) -> NSFont?",
+        "private static func firstInstalledNerdFont(size: CGFloat) -> NSFont?",
+        "private static func resolve(_ name: String, size: CGFloat) -> NSFont?",
+        "private static func normalized(_ name: String) -> String"
+      ],
+      "calls_into": [
+        "NSWorkspace.shared.runningApplications (bundleIdentifier)",
+        "String(contentsOf:encoding: .utf8) for Ghostty config files",
+        "FileManager.default.homeDirectoryForCurrentUser",
+        "UserDefaults(suiteName: \"com.apple.Terminal\") and UserDefaults(suiteName: \"com.googlecode.iterm2\")",
+        "NSKeyedUnarchiver.unarchivedObject(ofClass: NSFont.self, from:)",
+        "NSFont(name:size:), NSFont.monospacedSystemFont(ofSize:weight: .regular), NSFont.coveredCharacterSet, NSFont.familyName, NSFont.pointSize",
+        "NSFontManager.shared.availableFontFamilies",
+        "Called by TerminalSession.init in TerminalStore.swift line 22 (view.font = TerminalFont.preferred())"
+      ],
+      "state_owned": [
+        "None mutable. Only the static constant nerdProbes; every call re-reads configs, running apps and installed families (no caching)."
+      ],
+      "side_effects": [
+        "Reads two Ghostty config files from disk, the Terminal.app and iTerm2 preference domains, and the list of running applications, on every preferred() call. preferred() runs from TerminalSession.init (TerminalStore.swift line 22), so it runs for every TerminalSession constructed: each open()/run()/ensureTerminal() tab AND every TerminalStore.restart(_:), which builds a fresh `TerminalSession(...)` (TerminalStore.swift lines 142-147). A configured font that changed since the tab was first opened therefore changes a restarted tab's font and size. No writes."
+      ],
+      "platform_assumptions": [
+        "AppKit NSFont / NSFontManager / NSWorkspace / NSKeyedUnarchiver; a Windows port needs a DirectWrite or system font enumeration and glyph-coverage check instead of coveredCharacterSet.",
+        "macOS terminal apps and their bundle IDs \"com.mitchellh.ghostty\", \"com.googlecode.iterm2\", \"com.apple.Terminal\"; on Windows the equivalent sources would be Windows Terminal settings.json and others, which this file does not cover.",
+        "macOS paths \"Library/Application Support/com.mitchellh.ghostty/config\" and XDG \".config/ghostty/config\" under the home directory.",
+        "CFPreferences-backed UserDefaults suites of other apps (Terminal.app 'Window Settings', iTerm2 'New Bookmarks').",
+        "NSFont(name:) accepting a family name (used with family names from availableFontFamilies) as well as PostScript names."
+      ],
+      "persisted_fields": [
+        "Reads, never writes. Ghostty config keys: \"font-family\" (FIRST occurrence wins: `case \"font-family\" where name == nil:`; comma list allowed, first entry taken, spaces and double quotes trimmed) and \"font-size\" (`case \"font-size\": if let points = Double(value), points > 0 { size = CGFloat(points) }` has no such guard, so it runs on every matching line and the LAST valid font-size in the file wins; default 12 when absent).",
+        "Terminal.app domain com.apple.Terminal: \"Default Window Settings\" (profile name, default \"Basic\"), \"Window Settings\" dictionary, the profile entry's \"Font\" (Data, archived NSFont).",
+        "iTerm2 domain com.googlecode.iterm2: \"New Bookmarks\" array of dictionaries, each \"Normal Font\" string formatted as PostScript name, a space, then the size (e.g. last space-separated token parsed as Double)."
+      ],
+      "ui_elements": [
+        "No UI. Default fallback size 12 pt; final fallback NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)."
+      ],
+      "feature_notes": [
+        "preferred(): configured = configuredFonts(); returns the first configured font where hasNerdGlyphs is true; otherwise, if any configured font exists, returns nerdSibling(of: first) ?? firstInstalledNerdFont(size: first.pointSize) ?? first; with no configured font returns firstInstalledNerdFont(size: fallbackSize) ?? monospacedSystemFont(ofSize: fallbackSize, weight: .regular).",
+        "configuredFonts(): readers in fixed order ghostty, iTerm2, Terminal; the running ones (by bundle identifier) come first in that order, then the non-running ones; compactMap calls every reader, so all three sources are read each time.",
+        "Ghostty parse: per file, lines trimmed of whitespace, lines starting with \"#\" and lines without \"=\" skipped, key and value split at the first \"=\" and trimmed. size resets to 12 for each file. The first file that yields a non-empty name that resolve() can turn into a font wins; otherwise the second file is tried; otherwise nil.",
+        "Ghostty comment handling: only whole lines whose trimmed text starts with \"#\" are skipped (line 41 `guard !line.hasPrefix(\"#\"), let equal = line.firstIndex(of: \"=\") else { continue }`). A trailing comment stays in the value: `font-size = 14 # big` gives the value \"14 # big\", `Double(value)` is nil, and the size is silently left at its previous value (12 by default). The same trailing text would stay in a font-family value, since only spaces and double quotes are trimmed from it.",
+        "Ghostty config URL order: home + \"Library/Application Support/com.mitchellh.ghostty/config\", then home + \".config/ghostty/config\".",
+        "iTermFont iterates every bookmark in array order (it does not look up the default profile GUID) and returns the first whose \"Normal Font\" parses to a size and for which `NSFont(name: parts.dropLast().joined(separator: \" \"), size: CGFloat(size))` (line 87) is non-nil. This is a DIRECT NSFont(name:size:) call, not the resolve() helper: unlike ghosttyFont (line 55 `resolve(name, size: size)`), there is no fallback to a normalized family-name match, so a name that is not an exact PostScript or family name gives nil for that bookmark and the loop moves on to the next.",
+        "terminalFont uses profile = defaults \"Default Window Settings\" ?? \"Basic\" and returns nil if 'Window Settings', the profile entry or its 'Font' Data is missing, or if unarchiving fails.",
+        "Nerd probes (line 96): U+E0B0, U+E0B6, U+F015, U+F0035, built with `.compactMap(UnicodeScalar.init)`; hasNerdGlyphs requires all four to be in coveredCharacterSet (`nerdProbes.allSatisfy { covered.contains($0) }`). The file's own comment (lines 94-95) groups them as \"a powerline cap, two Font Awesome marks and a Material one from the supplementary plane\"; that is the source's description (so it counts one powerline cap, not two). Which Nerd Font range each code point belongs to is not stated beyond that comment.",
+        "normalized(name): lowercased, spaces and \"-\" removed, then \"nerdfont\" replaced by \"nf\" (so \"GeistMono Nerd Font\" and \"Geist Mono NF\" both become \"geistmononf\").",
+        "nerdSibling(of:): target = normalized(familyName) + \"nf\"; first installed family whose normalized name equals target, opened at the same point size. A family that is already a Nerd Font variant yields a target ending in \"nfnf\" and finds nothing.",
+        "firstInstalledNerdFont(size:): first family in availableFontFamilies whose name localizedCaseInsensitiveContains \"nerd font\".",
+        "resolve(name:size:): NSFont(name:size:) first; else the first installed family whose normalized name equals normalized(name).",
+        "B1->B2: added in 1.6.2 (the whole 138-line file is new; diff shows 138 insertions). TerminalStore.swift switched from NSFont.monospacedSystemFont(ofSize: 12, weight: .regular) to TerminalFont.preferred() in the same release."
+      ],
+      "unresolved_questions": [
+        "Which Windows sources (Windows Terminal settings.json profiles.defaults.font.face/size, per-profile fonts, WezTerm, Alacritty) the port should read to reach parity in spirit, since none of the three macOS sources exist on Windows.",
+        "Whether NSFont(name:) resolving a family name (rather than a PostScript name) picks the Regular face on every family; the file relies on it but does not say."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Terminal/TerminalPanel.swift",
+      "sha256": "f7ff7ea00d7b17f10ce9fa168ba014625d3bca482c7a62dd652f4721edff33fd",
+      "lines_total": 443,
+      "ranges_read": [[1, 443]],
+      "purpose": "TerminalPanel is the per-thread terminal drawer shown at the bottom of a conversation: a 38 pt tab row of TerminalTab capsules with a plus button and a hide chevron, the selected session's SwiftTerm view hosted through TerminalHost, an empty state with a 'New shell' button, and a resize strip on the top edge that clamps the dragged drawer height to 140-760 points (the stored height itself is drawn unclamped) and commits it to settings only on release. The file also defines the AppKit resize grip view with its hover-grown bar, the NSViewRepresentable host that moves the long-lived terminal view between containers and installs an Escape-at-prompt key monitor, and TerminalHostContainer, which parks autoresizing during a live window resize and re-syncs the frame at most every 50 ms so SwiftTerm does not re-wrap every frame.",
+      "key_symbols": [
+        "struct TerminalPanel: View { @Environment(AppModel.self) model; @Environment(\\.colorScheme) colorScheme; let runtime: ThreadRuntime; let directory: String; @State dragOrigin: Double?; @State dragHeight: Double? }",
+        "private struct TerminalResizeHandle: NSViewRepresentable { let onBegin: () -> Void; let onChange: (CGFloat) -> Void; let onEnd: () -> Void; makeNSView/updateNSView/apply(to:) }",
+        "final class TerminalResizeHandleView: NSView { var onBegin/onChange/onEnd; private enum Grip { height 2.5, restWidth 12, shownWidth 28, alpha 0.6 (Float), duration 0.18 }; gripLayer: CALayer; trackingArea; pressOriginY; isHovering; isDragging; applyColors(); updateGrip(animated:); showsGrip }",
+        "TerminalResizeHandleView overrides: init(frame:), viewDidChangeEffectiveAppearance, layout, acceptsFirstMouse(for:) -> true, mouseDownCanMoveWindow -> false, resetCursorRects (.resizeUpDown), mouseDown, mouseDragged, mouseUp, updateTrackingAreas, mouseEntered, mouseExited",
+        "private struct TerminalTab: View { let session: TerminalSession; let isSelected: Bool; let select/restart/close: () -> Void; @State isHovering }",
+        "struct TerminalHost: NSViewRepresentable { let session: TerminalSession; let runtime: ThreadRuntime; let isDark: Bool; let onEscapeAtPrompt: () -> Void; final class Coordinator { var keyMonitor: Any? } ; makeNSView; updateNSView; attach(to:) }",
+        "final class TerminalHostContainer: NSView { weak var hostedView: NSView?; private var pendingSync: DispatchWorkItem?; private var resizeObservers: [NSObjectProtocol]; isolated deinit; viewDidMoveToWindow; resizeSubviews(withOldSize:); finishResize(); syncFrame() }"
+      ],
+      "calls_into": [
+        "model.terminals (TerminalStore): sessions(for:), selected(for:), selection[...] =, restart(_:), close(_:), open(threadID:directory:), ensureTerminal(threadID:directory:)",
+        "model.settings.terminalHeight (read and written on drag end)",
+        "runtime.isTerminalVisible, runtime.isTerminalResizing, runtime.terminalWantsFocus, runtime.threadID",
+        "ShortcutStore.hint(for: .toggleTerminal)",
+        "Chrome.iconFont, Chrome.secondaryText, Chrome.sheetCornerRadius, .buttonStyle(.chip), .buttonStyle(.glass)",
+        "TerminalSession.applyAppearance(isDark:), TerminalSession.foregroundJobIsTheShell(_:), session.view.process.shellPid",
+        "KeyChord.allowedModifiers",
+        "NSEvent.addLocalMonitorForEvents(matching: .keyDown) / NSEvent.removeMonitor",
+        "NotificationCenter: NSWindow.willStartLiveResizeNotification, NSWindow.didEndLiveResizeNotification",
+        "DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(50))"
+      ],
+      "state_owned": [
+        "TerminalPanel: dragOrigin (height at press), dragHeight (live height during drag, nil otherwise).",
+        "TerminalResizeHandleView: gripLayer, trackingArea, pressOriginY, isHovering, isDragging.",
+        "TerminalTab: isHovering.",
+        "TerminalHost.Coordinator: keyMonitor (removed in deinit).",
+        "TerminalHostContainer: hostedView (weak), pendingSync, resizeObservers."
+      ],
+      "side_effects": [
+        "On drag end writes model.settings.terminalHeight (persisted by AppSettings elsewhere); sets runtime.isTerminalResizing true on begin and false on end.",
+        "onAppear calls terminals.ensureTerminal, which starts a shell if the thread has none.",
+        "Installs a process-wide local keyDown monitor per hosted terminal; swallows Escape (returns nil) when the shell owns the foreground, and calls onEscapeAtPrompt which sets runtime.isTerminalVisible = false.",
+        "updateNSView may make the terminal view first responder in a Task on the main actor and clear runtime.terminalWantsFocus.",
+        "Registers and removes NotificationCenter observers for the window's live resize."
+      ],
+      "platform_assumptions": [
+        "AppKit NSView, CALayer, CATransaction, NSTrackingArea, cursor rects (NSCursor.resizeUpDown), NSEvent local monitors and keyCode 53 for Escape (macOS virtual key code).",
+        "SwiftUI NSViewRepresentable hosting a SwiftTerm LocalProcessTerminalView; a Windows port needs an xterm.js or ConPTY-backed terminal host.",
+        "NSWindow live-resize notifications and inLiveResize; autoresizingMask [.width, .height].",
+        "Appearance-aware NSColor.labelColor resolved with effectiveAppearance.performAsCurrentDrawingAppearance.",
+        "macOS 26 SwiftUI glass button styles (.glass) and UnevenRoundedRectangle continuous corners.",
+        "Coordinate system with y increasing upward (locationInWindow.y delta positive upward grows the drawer); a top-left origin system must invert the sign.",
+        "Swift 6.2 'isolated deinit' and MainActor.assumeIsolated."
+      ],
+      "persisted_fields": [
+        "settings.terminalHeight (Double, points): written once on drag release (onEnd, `if let dragHeight { model.settings.terminalHeight = dragHeight }`) with the drag value min(760, max(140, origin + delta)). Only the drag value is clamped: the drawer is drawn at `.frame(height: dragHeight ?? model.settings.terminalHeight)` (line 80) with no clamp, so a stored value outside 140-760 is drawn as is until the next drag. Because mouseUp always sends a final onChange, even a click on the strip with no movement writes the clamped stored value back. Its default lives in AppSettings, not in this file."
+      ],
+      "ui_elements": [
+        "Tab row: HStack spacing 6, horizontal ScrollView(.horizontal, showsIndicators: false) holding tabs in HStack spacing 4, with `.fixedSize(horizontal: false, vertical: true)` on the ScrollView (line 34); row padding horizontal 10, height 38.",
+        "Plus button: Image \"plus\" in Chrome.iconFont, .buttonStyle(.chip), help and accessibility label \"New terminal\"; action `terminals.open(threadID: runtime.threadID, directory: directory)` (line 36).",
+        "Hide button: Image \"chevron.down\" in Chrome.iconFont, .chip, help \"Hide terminal\" + ShortcutStore.hint(for: .toggleTerminal), accessibility label \"Hide terminal\"; action `runtime.isTerminalVisible = false` (line 46). A Spacer(minLength: 0) sits between plus and hide. TerminalHost's doc comment (lines 320-321) says Escape at the prompt closes the panel \"the way ⌘J closes it\", i.e. the source names Cmd+J as the terminal toggle; the binding itself (.toggleTerminal) is defined in ShortcutStore, not in this file.",
+        "Terminal host padding: leading 12, trailing 6, bottom 6; .id(selected.id).",
+        "Empty state: VStack spacing 10, Text \"No shell open in this thread\" in .system(.body) Chrome.secondaryText, Button \"New shell\" .glass .controlSize(.small) with action `terminals.open(threadID: runtime.threadID, directory: directory)`, frame maxWidth/maxHeight infinity.",
+        "Panel height `dragHeight ?? model.settings.terminalHeight` (unclamped when not dragging; the 140/760 bounds apply only to dragHeight); resize strip overlay at top with height 8.",
+        "Background: UnevenRoundedRectangle top corners Chrome.sheetCornerRadius, continuous, fill Color(white: 0.08) dark / Color(white: 0.985) light.",
+        "Resize grip: CALayer bar height 2.5, corner radius 1.25, width 12 at rest and 28 when hovered or dragging, opacity 0 at rest and 0.6 when shown, colour NSColor.labelColor, centred; animated 0.18 s easeOut; cursor resizeUpDown over the whole strip. Tracking area options `[.mouseEnteredAndExited, .activeAlways, .inVisibleRect]` (line 242): .activeAlways means the hover-grown grip appears even when the window is not key. acceptsFirstMouse returns true and mouseDownCanMoveWindow is false.",
+        "TerminalTab: HStack spacing 6: Image \"terminal\" .caption; Text(session.title) lineLimit 1; when not running an \"arrow.clockwise\" button (.caption2 bold, plain, Chrome.secondaryText, help \"Start a new shell in this tab\", accessibility \"Restart <title>\"); an \"xmark\" button (.caption2 bold, plain, Chrome.secondaryText, opacity 1 when hovering or selected else 0, hit testing only then, help \"Close terminal\", accessibility \"Close <title>\").",
+        "TerminalTab styling: font .callout, padding horizontal 10 vertical 5, foreground .primary when selected else .secondary, capsule background .primary.opacity(0.08) when selected else clear, `.contentShape(.capsule)` so the whole capsule is the tap target of `.onTapGesture(perform: select)`, .onHover sets isHovering, opacity 0.55 when the shell has exited, help session.title or \"<title> · the shell has exited\", `.accessibilityElement(children: .contain)` (the restart and close buttons stay separate accessibility children), accessibility label title or \"<title>, the shell has exited\", traits .isButton plus .isSelected when selected."
+      ],
+      "feature_notes": [
+        "Tab tap sets terminals.selection[runtime.threadID] = session.id; restart and close go to the store.",
+        "Drag: onBegin stores dragOrigin = settings.terminalHeight and sets isTerminalResizing; onChange sets dragHeight = min(760, max(140, origin + delta)) where delta = event.locationInWindow.y - pressOriginY (positive upward); onEnd writes dragHeight to settings if set, clears both, clears isTerminalResizing. mouseUp sends one final onChange before onEnd.",
+        "The drag strip is only the top 8 pt overlay, not the whole tab row, so sideways drags over tabs scroll them (comment lines 81-83).",
+        "Escape handling: keyCode 53, no modifiers within KeyChord.allowedModifiers, the event window's firstResponder is the terminal view, and TerminalSession.foregroundJobIsTheShell(view.process.shellPid) is true; then onEscapeAtPrompt() runs and the event is consumed. Otherwise the event passes through (vim, claude, less keep Escape).",
+        "updateNSView: applyAppearance(isDark:), re-attach if the view's superview is not this container, set hostedView, then if runtime.terminalWantsFocus, in a main-actor Task re-check it and the view's window, set it false and makeFirstResponder(view).",
+        "attach(to:): removeFromSuperview, frame = container.bounds, autoresizingMask [.width, .height], addSubview, applyAppearance, hostedView = view.",
+        "Live resize: willStartLiveResize sets hostedView.autoresizingMask = []; resizeSubviews during inLiveResize schedules one syncFrame 50 ms later unless one is pending; didEndLiveResize cancels pending, restores [.width, .height] and syncs. syncFrame only writes when bounds are non-zero and differ from the view's frame and the view is still a subview of this container.",
+        "B1->B2: four edits. (1) Empty-state text font .system(size: 13) became .system(.body). (2) and (3) the restart and close buttons in TerminalTab changed .foregroundStyle(.secondary) to .foregroundStyle(Chrome.secondaryText). (4) The two live-resize NotificationCenter closures now wrap their bodies in MainActor.assumeIsolated { ... } (self?.hostedView?.autoresizingMask = [] and self?.finishResize()). No geometry or behaviour numbers changed."
+      ],
+      "unresolved_questions": [
+        "The value of Chrome.sheetCornerRadius, Chrome.iconFont, the .chip button style and the default settings.terminalHeight are defined elsewhere and must be taken from those files.",
+        "KeyChord.allowedModifiers membership is defined elsewhere; it decides which modified Escapes still close the drawer."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Terminal/TerminalStore.swift",
+      "sha256": "66fd5a6d20240a881894073314f5141b6f632db8214e6a1a2bf1ba4831605515",
+      "lines_total": 176,
+      "ranges_read": [[1, 176]],
+      "purpose": "TerminalStore.swift holds the model side of the embedded terminal: TerminalSession wraps one SwiftTerm LocalProcessTerminalView running the user's login shell in a pseudo terminal with Droppy-specific environment variables, applies theme colours only when the appearance changes, and can tell through sysctl whether the shell owns the terminal foreground. TerminalStore is the @Observable per-thread registry of sessions and the selected session, with open, run-script, ensure, restart-in-place, close, close-all and terminate-all operations; a private TerminalBridge delegate marks a session not running when its process exits.",
+      "key_symbols": [
+        "@MainActor @Observable final class TerminalSession: Identifiable { let id = UUID(); let threadID: UUID; let directory: String; var title: String; private(set) var isRunning = true; @ObservationIgnored let view: LocalProcessTerminalView; @ObservationIgnored private var bridge: TerminalBridge? }",
+        "init(threadID: UUID, directory: String, title: String, command: String?)",
+        "private var appliedDark: Bool?",
+        "func applyAppearance(isDark: Bool)",
+        "func terminate()",
+        "nonisolated static func foregroundJobIsTheShell(_ shell: pid_t) -> Bool",
+        "fileprivate func processEnded()",
+        "private final class TerminalBridge: NSObject, LocalProcessTerminalViewDelegate { weak var session; sizeChanged(source:newCols:newRows:) {}; setTerminalTitle(source:title:) {}; hostCurrentDirectoryUpdate(source:directory:) {}; processTerminated(source:exitCode:) }",
+        "@MainActor @Observable final class TerminalStore { private(set) var sessions: [UUID: [TerminalSession]]; var selection: [UUID: UUID] }",
+        "func sessions(for threadID: UUID) -> [TerminalSession]",
+        "func selected(for threadID: UUID) -> TerminalSession?",
+        "@discardableResult func open(threadID: UUID, directory: String, title: String? = nil, command: String? = nil) -> TerminalSession",
+        "func run(_ script: ProjectScript, threadID: UUID, directory: String)",
+        "func ensureTerminal(threadID: UUID, directory: String)",
+        "@discardableResult func restart(_ session: TerminalSession) -> TerminalSession",
+        "func close(_ session: TerminalSession)",
+        "func closeAll(for threadID: UUID)",
+        "func terminateAll()"
+      ],
+      "calls_into": [
+        "SwiftTerm LocalProcessTerminalView: init(frame:), font, optionAsMetaKey, processDelegate, startProcess(executable:args:environment:execName:currentDirectory:), nativeBackgroundColor, nativeForegroundColor, caretColor, selectedTextBackgroundColor, terminate()",
+        "TerminalFont.preferred()",
+        "LoginEnvironment.userShell(), LoginEnvironment.current",
+        "Chrome.accentNSColor",
+        "Darwin sysctl with CTL_KERN, KERN_PROC, KERN_PROC_PID and kinfo_proc.kp_eproc.e_tpgid / e_pgid",
+        "ProjectScript.name, ProjectScript.command"
+      ],
+      "state_owned": [
+        "TerminalSession: id, threadID, directory, title, isRunning, view, bridge, appliedDark.",
+        "TerminalStore: sessions keyed by thread UUID (ordered arrays), selection keyed by thread UUID to session UUID. In memory only."
+      ],
+      "side_effects": [
+        "TerminalSession.init spawns the user's shell as a login shell in a pty in the given directory.",
+        "terminate() is `guard isRunning else { return }; view.terminate(); isRunning = false` (lines 59-63): it kills the process through SwiftTerm only while isRunning is true, and is a no-op once the shell has already exited (processEnded() set isRunning = false). close(), restart(), closeAll and terminateAll all call it, so they do not call view.terminate() on an exited shell.",
+        "applyAppearance resets SwiftTerm colours, which clears its attribute caches and redraws (comment lines 43-44), so it is guarded to run only on a change."
+      ],
+      "platform_assumptions": [
+        "SwiftTerm LocalProcessTerminalView (forkpty on macOS); a Windows port needs ConPTY and a Windows shell (PowerShell, cmd, Git Bash).",
+        "POSIX login-shell conventions: argv[0] prefixed with \"-\", flags \"-l\", \"-i\", \"-c\", and 'exec <shell> -l' after a command.",
+        "Darwin sysctl kinfo_proc to read the terminal's foreground process group; Windows has no process-group foreground concept and needs another test (e.g. ConPTY child process tree).",
+        "AppKit NSRect, NSColor(white:alpha:), NSString.lastPathComponent.",
+        "optionAsMetaKey = true (Option key sends Meta); the Windows analogue is Alt."
+      ],
+      "persisted_fields": [
+        "None. Sessions and selection are not saved."
+      ],
+      "ui_elements": [
+        "Initial terminal view frame 640 x 240.",
+        "Dark: background NSColor(white: 0.08, alpha: 1), foreground NSColor(white: 0.9, alpha: 1). Light: background NSColor(white: 0.985, alpha: 1), foreground NSColor(white: 0.12, alpha: 1).",
+        "Caret colour Chrome.accentNSColor; selection background accent.withAlphaComponent(0.3). Both are set inside applyAppearance AFTER `guard appliedDark != isDark else { return }` (line 48), so a change of the theme's accent while dark/light stays the same never reaches an open session's caret or selection; only a light/dark flip (or a new/restarted session, whose appliedDark starts nil) re-reads Chrome.accentNSColor.",
+        "Default tab title \"Terminal N\" where N = sessions(for: threadID).count + 1 at open time (lines 120-121: `let number = sessions(for: threadID).count + 1` and `title ?? \"Terminal \\(number)\"`). There is no running counter, so numbers repeat after a close: with \"Terminal 1\" and \"Terminal 2\" open, closing \"Terminal 1\" and opening a new one gives a second \"Terminal 2\". Parity keeps this; a monotonically increasing counter would diverge."
+      ],
+      "feature_notes": [
+        "Environment: LoginEnvironment.current plus TERM=\"xterm-256color\", COLORTERM=\"truecolor\", TERM_PROGRAM=\"Droppy Code\", DROPPY_CODE_PROJECT_ROOT=<directory>; passed as \"KEY=VALUE\" strings.",
+        "execName is \"-\" + last path component of the shell; with no command args are []; with a command args are [\"-l\", \"-i\", \"-c\", \"<command>; exec <shell> -l\"] so the tab drops into an interactive login shell after the script.",
+        "foregroundJobIsTheShell returns false for pid <= 0 or a failed sysctl; true when e_tpgid == e_pgid.",
+        "processTerminated arrives from SwiftTerm and hops to the main actor to call processEnded() (isRunning = false). The other three delegate callbacks are empty (terminal title changes and cwd updates are ignored).",
+        "selected(for:): the session whose id equals selection[threadID], else the last session.",
+        "open: appends and selects the new session. run(script) opens with title script.name and command script.command.",
+        "ensureTerminal opens a default session only if the thread has none.",
+        "restart: terminate old (no-op if already exited), create a fresh TerminalSession with same threadID, directory and title and command nil (a script tab restarts as a plain shell), replace it at the same index (append if not found), select it. Because it constructs a new TerminalSession, TerminalFont.preferred() runs again and the new view's appliedDark starts nil, so font and colours are re-derived at that moment.",
+        "close: terminate, remove, and if it was selected select the thread's last remaining session (nil if none).",
+        "closeAll(for:) terminates each and removes the thread's entries; terminateAll terminates every session without removing them.",
+        "B1->B2: one line changed in TerminalSession.init: view.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular) became view.font = TerminalFont.preferred() (the new TerminalFont.swift; still 12 pt monospaced system font as last fallback)."
+      ],
+      "unresolved_questions": [
+        "LoginEnvironment.userShell() and LoginEnvironment.current are defined elsewhere; the Windows shell choice must follow that file's port."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Tour/TourView.swift",
+      "sha256": "ee74a8197813ad54aa00d2a380af9542fe1c14d614eb8fb06b3f017e7522c5a5",
+      "lines_total": 299,
+      "ranges_read": [[1, 299]],
+      "purpose": "TourView.swift is the welcome tour card, credited in its header as a port of TourKit by Ram Patra (MIT, see THIRD_PARTY_NOTICES.md): a floating glass card with a 16:10 artwork section carrying a page indicator and back/close circle buttons, and a bottom panel with a bold title, a centred description and a prominent Continue/Done button. It defines the TourPage value type, the paging logic (advance, goBack, clamped initial index, last page finish chain onFinish then onClose then dismiss) and TourPageIndicator, a row of capsules with the current one widened.",
+      "key_symbols": [
+        "struct TourPage: Identifiable, Hashable { let id: UUID; let imageName: String; let title: String; let description: String; init(imageName:title:description:) (id = UUID()) }",
+        "struct TourView: View { let pages: [TourPage]; let width: CGFloat; let height: CGFloat?; let continueButtonTitle: String; let finishButtonTitle: String; let onFinish: (() -> Void)?; let onClose: (() -> Void)?; @Environment(\\.dismiss) dismiss; @Environment(\\.colorScheme) colorScheme; @State var currentIndex: Int }",
+        "init(pages:width: CGFloat = 660, height: CGFloat? = nil, initialPageIndex: Int = 0, continueButtonTitle: String = \"Continue\", finishButtonTitle: String = \"Done\", onFinish: (() -> Void)? = nil, onClose: (() -> Void)? = nil)",
+        "var imageHeight: CGFloat { (width / Self.imageAspectRatio).rounded() }",
+        "static let imageAspectRatio: CGFloat = 16.0 / 10.0",
+        "static let emptyStateHeight: CGFloat = 220",
+        "private var emptyState, imageSection, bottomPanel, topControls, primaryActionButton: some View",
+        "private func iconButton(systemName: String, action: @escaping () -> Void) -> some View",
+        "var isLastPage: Bool",
+        "static func clamped(_ index: Int, pageCount: Int) -> Int",
+        "func advance()",
+        "func goBack()",
+        "private func artwork(for page: TourPage) -> some View",
+        "struct TourPageIndicator: View { let totalPages: Int; let currentIndex: Int; init(totalPages:currentIndex:) }"
+      ],
+      "calls_into": [
+        "Chrome.glassTint, Chrome.overlay(_:), Chrome.primaryText, Chrome.secondaryText",
+        ".presentedChrome(), .chromeGlassCircle() (app view modifiers)",
+        ".glassEffect(.regular, in:), .buttonStyle(.glassProminent)",
+        "NSImage(named:) to test the asset catalog, Image(_:) for artwork"
+      ],
+      "state_owned": [
+        "currentIndex (@State), initialised to clamped(initialPageIndex, pageCount: pages.count)."
+      ],
+      "side_effects": [
+        "Calls onFinish / onClose closures or the SwiftUI dismiss action; no persistence."
+      ],
+      "platform_assumptions": [
+        "SwiftUI macOS 26 Liquid Glass (.glassEffect(.regular), .glassProminent button style).",
+        "AppKit NSImage(named:) asset-catalog lookup; a Windows port loads bundled images by name.",
+        "SF Symbols: \"rectangle.stack\", \"chevron.left\", \"checkmark\", \"photo\".",
+        "Environment dismiss action (no-op outside a presented context); the window controller always supplies onFinish and onClose.",
+        "keyboardShortcut(.defaultAction) = Return key."
+      ],
+      "persisted_fields": [
+        "None."
+      ],
+      "ui_elements": [
+        "Card: RoundedRectangle cornerRadius 20, continuous; frame width (default 660) by height (nil sizes to content).",
+        "Surface: clear fill with .glassEffect(.regular), overlay fill Chrome.glassTint opacity 0.22 dark / 0.16 light; clipped; overlay strokeBorder Chrome.overlay(0.14) lineWidth 1; under it a scrim fill black opacity 0.3 (dark) / white opacity 0.34 (light). Shadow left to AppKit.",
+        "Animation: .easeInOut(duration: 0.25) on currentIndex; image and bottom panel each .id(currentIndex) with .transition(.opacity).",
+        "Empty state: VStack spacing 12, Image \"rectangle.stack\" .title Chrome.secondaryText, Text \"No tour pages\" .headline Chrome.primaryText, height 220.",
+        "Image section: width x imageHeight (660 / 1.6 = 412.5 rounded to 413 at the default width), artwork scaledToFill clipped.",
+        "Indicator seat gradient height 96 at the bottom of the image, stops clear at 0, Color(white: 0.08).opacity(0.28) at 0.55, Color(white: 0.08).opacity(0.55) at 1.0, no hit testing.",
+        "Page indicator: bottom padding 14, HStack spacing 7, capsules height 8, current width 24 white opacity 0.95, others width 8 white opacity 0.32; accessibility label \"Page <current+1> of <max(total,1)>\", children ignored.",
+        "Top controls: HStack padding horizontal 14, top 12; left \"chevron.left\" (opacity 0 on the first page), right \"checkmark\" (close).",
+        "Icon buttons: symbol in .system(.body, weight: .semibold), frame 32 x 32, Circle content shape, .plain style, .chromeGlassCircle().",
+        "Bottom panel: Spacer(minLength: 12), title Text in .system(size: 28, weight: .bold) centred Chrome.primaryText, description .body centred Chrome.secondaryText top padding 6, Spacer(minLength: 12); then primary button; padding horizontal 32, top 12, bottom 24.",
+        "Primary button: text finishButtonTitle (default \"Done\") on the last page else continueButtonTitle (default \"Continue\"), .system(.title3, weight: .semibold), frame 220 x 42, .glassProminent, default action shortcut.",
+        "Missing artwork fallback: LinearGradient top Color(red: 0.16, green: 0.12, blue: 0.40) to bottom Color(red: 0.05, green: 0.05, blue: 0.10) with Image \"photo\" size 40 white opacity 0.25."
+      ],
+      "feature_notes": [
+        "advance(): on the last page calls onFinish if set, else onClose if set, else dismiss(); otherwise currentIndex += 1.",
+        "goBack(): newIndex = max(0, currentIndex - 1); no-op when unchanged.",
+        "Close (checkmark) calls onClose if set else dismiss().",
+        "clamped(index, pageCount): 0 when pageCount <= 0, else max(0, min(index, pageCount - 1)).",
+        "isLastPage: currentIndex == pages.count - 1.",
+        "The body is wrapped in .frame(width:height:) twice (inner VStack and outer Group) so the card never changes size between pages when a height is passed.",
+        "B1->B2: two font changes only: the primary button text .system(size: 15, weight: .semibold) became .system(.title3, weight: .semibold), and the icon button symbol .system(size: 13, weight: .semibold) became .system(.body, weight: .semibold). The 28 pt bold title and 40 pt placeholder symbol keep fixed sizes."
+      ],
+      "unresolved_questions": [
+        "Whether the zero-opacity back button on the first page still receives clicks is not stated in the file; goBack() is a no-op at index 0 either way.",
+        "The effect of .presentedChrome() and .chromeGlassCircle() is defined elsewhere."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Tour/TourWindowController.swift",
+      "sha256": "a485e8c8a25255961b2ea146144c09643f46de3f5edd58dacd8cf96e652610ea",
+      "lines_total": 186,
+      "ranges_read": [[1, 186]],
+      "purpose": "TourWindowController is the @MainActor singleton that presents the welcome tour in its own borderless, transparent, floating NSWindow, centred over the visible main window titled \"Droppy Code\" (or the screen). Before showing it measures every page's bottom panel with an off-screen NSHostingView of TourBottomPanelSizingView and fixes the card height to image height plus the tallest panel, turning off the hosting view's sizing options so the window never grows or shrinks between pages; it re-fronts an existing tour instead of opening a second.",
+      "key_symbols": [
+        "@MainActor final class TourWindowController { static let shared; private final class HostWindow: NSWindow (canBecomeKey true, canBecomeMain true); private var window: NSWindow?; private var windowDelegate: WindowDelegate?; init() {} }",
+        "@discardableResult func present(pages: [TourPage], width: CGFloat = 660, continueButtonTitle: String = \"Continue\", finishButtonTitle: String = \"Done\", onFinish: (() -> Void)? = nil, onClose: (() -> Void)? = nil) -> NSWindow",
+        "private static func maxBottomPanelHeight(pages: [TourPage], width: CGFloat, continueButtonTitle: String, finishButtonTitle: String) -> CGFloat",
+        "func close()",
+        "private final class WindowDelegate: NSObject, NSWindowDelegate { let onClose: () -> Void; windowWillClose(_:) }",
+        "private struct TourBottomPanelSizingView: View { let page: TourPage; let buttonTitle: String }"
+      ],
+      "calls_into": [
+        "TourView(pages:width:height:continueButtonTitle:finishButtonTitle:onFinish:onClose:), TourView.imageAspectRatio, TourView.emptyStateHeight",
+        "NSHostingView (sizingOptions, frame, layoutSubtreeIfNeeded, fittingSize)",
+        "NSWindow APIs, NSApp.windows, NSApp.activate(ignoringOtherApps: true)",
+        "Chrome.primaryText, Chrome.secondaryText"
+      ],
+      "state_owned": [
+        "window (the tour window or nil), windowDelegate."
+      ],
+      "side_effects": [
+        "Creates and shows a window, activates the app, and on the card's finish/close actions calls the supplied callbacks then closes the window. Closing the window by any other path runs no caller callback (windowWillClose only clears window and windowDelegate)."
+      ],
+      "platform_assumptions": [
+        "AppKit NSWindow with styleMask [.borderless, .fullSizeContentView], isOpaque false, clear background, hasShadow true (AppKit shapes the shadow to the window alpha), isMovableByWindowBackground true, isReleasedWhenClosed false, level .floating, collectionBehavior [.managed, .participatesInCycle, .fullScreenAuxiliary].",
+        "NSHostingView fittingSize measurement for text layout; a Windows port must measure text the same way to size the card.",
+        "Bottom-left origin frames (origin y = midY - height / 2 is symmetric so centring is unaffected).",
+        "Main window located by title \"Droppy Code\"."
+      ],
+      "persisted_fields": [
+        "None."
+      ],
+      "ui_elements": [
+        "Default width 660; image height (width / (16/10)).rounded(); total height = TourView.emptyStateHeight (220) when there are no pages, else max(imageHeight + tallest bottom panel, 1).",
+        "Sizing view mirrors TourView's bottom panel text only: Spacer(minLength: 12), title .system(size: 28, weight: .bold), description .body with top padding 6, Spacer(minLength: 12), then a plain Text of the button title in .system(.title3, weight: .semibold) in a 220 x 42 frame (not a Button, no .glassProminent style); padding horizontal 32, top 12, bottom 24; measured at .frame(width: width) via NSHostingView.layoutSubtreeIfNeeded() and fittingSize.height.",
+        "Window position: centred on the first visible window titled \"Droppy Code\", else window.center()."
+      ],
+      "feature_notes": [
+        "present(): if a tour window exists, makeKeyAndOrderFront, activate, return it (new arguments are ignored).",
+        "onFinish passed to TourView runs the caller's onFinish if given else the caller's onClose, then dismiss (close()). onClose runs the caller's onClose then dismiss.",
+        "maxBottomPanelHeight: 0 for no pages; for each page the last uses finishButtonTitle, others continueButtonTitle; returns the maximum fittingSize.height.",
+        "hosting.sizingOptions = [] so the window keeps the computed size (comment lines 70-72 say the default resized the window per page).",
+        "close(): window?.close(), then nil both references. The WindowDelegate (lines 145-149) only forwards windowWillClose to the closure built at lines 103-106, which does `self?.window = nil; self?.windowDelegate = nil` and nothing else: it does NOT call the caller's onClose or onFinish. The caller's callbacks run only through TourView's Done/Continue (advance on the last page) and checkmark buttons; if the tour window closes any other way, neither callback runs.",
+        "initialPageIndex is not exposed by present(); the tour always starts on page 0.",
+        "B1->B2: one font change in TourBottomPanelSizingView: the button text .system(size: 15, weight: .semibold) became .system(.title3, weight: .semibold), the same font TourView.swift's primaryActionButton label now uses. Only the fonts are shown to match: the sizing view measures a bare `Text(verbatim: buttonTitle).font(.system(.title3, weight: .semibold)).frame(width: 220, height: 42)` (lines 178-180), while TourView renders that label inside `Button(action: advance) { ... }.buttonStyle(.glassProminent).keyboardShortcut(.defaultAction)` (TourView.swift lines 204-211). Any chrome the .glassProminent style draws around the 220 x 42 label is not measured, so the code does not show that the measured panel height includes the button bezel."
+      ],
+      "unresolved_questions": [
+        "Which pages and callbacks the app passes to present() are defined in the caller, not here."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift",
+      "sha256": "528352712251c6934cb715f04aecc9f5aeacadb911eaa372c509a31baaa5a140",
+      "lines_total": 112,
+      "ranges_read": [[1, 112]],
+      "purpose": "UsageFloatingPanel is the chat's usage shown as a draggable floating glass panel using the helper (Hydra) panel's size and surface recipe: it wraps UsagePanel in a vertical ScrollView with fillsWidth true, or shows a 'Nothing to show' line when the provider (and the heads provider) expose no context fraction, limits or credits. It reports its wanted content height to the placer, and its top strip is a drag handle carrying a 'Usage' title capsule with provider icons on the left and a dismiss circle button on the right.",
+      "key_symbols": [
+        "struct UsageFloatingPanel: View { @Environment(WindowLiveResize.self) liveResize; @Environment(\\.colorScheme) colorScheme; let runtime: ThreadRuntime; let provider: ProviderKind; let headsProvider: ProviderKind?; let size: CGSize; let onContentHeight: (CGFloat) -> Void; let onDrag: (CGSize) -> Void; let onDragEnd: () -> Void; let dismiss: () -> Void }",
+        "var body: some View",
+        "private var strip: some View"
+      ],
+      "calls_into": [
+        "runtime.usage (ContextUsage?), usage.fraction",
+        "PlanLimitsReader.exposesLimits(_:), CreditsReader.exposesCredits(_:)",
+        "UsagePanel(usage:provider:headsProvider:fillsWidth: true)",
+        "HydraPanel.cornerRadius, HydraPanel.stripHeight",
+        "ProviderIcon(provider:size: 12), PanelDragHandle(onDrag:onDragEnd:), ChromeCircleButton(symbol:help:action)",
+        "Chrome.glassTint, Chrome.primaryText, Chrome.secondaryText, Chrome.capsuleHorizontalPadding, Chrome.capsuleContentHeight, Chrome.capsuleVerticalPadding, Chrome.chromeTopPadding, Chrome.chromeHorizontalPadding, .chromeGlassCapsule()",
+        "WindowLiveResize.isActive"
+      ],
+      "state_owned": [
+        "None; all inputs are passed in."
+      ],
+      "side_effects": [
+        "Calls onContentHeight on geometry change and on appear of the empty state; drag and dismiss callbacks."
+      ],
+      "platform_assumptions": [
+        "SwiftUI macOS 26 .glassEffect(.regular, in:), onGeometryChange, .shadow.",
+        "Relies on AppKit-backed PanelDragHandle for dragging."
+      ],
+      "persisted_fields": [
+        "None here (panel position/size are the placer's)."
+      ],
+      "ui_elements": [
+        "Frame size.width x size.height; shape RoundedRectangle(cornerRadius: HydraPanel.cornerRadius, style: .continuous).",
+        "Content: ScrollView(.vertical) with UsagePanel padded top HydraPanel.stripHeight and bottom 8.",
+        "Empty text: \"Nothing to show for <provider.displayName> yet.\" in .system(.body), Chrome.secondaryText, top padding HydraPanel.stripHeight, filling the frame.",
+        "Surface: clear fill .glassEffect(.regular), overlay Chrome.glassTint opacity 0.22 dark / 0.16 light; clipped; beneath, scrim black 0.3 (dark) / white 0.34 (light) with shadow black opacity 1 (dark) / 0.65 (light), radius 28, y 10. No hairline stroke (comment lines 64-65).",
+        "Strip: HStack(alignment: .top, spacing: 8). Title capsule: HStack spacing 6 with ProviderIcon(provider: provider, size: 12), then a second ProviderIcon(provider: headsProvider, size: 12) whenever headsProvider is non-nil (`if let headsProvider`, lines 82-84), even when it equals provider, so the same icon can appear twice (UsagePanel, by contrast, treats heads == provider as no heads); Text \"Usage\" in .system(size: 12.5, weight: .medium) Chrome.primaryText.opacity(0.92); padding Chrome.capsuleHorizontalPadding, height Chrome.capsuleContentHeight, vertical padding Chrome.capsuleVerticalPadding, fixedSize, .chromeGlassCapsule(), overlaid with a PanelDragHandle; top padding Chrome.chromeTopPadding, leading Chrome.chromeHorizontalPadding.",
+        "Middle drag handle: PanelDragHandle maxWidth infinity, height HydraPanel.stripHeight, help and accessibility label \"Drag to move\".",
+        "Close: ChromeCircleButton symbol \"xmark\", help \"Dismiss the usage panel; the usage popover opens it again\", top padding Chrome.chromeTopPadding, trailing Chrome.chromeHorizontalPadding.",
+        ".animation(nil, value: liveResize.isActive) so the frame tracks a live resize without animating."
+      ],
+      "feature_notes": [
+        "hasSomething = usage?.fraction != nil || exposesLimits(provider) || exposesCredits(provider) || (headsProvider exposes limits or credits) (lines 27-29). This does not match UsagePanel's own conditions: UsagePanel draws the context row only `if let usage, let fraction = usage.fraction, let window = usage.windowTokens` (UsagePanel.swift line 34), and ignores heads when `headsProvider == provider` (line 29). So with a fraction but no windowTokens and a provider exposing neither limits nor credits, the floating panel shows the ScrollView around an empty UsagePanel (only its padding(16)) instead of \"Nothing to show for <name> yet.\".",
+        "Reported content height: UsagePanel's measured height + HydraPanel.stripHeight + 8; empty state reports HydraPanel.stripHeight + 44.",
+        "Placement per the doc comments: the panel \"sits across the column from the heads, at the left by default\" (lines 6-7), and onContentHeight is the height the content wants, strip and paddings included, which \"the placer sizes the panel to ... up to `size.height`\" (lines 16-17), i.e. the placer caps the panel at size.height. The placement and the cap are implemented by the placer, not in this file.",
+        "B1->B2: one font change: the empty-state text .system(size: 13) became .system(.body). The 12.5 pt 'Usage' title is unchanged."
+      ],
+      "unresolved_questions": [
+        "HydraPanel.cornerRadius / stripHeight and the Chrome capsule constants are defined elsewhere."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Usage/UsagePanel.swift",
+      "sha256": "60964605ab5aa8114d0dfe77d4e85b790499f958eabc13c2f5023bc0a8dfa6b6",
+      "lines_total": 120,
+      "ranges_read": [[1, 120]],
+      "purpose": "UsagePanel is the body of the composer's usage popover (360 points wide) and of the floating usage panel: the context-window line with used/total tokens and a percentage over a UsageBar, then the provider's PlanLimitsView and CreditsView. When a Hydra pair sends its heads out on a different provider it stacks two sections headed 'Lead · <name>' and 'Heads · <name>'; on appear it refreshes limits and credits for each shown provider, and it owns the compact token formatter (k, M, B).",
+      "key_symbols": [
+        "struct UsagePanel: View { @Environment(AppModel.self) model; let usage: ContextUsage?; let provider: ProviderKind; let headsProvider: ProviderKind?; let fillsWidth: Bool }",
+        "init(usage: ContextUsage?, provider: ProviderKind, headsProvider: ProviderKind? = nil, fillsWidth: Bool = false)",
+        "@ViewBuilder private func providerSection(_ p: ProviderKind, role: String, needsDivider: Bool) -> some View",
+        "static func tokens(_ count: Int) -> String"
+      ],
+      "calls_into": [
+        "model.providers (ProviderRegistry): refreshPlanLimits(_:), refreshCredits(_:)",
+        "PlanLimitsReader.exposesLimits(_:), CreditsReader.exposesCredits(_:)",
+        "PlanLimitsView(provider:), CreditsView(provider:), UsageBar(fraction:tint:label:), ProviderIcon(provider:size: 13)",
+        "ContextUsage.fraction, .windowTokens, .usedTokens",
+        "Chrome.secondaryText, Chrome.primaryText, Chrome.accent"
+      ],
+      "state_owned": [
+        "None."
+      ],
+      "side_effects": [
+        "onAppear triggers registry.refreshPlanLimits and refreshCredits for the provider and, when shown, the heads provider (network reads happen in the registry)."
+      ],
+      "platform_assumptions": [
+        "SwiftUI text styles (.body, .callout) and String(format: \"%.1f\") formatting (locale-independent C format)."
+      ],
+      "persisted_fields": [
+        "None."
+      ],
+      "ui_elements": [
+        "Context row (only when usage, fraction and windowTokens exist): HStack with Text \"Context window\" and, after Spacer(minLength: 12), \"<used> / <window> (<percent>%)\" monospaced digits, both Chrome.secondaryText, row font .system(.body); UsageBar tint Chrome.accent label \"Context window\" with top padding 10.",
+        "Dividers: Divider().padding(.vertical, 14).",
+        "Provider section header: HStack spacing 6, ProviderIcon size 13, Text \"<role> · <displayName>\" in .system(.callout, weight: .semibold) Chrome.primaryText, bottom padding 8. Roles are \"Lead\" and \"Heads\".",
+        "Container: padding 16, width 360 unless fillsWidth, then maxWidth infinity, leading alignment."
+      ],
+      "feature_notes": [
+        "heads = headsProvider only when non-nil and different from provider.",
+        "Without heads: PlanLimitsView if exposesLimits (with a divider first only when the context row showed), then CreditsView if exposesCredits (with a divider first only when the context row showed; no divider between limits and credits in this path).",
+        "With heads: Lead section with needsDivider = showsContext; Heads section with needsDivider = showsContext || lead showsLimits || lead showsCredits. A section with neither limits nor credits renders nothing; inside a section a divider sits between limits and credits when both show.",
+        "Percent is Int((fraction * 100).rounded()).",
+        "tokens(): >= 1_000_000_000 -> value/1e9 with \"B\"; >= 1_000_000 -> \"M\"; >= 1_000 -> \"k\"; else the plain integer. compact uses String(format: \"%.1f\") and drops a trailing \".0\" (1500 -> \"1.5k\", 200000 -> \"200k\"; 999_950 formats as \"1000k\" because the threshold is checked before rounding).",
+        "B1->B2: two font changes: the context row .font(.system(size: 13)) became .font(.system(.body)), and the Lead/Heads header .system(size: 12, weight: .semibold) became .system(.callout, weight: .semibold)."
+      ],
+      "unresolved_questions": [
+        "PlanLimitsReader.exposesLimits / CreditsReader.exposesCredits rules per provider live in other files."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Usage/UsageViews.swift",
+      "sha256": "ba014d3549e89f3724c6d268e14e68be17b41952a5e4449ede44c531e2ee18b7",
+      "lines_total": 396,
+      "ranges_read": [[1, 396]],
+      "purpose": "UsageViews.swift holds the shared usage building blocks used by both the composer's usage popover and Settings, Providers: PlanLimitsView (plan header, one LimitRow per rolling window, banked resets and a login or problem note), CreditsView (remaining pay-as-you-go balance with a Top up link), and the thin UsageBar capsule. It also implements the banked-reset flow for Codex reset credits and Z.ai reset cards: a count header, a row per reset with a Use reset -> Cancel / Reset now confirmation, a spinner while the registry spends it, and an outcome or error line that clears after 4 seconds.",
+      "key_symbols": [
+        "struct PlanLimitsView: View { @Environment(AppModel.self) model; let provider: ProviderKind }",
+        "struct CreditsView: View { @Environment(AppModel.self) model; let provider: ProviderKind; private func note(for credits: ProviderCredits?, isLoading: Bool) -> String? }",
+        "private struct LimitRow: View { let window: PlanLimits.Window; private static func tint(for percent: Double) -> Color; static func resetText(_ date: Date, now: Date = .now) -> String }",
+        "fileprivate struct BankedResetRowModel: Identifiable { var id: String; var credit: PlanLimits.ResetCredit? }",
+        "private struct BankedResetsView: View { @Environment(AppModel.self) model; let provider: ProviderKind; let credits: PlanLimits.ResetCredits; fileprivate enum Phase: Equatable { case idle; case confirming(String); case applying(String); case done(PlanLimits.ResetOutcome); case failed(String) }; @State phase: Phase = .idle; @State settle: Task<Void, Never>?; rows; statusLine; countText; spend(_:) }",
+        "private struct BankedResetRow: View { let row: BankedResetRowModel; let index: Int; let several: Bool; let phase: BankedResetsView.Phase; let onConfirm/onCancel/onUse: () -> Void; expiryText; control; isApplying }",
+        "struct UsageBar: View { let fraction: Double; let tint: Color; var label = \"Used\" }"
+      ],
+      "calls_into": [
+        "model.providers: planLimits[provider], loadingLimits, credits[provider], loadingCredits, consumeResetCredit(_:_:) async throws -> PlanLimits.ResetOutcome",
+        "PlanLimits.planName, windows, resetCredits, problem; Window.title, resetsAt, percent, detail; ResetCredits.credits, availableCount; ResetCredit.id, title, detail, expiresAt; ResetOutcome.message",
+        "ProviderCredits.amountText, isDepleted, breakdownText; CreditsReader.topUpURL(_:)",
+        "provider.isAPIKeyBased, provider.loginCommand, provider.displayName",
+        "Workspace.openTerminal(running:)",
+        "Chrome.secondaryText, primaryText, warning, danger, success, accent, overlay(_:), panelSlide"
+      ],
+      "state_owned": [
+        "BankedResetsView: phase, settle (Task handle cancelled on disappear and before each new spend)."
+      ],
+      "side_effects": [
+        "\"Login\" button opens a terminal running provider.loginCommand.",
+        "\"Top up\" Link opens CreditsReader.topUpURL(provider) in the browser.",
+        "\"Reset now\" calls model.providers.consumeResetCredit(provider, row.credit?.id), which spends a banked reset on the provider account."
+      ],
+      "platform_assumptions": [
+        "SwiftUI macOS 26 .glass / .glassProminent button styles, .symbolEffect(.bounce), .contentTransition(.numericText()), .transition(.blurReplace), ProgressView .controlSize(.mini).",
+        "Foundation Date.formatted(.dateTime.weekday(.abbreviated).hour().minute()) and (.dateTime.month(.abbreviated).day()) (locale-dependent output).",
+        "SF Symbols \"exclamationmark.triangle.fill\", \"checkmark.circle.fill\", \"info.circle\".",
+        "Workspace.openTerminal launches a macOS terminal; Windows needs its own terminal launch."
+      ],
+      "persisted_fields": [
+        "None."
+      ],
+      "ui_elements": [
+        "PlanLimitsView header: Text \"Plan usage limits · <planName>\" or \"Plan usage limits\" in .system(.body) Chrome.secondaryText, Spacer(minLength: 8), mini ProgressView while loading; HStack spacing 8.",
+        "Limit rows each with top padding 14. Divider with top padding 14 only when windows are non-empty and resetCredits exist; BankedResetsView top padding 14.",
+        "Problem, chosen by `provider.isAPIKeyBased` (line 45), not by the problem text. API-key provider: HStack(alignment: .center, spacing: 6), Image \"exclamationmark.triangle.fill\" .system(.footnote, weight: .semibold) Chrome.warning, Text(verbatim: problem) .system(.subheadline) Chrome.secondaryText lineLimit 2 with .fixedSize(horizontal: false, vertical: true), then Spacer(minLength: 8); top padding 14.",
+        "Problem, signed-in (non-API-key) provider: the problem string itself is never shown; only Text \"Click here to login again\" .system(.callout) Chrome.secondaryText, Spacer(minLength: 8), Button \"Login\" .glass .controlSize(.small) with action `Workspace.openTerminal(running: provider.loginCommand)`; HStack spacing 8, top padding 14.",
+        "No limits and not loading: \"<displayName> did not report plan limits.\" .system(.callout) Chrome.secondaryText, top padding 8.",
+        "PlanLimitsView animation Chrome.panelSlide on limits.",
+        "CreditsView: HStack spacing 16; left VStack spacing 2 with \"Remaining credits\" .system(.body) Chrome.primaryText and note .system(.subheadline) Chrome.secondaryText; Spacer(minLength: 12); right HStack spacing 10 with mini spinner while loading, amountText .system(.body, weight: .semibold) monospaced digits (Chrome.danger when depleted else primaryText) lineLimit 1, Link \"Top up\" .glass .small when a URL exists; animation .easeOut(duration: 0.15) on credits.",
+        "LimitRow: VStack spacing 8; HStack spacing 12 with title .system(.body) primaryText lineLimit 1, Spacer(minLength: 8), \"Resets <text>\" .system(.callout) secondary lineLimit 1 when resetsAt exists, \"<rounded percent>%\" .system(.callout) secondary monospaced; optional detail .system(.subheadline) secondary lineLimit 1; `UsageBar(fraction: window.percent / 100, tint: Self.tint(for: window.percent), label: window.title)` (line 169), so each bar's accessibility label is the window title (UsageBar's default `var label = \"Used\"` applies only when no label is passed).",
+        "BankedResetsView: header HStack spacing 6 \"Banked resets\" .system(.body) primaryText and \"· <count>\" .system(.callout) secondary with numericText transition, combined for accessibility; status line; rows top padding 12 with transition opacity combined with move(edge: .top); animations Chrome.panelSlide on phase and credits.",
+        "Status line: done -> HStack spacing 5, Image \"checkmark.circle.fill\" (outcome .reset, Chrome.success) or \"info.circle\" (Chrome.secondaryText) .system(.subheadline, weight: .semibold) with .symbolEffect(.bounce, value: phase), message .system(.subheadline) same colour; failed -> message .system(.subheadline) Chrome.danger; both top padding 4 and .blurReplace.",
+        "BankedResetRow: HStack spacing 12; left VStack spacing 2 with title .system(.body) and detail/expiry .system(.subheadline), both lineLimit 1; Spacer(minLength: 12); control.",
+        "Controls: confirming this row -> HStack spacing 6 Button \"Cancel\" .glass .small and Button \"Reset now\" .glassProminent .small tinted Chrome.accent; applying this row -> mini spinner and \"Resetting…\" .system(.callout) secondary; otherwise Button \"Use reset\" .glass .small, disabled while any row is applying; all .blurReplace.",
+        "UsageBar: height 5; track Capsule Chrome.overlay(0.1); fill Capsule tint with width max(fraction > 0 ? 5 : 0, width * clamp(fraction, 0, 1)); accessibility label = label, value \"<rounded percent>% used\"."
+      ],
+      "feature_notes": [
+        "LimitRow.tint: percent >= 90 -> Chrome.danger, >= 75 -> Chrome.warning, else Chrome.accent.",
+        "LimitRow.resetText: seconds = max(0, date - now); under 86_400 s: \"in H hr M min\" when hours > 0 else \"in max(1, M) min\"; under 6 * 86_400 s: weekday abbreviated plus hour and minute; else month abbreviated and day.",
+        "CreditsView note: no credits -> nil while loading else \"<displayName> did not report a balance.\"; depleted -> \"<displayName> declines turns until the balance is topped up.\"; otherwise credits.breakdownText.",
+        "BankedResetsView rows: listed credits (id = credit id) plus max(0, availableCount - listed.count) unlisted rows with ids \"unlisted-<n>\" and credit nil.",
+        "countText: 0 -> \"None available yet\", 1 -> \"1 available\", n -> \"<n> available\".",
+        "Row title: credit.title, else \"Reset <index+1>\" when more than one row, else \"Reset\". Row detail: credit.detail, else expiryText: \"No expiry reported\" (no expiresAt), \"Expired\" (expiresAt <= now), else \"Expires \" + LimitRow.resetText(expiresAt).",
+        "Flow: Use reset -> phase .confirming(id); Cancel -> .idle; Reset now -> spend() (lines 293-307): `phase = .applying(row.id)`, then `settle?.cancel()` (cancels the previous Task, e.g. one still in its 4-second sleep), then `settle = Task { ... }` that awaits consumeResetCredit(provider, row.credit?.id) and sets `phase = .done(outcome)` or `.failed(error.localizedDescription)` with no cancellation check, then `try? await Task.sleep(for: .seconds(4))`, and only the reset to `.idle` is guarded by `guard !Task.isCancelled else { return }`. A cancelled task whose request is still pending would still write .done/.failed when it returns; the UI makes that overlap hard to reach because \"Use reset\" is `.disabled(isApplying)` while any row is .applying and \"Reset now\" only shows in .confirming. onDisappear cancels settle.",
+        "The refresh of limits is the caller's job; PlanLimitsView only renders (comment line 6).",
+        "B1->B2: font-only changes, fixed point sizes replaced by text styles throughout: size 13 -> .body (plan header, Remaining credits, LimitRow title, Banked resets, BankedResetRow title; 13 semibold -> .body semibold for the amount), size 12 -> .callout (Click here to login again, did not report plan limits, Resets text, percent, count text, Resetting…), size 11 -> .subheadline (problem text, credits note, LimitRow detail, status message, failed message, row detail; 11 semibold -> .subheadline semibold for the status icon), size 10 semibold -> .footnote semibold (warning triangle). 20 lines changed in each direction; no strings, spacings, colours or logic changed."
+      ],
+      "unresolved_questions": [
+        "The file does not state the point sizes the text styles resolve to; parity depends on the port mapping .body/.callout/.subheadline/.footnote/.title3 to the macOS defaults the previous fixed sizes used (13/12/11/10/15) and on whether the app scales them with a text size setting.",
+        "Chrome.panelSlide's curve and duration are defined elsewhere."
+      ]
+    }
+  ]
+}

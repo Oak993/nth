@@ -1,0 +1,401 @@
+{
+  "bundle_id": "R2-07",
+  "reader": "R2-07-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Chat/HydraProgressBar.swift",
+      "sha256": "b38f44dba03b634b3ae5a24936aad8f4f6349e054231123e7f1aa7823b2c2f83",
+      "lines_total": 603,
+      "ranges_read": [
+        [
+          1,
+          603
+        ]
+      ],
+      "purpose": "Draws a Hydra head's progress as a single 28pt-tall Canvas of 3pt staves, one stave per tool call or assistant reply in timeline order, whose height encodes how much the step changed (lookup 0.45, command 0.65, edit 0.85, reply 1.0) and whose colour is the head's persona tint at varying opacity; a count line ('3 edits · 2 commands · 5 reads') sits under it and hovering a stave shows a 260pt glass card naming that step. The file also holds the compact 'Show what heads are doing' off-mode panel (HydraHeadProgress) that centres the head's task title over the bar, the breathing/sweeping task title (HydraWorkingTitle), the per-second elapsed-time label (HydraElapsedTime), the hover card surface modifier and a global SweepBudget that caps the highlight sweep animation to 3 running bars at once for performance.",
+      "key_symbols": [
+        "struct HydraProgressBar: View { let runtime: ThreadRuntime; let startedAt: Date; let finishedAt: Date?; let status: HydraHeadInfo.Status; let tint: Color; var entries: [TimelineEntry]? = nil }",
+        "HydraProgressBar private static let height: CGFloat = 28; staveWidth: CGFloat = 3; gap: CGFloat = 3; pitch = staveWidth + gap (6); rise: TimeInterval = 0.45; sweep: TimeInterval = 2.6; sweepRest: TimeInterval = 3.4; cardWidth: CGFloat = 260; static let sweepSlots = 3 (internal, read by SweepBudget)",
+        "@MainActor private final class StaveCache { private struct Key: Hashable { id: ObjectIdentifier; status: ToolCall.Status?; title: String? }; func resolve(entries: [TimelineEntry], capacity: Int) -> (events: [Stave], staves: [Stave], counts: Counts); private func matches(_ entries: [TimelineEntry]) -> Bool; private static func key(of entry: TimelineEntry) -> Key }",
+        "private struct Stave { enum Kind: Hashable { case lookup, command, edit, reply }; let kind: Kind; let arrivedAt: Date; let step: String; let mcp: MCPCatalogEntry?; let symbol: String?; var height: CGFloat { switch kind { case .lookup: 0.45; case .command: 0.65; case .edit: 0.85; case .reply: 1 } } } (height is a computed property of kind, lines 267-275, not stored state; the memberwise init at lines 326/332 passes only kind, arrivedAt, step, mcp, symbol)",
+        "private struct Counts { var edits = 0; var commands = 0; var reads = 0; init(of events: [Stave]); private var parts: [String]; var line: String; var sentence: String }",
+        "private static func events(in entries: [TimelineEntry]) -> [Stave]",
+        "private static func staves(for events: [Stave], capacity: Int) -> [Stave]",
+        "private static func color(for kind: Stave.Kind, tint: Color) -> Color",
+        "private static func draw(_ staves: [Stave], in context: inout GraphicsContext, size: CGSize, capacity: Int, at date: Date, rising: Bool, sweeping: Bool, status: HydraHeadInfo.Status, tint: Color, hovered: Int? = nil)",
+        "private func stepsCard(for stave: Stave, at index: Int) -> some View",
+        "struct HydraHeadProgress: View { let head: ChatThread; let runtime: ThreadRuntime }",
+        "struct HydraWorkingTitle: View { let text: String; let isRunning: Bool; var alignment: TextAlignment = .center } with private static let sweep: TimeInterval = 3.2, sweepRest: TimeInterval = 3.0, breath: TimeInterval = 3.2, reach = 0.3; private static func clamped(_ location: Double) -> CGFloat",
+        "struct HydraElapsedTime: View { let startedAt: Date; let finishedAt: Date?; let isRunning: Bool }",
+        "private struct ProgressCardSurface: ViewModifier { let isOnGlassPanel: Bool; let isDark: Bool }",
+        "@MainActor @Observable final class SweepBudget { static let shared; private(set) var sweepers: [ObjectIdentifier]; func join(_ id: ObjectIdentifier); func leave(_ id: ObjectIdentifier); func sweeps(_ id: ObjectIdentifier) -> Bool }"
+      ],
+      "calls_into": [
+        "ThreadRuntime.entries (default entries source)",
+        "TimelineEntry.kind (.tool, .assistant), entry.item.content (.tool(ToolCall), .assistant(message)), entry.item.date",
+        "ToolCall.kind (.edit, .command, other), ToolCall.edits, ToolCall.status, ToolCall.title",
+        "ToolPresentation.mcpParts(call)?.entry, ToolPresentation.symbol(for: call.kind), ToolPresentation.label(for: call)",
+        "TextCleanup.singleLine(String(message.text.prefix(600)), limit: 60)",
+        "RelativeTime.duration(TimeInterval)",
+        "ScrollActivity.shared.isScrolling (pauses TimelineViews)",
+        "MCPGlyph(entry:size: 14)",
+        "Chrome.secondaryText, Chrome.primaryText, Chrome.danger, Chrome.overlay(0.06), Chrome.cardCornerRadius, Chrome.panelControlFill(isDark:)",
+        "HydraRoster.persona(at: 0) (fallback tint), HydraHeadInfo (task, status, startedAt, finishedAt, persona)",
+        "HydraPanel.stripHeight (top padding of HydraHeadProgress)",
+        "ChatThread.hydra, ChatThread.title, ChatThread.createdAt",
+        "String.trimmed (Core/Support/Text.swift: trimmingCharacters(in: .whitespacesAndNewlines))",
+        "Environment values \\.isOnGlassPanel and \\.colorScheme"
+      ],
+      "state_owned": [
+        "HydraProgressBar @State width: CGFloat = 0 (measured bar width via onGeometryChange)",
+        "HydraProgressBar @State isSettled = false (head done and last stave risen; stops the clock)",
+        "HydraProgressBar @State isRising = false (a stave arrived within the rise window)",
+        "HydraProgressBar @State hoveredIndex: Int? (stave under pointer)",
+        "HydraProgressBar @State cache = StaveCache() (last key list, capacity, events, staves, counts)",
+        "SweepBudget.shared.sweepers: [ObjectIdentifier] (process-wide, ordered list of running bars that asked for a sweep slot; first 3 sweep)"
+      ],
+      "side_effects": [
+        "Mutates the global SweepBudget.shared: .task(id: isRunning) joins with ObjectIdentifier(runtime) when running, leaves when not running; .onDisappear leaves.",
+        "Two sleeping tasks: .task(id: isRunning ? -1 : events.count) sets isSettled=false, and when not running sleeps rise+0.1 = 0.55 s then sets isSettled=true; .task(id: events.count) (skipped if events empty or reduce motion) sets isRising=true, sleeps 0.55 s, sets isRising=false. Cancelled sleeps return early without flipping state.",
+        "No persistence, no I/O, no network."
+      ],
+      "platform_assumptions": [
+        "import AppKit: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion (read in HydraProgressBar.body and HydraWorkingTitle.body); Windows equivalent is SPI_GETCLIENTAREAANIMATION / UISettings.AnimationsEnabled.",
+        "SwiftUI Canvas + GraphicsContext (Path(roundedRect:cornerRadius:), addRoundedRect(in:cornerSize:), clip(to:), fill with .color and .linearGradient)",
+        "SwiftUI TimelineView(.animation(minimumInterval: 1/24 or 1/20, paused:)) and TimelineView(.periodic(from: startedAt, by: 1))",
+        "onGeometryChange(for: CGFloat.self), onContinuousHover(coordinateSpace: .local) with HoverPhase .active(point)/.ended",
+        "glassEffect(.regular, in: shape) (macOS 26 Liquid Glass) in ProgressCardSurface",
+        "Observation framework @Observable on SweepBudget; @MainActor isolation",
+        "SF Symbols by name via Image(systemName:) including 'bubble.left' and whatever ToolPresentation.symbol returns",
+        "Font text styles .subheadline, .callout, .body (system dynamic type sizes on macOS: 11, 12, 13 pt defaults) with .monospacedDigit()",
+        "Swift Task.sleep(for: .seconds(...)) cancellation semantics tied to view .task(id:)",
+        "Date.timeIntervalSinceReferenceDate (2001-01-01 epoch) as the shared phase clock for sweep and breath, so all bars/titles are phase-synchronised",
+        "Accessibility: .accessibilityElement(children: .ignore) + .accessibilityLabel"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Bar: Canvas height 28pt; staves 3pt wide, 3pt gap, pitch 6pt; each stave a rounded rect with cornerRadius 1.5 (staveWidth/2) filled from the baseline up.",
+        "Capacity = max(1, floor((width + 3) / 6)); when there are more events than capacity only the latest `capacity` staves are drawn (oldest slide off the left).",
+        "Stave height share: lookup 0.45, command 0.65, edit 0.85, reply 1.0 of bar height.",
+        "Stave colours: edit and reply = tint; command = tint.opacity(0.7); lookup = tint.opacity(0.4). Fill order lookup, command, edit, reply (one path per kind).",
+        "Last stave override: status .failed -> Chrome.danger; status .stopped -> Chrome.secondaryText.",
+        "Hovered stave: extra fill .white.opacity(0.4) over it.",
+        "Empty slots (staves.count..<capacity): rounded rects 0.45 of bar height, cornerSize 1.5x1.5, filled Chrome.overlay(0.06).",
+        "Rise animation (lines 380-388): factor starts at 1; when rising (not reduce-motion) `let age = date.timeIntervalSince(stave.arrivedAt)` where date is the TimelineView context date and arrivedAt is `entry.item.date` (the timeline entry's own timestamp, lines 326/332), not the moment the stave first appeared on screen; if age < 0.45, `let t = max(0, age / rise)` and factor = 1 - pow(1 - t, 3) (ease-out cubic). So a bar opened on old history draws every stave at full height with no rise, and an entry dated in the future (negative age) gets t = 0 and factor 0.",
+        "Sweep highlight: band width max(24, filledWidth/3) where filledWidth = staves.count*6 - 3; cycle length 2.6 + 3.4 = 6.0 s computed from timeIntervalSinceReferenceDate; during the first 2.6 s the band x = -band + phase*(filledWidth+band); linear gradient white opacity 0 -> 0.55 -> 0, clipped to the filled staves path only.",
+        "Clock: TimelineView .animation minimumInterval 1/24 s, paused when !needsClock or ScrollActivity.shared.isScrolling; needsClock = !reduceMotion && !isSettled && (sweeps || isRising); sweeps = isRunning && !reduceMotion && SweepBudget.shared.sweeps(id).",
+        "VStack(alignment: .leading, spacing: 6) holding bar then counts line.",
+        "Counts line: Text(verbatim: counts.line) font .system(.subheadline), Chrome.secondaryText, frame(maxWidth: .infinity) (centred); hidden when empty. Format parts '<n> edit'/'<n> edits', '<n> command'/'<n> commands', '<n> read'/'<n> reads' joined by ' · ' with zero parts omitted, order edits, commands, reads.",
+        "Accessibility label: '<sentence>, <elapsed>' plus ' so far' when running; sentence = parts joined by ', ' or 'Nothing done yet'.",
+        "Hover card (stepsCard): HStack spacing 8 of either MCPGlyph size 14, or Image(systemName: symbol) font .system(.callout, weight: .semibold) Chrome.secondaryText frame width 14; then Text(verbatim: step) font .system(.body, weight: .semibold) Chrome.primaryText lineLimit 1 truncation tail. Padding horizontal 12, vertical 10; frame width 260 leading; surface ProgressCardSurface; bottom padding 8 inside a zero-height frame aligned .bottom so card bottom sits 8pt above bar top; offset x = min(max(0, centre - 130), max(0, width - 260)) with centre = index*6 + 1.5; allowsHitTesting(false); transition .opacity; hover change animated .smooth(duration: 0.15).",
+        "Hover hit test: index = floor(point.x / 6) when x >= 0, y >= 0, y <= 28; only indices < staves.count are picked.",
+        "Card surface: RoundedRectangle(cornerRadius: Chrome.cardCornerRadius, style: .continuous); on a glass panel fill Chrome.panelControlFill(isDark:), otherwise .glassEffect(.regular).",
+        "Stave step strings: tool -> ToolPresentation.label(for: call); reply -> 'Replied' when first-line words empty, else 'Replied: <words>' (words = single line of first 600 chars, limit 60); reply symbol 'bubble.left'.",
+        "HydraHeadProgress: VStack(spacing 0) Spacer / HydraWorkingTitle(text: task or head.title) maxWidth infinity / HydraProgressBar padding top 10 / Spacer; padding horizontal 20; padding top HydraPanel.stripHeight; frame maxWidth/maxHeight infinity.",
+        "HydraWorkingTitle: Text(verbatim:) font .system(.body, weight: .medium); lineLimit 2; multilineTextAlignment(alignment, default .center); foreground LinearGradient leading->trailing with stops primaryText at 0, at clamp(centre-0.3), primaryText.opacity(dip) at clamp(centre), primaryText at clamp(centre+0.3), primaryText at 1; dip 0.6 when animating else 1.0; centre = -0.3 + phase*1.6 when animating else 0.5, phase = min((t mod 6.2)/3.2, 1); opacity 0.86 + 0.14*breath, breath = 0.5 + 0.5*sin(t/3.2*2pi) when animating else 1.0; TimelineView minimumInterval 1/20 s, paused when not animating or scrolling.",
+        "HydraElapsedTime: running -> TimelineView(.periodic(from: startedAt, by: 1)) Text(RelativeTime.duration(now - startedAt)); else Text(RelativeTime.duration((finishedAt ?? now) - startedAt)); font .system(.subheadline), monospacedDigit, Chrome.secondaryText.",
+        "Zero-height skip (lines 389-390): `let height = bottom * stave.height * factor; guard height > 0 else { continue }`. A stave at factor 0 (age exactly 0 or negative) is not added to `filled`, `byKind`, `ending` or `hoveredPath` for that frame, so the sweep highlight (clipped to `filled`), the failed/stopped ending colour and the hover white 0.4 fill all skip it; its slot is also not drawn as an empty slot (slots start at staves.count). The hover card overlay is independent of the canvas and still shows.",
+        "Elapsed time: inside HydraProgressBar `let elapsed = RelativeTime.duration((isRunning ? Date.now : finishedAt ?? .now).timeIntervalSince(startedAt))` (line 130) is used only in the accessibility label (line 208); the bar draws no elapsed text. The visible elapsed time is HydraElapsedTime, which the doc comment (lines 7-8) places in the strip's pill: 'how long the head has been at it sits in the strip's pill (see `HydraElapsedTime`)'. A port must not put an elapsed label under the bar."
+      ],
+      "feature_notes": [
+        "Stave classification: ToolCall.kind .edit -> edit; .command -> edit if call.edits is non-empty else command; any other kind -> edit if call.edits non-empty else lookup. Assistant entries -> reply. All other entry kinds are skipped. Counts count edit/command/lookup only (reply not counted).",
+        "An MCP tool gets its MCPCatalogEntry glyph and no symbol; non-MCP tools get ToolPresentation.symbol(for: call.kind).",
+        "StaveCache hit requires equal capacity and, row-by-row, the same TimelineEntry object identity and, for tool rows, same ToolCall.status and ToolCall.title; otherwise it recomputes events, staves and counts.",
+        "The finished-bar settle task keys on -1 while running (so it does not restart per event while running) and on events.count once finished.",
+        "SweepBudget: join appends if absent; leave removes first occurrence; sweeps(id) is true when id is within the first sweepSlots (3) entries of the list; observed, so a queued bar starts sweeping when a slot frees.",
+        "HydraHeadProgress fallbacks: task = info?.task.trimmed ?? \"\"; status defaults .running; startedAt defaults head.createdAt; tint defaults HydraRoster.persona(at: 0).color; title falls back to head.title when task empty.",
+        "B1->B2: Only font specifications changed (fixed point sizes replaced by system text styles) plus one helper swap; line count unchanged at 603. Counts line font .system(size: 11) -> .system(.subheadline); hover card symbol .system(size: 12, weight: .semibold) -> .system(.callout, weight: .semibold); hover card step text .system(size: 13, weight: .semibold) -> .system(.body, weight: .semibold); HydraWorkingTitle .system(size: 13, weight: .medium) -> .system(.body, weight: .medium); HydraElapsedTime .system(size: 11) -> .system(.subheadline). In HydraHeadProgress `info?.task.trimmingCharacters(in: .whitespacesAndNewlines)` became `info?.task.trimmed` (same behaviour: String.trimmed is defined in Core/Support/Text.swift as trimmingCharacters(in: .whitespacesAndNewlines)). No logic, geometry or timing constants changed.",
+        "Stale comments (follow the code, not them): the doc comment at lines 14-15 says the highlight 'sweeps the filled staves every 1.8 s', but the constants are sweep: TimeInterval = 2.6 and sweepRest: TimeInterval = 3.4 (a 6.0 s cycle, line 432 `truncatingRemainder(dividingBy: sweep + sweepRest)`). The comment at lines 136-138 says the clock 'keeps going while the reader scrolls', but line 142 pauses it with `paused: !needsClock || ScrollActivity.shared.isScrolling` (the following comment at lines 140-141 matches the code)."
+      ],
+      "unresolved_questions": [
+        "The exact point sizes of .subheadline/.callout/.body on macOS 26 are system-defined (conventionally 11/12/13 pt, matching the B1 literals); the port should confirm against a running macOS build or ChatFont/Theme code whether any app-level scaling applies to .system(textStyle) fonts.",
+        "Chrome.cardCornerRadius, Chrome.panelControlFill and HydraPanel.stripHeight values live in other files and are not stated here."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/HydraReportsPopover.swift",
+      "sha256": "504c2de3c2f38b83721bc81f70f0b20c4527d27dba9e6b69e0c6afb9e6636b99",
+      "lines_total": 655,
+      "ranges_read": [
+        [
+          1,
+          655
+        ]
+      ],
+      "purpose": "Parses the Hydra lead's aggregated heads-report message (markdown with one '## <Name>: <task> (meta)' section per head) into a HydraReportDigest holding the intro, each head's outcome, effort, landing line (files landed / did not land / changed nothing / unfinished) and report body, dropping the lead's own closing instructions from the last head. It then renders that digest as a 460pt-wide popover with a fixed header (either a stacked persona face row with totals, or a single head's name, outcome and task) above a PopoverScroll (max height 520) of per-head cards showing monospaced file rows with +/- counts and the markdown report, collapsible per head when there are several.",
+      "key_symbols": [
+        "struct HydraReportDigest { let intro: String?; let heads: [Head] }",
+        "HydraReportDigest.Head: Identifiable { id: String; name: String; task: String; outcome: Outcome; effort: String?; landing: Landing; body: String }",
+        "enum HydraReportDigest.Outcome { case done, failed, stopped }",
+        "enum HydraReportDigest.Landing { case landed([LandedFile]); case notLanded([LandedFile], error: String?); case nothing; case unfinished(copyPath: String?); case none }",
+        "struct HydraReportDigest.LandedFile: Identifiable { path: String; additions: Int; deletions: Int; hasConflicts: Bool; var id: String { path } }",
+        "static func parse(_ text: String) -> HydraReportDigest",
+        "private static func isHeadHeader(_ header: String) -> Bool",
+        "private static func parseHeader(_ header: String) -> (name: String, task: String, outcome: Outcome, effort: String?)",
+        "private static func landingPrefix(_ line: String) -> Bool",
+        "private static func parseLanding(_ line: String) -> Landing",
+        "private static func parseFiles(_ raw: String) -> [LandedFile]",
+        "private static func matchFile(_ item: String) -> LandedFile? using Swift Regex literal #/(\\S+) \\(\\+(\\d+) [−\\-](\\d+)\\)( with conflicts)?/# with wholeMatch",
+        "private static let leadPrefixes: [String]",
+        "private static func withoutLeadInstructions(_ body: String) -> String",
+        "struct HydraReportsPopover: View { let title: String; let text: String; let personas: [HydraPersona]; private let digest; private var single: Head?; @State expanded: Set<String>; @State blocks: [String: [MarkdownBlock]]; private static let width: CGFloat = 460; @MainActor init(title:text:personas:) }",
+        "private var header: some View; private func singleHeader(_ head:) -> some View",
+        "private static func outcomeCaption(for head:) -> String; outcomeColor(for outcome:) -> Color; filesLine(for head:) -> String?",
+        "static func cleanedTitle(_ title: String, names: [String]) -> String (internal, used elsewhere)",
+        "private static func withoutNamePrefix(_ string: String, name: String) -> String",
+        "private static func totalsLine(for digest:) -> String",
+        "private static func stillAtWorkSentence(in intro: String) -> String?",
+        "private func persona(for head:) -> HydraPersona; private static func status(_ outcome:) -> HydraHeadInfo.Status",
+        "private func headCard(_ head:, index: Int, collapsible: Bool) -> some View; nameRow(_:); hasReport(_:) -> Bool; landingRows(_:); fileRows(_:); filePathText(_:) -> Text; reportBody(_:)"
+      ],
+      "calls_into": [
+        "HydraRoster.index(named:), HydraRoster.persona(named:), HydraRoster.persona(at: 0)",
+        "HydraGlyph(persona:size:) and HydraGlyph(persona:size:status:)",
+        "PopoverScroll(maxHeight: 520, width: 460) { ... }",
+        "MarkdownView.blocks(for:) (synchronous parse) and MarkdownView.warm(_ bodies:) async throws (background parse)",
+        "MarkdownBlockView(block:).equatable(), environment keys \\.markdownPointSize and \\.markdownDimmed",
+        "Chrome.primaryText, secondaryText, danger, warning, success, overlay(0.05/0.1)",
+        "HydraHeadInfo.Status (.completed, .failed, .stopped)",
+        "String.trimmed (whitespacesAndNewlines)"
+      ],
+      "state_owned": [
+        "@State expanded: Set<String> of head names whose report is open; initial [head.name] when exactly one head, else empty.",
+        "@State blocks: [String: [MarkdownBlock]] parsed markdown per head name; one head parsed synchronously in init, else empty and filled by the .task(id: text) warm pass.",
+        "digest: HydraReportDigest parsed once in init (let, not state)."
+      ],
+      "side_effects": [
+        ".task(id: text): collects heads whose blocks are missing, awaits MarkdownView.warm(missing bodies) (errors swallowed with try?), returns if cancelled, then sets blocks for each missing head via MarkdownView.blocks(for:) in one assignment.",
+        "No persistence, no file I/O, no network."
+      ],
+      "platform_assumptions": [
+        "SwiftUI popover content sized by PopoverScroll and AppKit's NSPopover content-size animation (the comment explains toggles are not animated because AppKit animates popover height again on top).",
+        "Two regex engines: matchFile (line 173) uses a Swift Regex literal `#/(\\S+) \\(\\+(\\d+) [−\\-](\\d+)\\)( with conflicts)?/#` with `item.wholeMatch(of:)`, which is the Swift Regex engine, not NSRegularExpression/ICU; only the two tail patterns at line 161 (`text.range(of: suffix, options: .regularExpression)`) go through Foundation's ICU engine. In the Swift Regex default mode `\\d` matches any Unicode decimal digit, but `Int(match.output.2)` / `Int(match.output.3)` (line 174) parse only ASCII digits, so an item with non-ASCII digits matches and is then dropped by the guard. A port should match ASCII-digit counts and treat anything else as a non-matching item.",
+        "Foundation String APIs: components(separatedBy:), trimmingCharacters(in: .whitespaces), rangeOfCharacter(from: .decimalDigits) (Unicode decimal digits, not just ASCII), replacingOccurrences, range(of:options: .backwards).",
+        "SF Symbol 'chevron.right'; .textSelection(.enabled); Text concatenation via string interpolation of Text values; .help() tooltips; .monospacedDigit(); font design .monospaced; system text styles .body/.callout/.subheadline/.footnote.",
+        "@MainActor init; Task cancellation semantics of .task(id:)."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Popover: VStack(spacing 0) header / Divider / PopoverScroll(maxHeight: 520, width: 460) of VStack(alignment: .leading, spacing: 8) head cards; padding 10 when collapsible (more than one head) else 0; frame width 460.",
+        "Multi-head header: HStack(alignment: .center, spacing: 10), padding horizontal 12, vertical 10. Faces: HStack(spacing: -6) of up to 9 HydraGlyph size 22; beyond 9 a Text(verbatim: \"+<count-9>\") font .system(.subheadline, weight: .semibold) Chrome.secondaryText padding horizontal 7 vertical 3 on Capsule(style: .continuous) fill Chrome.overlay(0.1), leading padding 10. Then VStack(alignment: .leading, spacing: 2): cleaned title (font .system(.body, weight: .semibold), Chrome.primaryText, lineLimit 2); totals line (.system(.subheadline), secondaryText, monospacedDigit); optional still-at-work sentence (.system(.subheadline), secondaryText, lineLimit 2); fixedSize vertical; Spacer.",
+        "Single-head header: HStack(center, spacing 10), HydraGlyph size 24 with status; VStack(spacing 2): HStack(firstTextBaseline, spacing 6) of head.name (.system(.body, weight: .semibold), primaryText), outcome caption (.system(.subheadline), outcomeColor, monospacedDigit), optional '· <filesLine>' (.system(.subheadline), secondaryText, monospacedDigit, lineLimit 1); task text (.system(.callout), primaryText, lineLimit 3, fixedSize vertical), falling back to cleanedTitle(title) when the cleaned task is empty; optional still-at-work sentence (.subheadline, lineLimit 2); padding horizontal 12 vertical 10.",
+        "Outcome captions: 'Finished', 'Failed', 'Stopped', each followed by ' · <effort>' when effort is present. Colours: failed Chrome.danger, stopped Chrome.warning, done Chrome.secondaryText.",
+        "filesLine: '<f> file' or '<f> files' + ' · +<a> −<d>' (U+2212 minus), nil when no files or landing not landed/notLanded.",
+        "totalsLine: '<n> head'/'<n> heads', plus ' · <f> file(s) · +<a> −<d>' when any landed/notLanded files.",
+        "Head card: VStack(alignment: .leading, spacing: 8), padding 12, background RoundedRectangle(cornerRadius: 10, style: .continuous) fill Chrome.overlay(0.05) only when collapsible. When collapsible and the head has a report, the name row is a plain Button toggling expanded, whose label is `HStack(alignment: .center, spacing: 6) { nameRow(head); Spacer(minLength: 0); Image(systemName: \"chevron.right\") }` (lines 479-486), the chevron font .system(.footnote, weight: .semibold) secondaryText rotated 90 degrees when expanded, `.contentShape(.rect)` on the HStack, no animation; otherwise the name row is static. When collapsible, the task line (.system(.callout), primaryText, lineLimit 2) shows if non-empty. Then landing rows; then report body when not collapsible or expanded.",
+        "Name row: HStack(center, spacing 8): HydraGlyph size 20 with status; name (.system(.body, weight: .semibold)) in persona colour; 'Failed' (.subheadline, danger) or 'Stopped' (.subheadline, warning) or nothing for done; Spacer(minLength 8); effort text (.subheadline, secondaryText, monospacedDigit, lineLimit 1).",
+        "Landing rows: landed -> file rows; notLanded -> VStack(spacing 4) 'Did not land: <error>' or 'Did not land' (.subheadline, warning, fixedSize vertical) + file rows; nothing -> 'Changed nothing.' (.subheadline, secondaryText); unfinished -> VStack(spacing 2) 'Nothing landed' (.subheadline, warning) + optional copy path (.system(.subheadline, design: .monospaced), secondaryText, lineLimit 1, truncation middle); none -> nothing.",
+        "File rows: VStack(spacing 3) padding horizontal 8 vertical 6 on RoundedRectangle(cornerRadius: 6, continuous) fill Chrome.overlay(0.05); each row HStack(spacing 8): path Text (filePathText, lines 618-626: `path.lastIndex(of: \"/\")` splits directory incl. trailing '/' in secondaryText from filename in primaryText or Chrome.warning when hasConflicts; only '/' is a separator, so a backslash path has an empty directory span and the whole path in the filename colour, a Windows hazard), lineLimit 1, `.truncationMode(.head)` (the doc comment at line 588 says 'trimmed in the middle when long', which is wrong: the code truncates the head); Spacer(minLength 8); HStack(spacing 6) '+<a>' Chrome.success and '−<d>' Chrome.danger, monospacedDigit, layoutPriority 1; row font .system(.subheadline, design: .monospaced); tooltip '<path> (with conflicts)' or '<path>'.",
+        "Report body: no report -> 'No report.' (.subheadline, secondaryText); blocks ready -> eager VStack(spacing 8) of MarkdownBlockView per block, padding top 2, font .system(.callout), markdownPointSize 12, markdownDimmed false, text selection enabled; blocks pending -> ProgressView small with vertical padding 8."
+      ],
+      "feature_notes": [
+        "parse: splits on \"\\n\"; a line whose whitespace-trimmed form starts with '## ' and whose text before the first ':' (trimmed) is a HydraRoster name starts a head section; lines before the first section form the intro (joined, trimmed; nil when empty). Other '## ' headings stay in the body.",
+        "Per section: leading blank lines skipped; if the first remaining line starts (after whitespace trim) with 'Landed in your checkout:', 'Did not land', 'Changed nothing.' or 'Nothing landed', it is parsed as the landing line and removed; the rest joined and trimmed is the body; the LAST section's body passes through withoutLeadInstructions. Head id = name.",
+        "parseHeader (lines 88-119): name is text before the first colon, rest after it (both space-trimmed). Its no-colon branch (`name = trimmed; rest = \"\"`, lines 95-97) is unreachable: parseHeader is called only from parse (line 61), on section headers that passed isHeadHeader, which returns false without a colon (`guard let colon = header.firstIndex(of: \":\") else { return false }`, line 81). While rest ends with ')' and contains '(', the last '(...)' group is meta if lowercased == 'failed', lowercased hasPrefix 'stopped', it contains any decimal digit (`rangeOfCharacter(from: .decimalDigits)`), or it is one of {low, medium, high, xhigh, max, minimal, fast, default}; meta groups are stripped; 'failed' -> .failed; 'stopped...' -> .stopped; otherwise a non-empty group is an effort with ', ' replaced by ' · ', inserted at the front. Efforts are joined by ' · '. The first non-meta group stops the loop.",
+        "parseLanding: 'Changed nothing.' -> .nothing; 'Nothing landed' -> .unfinished with path after 'in its copy at ' (trimmed, trailing '.' dropped, empty -> nil) or nil; 'Landed in your checkout:' -> .landed(parseFiles(rest)); 'Did not land' -> optional ' (<error>)' captured up to the first ')' and whitespace-trimmed, optional ':' dropped, .notLanded(files, error or nil when empty); otherwise .none.",
+        "parseFiles (lines 157-169): trim, drop one trailing '.', remove regex tails in order '; \\d+ build-output files? (was|were) left out$' then ', and \\d+ more$', split on ', ' (`text.components(separatedBy: \", \")`), trim spaces of each item, keep items that wholly match '(\\S+) \\(\\+(\\d+) [−\\-](\\d+)\\)( with conflicts)?' (U+2212 minus or ASCII hyphen). Non-matching items are silently dropped. Consequence: a path containing a space (for example 'My Project/x.ts (+1 −2)') can never match because `\\S+` must be the whole path under wholeMatch, and a path containing ', ' is cut into pieces by the split; either way that file vanishes from the card's file rows, from filesLine and from totalsLine (both count only parsed files). On Windows, paths with spaces are common, so this is a real parity hazard to reproduce or flag.",
+        "leadPrefixes (verbatim): 'The changes listed above', 'The heads worked in your checkout', 'A file listed with conflicts', 'Do not check any of this', 'Do not wait for', 'A head that failed', 'A head the user stopped', 'The user queued', 'The user sent'. withoutLeadInstructions removes the last '\\n\\n'-separated paragraph when it starts with one of these, then trims.",
+        "cleanedTitle: for each non-empty name, while the string starts with '<name>: ' or '<name> ' AND what follows that prefix again starts with one of those prefixes, drop the first prefix (so 'Juno: Juno: x' -> 'Juno: x'; a single prefix is kept). withoutNamePrefix drops exactly one leading '<name>: ' and whitespace-trims.",
+        "stillAtWorkSentence (lines 435-445): `intro.range(of: \"still at work\")` is a case-sensitive, literal search ('Still at work' does not match); it backs up to just after the last '.' before the match (or the start), returns the trimmed remainder of the intro to its end, nil when empty. digest.intro is displayed nowhere else: its only uses are the two stillAtWorkSentence calls in the multi-head header (line 303) and the single-head header (line 344), so an intro without 'still at work' is never shown and the text before that sentence is never shown.",
+        "persona(for:): first the passed personas matched by name, then HydraRoster.persona(named:), else HydraRoster.persona(at: 0). status mapping: done -> .completed, failed -> .failed, stopped -> .stopped.",
+        "hasReport is false when the body is empty or exactly 'No report.'.",
+        "B1->B2: file shrank from 662 to 655 lines. (1) All `trimmingCharacters(in: .whitespacesAndNewlines)` calls in parse, parseLanding, parseFiles, withoutLeadInstructions and stillAtWorkSentence became `.trimmed` (same semantics; stillAtWorkSentence now wraps the substring in String(...) first). (2) The static NSRegularExpression `filePattern` (pattern ^(\\S+) \\(\\+(\\d+) [−\\-](\\d+)\\)( with conflicts)?$ built with try!) was removed and matchFile now uses a Swift Regex literal with item.wholeMatch(of:) and match.output.1-4; the accepted grammar is the same. (3) The body's `.environment(\\.chatZoom, 1)` with the comment 'The popover reads at its own size, not the conversation's zoom.' was removed (the chatZoom environment key no longer exists anywhere in B2). (4) Fonts moved from fixed sizes to text styles: size 11 -> .subheadline (overflow count, totals, still-at-work, outcome caption, files line, Failed/Stopped, effort, Did not land, Changed nothing., Nothing landed, No report.), size 11 monospaced -> .subheadline monospaced (copy path, file rows), size 13 semibold -> .body semibold (title, head names), size 12 -> .callout (task lines, report body), chevron size 10 semibold -> .footnote semibold. The report body's .environment(\\.markdownPointSize, 12) is unchanged.",
+        "Duplicate names: Head.id = name (line 73 `Head(id: name, name: name, ...)`), the cards' ForEach is keyed `id: \\.element.id` (line 244), and `expanded` (lines 473-477) and `blocks` (lines 230, 256, 262, 635) are keyed by head.name. Two sections with the same roster name therefore share one expand toggle and one blocks entry (in the warm pass the later head's parsed body overwrites the earlier one, so both cards show the later report when expanded), and the ForEach gets duplicate ids.",
+        "Zero heads: when parse finds no roster header, `single` (line 212, `digest.heads.count == 1 ? digest.heads.first : nil`) is nil and `collapsible` (line 241, `digest.heads.count > 1`) is false, so the multi-head header still renders with the persona faces, the cleaned title and totalsLine '0 heads' (line 425 `\"\\(n) \\(n == 1 ? \"head\" : \"heads\")\"`), above a Divider and an empty PopoverScroll (padding 0); the .task returns at once because `missing` is empty.",
+        "Two sources: the header's faces and '+N' overflow come from the `personas` init argument (line 279 `ForEach(Array(personas.prefix(9)), id: \\.self)`, line 285 `personas.count - 9`), and the multi-head title is `cleanedTitle(title, names: personas.map(\\.name))` (line 295), while the totals line counts `digest.heads` (line 416). The face count and the '<n> heads' count can therefore disagree. persona(for:) also prefers the `personas` list by name before HydraRoster.",
+        "B1->B2 zoom context: the removed `.environment(\\.chatZoom, 1)` has no per-view replacement in this file. B2 has an app-wide zoom instead: AppSettings.swift:131 `static let appZoom = \"appZoom\"`, loaded at line 718 `AppZoom.normalized(defaults.object(forKey: Key.appZoom) as? Int ?? 100)` (levels [75, 90, 100, 110, 125, 150, 175, 200] in UI/Common/AppZoom.swift), applied to window roots by `.modifier(AppZoomModifier(percent: model.settings.appZoom))` at WindowManager.swift:175, which is a ZoomLayout plus `scaleEffect(scale, anchor: .topLeading)`, not an environment value. UI/Common/ChatFont.swift (new in B2) says 'The app-wide zoom scales the window, not the type.' So B1's rule that the popover 'reads at its own size, not the conversation's zoom' is gone; whether the popover content (presented from TimelineRows.swift:299) is scaled by the window root's scaleEffect is not established by these files."
+      ],
+      "unresolved_questions": [
+        "PopoverScroll, MarkdownView.warm/blocks and HydraGlyph are defined elsewhere; their sizing and parsing behaviour must be taken from their own files.",
+        "Where the popover is presented (arrow edge, trigger pill) is outside this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/HydraRunMetricsView.swift",
+      "sha256": "6427baa7651f932209126db659779664cffe12ebb3417d3b6d3771b0dc5b666d",
+      "lines_total": 398,
+      "ranges_read": [
+        [
+          1,
+          398
+        ]
+      ],
+      "purpose": "Computes, from recorded TurnRecord token spends and each head's HydraHeadInfo phase timestamps, a conversation-scoped HydraRunMetrics snapshot: lead and heads token totals (nil when nothing recorded, never shown as zero), per provider/model groups sorted biggest first, and per-head queue/startup/run/landing phases. It renders that snapshot as an equatable flat card under the Hydra panel strip with a headline, Lead/Heads/Total rows, group rows, head timings and explanatory notes, while a .task makes sure the lead and head runtimes' histories are loaded.",
+      "key_symbols": [
+        "struct HydraRunMetrics: Equatable { var lead = Scope(); var heads = Scope(); var timings: [HeadTiming] = []; var recordedTokens: Int?; var isPartial: Bool; var spansProviders: Bool; var hasTimings: Bool }",
+        "HydraRunMetrics.Scope: Equatable { var turns = 0; var turnsWithUsage = 0; var hasUnloadedHistory = false; var tokens: Int?; var groups: [Group] = []; var isPartial: Bool { hasUnloadedHistory || (tokens == nil ? turns > 0 : turnsWithUsage < turns) } }",
+        "HydraRunMetrics.Group: Equatable, Identifiable { var id: String; var provider: ProviderKind; var model: String?; var tokens: Int }",
+        "enum HydraRunMetrics.Phase: Equatable { case measured(TimeInterval); case running; case unavailable; var text: String }",
+        "HydraRunMetrics.HeadTiming: Equatable, Identifiable { var id: UUID; var personaIndex: Int; var name: String; var status: HydraHeadInfo.Status; var queue: Phase = .unavailable; var startup: Phase = .unavailable; var execution: Phase = .unavailable; var landing: Phase? }",
+        "@MainActor enum HydraRunMetricsReader { static func snapshot(leadTurns: [TurnRecord], heads: [ChatThread], headTurns: @MainActor (ChatThread) -> [TurnRecord]?) -> HydraRunMetrics; private static func spend(in:) -> Scope; private static func merged(_:) -> [Group]; private static func timing(of:) -> HeadTiming?; private static func phase(from:to:isRunning:) -> Phase }",
+        "struct HydraRunMetricsView: View { @Environment(AppModel.self) model; let runtime: ThreadRuntime; let heads: [ChatThread]; private var snapshot: HydraRunMetrics }",
+        "private struct HydraRunMetricsCard: View, Equatable { @Environment(AppModel.self) model; @Environment(\\.colorScheme); let metrics: HydraRunMetrics; static func == compares metrics only; headline; totalText; scopeRow(_:_:); scopeText(_:); groupRow(_:scope:); modelName(_:); timingRow(_:); phaseText(_:); notes; note(_:) }"
+      ],
+      "calls_into": [
+        "TurnRecord.tokenSpends (entries with provider: ProviderKind, model: String?, totalTokens: Int)",
+        "ProviderKind.rawValue, ProviderKind.displayName",
+        "ChatThread.hydra (HydraHeadInfo: index, persona.name, status, queuedAt, startedAt, executionStartedAt, executionFinishedAt, landingStartedAt, landingFinishedAt), ChatThread.id",
+        "ThreadRuntime.turns, ThreadRuntime.ensureLoaded() async, ThreadRuntime.isLoadingHistory",
+        "AppModel.runtime(for: UUID), AppModel.existingRuntime(for: UUID), AppModel.providers.model(_:for:)?.shortName",
+        "RelativeTime.duration(TimeInterval), UsagePanel.tokens(Int)",
+        "ProviderIcon(provider:size: 11), HydraGlyph(persona:size: 14, isRunning:status:), HydraRoster.persona(at:), MiniSpinner()",
+        "Chrome.primaryText, Chrome.secondaryText, Chrome.panelControlFill(isDark:)"
+      ],
+      "state_owned": [
+        "No @State. The snapshot is recomputed from runtime.turns and each loaded head runtime's turns every time HydraRunMetricsView.body evaluates; the card is .equatable() so it redraws only when the snapshot differs."
+      ],
+      "side_effects": [
+        ".task(id: heads.map(\\.id)): awaits runtime.ensureLoaded(), then for each head (stopping if cancelled) awaits model.runtime(for: head.id).ensureLoaded(); model.runtime(for:) may create a runtime for the head. Loading history is the only side effect."
+      ],
+      "platform_assumptions": [
+        "SwiftUI Environment(AppModel.self) (Observation), .equatable() view diffing, .task(id:) cancellation, Divider, RoundedRectangle(style: .continuous), .accessibilityElement(children: .contain/.combine) with labels.",
+        "System text styles .callout and .subheadline plus literal sizes 12.5 and 10.5; .monospacedDigit() on Font.",
+        "@MainActor isolation for the reader and the headTurns closure.",
+        "Foundation Date.timeIntervalSince, UUID."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Card: VStack(alignment: .leading, spacing: 10), padding 14, maxWidth infinity leading, background RoundedRectangle(cornerRadius: 16, style: .continuous) fill Chrome.panelControlFill(isDark: colorScheme == .dark); accessibility label 'Recorded usage and timings'.",
+        "Headline VStack(spacing 2): 'No usage recorded yet' when recordedTokens is nil, else 'Recorded usage and timings', font .system(size: 12.5, weight: .semibold) primaryText; subtitle 'This conversation's lead and heads, as their turns reported it' font .system(.subheadline) secondaryText, fixedSize vertical.",
+        "Scope block VStack(spacing 6): rows 'Lead' and 'Heads' (label .system(.callout) secondaryText; value .system(.callout).monospacedDigit(), primaryText or secondaryText when tokens nil), Divider, row 'Total recorded' (.system(.callout, weight: .medium) primaryText) with totalText (.system(.callout, weight: .medium).monospacedDigit() primaryText).",
+        "totalText: 'Not recorded' when no tokens; '<UsagePanel.tokens(n)> tokens', with ' or more' appended when isPartial.",
+        "scopeText: tokens nil -> 'Loading history…' if hasUnloadedHistory, else 'None yet' if turns == 0, else 'Not recorded'; otherwise '<n> tokens' plus ' · <turnsWithUsage> of <turns> turns' when turnsWithUsage < turns.",
+        "Group rows (lead groups then heads groups): HStack(spacing 6) ProviderIcon size 11 secondaryText, model name (.system(.subheadline), secondaryText, lineLimit 1, truncation middle), Spacer(minLength 8), token count Text(verbatim: \"\\(UsagePanel.tokens(group.tokens))\") (.system(.subheadline).monospacedDigit(), secondaryText); leading padding 18; accessibilityElement(children: .combine) with label `Text(\"\\(scope), \\(modelName(group)), \\(group.tokens) tokens\")` (line 336), which uses the raw Int group.tokens, not the UsagePanel.tokens(...) formatting of the visible row. Model name = provider model shortName, else raw model id, else provider displayName.",
+        "Timings (when any): Divider, 'Head timings' (.system(.callout, weight: .medium) primaryText), then per head VStack(alignment: .leading, spacing: 3): HStack(spacing 6) of `HydraGlyph(persona: HydraRoster.persona(at: timing.personaIndex), size: 14, isRunning: timing.status == .running, status: timing.status)` (line 348; personaIndex comes from info.index, while the name comes from info.persona.name, lines 170-171), name Text(verbatim: timing.name) (.system(.callout) primaryText lineLimit 1), MiniSpinner when running, Spacer(minLength: 8); then phase text (.system(.subheadline).monospacedDigit() secondaryText, fixedSize vertical, leading padding 20). Each row has `.accessibilityElement(children: .combine)` and `.accessibilityLabel(Text(\"\\(timing.name), \\(phaseText(timing))\"))` (lines 362-363). Phase text: 'Queue <x> · Startup <x> · Run <x>' plus ' · Landing <x>' when a landing phase exists; <x> is RelativeTime.duration(max(0, s)), 'in progress' or 'unavailable'.",
+        "Notes VStack(spacing 3), font .system(size: 10.5) secondaryText fixedSize vertical: always 'Totals cover the conversation and its retained heads, not one run. Providers may omit usage for some requests.'; when partial 'Some turns recorded no usage, so the totals are lower bounds.'; when more than one provider 'Recorded across providers, so the total guides rather than bills.'; when timings exist 'Heads work at the same time, so their durations overlap and are not added up.'"
+      ],
+      "feature_notes": [
+        "spend(in:): turns = count; a turn counts toward turnsWithUsage only if tokenSpends is non-nil and non-empty; each spend adds totalTokens to the total and to the group keyed '<provider.rawValue>|<model ?? \"\">'; tokens stays nil when no turn had usage.",
+        "snapshot (lines 93-125): for each head, `if let timing = timing(of: head) { timings.append(timing) }` runs before `guard let turns = headTurns(head) else { headScope.hasUnloadedHistory = true; continue }`, so a head whose history is not loaded (runtime missing or isLoadingHistory) still gets its timing row while contributing no turns and setting heads.hasUnloadedHistory = true; head tokens sum only when a head recorded some. Groups are merged by id and sorted by tokens descending, ties by id ascending.",
+        "recordedTokens is the sum of lead and heads tokens, either alone, or nil when both nil. spansProviders is true when the union of lead and heads groups has more than one distinct ProviderKind.",
+        "timing(of:): nil when head.hydra is nil; queue = startedAt - queuedAt when queuedAt exists; startup = executionStartedAt - startedAt when executionStartedAt exists; execution = phase(executionStartedAt, executionFinishedAt); landing is set only when landingStartedAt or landingFinishedAt exists. phase(): no start -> unavailable; no end -> running if status == .running else unavailable; else measured(end - start).",
+        "B1->B2: Only font changes (line count unchanged at 398): 'Total recorded' and its value size 12 medium -> .callout medium; 'Head timings' size 12 medium -> .callout medium; headline subtitle size 11 -> .subheadline; scope row label and value size 12 -> .callout; group row model and tokens size 11 -> .subheadline; timing name size 12 -> .callout; phase text size 11 -> .subheadline. The headline's .system(size: 12.5, weight: .semibold) and the notes' .system(size: 10.5) remain fixed sizes. No logic change."
+      ],
+      "unresolved_questions": [
+        "UsagePanel.tokens formatting, RelativeTime.duration formatting and MiniSpinner visuals are defined in other files.",
+        "Where HydraRunMetricsView is mounted (panel strip) and how it is opened are outside this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/LimitResumeBadge.swift",
+      "sha256": "4ada8df8ed71b1b8c1fe4555288f09bd82abb6fa5f25c963a68d45e86eb32ed7",
+      "lines_total": 60,
+      "ranges_read": [
+        [
+          1,
+          60
+        ]
+      ],
+      "purpose": "Renders a usage-limit notice as a timeline pill for a thread that is auto-continuing after hitting a provider usage limit: an info icon and the notice text, plus 'Cancel' and 'New thread' plain buttons while the wait is live. Once the wait is over it replaces the notice message with a past-tense outcome sentence read from the AppModel's auto-continue outcomes (cancelled, handed off or resumed).",
+      "key_symbols": [
+        "struct LimitResumeBadge: View { @Environment(AppModel.self) private var model; let notice: Notice; let threadID: UUID }",
+        "private func words(waiting: Bool) -> String",
+        "auto-continue outcome cases used: .cancelled, .handedOff, .resumed"
+      ],
+      "calls_into": [
+        "model.autoContinue.resumesAt[threadID] (non-nil means waiting)",
+        "model.autoContinue.outcomes[threadID]",
+        "model.autoContinue.cancel(threadID), model.autoContinue.handOff(threadID)",
+        "Notice.message",
+        "Font.chat(_ style: Font.TextStyle, weight: Font.Weight? = nil, design: Font.Design = .default) (UI/Common/ChatFont.swift)",
+        "TimelineMetrics.pillLeading (12), pillTrailing (14), pillVertical (8), pillRadius (18) from TimelineRows.swift",
+        "Chrome.secondaryText, Chrome.primaryText"
+      ],
+      "state_owned": [
+        "None; all state is read from AppModel.autoContinue."
+      ],
+      "side_effects": [
+        "'Cancel' button calls model.autoContinue.cancel(threadID); 'New thread' button calls model.autoContinue.handOff(threadID)."
+      ],
+      "platform_assumptions": [
+        "SwiftUI Button with .buttonStyle(.plain), .help() tooltips (macOS hover tooltips), SF Symbol 'info.circle', .background(.tint.opacity(0.1)) uses the app accent tint, RoundedRectangle(style: .continuous), accessibility element with children .contain.",
+        "Observation-based @Environment(AppModel.self)."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "HStack(spacing: 8): Image(systemName: \"info.circle\") font .chat(.callout), Chrome.secondaryText; Text(verbatim: words) font .chat(.callout, weight: .medium), Chrome.primaryText.opacity(0.9).",
+        "When waiting: Button label Text(\"Cancel\") font .chat(.caption, weight: .semibold) Chrome.secondaryText, contentShape rect, plain style, tooltip 'Stop the automatic continue'; Button label Text(\"New thread\") same styling, tooltip 'Stop the automatic continue and pick the work up in a new thread, where you can choose another model'.",
+        "Pill: padding leading 12, trailing 14, vertical 8 (TimelineMetrics), background .tint.opacity(0.1) in RoundedRectangle(cornerRadius: 18, style: .continuous); frame maxWidth infinity leading; outer trailing padding 96.",
+        "Accessibility: children .contain, label = the current words."
+      ],
+      "feature_notes": [
+        "words(waiting:): waiting -> notice.message; not waiting and no recorded outcome -> notice.message; outcome .cancelled -> 'Usage limit reached. Auto-continue cancelled.'; .handedOff -> 'Usage limit reached. Continuing in a new thread.'; .resumed -> 'Usage limit reached. Continued automatically.'",
+        "The buttons appear only while model.autoContinue.resumesAt[threadID] != nil.",
+        "B1->B2: file went from 61 to 60 lines. The `@Environment(\\.chatZoom) private var zoom` property was removed and every `.chat(..., zoom: zoom)` call lost its zoom argument (icon .chat(.callout), words .chat(.callout, weight: .medium), both buttons .chat(.caption, weight: .semibold)); Font.chat in B2 takes (style, weight, design) only. The info icon's foreground changed from `.secondary` (hierarchical style) to `Chrome.secondaryText`. Strings, tooltips, geometry and behaviour are unchanged.",
+        "Font.chat (B2 UI/Common/ChatFont.swift, new in B2, 11 lines): `static func chat(_ style: Font.TextStyle, weight: Font.Weight? = nil, design: Font.Design = .default) -> Font` returns `Font.system(style, design: design)` with the weight applied, where the weight defaults to .semibold only for .headline (`weight ?? (style == .headline ? .semibold : nil)`). Its comment: 'The app-wide zoom scales the window, not the type.' So the badge uses plain system text styles: .callout for the icon, .callout medium for the words, .caption semibold for both buttons. Any scaling comes from the window-level AppZoomModifier (WindowManager.swift:175, settings key \"appZoom\", default 100), not from the font."
+      ],
+      "unresolved_questions": [
+        "Resolved: Font.chat is Font.system(style, design:) plus optional weight (ChatFont.swift lines 6-10); the point sizes of .callout and .caption on macOS are system-defined text style sizes, to be confirmed on a running macOS build.",
+        "The pill's .tint colour depends on the app/view accent tint set elsewhere."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Chat/MessageEditor.swift",
+      "sha256": "b42993771ad047992556ea278960494fddf572b38e8bd5559b599e88f8f10c5c",
+      "lines_total": 176,
+      "ranges_read": [
+        [
+          1,
+          176
+        ]
+      ],
+      "purpose": "The in-thread editor for a previously sent user message: it wraps PromptEditor titled 'Edit message' around the message's text and attachments, and above the actions shows a box describing what the working tree changed since that message with an optional switch to undo those file changes. Sending calls runtime.resend to rewind the thread to before the message (optionally restoring files) and resend the edit; the edit state lives on ThreadRuntime.messageEdit so closing and reopening the thread preserves it.",
+      "key_symbols": [
+        "struct MessageEditor: View { @Bindable var edit: PromptEdit; let runtime: ThreadRuntime; init(edit: PromptEdit, runtime: ThreadRuntime) }",
+        "private enum Changes { case checking; case found(RevertPreview); case unavailable(String); init(_ result: Result<RevertPreview, Error>?) }",
+        "@State private var changes: Changes; @State private var restoresFiles = true; @State private var error: String?; @State private var isSending = false",
+        "private var canSend: Bool",
+        "@ViewBuilder private var fileChanges: some View",
+        "@ViewBuilder private func fileList(_ files: [RevertPreview.File]) -> some View",
+        "private func send(); private func cancel()"
+      ],
+      "calls_into": [
+        "PromptEditor(title:text:attachments:onSubmit:onCancel:) { content } actions: { ... }",
+        "PromptEdit (id, text, attachments, isEmpty)",
+        "ThreadRuntime.cachedRevertPreview(for:) -> Result<RevertPreview, Error>?, ThreadRuntime.revertPreview(for:) (a Task whose .value is awaited), ThreadRuntime.resend(_:text:attachments:restoreFiles:) async throws, ThreadRuntime.isRunning, ThreadRuntime.messageEdit",
+        "RevertPreview (files, restorable, additions, deletions) and RevertPreview.File (id, path, isKept, isBinary, additions, deletions)",
+        "DiffStatLabel(additions:deletions:)",
+        "Chrome.secondaryText, Chrome.danger, Chrome.overlay(0.05)"
+      ],
+      "state_owned": [
+        "changes: Changes, initialised from runtime.cachedRevertPreview(for: edit.id) (so a preview fetched on the pencil's hover opens complete), else .checking",
+        "restoresFiles = true",
+        "error: String? (last send failure)",
+        "isSending = false",
+        "The edit text/attachments are owned by the PromptEdit object held on ThreadRuntime.messageEdit, not by the view."
+      ],
+      "side_effects": [
+        ".task(id: edit.id) (lines 64-69) always calls `runtime.revertPreview(for: edit.id)`, awaits `.value`, and unless cancelled assigns `changes = Changes(result)`, even when init already filled `changes` from cachedRevertPreview. In ThreadRuntime (lines 1765-1789) revertPreview returns the same cached Task while the entry has the current diffRevision and is under 10 s old, and cachedRevertPreview returns a result only under that same condition, so normally the task re-assigns the same result; only if the entry expired or diffRevision changed between init and the task does a fresh preview run, and it can then replace a cached .found with a new .found or .unavailable.",
+        "send() (lines 156-171): begins `guard canSend else { return }`, so onSubmit from PromptEditor (keyboard submit) is gated exactly like the disabled Send button. Then restore = false; if changes is .found, restore = restoresFiles && !preview.files.isEmpty; sets isSending = true, error = nil, and in a Task awaits runtime.resend(edit.id, text:, attachments:, restoreFiles: restore); on success sets runtime.messageEdit = nil; on failure sets error to error.localizedDescription; always resets isSending.",
+        "cancel(): sets runtime.messageEdit = nil (closes the editor, discarding the edit)."
+      ],
+      "platform_assumptions": [
+        "SwiftUI Observation @Bindable, Toggle with .toggleStyle(.switch) and .controlSize(.small), ProgressView small, Label with SF Symbols 'exclamationmark.triangle', 'checkmark.circle', 'hand.raised', 'doc', .buttonStyle(.glass) and .buttonStyle(.glassProminent) (macOS 26 Liquid Glass), Button role .cancel, LazyVStack inside ScrollView, .help() tooltips.",
+        "Error.localizedDescription for user-facing error text.",
+        "Swift concurrency Task / .task(id:) cancellation."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "PromptEditor title 'Edit message'; content: fileChanges box, then 'Sending replaces this message and everything after it.' (.callout, Chrome.secondaryText), then optional error Label(error, systemImage: \"exclamationmark.triangle\") (.callout, Chrome.danger). Actions: Button 'Cancel' role .cancel style .glass; Button 'Send' style .glassProminent disabled when !canSend. Whole editor disabled while isSending.",
+        "fileChanges box: VStack(alignment: .leading, spacing: 10), font .callout, padding 12, maxWidth infinity leading, background Chrome.overlay(0.05) in rect cornerRadius 12 continuous.",
+        "checking: HStack(spacing 8) small ProgressView + 'Checking for file changes…' in secondaryText.",
+        "unavailable: Label(reason, systemImage: \"exclamationmark.triangle\") secondaryText.",
+        "found with no files: Label('This thread changed no files since this message', systemImage: \"checkmark.circle\") secondaryText.",
+        "found with files but none restorable: Label('The file it changed has changed again since, so it stays as it is' when 1 file, else 'The <n> files it changed have changed again since, so they stay as they are', systemImage: \"hand.raised\") secondaryText, then the file list.",
+        "found with restorable files: Toggle(.switch, controlSize .small) bound to restoresFiles with label HStack(spacing 8) 'Undo the file changes this thread made', Spacer(minLength 8), '1 file' or '<n> files' (count of preview.restorable) in secondaryText, DiffStatLabel(preview.additions, preview.deletions), maxWidth infinity; then fileList(preview.files), which lists all files including kept ones (kept rows dimmed to 0.45 with the 'hand.raised' icon and 'Kept'). The count and the diff stat cover the same set: RevertPreview.additions/deletions sum only `restorable` (Services/Git/RevertPreview.swift lines 24-26: `var restorable: [File] { files.filter { !$0.isKept } }`, `var additions: Int { restorable.reduce(0) { $0 + $1.additions } }`).",
+        "File list: LazyVStack(alignment: .leading, spacing: 6), each row HStack(spacing 8): Image 'hand.raised' if kept else 'doc' (secondaryText), Text(verbatim: path) lineLimit 1 truncation middle, Spacer(minLength 4), then 'Kept' or 'Binary' in secondaryText or DiffStatLabel(file.additions, file.deletions); row font .caption; opacity 1 when restoresFiles && !isKept else 0.45; tooltip '<path>\\nChanged again since this thread last touched it, so it is left alone.' for kept files, else the path. When more than 5 files the list sits in a ScrollView with fixed height 110."
+      ],
+      "feature_notes": [
+        "canSend is false while changes is .checking (so sending cannot silently keep the files), and otherwise requires !edit.isEmpty && !isSending && !runtime.isRunning.",
+        "Changes(nil) -> .checking; .success -> .found; .failure -> .unavailable(error.localizedDescription).",
+        "Send restores files only when changes is .found, restoresFiles is on and preview.files is non-empty; with .unavailable the edit is sent without restoring files.",
+        "B1->B2: Only colour styling changed (line count unchanged at 176): every `.foregroundStyle(.secondary)` (hierarchical secondary) became `.foregroundStyle(Chrome.secondaryText)`: the 'Sending replaces...' caption, the checking row, the unavailable label, the no-files label, the changed-again label, the restorable file count, the file row icon, and the 'Kept' and 'Binary' labels. No strings, geometry or behaviour changed.",
+        "Invisible restore: when files exist but `preview.restorable.isEmpty` (every file kept, lines 93-99) no switch is shown, yet restoresFiles keeps its default true, so send computes `restore = restoresFiles && !preview.files.isEmpty` = true (line 159) and calls resend with restoreFiles: true; there is nothing restorable, but the flag sent is true. The kept rows in that list show at opacity 0.45 because `restoresFiles && !file.isKept` is false."
+      ],
+      "unresolved_questions": [
+        "PromptEditor layout, the resend/rewind semantics of ThreadRuntime.resend and RevertPreview computation are defined in other files.",
+        "DiffStatLabel's exact rendering is defined elsewhere."
+      ]
+    }
+  ]
+}

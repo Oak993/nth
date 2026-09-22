@@ -1,0 +1,272 @@
+{
+  "bundle_id": "R2-12",
+  "reader": "R2-12-reader",
+  "baseline": "1fbf81e61e28a079508a074c01ee1830a9cc23dc",
+  "previous_baseline": "dd2b86efef9e77168f304a86e8a8411877578bbe",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Composer/ComposerView.swift",
+      "sha256": "3c4312c1e5102f1bc8f0e488fcf09adc5ecd443fc77835d73629f0dba96006e1",
+      "lines_total": 1307,
+      "ranges_read": [
+        [
+          1,
+          330
+        ],
+        [
+          331,
+          660
+        ],
+        [
+          661,
+          990
+        ],
+        [
+          991,
+          1307
+        ]
+      ],
+      "purpose": "Defines the chat box at the bottom of a chat column: ComposerArea stacks pending ApprovalCards over a tab slot (follow-up queue tab or changes tab) and the ComposerView pill, which holds the growing text column (quote/command chips, attachment strip, a 5-second attachment-limit notice, the AppKit-backed ComposerTextView) and, only when the runtime's thread resolves (`if let thread { ComposerControls(...) }`, lines 160-174), the trailing controls (paperclip with optional Recent Downloads popover, model/effort chip, context/usage ring, send/stop button). It also owns the composer's keyboard semantics (Return send or interrupt-and-send, Command-Return steer/queue as a fallback path only (the doc comment at lines 384-387 says the menu owns the chord while a turn runs, so steer() sees it only when that command is disabled or rebound), up/down prompt history recall, Escape stop/take-back or panel close, delete-at-start removing a chip), the @-file and /-command suggestion engine rendered in a caret-anchored popover, and the FileIndex that lists (git ls-files or a filtered directory walk) and scores workspace paths off the main actor.",
+      "key_symbols": [
+        "struct ComposerArea: View { @Environment(keypath chatColumnIsShown) isColumnShown; let runtime: ThreadRuntime; let workingDirectory: String?; var compactModelChip: Bool = false; var takesFocusOnAppear = true; var showsChanges = true; @State private var diffPopover = DiffPopoverCoordinator() }",
+        "private struct TabSlot: View { let runtime: ThreadRuntime; let diffPopover: DiffPopoverCoordinator; let showsChanges: Bool }",
+        "private struct ChangeStatsRefresh: View { let runtime: ThreadRuntime } (0x0 Color.clear with .task(id: runtime.diffRevision) { await runtime.refreshChangeStats() })",
+        "struct ComposerView: View { @Environment(AppModel.self) model; @Environment(keypath chatColumnIsShown) isColumnShown; let runtime: ThreadRuntime; let workingDirectory: String?; var compactModelChip: Bool = false; var takesFocusOnAppear = true }",
+        "ComposerView @State: controller = ComposerController(); suggestions = SuggestionState(); dismissedSuggestions = false; historyIndex: Int?; showingRecents = false; fileIndex = FileIndex(); attachmentNotice: String?",
+        "static let maxAttachments = Storage.attachmentLimit (Storage.swift:153 defines attachmentLimit = 8)",
+        "private func blur()",
+        "@ViewBuilder private func suggestionMenu() -> some View",
+        "private var commandKey: String (ProviderRegistry.commandKey(thread.provider, directory: workingDirectory), empty string when no thread or no workingDirectory)",
+        "private func loadCommands(force: Bool = false) async",
+        "private func placeholder(for thread: ChatThread?) -> String",
+        "private func goesToHead(_ thread: ChatThread) -> Bool",
+        "private func queueGoesToHead(_ thread: ChatThread) -> Bool",
+        "private func headsProvider(_ thread: ChatThread) -> ProviderKind?",
+        "private func handleKey(_ key: ComposerKey) -> Bool (cases used: .up, .down, .tab, .submit, .steer, .escape, .deleteAtStart)",
+        "private func send()",
+        "private func steer()",
+        "private func recall(older: Bool) -> Bool",
+        "private func cursorMoved(to _: Int)",
+        "private func refreshSuggestions(cursor: Int) async",
+        "private func commandSuggestions(matching query: String) -> [Suggestion]",
+        "private func pick(_ suggestion: Suggestion)",
+        "private func attach(_ sources: [AttachmentSource])",
+        "private func note(_ message: String)",
+        "private func chooseFiles()",
+        "private struct ComposerTextColumn: View { @Environment(WindowLiveResize.self) liveResize; @Bindable var runtime: ThreadRuntime; let controller: ComposerController; let placeholder: String; let takesFocusOnAppear: Bool; let attachmentNotice: String?; let onKey: (ComposerKey) -> Bool; let onAttach: ([AttachmentSource]) -> Void; let onCursorChange: (Int) -> Void; let onBlur: () -> Void; @State textHeight: CGFloat = 20; static minComposerHeight: CGFloat = 20; static maxComposerLines = 5; static var maxComposerHeight: CGFloat; var composerHeight: CGFloat }",
+        "private struct ComposerControls: View { let runtime; let thread: ChatThread; let compact: Bool; let recentDownloadsPicker: Bool; let goesToHead: Bool; let queueGoesToHead: Bool; let headsProvider: ProviderKind?; @Binding var showingRecents: Bool; let onAttach: ([URL]) -> Void; let onChooseFiles: () -> Void; let onSend: () -> Void }",
+        "private struct ComposerWorkingDotsSlot: View { let runtime: ThreadRuntime }",
+        "private struct ModelEffortSlot: View { let runtime; let thread: ChatThread; let compact: Bool } -> ModelEffortButton(thread:hasHistory: !runtime.turns.isEmpty, compact:)",
+        "private struct ContextMeter: View { @Environment(AppModel.self) model; let runtime; let provider: ProviderKind; let headsProvider: ProviderKind?; @State isPresented = false; func helpText(fraction: Double?, hasCredits: Bool) -> String; func label(fraction: Double?, hasCredits: Bool) -> String }",
+        "@MainActor private enum SendShortcutText { static let queue = ShortcutStore.label(for: .queueChat); static let stop = ShortcutStore.hint(for: .stopTurn) }",
+        "private struct SendButton: View { let runtime; let goesToHead: Bool; let queueGoesToHead: Bool; let send: () -> Void }",
+        "private struct SendRunState: View (reads runtime.isRunning, runtime.hasWorkingHeads)",
+        "private struct SendDraftState: View { let runtime; let isRunning: Bool; let headsWorking: Bool; let goesToHead: Bool; let queueGoesToHead: Bool; let send: () -> Void; func helpText(isRunning: Bool, headsWorking: Bool) -> String }",
+        "private struct DraftChips: View { let runtime; private struct ChipKey: Equatable { var quoteIDs: [UUID]; var commandName: String? } }",
+        "private struct ChipRowCollapse: ViewModifier { let collapsed: Bool }",
+        "struct ChipChrome: ViewModifier (internal, also used on sent messages' quotes)",
+        "private struct DraftAttachments: View { let runtime; @State preview = AttachmentPreviewSlot(); @State drawn: Set<Attachment.ID> = []; func strip(_ attachments: [Attachment]) -> some View }",
+        "struct SuggestionState: Equatable { enum Kind { case file; case command }; var kind: Kind = .file; var range = NSRange(location: 0, length: 0); var items: [Suggestion] = []; var selected = 0; var isVisible: Bool { !items.isEmpty } }",
+        "struct Suggestion: Identifiable, Equatable { var value: String; var title: String; var detail: String; var symbol: String; var command: SlashCommand? = nil; var id: String { value } }",
+        "private struct SuggestionPopoverRow: View { let item: Suggestion; let isSelected: Bool; let select: () -> Void; let pick: () -> Void; @State isHovering = false }",
+        "@MainActor @Observable final class FileIndex { nonisolated private struct Entry: Sendable { path: String; lowercased: String; name: String; lengthPenalty: Int; isASCII: Bool }; @ObservationIgnored entries: [Entry]; @ObservationIgnored directory: String?; private static var built = RecentCache<String, (entries: [Entry], builtAt: Date)>(limit: 2); private static var building: [String: Task<[Entry], Never>] = [:]; private static let freshness: TimeInterval = 60 }",
+        "FileIndex.prepare(_ directory: String) async",
+        "@concurrent private nonisolated static func build(_ directory: String) async -> [Entry]",
+        "func search(_ query: String, limit: Int = 8) async -> [String]",
+        "@concurrent private nonisolated static func search(_ needle: String, in entries: [Entry], limit: Int) async -> [String]",
+        "private nonisolated static func contains(_ needle: String, in haystack: String, ascii: Bool) -> Bool",
+        "nonisolated static func isSubsequence(_ needle: String, of haystack: String, ascii: Bool) -> Bool",
+        "@concurrent private nonisolated static func list(_ directory: String) async -> [String]",
+        "private nonisolated static func enumerate(_ directory: String) -> [String]",
+        "private struct ComposerSurface: ViewModifier { @Environment(keypath isOnGlassPanel) isOnGlassPanel; @Environment(keypath colorScheme) colorScheme }"
+      ],
+      "calls_into": [
+        "ApprovalCard(request:runtime:), ThreadChangesTab(stats:anchor:action) and ThreadChangesTab.overlap, FollowUpQueueTab(runtime:), DiffPopoverCoordinator (sync(isVisible:runtime:), reopen(runtime:), close(), setAnchor, setFallbackAnchor), AttachmentAnchorCapture",
+        "ThreadRuntime: approvals, followUps, changeStats, diffRevision, refreshChangeStats(), isDiffVisible, diffOpenRequest, threadID, clearDiffFocus(), diffAnchor, diffSelection, toggleDiff(), isTerminalVisible, isRunning, takeBackRunningTurn(), draft (text, attachments, quotes, command, isEmpty), interruptAndSend(), send(), canQueue, queueDraftAsFollowUp(), sentPrompts, warmSession(), turns, usage (fraction), hasWorkingHeads, interrupt(), isReverting",
+        "AppModel: thread(_:), settings.recentDownloadsPicker, settings.hydraAlwaysHeads, settings.hydraQueueHeads, settings.showsUsagePanel (written), settings.hasAPIKey(for:), hydraIsOn(_:), hydraPair(for:), hydraHeadsProvider(of:), providers.commands[key], providers.commandErrors[key], providers.recentCommands[provider.rawValue], providers.loadCommands(_:directory:force:)",
+        "ProviderRegistry.commandKey(_:directory:), ProviderKind.displayName, ProviderKind.supportsCompact, ProviderKind.rawValue",
+        "ComposerController: showSuggestions(_:itemCount:), hideSuggestions(), focus(), hasFocus, cursorLocation, isClickInsideSuggestions(), suggestionRefresh (Task), replaceCharacters(in:with:)",
+        "ComposerTextView(text:height:placeholder:controller:onKey:onAttach:onCursorChange:onBlur:takesFocusOnAppear:), ComposerKey, ComposerWorkingDots()",
+        "PopoverMenu, PopoverSectionHeader, PopoverNote, PopoverItem, DownloadsPopover(pick:chooseOther:), ModelEffortButton, UsagePanel(usage:provider:headsProvider:), ChromeCircleButton(symbol:help:action), .presentedChrome()",
+        "SlashCommand(name:detail:isBuiltIn:), SlashCommand.suggestions(_:matching:recent:), DraftCommand(name:detail:isBuiltIn:)",
+        "Storage.attach(_:to:) with Bindable(runtime).draft.attachments, Storage.attachmentLimit, AttachmentSource (.file, .image)",
+        "CreditsReader.exposesCredits(_:), PlanLimitsReader.exposesLimits(_:)",
+        "ShortcutStore.shared.chord(for: .queueChat), KeyChord(keyCode: 36, modifiers: .command), ShortcutStore.label(for: .queueChat), ShortcutStore.hint(for: .stopTurn)",
+        "AttachmentArrival(isNew:), AttachmentThumbnail(attachment:size:preview:), AttachmentPreviewSlot (setAnchor, retire(except:), close())",
+        "RecentCache<K,V>(limit:) value(for:) insert(_:for:), Git(directory).isRepository(), Git.listFiles(), ToolTitles.relativePath(_:to:)",
+        "Chrome.panelSlide, Chrome.hover, Chrome.warning, Chrome.secondaryText, Chrome.primaryText, Chrome.overlay(_:), Chrome.iconFont, Chrome.panelControlFill(isDark:), .softAppear transition, .chip(active:) button style, WindowLiveResize.isReshaping, GlassEffectContainer, glassEffect"
+      ],
+      "state_owned": [
+        "ComposerArea: diffPopover DiffPopoverCoordinator (@State)",
+        "ComposerView: controller (ComposerController), suggestions (SuggestionState), dismissedSuggestions (Bool, set true by Escape in the list, reset false on every cursorMoved), historyIndex (Int?, index into non-empty sentPrompts during recall), showingRecents (Bool, Recent Downloads popover presented), fileIndex (FileIndex), attachmentNotice (String?, auto-cleared after 5 s)",
+        "ComposerTextColumn: textHeight CGFloat initial 20",
+        "ContextMeter: isPresented Bool (usage popover)",
+        "SuggestionPopoverRow: isHovering",
+        "DraftAttachments: preview AttachmentPreviewSlot, drawn Set<Attachment.ID> (ids already shown, so only new ones animate arrival)",
+        "FileIndex (process-wide statics): built RecentCache limit 2 keyed by directory holding (entries, builtAt); building [String: Task] in-flight builds; instance entries and directory",
+        "Mutates ThreadRuntime.draft (text, command, quotes, attachments), runtime.isDiffVisible, diffAnchor, diffSelection, isTerminalVisible; AppModel.settings.showsUsagePanel"
+      ],
+      "side_effects": [
+        "Runs runtime.refreshChangeStats() (git stats) each time runtime.diffRevision changes, only when showsChanges is true",
+        "Loads provider slash commands via model.providers.loadCommands when commandKey changes, when the list becomes visible with kind .command, and on Retry (force: true). The isVisible trigger is `.onChange(of: suggestions.isVisible) { _, visible in if visible, suggestions.kind == .command { Task { await loadCommands() } } }` (lines 213-215): it fires only on an isVisible transition, so a list that is already visible and changes kind from .file to .command in place does not trigger a load there. Every loadCommands call (the .task(id: commandKey) load at line 204, the isVisible load and Retry) ends with `if controller.hasFocus { cursorMoved(to: controller.cursorLocation) }` (line 272), so each load re-runs the suggestion refresh when the composer has focus",
+        "Builds a file index for workingDirectory on appear/change: git ls-files through Git.listFiles (capped 60,000) or FileManager directory enumeration (capped 20,000, depth <= 16)",
+        "runtime.warmSession() called on every cursor move when the draft text is non-empty",
+        "Send, interruptAndSend, queueDraftAsFollowUp, interrupt, takeBackRunningTurn on the runtime",
+        "Storage.attach copies/transcodes attachments off the main actor",
+        "Opens a modal NSOpenPanel (runModal) for Choose Files",
+        "Writes model.settings.showsUsagePanel = true (persisted setting) from the usage popover's pop-out button",
+        "Shows/hides an NSPopover suggestion list through ComposerController"
+      ],
+      "platform_assumptions": [
+        "SwiftUI throughout: GlassEffectContainer(spacing: 8), .glassEffect(.regular, in:) Liquid Glass (macOS 26), .geometryGroup(), .popover(isPresented:arrowEdge: .bottom), .help tooltips, .focusable(false), .contentTransition(.symbolEffect(.replace)), .transaction, .animation(.smooth(duration: 0.28)), ScrollViewReader.scrollTo, ScrollView(.horizontal, showsIndicators: false), GeometryReader, Observation (@Observable, @Bindable, @ObservationIgnored), accessibilityLabel/Value/Element(children: .combine)",
+        "SF Symbols: paperclip, arrow.up, stop.fill, arrow.up.right, command, sparkles, xmark, text.quote, xmark.circle.fill (palette rendering), doc, arrow.clockwise",
+        "Dynamic system text styles .subheadline, .callout, .footnote, .caption2, .body (per Apple's macOS HIG type table, not this source: 11, 12, 10, 10, 13 pt at the default text size; the Windows port must pin these values)",
+        "AppKit: NSFont.systemFont(ofSize: 14) ascender/descender/leading for maxComposerHeight; NSOpenPanel with allowsMultipleSelection, canChooseDirectories, prompt, runModal; NSString/NSRange UTF-16 indexing for caret and word extraction; caret-anchored NSPopover hosted by ComposerController; ComposerTextView (NSTextView-based)",
+        "KeyChord(keyCode: 36, modifiers: .command): macOS virtual key 36 is Return, .command is the Command modifier; Windows needs the equivalent Ctrl+Enter mapping per port decisions",
+        "Foundation: FileManager.enumerator with .skipsHiddenFiles and .skipsPackageDescendants (macOS bundle packages), URLResourceKey.isDirectoryKey, Task.sleep(for: .seconds(5)), Date.now",
+        "C library memchr and memmem (Darwin) for ASCII substring search; Windows CRT lacks memmem",
+        "Swift concurrency: @concurrent, nonisolated, Task cancellation checks, @MainActor",
+        "Skipped directory names include Apple toolchain dirs .build, DerivedData, Pods",
+        "Word boundaries for @ and / detection are only 0x20, 0x0A and 0x09 (lines 446-449); 0x0D (CR), U+2028 and U+2029 are not boundaries. With CRLF line breaks the character directly before a word typed on a new line is still 0x0A, so detection works; a text store that ends lines with a lone CR or a Unicode line/paragraph separator would make the word run back across the break and defeat @ and / detection. The Windows text control must store line breaks as LF or CRLF for identical behaviour.",
+        "Path handling assumes '/' separators: Entry.name = `(lowercased as NSString).lastPathComponent` (line 1168), the suggestion title `(path as NSString).lastPathComponent` (line 461) and `ToolTitles.relativePath(url.path, to: directory)` (line 1283); git ls-files output uses '/'. A Windows directory walk yielding '\\' separators would change the name-based scores (1000/800/600) and the titles unless paths are normalised to '/'.",
+        "The enumerate() skip list is an exact, case-sensitive match on url.lastPathComponent (line 1278); on a case-insensitive file system such as NTFS a folder named, for example, \"Node_Modules\" or \"Build\" would not be skipped by this test."
+      ],
+      "persisted_fields": [
+        "No keys defined in this file. Reads settings recentDownloadsPicker, hydraAlwaysHeads, hydraQueueHeads, showsUsagePanel and hasAPIKey(for:); writes settings.showsUsagePanel = true. runtime.draft and runtime.sentPrompts are owned elsewhere. FileIndex cache is in-memory only (60 s freshness, 2 directories)."
+      ],
+      "ui_elements": [
+        "ComposerArea: GlassEffectContainer spacing 8; VStack spacing 12 of ApprovalCards then VStack(alignment: .center, spacing: -ThreadChangesTab.overlap) of TabSlot over ComposerView, with `.background { AttachmentAnchorCapture { diffPopover.setFallbackAnchor($0) } }` (lines 32-34), so the diff popover's fallback anchor is captured from that tab-plus-pill stack; .frame(maxWidth: 820), .padding(.horizontal, 20), .padding(.bottom, 14), .frame(maxWidth: .infinity); .animation(Chrome.panelSlide, value: approvals ids)",
+        "TabSlot: ZStack(alignment: .bottom) exists only while followUps non-empty or (showsChanges and changeStats != nil); FollowUpQueueTab takes precedence over ThreadChangesTab; both .transition(.softAppear)",
+        "ComposerView pill: HStack(alignment: .bottom, spacing: 8); the trailing ComposerControls exist only inside `if let thread { ComposerControls(...) }` (lines 160-174), so with no resolved thread the pill shows only the text column (no paperclip, model chip, ring or send button); text column .padding(.vertical, 4) (comment: an empty pill is 44 high); pill padding leading 14, trailing 8, vertical 8; background ComposerWorkingDotsSlot; ComposerSurface corner radius 22 .continuous; .geometryGroup()",
+        "Placeholder strings verbatim: plan mode \"Describe what you want to plan\"; hydra on and hydraAlwaysHeads \"Goes to a head; <displayName> leads and reports back\"; hydra on otherwise \"Ask <displayName> for anything; big jobs go out to a team of heads\"; default \"Ask <displayName> to build, fix or explain. @ for files, / for commands\"; no thread \"\"",
+        "Suggestion popover: PopoverMenu with header \"Commands · Recently used first\" (command kind) or \"Files\"; on command error a PopoverNote(error) plus PopoverItem \"Retry loading commands\" symbol arrow.clockwise; rows are SuggestionPopoverRow with .id(index), selected row scrolled into view",
+        "SuggestionPopoverRow: HStack spacing 8: Image(symbol) .callout width 16, title .body lineLimit 1 truncation middle, Spacer(minLength: 16), detail .callout Chrome.secondaryText lineLimit 1; foreground Chrome.primaryText; padding horizontal 8; height 26; RoundedRectangle cornerRadius 6 continuous fill Chrome.overlay(0.1) when selected or hovering else clear; hover animates with Chrome.hover and selects the row",
+        "ComposerTextColumn: VStack(alignment: .leading, spacing: 0) of DraftChips, DraftAttachments, attachment notice Text(.subheadline, Chrome.warning, lineLimit 1, padding bottom 6, .softAppear), ComposerTextView; text height clamp min 20, max = ceil(ascender - descender + leading of 14 pt system font) * 5 + 4; .frame(height:) with animation disabled, outer .frame(height:, alignment: .top).clipped(), .animation(liveResize.isReshaping ? nil : .smooth(duration: 0.28), value: composerHeight)",
+        "ComposerControls: HStack spacing 2, .fixedSize(): paperclip Button (Chrome.iconFont, .chip(active: showingRecents), help and accessibility label \"Attach files\", popover arrowEdge .bottom hosting DownloadsPopover), ModelEffortSlot, ContextMeter omitted when compact, SendButton",
+        "ComposerWorkingDotsSlot: only while running; ComposerWorkingDots at 0.4 of the pill height aligned bottom; clipShape rect cornerRadius 22 continuous; transition opacity easeInOut 0.4",
+        "ContextMeter ring: shown when !settings.showsUsagePanel and (fraction != nil or PlanLimitsReader.exposesLimits(provider) or hasCredits); track Circle stroke .quaternary lineWidth 2.5; progress Circle trim 0..fraction, stroke Chrome.warning when fraction > 0.85 else .tint, lineWidth 2.5 lineCap .round, rotated -90 degrees; frame 15x15, padding horizontal 6 vertical 5; help \"<N>% of the context window used\" or \"Remaining credits\" or \"Usage limits\"; accessibility label \"Context window\" / \"Remaining credits\" / \"Usage limits\"; accessibility value \"<N>% of the context window used\" (N = Int(fraction * 100), truncated)",
+        "Usage popover: header HStack Text \"Usage\" (.callout semibold, Chrome.secondaryText), Spacer(minLength: 8), ChromeCircleButton symbol arrow.up.right help \"Open as a floating panel beside the chat\"; padding top 10, horizontal 16; then UsagePanel; .presentedChrome()",
+        "SendDraftState button: symbol \"stop.fill\" while running else \"arrow.up\", Chrome.iconFont, white, contentTransition symbol replace, 28x28 circle background .tint when enabled else .quaternary; enabled = isRunning or draft non-empty; disabled also while runtime.isReverting; padding leading 4; accessibility label \"Stop\" / \"Send to a head\" / \"Send\"",
+        "Send help strings verbatim: running with heads working: \"Heads are at work: your message goes to a head\" (queueGoesToHead) or \"Heads are at work: your message waits for the lead\"; running otherwise: \"Stop<stop hint> · Return steers\" plus \" · <queue label> queues\" when a queue chord exists; idle: \"Send to a head (Return) · the lead reports back\" (goesToHead) or \"Send (Return)\", plus \" · <queue> queues while running\" when a queue chord exists. The source also has a headsWorking branch \"\\(queues) queues until the heads report\" (line 863), but it is unreachable: SendRunState computes `let headsWorking = isRunning && runtime.hasWorkingHeads` (line 808) and is the only constructor of SendDraftState (line 811), so headsWorking is always false when idle and the idle tail is always \"<queue> queues while running\"",
+        "DraftChips: horizontal ScrollView without indicators, HStack spacing 6, padding bottom 8; command chip HStack spacing 5: Image command (built-in) or sparkles .footnote semibold secondaryText, Text \"/<name>\" .subheadline medium primaryText opacity 0.9, xmark button (.caption2 bold) help and label \"Remove command\"; chip .help(command.detail); quote chip: text.quote icon .footnote semibold, excerpt .subheadline lineLimit 1 truncation tail maxWidth 260, xmark help and label \"Remove quote\", chip .help(quote.text); transition ChipRowCollapse (height 0 aligned top, clipped, opacity 0); animation Chrome.panelSlide keyed on ChipKey",
+        "ChipChrome: padding leading 9, trailing 7, vertical 5; Capsule(style: .continuous) fill Chrome.overlay(0.12)",
+        "DraftAttachments strip: horizontal ScrollView, HStack spacing 0, AttachmentThumbnail size 48 inside AttachmentArrival(isNew:), overlay top-trailing delete Button xmark.circle.fill palette (.white, .black.opacity(0.6)) padding 4 offset x 6 y -6, accessibility \"Remove <attachment.name>\"; cell padding top 2, trailing 8; strip padding bottom 8",
+        "ComposerSurface: RoundedRectangle cornerRadius 22 continuous; on a glass panel fill Chrome.panelControlFill(isDark:) and clip, otherwise .glassEffect(.regular, in: shape)"
+      ],
+      "feature_notes": [
+        "Diff popover coordination: onAppear and on threadID change call diffPopover.sync(isVisible: runtime.isDiffVisible); isDiffVisible changes sync; diffOpenRequest change calls reopen; onDisappear and column hidden close it. The changes-tab action clears diff focus, sets diffAnchor nil, clears diffSelection if set, and sets isDiffVisible true only when it was false (written last).",
+        "Suggestion list lifecycle: onChange(suggestions) shows AnyView(suggestionMenu()) with itemCount or hides; hidden on disappear, on thread change and when the column is hidden; column shown again refocuses only if takesFocusOnAppear. Command list changes re-run cursorMoved if focused; commandErrors change re-shows the list if focused and visible.",
+        "blur(): if the click was not inside the suggestion popover, cancels controller.suggestionRefresh and clears suggestions.",
+        "handleKey with the list visible: up = max(0, selected - 1); down = min(count - 1, selected + 1); tab/submit/steer pick the selected item; escape sets dismissedSuggestions and clears; deleteAtStart returns false (not consumed). Without the list: submit -> send(); steer -> steer(); up/down -> recall; escape -> takeBackRunningTurn if running, else hide terminal if visible, else toggleDiff if diff visible, else not consumed; tab not consumed; deleteAtStart removes draft.command first, else the last quote (both animated with Chrome.panelSlide), else not consumed.",
+        "send(): no-op on empty draft; clears historyIndex and suggestions; running -> runtime.interruptAndSend() (comment: with heads at work it queues instead), idle -> runtime.send().",
+        "steer(): no-op on empty draft; clears historyIndex and suggestions; queues via runtime.queueDraftAsFollowUp() only when runtime.canQueue and the queueChat chord equals keyCode 36 + command; otherwise runtime.send(). The else branch applies in the running state too: when the queueChat chord is rebound away from KeyChord(keyCode: 36, modifiers: .command) or !runtime.canQueue, steer() calls runtime.send() even while a turn runs, unlike send(), which calls runtime.interruptAndSend() while running (lines 374-378). Doc comment verbatim (lines 384-387): \"Command-Return: steer the running turn by queueing the draft behind it. Idle, there is nothing to steer behind, so it just sends. The menu owns the chord while a turn runs; this path only sees it when the command is disabled or rebound, so it falls back to send once the chord moves.\" So steer() is a fallback: while a turn runs, Command-Return is normally handled by the menu command, not by the text view.",
+        "recall(older:): prompts = sentPrompts without empty strings; not consumed if none or if the draft has attachments; allowed only when the text is empty or equals the prompt at historyIndex. Older: next = (recalledIndex ?? count) - 1, returns true without change at the oldest. Newer: requires a recalled index; moves forward or, past the newest, clears historyIndex and text.",
+        "cursorMoved: resets dismissedSuggestions, calls runtime.warmSession() if the text is non-empty, cancels the previous refresh Task and starts a new @MainActor Task whose body is `guard !dismissedSuggestions else { return }; await refreshSuggestions(cursor: controller.cursorLocation)` (lines 433-436), so an Escape that sets dismissedSuggestions after the Task was scheduled suppresses that refresh.",
+        "refreshSuggestions: first `guard cursor > 0, cursor <= text.length else { if suggestions.isVisible { suggestions = SuggestionState() }; return }` (lines 441-444), so a caret at position 0 or past the end hides the list. Then word = run of characters before the caret back to space (0x20), newline (0x0A) or tab (0x09), in UTF-16 units. '@' prefix: fileIndex.search(rest), drops result if cancelled, items value \"@<path> \" title lastPathComponent detail path symbol \"doc\". '/' prefix only when the word starts at index 0: kind .command. Empty items hide the list. Selection is kept (clamped) only if the range location is unchanged, else 0.",
+        "commandSuggestions: built-ins first \"plan\" detail \"Turn plan mode on or off\"; \"compact\" detail \"Summarize the conversation to free up context\" when provider.supportsCompact (Provider.swift:151 at B2: .codex, .claude, .copilot, .deepseek, .meta, .zai, .pi); then provider commands for commandKey; ranked by SlashCommand.suggestions with recentCommands[provider.rawValue]; value \"/<name> \", title \"/<name>\", symbol \"command\" for built-in else \"sparkles\".",
+        "pick(): command kind with a SlashCommand removes the typed word and sets runtime.draft.command = DraftCommand(...) animated, then focuses; otherwise replaces the word with suggestion.value (file mention with trailing space) and focuses.",
+        "attach(): room = max(0, 8 - current count); dropped = sources.count - min(sources.count, room); Storage.attach does the actual adding. Notice strings verbatim: single image source \"The image was left out: a message holds 8 attachments\"; one dropped \"One file was left out: a message holds 8 attachments\"; else \"<n> files were left out: a message holds 8 attachments\" (8 is Self.maxAttachments interpolated). Always refocuses. Notice clears after Task.sleep 5 s with Chrome.panelSlide via `.task(id: attachmentNotice) { guard attachmentNotice != nil else { return }; try? await Task.sleep(for: .seconds(5)); guard !Task.isCancelled else { return }; withAnimation(Chrome.panelSlide) { attachmentNotice = nil } }` (lines 219-225). The wait restarts only when the notice string changes: note() only assigns `attachmentNotice = message` (line 523), so two consecutive drops that produce the same message (for example both \"One file was left out: a message holds 8 attachments\") leave the task id unchanged, the timer does not restart, and the notice clears 5 s after the first drop. The source comment \"a second drop restarts the wait\" holds only for a different message.",
+        "chooseFiles(): NSOpenPanel allowsMultipleSelection true, canChooseDirectories false, prompt \"Attach\"; on .OK attaches panel.urls as .file sources. Paperclip opens DownloadsPopover when settings.recentDownloadsPicker is true, else chooseFiles directly; popover pick closes it then attaches the URL; chooseOther closes it then runs chooseFiles.",
+        "goesToHead = hydraAlwaysHeads && hydraIsOn; queueGoesToHead = (hydraQueueHeads || hydraAlwaysHeads) && hydraIsOn; headsProvider = hydraHeadsProvider(of: pair) when hydra is on and a pair exists, nil when equal to the thread's provider.",
+        "ContextMeter hasCredits = CreditsReader.exposesCredits(provider) && settings.hasAPIKey(for: provider). Ring hidden entirely while the usage panel is popped out (settings.showsUsagePanel). Pop-out closes the popover then sets showsUsagePanel = true with Chrome.panelSlide.",
+        "SendDraftState action: running -> runtime.interrupt() (not interruptAndSend), idle -> send closure. SendShortcutText caches ShortcutStore label/hint once per process.",
+        "DraftAttachments: delete button removes by id without animation block; onChange(attachments) retires preview entries not in the set; onDisappear closes the preview. Arrival animation only for ids not yet in drawn.",
+        "FileIndex.prepare: sets directory; loops while not cancelled and directory unchanged: if a cache entry exists, assigns its entries and returns unless `Date.now.timeIntervalSince(cached.builtAt) > Self.freshness` (strictly greater than 60 s, so an age of exactly 60 s is still fresh); a stale cache is kept in `entries` and served while the rebuild runs behind it (line 1122 comment: \"A stale index is served and rebuilt behind it.\"); `entries = []` happens only when there is no cache at all; joins an in-flight build for the same directory; if `Self.building.count >= 2`, awaits `Self.building.values.first` (an arbitrary element of an unordered Dictionary, not necessarily the oldest build) and then `continue`s, re-reading the cache; else starts a build Task that inserts into the cache and removes itself from building. Applies fresh entries only if still current and not cancelled.",
+        "FileIndex.build: Entry lowercased path, name = lastPathComponent of the lowercased path, lengthPenalty = min(path.count, 99), isASCII = all UTF-8 bytes < 128.",
+        "FileIndex.search: empty needle returns the first limit (8) paths in index order. Scoring: name == needle 1000; name prefix 800; substring of name 600; substring of full lowercased path 400; subsequence of lowercased path 100; minus lengthPenalty. Keeps a top-limit list by insertion (ties keep earlier entries first since insertion is before the first strictly lower score); checks cancellation every 2,048 entries and returns [] when cancelled.",
+        "contains(): ASCII fast path with memmem on UTF-8 bytes; falls back to String.contains if the haystack contains byte 13 (carriage return) or storage is not contiguous. isSubsequence(): ASCII byte walk, restarting in grapheme mode on byte 13; non-ASCII uses Character comparison.",
+        "FileIndex.list: if Git(directory).isRepository() and listFiles() non-empty, first 60,000 files; else enumerate(): skips hidden files and package descendants, skips names node_modules, build, dist, .build, DerivedData, Pods, target, and any item deeper than level 16 (skipDescendants). The test is `skipped.contains(url.lastPathComponent) || enumerator.level > 16` (line 1278), an exact case-sensitive Set match on the last path component applied before the isDirectory check, so it also skips plain files with those names, not only directories; an item at level > 16 is itself skipped, not just its descendants. It then excludes directories, stores ToolTitles.relativePath(url.path, to: directory), stops at 20,000 results.",
+        "ComposerSurface: flat Chrome.panelControlFill(isDark:) on floating glass panels (environment isOnGlassPanel) instead of glass-on-glass.",
+        "B1->B2: 12 changed lines, no behavioural change beyond fonts and one refactor. (1) Line 478 commandSuggestions: the inline provider test 'thread.provider == .codex || .claude || .copilot || .deepseek || .meta || .zai || .pi' became 'thread.provider.supportsCompact'; Provider.swift:151 at B2 lists exactly the same seven providers, so the /compact built-in shows for the same providers. (2) Fixed point sizes became dynamic text styles: attachment notice .system(size: 11) -> .system(.subheadline); Usage popover header .system(size: 12, weight: .semibold) -> .system(.callout, weight: .semibold); DraftChips icons .system(size: 10, weight: .semibold) -> .system(.footnote, weight: .semibold) (command and quote chips); chip labels .system(size: 11, weight: .medium) -> .system(.subheadline, weight: .medium) (command) and .system(size: 11) -> .system(.subheadline) (quote excerpt); chip xmark .system(size: 9, weight: .bold) -> .system(.caption2, weight: .bold) (both chips); SuggestionPopoverRow icon .system(size: 12) -> .system(.callout), title .system(size: 13) -> .system(.body), detail .system(size: 12) -> .system(.callout). Everything else in the file is byte-identical to 1.6.0."
+      ],
+      "unresolved_questions": [
+        "Exact point sizes the new text styles resolve to depend on the macOS Dynamic Type / text size setting (macOS 26 allows larger sizes); at the default category Apple's macOS HIG (external, not this source) gives subheadline 11, callout 12, footnote 10, body 13, caption2 10, equal to the old fixed sizes except the chip xmark (old 9 pt, caption2 10 pt). Confirm on a reference capture whether the xmark grew by 1 pt.",
+        "ComposerKey, ComposerController, ComposerTextView, ComposerWorkingDots, ThreadChangesTab.overlap and ShortcutStore chord defaults are defined elsewhere; their behaviour is not established by this file.",
+        "SlashCommand.suggestions ranking (how recent commands are ordered and how the query filters) is defined elsewhere.",
+        "maxComposerHeight = ceil(NSFont.systemFont(ofSize: 14).ascender - descender + leading) * 5 + 4 (lines 556-561). The concrete point value depends on macOS system font metrics defined outside this source; the Windows port must pin the resolved number from a reference measurement.",
+        "Which menu command owns Command-Return while a turn runs (named in the steer() doc comment) and what it does is defined outside this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Composer/DownloadsPopover.swift",
+      "sha256": "6943615e9f37b97778ce4c68e89c799bf12c87044012bb1d8844339724705761",
+      "lines_total": 242,
+      "ranges_read": [
+        [
+          1,
+          242
+        ]
+      ],
+      "purpose": "Implements the paperclip button's Recent Downloads popover, shown when the recentDownloadsPicker setting is on. RecentDownloads scans the user's Downloads folder off the main actor for the 15 most recently modified non-hidden files, formats their sizes and loads 30-point square thumbnails for image files, and DownloadsPopover renders them as 38-point rows in a 360-point-wide popover with Show in Finder and Choose Files exits; picking a row calls AttachmentDrops.shared.arm(image:fromScreen:radius: 6) with the row's preview image and its screen frame (what AttachmentDrops then animates, and toward what, is defined elsewhere), dismisses the popover and then calls pick(url).",
+      "key_symbols": [
+        "struct RecentDownload: Identifiable, Hashable { var url: URL; var name: String; var size: String?; var isImage: Bool; var id: String { url.path } }",
+        "@MainActor @Observable final class RecentDownloads { nonisolated static let limit = 15; nonisolated static let previewPointSize: CGFloat = 30; private(set) var items: [RecentDownload] = []; private(set) var thumbnails: [String: CGImage] = [:]; private(set) var isLoaded = false; var directory: URL?; private nonisolated static let imageExtensions: Set<String>; private static let sizeFormatter: ByteCountFormatter; func load() async }",
+        "struct DownloadsPopover: View { let pick: (URL) -> Void; let chooseOther: () -> Void; @State private var downloads = RecentDownloads(); private var height: CGFloat?; private static func height(forRows count: Int) -> CGFloat }",
+        "private struct DownloadRow: View { static let height: CGFloat = 38; let item: RecentDownload; let thumbnail: CGImage?; let pick: () -> Void; @State isHovering = false; @State previewFrame: CGRect = .zero; @Environment(keypath dismiss) dismiss; @ViewBuilder private var preview: some View }"
+      ],
+      "calls_into": [
+        "FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first",
+        "FileManager.contentsOfDirectory(at:includingPropertiesForKeys:options: [.skipsHiddenFiles]) and URL.resourceValues(forKeys:)",
+        "ThumbnailCache.shared.thumbnail(for: path, pointSize: 30, fillingSquare: true) returning an object with .image (CGImage)",
+        "ByteCountFormatter with countStyle .file",
+        "PopoverMenu(maxHeight: 700, idealHeight:), PopoverSectionHeader, PopoverNote, PopoverDivider, PopoverItem(_:symbol:action)",
+        "NSWorkspace.shared.open(directory)",
+        "FileIcons.icon(for: path) -> NSImage",
+        "AttachmentDrops.shared.arm(image:fromScreen:radius:)",
+        "ScreenFrameReader { frame in ... }",
+        "Chrome.secondaryText, Chrome.primaryText, Chrome.overlay(0.1), Chrome.hover"
+      ],
+      "state_owned": [
+        "RecentDownloads: items, thumbnails keyed by url.path, isLoaded (all private(set), observed)",
+        "DownloadsPopover: downloads (@State RecentDownloads, new instance per popover presentation, so loaded once per opening)",
+        "DownloadRow: isHovering, previewFrame (screen-space frame of the preview image, reported by ScreenFrameReader)"
+      ],
+      "side_effects": [
+        "Reads the Downloads directory listing and file metadata on a detached userInitiated Task; cancellation of the view's .task cancels the scan",
+        "Generates image thumbnails through ThumbnailCache concurrently in a TaskGroup",
+        "Show in Finder opens the Downloads folder in the system file manager via NSWorkspace.shared.open(directory) (lines 134-138); this file does not dismiss the popover for it, so whether the popover closes afterwards depends on PopoverItem, defined elsewhere. \"Choose Files…\" calls only chooseOther(); the popover closes because ComposerView.swift:644 passes `chooseOther: { showingRecents = false; onChooseFiles() }`",
+        "Row pick calls AttachmentDrops.shared.arm(image: picture, fromScreen: previewFrame, radius: 6) (lines 185-189; the resulting animation and its destination are defined elsewhere), dismisses the popover and on the next main-actor Task calls pick(url), which in ComposerControls closes the popover and attaches the file"
+      ],
+      "platform_assumptions": [
+        "FileManager .downloadsDirectory in .userDomainMask (Windows: Known Folder Downloads, FOLDERID_Downloads)",
+        "URLResourceKey contentModificationDateKey, fileSizeKey, isDirectoryKey and isHiddenKey are requested (line 42), but isHidden is never read: the compactMap filters only on `values.isDirectory == false` (line 53), and hidden files are excluded solely by `options: [.skipsHiddenFiles]` (line 47). What .skipsHiddenFiles treats as hidden is Foundation behaviour outside this source; the Windows hidden-attribute mapping is a port decision",
+        "ByteCountFormatter with countStyle = .file (lines 33-37) is the only source of the size label (line 74); its exact output (rounding, unit base and unit words) is Foundation behaviour not established by this source",
+        "CGImage thumbnails, NSImage(cgImage:size:), Image(decorative:scale: 2), Image(nsImage:), FileIcons native file icons (NSWorkspace icons on macOS)",
+        "NSWorkspace.shared.open for revealing the folder, labelled \"Show in Finder\" (Windows equivalent would open File Explorer; label text is a product decision)",
+        "SwiftUI popover dismissal via Environment dismiss, .onHover, .contentShape(.rect), ProgressView().controlSize(.small), Observation framework",
+        "Image extensions include Apple formats heic, heif"
+      ],
+      "persisted_fields": [
+        "None. Nothing is written; the list is rebuilt on every popover opening."
+      ],
+      "ui_elements": [
+        "PopoverMenu(maxHeight: 700, idealHeight: height) with .frame(width: 360, height: height)",
+        "Section header \"Recent downloads\"",
+        "Loading state: centered ProgressView().controlSize(.small) with Spacer(minLength: 0) either side, .padding(.vertical, 14)",
+        "Empty state: PopoverNote \"No downloads yet. Anything you download appears here.\"",
+        "Rows: DownloadRow per item; then PopoverDivider; PopoverItem \"Show in Finder\" symbol \"folder\"; PopoverItem \"Choose Files…\" (U+2026 ellipsis) symbol \"doc.on.doc\"",
+        "Height: before loading height(forRows: 15) = min(700, 15 * 38 + 106) = 676; loaded with items = min(700, count * 38 + 106); empty folder nil (self-sizing). 106 accounts for the section header, the divider and the two exits.",
+        "DownloadRow: HStack spacing 10: preview (28x28), name Text .system(.body) lineLimit 1 truncation middle, Spacer(minLength: 16), size Text .system(.callout) Chrome.secondaryText lineLimit 1 when known; foreground Chrome.primaryText; padding horizontal 8; frame height 38; background RoundedRectangle cornerRadius 6 continuous fill Chrome.overlay(0.1) when hovering else clear; hover animated with Chrome.hover; plain button style",
+        "Preview: thumbnail Image(decorative:, scale: 2) resizable aspect fill 28x28 clipped to rect cornerRadius 6 continuous; otherwise file icon resizable aspect fit 28x28 (no clip); both report their screen frame",
+        "Drop arming: picture = NSImage(cgImage: thumbnail, size 28x28) or FileIcons icon; AttachmentDrops.shared.arm(image:, fromScreen: previewFrame, radius: 6)"
+      ],
+      "feature_notes": [
+        "load(): returns if no Downloads directory. Detached scan lists the folder with keys contentModificationDate, fileSize, isDirectory, isHidden and option skipsHiddenFiles (a failed listing yields []); drops entries whose resource values fail or which are directories (isDirectory must be exactly false, so nil also drops); sorts by modification date descending with `.sorted { $0.1 > $1.1 }` (line 56) and no tie-break, so files with equal dates (including several with the .distantPast fallback for a missing date) have no order defined by this source (missing date = distantPast, missing size = 0); isHidden is fetched but never read; keeps the first 15.",
+        "Scan cancellation: withTaskCancellationHandler cancels the detached scan; the compactMap also checks Task.isCancelled per URL. After the scan, returns without publishing if cancelled.",
+        "Image detection: lowercased path extension in {png, jpg, jpeg, heic, heif, gif, tiff, tif, bmp, webp}.",
+        "Size string: ByteCountFormatter(.file).string(fromByteCount:) only when size > 0, else nil (no size label shown).",
+        "Publishing order: items, thumbnails reset to [:] and isLoaded = true are set inside the TaskGroup before awaiting thumbnails, so rows appear immediately with file icons and thumbnails fill in as each resolves (skipped if cancelled or nil).",
+        "Row pick order: arm the drop animation, dismiss(), then Task @MainActor pick() so the pick runs after the popover closes (comment: matching PopoverItem behavior).",
+        "Show in Finder opens the folder only when directory is non-nil; Choose Files… calls chooseOther.",
+        "B1->B2: two font lines in DownloadRow changed from fixed sizes to text styles: file name .font(.system(size: 13)) -> .font(.system(.body)) (line 197) and size label .font(.system(size: 12)) -> .font(.system(.callout)) (line 203). No other change; row height 38, width 360 and all strings are as in 1.6.0."
+      ],
+      "unresolved_questions": [
+        "ThumbnailCache, FileIcons, AttachmentDrops, ScreenFrameReader and the PopoverMenu primitives are defined elsewhere; their rendering and caching behaviour is not established here.",
+        "With dynamic text styles the row text may exceed the fixed 38-point row height at larger macOS text sizes; the row height itself did not change in 1.6.2.",
+        "ByteCountFormatter(.file) output strings (rounding and unit words for bytes, KB, MB, GB) must be established from a reference capture; this source only sets countStyle = .file.",
+        "Whether the popover closes after \"Show in Finder\" depends on PopoverItem (defined elsewhere); this file's action only calls NSWorkspace.shared.open(directory).",
+        "What AttachmentDrops.shared.arm(image:fromScreen:radius:) animates, and toward which view, is defined elsewhere."
+      ]
+    }
+  ]
+}

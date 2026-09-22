@@ -1,0 +1,407 @@
+{
+  "bundle_id": "R2-15",
+  "reader": "R2-15-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Settings/AboutUpdateViews.swift",
+      "sha256": "d44cc38991547e97275ca9330b74cd7d0d685e666955aa0ec9ddb9b04a6ea687",
+      "lines_total": 845,
+      "ranges_read": [
+        [
+          1,
+          430
+        ],
+        [
+          431,
+          845
+        ]
+      ],
+      "purpose": "Holds every piece of the software-update story shown on the Settings About page: a parser that turns a GitLab release description into three categorised sections (UpdateReleaseNotesDigest with ReleaseNoteCategory New features / Bug fixes / Refinements), the three tinted tappable cards and their bullet popovers, and the About chrome accessory made of an identity pill (app icon plus \"v<version>\") and a version pill that is either a status seal (Up to date / Check failed / Not checked yet), the blue \"Update & restart\" button, or an animated install progress slider. It also contains the frame-driven progress slider itself (an exponential chase of the download fraction, a blue gradient fill revealed by a leading clip, 14 deterministic twinkling sparkles seeded by SplitMix64 and a white head), the unread UpdateAvailableDot, the AboutSoftwareUpdateSection that runs a check when the page opens and plays the post-relaunch celebration sweep with haptics, and the AboutUpdateCheckRow with its \"Check now\" button and relative last-checked text.",
+      "key_symbols": [
+        "enum ReleaseNoteCategory: CaseIterable, Identifiable { case newFeatures, bugFixes, refinements; var id: Self; var assetName: String; var cardTitle: String; var sectionTitle: String; func countSummary(_ count: Int) -> String; var cardTint: Color }",
+        "struct UpdateReleaseNotesDigest: Equatable { struct Section: Equatable, Identifiable { let category: ReleaseNoteCategory; let bullets: [String]; let rollup: String?; let rollupCount: Int; var id: ReleaseNoteCategory; var changeCount: Int /* bullets.count + rollupCount */ }; let sections: [Section]; var isEmpty: Bool; func section(for: ReleaseNoteCategory) -> Section? }",
+        "UpdateReleaseNotesDigest.bulletMarkers: private static let Set<Character> = [\"-\", \"\\u{2010}\", \"\\u{2013}\", \"\\u{2014}\", \"\\u{2212}\", \"*\", \"•\"]",
+        "UpdateReleaseNotesDigest.last: @MainActor private static var (raw: String, digest: UpdateReleaseNotesDigest)? (single-entry memo)",
+        "@MainActor static func parse(_ raw: String?) -> UpdateReleaseNotesDigest",
+        "private static func parseNotes(_ raw: String) -> UpdateReleaseNotesDigest",
+        "private static func bulletBody(of line: String) -> String?",
+        "private static func isHeader(_ line: String) -> Bool",
+        "private static func category(forHeader line: String) -> ReleaseNoteCategory?",
+        "private static func rollupCount(in bullet: String) -> Int?",
+        "private static func strippedInlineMarkdown(_ text: String) -> String (Swift Regex literals #/\\[([^\\]]+)\\]\\([^)]*\\)/#, #/\\*\\*([^*]+)\\*\\*/#, #/`([^`]+)`/# each replaced by capture 1)",
+        "struct UpdateReleaseSectionCards: View { let digest: UpdateReleaseNotesDigest; let version: String; @State private var presented: ReleaseNoteCategory?; private func card(for: ReleaseNoteCategory) -> some View }",
+        "private struct UpdateReleaseSectionPopover: View { let section: UpdateReleaseNotesDigest.Section; let version: String }",
+        "@MainActor private final class FractionChase { private var displayed: Double; private var lastTime: TimeInterval?; init(initial: Double); func advance(to time: TimeInterval, target: Double, response: Double, minimumSpeed: Double) -> Double }",
+        "struct SmoothedUpdateProgressSlider: View { let target: UpdateInstallProgress.FractionTarget; var response = 0.3; var minimumSpeed = 0.0; var trackHeight: CGFloat = 14; var headDiameter: CGFloat = 20; @State private var chase: FractionChase; @State private var settled = false; init(target:response:minimumSpeed:trackHeight:headDiameter:) }",
+        "struct UpdateProgressSlider: View { let fraction: Double; var trackHeight: CGFloat = 14; var headDiameter: CGFloat = 20; private static let fill: [Color]; private static let sparkles = SparkleParticle.field(count: 14, seed: 0x5EED_D80B); fileprivate static func headX(for value: Double, width: CGFloat, trackHeight: CGFloat) -> CGFloat; fileprivate static func fillOpacity(for fraction: Double) -> Double }",
+        "private struct FillCanvas: View { let fraction: Double; let trackHeight: CGFloat; let colors: [Color]; let sparkles: [SparkleParticle] }",
+        "private struct SparkleParticle { let x: Double; let y: Double; let size: CGFloat; let speed: Double; let phase: Double; let drift: CGFloat; static func field(count: Int, seed: UInt64) -> [SparkleParticle] }",
+        "struct UpdateAvailableDot: View",
+        "struct AboutUpdateChromeAccessory: View (HStack of AboutIdentityPill and AboutVersionPill)",
+        "private struct AboutIdentityPill: View",
+        "private struct AboutVersionPill: View { private let checker = UpdateChecker.shared; private let progress = UpdateInstallProgress.shared; private var isReady: Bool; private enum Standing { case upToDate, failed, unchecked; var symbol: String; var title: String; var tint: Color }; private var standing: Standing; private var chaseResponse: Double; private var standingHelp: String; private var accessibilityLabel: String }",
+        "struct AboutSoftwareUpdateSection: View { private let checker; private let progress; @State private var celebration: Task<Void, Never>?; @State private var digest = UpdateReleaseNotesDigest(sections: []); private func releaseBody(_ update: AvailableUpdate) -> some View; private func releaseDetail(_ update: AvailableUpdate) -> String; private func startCelebrationSweep() }",
+        "struct AboutUpdateCheckRow: View { private let checker = UpdateChecker.shared; private var detail: String }"
+      ],
+      "calls_into": [
+        "UpdateChecker.shared: .updateAvailable, .update (AvailableUpdate: .version, .notes, .pageURL, .releasedAt, .size), .lastError (String?), .lastCheckedAt (Date?), .isChecking, check() async",
+        "UpdateInstallProgress.shared: .showsProgressUI, .fractionTarget (FractionTarget with .value), .phase (== .celebrating), consumePendingCelebration() -> Bool, finishCelebrationSweep(), completeCelebration()",
+        "AppUpdater.shared.install(update)",
+        "AppInfo.version",
+        "ScrollActivity.shared.isScrolling (pauses both TimelineViews)",
+        "Haptics.perform(.alignment), Haptics.perform(.levelChange)",
+        "MarkdownView(text:).equatable() with .environment(\\.markdownPointSize, 12.5)",
+        "ChromeCard, ChromeRow(title:detail:), .chromeGlassCapsule(), .presentedChrome()",
+        "Chrome tokens: primaryText, secondaryText, accent, blue, success, warning, inlineIconFont, capsuleHorizontalPadding, capsuleVerticalPadding, capsuleContentHeight, sectionSpacing",
+        "Asset catalog images UpdateNewFeaturesIcon, UpdateBugFixesIcon, UpdateRefinementsIcon",
+        "NSApp.applicationIconImage"
+      ],
+      "state_owned": [
+        "UpdateReleaseNotesDigest.last: static @MainActor single-entry memo keyed by the exact raw notes string",
+        "UpdateReleaseSectionCards.presented: which category's popover is open (nil = none)",
+        "FractionChase.displayed / lastTime: displayed fraction and last frame time",
+        "SmoothedUpdateProgressSlider.chase (@State, initialised caught up to target.value) and settled (@State Bool, default false)",
+        "AboutSoftwareUpdateSection.celebration (@State Task handle) and digest (@State, parsed once per release version)"
+      ],
+      "side_effects": [
+        "AboutSoftwareUpdateSection .task: if progress.consumePendingCelebration() then startCelebrationSweep(); then await checker.check() (opening the About page runs a network update check)",
+        "AboutSoftwareUpdateSection .onDisappear: cancels celebration, sets it nil, calls progress.completeCelebration()",
+        "startCelebrationSweep: cancels the previous celebration task, snapshots reduceMotion, sleeps 550 ms, requires phase == .celebrating, calls progress.finishCelebrationSweep(), fires haptics (.alignment, then .levelChange unless reduce motion), then progress.completeCelebration()",
+        "AboutVersionPill button: the action re-guards `guard let update = checker.update, isReady else { return }` (line 639) and then calls AppUpdater.shared.install(update)",
+        "AboutUpdateCheckRow button: Task { await checker.check() }",
+        "Link(destination: update.pageURL) opens the release page in the default browser"
+      ],
+      "platform_assumptions": [
+        "AppKit NSApp.applicationIconImage for the identity pill icon",
+        "SwiftUI TimelineView(.animation(minimumInterval:paused:)) frame clock at 1/60 s (chase) and 1/30 s (sparkles)",
+        "SwiftUI Canvas with context.clip, context.opacity, linearGradient fill, Circle().path",
+        "SwiftUI .popover(isPresented:arrowEdge: .top) anchored popovers",
+        "Swift Regex literals with String.replacing(_:with:) closure (macOS 13+ API)",
+        "@Environment(\\.accessibilityReduceMotion) and @Environment(\\.colorScheme)",
+        "Haptics.perform(.alignment/.levelChange) (wrapper defined elsewhere; the pattern names match AppKit NSHapticFeedbackManager.FeedbackPattern cases)",
+        "Date.formatted(date: .long, time: .omitted), Date.formatted(.relative(presentation: .named)), ByteCountFormatStyle(style: .file), Double.formatted(.percent.precision(.fractionLength(0))) (Foundation locale formatting)",
+        "SwiftUI system text styles .subheadline, .body, .callout, .footnote (macOS default sizes) and .help tooltips",
+        "Button styles .glass and .plain, controlSize .small (macOS 26 Liquid Glass)",
+        "The release asset is described as a \"Signed and notarized disk image\" (macOS DMG / notarization)",
+        "Task.sleep(for: .milliseconds(...)) and @MainActor concurrency"
+      ],
+      "persisted_fields": [
+        "None persisted by this file. The digest memo and all @State are in-memory only."
+      ],
+      "ui_elements": [
+        "Release cards row: HStack(alignment: .top, spacing: 10) of three cards in order New, Bugs, Refinements; .fixedSize(horizontal: false, vertical: true)",
+        "Card: RoundedRectangle(cornerRadius: 14, style: .continuous) filled with cardTint.opacity(0.09), no border; VStack(spacing: 6) of icon 26x26 (resizable, interpolation .high, scaledToFit), title font .system(size: 12.5, weight: .medium) Chrome.primaryText, count line font .system(.subheadline) Chrome.secondaryText; lineLimit 1, minimumScaleFactor 0.8, centered; padding vertical 12, horizontal 8; frame maxWidth/maxHeight .infinity; buttonStyle .plain",
+        "Card titles verbatim: \"New\", \"Bugs\", \"Refinements\"; count text \"1 addition\" / \"<n> additions\", \"<n> fixed\", \"<n> improved\"; missing section text \"Nothing here\"",
+        "Card tints: New Color(red: 0.09, green: 0.44, blue: 0.85); Bugs Color(red: 0.90, green: 0.30, blue: 0.24); Refinements Color(red: 0.43, green: 0.23, blue: 0.72)",
+        "Card disabled state: .disabled(section == nil), opacity 0.45; tooltip \"Nothing here\" when empty else \"Every change in <section title lowercased>\" (e.g. \"Every change in bug fixes\"); accessibility label is the section title",
+        "Section popover (arrowEdge .top, .presentedChrome()): VStack(alignment: .leading, spacing: 12); header HStack(spacing: 9) with icon 24x24 and VStack(spacing: 1) of section title (\"New features\" / \"Bug fixes\" / \"Refinements\") font .system(.body, weight: .semibold) Chrome.primaryText and version font .system(.subheadline) Chrome.secondaryText; ScrollView(.vertical, showsIndicators: false) of bullets VStack(spacing: 9) font .system(.body) Chrome.secondaryText, rollup line font .system(.callout) Chrome.secondaryText; scroll maxHeight 320; padding 14; width 320",
+        "Progress slider: track Capsule(style: .circular) filled Color.white.opacity(0.10) in dark, Color.black.opacity(0.07) in light, height trackHeight (default 14); fill gradient colors #67B9EE, #1A77B4, #126CAF left to right anchored to the full track width; head Circle Color.white.opacity(0.96) diameter headDiameter*0.64 inside a headDiameter (default 20) frame; overall height headDiameter; accessibility label \"Updating Droppy Code\", value percent with 0 fraction digits",
+        "Sparkles (FillCanvas lines 452-487): 14 white dots, inset 3 vertical / 5 horizontal, opacity 0.08 + 0.72*twinkle^2 capped at 1 (min(1, sparkleOpacity)); hidden when reduce motion is on. They are drawn after `context.clip(to: reveal)` and `context.opacity = opacity` (lines 461-462), so they appear only inside the revealed fill and are multiplied by the fill fade-in opacity. Their x is `horizontalInset + CGFloat(particle.x) * usableWidth + drift - particle.size / 2` with `usableWidth = size.width - horizontalInset * 2`, spread over the whole track width, not the filled part; y is `verticalInset + CGFloat(particle.y) * usableHeight - particle.size / 2`. Doc comment line 442: \"the sparkles sit still, so only the reveal grows\".",
+        "UpdateAvailableDot: Circle Chrome.accent 7x7 offset (x: 2.5, y: -2.5); accessibility label \"Update available\". Placement per its doc comment (line 526): \"The unread dot, on the Settings row and the About row while a release waits.\"",
+        "Chrome accessory: HStack(spacing: 10) identity pill then version pill",
+        "Identity pill: HStack(spacing: 6) app icon 20x20 (accessibility hidden) and \"v<AppInfo.version>\" font .system(.callout, weight: .semibold) Chrome.primaryText lineLimit 1; leading padding Chrome.capsuleHorizontalPadding - 4, trailing Chrome.capsuleHorizontalPadding; height Chrome.capsuleContentHeight; vertical padding Chrome.capsuleVerticalPadding; .chromeGlassCapsule(); accessibility label \"Droppy Code <version>\"",
+        "Version pill, installing: SmoothedUpdateProgressSlider width 104 in the same capsule paddings, .fixedSize(), .chromeGlassCapsule()",
+        "Version pill, ready: SF Symbol \"arrow.down.circle.fill\" (Chrome.inlineIconFont, Chrome.blue) and \"Update & restart\" font .system(.callout, weight: .semibold) Chrome.blue; background Capsule(style: .continuous) fill Chrome.blue.opacity(0.2); tooltip \"Installs Droppy Code <version> and relaunches\"; accessibility label \"Update & restart\", trait .isButton",
+        "Version pill button label geometry (lines 642-675, ready and standing alike): HStack(spacing: 6) of symbol then title; .lineLimit(1); .fixedSize(horizontal: true, vertical: false); symmetric .padding(.horizontal, Chrome.capsuleHorizontalPadding) (unlike the identity pill, which uses capsuleHorizontalPadding - 4 leading, line 564); .frame(height: Chrome.capsuleContentHeight); .padding(.vertical, Chrome.capsuleVerticalPadding); .contentShape(Capsule(style: .continuous)); then the blue wash background, and on the Button .buttonStyle(.plain), .allowsHitTesting(isReady), .chromeGlassCapsule()",
+        "Version pill, standing: symbol \"checkmark.seal.fill\" tint Chrome.success + \"Up to date\"; \"exclamationmark.triangle.fill\" Chrome.warning + \"Check failed\"; \"clock\" Chrome.secondaryText + \"Not checked yet\"; title font .system(.callout, weight: .semibold) Chrome.primaryText; not hit-testable (.allowsHitTesting(isReady)); tooltip per standingHelp; accessibility label \"Droppy Code <version>, <title lowercased>\"",
+        "Version pill animation: .easeInOut(duration: 0.18) on isReady, nil when reduce motion",
+        "Release body: VStack(alignment: .leading, spacing: 10); either the cards, or (notes not in card shape) ChromeCard with ScrollView(.vertical) MarkdownView point size 12.5, padding 16, .scrollBounceBehavior(.basedOnSize), maxHeight 240",
+        "Release row: ChromeCard > ChromeRow title \"Signed and notarized disk image\", detail releaseDetail, trailing Link \"Release notes\" + SF Symbol \"arrow.up.right\" (font .system(.footnote, weight: .semibold)) in HStack(spacing: 4), font .system(.callout, weight: .medium), Chrome.accent, .plain; tooltip \"Open the release on GitLab\"",
+        "AboutSoftwareUpdateSection outer VStack spacing Chrome.sectionSpacing; shows nothing unless checker.updateAvailable and checker.update exist",
+        "AboutUpdateCheckRow: ChromeRow title \"Software update\"; Button \"Check now\" / \"Checking…\" with .buttonStyle(.glass), .controlSize(.small), disabled while checking"
+      ],
+      "feature_notes": [
+        "Notes parsing (lines 103-105): `for line in raw.split(separator: \"\\n\", omittingEmptySubsequences: false)` keeps empty lines; each line is `line.trimmingCharacters(in: .whitespaces)` (Foundation CharacterSet.whitespaces: Unicode general category Zs plus tab, not newlines); lines that are empty, exactly \"---\", or start with \"<\" are skipped. Swift Character rule: the separator is the Character \"\\n\", and \"\\r\\n\" is a single grapheme Character that does not equal \"\\n\", so notes with CRLF line endings do not split at all. They arrive as one line; if it starts with \"## New features\\r\\n...\" category(forHeader:) (line 153) fails because the lowercased text is not an exact match, isHeader (line 142) is true, current = nil (line 117), nothing is collected, the digest is empty and releaseBody (lines 749-754) falls back to the raw MarkdownView. A port using JS split(\"\\n\") plus trim() (which also strips \\r) would show cards for the same notes; to match B2 it must not split on \"\\r\\n\".",
+        "A bullet is a line whose first character is one of - U+2010 U+2013 U+2014 U+2212 * • followed by a space or tab, with a non-empty trimmed body. Bullets before any recognised section header are dropped. Each bullet has inline markdown stripped (links [text](url) -> text, **bold** -> bold, `code` -> code, applied in that order) and is kept only if non-empty.",
+        "A non-bullet line that names a category sets the current section, whether bare or with # heading or ** bold chrome, trailing spaces/tabs/colons trimmed; matching is case-insensitive: \"new features\" or \"new\" -> New features; \"bug fixes\", \"fixes\" or \"bugs\" -> Bug fixes; \"refinements\" or \"improvements\" -> Refinements.",
+        "Any other heading (one or more # followed by space/tab or nothing, or a line that starts and ends with ** and is longer than 4 characters) closes the current section (current = nil), so e.g. a Thanks to contributors section is left out. Plain text lines that are neither leave the current section unchanged.",
+        "Sections are emitted in the fixed order New features, Bug fixes, Refinements; empty or missing ones are absent. Bullets are de-duplicated case-insensitively keeping the first occurrence.",
+        "Rollup: if the last kept bullet contains a word equal to \"extra\" (lowercased, punctuation trimmed) that is not the first word, and the preceding word's digit characters parse to an Int > 0, that bullet becomes the section's rollup and its number is rollupCount (\"Fixed 12 extra issues…\" counts as 12). changeCount = bullets.count + rollupCount.",
+        "parse(nil) or parse(\"\") returns an empty digest; parse memoizes the last (raw, digest) pair and returns the cached digest when raw is identical.",
+        "The page re-parses only when checker.update?.version changes (.onChange(..., initial: true)). If the digest is empty but the notes are not, the raw notes are rendered as Markdown instead of cards.",
+        "Card tap toggles its popover (tapping the open card closes it); a card with no section does nothing and is disabled.",
+        "FractionChase: the first advance snaps displayed to target; a target below displayed snaps back down; dt is clamped to [0, 0.25] s; step = remaining * (1 - exp(-dt / max(response, 0.01))), then at least minimumSpeed * dt, capped at the target; within 0.0001 of the target it snaps to the target.",
+        "SmoothedUpdateProgressSlider frame clock runs at up to 60 fps and pauses when settled (displayed fraction == target) or while ScrollActivity reports scrolling; settled resets to false whenever target.value changes. The chase is created caught up to target.value so a post-relaunch sweep does not start from zero.",
+        "Head x = trackHeight/2 + (width - trackHeight) * clamp(value, 0, 1). Fill opacity is 0 at or below 0.012, 1 at or above 0.05, smoothstep t*t*(3-2t) in between. The fill is revealed by a rounded clip of width max(headX, trackHeight/2) and corner radius height/2.",
+        "Sparkle motion: twinkle = 0.5 + 0.5*sin(time*speed + phase); horizontal drift = sin(time*speed*0.31 + phase*2.1) * drift; sparkle canvas runs at up to 30 fps and pauses when there are no sparkles or while scrolling.",
+        "SparkleParticle.field uses SplitMix64: state += 0x9E3779B97F4A7C15; z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9; z = (z ^ (z >> 27)) * 0x94D049BB133111EB; z ^= z >> 31; value = Double(z >> 11) / 2^53. Per particle the draws are in order x = r, y = 0.12 + r*0.76, size = 1.2 + r*1.6, speed = 0.9 + r*2.4, phase = r*2π, drift = 0.6 + r*1.4. Seed 0x5EED_D80B, count 14.",
+        "Version pill logic: isReady = checker.updateAvailable && checker.update != nil && !progress.showsProgressUI. Standing precedence: lastError != nil -> failed; else lastCheckedAt == nil -> unchecked; else upToDate. While installing, slider response is 0.15 with reduce motion, else 0.72 while phase == .celebrating, else 0.3; minimumSpeed is 0.12 while celebrating, else 0.",
+        "Standing tooltips verbatim: upToDate \"Droppy Code <AppInfo.version> is the latest version\"; failed = checker.lastError, or \"The last check did not reach GitLab\"; unchecked \"Droppy Code has not asked GitLab for a release yet\".",
+        "releaseDetail (lines 781-791) joins with \" · \": \"Released <date, .long, no time>\" when releasedAt exists, then `ByteCountFormatStyle(style: .file).format(size)` when size exists, then always \"Update & restart installs it in place and relaunches.\" The .file style output is decided by Foundation, not this file: Apple documents the .file count style as the platform file-size style, which on macOS is the decimal (1000-based) style, e.g. \"12.3 MB\" for about 12,300,000 bytes, not 1024-based. A Windows port must format with 1000-based units (not StrFormatByteSize, which is 1024-based) and pin the exact digits and locale from a macOS sample.",
+        "Celebration sweep (startCelebrationSweep, lines 795-818): first `celebration?.cancel()` cancels any earlier sweep, then `let reduceMotion = reduceMotion` snapshots reduce motion once when the sweep starts (a later change to reduce motion does not affect a sweep already running); then in a @MainActor Task: wait 550 ms; abort unless !Task.isCancelled and progress.phase == .celebrating; finishCelebrationSweep(); with reduce motion: haptic .alignment then 900 ms; otherwise 900 ms, haptic .alignment, 450 ms, haptic .levelChange, 700 ms (cancellation checked between steps); then completeCelebration(). Leaving the page mid-sweep completes the celebration at once.",
+        "Check row detail verbatim: while checking \"Asking GitLab for the latest release…\"; otherwise checked = \"Checked <relative named date>.\" or \"Not checked yet.\"; with an error \"<error> <checked>\"; with a ready update \"Droppy Code <version> is ready to install. <checked>\"; otherwise \"Droppy Code checks GitLab for new versions a few times a day. <checked>\".",
+        "B1->B2: (1) strippedInlineMarkdown no longer uses three cached NSRegularExpression statics (linkPattern, boldPattern, codePattern) with a stripped(_:with:) helper and \"$1\" template; it now uses Swift Regex literals with String.replacing and the first capture, same three patterns in the same order, doc comment says it is cheap because parse memoizes. (2) Fixed-point fonts switched to system text styles: card count size 11 -> .subheadline; popover title size 13 semibold -> .body semibold; popover version size 11 -> .subheadline; bullets size 13 -> .body; rollup size 12 -> .callout; identity pill version size 12 semibold -> .callout semibold; both version pill titles size 12 semibold -> .callout semibold; Release notes link size 12 medium -> .callout medium and its arrow size 10 semibold -> .footnote semibold. (3) Popover colours changed: version text .tertiary -> Chrome.secondaryText, bullets .secondary -> Chrome.secondaryText, rollup .tertiary -> Chrome.secondaryText. The card title stays .system(size: 12.5, weight: .medium). File shrank from 852 to 845 lines; no strings, logic or timings changed."
+      ],
+      "unresolved_questions": [
+        "UNRESOLVED: the point sizes the text styles .subheadline, .body, .callout, .footnote resolve to on macOS are not stated in this file (Apple's macOS defaults are commonly 11, 13, 12, 10); the Windows port must pin them from a runtime measurement or the Chrome/design source, not assume.",
+        "Chrome.capsuleHorizontalPadding, capsuleVerticalPadding, capsuleContentHeight, inlineIconFont, sectionSpacing, the chromeGlassCapsule and presentedChrome modifiers are defined elsewhere; values not in this file.",
+        "How often the checker actually polls (the text says \"a few times a day\") and what UpdateInstallProgress.showsProgressUI / fractionTarget / phase values are come from UpdateChecker and UpdateInstallProgress, not this file.",
+        "Where AboutUpdateCheckRow and AboutUpdateChromeAccessory are placed on screen is decided by the Settings/About views, not this file. UpdateAvailableDot is placed per its own doc comment (line 526) \"on the Settings row and the About row while a release waits\" (B2 uses it at SettingsView.swift:161 and SidebarView.swift:171).",
+        "The exact Haptics.perform(.alignment/.levelChange) feedback has no direct Windows equivalent; the Windows substitute needs an adaptation decision."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift",
+      "sha256": "5fdbc8fb12db5979443fbb04da42cfaa4548ccc36a0e11c7a72339d20485256b",
+      "lines_total": 134,
+      "ranges_read": [
+        [
+          1,
+          134
+        ]
+      ],
+      "purpose": "Renders the Hydra pairs cookbook, a fixed 460x540 panel opened as a popover from the Hydra settings page's Pairs section. It resolves every HydraCookbook recipe against the current provider registry and settings, lists the recipes that resolve to a concrete HydraPair as ready rows each with a one-click Add button (or an \"Added\" label once the pair is in settings), and lists recipes whose provider is not set up under a dimmed \"Needs a provider\" heading. When the panel appears it loads the model catalog of every ready provider so recipes can pick their models.",
+      "key_symbols": [
+        "struct HydraCookbookPanel: View { @Environment(AppModel.self) private var model; var body }",
+        "local let ready: [(recipe: HydraPairRecipe, pair: HydraPair)] = HydraCookbook.recipes.compactMap { HydraCookbook.resolve($0, registry:, settings:) }",
+        "local let waiting: [(recipe: HydraPairRecipe, provider: ProviderKind)] = HydraCookbook.recipes.compactMap { HydraCookbook.missingProvider(for:registry:settings:) }",
+        "private struct HydraCookbookRow: View { @Environment(AppModel.self) private var model; let recipe: HydraPairRecipe; let pair: HydraPair?; let missing: ProviderKind? }"
+      ],
+      "calls_into": [
+        "HydraCookbook.recipes, HydraCookbook.resolve(_:registry:settings:) -> HydraPair?, HydraCookbook.missingProvider(for:registry:settings:) -> ProviderKind?, HydraCookbook.isReady(_:registry:settings:) -> Bool, HydraCookbook.isAdded(_:in:) -> Bool",
+        "HydraPairRecipe: .id, .title, .tagline, .lead.providers, .heads.providers",
+        "HydraPair: .provider, .headsProvider",
+        "HydraPairSummary.title(_:registry:), HydraPairSummary.efforts(_:) -> String?",
+        "HydraPairMark(lead:heads:)",
+        "model.providers (ProviderRegistry).loadCatalog(_:) async",
+        "model.settings.hydraPairs, model.settings.addHydraPair(_:)",
+        "ProviderKind.allCases, ProviderKind.displayName",
+        "Chrome.primaryText, Chrome.secondaryText, Chrome.panelSlide"
+      ],
+      "state_owned": [
+        "None; ready and waiting lists are recomputed on each body evaluation from model.providers and model.settings."
+      ],
+      "side_effects": [
+        ".task on the panel: for each ProviderKind in allCases order where HydraCookbook.isReady(provider, registry:, settings:), await registry.loadCatalog(provider) sequentially",
+        "Add button: withAnimation(Chrome.panelSlide) { model.settings.addHydraPair(pair) } (persists a new Hydra pair through settings)"
+      ],
+      "platform_assumptions": [
+        "SwiftUI ScrollView, Divider, Label with SF Symbols \"checkmark\" and \"plus\"",
+        "Button style .glassProminent and .controlSize(.small) (macOS 26 Liquid Glass)",
+        "SwiftUI system text styles .title3, .subheadline, .callout, .body",
+        "@Environment(AppModel.self) Observation-based environment",
+        "Hosted inside a SwiftUI .popover by HydraSettingsPage"
+      ],
+      "persisted_fields": [
+        "None directly; the Add button writes through model.settings.addHydraPair(pair) into settings.hydraPairs (storage defined elsewhere)."
+      ],
+      "ui_elements": [
+        "Panel frame width 460, height 540; outer VStack(alignment: .leading, spacing: 0)",
+        "Header VStack(spacing: 3): \"Cookbook\" font .system(.title3, weight: .semibold) Chrome.primaryText; subtitle \"Pairs built from the models in your library: which one leads, at what effort, and which ones build. Add one and it is in the model picker.\" font .system(.subheadline) Chrome.secondaryText, wraps vertically; padding horizontal 16, top 16, bottom 12",
+        "Divider().opacity(0.5) under the header",
+        "Empty state (no ready recipes): \"Set up a provider in Settings › Providers, and its models bring their pairs here.\" font .system(.callout) Chrome.secondaryText padding 16",
+        "Each row followed by Divider().opacity(0.35).padding(.leading, 16)",
+        "Waiting heading \"Needs a provider\" font .system(.subheadline, weight: .semibold) Chrome.secondaryText, padding horizontal 16, top 14, bottom 4; waiting rows at opacity 0.55",
+        "Scroll content bottom padding 8",
+        "Row: HStack(alignment: .center, spacing: 12), padding horizontal 16, vertical 10; HydraPairMark in a 52-wide leading frame; VStack(spacing: 2) of title font .system(.body, weight: .semibold) Chrome.primaryText, tagline font .system(.subheadline) Chrome.secondaryText wrapping, detail line font .system(.subheadline) Chrome.secondaryText.opacity(0.8) lineLimit 2; Spacer(minLength: 8)",
+        "Missing-provider line \"Set up <provider displayName> to add this pair.\" font .system(.subheadline) Chrome.secondaryText.opacity(0.8)",
+        "Added state: Label \"Added\" with SF Symbol \"checkmark\", font .system(.callout, weight: .medium), Chrome.secondaryText, horizontal padding 10",
+        "Add button: Label \"Add\" with SF Symbol \"plus\", .buttonStyle(.glassProminent), .controlSize(.small)"
+      ],
+      "feature_notes": [
+        "Ready rows come first in HydraCookbook.recipes order, then (if any) the \"Needs a provider\" heading and waiting rows in recipes order. A recipe appears in ready when resolve returns a pair and in waiting when missingProvider returns a provider; this file does not prevent a recipe appearing in neither.",
+        "The row title is HydraPairSummary.title(pair, registry:) for a resolved pair, else recipe.title.",
+        "Mark providers: lead = pair.provider, else recipe.lead.providers.first, else .claude; heads = pair.headsProvider, else recipe.heads.providers.first, else .claude.",
+        "Detail line for a resolved pair joins with \" · \" the providers line \"<lead displayName> lead, <heads displayName> heads\" (only when headsProvider != provider) and HydraPairSummary.efforts(pair) when non-nil; if both are absent no Text is emitted (avoids a blank line).",
+        "isAdded = HydraCookbook.isAdded(pair, in: model.settings.hydraPairs); a waiting row (pair nil) shows no button.",
+        "Add animates with Chrome.panelSlide.",
+        "B1->B2: only fonts changed, from fixed points to text styles: \"Cookbook\" size 15 semibold -> .title3 semibold; subtitle size 11 -> .subheadline; empty-state size 12 -> .callout; \"Needs a provider\" size 11 semibold -> .subheadline semibold; row title size 13 semibold -> .body semibold; tagline, detail line and missing-provider line size 11 -> .subheadline; \"Added\" size 12 medium -> .callout medium. Line count (134), strings, layout constants and logic are unchanged."
+      ],
+      "unresolved_questions": [
+        "The recipe list, resolution rules, isReady and isAdded semantics live in HydraCookbook (not in this file).",
+        "UNRESOLVED: macOS point sizes behind .title3/.body/.callout/.subheadline are not stated here and must be pinned from evidence for Windows.",
+        "HydraPairMark's appearance and default sizes are defined elsewhere."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Settings/HydraSettingsPage.swift",
+      "sha256": "bab43613a79de89483a837a5366ea6f97495142e9778730e91cbfc959d8e4fad",
+      "lines_total": 589,
+      "ranges_read": [
+        [
+          1,
+          589
+        ]
+      ],
+      "purpose": "Builds the Settings page for Hydra, the feature where one chat leads a team of helper \"heads\": a hero card with the master hydraEnabled switch, then sections for Heads, Messages, When the team is done and Pairs that all dim to 0.5 opacity and disable while Hydra is off, and an always-enabled informational Where heads run section. It binds a dozen AppSettings hydra* flags to ChromeRow toggles, visual pickers and a segmented head-cap picker, lists the configured HydraPairs with a hover edit affordance and a remove button, and adds pairs by picking the first installed and enabled provider without a pair yet. The file also contains the HydraPairEditor popover that edits a pair's name, lead provider, model and effort, heads provider, model and effort, and heads-at-once cap, with rules that reset dependent fields when the provider or model changes and loads provider catalogs on demand.",
+      "key_symbols": [
+        "struct HydraSettingsPage: View { @Environment(AppModel.self) private var model; private func toggleRow(_ title: String, detail: String, isOn: Binding<Bool>, blockedBy reason: String? = nil) -> some View }",
+        "private struct HydraCookbookButton: View { @State private var isOpen = false }",
+        "private struct HydraAddPairButton: View { @Environment(AppModel.self) private var model }",
+        "private struct HydraPairRow: View { let pair: HydraPair; @State private var isEditing = false; @State private var isHovering = false; private func summary(registry: ProviderRegistry) -> String }",
+        "private struct HydraPairIcons: View { let pair: HydraPair }",
+        "private struct HydraPairEditor: View { let pairID: UUID; @FocusState private var isNameFocused: Bool; private func editorRow<Control: View>(_ title: String, detail: String? = nil, @ViewBuilder control: () -> Control) -> some View; private func sectionLabel(_ title: String) -> some View; private func effortPicker(efforts: [String], inherit: String, selection: Binding<String?>) -> some View; private static func allEfforts(_ options: [ModelOption]) -> [String]; private static func efforts(of option: ModelOption?, fallback: [String]) -> [String]; private static func catalogProviders(_ pair: HydraPair) -> [ProviderKind] }"
+      ],
+      "calls_into": [
+        "model.settings (AppSettings, @Bindable): hydraEnabled, hydraIsolateHeads, hydraMaxHeads (Int?), hydraAutoClearFinished, hydraAutoHidesIdleHeads, hydraShowsHeadDetails, hydraAutoPopsHeads, hydraTempersHeadEffort, hydraQueueHeads, hydraAlwaysHeads, hydraReviewHeads, hydraAutoMerge, hydraPairs, hydraPair(_:), addHydraPair(_:), isEnabled(_:), defaultProvider",
+        "model.removeHydraPair(_:), model.updateHydraPair(_:_:), model.hydraHeadsProvider(of:)",
+        "model.providers (ProviderRegistry): status(_:).isInstalled, models(for:), model(_:for:), defaultModel(for:), loadCatalog(_:) async, loadingCatalogs",
+        "HydraPair(provider:), HydraPair.maxHeadsRange, pair fields id, name, customName, provider, headsProvider, workerProvider, orchestratorModel, orchestratorEffort, workerModel, workerEffort, maxHeads, sendsHeadsElsewhere",
+        "HydraPairSummary.title(_:registry:), .modelsTitle(_:registry:), .providers(_:), .efforts(_:)",
+        "ModelOption.efforts, .id, .shortName, ModelOption.effortTitle(_:)",
+        "HydraGlyph(persona:size:), HydraRoster.persona(at:), HydraInfoPopover(topic: .hydra/.heads), InfoHoverButton(help:), HydraPairMark(lead:heads:leadSize:), ProviderIcon(provider:size:), ProviderKind.iconName/displayName/allCases",
+        "ChromeCard, ChromeSection(title:accessory:/trailing:), ChromeRow, ChromeRowDivider, ChromeVisualPicker, ChromeSegmentedPicker, ChromeSegmentedOption(value:title:symbol:), SettingsSwitch(isOn:), GlassPickerButton(options:selection:asset:maxWidth:), .presentedChrome()",
+        "HydraCookbookPanel (popover content)",
+        "Chrome.sectionHeaderSpacing, rowControlTrailingPadding, panelSlide, overlay(_:), primaryText, secondaryText"
+      ],
+      "state_owned": [
+        "HydraCookbookButton.isOpen (@State Bool, default false)",
+        "HydraPairRow.isEditing and isHovering (@State Bool, default false)",
+        "HydraPairEditor.isNameFocused (@FocusState Bool)"
+      ],
+      "side_effects": [
+        "Writes AppSettings hydra* flags through bindings (persisted by AppSettings elsewhere)",
+        "HydraAddPairButton: withAnimation(Chrome.panelSlide) { model.settings.addHydraPair(HydraPair(provider:)) }",
+        "HydraPairRow remove: withAnimation(Chrome.panelSlide) { model.removeHydraPair(pair.id) }",
+        "HydraPairRow .task(id: pair.headsProvider): await registry.loadCatalog(pair.provider) then loadCatalog(pair.headsProvider); keyed on headsProvider only, so it does not re-run when only the lead provider changes on a pair with its own workerProvider",
+        "HydraPairEditor edits call model.updateHydraPair(pairID) { ... }; provider pickers kick Task { await registry.loadCatalog(provider) } outside the update closure (lead: on every setter call, even a no-op re-pick; heads: the raw picked provider when non-nil, even when the guard returned early); .task(id: catalogProviders(pair)) loads each catalog in order",
+        "HydraPairEditor .onAppear: DispatchQueue.main.async { isNameFocused = false } to drop the popover's automatic first-responder focus"
+      ],
+      "platform_assumptions": [
+        "SwiftUI .popover(isPresented:arrowEdge: .bottom) for the cookbook and .popover(arrowEdge: .trailing) for the pair editor, with .presentedChrome()",
+        "SwiftUI @Bindable / Observation bindings into AppSettings",
+        ".onHover for the row's edit-glyph reveal",
+        "TextField with prompt, .focused, .focusEffectDisabled(), @FocusState, and the macOS popover first-responder behaviour worked around via DispatchQueue.main.async",
+        "SF Symbols: \"doc.on.doc\", \"folder\", \"infinity\", \"list.number\", \"chart.bar\", \"square.grid.2x2\", \"rectangle\", \"arrow.right\", \"book\", \"plus\", \"slider.horizontal.3\", \"minus.circle\"",
+        "Button styles .glass, .plain, controlSize .small (macOS 26 Liquid Glass)",
+        ".animation(.smooth(duration: 0.2)) and Chrome.panelSlide transitions",
+        "System text styles .title3, .body, .callout, .subheadline, .footnote",
+        "UI text \"Right-click a project in the sidebar\" and \"a provider this Mac cannot run\" (comment) assume desktop mouse"
+      ],
+      "persisted_fields": [
+        "Bound AppSettings keys (defaults defined elsewhere): hydraEnabled, hydraIsolateHeads, hydraMaxHeads, hydraAutoClearFinished, hydraAutoHidesIdleHeads, hydraShowsHeadDetails, hydraAutoPopsHeads, hydraTempersHeadEffort, hydraQueueHeads, hydraAlwaysHeads, hydraReviewHeads, hydraAutoMerge, hydraPairs",
+        "HydraPair fields written by the editor: name (empty text stored as nil), provider, orchestratorModel, orchestratorEffort, workerProvider, workerModel, workerEffort, maxHeads"
+      ],
+      "ui_elements": [
+        "Body structure (lines 8-190): body returns three sibling views, not one container: (1) VStack(alignment: .leading, spacing: Chrome.sectionHeaderSpacing) holding only the hero ChromeCard and the conditional off note (lines 10-46); (2) the gated Group { Heads, Messages, When the team is done, Pairs } (lines 47-166); (3) ChromeSection(title: \"Where heads run\") (lines 167-189). The spacing between these three comes from the parent container that hosts the page, not from sectionHeaderSpacing.",
+        "Hero card: HStack(spacing: 14) of five HydraGlyphs (personas 0..4, size 26, HStack spacing -9, accessibility hidden); \"Hydra\" font .system(.title3, weight: .semibold) Chrome.primaryText with InfoHoverButton help \"How Hydra works\" (HydraInfoPopover .hydra) in HStack(spacing: 4); subtitle \"One chat leads a team of heads on big jobs.\" font .system(.subheadline) Chrome.secondaryText lineLimit 1; Spacer(minLength: 12); SettingsSwitch bound to hydraEnabled; padding leading 16, trailing Chrome.rowControlTrailingPadding, vertical 14",
+        "Off note: \"Switch Hydra on to set up its heads.\" font .system(.subheadline) Chrome.secondaryText, horizontal padding 4",
+        "Gated group (Heads, Messages, When the team is done, Pairs): .disabled(!hydraEnabled), .opacity(hydraEnabled ? 1 : 0.5), .animation(.smooth(duration: 0.2), value: hydraEnabled)",
+        "Section \"Heads\" with InfoHoverButton help \"How heads work\" (HydraInfoPopover .heads)",
+        "Row \"Checkout\": detail \"Each head works in a copy of its own; its changes land in the chat's checkout when it reports.\" (isolated) / \"Heads work in the chat's checkout itself.\"; ChromeVisualPicker options (true, \"Own copy\") symbol \"doc.on.doc\", (false, \"Shared\") symbol \"folder\" bound to hydraIsolateHeads",
+        "Row \"Heads at once\": detail \"At most <n> heads in parallel.\" / \"As many heads as the job needs.\"; ChromeSegmentedPicker first option nil titled \"No cap\" symbol \"infinity\", then HydraPair.maxHeadsRange values titled String(n), bound to hydraMaxHeads",
+        "Toggle \"Clear finished heads\": \"A finished head moves from the panel to the sidebar.\" (hydraAutoClearFinished)",
+        "Toggle \"Auto-hide heads in the sidebar\": \"A chat's heads show in the sidebar while one of them runs; the whole card leaves once every head of that chat has finished, and comes back on its own when one starts again.\" (hydraAutoHidesIdleHeads)",
+        "Row \"Head panel\": detail \"The head's progress bar, or each of its steps as it goes.\"; ChromeVisualPicker (false, \"Progress\") symbol \"chart.bar\", (true, \"Every step\") symbol \"list.number\" bound to hydraShowsHeadDetails",
+        "Row \"Heads' panels\": detail \"Each head after the first gets a panel of its own beside the chat while there is room, left and right until each side is full; the usage panel keeps its spot.\" (on) / \"One panel over the chat lists every head.\" (off); ChromeVisualPicker (false, \"One panel\") symbol \"rectangle\", (true, \"A panel each\") symbol \"square.grid.2x2\" bound to hydraAutoPopsHeads",
+        "Toggle \"Heads work at a working effort\": \"A lead thinking above medium sends its heads out at medium on the same model — on a scale without a medium (Z.ai), at the scale's own middle rung; a pair that names the heads' effort keeps it.\" (hydraTempersHeadEffort)",
+        "Section \"Messages\": toggle \"Queued follow-ups start on heads\" detail \"A prompt queued behind a running turn goes out at once.\" (hydraQueueHeads), blocked with reason \"Every message already goes to a head.\" while hydraAlwaysHeads; toggle \"Every message goes to a head\" detail \"The lead only hears the reports.\" (hydraAlwaysHeads)",
+        "Section \"When the team is done\": toggle \"Lead checks the heads' work\" detail \"Reads every changed file and corrects it. Slower, more careful.\" (hydraReviewHeads); toggle \"Merge automatically\" detail \"The team's changes go out as a merge request and are merged.\" (hydraAutoMerge)",
+        "Rows are separated by ChromeRowDivider()",
+        "Section \"Pairs\" with trailing HydraCookbookButton: Label \"Open cookbook\" symbol \"book\", .glass, .controlSize(.small), popover arrowEdge .bottom showing HydraCookbookPanel",
+        "Pairs explainer card: HStack(alignment: .center, spacing: 14); glyph cluster HStack(spacing: 6) of HydraGlyph persona 0 size 30, SF Symbol \"arrow.right\" font .system(.footnote, weight: .semibold) Chrome.secondaryText, HStack(spacing: -8) personas 1..3 size 22 (accessibility hidden); VStack(spacing: 3) \"One leads, the others build\" font .system(.body, weight: .semibold) and \"A pair says which model leads and which runs the heads. Put a deep thinker over quick hands on one provider, or lead on one provider and send the heads out on another: the strongest lead with the fastest team, every time.\" font .system(.subheadline) Chrome.secondaryText; padding horizontal 16, vertical 14",
+        "Pairs list card: empty -> ChromeRow \"No pairs yet\" detail \"Heads run on the chat's own model until a chat joins a pair.\" with Add pair button; else pair rows separated by dividers, then divider and ChromeRow \"Another pair\" detail \"One per provider is enough.\" with Add pair button",
+        "HydraAddPairButton: Label \"Add pair\" symbol \"plus\", .buttonStyle(.glass)",
+        "Footnote: \"Pairs sit at the top of the model picker: a tap puts the chat in one. Right-click a project in the sidebar to start each of its new chats on one pair.\" font .system(.subheadline) Chrome.secondaryText, horizontal padding 4",
+        "Section \"Where heads run\" (not gated): ChromeRow \"Claude, Codex and Copilot\" detail \"In the provider's own session, through the lead's own agent tools.\" with ProviderIcons claude 14, codex 14, copilot 16.75 in HStack(spacing: 6) Chrome.secondaryText; ChromeRow \"Other providers\" detail \"As threads of their own, asked for at the end of the lead's reply.\" with no control; ChromeRow \"Across providers\" detail \"A pair can lead on one provider and run its heads on another.\" with HydraPairMark(lead: .claude, heads: .antigravity, leadSize: 14) Chrome.secondaryText",
+        "Pair row: HStack(spacing: 10); plain button with HStack(spacing: 12) of HydraPairIcons (min width 22), VStack(spacing: 2) title font .system(.body) Chrome.primaryText and summary font .system(.subheadline) Chrome.secondaryText, Spacer(minLength: 8), SF Symbol \"slider.horizontal.3\" font .system(.callout) Chrome.secondaryText with .opacity(isHovering ? 1 : 0); `.onHover { isHovering = $0 }` (line 271) is attached to the edit Button only, not the row HStack, so hovering the \"minus.circle\" remove button does not reveal the glyph; remove button SF Symbol \"minus.circle\" font .system(.callout, weight: .medium) Chrome.secondaryText in 24x24 frame, tooltip and accessibility label \"Remove this pair\"; padding leading 16, trailing Chrome.rowControlTrailingPadding, vertical 9",
+        "Pair editor popover: arrowEdge .trailing, width 360, .presentedChrome(); VStack(spacing: 0), bottom padding 14",
+        "Editor name field: plain TextField, prompt HydraPairSummary.modelsTitle, font .system(.title3, weight: .semibold) Chrome.primaryText, padding horizontal 10 vertical 7, background Chrome.overlay(0.06) RoundedRectangle(cornerRadius: 9, style: .continuous); caption \"Shown in the picker and the composer\" font .system(.subheadline) Chrome.secondaryText padding horizontal 2; header VStack(spacing: 4) padding horizontal 14, top 14",
+        "Editor sections \"Lead\" and \"Heads\" via sectionLabel: Divider padded horizontal 14, top 12; label font .system(.subheadline, weight: .semibold) Chrome.secondaryText padding horizontal 14, top 10, bottom 4",
+        "Editor rows via editorRow: HStack(alignment: .center, spacing: 12), title font .system(.body) Chrome.primaryText lineLimit 1 tail truncation, optional detail font .system(.subheadline); control layoutPriority 1; padding horizontal 14, vertical 5",
+        "Lead rows: \"Provider\" (GlassPickerButton of enabled providers with icon asset), \"Model\" (\"Any model\" + model shortNames, maxWidth 190), \"Effort\" (inherit \"Chat's effort\" + ModelOption.effortTitle) shown only when leadEfforts is non-empty",
+        "Heads rows: \"Provider\" (\"Same as the lead\" + enabled other providers, icon falls back to lead provider's), \"Model\" (nil option \"<heads provider>'s default\" when sending heads elsewhere, else \"Same as the chat\"; maxWidth 190), \"Effort\" when workerEfforts non-empty with inherit `pair.sendsHeadsElsewhere ? \"\\(pair.headsProvider.displayName)'s default\" : \"Same as the chat\"` (line 482; the same wording as the heads Model nil option on line 463, never the lead's \"Chat's effort\"), \"At once\" (\"As many as it takes\" + HydraPair.maxHeadsRange)",
+        "Catalog notes per catalog provider with no models: \"Loading <provider>'s models…\" while loading, else \"No models loaded for <provider> yet.\" font .system(.subheadline) Chrome.secondaryText padding horizontal 14, top 8"
+      ],
+      "feature_notes": [
+        "toggleRow: a non-nil blockedBy reason replaces the detail text, disables the row and sets opacity 0.5.",
+        "HydraAddPairButton picks installed = ProviderKind.allCases filtered by providers.status(p).isInstalled && settings.isEnabled(p); provider = first installed without an existing pair, else first installed, else settings.defaultProvider; then adds HydraPair(provider:).",
+        "Pair row summary joins with \" · \": HydraPairSummary.providers(pair); prefixed by HydraPairSummary.modelsTitle when pair.customName != nil; efforts when non-nil; \"One head at a time\" when maxHeads == 1 or \"Up to <n> heads\" otherwise when set; and \"<heads displayName> is not set up, heads stay on <lead displayName>\" when pair.sendsHeadsElsewhere and model.hydraHeadsProvider(of: pair) == pair.provider.",
+        "Editor provider lists: lead providers = allCases where settings.isEnabled && (installed || it is the current pair.provider); heads providers likewise for pair.headsProvider, with the lead provider removed from the heads list.",
+        "Lead efforts = the chosen lead model's efforts, or when none/empty every effort of the provider's models (allEfforts: union in first-seen order). Worker efforts = worker model's efforts, else (sendsHeadsElsewhere) the heads provider's default model efforts or all its efforts, else the lead efforts.",
+        "Changing lead provider (only if different): inside model.updateHydraPair `guard $0.provider != provider else { return }`; sets provider, clears orchestratorModel and orchestratorEffort; if workerProvider == nil clears workerModel and workerEffort; else if workerProvider == new provider sets workerProvider = nil. `Task { await registry.loadCatalog(provider) }` (line 405) sits outside the update closure, so it runs whenever the binding setter is called, including a re-pick of the same provider where the guard made the edit a no-op (whether GlassPickerButton calls the setter on a re-pick is decided in GlassPickerButton, not this file).",
+        "Changing lead model: sets orchestratorModel; clears orchestratorEffort if the new model option exists and does not list that effort. Same rule for the heads model and workerEffort against headsProvider.",
+        "Changing heads provider: inside the update closure `let chosen = provider == $0.provider ? nil : provider` then `guard $0.workerProvider != chosen else { return }`; otherwise sets workerProvider = chosen and clears workerModel and workerEffort. Outside the closure `if let provider { Task { await registry.loadCatalog(provider) } }` (line 455) loads the raw picked provider, not `chosen`, and runs even when the guard returned early (it would also run for a provider equal to the lead, though the options at line 443 exclude pair.provider). The picker shows nil unless pair.sendsHeadsElsewhere.",
+        "Name field: empty text stores name = nil; the popover's auto focus is dropped on appear so the caret only appears after a click.",
+        "catalogProviders(pair) = [provider, headsProvider] when sendsHeadsElsewhere else [provider]; the editor's .task keyed on it loads each catalog in order.",
+        "The editor renders nothing if model.settings.hydraPair(pairID) is nil.",
+        "Stale doc comment: HydraPairEditor's comment (lines 334-335) says \"The head profiles at the end are the pair's advanced mode: purpose-named overrides of the shared heads' choices\", but B2's editor body (lines 345-520) has no head-profiles UI: the last control is \"At once\", followed only by the catalog notes, and this file never references headProfiles. HydraPair.headProfiles exists in the model (Core/Models/Hydra.swift:72) but is not editable here; the port must not build a profiles section in the editor.",
+        "HydraPairRow `.task(id: pair.headsProvider)` (lines 293-296) is keyed only on headsProvider (`workerProvider ?? provider`, Hydra.swift:97): a lead-provider change on a same-provider pair re-runs it because headsProvider follows provider, but on a pair with a separate workerProvider a lead change does not re-run it, so the row itself does not load the new lead catalog (the editor's own load at line 405 and its .task(id: catalogProviders) do).",
+        "B1->B2: fonts only, fixed points to text styles: \"Hydra\" title size 15 semibold -> .title3 semibold; hero subtitle, off note, pairs explainer body, pairs footnote, pair row summary, editor caption, editor row detail and catalog notes size 11 -> .subheadline; explainer arrow size 10 semibold -> .footnote semibold; \"One leads, the others build\" size 13 semibold -> .body semibold; pair row title and editor row title size 13 -> .body; slider glyph size 12 -> .callout; minus.circle size 12 medium -> .callout medium; editor name field size 15 semibold -> .title3 semibold; section label size 11 semibold -> .subheadline semibold. Line count (589), strings, geometry and logic are unchanged."
+      ],
+      "unresolved_questions": [
+        "Default values of the bound hydra* settings and HydraPair.maxHeadsRange are defined elsewhere (AppSettings, HydraPair).",
+        "HydraPairSummary output formats, HydraCookbook contents and model.hydraHeadsProvider rules live in other files.",
+        "UNRESOLVED: the macOS point sizes behind the text styles must be pinned from evidence for the Windows port.",
+        "The info popover texts (HydraInfoPopover .hydra/.heads) are defined in another file."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Settings/MCPKeyPanel.swift",
+      "sha256": "48ae2c759b326fe11cc570aa331813bdb089d6303e281bb02a62e5ef5d4392c9",
+      "lines_total": 251,
+      "ranges_read": [
+        [
+          1,
+          251
+        ]
+      ],
+      "purpose": "Implements the floating 380-point-wide panel where a user enters an MCP connector's key or other fields. MCPKeyPanel is a @MainActor singleton that opens the catalog entry's keysURL in the default browser, hosts MCPKeyPanelView in a borderless-looking non-activating floating NSPanel placed 24 points in from the top-right of the main screen's visible frame, and closes it on its own xmark, on Escape through a local key-down monitor, or once the connector reports connected. MCPKeyPanelView shows numbered steps, one monospaced text, secure or path field per MCPField (paths chosen with an NSOpenPanel), and a Save and connect or Sign in button that is enabled only when the MCP manager says the entry can connect.",
+      "key_symbols": [
+        "@MainActor final class MCPKeyPanel { static let shared; private var panel: NSPanel?; private var escapeMonitor: Any?; private init(); func present(entry: MCPCatalogEntry, model: AppModel); func close(); private func makePanel() -> NSPanel; private func startEscapeMonitor(); private func stopEscapeMonitor() }",
+        "struct MCPKeyPanelView: View { let entry: MCPCatalogEntry; let model: AppModel; let onDone: @MainActor () -> Void; @Environment(AppModel.self) private var envModel; @FocusState private var focusedField: String? }",
+        "MCPKeyPanelView.header: some View; steps: some View; stepRow(_ number: Int, text: Text, accessory: AnyView? = nil) -> some View; fieldView(_ field: MCPField) -> some View; draftBinding(_ field: MCPField) -> Binding<String>; pickPath(for field: MCPField); save()"
+      ],
+      "calls_into": [
+        "MCPCatalogEntry: .keysURL (String?), .fields ([MCPField]), .isOAuth, .id, .name",
+        "MCPField: .key, .label, .placeholder, .help (String?), .kind (.secret, .text, .path)",
+        "model.mcp: canConnect(entry) -> Bool, state(for: entry.id).isConnected, value(for:of:) -> String, setDraft(_:for:of:), connect(entry)",
+        "MCPIcon(entry:size:), WindowDragArea(), WindowBackdrop(opacity:), .presentedChrome()",
+        "Chrome.primaryText, secondaryText, accent, overlay(_:), windowCornerRadius"
+      ],
+      "state_owned": [
+        "MCPKeyPanel.panel: the reused NSPanel (created lazily once)",
+        "MCPKeyPanel.escapeMonitor: token of the NSEvent local key-down monitor while shown",
+        "MCPKeyPanelView.focusedField: @FocusState key of the focused field"
+      ],
+      "side_effects": [
+        "present: NSWorkspace.shared.open(url) for entry.keysURL when it parses as a URL, every time the panel is presented",
+        "present: installs a local keyDown monitor; close removes it and orders the panel out",
+        "Field edits write drafts via model.mcp.setDraft (draft storage, persistence handled elsewhere)",
+        "save(): model.mcp.connect(entry) then onDone() (closes the panel)",
+        "pickPath: runs a modal NSOpenPanel and writes url.path as the draft"
+      ],
+      "platform_assumptions": [
+        "AppKit NSPanel with styleMask [.nonactivatingPanel, .fullSizeContentView, .titled, .closable], backing .buffered, level .floating, hidesOnDeactivate false, collectionBehavior [.canJoinAllSpaces, .fullScreenAuxiliary], transparent titlebar, hidden standard window buttons, movable by background, clear non-opaque background with shadow",
+        "NSHostingView fittingSize for measuring content height and NSHostingController as contentViewController",
+        "NSScreen.main?.visibleFrame and bottom-left-origin coordinates (y = maxY - height - 24 places it at the top)",
+        "NSEvent.addLocalMonitorForEvents(matching: .keyDown) with macOS virtual key code 53 (Escape)",
+        "NSWorkspace.shared.open(url) to open the key page in the default browser",
+        "NSOpenPanel.runModal() for picking a file or a directory",
+        "SwiftUI SecureField/TextField with .focusEffectDisabled(), @FocusState, .onSubmit, Link, .buttonStyle(.glassProminent) (macOS 26)",
+        "WindowDragArea and WindowBackdrop (AppKit-backed helpers defined elsewhere) for dragging the panel and its translucent backdrop",
+        "System text styles .subheadline, .callout, .footnote and monospaced design"
+      ],
+      "persisted_fields": [
+        "None directly; field values go through model.mcp.setDraft and connect (storage defined elsewhere)."
+      ],
+      "ui_elements": [
+        "Panel: width 380, initial contentRect 380x200, content height = hosting view fitting height rounded up (`NSHostingView(rootView: content.frame(width: 380)).fittingSize.height.rounded(.up)`), minimum 100 (`setContentSize(NSSize(width: 380, height: max(height, 100)))`), measured and set once in present(); this file has no other resize call, so content changes after presentation are not re-measured by this code (any automatic sizing by NSHostingController would come from AppKit defaults, not this file); origin x = visible.maxX - 380 - 24, y = visible.maxY - panel height - 24 (top-right corner, 24 pt inset)",
+        "Content VStack(alignment: .leading, spacing: 14), padding 18, width 380; backgrounds WindowDragArea then WindowBackdrop(opacity: 0.5); clipped to RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style: .continuous)",
+        "Header HStack(alignment: .top, spacing: 10): MCPIcon size 26; VStack(spacing: 1) of entry.name font .system(size: 14, weight: .semibold) Chrome.primaryText and \"Connect\" font .system(.subheadline) Chrome.secondaryText; Spacer(minLength: 8); close button SF Symbol \"xmark\" font .system(.subheadline, weight: .semibold) Chrome.secondaryText, .plain",
+        "Steps when `if let keysURL = entry.keysURL, let url = URL(string: keysURL)` succeeds (line 147: keysURL non-nil AND parses as a URL) (VStack spacing 6): 1 \"The page is open in your browser\" + Link \"Open it again\" font .system(.subheadline); 2 \"Copy the <first field label lowercased, or key>\"; 3 \"Paste it below and save\"",
+        "Steps otherwise (keysURL nil, or a keysURL that URL(string:) cannot parse; in that case present() also does not open a browser, line 16): 1 \"Enter the <first field label lowercased, or value>\"; 2 \"Sign in in your browser\" (OAuth) or \"Save\"",
+        "Step row HStack(spacing: 8): number badge Circle Chrome.accent.opacity(0.18) 18x18 with digit font .system(.footnote, weight: .semibold) Chrome.accent; text in HStack(spacing: 4) font .system(.callout) Chrome.primaryText plus optional accessory",
+        "Field block VStack(alignment: .leading, spacing: 5): label font .system(.subheadline, weight: .semibold) Chrome.secondaryText; input HStack(spacing: 6) with SecureField (kind .secret) or TextField (.text, .path) using field.placeholder, plain style, font .system(.callout, design: .monospaced); path fields add a plain button with SF Symbol \"folder\" font .system(.callout) Chrome.secondaryText; input padding horizontal 8, vertical 7, background RoundedRectangle(cornerRadius: 8, style: .continuous) fill Chrome.overlay(0.06); non-empty help text font .system(size: 10.5) Chrome.secondaryText",
+        "Footer HStack: Spacer then Button \"Sign in\" (entry.isOAuth) or \"Save and connect\", .buttonStyle(.glassProminent), disabled when !model.mcp.canConnect(entry)"
+      ],
+      "feature_notes": [
+        "present(entry:model:) opens entry.keysURL in the browser first, builds MCPKeyPanelView with .presentedChrome() and .environment(model), measures height with the view framed at width 380, reuses the existing panel if any, replaces its contentViewController, sizes it to 380 x max(height, 100), positions it top-right of NSScreen.main's visible frame (skipped if there is no main screen), starts the Escape monitor and calls orderFrontRegardless() (the panel shows without activating the app).",
+        "Escape handling: `NSEvent.addLocalMonitorForEvents(matching: .keyDown)` sees every keyDown dispatched to any window of the app, not only the panel; guard `self.panel?.isVisible == true, event.keyCode == 53` else return event. So while the panel is visible, Escape pressed in the main window also closes the panel and is swallowed (`return nil`); other key events pass through. The monitor is installed at most once and removed on close. A Windows port that handles Escape only in the panel window would differ.",
+        "Window buttons close, miniaturize and zoom are hidden because the panel closes from its own xmark and on Escape.",
+        "On appear the first field (entry.fields.first?.key) is focused. Pressing Return (.onSubmit) saves only when canConnect(entry). `.onChange(of: model.mcp.state(for: entry.id).isConnected) { _, isConnected in if isConnected { onDone() } }` fires only on a change (no initial: true), so an entry already connected when the panel is presented does not auto-close; only a later transition to true calls onDone().",
+        "save() calls model.mcp.connect(entry) and closes the panel immediately, without waiting for the connection result.",
+        "pickPath: for entry.id == \"filesystem\" only directories can be chosen, otherwise only files; single selection; on .OK writes url.path as the draft.",
+        "Field values read model.mcp.value(for:of:) and write model.mcp.setDraft(_:for:of:).",
+        "envModel (@Environment(AppModel.self)) is declared but not referenced in this file; the explicit model property is used throughout.",
+        "B1->B2: fonts only, fixed points to text styles: \"Connect\" size 11 -> .subheadline; xmark size 11 semibold -> .subheadline semibold; \"Open it again\" link size 11 -> .subheadline; step number size 10 semibold -> .footnote semibold; step text size 12 -> .callout; field label size 11 semibold -> .subheadline semibold; field input size 12 monospaced -> .callout monospaced; folder glyph size 12 -> .callout. Still fixed in B2: entry name .system(size: 14, weight: .semibold) and help text .system(size: 10.5). Line count (251), strings and logic unchanged."
+      ],
+      "unresolved_questions": [
+        "Chrome.windowCornerRadius value and the WindowDragArea/WindowBackdrop implementations are elsewhere.",
+        "canConnect, draft storage, secret handling and connect semantics are in the MCP manager, not this file.",
+        "The xmark close button has no accessibility label or tooltip in this file; the Windows port must match that (no invented label).",
+        "UNRESOLVED: macOS point sizes behind .subheadline/.callout/.footnote must be pinned from evidence for Windows."
+      ]
+    }
+  ]
+}

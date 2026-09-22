@@ -1,0 +1,137 @@
+{
+  "bundle_id": "R2-21",
+  "reader": "R2-21-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Window/WindowManager.swift",
+      "sha256": "c9a96a40569cd68ea94c171464b1071ba97e006c4070f0e03ca97d381c180d29",
+      "lines_total": 222,
+      "ranges_read": [
+        [
+          1,
+          222
+        ]
+      ],
+      "purpose": "WindowManager.swift is the factory and cache for Droppy Code's two real windows (the main thread window and the Settings window) plus an unsaved capture window used for website screenshots (the line 74 comment says \"at a fixed size\", meaning the caller-given size; the window itself is built with resizable: true at line 77); it builds each as a plain titled AppKit NSWindow of a DCDisplayCycleGuardedWindow subclass with a transparent, full-size-content title bar and puts a SwiftUI tree inside a FrameHostingView. It owns the single AppModel instance of the app (let model = AppModel()), so every hosted SwiftUI tree gets the same model through HostedEnvironment. The file also defines WindowLiveResize, an @Observable per-window flag flipped by AppKit's live-resize notifications that views read to hold their settle animations and heavier layout work while the window or a pane is being resized, and HostedEnvironment, the modifier that injects the model, the live-resize object, the app zoom (new in 1.6.2), the capsule button border shape and the theme accent tint into every window root and every separately hosted chat column. HostedRoot additionally maps the chosen theme to both SwiftUI's preferredColorScheme and the process-wide NSApp.appearance.",
+      "key_symbols": [
+        "@MainActor final class WindowManager",
+        "static let shared = WindowManager()",
+        "let model = AppModel()",
+        "private var mainWindow: NSWindow?",
+        "private var settingsWindow: NSWindow?",
+        "private enum Size { static let main = NSSize(width: 1320, height: 860); static let mainMinimum = NSSize(width: 860, height: 560); static let settings = NSSize(width: 780, height: 580) }",
+        "private static let mainFrameName = \"DroppyCodeMainWindow\"",
+        "func showMain()",
+        "func showSettings(page: SettingsPage? = nil)",
+        "private func centerOverMainWindow(_ window: NSWindow)",
+        "private func present(_ window: NSWindow)",
+        "private func makeMainWindow() -> NSWindow",
+        "func makeCaptureWindow(size: NSSize) -> NSWindow",
+        "private func makeSettingsWindow() -> NSWindow",
+        "private func makeWindow<Content: View>(title: String, size: NSSize, resizable: Bool, windowClass: DCDisplayCycleGuardedWindow.Type = DCDisplayCycleGuardedWindow.self, @ViewBuilder content: () -> Content) -> NSWindow",
+        "@MainActor @Observable final class WindowLiveResize",
+        "WindowLiveResize.isActive: Bool (private(set) var, initial false)",
+        "WindowLiveResize.isPaneResizing: Bool (var, initial false)",
+        "WindowLiveResize.isReshaping: Bool { isActive || isPaneResizing }",
+        "WindowLiveResize.init(window: NSWindow)",
+        "private struct HostedRoot<Content: View>: View { let model: AppModel; let liveResize: WindowLiveResize; let content: Content; var body: some View }",
+        "struct HostedEnvironment: ViewModifier { let model: AppModel; let liveResize: WindowLiveResize; func body(content: Content) -> some View }",
+        "private struct ThemeTint: ViewModifier { let theme: AppTheme; func body(content: Content) -> some View }",
+        "final class FrameHostingView: NSHostingView<AnyView>",
+        "FrameHostingView.required init(rootView: AnyView)",
+        "FrameHostingView.@MainActor required dynamic init?(coder: NSCoder) (fatalError)",
+        "FrameHostingView.override var acceptsFirstResponder: Bool { true }",
+        "FrameHostingView.override func performKeyEquivalent(with event: NSEvent) -> Bool"
+      ],
+      "calls_into": [
+        "AppModel() initializer; model.selectThread(offset:), model.selectThread(number:); model.settings.theme; model.settings.appZoom",
+        "SettingsNavigation.shared.requestedPage (assigned the SettingsPage passed to showSettings)",
+        "SettingsPage type",
+        "AppInfo.name (main and capture window title)",
+        "RootView() (main and capture window content), SettingsView() (Settings window content)",
+        "ThreadWindow (main window class; its selectThread and selectThreadNumber closure properties are set), SecondaryWindow (Settings window class), DCDisplayCycleGuardedWindow (base class and default windowClass)",
+        "WindowChrome.configure(window)",
+        "AppZoomModifier(percent: model.settings.appZoom) (new in 1.6.2)",
+        "ThemeTint -> theme.spec.accent; HostedRoot -> theme.spec.scheme (AppTheme.spec)",
+        "AppKit: NSApp.activate(), NSApp.appearance, NSAppearance(named: .aqua / .darkAqua), NSWindow.init(contentRect:styleMask:backing:defer:), center(), setFrame(_:display:), setFrameUsingName(_:), setFrameAutosaveName(_:), makeKeyAndOrderFront(_:), contentMinSize, contentView, isVisible, isMiniaturized, screen, NSScreen.main, visibleFrame",
+        "Foundation: NotificationCenter.default.addObserver(forName:object:queue:using:) with NSWindow.willStartLiveResizeNotification and NSWindow.didEndLiveResizeNotification; MainActor.assumeIsolated",
+        "SwiftUI: NSHostingView, AnyView, .environment(_:), .preferredColorScheme(_:), .onChange(of:initial:_:), .buttonBorderShape(.capsule), .tint(_:), .modifier(_:)"
+      ],
+      "state_owned": [
+        "WindowManager.shared singleton (@MainActor)",
+        "model: AppModel, the single app model instance, created when WindowManager.shared is first touched",
+        "mainWindow: NSWindow? cache: built once by makeMainWindow and reused by every later showMain; never cleared (windows use isReleasedWhenClosed = false)",
+        "settingsWindow: NSWindow? cache: built once by makeSettingsWindow and reused; never cleared",
+        "Per window, one WindowLiveResize instance (isActive default false, isPaneResizing default false) captured inside the hosted root view; its two NotificationCenter observer tokens are discarded and never removed, by design ('a window is not made twice')",
+        "Capture windows from makeCaptureWindow are not cached by WindowManager; the caller owns them"
+      ],
+      "side_effects": [
+        "Creates NSWindows and sets their title, style mask, animationBehavior, tabbingMode, contentView, contentMinSize",
+        "present(_:) calls NSApp.activate() then window.makeKeyAndOrderFront(nil): activates the app and brings the window to front",
+        "showSettings(page:) writes SettingsNavigation.shared.requestedPage when a page is given, and re-centres the Settings window over the main window on every call",
+        "makeMainWindow reads the saved main-window frame from user defaults via setFrameUsingName(\"DroppyCodeMainWindow\") and registers setFrameAutosaveName(\"DroppyCodeMainWindow\") so AppKit keeps writing it on move/resize",
+        "HostedRoot sets the process-wide NSApp.appearance whenever model.settings.theme changes and once at first appearance (initial: true)",
+        "WindowLiveResize registers NotificationCenter observers on the main queue that flip isActive",
+        "FrameHostingView.init(coder:) crashes with fatalError(\"init(coder:) is not supported\")"
+      ],
+      "platform_assumptions": [
+        "AppKit NSWindow with StyleMask [.titled, .closable, .miniaturizable, .fullSizeContentView] (+ .resizable), backing .buffered, defer false; Windows port needs a frameless/custom-titlebar BrowserWindow (or equivalent) that reproduces a transparent full-size content title bar with native close/minimise and conditional resize",
+        "DCDisplayCycleGuardedWindow, ThreadWindow, SecondaryWindow subclasses exist to work around a macOS 26+ crash when SwiftUI is evaluated inside AppKit's display cycle under a transparent title bar; no Windows equivalent of that bug, but ThreadWindow's thread-selection shortcut closures must be reproduced",
+        "isReleasedWhenClosed = false: closing hides the window and the same instance is re-shown; a port must hide rather than destroy on close (or recreate transparently with the same state)",
+        "animationBehavior = .documentWindow (macOS open/close zoom animation)",
+        "tabbingMode = .disallowed (macOS native window tabbing)",
+        "NSWindow frame autosave (setFrameUsingName/setFrameAutosaveName) persisted in NSUserDefaults under AppKit's key 'NSWindow Frame DroppyCodeMainWindow'; port needs its own persisted bounds store",
+        "Coordinate system: AppKit origin is bottom-left and y grows UP; Windows/Electron origin is top-left and y grows DOWN. The x formulas map unchanged, but the y clamp does NOT: line 52 `frame.origin.y = min(max(frame.origin.y, visible.minY), visible.maxY - frame.height)` keeps the window's TOP edge (title bar) on screen when the window is taller than visible.height, because origin.y is the bottom edge. Copying it literally as `min(max(top, wa.y), wa.y + wa.height - h)` would keep the BOTTOM edge instead. Windows equivalent that keeps upstream's behaviour: `top = max(min(top, wa.y + wa.height - h), wa.y)` (min first, then max). The centring midpoint formulas (lines 48-49) are symmetric and map directly. screen.visibleFrame (outside knowledge: excludes menu bar and Dock) -> Electron display.workArea.",
+        "NSApp.activate() (macOS 14+ API without ignoringOtherApps)",
+        "NSApp.appearance with NSAppearance .aqua / .darkAqua / nil (follow system) -> Electron nativeTheme.themeSource 'light' / 'dark' / 'system'",
+        "SwiftUI NSHostingView with sizingOptions = [] and safeAreaRegions = [], autoresizingMask [.width, .height]",
+        "SwiftUI @Observable (Observation framework), @ViewBuilder, environment injection, preferredColorScheme, buttonBorderShape(.capsule), tint",
+        "NSWindow.willStartLiveResizeNotification / didEndLiveResizeNotification (lines 133, 136), observed with `object: window` so only this window's own resize flips isActive. Outside knowledge (Electron API, not from this source): BrowserWindow emits 'will-resize' before each manual resize step and 'resized' once when a resize has finished, both on Windows and macOS; so isActive = true on the first 'will-resize' of a drag and isActive = false on 'resized' is a direct per-window mapping. There is no dedicated 'resize started' event; the start is the first 'will-resize'. Native equivalent: WM_ENTERSIZEMOVE / WM_EXITSIZEMOVE.",
+        "NSResponder.acceptsFirstResponder and performKeyEquivalent(with:) key-equivalent routing to hidden views",
+        "MainActor / Swift concurrency isolation",
+        "window.center() (lines 43, 68, 82) is AppKit's NSWindow.center(). Outside knowledge (Apple documentation, not this source): it places the window exactly centred horizontally and 'somewhat above center vertically' on its screen, not at the exact vertical centre. Electron's BrowserWindow.center() or (workArea - size) / 2 would sit lower than upstream for the first-run main window (no saved frame), for a newly built Settings window, and for every fallback Settings placement (no main window, main hidden or miniaturised). The exact AppKit vertical offset is not given in this file.",
+        "`.rounded()` (lines 48-49) is Swift's FloatingPoint.rounded() with no argument. Outside knowledge (Swift standard library): its rule is .toNearestOrAwayFromZero, so halves round away from zero (-10.5 -> -11, 10.5 -> 11). JS Math.round rounds halves toward +infinity (Math.round(-10.5) === -10), so the port must use `Math.sign(v) * Math.round(Math.abs(v))` to match on displays left of or above the primary.",
+        "`(main.screen ?? NSScreen.main)?.visibleFrame` (line 50): main.screen is the screen the main window is on; outside knowledge (Apple documentation): NSScreen.main is the screen containing the window that has keyboard focus, not the primary display. Electron mapping: screen.getDisplayMatching(mainWindow.getBounds()), falling back to the display of BrowserWindow.getFocusedWindow(), not screen.getPrimaryDisplay(). Source fact: the clamp sits inside `if let visible = ...`, so when both are nil NO clamping happens and the rounded centred frame is applied as is.",
+        "Style mask `.resizable` (line 94, only when resizable is true). Outside knowledge (AppKit, not this source): a resizable titled window gets an enabled green zoom button and is full-screen capable by default; without .resizable the zoom button is disabled. So main (resizable: true, line 63) and capture (resizable: true, line 77) windows can be zoomed / made full screen, and the Settings window (resizable: false, line 81) cannot. Checked in B2 DroppyCode/UI/Chrome/WindowChrome.swift: configure(_:) (lines 107-132) does not touch collectionBehavior or the window buttons, and placeTrafficLights lays out .closeButton, .miniaturizeButton and .zoomButton with isHidden = false. Port: maximizable/fullscreenable true for main and capture, false for Settings."
+      ],
+      "persisted_fields": [
+        "Main window frame: source facts only: `private static let mainFrameName = \"DroppyCodeMainWindow\"` (line 24); makeMainWindow calls `if !window.setFrameUsingName(Self.mainFrameName) { window.center() }` (lines 67-69) and then `window.setFrameAutosaveName(Self.mainFrameName)` (line 70). When no saved frame is found the window is placed by window.center() at its default size 1320 x 860 (see platform_assumptions for center()'s above-centre vertical bias). Outside knowledge (AppKit convention, not in this file): AppKit stores the frame in UserDefaults under the key 'NSWindow Frame DroppyCodeMainWindow' as a frame string; the port needs its own persisted bounds store.",
+        "Settings window frame is NOT persisted (no autosave name); capture windows are explicitly never autosaved (\"no frame autosave, so the run never reads or writes where the real window sits\")",
+        "Read-only here: model.settings.theme and model.settings.appZoom (persisted by the settings store elsewhere)"
+      ],
+      "ui_elements": [
+        "Main window: title AppInfo.name, default content size 1320 x 860, minimum content size 860 x 560 (contentMinSize), resizable (so zoom/full-screen capable, see platform_assumptions), class ThreadWindow, content RootView(); position restored from autosave, otherwise window.center() (AppKit: horizontally centred, somewhat above vertical centre)",
+        "Settings window: title \"Settings\" verbatim, size 780 x 580, NOT resizable (no .resizable in style mask, so zoom/full-screen disabled), class SecondaryWindow, content SettingsView(); window.center() on creation (line 82; AppKit above-centre vertical bias), then on every showSettings call centerOverMainWindow re-centres it over the main window (exact midpoint, rounded away from zero) or falls back to window.center() again",
+        "Capture window: title AppInfo.name, caller-given size, style mask resizable (resizable: true, line 77) although the line 74 comment calls it 'the same window, at a fixed size': the size is fixed by the caller passing it, not by the style mask; default class DCDisplayCycleGuardedWindow, content RootView(). Position in this file: built with contentRect NSRect(origin: .zero, size: size) (line 95) and makeCaptureWindow never calls center(), setFrameUsingName or setFrame, so it starts at the global origin (outside knowledge: AppKit's origin is the bottom-left of the primary screen). The only B2 caller, DroppyCode/App/Captures/WebsiteCaptures.swift:766, immediately calls place(window, size: size, on: screen) (line 767), which centres it on the screen (lines 813-817) before showing it.",
+        "All windows: style mask [.titled, .closable, .miniaturizable, .fullSizeContentView] plus .resizable for main and capture windows (title bar with close, miniaturise and, per AppKit, zoom buttons; zoom enabled only when resizable), fullSizeContentView (content under a transparent title bar, styling via WindowChrome.configure), .documentWindow animation, native tabbing disabled",
+        "Every hosted tree: buttons use capsule border shape (.buttonBorderShape(.capsule)); tint = theme.spec.accent via ThemeTint, whose doc comment (lines 181-182) scopes it: 'Tints prominent glass buttons, toggles and progress views with the theme's accent. System/Light/Dark keep the system control accent.' (a CSS port should scope the accent variable to prominent buttons, toggles and progress views; nil accent keeps the system accent); whole-app zoom via AppZoomModifier(percent: model.settings.appZoom)",
+        "Color scheme: only HostedRoot (window roots) applies .preferredColorScheme(model.settings.theme.spec.scheme) (line 151) and writes NSApp.appearance nil / aqua / darkAqua (lines 152-158). HostedEnvironment (lines 169-178), which separately hosted chat columns use, carries NO preferredColorScheme; those columns get their scheme only through the process-wide NSApp.appearance.",
+        "No animations defined in this file other than the window animationBehavior; WindowLiveResize is the signal other views use to hold their settle animations and heavier layout work until the drag ends (doc comment lines 113-115)"
+      ],
+      "feature_notes": [
+        "showMain(): uses the cached mainWindow or builds one with makeMainWindow(), stores it, then present(window).",
+        "showSettings(page:): if page is non-nil, sets SettingsNavigation.shared.requestedPage = page FIRST, then uses cached or new settings window, stores it, calls centerOverMainWindow(window), then present(window). So even an already-open Settings window is re-centred over the main window on every showSettings call.",
+        "centerOverMainWindow: if there is no main window, or it is not visible, or it is miniaturised, falls back to window.center() (AppKit: horizontally centred, somewhat above vertical centre). Otherwise x = (parent.midX - frame.width / 2).rounded(), y = (parent.midY - frame.height / 2).rounded() (Swift .rounded(): halves away from zero); then, only if `(main.screen ?? NSScreen.main)?.visibleFrame` is non-nil, clamps x = min(max(x, visible.minX), visible.maxX - width) and y = min(max(y, visible.minY), visible.maxY - height) (max applied first, then min, so if the window is larger than the visible frame the right edge and, because AppKit y grows upward, the TOP edge win; if both screens are nil there is no clamp); applies window.setFrame(frame, display: false). The Windows y clamp must be reversed: see platform_assumptions.",
+        "present: NSApp.activate() then window.makeKeyAndOrderFront(nil).",
+        "makeMainWindow order: makeWindow(title: AppInfo.name, size: 1320x860, resizable: true, windowClass: ThreadWindow.self) { RootView() }; sets ThreadWindow.selectThread = { [weak model] offset in model?.selectThread(offset: offset) } and selectThreadNumber = { [weak model] number in model?.selectThread(number: number) }; contentMinSize = 860x560; if !setFrameUsingName(\"DroppyCodeMainWindow\") then center(); then setFrameAutosaveName(\"DroppyCodeMainWindow\").",
+        "makeSettingsWindow: makeWindow(title: \"Settings\", size: 780x580, resizable: false, windowClass: SecondaryWindow.self) { SettingsView() } then window.center().",
+        "makeCaptureWindow(size:) is internal (not private), used by the website-capture run (B2 caller DroppyCode/App/Captures/WebsiteCaptures.swift:766); makeWindow(title: AppInfo.name, size: size, resizable: true) { RootView() }; no windowClass argument, so plain DCDisplayCycleGuardedWindow; no min size, no autosave, no thread shortcuts, no center(): its frame stays at NSRect(origin: .zero, size: size) until the caller places it. Its 'fixed size' (comment line 74) is the caller's size, not a non-resizable style.",
+        "makeWindow: style [.titled, .closable, .miniaturizable, .fullSizeContentView] plus .resizable when resizable; frame = NSRect(origin: .zero, size: size); windowClass.init(contentRect: frame, styleMask: style, backing: .buffered, defer: false); title; isReleasedWhenClosed = false; animationBehavior = .documentWindow; tabbingMode = .disallowed; WindowChrome.configure(window); then a new WindowLiveResize(window: window); FrameHostingView(rootView: AnyView(HostedRoot(model: model, liveResize: liveResize, content: content()))) with hosting.frame = frame; a plain NSView container of the same frame holds the hosting view as a subview and becomes window.contentView (the hosting view is not the content view itself).",
+        "WindowLiveResize: isActive set true on NSWindow.willStartLiveResizeNotification and false on didEndLiveResizeNotification, observers filtered to object: window (this one window only), queue .main, closures [weak self] wrapped in MainActor.assumeIsolated. isPaneResizing is written by the chat view while the sidebar edge or terminal divider is dragged. isReshaping = isActive || isPaneResizing; the timeline steps its row width and holds animations while it is true. Doc comment (lines 113-117): views read it 'to hold their settle animations and heavier layout work until the drag ends'; rationale: a spring restarted on every frame of a live resize made panels lag behind the window and land somewhere else. A port must defer both the settle animations and the heavier layout work while reshaping.",
+        "HostedRoot body order: content.modifier(HostedEnvironment(...)).preferredColorScheme(model.settings.theme.spec.scheme).onChange(of: model.settings.theme, initial: true) { _, theme in NSApp.appearance = switch theme.spec.scheme { case nil: nil; case .light: NSAppearance(named: .aqua); case .dark: NSAppearance(named: .darkAqua); @unknown default: nil } }. HostedRoot wraps every window made by makeWindow (main, Settings and each capture window), so each window root re-runs the `initial: true` NSApp.appearance write when it first appears, in addition to every theme change. The colour scheme is NOT part of HostedEnvironment.",
+        "HostedEnvironment body order (1.6.2): .environment(model) -> .environment(liveResize) -> .modifier(AppZoomModifier(percent: model.settings.appZoom)) -> .buttonBorderShape(.capsule) -> .modifier(ThemeTint(theme: model.settings.theme)). It is used both by window roots (via HostedRoot) and by chat columns hosted on their own inside the main window (doc comment references ThreadColumns). Comment: the zoom 'scales the whole app' so sidebar, settings and composer move together.",
+        "ThemeTint deliberately applies content.tint(theme.spec.accent) in a single branch with no if: an earlier if made the whole window content a different view when switching between a theme with and without an accent, rebuilding every page and making Settings jump back to its top. A nil accent keeps the system accent (System/Light/Dark). Scope per its doc comment (lines 181-182): 'prominent glass buttons, toggles and progress views'.",
+        "FrameHostingView init: sizingOptions = [], safeAreaRegions = [], translatesAutoresizingMaskIntoConstraints = true, autoresizingMask = [.width, .height] so the given frame defines size rather than content hugging. acceptsFirstResponder is always true (every window has focusable text; SwiftUI's own answer walks the whole tree and AppKit asks every display cycle while content scrolls under the title bar to work out the drag region). performKeyEquivalent returns !isHidden && super.performKeyEquivalent(with: event), so a hidden chat column never consumes a shortcut (for example a Return meant for the shown column's card). init(coder:) calls fatalError(\"init(coder:) is not supported\").",
+        "Header doc comment: windows are built 'the way Droppy builds its settings window': a plain titled AppKit window with a clear background and a SwiftUI glass pane, so no scene background draws a second corner; the DCDisplayCycleGuardedWindow guard keeps display-cycle passes from ending the app on macOS 26 and later.",
+        "B1->B2: exactly one hunk, +3 lines, no deletions (219 -> 222 lines; B1 sha256 e020d9577591269b31416d19d6839c020a4a9e9550ff549f45aea7479014f879). In HostedEnvironment.body, between .environment(liveResize) and .buttonBorderShape(.capsule), 1.6.2 inserts a two-line comment ('The zoom in Settings scales the whole app: every window root and every chat column carries it, so the sidebar, settings and composer move together.') and .modifier(AppZoomModifier(percent: model.settings.appZoom)). Nothing else in the file changed.",
+        "Hash note: sha256 c9a96a40569cd68ea94c171464b1071ba97e006c4070f0e03ca97d381c180d29 (and the B1 hash e020d9577591269b31416d19d6839c020a4a9e9550ff549f45aea7479014f879) are of the CRLF working-tree checkout files. The git blobs hash differently: B2 blob 42adfd1125fcddfe87595c33fdf9f2328147b306 (`git cat-file -p`) gives sha256 b1083df3b87004019456f29a340a7800e1abf8e0afd3e647f6a619e3fabd7846; B1 blob 47f3da828aff2d3ea687dd5be78539af92118e32 gives 98af70ab966a0f1c7e122f6f4cce2fc0f67d5655ab709b7d1f9c7e03f7319f37."
+      ],
+      "unresolved_questions": [
+        "AppZoomModifier's implementation (scaling method, allowed range and default of model.settings.appZoom) lives in another file and is not visible here.",
+        "Exact behaviour of WindowChrome.configure, DCDisplayCycleGuardedWindow, ThreadWindow and SecondaryWindow (and how ThreadWindow triggers selectThread/selectThreadNumber, i.e. which key chords) is defined elsewhere.",
+        "Which caller invokes makeCaptureWindow(size:) and with what sizes is not visible in this file.",
+        "AppTheme.spec.scheme / spec.accent values per theme are defined elsewhere."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "bundle_id": "R2-18",
+  "reader": "R2-18-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Settings/WallpaperCard.swift",
+      "sha256": "cd5d248d9858ae47584ff39684d3cd6b6331e030f46ebb021d351fd77bad7972",
+      "lines_total": 190,
+      "ranges_read": [
+        [
+          1,
+          190
+        ]
+      ],
+      "purpose": "WallpaperCard is the SwiftUI Settings card that lets the user put a picture of their own behind the app's glass. It shows a 150 pt tall clickable/droppable preview (the chosen image with a 60% sized glass mock window over it, or an empty drop placeholder), a \"Wallpaper\" row with Remove and Choose/Change buttons, and, only when a wallpaper exists, a \"Softness\" row whose 0...1 slider blurs the picture and which offers a reset-to-sharp button when softness is above 0.005. All state lives in the WallpaperStore.shared singleton; the card itself only owns the drag-hover flag and drives an NSOpenPanel (sheet on the key window, else a free-standing panel) whose picked URL is passed to store.install(from:). It is instantiated by SettingsView.swift line 454 (\"WallpaperCard()\").",
+      "key_symbols": [
+        "struct WallpaperCard: View (line 7)",
+        "let store = WallpaperStore.shared (line 8; WallpaperStore is @MainActor @Observable final class in DroppyCode/UI/Theme/Wallpaper.swift line 15-16)",
+        "@State private var isTargeted = false (line 9)",
+        "private var isOffStock: Bool { store.softness > 0.005 } (line 11)",
+        "var body: some View (lines 13-23): ChromeCard { preview; ChromeRowDivider(); wallpaperRow; if store.hasWallpaper { ChromeRowDivider(); softnessRow } }",
+        "private var preview: some View (lines 25-102)",
+        "private var wallpaperRow: some View (lines 104-124)",
+        "private var softnessRow: some View (lines 126-166)",
+        "private func choose() (lines 168-189)"
+      ],
+      "calls_into": [
+        "WallpaperStore.shared (static let shared, Wallpaper.swift line 17)",
+        "store.image: NSImage? (read; private(set) in store)",
+        "store.isInstalling: Bool (read)",
+        "store.hasWallpaper: Bool (read; store defines it as image != nil || fileURL != nil)",
+        "store.lastError: String? (read)",
+        "store.softness: Double (read and written, including reset to 0)",
+        "store.isAdjustingSoftness: Bool (written from Slider onEditingChanged)",
+        "store.install(from: URL) (from drop and from panel)",
+        "store.remove() (Remove button)",
+        "WallpaperStore.accepts(_:) (nonisolated static func accepts(_ url: URL) -> Bool, used as the predicate in urls.first(where:))",
+        "WallpaperStore.acceptedTypes ([UTType], store declares [.image]) for panel.allowedContentTypes",
+        "ChromeCard, ChromeRowDivider, ChromeRow(title:detail:content:) design-system containers",
+        "Chrome.overlay(_:) (primaryText.opacity, Chrome.swift:71-73) at 0.35 and 0.04, Chrome.secondaryText (primaryText.opacity(0.7), Chrome.swift:79), Chrome.accent (ThemeManager.spec.accent ?? systemAccent, Chrome.swift:85)",
+        "SwiftUI .glassEffect(in:) and ButtonStyle .glass (macOS 26 Liquid Glass)",
+        "NSOpenPanel, NSApp.keyWindow, panel.beginSheetModal(for:completionHandler:), panel.begin(completionHandler:)"
+      ],
+      "state_owned": [
+        "isTargeted: Bool, @State, default false; set by dropDestination isTargeted closure ({ isTargeted = $0 }); drives accent overlay, 1.02 scale and snappy animation",
+        "isOffStock: computed, store.softness > 0.005",
+        "All persistent state (image, softness, error, installing flag) is owned by WallpaperStore, not by this view"
+      ],
+      "side_effects": [
+        "Clicking the preview (Button { choose() }) or the Choose/Change button opens an NSOpenPanel.",
+        "Picking a file with response == .OK and non-nil panel.url calls store.install(from: url).",
+        "Dropping URLs on the preview: takes the first URL passing WallpaperStore.accepts; if none, the drop handler returns false (rejected); otherwise calls store.install(from: url) and returns true.",
+        "Remove button calls store.remove().",
+        "Slider writes store.softness continuously through a custom Binding and sets store.isAdjustingSoftness = editing on editing begin/end.",
+        "Reset button sets store.softness = 0."
+      ],
+      "platform_assumptions": [
+        "import AppKit, SwiftUI, UniformTypeIdentifiers (lines 1-3)",
+        "Image(nsImage:) rendering an NSImage from the store",
+        "NSOpenPanel with allowedContentTypes ([UTType]), allowsMultipleSelection, canChooseDirectories, message, prompt; beginSheetModal(for: NSApp.keyWindow) vs begin; NSApplication.ModalResponse .OK; Windows needs a native open-file dialog (Electron dialog.showOpenDialog with image filters, parented to the focused window when present)",
+        "SwiftUI .dropDestination(for: URL.self, action:isTargeted:) drag-and-drop of file URLs; Windows needs HTML5/Electron file drop with hover state",
+        ".glassEffect(in:) Liquid Glass material on the mock window and .buttonStyle(.glass) on Remove/Choose buttons (macOS 26 only)",
+        "SF Symbols: \"photo.on.rectangle.angled\", \"drop\", \"drop.fill\", \"arrow.counterclockwise\" need equivalent icons",
+        "Dynamic type text styles .title, .callout, .subheadline via Font.system(_ style:) resolve to macOS point sizes; the port must choose fixed px equivalents",
+        "RoundedRectangle style: .continuous (squircle corners)",
+        "SwiftUI animations .snappy(duration: 0.2), .spring(duration: 0.45, bounce: 0.2), transitions .scale(scale: 0.96).combined(with: .opacity), .opacity.combined(with: .offset(x: 6))",
+        ".help(...) tooltips, .controlSize(.small), GeometryReader, .accessibilityElement(children: .contain) and .accessibilityLabel"
+      ],
+      "persisted_fields": [
+        "No UserDefaults call in this file, but its writes persist through the store at once: every slider change (line 134 `set: { store.softness = $0 }`) and the reset (line 148 `store.softness = 0`) run the WallpaperStore.softness didSet (Wallpaper.swift:41-55), which clamps with `min(1, max(0, softness))`, calls `defaults.set(softness, forKey: Key.softness)` with key \"wallpaperSoftness\" (Wallpaper.swift:20, 52; `defaults = WebsiteCaptures.defaults ?? .standard`, Wallpaper.swift:75) and then `scheduleRerender()` (line 53). Saving happens on every change, not when a drag ends, and the reset is saved too. Slider range 0...1, reset value 0, stored default 0 (`defaults.object(forKey: Key.softness) as? Double ?? 0`, Wallpaper.swift:86).",
+        "install(from:) and remove() persist the picked file name under key \"wallpaperFile\" (Wallpaper.swift:21; set in finishInstall at line 222, removed in remove() at line 151); that persistence lives in DroppyCode/UI/Theme/Wallpaper.swift."
+      ],
+      "ui_elements": [
+        "Card: ChromeCard containing preview, ChromeRowDivider, Wallpaper row, and (only if store.hasWallpaper) ChromeRowDivider plus Softness row.",
+        "Preview button: Button { choose() } whose label is the ZStack (.frame(height: 150), .frame(maxWidth: .infinity)). Modifier order on the Button (lines 93-101): .buttonStyle(.plain), .contentShape(.rect), .dropDestination(for: URL.self, ...), then .padding(16), then .frame(maxWidth: .infinity). Because .padding(16) comes after the button style, the content shape and the drop destination, the click and drop hit area is only the 150 pt tall, full-width ZStack; the 16 pt margin around it accepts neither clicks nor drops and does not set isTargeted.",
+        "With image: Image(nsImage:) resizable, aspectRatio .fill, maxWidth .infinity, height 150, clipped to RoundedRectangle(cornerRadius: 12, style: .continuous).",
+        "Mock window overlay: added with .overlay after .frame(height: 150) and after .clipShape (line 34), so the overlay is not clipped by the 12 pt rounded clip (harmless at 60%, relevant if proportions change). A GeometryReader inside that overlay measures the image frame (maxWidth .infinity x height 150), so the mock is `geo.size.width * 0.6` wide (60% of the preview width) by `geo.size.height * 0.6` = 0.6 x 150 = 90 pt tall, centred by .frame(maxWidth: .infinity, maxHeight: .infinity) (lines 55-56). Shape RoundedRectangle(cornerRadius: 8, style: .continuous) filled .clear, .glassEffect(in: mockShape), overlay fill Color.black.opacity(0.2).",
+        "Traffic-light stand-ins: top-leading HStack(spacing: 4) of 3 Circles, fill Chrome.overlay(0.35), 5x5 pt, padding top 8 and leading 8.",
+        "Empty placeholder: RoundedRectangle(cornerRadius: 12, style: .continuous) fill Chrome.overlay(0.04), height 150, overlay VStack(spacing: 6) of Image(systemName: \"photo.on.rectangle.angled\") font .system(.title) and Text(\"Drop a picture here, or choose one\") font .system(.callout), both Chrome.secondaryText.",
+        "Both image and placeholder use .transition(.scale(scale: 0.96).combined(with: .opacity)).",
+        "Installing indicator: ProgressView() .controlSize(.small) centred in the ZStack while store.isInstalling.",
+        "Drop-hover highlight: RoundedRectangle(cornerRadius: 12, style: .continuous) fill Chrome.accent.opacity(0.18), height 150, .transition(.opacity), shown while isTargeted. Chrome.accent is theme dependent: `static var accent: Color { ThemeManager.spec.accent ?? systemAccent }` with `systemAccent = Color(nsColor: .controlAccentColor)` (Chrome.swift:80, 85), so the tint follows the theme accent, not a fixed colour.",
+        "Preview animations (lines 89-91): .scaleEffect(isTargeted ? 1.02 : 1); .animation(.snappy(duration: 0.2), value: isTargeted); .animation(.spring(duration: 0.45, bounce: 0.2), value: store.image != nil). They sit inside the Button label on the whole ZStack, so the 1.02 drag-hover scale enlarges the image or placeholder, the mock window, the ProgressView and the accent tint together as one unit.",
+        "Wallpaper row: ChromeRow title \"Wallpaper\"; detail = store.lastError if non-nil, else \"Fills the window edge to edge under the glass; the transparency slider lets the desktop show through it\" when hasWallpaper, else \"A picture of your own behind the glass, mixed with the desktop by the transparency slider\". Both descriptive strings refer to \"the transparency slider\", which is not in this card: it is the sibling ChromeRow(title: \"Transparency\", detail: \"How much shows through the window\") holding BackdropOpacitySlider in AppearanceSettingsPage (SettingsView.swift:428-429; the slider's .accessibilityLabel(Text(\"Window transparency\")) is at SettingsView.swift:562), in the same \"Appearance\" ChromeSection directly above WallpaperCard() (SettingsView.swift:422, 454). The wording depends on that control being on the same page.",
+        "Wallpaper row accessory: HStack(spacing: 8): if hasWallpaper, Button \"Remove\" (.glass, .small, disabled while isInstalling); then Button \"Change…\" when hasWallpaper else \"Choose…\" (U+2026 ellipsis; .glass, .small, disabled while isInstalling).",
+        "Softness row: ChromeRow title \"Softness\", detail \"Blurs the picture so text stays easy to read\"; HStack(spacing: 8) of Image(systemName: \"drop\") font .system(.subheadline) Chrome.secondaryText with .help(\"Sharp\"), Slider in 0...1 .controlSize(.small) width 140, Image(systemName: \"drop.fill\") font .system(.subheadline) Chrome.secondaryText with .help(\"Blurred\").",
+        "Reset button: overlay alignment .leading, shown when isOffStock; Image(systemName: \"arrow.counterclockwise\") font .system(.subheadline, weight: .medium), Chrome.secondaryText, frame 22x22, .contentShape(.rect); .buttonStyle(.plain); .help(\"Back to sharp\"); .offset(x: -28); .transition(.opacity.combined(with: .offset(x: 6))); row animated with .snappy(duration: 0.2) on isOffStock.",
+        "Accessibility: softness HStack .accessibilityElement(children: .contain) and .accessibilityLabel(Text(\"Wallpaper softness\")).",
+        "Open panel strings: message \"Choose a picture for the window\", prompt \"Use as Wallpaper\".",
+        "Colour helpers used (Chrome.swift:71-79): `Chrome.overlay(o)` returns `primaryText.opacity(o)` with `primaryText = Color(nsColor: .labelColor)`, so the Chrome.overlay(0.35) dots and the Chrome.overlay(0.04) placeholder fill are the label colour at 35% and 4%; `Chrome.secondaryText = primaryText.opacity(0.7)`."
+      ],
+      "feature_notes": [
+        "The preview and the rows use different conditions. The preview branches on `if let image = store.image` (line 28); the Softness row with its divider (line 18), the Remove button (line 112), the Change/Choose label (line 118) and the detail text (line 107) use store.hasWallpaper, which the store defines as `image != nil || fileURL != nil` (Wallpaper.swift:57). Whenever fileURL is set and image is still nil, the card shows the empty placeholder \"Drop a picture here, or choose one\" together with \"Remove\", \"Change…\", the Softness row and the has-wallpaper detail. In the store this happens at launch while the first render() runs (init sets fileURL then calls render(), Wallpaper.swift:88-93; image is set only when the render finishes, line 176) and stays so if that render fails (render returns without setting image, lines 168 and 172). A fresh install does not cause it: finishInstall sets fileURL and image together (lines 221-224). A port must drive the preview from the image and the rows from image-or-file, not from one flag.",
+        "The reset threshold is softness > 0.005 (isOffStock), not > 0; reset writes exactly 0.",
+        "Row detail text precedence: store.lastError (store sets \"That is not a picture.\" or \"Could not use that picture.\") overrides both descriptive strings.",
+        "Remove and Choose/Change are disabled while store.isInstalling; the preview button itself is not disabled while installing.",
+        "Drop handling takes only the first URL satisfying WallpaperStore.accepts among possibly several dropped URLs (`guard let url = urls.first(where: WallpaperStore.accepts) else { return false }`, line 96) and returns false when none match. Because of that prefilter the store's \"That is not a picture.\" error (Wallpaper.swift:114-116) is never set by a drop, and a rejected drop does not touch the store, so an existing lastError (for example \"Could not use that picture.\" from failInstall, Wallpaper.swift:231) stays in the row detail. lastError is cleared only when an install starts (Wallpaper.swift:119) or by remove() (line 155).",
+        "choose(): panel.allowedContentTypes = WallpaperStore.acceptedTypes, allowsMultipleSelection = false, canChooseDirectories = false; if NSApp.keyWindow exists the panel is a sheet on it (beginSheetModal), otherwise panel.begin; comment line 169 says the sheet must not block so the picker runs async against the key window. Both completion paths install only when response == .OK and panel.url is non-nil.",
+        "Slider uses a manual Binding(get: { store.softness }, set: { store.softness = $0 }) and `onEditingChanged: { editing in store.isAdjustingSoftness = editing }` (line 136). In the store (Wallpaper.swift:61-69) the didSet acts only when the value changed and fileURL != nil: true calls renderLive() (live blur from the half-size previewBase, Wallpaper.swift:192-210), false sets `liveRequested = nil` and runs one full-size render(). While dragging, each softness write goes through scheduleRerender() to renderLive() (lines 180-186). The port must send both the drag-begin and the drag-end edge. The reset button (line 148) never touches isAdjustingSoftness, so its write takes the ordinary scheduleRerender() -> render() full-size path; unlike the transparency reset (SettingsView.swift:546) it is not wrapped in withAnimation.",
+        "Mock window is 60% of the preview width and 0.6 x 150 = 90 pt tall, centred, with black 0.2 tint over the glass and three 5 pt dots at 8 pt inset; it is drawn after the clipShape and so is not clipped.",
+        "B1->B2: only font specifications changed from fixed point sizes to semantic text styles, five hunks: line 67 placeholder icon .font(.system(size: 22)) -> .font(.system(.title)); line 70 placeholder text .font(.system(size: 12)) -> .font(.system(.callout)); line 130 \"drop\" icon .font(.system(size: 11)) -> .font(.system(.subheadline)); line 141 \"drop.fill\" icon .font(.system(size: 11)) -> .font(.system(.subheadline)); line 151 reset icon .font(.system(size: 11, weight: .medium)) -> .font(.system(.subheadline, weight: .medium)). No logic, strings, geometry or animation changed; line count unchanged."
+      ],
+      "unresolved_questions": [
+        "Exact rendered point sizes of the macOS text styles .title, .callout and .subheadline are not stated in this file. The B1 (1.6.0) values replaced by the five B2 hunks were .system(size: 22) (line 67), .system(size: 12) (line 70), .system(size: 11) (lines 130 and 141) and .system(size: 11, weight: .medium) (line 151), verified with git diff dd2b86e..1fbf81e. Nothing in this file contradicts those sizes; keep 22/12/11/11/11 pt as the reference until the port's design-system mapping of the semantic styles is confirmed. That the macOS defaults of these styles equal those sizes is platform knowledge, not evidence from this source.",
+        "Definitions of ChromeCard, ChromeRow and ChromeRowDivider live elsewhere and were not read in this bundle (Chrome.overlay, Chrome.secondaryText and Chrome.accent were read at Chrome.swift:71-85 and are recorded above)."
+      ]
+    }
+  ]
+}

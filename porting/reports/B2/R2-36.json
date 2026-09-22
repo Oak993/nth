@@ -1,0 +1,232 @@
+{
+  "bundle_id": "R2-36",
+  "reader": "R2-36-reader",
+  "files": [
+    {
+      "path": "DroppyCode/UI/Common/AppZoom.swift",
+      "sha256": "f5ea9f7b1e80c6e4d77ba5d9a19d45d6f123bc1aa9c3784b5ea5b3d057675f78",
+      "lines_total": 51,
+      "ranges_read": [
+        [
+          1,
+          51
+        ]
+      ],
+      "purpose": "New file in 1.6.2 that REPLACES B1's conversation-only text zoom (B1 DroppyCode/UI/Common/ChatZoom.swift, 71 lines, deleted in B2): defines the app-wide zoom, a fixed ladder of eight percentages (75 to 200) with normalisation and step helpers, plus a SwiftUI ViewModifier that applies the zoom to a window's whole content. The zoom is implemented as layout-in-shrunk-space then scale-up: a private custom Layout proposes the window size divided by the scale to the content, reports the content size multiplied by the scale, and the content is drawn with scaleEffect anchored top-leading, so larger zoom shows less content (reflowing, scrollbars stay inside the window) rather than clipping. Callers elsewhere are AppCommands.swift:53-62 (menu items \"Zoom In\" Command-+, \"Zoom Out\" Command--, \"Actual Size\" Command-0, plus a hidden second \"Zoom In\" on Command-=), AppSettings (persisted appZoom Int, normalised on load), SettingsView's AppZoomCard (stepper buttons disabled at the ladder ends) and WindowManager line 175 which applies .modifier(AppZoomModifier(percent: model.settings.appZoom)).",
+      "key_symbols": [
+        "enum AppZoom",
+        "static let AppZoom.levels = [75, 90, 100, 110, 125, 150, 175, 200] (Int array, ascending)",
+        "static func AppZoom.normalized(_ percent: Int) -> Int  // levels.contains(percent) ? percent : 100",
+        "static func AppZoom.next(_ percent: Int, increasing: Bool) -> Int  // normalises first, then levels.first { $0 > current } ?? current when increasing, levels.last { $0 < current } ?? current when decreasing",
+        "struct AppZoomModifier: ViewModifier { let percent: Int; func body(content: Content) -> some View }",
+        "private struct ZoomLayout: Layout { let scale: CGFloat }",
+        "func ZoomLayout.sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize",
+        "func ZoomLayout.placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ())",
+        "private func ZoomLayout.unscaled(_ proposal: ProposedViewSize) -> ProposedViewSize"
+      ],
+      "calls_into": [
+        "SwiftUI Layout protocol (Subviews, LayoutSubview.sizeThatFits, LayoutSubview.place(at:anchor:proposal:))",
+        "SwiftUI View.scaleEffect(_:anchor:) with anchor .topLeading",
+        "ProposedViewSize(width:height:), ProposedViewSize(_ size: CGSize)"
+      ],
+      "state_owned": [
+        "None mutable. AppZoom.levels is a static constant; AppZoomModifier holds only the immutable percent; ZoomLayout holds only the immutable scale and uses an empty () cache."
+      ],
+      "side_effects": [
+        "None beyond layout and rendering. No persistence, I/O or notifications in this file; persistence of the chosen percent is in AppSettings (key \"appZoom\"), not here."
+      ],
+      "platform_assumptions": [
+        "SwiftUI ViewModifier and the Layout protocol (macOS 13+) for the custom zoom container; a Windows port needs an equivalent whole-window content zoom (e.g. Electron webContents zoom factor or CSS zoom/transform on the root) that reflows content to viewport/scale rather than clipping.",
+        "SwiftUI scaleEffect with .topLeading anchor for the visual scale-up.",
+        "CGFloat/CGSize/CGRect (CoreGraphics) geometry types."
+      ],
+      "persisted_fields": [
+        "None in this file. Related (seen outside this file): B2 AppSettings.swift:131 `static let appZoom = \"appZoom\"`, :253-254 `var appZoom: Int { didSet { defaults.set(appZoom, forKey: Key.appZoom) } }`, :718 `appZoom = AppZoom.normalized(defaults.object(forKey: Key.appZoom) as? Int ?? 100)`: stores a PERCENT, default 100; any stored value not on the ladder becomes 100.",
+        "B1 predecessor (removed in B2): B1 AppSettings.swift:130 `static let chatZoom = \"chatZoom\"`, :709 `chatZoom = ChatZoom.clamped(defaults.object(forKey: Key.chatZoom) as? Int ?? ChatZoom.defaultIndex)`: stored an INDEX (0-6, default 3) into [80, 90, 95, 100, 110, 125, 135]. No B2 Swift file mentions \"chatZoom\" (grep of the B2 tree), so nothing migrates it: an upgraded B1 user's chosen text size is ignored and B2 starts at appZoom 100."
+      ],
+      "ui_elements": [
+        "No visible controls defined in this file. The modifier scales the whole window content by percent/100, anchored top-leading.",
+        "Zoom ladder shown to users elsewhere: 75, 90, 100, 110, 125, 150, 175, 200 percent."
+      ],
+      "feature_notes": [
+        "normalized: any percent not exactly in levels (e.g. 80, 0, 300) returns 100, not the nearest level.",
+        "next(increasing: true) returns the first level strictly greater than the normalised current, or the current if already at 200; next(increasing: false) returns the last level strictly less, or the current if already at 75. Because it normalises first, next(80, increasing: true) returns 110 (80 -> 100 -> 110).",
+        "AppZoomModifier computes scale = CGFloat(AppZoom.normalized(percent)) / 100, so an invalid percent renders at 1.0.",
+        "ZoomLayout.sizeThatFits: returns .zero when there is no subview; otherwise asks the first subview for its size under the proposal divided by scale (nil dimensions stay nil) and returns that size multiplied by scale.",
+        "ZoomLayout.placeSubviews: places only subviews.first at bounds.origin with anchor .topLeading and proposal = bounds.size divided by scale. Other subviews (none expected) are ignored.",
+        "The doc comments state the intent verbatim: \"a bigger zoom shows less at once instead of clipping\" and \"a bare `scaleEffect` would clip the enlarged content\".",
+        "Menu commands (AppCommands.swift:53-62, outside this file): Button(\"Zoom In\") sets appZoom = AppZoom.next(appZoom, increasing: true) with `.keyboardShortcut(\"+\", modifiers: .command)`; Button(\"Zoom Out\") next(..., increasing: false) with `(\"-\", modifiers: .command)`; Button(\"Actual Size\") sets `appZoom = 100` directly with `(\"0\", modifiers: .command)`; a second Button(\"Zoom In\") with `.keyboardShortcut(\"=\", modifiers: .command)` and `.hidden()`, commented \"US keyboards produce '=' for Command-plus without Shift\". Windows port: Ctrl+Plus, Ctrl+=, Ctrl+Minus and Ctrl+0 drive this ladder, and Electron's built-in zoom accelerators (menu roles zoomIn/zoomOut/resetZoom) must not also fire.",
+        "B1->B2: the file is new in 1.6.2 (51 lines; absent at dd2b86ef), but the feature REPLACES B1 ChatZoom.swift (deleted, 71 lines). Differences: (1) scope: B1 scaled only the conversation's fonts via the `chatZoom` EnvironmentValues key (B1 ChatZoom.swift:30-41, default 1; line 36 \"Views outside the conversation never see it and keep their size\"); B2 scales the whole window content (WindowManager.swift:175 `.modifier(AppZoomModifier(percent: model.settings.appZoom))`). (2) ladder: B1 `private static let percentages = [80, 90, 95, 100, 110, 125, 135]` (line 10), `static let defaultIndex = 3` (line 13), `clamped` = `min(stepCount - 1, max(0, index))` (lines 16-18); B2 [75, 90, 100, 110, 125, 150, 175, 200] with anything off the ladder normalised to 100. (3) storage: key \"chatZoom\" (index) -> key \"appZoom\" (percent), no migration. A port built from B1 must drop the per-conversation font scaling and the chatZoom setting."
+      ],
+      "unresolved_questions": [
+        "Whether popovers, sheets and separate panels (e.g. the attachment preview panel) are also wrapped in AppZoomModifier is decided by callers (only WindowManager.swift:175 was seen applying it); not determinable from this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Common/AttachmentPreview.swift",
+      "sha256": "6f6f84c6d98744cc4ea58fc11e5d07a63127e2257dfe1ea347f83dbe812edafd",
+      "lines_total": 440,
+      "ranges_read": [
+        [
+          1,
+          440
+        ]
+      ],
+      "purpose": "Holds the shared machinery and views for previewing files in the chat: finding the image a tool call read or produced (PreviewImages, with a two-generation RecentCache(limit: 600) of resolved paths), caching Finder icons by extension (FileIcons, 64 entries), extracting a video frame and detecting video attachments (PreviewVideos, Attachment.isVideo), and the SwiftUI views for a video list thumbnail with a play badge, the large popover preview of an attachment, and the full-width image preview at the top of an expanded read tool row. The large preview is pre-sized (images through an ImageIO header read, videos through a main-actor cache of asynchronously loaded track sizes) so the panel never reflows, and it offers \"Show in Finder\" and \"Open\" link buttons plus the file name and size. Non-image, non-video files show a monospaced text preview (files under 500,000 bytes, first 8,000 characters) or, failing that, the Finder icon and name.",
+      "key_symbols": [
+        "enum PreviewImages",
+        "static let PreviewImages.extensions: Set<String> = [\"png\", \"jpg\", \"jpeg\", \"gif\", \"webp\", \"heic\", \"heif\", \"bmp\", \"tif\", \"tiff\", \"avif\", \"ico\", \"svg\"]",
+        "static func PreviewImages.isImagePath(_ path: String) -> Bool  // lowercased pathExtension in extensions",
+        "@MainActor private static var PreviewImages.resolvedPaths = RecentCache<String, String?>(limit: 600)",
+        "@MainActor static func PreviewImages.resolveToolImagePath(for call: ToolCall, workingDirectory: String?) -> String?",
+        "private static func PreviewImages.mentionsImage(_ text: String) -> Bool",
+        "private static func PreviewImages.search(for call: ToolCall, workingDirectory: String?) -> String?",
+        "@MainActor private static var PreviewImages.attachments: [String: Attachment]",
+        "@MainActor static func PreviewImages.attachment(for path: String) -> Attachment",
+        "@MainActor private static let PreviewImages.sizeFormatter: ByteCountFormatter (countStyle = .file)",
+        "@MainActor static func PreviewImages.fileSize(_ path: String) -> String?",
+        "@MainActor enum FileIcons { private static var cache: [String: NSImage]; private static var order: [String]; static func icon(for path: String) -> NSImage; private static func iconKey(for path: String) -> String }",
+        "enum PreviewVideos",
+        "static let PreviewVideos.extensions: Set<String> = [\"mov\", \"mp4\", \"m4v\", \"mpg\", \"mpeg\", \"avi\", \"mkv\", \"webm\"]",
+        "static func PreviewVideos.isVideoPath(_ path: String) -> Bool",
+        "static func PreviewVideos.thumbnail(for path: String, pointSize: CGFloat) async -> CGImage?",
+        "extension Attachment { var isVideo: Bool }  // mimeType.hasPrefix(\"video/\") || PreviewVideos.isVideoPath(path)",
+        "struct AttachmentPlayBadge: View",
+        "struct AttachmentVideoThumbnail: View { let attachment: Attachment; var size: CGFloat = 56; @State private var image: CGImage? }",
+        "struct AttachmentLargePreview: View { let attachment: Attachment; var imageSize: CGSize?; @State private var image: CGImage?; @State private var videoFrame: CGImage?; @State private var textPreview: String? }",
+        "static let AttachmentLargePreview.imageBounds = CGSize(width: 480, height: 360)",
+        "static func AttachmentLargePreview.imageDisplaySize(for attachment: Attachment) -> CGSize",
+        "@MainActor private static var AttachmentLargePreview.videoSizes: [String: CGSize] = [:]",
+        "static func AttachmentLargePreview.prefetchVideoSize(for attachment: Attachment) async",
+        "static func AttachmentLargePreview.videoDisplaySize(for attachment: Attachment) -> CGSize  // videoSizes[attachment.path] ?? imageBounds",
+        "private static func AttachmentLargePreview.textPreview(for attachment: Attachment) -> String?",
+        "struct ToolImagePreview: View { let path: String; @State private var image: CGImage? }"
+      ],
+      "calls_into": [
+        "RecentCache<Key, Value> (DroppyCode/Core/Support/RecentCache.swift): init(limit:), value(for:), insert(_:for:)",
+        "String.trimmed (DroppyCode/Core/Support/Text.swift:132, = trimmingCharacters(in: .whitespacesAndNewlines))",
+        "ToolCall fields kind (.read and rawValue), status.rawValue, title, detail",
+        "Attachment(name:path:mimeType:), Attachment.url, .path, .name, .mimeType, .isImage",
+        "ThumbnailCache.shared.thumbnail(for:pointSize:)?.image (actor in DroppyCode/Core/Support/ThumbnailCache.swift)",
+        "Chrome.secondaryText (DroppyCode/UI/Chrome/Chrome.swift:79, = Color(nsColor: .labelColor).opacity(0.7))",
+        "FileManager.default.fileExists(atPath:), fileExists(atPath:isDirectory:), attributesOfItem(atPath:)[.size]",
+        "URL.resourceValues(forKeys: [.contentTypeKey]) and [.fileSizeKey]; String(contentsOf:encoding: .utf8)",
+        "NSWorkspace.shared.icon(forFile:), activateFileViewerSelecting(_:), open(_:)",
+        "UTType(filenameExtension:)?.preferredMIMEType",
+        "ByteCountFormatter.string(fromByteCount:)",
+        "AVURLAsset, AVAssetImageGenerator.image(at:) async, AVAsset.loadTracks(withMediaType: .video), AVAssetTrack.load(.naturalSize, .preferredTransform)",
+        "ImageIO CGImageSourceCreateWithURL, CGImageSourceCopyPropertiesAtIndex, kCGImagePropertyPixelWidth/Height/Orientation",
+        "Task.detached(priority: .userInitiated)",
+        "Callers seen outside this file: AttachmentPreviewPanel.swift:82 calls AttachmentLargePreview.videoDisplaySize(for:); FileIcons.icon(for:) is also used at TimelineRows.swift:1315 and DownloadsPopover.swift:183 and :233."
+      ],
+      "state_owned": [
+        "PreviewImages.resolvedPaths: main-actor RecentCache<String, String?>(limit: 600) (nil answers cached too). RecentCache (Core/Support/RecentCache.swift) is a two-generation cache, not LRU/FIFO: insert (lines 43-55) rotates `previous = current` and starts an empty `current` when `current.count >= limit`; value(for:) (lines 22-28) returns a hit in `current`, or removes a hit from `previous` and re-inserts it into `current` (promotion). After the first rotation between 601 and 1200 answers are live, and a whole generation of up to 600 is dropped at once on the next rotation.",
+        "PreviewImages.attachments: main-actor unbounded [String: Attachment] so the same path always yields the same Attachment value (panel toggle identity).",
+        "PreviewImages.sizeFormatter: one shared ByteCountFormatter.",
+        "FileIcons.cache [String: NSImage] and FileIcons.order [String], FIFO-bounded at 64 entries.",
+        "AttachmentLargePreview.videoSizes: main-actor unbounded [String: CGSize] of aspect-fitted video display sizes keyed by path (new in 1.6.2).",
+        "View @State: AttachmentVideoThumbnail.image; AttachmentLargePreview.image, videoFrame, textPreview; ToolImagePreview.image."
+      ],
+      "side_effects": [
+        "Disk reads: fileExists checks for candidate image paths, file attribute reads for size, ImageIO header reads, AVFoundation asset/track loading and frame extraction, UTF-8 reads of small files for text preview, resource value reads for content type and file size.",
+        "\"Show in Finder\" reveals the file in Finder via NSWorkspace.shared.activateFileViewerSelecting([attachment.url]).",
+        "\"Open\" launches the file in its default app via NSWorkspace.shared.open(attachment.url) (large preview) or NSWorkspace.shared.open(URL(fileURLWithPath: path)) (tool image preview).",
+        "Video thumbnail appearance now triggers AttachmentLargePreview.prefetchVideoSize, populating the static videoSizes cache."
+      ],
+      "platform_assumptions": [
+        "AppKit NSWorkspace (icon(forFile:), activateFileViewerSelecting, open) and NSImage; on Windows replace with shell file icons (SHGetFileInfo / Electron app.getFileIcon), Explorer reveal (shell.showItemInFolder) and shell.openPath.",
+        "AVFoundation (AVURLAsset, AVAssetImageGenerator, loadTracks, AVAssetTrack.load(.naturalSize, .preferredTransform), CMTime) for video frames and dimensions; Windows needs e.g. a hidden <video> element / Media Foundation / ffmpeg equivalent; note mkv/avi/mpg/webm playability differs by platform.",
+        "ImageIO (CGImageSource, kCGImagePropertyOrientation with EXIF orientation >= 5 meaning rotated 90 degrees) for header-only pixel size; Windows needs an equivalent header reader (e.g. image-size library or WIC).",
+        "UniformTypeIdentifiers UTType(filenameExtension:).preferredMIMEType for MIME lookup; Windows needs an extension->MIME table.",
+        "URLResourceKey .contentTypeKey (UTType identifier strings like \"type:public.xxx\" used as icon cache keys) and .fileSizeKey.",
+        "Foundation ByteCountFormatter (lines 96-106: `formatter.countStyle = .file`, all other properties default; `sizeFormatter.string(fromByteCount: size.int64Value)`). The source sets only countStyle; the outputs follow Apple's documented defaults (decimal 1000-byte units for .file, isAdaptive true, allowsNonnumericFormatting true), e.g. \"500 bytes\", \"2 KB\" for 1500 bytes (KB without decimals), \"1.2 MB\" (one decimal for MB), \"Zero KB\" for 0. These examples come from Foundation, not from this repository; confirm them against a macOS run before freezing the port's formatter.",
+        "Path conventions: absolute detection by hasPrefix(\"/\"), \"file://\" URLs, and \"~/\" tilde expansion are POSIX; Windows paths (C:\\..., backslashes, UNC) need handling. NSString pathExtension/lastPathComponent/appendingPathComponent/expandingTildeInPath.",
+        "SwiftUI views, .quaternary hierarchical fill style, ProgressView, .buttonStyle(.link), .textSelection(.enabled), .task(id:), withAnimation(.easeOut(duration: 0.15)), Image(decorative:scale: 2) assuming 2x Retina pixels, SF Symbol \"play.fill\".",
+        "Swift concurrency (@MainActor statics, Task.detached, async) for off-main work.",
+        "Swift Character counting: `String(text.prefix(8_000))` (line 394) and `textPreview.count` (line 332) count Characters (extended grapheme clusters). JS slice(0, 8000) and .length count UTF-16 code units, so emoji or combining text would truncate earlier and change the box height in a naive port; count graphemes (Intl.Segmenter) instead.",
+        "FileIcons caches by extension (iconKey lines 130-131: `let ext = (path as NSString).pathExtension.lowercased()` / `if !ext.isEmpty { return ext }`). On Windows .exe, .lnk and .ico files have per-file icons, so a port keyed the same way would show the first such file's icon for every later one; the port needs per-path keys (or no cache) for those extensions."
+      ],
+      "persisted_fields": [
+        "None. All caches (resolvedPaths, attachments, FileIcons cache, videoSizes) are in-memory statics lost on relaunch."
+      ],
+      "ui_elements": [
+        "AttachmentPlayBadge: Circle filled .black.opacity(0.45), 30x30; SF Symbol \"play.fill\" in white, font .system(.body, weight: .semibold) (renders at 13pt: .body is 13 per B1 ChatZoom.swift:51 `case .headline, .body: 13`, so the glyph size is unchanged from B1's fixed 13; port as a 13px semibold glyph), offset x: 1; accessibilityHidden(true).",
+        "AttachmentVideoThumbnail: default size 56x56 square; RoundedRectangle cornerRadius 12 .continuous filled .quaternary.opacity(0.6); frame image resizable aspect .fill with .transition(.opacity); play badge centered; clipped to .rect(cornerRadius: 12, style: .continuous); frame fades in with withAnimation(.easeOut(duration: 0.15)).",
+        "AttachmentLargePreview container: VStack(alignment: .leading, spacing: 10), .padding(12), .frame(maxWidth: 504).",
+        "Image branch: slot = imageSize ?? CGSize(480, 360); loaded image aspect .fit clipped to 12pt continuous corners, .transition(.opacity); ProgressView spinner until loaded; slot centered with .frame(maxWidth: .infinity, alignment: .center).",
+        "Video branch: same slot sizing and 12pt rounding; frame overlaid with AttachmentPlayBadge; ProgressView until the frame lands.",
+        "Text branch: ScrollView of Text in .system(.caption, design: .monospaced), .textSelection(.enabled), leading, padding 10; frame width 440, height min(320, max(120, CGFloat(textPreview.count / 4))); background .quaternary.opacity(0.45) in a 10pt continuous rounded rect.",
+        "Fallback branch: HStack(spacing: 10) of the Finder icon 32x32 and the file name in .callout, lineLimit(2); frame width 320 leading, vertical padding 8.",
+        "Footer HStack(spacing: 8): file name (.caption, Chrome.secondaryText, lineLimit 1, truncation .middle); file size string (.caption, Chrome.secondaryText) when available; Spacer(minLength: 12); Button \"Show in Finder\" (.link style, .caption); Button \"Open\" (.link style, .caption).",
+        "ToolImagePreview: VStack(alignment: .leading, spacing: 6); ZStack with RoundedRectangle cornerRadius 10 .continuous filled .quaternary.opacity(0.45), image aspect .fit with .transition(.opacity) or ProgressView().controlSize(.small); frame maxWidth .infinity, maxHeight 420; clipped 10pt continuous; footer HStack(spacing: 8) with lastPathComponent (.caption, Chrome.secondaryText, lineLimit 1, truncation .middle), Spacer(minLength: 8), Button \"Open\" (.link, .caption). No animation on ToolImagePreview image assignment."
+      ],
+      "feature_notes": [
+        "resolveToolImagePath: returns nil immediately (no cache entry) unless call.title or call.detail contains \".\" + one of the 13 image extensions (case-insensitive substring). Cache key is kind.rawValue, status.rawValue, title, detail ?? \"\", workingDirectory ?? \"\" joined with \\u{1}; status is included so a result computed while a command runs does not outlive it. Nil results are cached.",
+        "search: for a .read call the candidates are the whole title and the non-empty detail (paths with spaces survive); for other kinds the title and detail are split on whitespace/newlines plus the characters \"'`()<>,; into words. Each candidate is trimmed, must be non-empty with an image extension, then resolved: leading \"/\" is absolute; \"file://\" is parsed with URL(string:)?.path (falls back to the raw string); \"~/\" is tilde-expanded; otherwise joined to workingDirectory, or skipped when there is none. The first candidate whose file exists is returned.",
+        "PreviewImages.attachment(for:): mimeType is UTType preferredMIMEType for the lowercased extension, or \"image/*\" when unknown or when the MIME type does not start with \"image/\". Cached per path forever.",
+        "fileSize: returns nil when attributes cannot be read; uses ByteCountFormatter countStyle .file.",
+        "FileIcons key: lowercased extension when present; else \"folder\" for an existing directory; else \"type:\" + UTType identifier from contentTypeKey; else \"file\". Cache evicts oldest first when order.count > 64 (so it holds at most 64). Callers: this file line 336, TimelineRows.swift:1315, DownloadsPopover.swift:183 and :233.",
+        "PreviewVideos.thumbnail: detached task at .userInitiated; maximumSize is (pointSize * 2).rounded(.up) pixels square; appliesPreferredTrackTransform = true; frame taken at 0.5 s (CMTime(seconds: 0.5, preferredTimescale: 600)) to avoid a black first frame; errors return nil.",
+        "imageDisplaySize: default pixel aspect 4x3 when the header is unreadable or dimensions are not positive; EXIF orientation >= 5 swaps width and height; result is aspect-fitted into 480x360 and floored. The fit can scale up as well as down (scale = min(480/w, 360/h)).",
+        "prefetchVideoSize: returns early if not a video or already cached; loads video tracks and the first track's naturalSize and preferredTransform with the async API; applies the transform, takes absolute values, requires positive dimensions, aspect-fits into 480x360 with floor, stores in videoSizes[path]. On any failure nothing is stored, so videoDisplaySize falls back to 480x360.",
+        "AttachmentVideoThumbnail task (id: attachment.path): first awaits prefetchVideoSize, then returns if a frame is already present, else fetches a frame at pointSize = size and fades it in over 0.15 s.",
+        "AttachmentLargePreview task (id: attachment.path): images load via ThumbnailCache.shared.thumbnail(pointSize: 480) and fade in over 0.15 s (image set even when nil, leaving the spinner); videos fetch a frame at pointSize 480 and fade in, and if the frame fails the text preview is attempted instead (but the body still takes the video branch, so a failed video frame keeps showing the spinner); all other files get textPreview.",
+        "textPreview: only when fileSizeKey reads and size < 500_000 bytes; must decode as UTF-8 and be non-empty; truncated to the first 8_000 characters. The 8_000 limit counts Swift Characters (grapheme clusters), not UTF-16 units.",
+        "Text preview box height formula (line 332): min(320, max(120, CGFloat(textPreview.count / 4))) using integer division of the Character (grapheme cluster) count.",
+        "ToolImagePreview loads via ThumbnailCache.shared.thumbnail(for: path, pointSize: 900).",
+        "Visible strings verbatim: \"Show in Finder\", \"Open\".",
+        "B1->B2: (1) search now uses candidate.trimmed instead of candidate.trimmingCharacters(in: .whitespacesAndNewlines) (same behaviour via the String.trimmed helper). (2) AttachmentPlayBadge play glyph font changed from .system(size: 13, weight: .semibold) to .system(.body, weight: .semibold) (text style instead of fixed 13pt; .body is 13pt on macOS per B1 ChatZoom.swift:51, so the default rendered size is unchanged). (3) AttachmentVideoThumbnail's task now first awaits AttachmentLargePreview.prefetchVideoSize(for: attachment). (4) videoDisplaySize no longer synchronously reads asset.tracks(withMediaType: .video) and computes the size; the computation moved into the new async prefetchVideoSize (loadTracks + load(.naturalSize, .preferredTransform)) that fills the new @MainActor private static var videoSizes: [String: CGSize] cache, and videoDisplaySize now returns videoSizes[attachment.path] ?? imageBounds. (5) The large preview footer name and size labels changed from .foregroundStyle(.secondary) and .foregroundStyle(.tertiary) to Chrome.secondaryText for both, and ToolImagePreview's file name from .secondary to Chrome.secondaryText. File grew from 430 to 440 lines.",
+        "Isolation: AttachmentLargePreview (line 231 `struct AttachmentLargePreview: View`) has no explicit @MainActor, but the project builds as Swift 6 (`SWIFT_VERSION = 6.0`, DroppyCode.xcodeproj/project.pbxproj:217 and :279, project.yml:17) and both prefetchVideoSize (line 268) and videoDisplaySize (line 283) read or write the `@MainActor private static var videoSizes` (line 264) synchronously, which compiles only when they are main-actor isolated; View conformance infers @MainActor for the type. So both run on the main actor. prefetchVideoSize checks `videoSizes[attachment.path] == nil` (line 269) before its awaits (lines 271, 273) and writes at line 278, so two in-flight calls for the same path can both load the track; harmless, the last (identical) write wins."
+      ],
+      "unresolved_questions": [
+        "If the panel is opened for a video whose thumbnail task has not yet finished prefetching, the panel is sized at 480x360; whether the panel re-sizes later is decided in AttachmentPreviewPanel.swift, not here.",
+        "The video branch of AttachmentLargePreview sets textPreview on frame failure but still renders the video branch (spinner); whether this is intended is not stated."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Common/ChatFont.swift",
+      "sha256": "e6ed43b982a139cc7ff2edb1003bf443d32d4b08e618b89871b0b1cb07388ca2",
+      "lines_total": 11,
+      "ranges_read": [
+        [
+          1,
+          11
+        ]
+      ],
+      "purpose": "File new in 1.6.2, but the function is not: Font.chat existed at B1 in DroppyCode/UI/Common/ChatZoom.swift:62 (deleted in B2) as `static func chat(_ style: Font.TextStyle, weight: Font.Weight? = nil, design: Font.Design = .default, zoom: CGFloat) -> Font`. B2 moves it here and drops the `zoom:` parameter and the scaled-size path, so the conversation views get plain system text styles. Its doc comment ties it to the new app-wide zoom (\"The app-wide zoom scales the window, not the type\"), so this helper applies no size multiplier; it only defaults the .headline style to semibold.",
+      "key_symbols": [
+        "extension Font",
+        "static func Font.chat(_ style: Font.TextStyle, weight: Font.Weight? = nil, design: Font.Design = .default) -> Font"
+      ],
+      "calls_into": [
+        "SwiftUI Font.system(_ style: Font.TextStyle, design: Font.Design)",
+        "SwiftUI Font.weight(_:)"
+      ],
+      "state_owned": [
+        "None."
+      ],
+      "side_effects": [
+        "None; pure function returning a Font."
+      ],
+      "platform_assumptions": [
+        "SwiftUI Font text styles resolve to the macOS system font and its per-style sizes, which this file does not state. The table is in the deleted B1 ChatZoom.swift:45-56 (`chatBaseSize`, doc comment \"The point size macOS lays a text style out at\"): `.largeTitle: 26`, `.title: 22`, `.title2: 17`, `.title3: 15`, `.headline, .body: 13`, `.callout: 12`, `.subheadline: 11`, `.footnote, .caption, .caption2: 10`, `@unknown default: 13`. A Windows port maps each TextStyle (in Font.chat and in plain `.system(.body/.caption/.callout ...)` uses) to these pixel sizes, with the family (Segoe UI Variable) chosen to match.",
+        "Font.Design (.default, .monospaced, .rounded, .serif) maps to SF variants; Windows needs equivalents (e.g. Cascadia Mono / Consolas for .monospaced)."
+      ],
+      "persisted_fields": [
+        "None."
+      ],
+      "ui_elements": [
+        "No controls. Defines font resolution: Font.system(style, design: design), with weight applied only when resolved; .headline defaults to .semibold when no weight is passed."
+      ],
+      "feature_notes": [
+        "resolvedWeight = weight ?? (style == .headline ? .semibold : nil): an explicit weight always wins, including for .headline; any non-headline style with no weight keeps the system default weight (no .weight modifier applied).",
+        "design defaults to .default; no size override, no dynamic scale factor.",
+        "Used from 5 Swift files in the B2 tree (grep of \".chat(\"), outside this bundle.",
+        "B1->B2: the file is new (11 lines; absent at dd2b86ef) but Font.chat moved here from B1 ChatZoom.swift:59-70. Kept: the `weight: Font.Weight? = nil, design: Font.Design = .default` parameters and `let resolvedWeight = weight ?? (style == .headline ? .semibold : nil)` (B1 line 63), and the zoom == 1 path `Font.system(style, design: design)` plus weight (B1 lines 64-66), now the only path. Removed: the `zoom: CGFloat` parameter, the scaled path `let size = (chatBaseSize(style) * zoom).rounded(); return Font.system(size: size, weight: resolvedWeight ?? .regular, design: design)` (B1 lines 68-69), `chatBaseSize`, the ChatZoom enum and the `chatZoom` EnvironmentValues key (B1 lines 30-41, default 1). A port built from B1 must drop the per-conversation font scaling."
+      ],
+      "unresolved_questions": [
+        "Why .headline is given .semibold is not stated beyond \"the conversation's own weight\"; the exact visual target weight in the port should follow this code: semibold."
+      ]
+    }
+  ]
+}

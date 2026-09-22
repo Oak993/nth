@@ -1,0 +1,272 @@
+{
+  "bundle_id": "R2-30",
+  "reader": "R2-30-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/Providers/CommandCodeAPI.swift",
+      "sha256": "e6206fe851accb6d7fbe4ed4f9944b9856eff8e2f6308f9effeeac11bf7acf8d",
+      "lines_total": 458,
+      "ranges_read": [
+        [
+          1,
+          458
+        ]
+      ],
+      "purpose": "A caseless enum `CommandCodeAPI` that holds every non-session piece of the Command Code (`cmd`) provider: locating the API key (env `COMMAND_CODE_API_KEY` first, else `~/.commandcode/auth.json`), reading the CLI's `~/.commandcode/config.json`, probing sign-in with `cmd status --no-auto-update`, and fetching plan windows and dollar credits from `https://api.commandcode.ai/alpha/billing/credits` and `/alpha/billing/subscriptions`. It also parses `cmd --list-models --no-auto-update` output into `ModelOption`s (with display names, per-model reasoning-effort lists and context-window sizes from hard-coded tables that mirror `cmd 1.53.1`), ships a 9-entry seed catalog, and embeds the TypeScript approval mod (`droppy-code-approvals.ts`) that CommandCodeSession loads with `--mod` to gate tool calls through request/reply files and to register MCP tools from the Droppy MCP bridge.",
+      "key_symbols": [
+        "enum CommandCodeAPI",
+        "static let baseURL = URL(string: \"https://api.commandcode.ai\")!",
+        "static let billingURL = URL(string: \"https://commandcode.ai/billing\")!",
+        "static func apiKey(environment: [String: String]) -> String?",
+        "struct StoredLogin { var apiKey: String; var userName: String? }",
+        "static func storedLogin(environment: [String: String]) -> StoredLogin?",
+        "static func userConfig(environment: [String: String]) -> JSONValue?",
+        "static func authStatus(executable: URL, environment: [String: String]) async -> ProviderStatus.Auth",
+        "static func planLimits(environment: [String: String]) async -> PlanLimits?",
+        "static func credits(environment: [String: String]) async -> ProviderCredits?",
+        "static func credits(apiKey key: String) async -> ProviderCredits?",
+        "private static let planNames: [String: String] (8 entries)",
+        "static func planName(_ planID: String?) -> String?",
+        "private static func fetch(_ path: String, key: String) async -> JSONValue?",
+        "static func listModels(executable: URL, environment: [String: String]) async throws -> [ModelOption]",
+        "static func parseModels(_ text: String, configuredModel: String?, configuredEfforts: JSONValue?) -> [ModelOption]",
+        "static func matches(_ id: String, _ query: String) -> Bool",
+        "static func displayName(for id: String) -> String",
+        "static func efforts(for id: String) -> [String]",
+        "static func contextWindow(for id: String?) -> Int?",
+        "static let seed: [ModelOption] (9 entries)",
+        "static let approvalMod: String (raw TypeScript source, lines 372-437)",
+        "static var supportDirectory: URL",
+        "static func installMod() throws -> URL"
+      ],
+      "calls_into": [
+        "LoginEnvironment.homeDirectory (HOME fallback)",
+        "JSONValue.parse(_:), JSONValue subscripts, .string/.double/.bool/.isNull",
+        "String.trimmed (Core/Support/Text.swift:132, `trimmingCharacters(in: .whitespacesAndNewlines)`)",
+        "Shell.run(_:_:environment:timeout:) returning output/errorOutput/status",
+        "TextCleanup.stripANSI, TextCleanup.lastLines",
+        "ProviderStatus.Auth (.signedOut, .signedIn(String?), .unknown)",
+        "PlanLimits(planName:windows:), PlanLimits.Window(id:title:percent:resetsAt:)",
+        "ProviderCredits(total:currency:toppedUp:granted:monthly:isUsable:), ProviderCredits.money(_:currency:)",
+        "ModelOption(id:name:detail:efforts:defaultEffort:isDefault:)",
+        "ProviderError.failed(String)",
+        "URLSession.shared.data(for:)",
+        "FileManager.default.urls(for:in:), createDirectory",
+        "AppInfo.name",
+        "Swift Regex literals #/Authenticated as (\\S+)/#, #/^(\\d+)x$/#, #/^(\\S+)\\s{2,}(.+)$/#"
+      ],
+      "state_owned": [
+        "No mutable state; only static constants (baseURL, billingURL, planNames, seed, approvalMod) and computed supportDirectory."
+      ],
+      "side_effects": [
+        "Reads `<HOME>/.commandcode/auth.json` (the CLI's credential file) and `<HOME>/.commandcode/config.json`; HOME from the passed environment when non-empty, else LoginEnvironment.homeDirectory.",
+        "Spawns `cmd status --no-auto-update` (timeout 25 s) and `cmd --list-models --no-auto-update` (timeout 30 s).",
+        "HTTP GET with `Authorization: Bearer <key>` and `Accept: application/json`, timeoutInterval 15, to `/alpha/billing/credits` and `/alpha/billing/subscriptions`; only status 200 is parsed, anything else yields nil.",
+        "planLimits fires both GETs concurrently via `async let`.",
+        "installMod creates `<Application Support>/<AppInfo.name>/CommandCode/` and writes `droppy-code-approvals.ts` atomically only when its bytes differ from `approvalMod.utf8`.",
+        "The embedded mod (run by the CLI, not the app), per gated call: unlinks any stale `<id>.reply.json` first (line 410 `try { fs.unlinkSync(reply) } catch {}`), writes `<id>.request.json.tmp` and renames it to `<id>.request.json` (lines 411-412), then polls `<id>.reply.json` every 40 ms. When a reply arrives it unlinks ONLY the reply (line 418) and leaves the request file alone (on the normal path the app deletes the request as it reads it, CommandCodeSession.swift:676 `try? fileManager.removeItem(at: file)`). The mod unlinks the request itself only on abort (line 425) or on `process.ppid === 1` / 6-hour timeout (line 429). Separately, when DROPPY_CODE_MCP_BRIDGE is set it dynamically imports that file (line 390 `import(bridgePath)`)."
+      ],
+      "platform_assumptions": [
+        "FileManager `.applicationSupportDirectory` in `.userDomainMask`, fallback `<home>/Library/Application Support` (macOS path); Windows needs %APPDATA%/%LOCALAPPDATA% equivalent.",
+        "HOME environment variable and `~/.commandcode/...` paths (Windows uses USERPROFILE).",
+        "URLSession for HTTPS.",
+        "Shell.run process spawning of the `cmd` executable (on Windows `cmd` collides with cmd.exe naming; the port must resolve the Command Code binary explicitly).",
+        "Swift Regex literals and `localizedCaseInsensitiveContains`.",
+        "Data.write(options: .atomic).",
+        "Mod's `process.ppid === 1` orphan check is a POSIX assumption (on Windows the parent pid does not become 1 when the parent dies).",
+        "Mod ids sanitised with `/[^A-Za-z0-9_.-]/g` -> '_' keep file names valid on Windows too.",
+        "Line 390 `import(bridgePath)` passes the raw value of `process.env.DROPPY_CODE_MCP_BRIDGE`, which CommandCodeSession.swift:175 sets to `bridge.path` (a filesystem path, not a URL). On Windows that is a drive-letter path (`C:\\...`); Node's ESM loader rejects a bare absolute Windows path in dynamic `import()` (it needs a `file://` URL, e.g. via `pathToFileURL`), unless the CLI's TypeScript compilation turns `import()` into `require()`, which this file does not define. Any failure is swallowed by line 400 `.catch((error: any) => console.error('droppy mcp', error))`, so the only symptom is that no MCP tools appear. The port must pass a `file://` URL or verify the CLI's loader on Windows."
+      ],
+      "persisted_fields": [
+        "Read-only from `~/.commandcode/auth.json` (per doc comment written by `cmd login`): `apiKey` (trimmed, must be non-empty), `userName` falling back to `name`; doc also lists `userId`, `keyName`, `authenticatedAt` (not read).",
+        "Read from `~/.commandcode/config.json`: `model` (String) and `reasoningEffort` (object keyed by model id -> effort String).",
+        "Written: `<Application Support>/<AppInfo.name>/CommandCode/droppy-code-approvals.ts` (UTF-8). Exact bytes: `approvalMod` is a Swift raw multi-line literal opened with `#\"\"\"` (line 372) and closed with `\"\"\"#` (line 437) indented 4 spaces, so 4 leading spaces are stripped from every content line (lines 373-436); the three blank lines (375, 384, 386) are empty; lines join with LF and the text ends at the final `}` (line 436) with NO trailing newline. The literal contains no backslashes, and `${...}` sequences (lines 407-409, 411) are literal TypeScript template syntax (raw-string interpolation would need `\\#(`). Reconstructed file: 64 lines, 63 LF, 2786 bytes, all ASCII, sha256 bf0104a382b391ce621c646ded3f04aa429f1a72b69b5fa28a0bb8501e16d93b; first line `import fs from 'node:fs'`. installMod (lines 448-457) rewrites it only when `(try? Data(contentsOf: file)) != data`.",
+        "Mod request file JSON: {\"toolCallId\": id, \"toolName\", \"input\"}; reply JSON read: `decision` ('allow' passes) and `reason`."
+      ],
+      "ui_elements": [
+        "Plan window titles: \"5-hour limit · <money>\" and \"Weekly · <money>\" where money is ProviderCredits.money(cap, currency: \"USD\") (separator is ' · ', U+00B7).",
+        "Plan names shown: \"Go\", \"GOAT\", \"Pro\", \"Provider\", \"Max 10×\", \"Max 20×\", \"Teams Pro\" (× is U+00D7).",
+        "Model detail string: \"<section> · <description>\" (either part omitted when absent).",
+        "Seed model names/details verbatim: \"Claude Sonnet 5\" / \"Anthropic · best combo of speed & intelligence\" (isDefault: true); \"Claude Fable 5.1\" / \"Anthropic · most capable for demanding reasoning & long-horizon agents\"; \"Claude Opus 5\" / \"Anthropic · most intelligent Opus for agents and coding\"; \"GPT-6 Astra\" / \"OpenAI · most capable OpenAI model for demanding reasoning & agents\"; \"GPT-5.6 Sol\" / \"OpenAI · latest frontier model for general complex work\"; \"Gemini 3.8 Flash\" / \"Google · newest Gemini Flash, improved core reasoning\"; \"DeepSeek V4 Flash\" / \"Open Source · fast hybrid-attention reasoning\"; \"Kimi K3\" / \"Open Source · long-horizon coding & knowledge work with 1M context\"; \"GLM 5.3\" / \"Open Source · frontier coding with emergent cyber capabilities\".",
+        "Error text when no models parse: last lines of stderr+stdout, else \"Command Code listed no models.\"",
+        "No SwiftUI views, geometry, colours or animations in this file."
+      ],
+      "feature_notes": [
+        "apiKey: `COMMAND_CODE_API_KEY` from the passed environment, trimmed, wins when non-empty; else storedLogin()?.apiKey.",
+        "authStatus: no key -> .signedOut without running the CLI; Shell.run failure -> .unknown; ANSI-stripped stdout+stderr matched against `Authenticated as (\\S+)` -> .signedIn(name); exit status 3 or text containing \"not authenticated\" or \"not logged in\" (case-insensitive) -> .signedOut; \"authentication verified\" -> .signedIn(storedLogin userName); else .unknown. Match order is Authenticated-as first.",
+        "planLimits: needs key; fires `fetch(\"/alpha/billing/credits\")` and `fetch(\"/alpha/billing/subscriptions\")` concurrently (lines 80-81); credits fetch nil -> nil (line 84). Here `credits` is the WHOLE /alpha/billing/credits response, and the windows are read from its TOP-LEVEL `windowLimits` (line 86 `let limits = credits[\"windowLimits\"] ?? .null`), i.e. `windowLimits` is a sibling of the nested `credits` object that credits(apiKey:) reads (line 113 `json[\"credits\"]`), not inside it. Response shape used: `{ windowLimits: { fiveHour: {cap, used, resetAt}, weekly: {cap, used, resetAt} }, credits: { monthlyCredits, purchasedCredits, freeCredits, belowThreshold } }`. Iterates in fixed order [(\"fiveHour\",\"5-hour limit\"), (\"weekly\",\"Weekly\")] (line 87); skips a window that is missing, null, or has `cap` missing or <= 0 (line 88); `used` defaults 0; percent = min(100, used / cap * 100); `resetAt` is epoch milliseconds divided by 1_000, and 0 or less means nil (line 90). Window id is the key string. Plan name from subscriptions `data.planId` (line 98). Returns nil only when there are no windows and no plan name. Doc: Go plan $3 per five hours, Pro $16, on-demand credits never throttled.",
+        "credits(apiKey:): GET /alpha/billing/credits, reads `credits` object (nil when absent/null): monthlyCredits, purchasedCredits, freeCredits (each default 0); total = sum; currency \"USD\"; toppedUp = purchased; granted = free; monthly = monthly; isUsable = belowThreshold != true.",
+        "planNames table (key lowercased lookup): individual-go Go, individual-goat GOAT, individual-pro Pro, individual-pro-v1 Pro, individual-provider Provider, individual-max \"Max 10×\", individual-ultra \"Max 20×\", teams-pro \"Teams Pro\".",
+        "planName fallback: nil/empty -> nil; exact table lookup on `planID.lowercased()` first (line 149); else `planID.split(separator: \"-\")` (line 150; Swift `split` omits empty subsequences by default, so `individual--max` gives [\"individual\",\"max\"], unlike JS `.split('-')` which keeps \"\"); drop a leading part equal to \"individual\" case-insensitively; empty -> nil; each part is switched on `part.lowercased()`: goat->GOAT, pro->Pro, go->Go, max->Max, ultra->Ultra, teams/team->Teams; in the default branch the multiplier regex `#/^(\\d+)x$/#` runs on the ORIGINAL `part` (line 162), not the lowercased one, so it is case-sensitive: `20x` -> \"20×\" but `20X` does not match and falls to `part.prefix(1).uppercased() + part.dropFirst()` = \"20X\"; other parts get their first letter uppercased. Joined with a space (e.g. individual-max-20x -> \"Max 20×\", individual-max-20X -> \"Max 20X\").",
+        "parseModels: lines trimmed of whitespace; blank lines skipped; lines starting \"Available models\", \"Pass the full id\", \"cmd \", \"Docs:\", \"Usage\" skipped. A line not matching `^(\\S+)\\s{2,}(.+)$` becomes the section header if it has no space and starts uppercase, or if it is shorter than 24 characters. Model ids must contain '-' or '/'. \" (recommended)\" and \" (default)\" substrings are removed and flag isDefault. defaultEffort = configuredEfforts[id].string. Configured model (via matches) marks default and is moved to index 0 with it the sole default; otherwise the first isDefault row stays sole default; order otherwise preserved.",
+        "matches (lines 237-244): lowercases both; equal -> true; else compares `split(separator: \"/\").last` of each. Swift `split` omits empty subsequences, so a trailing-slash id `foo/` has short name \"foo\" (JS `'foo/'.split('/').pop()` would give \"\"), and `/` alone yields no parts, so `.last` is nil and the `?? lhs` fallback returns the whole lowered string.",
+        "displayName: `id.split(separator: \"/\").last` (line 250), then `split(separator: \":\").first` (line 251); `short.contains(\":free\")` adds suffix \" Free\" (line 252); `base.split(separator: \"-\")` (line 253). All three Swift `split` calls omit empty subsequences, so ids with `--`, leading/trailing '-', or a trailing '/' produce no empty tokens (a naive JS `.split()` would); consequently every token reaching `allSatisfy(\\.isNumber)` is non-empty. Adjacent all-digit tokens merge with '.' (claude-fable-5-1 -> Fable 5.1); gpt->GPT, glm->GLM, hy3/hy4 uppercased, v4/v4.1/v2.5 uppercased, tokens starting with a digit kept, others first-letter-uppercased; if first word is GPT and more words exist: \"GPT-\" + rest joined by space (gpt-5.6-terra -> \"GPT-5.6 Terra\").",
+        "efforts table (lookup `table[id.lowercased()]`, line 309, exact full key, unknown -> [], no matches() fallback): full=[low,medium,high,xhigh,max] for claude-sonnet-5, claude-sonnet-4-6, claude-fable-5-1, claude-fable-5, claude-opus-5, claude-opus-4-8, claude-opus-4-7, gpt-6-astra, gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna, meta/muse-spark-1.3; toXHigh=[low,medium,high,xhigh] for gpt-5.5, gpt-5.4, gpt-5.3-codex, xai/grok-4.6, meta/muse-spark-1.1, meta/muse-spark-1.2, meta/muse-spark-1.2-contributor, meta/muse-spark-1.3-contributor; toHigh=[low,medium,high] for gpt-5.4-mini, google/gemini-3.8-flash, google/gemini-3.7-flash, google/gemini-3.6-flash, google/gemini-3.5-flash, google/gemini-3.5-flash-lite, google/gemini-3.1-flash-lite, tencent/hy4-preview, xai/grok-4.5, minimaxai/minimax-m3, minimax/minimax-m3-free; highMax=[high,max] for deepseek/deepseek-v4-pro, deepseek/deepseek-v4-flash, deepseek/deepseek-v4-flash-vision-exp, zai-org/glm-5.2; lowHighMax=[low,high,max] for deepseek/deepseek-v4-flash-fast, deepseek/deepseek-v4.1-flash, moonshotai/kimi-k3, zai-org/glm-5.3, z-ai/glm-5.3-flash; sakana/fugu-ultra=[high,xhigh]; qwen/qwen3.8-max-0902, qwen/qwen3.8-max, qwen/qwen3.8-27b, qwen/qwen3.8-flash=[low,medium,xhigh]. Note both prefixes `minimaxai/` and `minimax/` occur (line 307).",
+        "contextWindow (lines 313-345): nil id -> nil; exact `table[id.lowercased()]` (line 343), else `table.first { matches($0.key, lowered) }?.value` (line 344). Every one of the 69 keys has a distinct component after the last '/', so the fallback has at most one hit and Dictionary iteration order does not matter. Full keys and values: claude-sonnet-5, claude-sonnet-4-6, claude-fable-5-1, claude-fable-5, claude-opus-5, claude-opus-4-8, claude-opus-4-7 = 1_000_000; claude-haiku-4-5, claude-haiku-4-5-20251001 = 200_000; gpt-6-astra, gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna = 1_050_000; gpt-5.5, gpt-5.4, gpt-5.3-codex, gpt-5.4-mini = 400_000; deepseek/deepseek-v4-pro, deepseek/deepseek-v4-flash, deepseek/deepseek-v4-flash-vision-exp, deepseek/deepseek-v4-flash-fast, deepseek/deepseek-v4.1-flash = 1_000_000; moonshotai/kimi-k3 = 1_000_000, moonshotai/kimi-k2.7-code = 256_000, moonshotai/kimi-k2.7-code-highspeed = 262_000, moonshotai/kimi-k2.6 = 256_000, moonshotai/kimi-k2.5 = 256_000; zai-org/glm-5.3 = 1_000_000, z-ai/glm-5.3-flash = 1_048_576, zai-org/glm-5.2 = 1_000_000, zai-org/glm-5.2-fast = 1_000_000, zai-org/glm-5 = 200_000, zai-org/glm-5.1 = 200_000; minimaxai/minimax-m3 = 1_000_000, minimaxai/minimax-m2.7 = 197_000, minimaxai/minimax-m2.5 = 200_000; xiaomi/mimo-v2.5-pro = 1_000_000, xiaomi/mimo-v2.5 = 1_000_000; qwen/qwen3.7-max, qwen/qwen3.7-plus, qwen/qwen3.8-max-0902, qwen/qwen3.8-max = 1_000_000, qwen/qwen3.8-27b = 262_144, qwen/qwen3.8-flash = 1_000_000, qwen/qwen3.7-flash = 1_000_000; meituan/longcat-2.0:free = 1_048_576; stepfun/step-3.7-flash = 256_000, stepfun/step-3.5-flash = 1_000_000; tencent/hy4-preview = 1_048_576, tencent/hy3-paid = 262_144; google/gemini-3.5-flash = 1_000_000, google/gemini-3.8-flash = 1_000_000, google/gemini-3.7-flash = 1_048_576, google/gemini-3.6-flash = 1_000_000, google/gemini-3.5-flash-lite = 1_000_000, google/gemini-3.1-flash-lite = 1_000_000; thinkingmachines/inkling = 256_000, thinkingmachines/inkling-small = 1_000_000; poolside/laguna-s-2.1-free = 256_000; inclusionai/ling-3.0-flash-sante:free = 262_144; sakana/fugu-ultra = 1_000_000; xai/grok-4.5 = 500_000, xai/grok-4.6 = 500_000; meta/muse-spark-1.1, meta/muse-spark-1.2, meta/muse-spark-1.2-contributor, meta/muse-spark-1.3, meta/muse-spark-1.3-contributor = 1_048_576; nvidia/nemotron-3-ultra-550b-a55b = 1_000_000.",
+        "seed order: claude-sonnet-5 (default), claude-fable-5-1, claude-opus-5, gpt-6-astra, gpt-5.6-sol, google/gemini-3.8-flash, deepseek/deepseek-v4-flash, moonshotai/kimi-k3, zai-org/glm-5.3; efforts from efforts(for:).",
+        "approvalMod READ_ONLY set: read_file, read_directory, glob, grep, shell_output, shell_tasks, todo_write, task_create, task_update, task_list, task_get, sleep, web_search, web_fetch, agent, agent_output, activate_skill, taste, get_diagnostics, ask_user_question, plan_review, enter_plan_mode, exit_plan_mode, cron_list, run_command.",
+        "approvalMod MCP: when DROPPY_CODE_MCP_BRIDGE is set, `import(bridgePath)` (line 390) then for each tool of `await bridge.loadMCPTools()` calls cmd.addTool with schema name 'mcp__' + server + '__' + name, description, input_schema: tool.inputSchema, run returning { ok: true, content: [{ type: 'text', text }] } from tool.call(input || {}); failures logged with console.error('droppy mcp', error). The registration code runs before the `if (!dir) return` approvals check (lines 402-403), so it runs even when DROPPY_CODE_APPROVALS is unset, BUT only when the mod is loaded at all: CommandCodeSession.swift:162-165 passes `--mod` only `if let modURL, runtimeMode != .fullAccess || interactionMode == .plan || FileManager.default.fileExists(atPath: MCPPaths.claudeConfigURL.path)`. So in Full access outside plan mode with no Claude config file, no mod runs and no MCP tools register.",
+        "approvalMod gate: DROPPY_CODE_APPROVALS unset -> no hook. beforeToolCall: READ_ONLY -> pass; id = toolCallId or `${Date.now()}-${random base36}` sanitised; deletes stale reply, writes request .tmp then renames; polls every 40 ms: reply present -> delete it, JSON.parse (errors -> {}), decision 'allow' -> pass, else {block: true, additionalContext: answer.reason || 'The user declined this in Droppy Code.'}; ctx.signal.aborted -> delete request, block with 'The turn was stopped.'; process.ppid === 1 or 6 hours elapsed (6 * 60 * 60 * 1000 ms) -> delete request, block with 'Droppy Code did not answer.'",
+        "supportDirectory (lines 440-444) = `<.applicationSupportDirectory>/\\(AppInfo.name)/CommandCode` (isDirectory true); mod file name `droppy-code-approvals.ts`. `AppInfo.name` is `Bundle.main.object(forInfoDictionaryKey: \"CFBundleDisplayName\") as? String ?? \"Droppy Code\"` (DroppyCode/Core/Support/Text.swift:4); the project sets `INFOPLIST_KEY_CFBundleDisplayName = \"Droppy Code\"` for the release app and `\"Droppy Code Dev\"` for the dev target (DroppyCode.xcodeproj/project.pbxproj:293, 317). So the release folder is `~/Library/Application Support/Droppy Code/CommandCode/` and approval dirs are `.../Droppy Code/CommandCode/approvals/<UUID>/`; a Windows port would use the equivalent `...\\Droppy Code\\CommandCode\\approvals\\<UUID>`.",
+        "B1->B2: two mechanical refactors only. Line 20 `environment[\"COMMAND_CODE_API_KEY\"]?.trimmingCharacters(in: .whitespacesAndNewlines)` became `environment[\"COMMAND_CODE_API_KEY\"]?.trimmed`, and line 37 `json[\"apiKey\"]?.string?.trimmingCharacters(in: .whitespacesAndNewlines)` became `json[\"apiKey\"]?.string?.trimmed`. The new `String.trimmed` helper (added in B2 at DroppyCode/Core/Support/Text.swift:132) is `trimmingCharacters(in: .whitespacesAndNewlines)`, so behaviour is unchanged (4 lines changed, 2 insertions, 2 deletions).",
+        "listModels (lines 183-192): `Shell.run(executable, [\"--list-models\", \"--no-auto-update\"], environment:, timeout: 30)`; models are parsed from STDOUT ONLY (`TextCleanup.stripANSI(result.output)`, line 185) and the exit status is never checked, so a non-zero exit with parseable stdout is accepted. It throws only when the parsed list is empty, with `ProviderError.failed(TextCleanup.lastLines(result.errorOutput + result.output) ?? \"Command Code listed no models.\")` (stderr first, then stdout). A throw from Shell.run itself propagates."
+      ],
+      "unresolved_questions": [
+        "Where on Windows the Command Code CLI keeps auth.json/config.json (USERPROFILE\\.commandcode assumed) and what the Windows executable name is; not answerable from this file.",
+        "The mod's `process.ppid === 1` orphan detection does not work on Windows; the port needs a different parent-liveness check to preserve the 'Droppy Code did not answer.' path.",
+        "Whether the Command Code CLI's mod loader on Windows accepts a bare drive-letter path in the mod's `import(bridgePath)` (line 390) or needs a `file://` URL; not defined by this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Providers/CommandCodeSession.swift",
+      "sha256": "8e50c8a20b4d9f0384277886326b3b8f6d45e2977316357adf787a5d646912a7",
+      "lines_total": 771,
+      "ranges_read": [
+        [
+          1,
+          400
+        ],
+        [
+          401,
+          771
+        ]
+      ],
+      "purpose": "The `@MainActor final class CommandCodeSession: ProviderSession` that runs Command Code in headless print mode: every turn spawns a fresh `cmd -p --output-format json ...` StdioProcess with the prompt on stdin, parses newline-delimited `event` frames and a final `result` line into ProviderEvents, and resumes the conversation with `--resume <sessionId>`. It implements Droppy's approval modes by running the CLI with `--yolo` plus the CommandCodeAPI approval mod, watching a per-session approval directory for `<id>.request.json` files, auto-answering by runtime mode and session grants or raising an ApprovalRequest, and writing `<id>.reply.json` back; exit codes and result subtypes are mapped to completion states and actionable error text.",
+      "key_symbols": [
+        "@MainActor final class CommandCodeSession: ProviderSession",
+        "var onEvent: ((ProviderEvent) -> Void)?",
+        "private let configuration: SessionConfiguration",
+        "private var process: StdioProcess?; readTask: Task<Void, Never>?; sessionID: String?; started/stopped: Bool; runtimeMode: RuntimeMode; interactionMode: InteractionMode; model: String?; effort: String?",
+        "private var turnActive, interruptRequested, isFinalReport: Bool",
+        "private let launchID = String(UUID().uuidString.prefix(8))",
+        "private var turnCounter, messageCounter, thinkingCounter: Int; currentMessageID, currentThinkingID: String?; messageText, thinkingText: String; streamedText: Bool; activeModel: String?",
+        "private var editSnapshots: [String: String]; toolNames: [String: String]; toolInputs: [String: JSONValue]",
+        "private struct RunResult { var subtype: String; var stopReason: String?; var error: String? }",
+        "private var runResult: RunResult?; runError: String?",
+        "private var modURL: URL?; approvalDirectory: URL?; approvalWatcher: DispatchSourceFileSystemObject?; pendingApprovals: [String: ApprovalRequest]; sessionGrants: Set<String>",
+        "private static let maxTurns = 400",
+        "init(configuration: SessionConfiguration)",
+        "var isRunning: Bool { started && !stopped }",
+        "private var workingDirectory: String",
+        "func start() async throws -> String",
+        "private static func transcriptExists(_ sessionID: String, environment: [String: String]) -> Bool",
+        "func send(_ input: TurnInput) async throws",
+        "private static func prompt(for input: TurnInput) -> String",
+        "private static func takesEffort(_ effort: String, model: String?) -> Bool",
+        "func interrupt() async",
+        "func compact() async throws",
+        "func resolveApproval(_ requestID: String, optionID: String)",
+        "func answerQuestion(_ requestID: String, answers: [String: [String]]) (empty)",
+        "func stop()",
+        "private func handle(_ message: JSONValue)",
+        "private func handleEvent(_ event: JSONValue)",
+        "private func didClose(status: Int32, process: StdioProcess)",
+        "private func noteTurnCap()",
+        "private static func isRateLimit(_ text: String) -> Bool",
+        "private static func friendlyError(_ text: String) -> String",
+        "private static func errorText(_ value: JSONValue?) -> String?",
+        "private static func text(in value: JSONValue?) -> String",
+        "private static func todos(from input: JSONValue) -> [TodoStep]",
+        "private func makeToolCall(name: String, input: JSONValue, snapshot: String?) -> ToolCall",
+        "private static func humanize(_ name: String) -> String",
+        "private func finishEdit(_ id: String) -> [FileEdit]?",
+        "private static func snapshot(_ path: String) -> String?",
+        "private func startWatcher(_ directory: URL); private func stopWatcher()",
+        "private func scanApprovals()",
+        "private func decide(id: String, request: JSONValue)",
+        "private func autoApproves(name: String, input: JSONValue) -> Bool",
+        "private func makeApproval(id: String, name: String, input: JSONValue) -> ApprovalRequest",
+        "private static func grantKey(_ kind: ApprovalRequest.Kind) -> String",
+        "private func reply(to id: String, allow: Bool)",
+        "private func clearApprovalFiles()"
+      ],
+      "calls_into": [
+        "CommandCodeAPI.installMod(), CommandCodeAPI.supportDirectory, CommandCodeAPI.efforts(for:), CommandCodeAPI.contextWindow(for:)",
+        "StdioProcess(executable:arguments:directory:environment:), .start(), .write(Data), .closeInput(), .messages (async sequence of JSONValue), .waitForExit() -> Int32, .terminate(), .errorTail",
+        "MCPBridge.installBridge(), MCPPaths.claudeConfigURL",
+        "LoginEnvironment.homeDirectory",
+        "TokenLedger.shared.record(spend:)",
+        "TextCleanup.lastLines, TextCleanup.singleLine(_:limit:)",
+        "ToolTitles.relativePath(_:to:), ToolTitles.unwrapShell",
+        "ShellCommandKind.mayWriteFiles(_:)",
+        "String.trimmed (Core/Support/Text.swift:132)",
+        "ProviderEvent cases: .turnStarted(providerTurnID:), .sessionReady(sessionID:), .messageDelta, .messageCompleted, .reasoningDelta, .reasoningCompleted, .usage(ContextUsage), .tokenSpend(TokenSpend), .todos, .toolStarted, .toolUpdated, .toolOutput, .title, .notice(Notice), .planCompleted(id:markdown:), .turnCompleted(status:error:), .usageLimit(resetsAt:), .approval, .requestResolved(id:)",
+        "ProviderError.notInstalled, .notRunning, .failed",
+        "ToolCall, ToolUpdate, FileEdit, TodoStep, ApprovalRequest(.Option, .Kind), Notice(.Level), ContextUsage, TokenSpend(provider: .commandcode, ...)",
+        "DispatchSource.makeFileSystemObjectSource, POSIX open/close with O_EVTONLY",
+        "JSONValue dictionary literal and .data(), .compactString"
+      ],
+      "state_owned": [
+        "Session conversation id (sessionID) seeded from configuration.resumeID (empty treated as nil) and updated from run_start / result frames.",
+        "Current turn's modes, model, effort, isFinalReport, turn/message/thinking counters and streaming buffers.",
+        "Per-turn tool bookkeeping (toolNames, toolInputs, editSnapshots), cleared at each send.",
+        "Per-session approval directory, file-system watcher, pendingApprovals, sessionGrants (\"command\", \"fileChange\", \"tool\").",
+        "runResult/runError collected until process exit."
+      ],
+      "side_effects": [
+        "start(): installs the mod file, creates `<supportDirectory>/approvals/<UUID().uuidString>/` (lines 104-107), and calls startWatcher, which opens the directory with `open(directory.path, O_EVTONLY)`; `guard descriptor >= 0 else { return }` (lines 652-653) means that if the open fails the session runs with NO watcher and no error or notice. Requests are then picked up only by the `scanApprovals()` call in tool_queued (line 372; the only other caller is the watcher handler, line 656), so a request written after its tool_queued event is never seen and the mod keeps polling until the turn is aborted, the parent pid becomes 1, or 6 hours pass.",
+        "send(): spawns the CLI per turn and writes the prompt to stdin then closes it. Environment (lines 168-179), starting from configuration.environment: `if runtimeMode != .fullAccess, let approvalDirectory { environment[\"DROPPY_CODE_APPROVALS\"] = approvalDirectory.path } else { environment[\"DROPPY_CODE_APPROVALS\"] = nil }`, i.e. in Full access (or with no approval directory) any inherited DROPPY_CODE_APPROVALS is actively removed; `DROPPY_CODE_MCP_BRIDGE = bridge.path` whenever `try? MCPBridge.installBridge()` succeeds, regardless of mode; `DROPPY_CODE_MCP_CONFIG = MCPPaths.claudeConfigURL.path` when that file exists. DROPPY_CODE_MCP_CONFIG is not read by the approval mod; it is read by the bridge script (DroppyCode/Services/MCP/MCPBridgeSource.swift:21 `const file = process.env.DROPPY_CODE_MCP_CONFIG || \"\";`), so it must be kept for MCP tools to find their servers. Consequence: `--mod` is added only when `runtimeMode != .fullAccess || interactionMode == .plan || fileExists(MCPPaths.claudeConfigURL.path)` (lines 162-165), so in Full access, outside plan mode, with no Claude config file, DROPPY_CODE_MCP_BRIDGE is set but nothing loads it.",
+        "Reads target files up to 1_000_000 bytes as UTF-8 for write_file before/after snapshots.",
+        "Records token spend in TokenLedger.shared.",
+        "Deletes request files as it reads them; writes reply files via temp file + FileManager.replaceItemAt (fallback direct atomic write); clears all files in the approval directory when a run closes; removes the whole approval directory on stop().",
+        "interrupt()/stop() call process.terminate() (SIGTERM; CLI exits 130).",
+        "Checks `<HOME>/.commandcode/projects/*/<sessionID>.jsonl` existence at start."
+      ],
+      "platform_assumptions": [
+        "DispatchSourceFileSystemObject with POSIX `open(path, O_EVTONLY)` and eventMask [.write] on the main queue (macOS kqueue); Windows needs FileSystemWatcher / ReadDirectoryChangesW or polling.",
+        "MainActor.assumeIsolated in the watcher handler.",
+        "SIGTERM semantics and exit status 130 for an interrupted run; Windows process termination yields a different exit code, so interruptRequested is the reliable signal.",
+        "HOME env / LoginEnvironment.homeDirectory for `~/.commandcode/projects`.",
+        "FileManager.replaceItemAt for atomic reply swap (Windows: MoveFileEx/ReplaceFile).",
+        "URL.resourceValues(.fileSizeKey), String(contentsOf:encoding: .utf8).",
+        "Error text tells the user to run `cmd login` \"in Terminal\" (macOS app name).",
+        "Doc comment says a session may belong to \"another Mac's\" transcript.",
+        "The watcher failure path is silent (line 653 `guard descriptor >= 0 else { return }`); a Windows FileSystemWatcher replacement must decide explicitly whether to fail, poll, or run without a watcher (upstream: runs without one).",
+        "Ids use Swift `UUID().uuidString`, which is UPPERCASE hex: `launchID = String(UUID().uuidString.prefix(8))` (line 42), giving ids like `cc-E621E1F8-m1`, `cc-E621E1F8-r1`, `cc-E621E1F8-plan1`; the approval directory is named with the full uppercase `UUID().uuidString` (line 106). JS `crypto.randomUUID()` is lowercase, so parity needs `.toUpperCase()`."
+      ],
+      "persisted_fields": [
+        "No app persistence here; sessionID reaches the host via .sessionReady(sessionID:) and returns as configuration.resumeID.",
+        "Approval request JSON read: `toolCallId`, `toolName`, `input`; file suffix `.request.json`.",
+        "Reply JSON written: allow -> {\"decision\": \"allow\"}; deny -> {\"decision\": \"deny\", \"reason\": \"The user declined this in Droppy Code. Do not retry it; take another approach or explain what you would need.\"}; file `<id>.reply.json` via `<id>.reply.json.tmp`.",
+        "CLI transcripts at `~/.commandcode/projects/<project>/<session>.jsonl` (read for existence only)."
+      ],
+      "ui_elements": [
+        "Approval options in order: id \"allow\" title \"Approve\" role .approve; id \"always\" title \"Approve for session\" role .approveAlways; id \"deny\" title \"Decline\" role .decline. ApprovalRequest title/detail come from makeToolCall; toolItemID set only when the tool row exists.",
+        "Tool rows from makeToolCall (lines 548-620), with ToolCall kind: shell_command/powershell -> .command, title `ToolTitles.unwrapShell(command)` or \"Shell command\", detail = `description`, plus \"in the background\" joined with \" · \" when `run_in_background == true`; monitor_command -> .command, command or \"Monitor command\"; shell_output -> .command \"Shell output\" (detail id ?? task_id); shell_tasks -> .command \"Shell tasks\"; kill_shell -> .command \"Stop shell\" (detail id ?? task_id ?? pid); read_file -> .read, title `path(\"file_path\") ?? path(\"path\") ?? \"Read file\"` (relative path, falling back from key `file_path` to key `path`), detail \"lines <offset>–<offset+limit>\" (en dash) when both ints present; read_directory -> .search, path(\"path\") or \"List files\"; write_file -> .edit, path(\"file_path\") or \"Write file\" (no `path` fallback) with FileEdit(path, old: snapshot ?? \"\", new: content); edit_file -> .edit, title `path(\"file_path\") ?? path(\"path\") ?? \"Edit file\"`, FileEdit path also `path(\"file_path\") ?? path(\"path\")`, old = old_string ?? old_text ?? old ?? \"\", new = new_string ?? new_text ?? new ?? \"\"; glob -> .search, pattern or \"Find files\", detail path; grep -> .search, pattern or \"Search\", detail path and glob joined by \" · \" (nil when empty); web_fetch -> .web, url or \"Fetch page\"; web_search -> .web, query or \"Search the web\"; agent -> .agent, description ?? singleLine(prompt, limit 96) ?? \"Sub-agent\", detail subagent_type; agent_output -> .agent \"Agent output\" detail agent_id; activate_skill -> .other \"Skill · <name or empty>\"; enter_worktree/exit_worktree -> .other, humanized name, detail name; run_command -> .other \"Command · <command ?? name ?? empty>\"; names with prefix `mcp__` -> .mcp: `parts = name.split(separator: \"__\", omittingEmptySubsequences: true)`, server = `parts.count > 1 ? String(parts[1]) : \"MCP\"`, tool = `parts.count > 2 ? parts[2...].joined(separator: \"__\") : name` (the whole name), title \"<server> · <tool>\", detail `input.isNull ? nil : input.compactString` with NO 300-char limit and NO \"{}\" filter; any other name -> .other, humanized name (\"Task create\" from task_create) with compactString detail only if non-empty, not \"{}\" and count <= 300.",
+        "Subagent progress (lines 394-399): requires `toolCallId` and `toolName`; subject taken from `event[\"toolInput\"]` keys command ?? file_path ?? pattern ?? query ?? url; line = `subject.map { \"\\(tool)  \\(TextCleanup.singleLine($0, limit: 100))\" } ?? tool` (two spaces), so with no subject the line is just the tool name; emitted as `.toolOutput(id:, text: line + \"\\n\")`.",
+        "Notices: compaction_start -> info \"Compacting context.\"; compaction_done reads `event[\"tokensSaved\"]?.int ?? 0` (line 405) and, when > 0, shows \"Compacted context, freeing \\(saved.formatted()) tokens.\" where `Int.formatted()` groups digits by the current locale (e.g. \"12,345\" in en_US), else \"Compacted context.\"; warning \"Command Code stopped at its cap of 400 round trips for one message. Send another to carry on.\"",
+        "No views, geometry, colours or animations in this file."
+      ],
+      "feature_notes": [
+        "start(): no executable -> ProviderError.notInstalled(configuration.provider); a resume id with no transcript in any `~/.commandcode/projects/*/<id>.jsonl` throws ProviderError.failed(\"Command Code no longer has this conversation; starting a new one.\"); returns sessionID or \"\".",
+        "send(): not running -> ProviderError.notRunning; turn active -> ProviderError.failed(\"Command Code is still on the last turn.\"). Updates runtimeMode, interactionMode, model (only when input.model non-empty), effort (always overwritten), isFinalReport; `turnCounter += 1`; then resets exactly `turnActive = true`, `interruptRequested = false`, `runResult = nil`, `runError = nil`, `streamedText = false`, and `removeAll()` on editSnapshots, toolNames and toolInputs (lines 134-142). It does NOT reset messageCounter, thinkingCounter, messageText, thinkingText or activeModel, so `cc-<launchID>-m<n>` / `-r<n>` counters keep rising across turns for the life of the session (currentMessageID/currentThinkingID are cleared in didClose, lines 438-439).",
+        "Argument order: -p, --output-format json, --skip-onboarding, --no-auto-update, --trust, --tools-enable todo_write, --max-turns (1 when isFinalReport else 400), then --model <model>, --effort <effort> only when CommandCodeAPI.efforts(for: model) contains it, then `--permission-mode plan` in plan mode else `--yolo`, then `--mod <modURL.path>` when runtimeMode != .fullAccess OR plan mode OR MCPPaths.claudeConfigURL exists, then `--resume <sessionID>`.",
+        "Spawn failure: turnActive = false and ProviderError.failed(\"Command Code could not start: <localizedDescription>\"). After start: stdin gets the prompt, input closed, then .turnStarted(providerTurnID: nil). Read task handles each message, then awaits waitForExit and calls didClose.",
+        "prompt: input.text plus, for images whose path exists, \"\\n\\nAttached files (read them with read_file):\\n\" and \"- <path>\" lines joined by newline.",
+        "interrupt(): only when turnActive; sets interruptRequested and terminates. compact() always throws \"Command Code compacts its context on its own.\" answerQuestion is a no-op.",
+        "resolveApproval: unknown id ignored; \"allow\"/\"always\" reply allow (\"always\" also inserts grantKey(kind) into sessionGrants); anything else denies; then .requestResolved(id:).",
+        "stop(): stopped = true, turnActive = false, terminate, stop watcher, remove approval directory.",
+        "handle(): type \"event\" -> handleEvent(message.event); type \"result\" -> RunResult(subtype default \"success\", stopReason, errorText(error)) and sessionId adoption with .sessionReady when new.",
+        "Events: run_start adopts sessionId; message_start: messageCounter += 1, id \"cc-<launchID>-m<n>\", messageText = \"\", streamedText = false; text_delta: returns on missing or empty `delta`, creates `cc-<launchID>-m<n>` (incrementing messageCounter) when currentMessageID is nil, sets streamedText, appends and streams .messageDelta; thinking_start: thinkingCounter += 1, id \"cc-<launchID>-r<n>\", thinkingText = \"\"; thinking_delta (lines 311-318): likewise returns on missing or empty `delta`, and `if currentThinkingID == nil { thinkingCounter += 1; currentThinkingID = \"cc-\\(launchID)-r\\(thinkingCounter)\" }`, then appends to thinkingText and streams .reasoningDelta; thinking_end emits .reasoningCompleted with event `text` or buffer when non-blank, then clears currentThinkingID; message_end emits .messageCompleted with streamed text (or content text if buffer empty) when streamed, else content text when non-blank, then clears both current ids; model_request_start/end set activeModel; model_request_end usage inputTokens+outputTokens > 0 -> .usage(ContextUsage(usedTokens, windowTokens: contextWindow(activeModel ?? model))), TokenLedger record, .tokenSpend(provider .commandcode, total, input, output, model: activeModel).",
+        "tool_queued: records name/input; todo_write -> .todos only; write_file snapshots file_path (\"\" when unreadable); .toolStarted then scanApprovals(). tool_update -> .toolUpdated output from partial when non-empty. tool_completed -> status .completed, output from result, edits = finishEdit. tool_errored -> output errorText or \"The tool failed.\", status .failed, edits finishEdit. tool_hook_blocked/tool_denied -> output hookOutput or denyMessage or \"Declined.\", status .declined, snapshot dropped, pending approval resolved. todo_write ids are skipped for update/complete/error/deny.",
+        "subagent_progress -> .toolOutput line; session_titled -> .title when non-empty; compaction_start/done notices; notice -> level error/.error, warning or warn/.warning, else .info; run_error stores errorText; interrupted sets interruptRequested; run_end in plan mode with non-blank result.finalText -> .planCompleted(id: \"cc-<launchID>-plan<turnCounter>\", markdown). Ignored: turn_start, turn_end, message_update, model_trace, tool_running, tool_hooks, tool_input_repaired, subagent_start, subagent_stop.",
+        "didClose: ignores a stale process; clears turn state, resolves every pending approval, clears approval files; if stopped returns silently. interruptRequested or status 130 -> .turnCompleted(status: .interrupted, error: nil), checked before any result line. With a result line: subtype \"success\" -> completed (cap notice when stopReason \"max_turns\"); \"max_turns\" -> cap notice + completed; other -> error = result.error ?? runError ?? lastLines(errorTail) ?? \"Command Code stopped before finishing.\", .usageLimit(resetsAt: nil) when isRateLimit, then .failed with friendlyError(error).",
+        "Exit codes without a result line: 0 completed; 3 \"Command Code is not signed in. Run `cmd login` in Terminal, or add a Studio API key in Settings → Providers → Command Code.\"; 4 tail or \"Command Code was denied permission.\"; 5 .usageLimit then tail or \"Command Code is rate limited. Wait for the window to reset, or buy on-demand credits, which are never throttled.\"; 6 \"Could not reach Command Code. Check the connection and try again.\"; 7 tail or \"Command Code's API returned a server error. Try again in a moment.\"; 8 cap notice + completed; 9 \"The model produced no response.\"; 10 \"Command Code is out of credits. Top up at commandcode.ai/billing, or wait for the monthly credits to reset.\"; default runError ?? tail ?? \"Command Code exited with code <status>.\"",
+        "noteTurnCap is suppressed when isFinalReport. isRateLimit: lowercased contains \"rate limit\", \"usage exceeded\" or \"window limit\". friendlyError: \"not authenticated\"/\"unauthorized\"/\"session expired\" -> the not-signed-in text; \"insufficient credits\"/\"out of credits\" -> the out-of-credits text; else unchanged.",
+        "errorText: null -> nil; string (empty -> nil); object `message`; else compactString unless \"{}\". text(in:): string as is, or array blocks' `text`, image blocks \"[image]\", joined by \"\\n\".",
+        "todos: input.todos items, text from content/text/title; status completed/done -> .done, in_progress/active -> .active, else .pending.",
+        "finishEdit: only for ids with a snapshot and a file_path input; after = current file snapshot or \"\"; unchanged -> [FileEdit(path: relative)], else old/new pair. snapshot(): nil when size unknown or > 1_000_000 or not UTF-8.",
+        "scanApprovals: requires approvalDirectory and turnActive; files sorted by name, only `.request.json`; unparsable skipped (not deleted); parsed file deleted; id from toolCallId else file name minus suffix; duplicates skipped; decide().",
+        "decide: autoApproves or sessionGrants contains grantKey(kind) -> reply allow silently; else store pending and emit .approval.",
+        "autoApproves: .fullAccess true; .supervised false; .autoAcceptEdits only write_file/edit_file; .auto edits true, shell_command/powershell/monitor_command true when !ShellCommandKind.mayWriteFiles(command), kill_shell/cron_create/cron_delete/task_stop true, otherwise false.",
+        "makeApproval kind (lines 719-725): `switch call.kind { case .command: .command; case .edit: .fileChange; default: .tool }`, where call = makeToolCall(name:input:snapshot:). ToolCall kinds per tool: shell_command, powershell, monitor_command, shell_output, shell_tasks, kill_shell -> .command; read_file -> .read; read_directory, glob, grep -> .search; write_file, edit_file -> .edit; web_fetch, web_search -> .web; agent, agent_output -> .agent; activate_skill, enter_worktree, exit_worktree, run_command and any unlisted name -> .other; `mcp__*` -> .mcp. So approval kinds are: command for those six, fileChange for write_file/edit_file, tool for everything else. grantKey: .command \"command\", .fileChange \"fileChange\", .tool/.permissions/.plan \"tool\". One \"Approve for session\" therefore covers e.g. kill_shell and monitor_command together with shell_command (\"command\"), and every mcp__ tool together with any other non-command, non-edit call (\"tool\"). Note that the mod's READ_ONLY set (CommandCodeAPI.swift:377-383) never sends read_file, read_directory, glob, grep, shell_output, shell_tasks, web_search, web_fetch, agent, agent_output, activate_skill or run_command to the gate, so in practice the \"tool\" grant is shared by mcp__ tools, enter_worktree/exit_worktree and unlisted tools such as cron_create or task_stop.",
+        "B1->B2: three mechanical refactors only, each `.trimmingCharacters(in: .whitespacesAndNewlines)` replaced by the B2 helper `.trimmed` (Text.swift:132, same definition): line 322 in thinking_end (`!text.trimmed.isEmpty`), line 331 in message_end (`!text.trimmed.isEmpty`), and line 423 in run_end (`interactionMode == .plan, !finalText.trimmed.isEmpty`). Behaviour unchanged (3 insertions, 3 deletions)."
+      ],
+      "unresolved_questions": [
+        "Windows equivalents for the CLI's exit code 130 on termination and for the O_EVTONLY directory watcher are not defined by this file.",
+        "Whether the Windows Command Code CLI stores transcripts under `%USERPROFILE%\\.commandcode\\projects` so transcriptExists works unchanged.",
+        "Whether the not-signed-in message should say Terminal on Windows (verbatim string names Terminal and uses →)."
+      ]
+    }
+  ]
+}

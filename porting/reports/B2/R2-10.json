@@ -1,0 +1,150 @@
+{
+  "bundle_id": "R2-10",
+  "reader": "R2-10-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Chat/TimelineMinimap.swift",
+      "sha256": "00f2b49ed1300850286cf08137938b88513ec59b9aab6e2acc2cf81700e10b53",
+      "lines_total": 449,
+      "ranges_read": [
+        [
+          1,
+          449
+        ]
+      ],
+      "purpose": "Implements the conversation outline rail drawn on the left edge of the chat: one short horizontal tick per message the user sent, whose width scales with message length, with the tick for the block the reader is on lit in the accent colour. Hovering the tick stack shows a Liquid Glass preview card (title of up to 8 words plus a snippet of up to 160 characters) next to the hovered tick, and pressing or dragging on the stack scrubs the timeline (onNavigate(id, false) live, onNavigate(id, true) on release). The file also splits the work across three views (TimelineMinimapColumn builds entries, MinimapSelection is the only observer of scroll tracking, TimelineMinimapRail draws and handles input) and custom Equatable conformances so that streaming tokens and scroll events re-render only the rail, and it freezes the outline during a live window resize.",
+      "key_symbols": [
+        "struct TimelineMinimapEntry: Identifiable, Hashable { let id: String; let title: String; let snippet: String; let weight: Double /* 0...1, drives tick width */ }",
+        "enum TimelineMinimap (namespace)",
+        "@MainActor static func TimelineMinimap.entries(for blocks: [DisplayBlock]) -> [TimelineMinimapEntry]  // blocks.compactMap(entry(for:))",
+        "@MainActor private static func TimelineMinimap.entry(for block: DisplayBlock) -> TimelineMinimapEntry?  // switch: .turn(let id, _, let entries, _, _) -> first user message among entries via userMessage(of:), else nil; .group(.single(let entry), _, _) -> only if entry.item.content is .user(message), keyed by entry.id; .group(.work, _, _), .group(.heads, _, _), .working, .merging, .headsWorking -> nil",
+        "@MainActor private static var TimelineMinimap.entryCache = RecentCache<String, TimelineMinimapEntry>(limit: 400)",
+        "@MainActor private static func TimelineMinimap.userEntry(id: String, message: UserMessage) -> TimelineMinimapEntry  // cache lookup by id, else build and insert",
+        "private static func TimelineMinimap.userTitle(for message: UserMessage) -> String",
+        "@MainActor private static func TimelineMinimap.userMessage(of entry: TimelineEntry) -> UserMessage?  // guard case .user(let message) = entry.item.content",
+        "private static func TimelineMinimap.firstWords(_ text: String, limit: Int) -> String",
+        "private static func TimelineMinimap.preview(_ text: String, limit: Int = 160) -> String",
+        "private static func TimelineMinimap.weight(of text: String) -> Double  // min(1, max(0.15, Double(text.count) / 420))",
+        "struct TimelineMinimapColumn: View, Equatable { let blocks: [DisplayBlock]; let tracking: TimelineScrollTracking; var centerHeight: CGFloat; var onNavigate: (String, Bool) -> Void }",
+        "nonisolated static func TimelineMinimapColumn.== (lhs:rhs:) -> Bool  // lhs.blocks == rhs.blocks && lhs.tracking === rhs.tracking && lhs.centerHeight == rhs.centerHeight (onNavigate ignored)",
+        "TimelineMinimapColumn: @Environment(WindowLiveResize.self) private var liveResize; @State private var lastEntries: [TimelineMinimapEntry] = []",
+        "private struct MinimapOutlineBlock: Equatable { let id: String; let hasUserMessage: Bool }",
+        "private struct MinimapSelection: View { let entries: [TimelineMinimapEntry]; let outline: [MinimapOutlineBlock]; let tracking: TimelineScrollTracking; let centerHeight: CGFloat; let onNavigate: (String, Bool) -> Void; private var activeID: String? }",
+        "MinimapSelection.activeID  // tracking.activeBlockID ?? outline.last(where: \\.hasUserMessage)?.id",
+        "struct TimelineMinimapRail: View, Equatable { let entries: [TimelineMinimapEntry]; var centerHeight: CGFloat; var selectedID: String?; var onNavigate: (String, Bool) -> Void }",
+        "nonisolated static func TimelineMinimapRail.== (lhs:rhs:) -> Bool  // entries, centerHeight, selectedID equal (onNavigate ignored)",
+        "TimelineMinimapRail: @Environment(\\.accessibilityReduceMotion) private var reduceMotion; @Environment(WindowLiveResize.self) private var liveResize",
+        "TimelineMinimapRail: @State private var hoveredID: String?; @State private var isPressing = false; @State private var ownsCursorPush = false",
+        "private var TimelineMinimapRail.isExpanded: Bool  // hoveredID != nil || isPressing",
+        "private var TimelineMinimapRail.baseOpacity: Double  // isExpanded ? 0.4 : 0.25",
+        "private var TimelineMinimapRail.hoverAnimation: Animation?  // nil if liveResize.isActive || reduceMotion, else .smooth(duration: 0.22)",
+        "private func TimelineMinimapRail.releaseCursor()  // guard ownsCursorPush; NSCursor.pop(); ownsCursorPush = false",
+        "@ViewBuilder private func TimelineMinimapRail.ticks(metrics: MinimapRailMetrics) -> some View",
+        "@ViewBuilder private func TimelineMinimapRail.tick(for entry: TimelineMinimapEntry) -> some View",
+        "private func TimelineMinimapRail.tickWidth(for entry: TimelineMinimapEntry, isHovered: Bool, isSelected: Bool) -> CGFloat",
+        "private var TimelineMinimapRail.hoveredEntry: TimelineMinimapEntry?  // entries.first { $0.id == hoveredID }",
+        "@ViewBuilder private func TimelineMinimapRail.previewCard(for entry: TimelineMinimapEntry, metrics: MinimapRailMetrics, railHeight: CGFloat) -> some View",
+        "private func TimelineMinimapRail.estimatedCardHeight(_ entry: TimelineMinimapEntry) -> CGFloat",
+        "private static let TimelineMinimapRail.cardWidth: CGFloat = 300",
+        "private func TimelineMinimapRail.indexOf(_ entry: TimelineMinimapEntry) -> Int  // entries.firstIndex(of: entry) ?? 0",
+        "private func TimelineMinimapRail.scrubGesture(metrics: MinimapRailMetrics) -> some Gesture",
+        "private struct MinimapRailMetrics { static let tickHeight: CGFloat = 2; private static let roomySpacing: CGFloat = 8; private static let tightestSpacing: CGFloat = 2; let spacing: CGFloat; let topInset: CGFloat }",
+        "MinimapRailMetrics.init(centeringHeight: CGFloat, count: Int)",
+        "private var MinimapRailMetrics.pitch: CGFloat  // tickHeight + spacing",
+        "func MinimapRailMetrics.centerY(for index: Int) -> CGFloat  // topInset + CGFloat(index) * pitch + tickHeight / 2",
+        "func MinimapRailMetrics.entryID(at y: CGFloat, entries: [TimelineMinimapEntry]) -> String?",
+        "private static var MinimapRailMetrics.chromeClearance: CGFloat  // Chrome.chromeTopPadding + Chrome.capsuleHeight",
+        "func MinimapRailMetrics.hitRect(count: Int, railSize: CGSize) -> CGRect",
+        "private struct RailHitArea: Shape { let rect: CGRect; func path(in _: CGRect) -> Path  // Path(rect), ignores the proposed bounds }"
+      ],
+      "calls_into": [
+        "DisplayBlock: cases .turn (5 associated values, id first, entries third), .group(.single(TimelineEntry), _, _), .group(.work, _, _), .group(.heads, _, _), .working, .merging, .headsWorking; properties .id and .hasUserMessage; Equatable (blocks == blocks, onChange(of: blocks))",
+        "TimelineEntry: .id and .item.content, matched against case .user(UserMessage)",
+        "UserMessage: .text (String), .attachments (each with .isImage Bool and .name String)",
+        "RecentCache<String, TimelineMinimapEntry>: init(limit:), value(for:), insert(_:for:)",
+        "TimelineScrollTracking: a reference type (compared with ===) exposing activeBlockID: String?, observed by MinimapSelection",
+        "WindowLiveResize (environment object): isActive: Bool",
+        "Chrome: accent, primaryText, secondaryText, cardCornerRadius, chromeTopPadding, capsuleHeight",
+        "NSCursor.pointingHand.push(), NSCursor.pop()",
+        "onNavigate(String, Bool) callback supplied by the timeline (block id, animated)"
+      ],
+      "state_owned": [
+        "TimelineMinimap.entryCache: static @MainActor RecentCache keyed by block id, limit 400, shared by every thread for the process lifetime; entries are never invalidated when text changes for the same id",
+        "TimelineMinimapColumn.lastEntries (@State [TimelineMinimapEntry], initially []): outline used while liveResize.isActive; set onAppear, when the resize ends, and on blocks change when not resizing",
+        "TimelineMinimapRail.hoveredID (@State String?): tick under the pointer or last scrubbed tick; nil on hover end",
+        "TimelineMinimapRail.isPressing (@State Bool, false): true during the DragGesture",
+        "TimelineMinimapRail.ownsCursorPush (@State Bool, false): whether this view pushed NSCursor.pointingHand, so pop happens exactly once"
+      ],
+      "side_effects": [
+        "Pushes NSCursor.pointingHand on the first .active hover phase and pops it on hover .ended or onDisappear (only if ownsCursorPush)",
+        "Calls onNavigate(id, false) from the drag's onChanged only when the tick under the drag differs from hoveredID (`if hoveredID != id { hoveredID = id; onNavigate(id, false) }`, lines 367-370). hoveredID is shared with hover, which also writes it (`if hoveredID != id { hoveredID = id }`, line 223) and clears it on hover .ended (`hoveredID = nil`, line 226). So the rule is not 'each time the scrubbed id changes': a tick already set by hover gets no live navigate, and if hoveredID was cleared to nil by a hover .ended the next onChanged navigates again even on the same tick.",
+        "Calls onNavigate(id, true) on drag end when the end location maps to an entry (always, since entryID clamps, unless entries is empty)",
+        "Accessibility action on each tick calls onNavigate(entry.id, true) (line 287); each tick is its own leaf element via `.accessibilityElement()` (line 284)",
+        "Mutates the static entryCache while building entries"
+      ],
+      "platform_assumptions": [
+        "AppKit NSCursor push/pop cursor stack (pointingHand) for the hover cursor; Windows port needs a cursor override with the same once-only push/pop semantics",
+        "SwiftUI GeometryReader for rail size; ZStack/VStack/HStack layout, frame(maxWidth: .infinity, maxHeight: .infinity, alignment:), padding, offset",
+        "SwiftUI onContinuousHover with .active(location)/.ended phases, restricted to a custom contentShape (RailHitArea) so hover and clicks outside the tick stack pass through to window buttons beneath",
+        "SwiftUI DragGesture(minimumDistance: 0, coordinateSpace: .local) used as both tap and scrub",
+        "SwiftUI View Equatable with .equatable() and nonisolated static == to skip body re-evaluation; Swift Observation (@Environment(WindowLiveResize.self), TimelineScrollTracking observed by reading activeBlockID in MinimapSelection.body)",
+        "SwiftUI animation system: .animation(_:value:) keyed on hoveredID, isPressing, selectedID; .animation(nil, value: centerHeight) to suppress re-centre slides; Animation.smooth(duration: 0.22); .transition(.opacity.combined(with: .offset(x: -6))); .contentTransition(.opacity) on Text",
+        "@Environment(\\.accessibilityReduceMotion) (Windows equivalent: client area animation setting / prefers-reduced-motion)",
+        "Liquid Glass: .glassEffect(.regular, in: .rect(cornerRadius: Chrome.cardCornerRadius, style: .continuous)) (macOS 26 API); needs a Windows material substitute",
+        "RoundedRectangle(cornerRadius: 1, style: .continuous) continuous-curvature corners",
+        "Dynamic text styles .body (semibold) and .callout; on macOS these default to 13 pt and 12 pt, which the port must map explicitly",
+        "HierarchicalShapeStyle .primary with opacity (primary label colour, light/dark adaptive) and AnyShapeStyle",
+        "Accessibility: accessibilityElement(children: .contain), accessibilityLabel, accessibilityAddTraits(.isButton), accessibilityAction (UIA equivalents on Windows)",
+        "Swift String semantics: text.count counts grapheme clusters (weight, preview limit, snippet line estimate); Character.isWhitespace for word splitting; prefix(limit) on graphemes",
+        "@MainActor isolation for cache and entry building; CGFloat/CGRect/CGSize/Path geometry types; top-left origin y-down coordinates"
+      ],
+      "persisted_fields": [
+        "None. Nothing is written to disk or defaults; the only cross-view state is the in-memory static RecentCache (limit 400)."
+      ],
+      "ui_elements": [
+        "Rail container: accessibility element with children .contain and label \"Conversation outline\"",
+        "Tick: RoundedRectangle cornerRadius 1 (.continuous), height MinimapRailMetrics.tickHeight = 2 pt, width from tickWidth, leading padding 8 pt, stacked in a VStack(alignment: .leading, spacing: metrics.spacing) with top padding metrics.topInset, frame aligned .topLeading",
+        "Tick fill: selected and not hovered -> Chrome.accent; hovered -> .primary.opacity(0.95); otherwise .primary.opacity(baseOpacity) where baseOpacity = 0.4 when the rail is expanded (hovering or pressing) and 0.25 at rest",
+        "Tick width: base = 10 + weight * 12 (weight clamped 0.15...1 so base is 11.8...22 pt); hovered or selected -> 26 pt; else if expanded -> min(26, base + 2); else base",
+        "Tick accessibility: `.accessibilityElement()` (line 284, default children .ignore, so each tick is its own leaf element; UIA leaf on Windows), then label entry.title, trait .isButton, default action `onNavigate(entry.id, true)` (lines 285-287), all inside the rail container element (children .contain, label \"Conversation outline\")",
+        "Preview card (shown only while hoveredEntry != nil, hit testing off): width cardWidth = 300 pt, padding horizontal 12 pt and vertical 10 pt, VStack(alignment: .leading, spacing: 3), glassEffect .regular in rect cornerRadius Chrome.cardCornerRadius (.continuous); container HStack(spacing: 0) with `.padding(.leading, 34)`, then Spacer(minLength: 0), in `.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)` (lines 317-342). The card is drawn outside the rail's own frame with no clipping: the caller fixes the rail at `.frame(width: 30)` (ThreadTimeline.swift:191, with the comment \"The hover card reaches over the conversation instead of being painted under it.\" at line 194), so the card spans x = 34...334 from the rail's leading edge, about 304 pt past the rail's right edge over the conversation. A Windows port must not clip the rail element (no overflow hidden, no 30 px child window) or the card is lost.",
+        "Preview card title: Text(entry.title), font .system(.body, weight: .semibold), colour Chrome.primaryText, lineLimit 1, truncation .tail, contentTransition .opacity",
+        "Preview card snippet (only if non-empty): Text(entry.snippet), font .system(.callout), colour Chrome.secondaryText, lineLimit 3, truncation .tail, multilineTextAlignment .leading, contentTransition .opacity",
+        "Preview card vertical position: offset y = min(max(tickCenterY, top), bottom) - railHeight / 2, where half = estimatedCardHeight / 2, top = half + 2, bottom = max(top, railHeight - half - 2) (card is vertically centred in the rail frame then shifted to the tick centre, clamped 2 pt inside the rail)",
+        "Preview card transition: .opacity combined with .offset(x: -6) (x offset 0 when reduce motion is on)",
+        "Animations: hoverAnimation = .smooth(duration: 0.22) on changes of hoveredID, isPressing and selectedID; nil (instant) during live resize or reduce motion; tick stack re-centring on centerHeight change never animates (.animation(nil, value: centerHeight))",
+        "Cursor: pointing hand while the pointer is inside the hit area",
+        "Hit area: Color.clear with contentShape RailHitArea(rect: metrics.hitRect(...)), full rail width, vertically from max(centerY(0) - pitch/2, Chrome.chromeTopPadding + Chrome.capsuleHeight) to min(centerY(count-1) + pitch/2, rail height); .zero when there are no entries or bottom <= top",
+        "Spacing constants: roomy 8 pt, tightest 2 pt, tick height 2 pt"
+      ],
+      "feature_notes": [
+        "Only user-sent messages get ticks: for a .turn block the first TimelineEntry whose content is .user supplies the message and the tick id is the turn's block id; for .group(.single(entry)) the tick id is entry.id and only if its content is .user. .group(.work), .group(.heads), .working, .merging and .headsWorking never produce ticks.",
+        "Title: first 8 whitespace-separated words joined by single spaces, with \"…\" appended when the message has more than 8 words. If the text has no words: exactly 1 image attachment -> \"1 image\"; more than 1 -> \"<n> images\"; otherwise the first attachment's name, or \"Message\" when there are no attachments.",
+        "Snippet: the message text with all whitespace runs collapsed to single spaces; if longer than 160 characters it is cut to 160 and \"…\" appended. The snippet is set to \"\" when it is empty or equal to the title (so short messages of 8 words or fewer show only the title).",
+        "Weight: min(1, max(0.15, Double(text.count) / 420)); text.count is the raw message text length including whitespace.",
+        "Entries are cached per block id in a RecentCache with limit 400 on the main actor; the comment states a sent message never changes, so the title and snippet are computed once per id.",
+        "TimelineMinimapColumn equality compares blocks, tracking by reference identity (===) and centerHeight; onNavigate is excluded. While WindowLiveResize.isActive the column passes lastEntries instead of rebuilding; it rebuilds when isActive turns false, onAppear, and on blocks change only when not resizing. The outline passed to MinimapSelection (id, hasUserMessage per block) is always rebuilt from blocks.",
+        "Selected tick: tracking.activeBlockID, falling back to the id of the last block with hasUserMessage when activeBlockID is nil. MinimapSelection is the only view reading tracking, and it wraps the rail in .equatable() so the rail redraws only when entries, centerHeight or selectedID change.",
+        "Layout: MinimapRailMetrics(centeringHeight: centerHeight, count: entries.count). If count <= 0 or height <= 0: spacing 8, topInset 0. Otherwise ticks = count * 2, gaps = count - 1; spacing = 8 if ticks + gaps * 8 <= height, else max(2, (height - ticks) / max(1, gaps)); topInset = (height - (ticks + gaps * spacing)) / 2, which can be negative so an overflowing stack spills equally above and below. Example: 10 ticks in 800 pt gives spacing 8, pitch 10, topInset 354.",
+        "Ticks centre in centerHeight (the full chat-column height) while the rail's own frame is timeline height, so composer and queue tab growth never moves ticks and hit testing and the card stay out of the composer.",
+        "Y to entry mapping: raw = (y - topInset - 1 + pitch / 2) / pitch, rounded down, clamped to 0...count-1; so each tick owns a band of one pitch centred on it and any y maps to some entry. centerY(i) = topInset + i * pitch + 1.",
+        "Hover: inside the hit rect only; the first .active phase pushes the pointing-hand cursor once; hoveredID is set to the tick under the pointer (preview only, no navigation). .ended pops the cursor and clears hoveredID. onDisappear also pops the cursor if still owned.",
+        "Press and scrub: DragGesture with minimumDistance 0. onChanged sets isPressing = true, maps location.y to an id and, only when it differs from hoveredID, sets hoveredID and calls onNavigate(id, false) (lines 365-370). onEnded sets isPressing = false and, if the end y maps to an id, sets hoveredID and calls onNavigate(id, true) (lines 373-377, one animated glide). Hover and scrub share the one hoveredID: hover writes it before any press (`if hoveredID != id { hoveredID = id }`, line 223). So a normal mouse click on the tick the pointer is hovering produces ONLY onNavigate(id, true): onChanged finds hoveredID == id and skips the live navigate. The onNavigate(id, false) then onNavigate(id, true) sequence happens only when hover has not already set hoveredID to that tick (for example input with no hover phase, or the pointer having moved to another band between the last hover event and the press). A Windows port with separate hover and scrub state would fire an extra non-animated jump that upstream does not.",
+        "Card height estimate (no measurement to avoid layout loops): title 17 + padding 20 = 37 with no snippet; otherwise glyphsPerLine = max(1, (300 - 24) / 7) = 39, lines = min(3, max(1, ceil(snippet.count / 39))), height = 17 + 3 + lines * 15 + 20, i.e. 55, 70 or 85 pt.",
+        "The comment in tickWidth says \"10 pt narrowest, 26 pt widest\", but because weight is clamped to at least 0.15 the narrowest resting tick is 11.8 pt; widest resting is 22 pt, expanded up to 24 pt, hovered or selected 26 pt.",
+        "The chrome row clearance (Chrome.chromeTopPadding + Chrome.capsuleHeight) removes the top of the stack from the hit area so ticks under the floating chrome row take no pointer and the window buttons keep their hover and clicks.",
+        "B1->B2: only the preview card fonts changed. The title font went from .font(.system(size: 13, weight: .semibold)) to .font(.system(.body, weight: .semibold)) and the snippet font from .font(.system(size: 12)) to .font(.system(.callout)) (lines 320 and 327 at B2). Fixed point sizes were replaced by dynamic text styles; the estimatedCardHeight constants (title 17, 15 per snippet line, 7 pt per glyph) were not changed. No other line in the file differs between dd2b86ef and 1fbf81e6.",
+        "Stale doc comments: lines 4-6 say \"Titles come from the block's own content (user prompt, reply preview, tool verb, \\\"Worked for …\\\")\" and line 11 says \"Long replies read wide, short notices narrow.\" Both are out of date. entry(for:) (lines 24-35) builds ticks only from user messages (the comment at lines 21-22 says \"Replies, tool runs, notices and summaries never get ticks.\"), and weight comes only from the user message text (`weight: weight(of: message.text)`, line 50). Port the behaviour, not these two comments: no reply, tool or \"Worked for\" ticks.",
+        "Two id spaces: a .turn tick is keyed by the block id (`userEntry(id: id, message: message)`, line 28), a .group(.single) tick by the entry id (`userEntry(id: entry.id, message: message)`, line 31). The lit tick is `entry.id == selectedID` (line 274) with selectedID from `tracking.activeBlockID ?? outline.last(where: .hasUserMessage)?.id` (line 160), which are DisplayBlock ids. This works because DisplayBlock.id for `.group(let group, _, _)` is `group.id` (ThreadTimeline.swift:1494) and TimelineGroup.id for `.single(let entry)` is `entry.id` (ThreadTimeline.swift:1389). The port must keep a single-entry group's block id equal to its entry id, or the tick never lights and onNavigate receives an id the timeline does not know.",
+        "The outline and the tick builder test for a user message differently. The outline uses DisplayBlock.hasUserMessage (line 115), which is `entries.contains { $0.kind == .user }` for .turn and `entry.kind == .user` for .group(.single) (ThreadTimeline.swift:1511-1516). Ticks use `guard case .user(let message) = entry.item.content` (lines 30 and 67). TimelineEntry.kind is `let`, set once at init from item.content (`case .user: .user`, ThreadRuntime.swift:30), while item is `var`; so the two agree unless an entry's item.content is later replaced with a different case. If they ever disagree, the fallback selection names a block that has no tick. A port should derive both from the same test."
+      ],
+      "unresolved_questions": [
+        "Values of Chrome.cardCornerRadius, Chrome.chromeTopPadding, Chrome.capsuleHeight, Chrome.accent, Chrome.primaryText and Chrome.secondaryText are defined elsewhere and not stated in this file.",
+        "Whether the app scales .body/.callout text styles beyond the macOS defaults (13 pt / 12 pt) through some app-wide text size setting; if it does, the fixed estimatedCardHeight constants would drift from the real card height. Not determinable from this file.",
+        "When tracking.activeBlockID names a block with no tick (for example a work group), no tick is lit; whether TimelineScrollTracking only ever reports user-message blocks is decided in the timeline, not here.",
+        "After a scrub ends with the pointer outside the hit area, hoveredID is set in onEnded and stays set until the next hover .ended event, so the preview card may remain visible; whether SwiftUI delivers a trailing .ended in that case, and whether onContinuousHover .active/.ended phases keep arriving while the drag is in progress (which changes which onChanged events fire onNavigate(id, false), since both write hoveredID), is not determinable from this file.",
+        "RecentCache eviction policy (LRU or insertion order) at the 400 limit is defined elsewhere."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,365 @@
+{
+  "bundle_id": "R2-28",
+  "reader": "R2-28-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/Providers/ACPSession.swift",
+      "sha256": "0f9803401885858b4fd958e6ec5ae95c4bfb6b283a21d7ddc00450b7d2d32ba9",
+      "lines_total": 920,
+      "ranges_read": [
+        [
+          1,
+          459
+        ],
+        [
+          460,
+          920
+        ]
+      ],
+      "purpose": "Implements the ProviderSession for the four Agent Client Protocol (ACP) agents Droppy Code drives over JSON-RPC on stdio: Cursor, OpenCode, Grok and Devin (doc comment line 23). It spawns the agent CLI with provider- and runtime-mode-specific arguments, performs the ACP initialize / session/new or session/load handshake (with one authenticate retry), maps model, effort, Fast and plan/build mode onto session/set_config_option, session/set_model and session/set_mode, and translates session/update notifications and session/request_permission requests into ProviderEvents (message and reasoning deltas, tool rows, todo checklists, slash commands, approvals, context usage). It also hosts the static catalog probe (probeModels) that starts a throwaway session in a temp folder and walks every model to learn each one's effort scale, plus a file-scope ACPLaunchGate actor that spaces process starts 1.5 s apart so agents sharing a SQLite store do not hit \"database is locked\".",
+      "key_symbols": [
+        "private actor ACPLaunchGate { private let spacing: TimeInterval; private var nextSlot = Date.distantPast; init(spacing: TimeInterval); func wait() async }  (slot = max(now, nextSlot); nextSlot = slot + spacing; sleeps slot - now if slot > now)",
+        "@MainActor final class ACPSession: ProviderSession",
+        "private static let launchGate = ACPLaunchGate(spacing: 1.5)",
+        "var onEvent: ((ProviderEvent) -> Void)?",
+        "private let configuration: SessionConfiguration",
+        "private var connection: JSONRPCConnection?, sessionID: String?, authMethods: [String] = [], canLoadSessions = false, supportsHTTPMCP = false, isReplaying = false, isStopping = false, runtimeMode: RuntimeMode, messageID: String?, thoughtID: String?, counter = 0, pendingPermissions: [String: RPCID] = [:], promptActive = false, cancelRequested = false, todoToolCallIDs: Set<String> = []",
+        "private var models: [ModelOption] = [], modelConfigID: String?, modeConfigID: String?, effortConfigID: String?, fastConfigID: String?, hasModeAPI = false, planMode: String?, buildMode: String?, currentMode: String?, currentModel: String?, currentEffort: String?, currentFast: String?",
+        "private var usesParameterizedModels: Bool { configuration.provider == .cursor }",
+        "init(configuration: SessionConfiguration)  (runtimeMode = configuration.runtimeMode)",
+        "var isRunning: Bool  (connection != nil && !connection.isClosed)",
+        "private var workingDirectory: String { configuration.workingDirectory.path }",
+        "private var launchArguments: [String]",
+        "func start() async throws -> String",
+        "private var clientCapabilities: JSONValue",
+        "func send(_ input: TurnInput) async throws",
+        "func interrupt() async",
+        "func compact() async throws  (always throws)",
+        "func resolveApproval(_ requestID: String, optionID: String)",
+        "func answerQuestion(_ requestID: String, answers: [String: [String]])  (no-op)",
+        "func stop()",
+        "static func probeModels(provider: ProviderKind, executable: URL, environment: [String: String]) async throws -> [ModelOption]",
+        "private func openSession(_ connection: JSONRPCConnection) async throws -> JSONValue",
+        "private func applySessionState(_ state: JSONValue)",
+        "private func probeModelEfforts() async",
+        "private func resolveModes(_ ids: [String])",
+        "private func applyModels(_ state: JSONValue)",
+        "private func applyConfigOptions(_ options: [JSONValue])",
+        "private static func flatten(_ values: [JSONValue]) -> [JSONValue]",
+        "private static func isEffortScale(_ values: [String]) -> Bool",
+        "static func orderedEfforts(_ values: [String]) -> [String]",
+        "private static func baseModelID(_ id: String) -> String",
+        "private static func sameModel(_ lhs: String?, _ rhs: String?) -> Bool",
+        "private func applySelection(model: String?, effort: String?, fastMode: Bool, interaction: InteractionMode) async",
+        "private func setConfigOption(_ configID: String, value: String) async",
+        "private func handleNotification(_ method: String, _ params: JSONValue)",
+        "private func handleRequest(_ id: RPCID, _ method: String, _ params: JSONValue)",
+        "private func automaticOption(for kind: ToolCall.Kind, options: [JSONValue]) -> String?",
+        "private func finishPrompt(_ stopReason: String?, error: Error?)",
+        "private func handleClose(_ tail: String)",
+        "private static func isTodoCall(_ update: JSONValue) -> Bool",
+        "private static func isTodoTitle(_ title: String) -> Bool",
+        "private static func todoSteps(_ update: JSONValue) -> [TodoStep]",
+        "static func parseTodoItems(_ value: JSONValue?) -> [TodoStep]",
+        "private func nextID(_ prefix: String) -> String  (\"<prefix>-<counter>-<first 8 of UUID>\")",
+        "private func makeToolCall(_ update: JSONValue) -> ToolCall",
+        "private func makeToolUpdate(_ update: JSONValue) -> ToolUpdate",
+        "private static let pathKeys = [\"filePath\", \"file_path\", \"path\", \"file\", \"notebook_path\", \"target_file\", \"targetFile\"]",
+        "private static func string(in value: JSONValue, keys: [String]) -> String?",
+        "private static let subjectPhrases: [String] (16 phrases, lines 788-792), private static let subjectVerbs: Set<String> (48 verbs, lines 793-799)",
+        "private static func subject(from title: String?, kind: ToolCall.Kind) -> String",
+        "private static func isBareToolName(_ title: String) -> Bool",
+        "private func diffs(_ content: JSONValue?) -> [FileEdit]",
+        "private static func cleanTitle(_ title: String?) -> String",
+        "private static func kind(_ raw: String?) -> ToolCall.Kind",
+        "private static func fallbackTitle(_ kind: ToolCall.Kind) -> String",
+        "private static func isFallbackTitle(_ title: String) -> Bool",
+        "private static func status(_ raw: String) -> ToolCall.Status",
+        "extension SessionConfiguration { init(provider: ProviderKind, executable: URL, workingDirectory: URL, environment: [String: String], runtimeMode: RuntimeMode, interactionMode: InteractionMode) }  (resumeID, resumeAt, model, effort all nil)"
+      ],
+      "calls_into": [
+        "StdioProcess(executable:arguments:directory:environment:)",
+        "JSONRPCConnection(process:sendsVersion: true), .onNotification, .onRequest, .onClose, .start(), .request(_:_:), .respond(to:result:), .respond(to:errorCode:message:), .notify(_:_:), .close(), .isClosed",
+        "RPCError.message, RPCID.key",
+        "AppInfo.version",
+        "MCPProviderConfig.acpServers(allowsHTTP:)",
+        "Attachment.base64Images(_:) (returns (image, base64) pairs; image.mimeType)",
+        "ProviderError.notInstalled(_:), .notRunning, .failed(_:)",
+        "ProviderKind.displayName",
+        "TextCleanup.lastLines(_:)",
+        "ToolTitles.relativePath(_:to:), ToolTitles.unwrapShell(_:)",
+        "JSONValue subscripts, .string, .bool, .int, .array, .isNull, JSONValue.parse(_:)",
+        "String.trimmed, String.nilIfEmpty (Core/Support/Text.swift)",
+        "ModelOption(id:name:detail:efforts:defaultEffort:isDefault:), ModelOption.fastTier",
+        "SlashCommand(name:detail:), TodoStep(text:status:), FileEdit(path:old:new:), ToolCall, ToolUpdate, ApprovalRequest(id:kind:title:detail:options:toolItemID:), ApprovalRequest.Option(id:title:role:), ContextUsage(usedTokens:windowTokens:)",
+        "ProviderEvent cases: .turnStarted(providerTurnID:), .requestResolved(id:), .models(_:current:), .messageDelta(id:text:), .reasoningDelta(id:text:), .todos(_:), .toolStarted(id:call:), .toolUpdated(id:update:), .commands(_:), .modeChanged(_:), .title(_:), .usage(_:), .approval(_:), .turnCompleted(status:error:), .exited(error:)",
+        "FileManager.default.temporaryDirectory / createDirectory(at:withIntermediateDirectories:)"
+      ],
+      "state_owned": [
+        "ACPLaunchGate.nextSlot (process-wide via static launchGate): the next permitted start instant",
+        "JSON-RPC connection and ACP sessionID",
+        "authMethods ids, canLoadSessions (agentCapabilities.loadSession), supportsHTTPMCP (agentCapabilities.mcpCapabilities.http)",
+        "isReplaying (true only while session/load awaits; suppresses all session/update handling), isStopping",
+        "runtimeMode (updated from each TurnInput)",
+        "messageID / thoughtID (current streaming entry ids), counter",
+        "pendingPermissions keyed by RPCID.key",
+        "promptActive, cancelRequested",
+        "todoToolCallIDs (cleared in finishPrompt)",
+        "models list and config ids (model/mode/effort/fast), hasModeAPI, planMode, buildMode, currentMode/currentModel/currentEffort/currentFast"
+      ],
+      "side_effects": [
+        "Spawns the agent CLI as a child process with stdio pipes, after waiting on the launch gate",
+        "Sends JSON-RPC requests: initialize, authenticate (methodId = authMethods[0]), session/load, session/new, session/prompt, session/set_config_option, session/set_model, session/set_mode; notification session/cancel; responses to session/request_permission and -32601 \"Method not found\" for any other agent request",
+        "probeModels creates <temp>/droppy-code-catalog directory and starts/stops a full session there, switching the model through every model lacking an effort scale and then restoring the original",
+        "Base64-encodes image attachments into the prompt",
+        "Emits ProviderEvents to onEvent"
+      ],
+      "platform_assumptions": [
+        "Foundation: Date, TimeInterval, Task.sleep(for: .seconds), UUID, FileManager.default.temporaryDirectory, URL.path, CharacterSet, String.trimmingCharacters, localizedCaseInsensitiveContains, Character.isNumber",
+        "Swift concurrency: actor, @MainActor isolation, Task { [weak self] } detached work; a port needs an equivalent serialised launch queue and single-threaded event dispatch",
+        "StdioProcess / JSONRPCConnection (Foundation Process + pipes on macOS) must be replaced by a Windows child-process + stdio JSON-RPC implementation; executable resolution (configuration.executable) is Windows-specific (.cmd/.exe shims)",
+        "workingDirectory passed to agents as a POSIX path via URL.path; Windows will pass a drive-letter path and ToolTitles.relativePath must handle backslashes",
+        "The comment 'An agent keeps a store of its own on this Mac (OpenCode's is SQLite)' assumes macOS; the lock contention applies on Windows too"
+      ],
+      "persisted_fields": [
+        "None written by this file. The ACP sessionID returned from start() is persisted elsewhere and comes back as configuration.resumeID for session/load."
+      ],
+      "ui_elements": [
+        "No views. User-visible strings produced: \"<displayName> did not start a session.\", \"<displayName> compacts its own context.\", \"The agent declined this request.\", \"The agent exited.\", \"Method not found\" (RPC), fallback tool titles \"Run command\", \"Read file\", \"Edit file\", \"Search\", \"Fetch\", \"Tool\" (mcp and other), \"Agent\"",
+        "clientInfo sent to agents: name \"droppy-code\", title \"Droppy Code\", version AppInfo.version"
+      ],
+      "feature_notes": [
+        "Launch gate: spacing 1.5 seconds; a lone start never waits (nextSlot starts at Date.distantPast).",
+        "Launch arguments. Cursor: .auto -> [\"--auto-review\", \"acp\"]; .fullAccess -> [\"--force\", \"acp\"]; otherwise [\"acp\"]. Grok: .supervised -> [\"--permission-mode\", \"default\", \"agent\", \"stdio\"]; .autoAcceptEdits -> [\"--permission-mode\", \"acceptEdits\", \"agent\", \"stdio\"]; .auto -> [\"--permission-mode\", \"auto\", \"agent\", \"stdio\"]; .fullAccess -> [\"agent\", \"--always-approve\", \"stdio\"]. Devin: .supervised -> [\"--permission-mode\", \"auto\", \"acp\"]; .autoAcceptEdits -> [\"--permission-mode\", \"accept-edits\", \"acp\"]; .auto -> [\"--permission-mode\", \"smart\", \"acp\"]; .fullAccess -> [\"--permission-mode\", \"dangerous\", \"acp\"]. Any other provider (OpenCode) -> [\"acp\"]. Launch args use configuration.runtimeMode at start, not later per-turn modes.",
+        "initialize params: protocolVersion 1; clientCapabilities {fs: {readTextFile: false, writeTextFile: false}, terminal: false}, plus _meta {parameterizedModelPicker: true} for Cursor only; clientInfo {name: \"droppy-code\", title: \"Droppy Code\", version}. If the initialize reply has _meta.modelState it is applied as the model state.",
+        "Auth retry: if openSession throws an RPCError whose message contains \"auth\" (case-insensitive) and authMethods is non-empty, sends authenticate with methodId authMethods[0] and retries openSession once.",
+        "openSession: params {cwd, mcpServers: MCPProviderConfig.acpServers(allowsHTTP: supportsHTTPMCP)}. With resumeID and loadSession capability, session/load with sessionId (errors swallowed by try?, replayed updates ignored via isReplaying); on success sessionID = resumeID. Otherwise session/new and sessionID = result.sessionId. Order in start() (lines 141-150): applySessionState(session), then `await applySelection(model: configuration.model, effort: configuration.effort, fastMode: configuration.fastMode, interaction: configuration.interactionMode)`, and only then `guard let sessionID else { throw ProviderError.failed(\"\\(configuration.provider.displayName) did not start a session.\") }`. When sessionID is nil, applySelection returns at once through its own `guard let connection, let sessionID else { return }` (line 444), so the throw follows the state application.",
+        "After the session opens, applySelection is run with configuration.model/effort/fastMode/interactionMode; send() runs it again with each TurnInput's values before the prompt.",
+        "applySessionState: modes (non-null) sets hasModeAPI, currentMode = currentModeId, resolves plan/build from availableModes ids; models (non-null) -> applyModels; configOptions -> applyConfigOptions.",
+        "resolveModes: planMode = first id == \"plan\"; buildMode = first id in [\"agent\", \"build\", \"code\", \"default\"], else first id not \"plan\" and not \"ask\".",
+        "applyModels: currentModelId mapped through baseModelID (currentModel = current ?? currentModel); model ids from availableModels[].modelId (base id for Cursor), entries without modelId dropped; each entry is `ModelOption(id: id, name: entry[\"name\"]?.string ?? id, detail: entry[\"description\"]?.string, ...)` so name defaults to the id and detail is nil without a description; efforts from _meta.reasoningEfforts[].value ordered by orderedEfforts; defaultEffort = the value of the first entry with default == true; isDefault when id == current. Emits .models only when the list is non-empty.",
+        "applyConfigOptions: resets effortConfigID and fastConfigID each pass; switches on option.category (falling back to id). \"model\": rebuilds the model list from the flattened option values, preserving known efforts/defaultEffort/fastTier through a Dictionary keyed by base id (comment: OpenCode's four hundred models). \"mode\": modeConfigID and plan/build resolution. \"thought_level\" or \"effort\": only when the values contain one of [\"none\", \"low\", \"medium\", \"high\", \"xhigh\", \"max\", \"extra-high\"] (case-insensitive), so Cursor's boolean thinking option is ignored; sets effortConfigID, currentEffort and ordered efforts. \"model_config\" with id \"fast\": fastConfigID, currentFast, hasFast. Then the current model gets the efforts (and defaultEffort = currentEffort) and fastTier = \"true\" when hasFast else nil; emits .models when non-empty.",
+        "flatten: grouped option values (value.options arrays) are expanded one level.",
+        "orderedEfforts ranks: none 0, minimal 1, low 2, medium 3, high 4, xhigh/extra-high/extra_high/\"extra high\" 5, max/ultra 6 (lowercased lookup). If at most one value is ranked the input order is returned unchanged; otherwise stable sort by rank with unranked or equal-rank items kept by original offset. Purpose: Grok lists high to low.",
+        "baseModelID strips everything from the first \"[\" (Cursor ids like model[effort=high,...]); sameModel compares base ids and is false if either is nil.",
+        "probeModelEfforts: requires modelConfigID; for every model with empty efforts, set_config_option to that model id (each reply feeds applyConfigOptions); finally restores the original model if it differs.",
+        "applySelection (returns at once without a connection and sessionID) order: model, effort, Fast, mode. Model: `let wireID = usesParameterizedModels ? Self.baseModelID(model) : model`, so for Cursor the requested model has everything from the first \"[\" stripped before it is sent; only when !sameModel(wireID, currentModel): set_config_option via modelConfigID, else session/set_model with modelId wireID; then `currentModel = wireID` (line 453) unconditionally, even if the request failed. Effort: only with effortConfigID and effort != currentEffort, then currentEffort = effort. Fast: wanted \"true\"/\"false\" vs currentFast, only with fastConfigID, then currentFast = wanted. Mode: planMode for .plan else buildMode, when != currentMode: via modeConfigID, else session/set_mode if hasModeAPI; currentMode = mode either way. set_* request errors are swallowed (try?); setConfigOption feeds any reply configOptions to applyConfigOptions.",
+        "send(): throws ProviderError.notRunning without a live connection and session; prompt = [{type: \"text\", text}] plus {type: \"image\", mimeType, data} for each attachment; resets messageID/thoughtID; promptActive = true; emits .turnStarted(providerTurnID: nil); session/prompt runs in a Task and its stopReason feeds finishPrompt.",
+        "interrupt(): only while promptActive; sets cancelRequested, answers every pending permission with outcome \"cancelled\" and emits .requestResolved, then notifies session/cancel.",
+        "compact() throws \"<displayName> compacts its own context.\"",
+        "resolveApproval responds {outcome: {outcome: \"selected\", optionId}} and emits .requestResolved.",
+        "handleNotification handles only session/update and ignores all while isReplaying. agent_message_chunk: id = \"message-<messageId>\" when the agent provides messageId, else the current messageID or nextID(\"message\"); clears thoughtID. agent_thought_chunk: reasoningDelta with a sticky thought id (`thoughtID ?? nextID(\"thought\")`); it does not clear messageID, and only agent_message_chunk clears thoughtID, so a message chunk without a messageId that arrives after a thought continues the same message entry (`?? messageID ?? nextID(\"message\")`). Only tool_call (and send()) clears messageID. tool_call: clears message/thought ids; todo calls are routed to .todos (only when non-empty) and remembered; otherwise .toolStarted plus an immediate .toolUpdated if the initial update has output or status. tool_call_update: todo ids keep feeding .todos, else .toolUpdated. plan: .todos(parseTodoItems(entries)) even when empty. available_commands_update: .commands with SlashCommand(name, description ?? \"\"). current_mode_update: updates currentMode and emits .modeChanged(.plan/.build) only if a planMode exists. config_option_update: applyConfigOptions. session_info_update: .title for a non-empty title. usage_update: .usage(ContextUsage(usedTokens: used, windowTokens: size)) only; comment says it is context occupancy and is never charged to the token ledger.",
+        "handleRequest: anything other than session/request_permission gets error -32601 \"Method not found\". Auto-approval: fullAccess approves everything, autoAcceptEdits approves only .edit kind; picks the allow_once option, else allow_always (`return (allowOnce ?? allowAlways)?[\"optionId\"]?.string`). When neither exists (or the chosen option has no optionId) it returns nil and the request falls through to the user approval prompt, even in fullAccess. Otherwise options map kind allow_always -> .approveAlways, reject_once/reject_always -> .decline, anything else -> .approve; title = option name ?? optionId; approval kind .command for command, .fileChange for edit, .tool otherwise; toolItemID = toolCall.toolCallId.",
+        "finishPrompt (idempotent via promptActive): clears todo ids, cancels leftover permissions, then: cancelRequested or stopReason \"cancelled\" -> .interrupted; error -> .failed with localizedDescription; stopReason \"refusal\" -> .failed \"The agent declined this request.\"; else .completed.",
+        "handleClose: a live prompt fails with the last lines of stderr tail or \"The agent exited.\"; if not stopping emits .exited(error: lastLines(tail)).",
+        "Todo detection: rawInput.todos present, or a title (trimmed, lowercased) equal to \"todo\", \"todos\", \"todowrite\", \"todo write\", \"write todos\", or \"<digits> todos\" / \"<digits> todo\". todoSteps tries rawInput.todos, rawOutput.todos, then JSON parsed from content blocks of type \"content\" (json.todos or the json itself), then rawOutput keys \"output\", \"stdout\", \"text\".",
+        "parseTodoItems: text from content, text, step or title (first present), skipped when blank after trim; status completed/complete/done -> .done, in_progress/inProgress/in-progress/active -> .active, anything else -> .pending. Text is kept untrimmed.",
+        "ACP tool kind mapping: read -> .read; edit/delete/move -> .edit; search -> .search; execute -> .command; fetch -> .web; anything else -> .other (ACP never yields .mcp or .agent here).",
+        "makeToolCall titles: command -> rawInput.command unwrapped via ToolTitles.unwrapShell, else subject; read/edit -> path (rawInput pathKeys, else locations[0].path, relative to cwd) else subject; search -> `pattern ?? title.nilIfEmpty ?? path ?? \"\"` with pattern from rawInput keys pattern/query/glob/regex/search, and detail = path only when `pattern != nil || !title.isEmpty` and path != workingDirectory and path != call.title (line 726); web -> rawInput url/query/prompt else subject; mcp/agent/other -> subject with path detail when path != workingDirectory and != title. Empty title falls back to path or fallbackTitle. edits from content blocks of type \"diff\" with a path: `FileEdit(path: relative, old: block[\"oldText\"]?.string ?? \"\", new: block[\"newText\"]?.string ?? \"\")` (lines 840-847), so missing oldText/newText default to \"\"; status from update.status.",
+        "makeToolUpdate: a subject title that is a fallback or bare tool name does not overwrite; rawInput.command overrides; read/edit updates without a title take locations[0].path when it is not the cwd; edits are set only when diffs() is non-empty (`if !edits.isEmpty { result.edits = edits }`, line 755), so an update without diff blocks leaves the row's edits alone; output = joined text of content blocks, else rawOutput stdout/stderr/output joined by newlines; exitCode from rawOutput.exitCode or rawOutput.metadata.exit; output \"(no output)\" is dropped; a non-zero exit code turns .completed into .failed.",
+        "subject(): cleanTitle trims backtick, space and newline; empty returns \"\"; bare tool names return \"\". Only for read/edit/search/web kinds: strips the first phrase (in list order) that the lowercased title starts with, from the 16 subjectPhrases in order: \"searched web for \", \"search web for \", \"searching web for \", \"searched the web for \", \"search the web for \", \"searched for \", \"searching for \", \"search for \", \"reading file \", \"read file \", \"listed directory \", \"listing directory \", \"list directory \", \"listed files in \", \"list files in \", \"listing files in \"; if no phrase matched, drops the first space-separated word when it is in subjectVerbs and something non-empty remains after trimming spaces. subjectVerbs (48 entries, lines 794-798): \"read\", \"reading\", \"viewed\", \"viewing\", \"view\", \"fetched\", \"fetching\", \"fetch\", \"browsed\", \"browsing\", \"searched\", \"searching\", \"search\", \"grep\", \"glob\", \"listed\", \"listing\", \"list\", \"wrote\", \"writing\", \"write\", \"edited\", \"editing\", \"edit\", \"modified\", \"modifying\", \"modify\", \"updated\", \"updating\", \"update\", \"created\", \"creating\", \"create\", \"deleted\", \"deleting\", \"delete\", \"ran\", \"running\", \"run\", \"executed\", \"executing\", \"execute\", \"called\", \"calling\", \"call\", \"opened\", \"opening\", \"open\". Then trims, and runs `for (open, close) in [(\"'\", \"'\"), (\"\\\"\", \"\\\"\"), (\"“\", \"”\"), (\"`\", \"`\")] where text.count >= 2 && text.hasPrefix(open) && text.hasSuffix(close)`: the where clause re-checks the current text for each pair, so one layer per pair type can be stripped, in that order (for example '`x`' becomes x), not just one level overall.",
+        "isBareToolName set (35 entries) includes \"read\", \"write\", \"edit\", \"multiedit\", \"patch\", \"bash\", \"shell\", \"list\", \"ls\", \"glob\", \"grep\", \"search\", \"webfetch\", \"websearch\", \"fetch\", \"todowrite\", \"todoread\", \"task\", \"tool\", \"apply_patch\", \"read_file\", \"write_file\", \"edit_file\", \"list_files\", \"search_files\", \"run_command\", \"run_terminal_cmd\", \"web_search\", \"web_fetch\", \"codebase_search\", \"file_search\", \"grep_search\", \"list_dir\", \"view_file\", \"replace_file_content\" (case-insensitive).",
+        "isFallbackTitle: \"run command\", \"read file\", \"edit file\", \"write file\", \"search\", \"fetch\", \"tool\", \"agent\", \"file\", \"files\" or any bare tool name.",
+        "status mapping: \"completed\" -> .completed, \"failed\" -> .failed, anything else -> .running.",
+        "probeModels runs with runtimeMode .supervised, interactionMode .build, captures the last .models event list, and always stops the session (defer).",
+        "B1->B2: whitespace trimming refactor only, no behaviour change. Four call sites replaced trimmingCharacters(in: .whitespacesAndNewlines) with the new String.trimmed helper (defined in Core/Support/Text.swift as the same trim): isTodoTitle line 645, parseTodoItems line 691, string(in:keys:) line 777, subject(from:kind:) line 819. Line count unchanged at 920; B1 sha 564c13ed... became 0f980340...."
+      ],
+      "unresolved_questions": [
+        "MCPProviderConfig.acpServers(allowsHTTP:) payload shape and the mcp-remote bridge live in another file; not verifiable here.",
+        "Whether ProviderRegistry maps OpenCode to this session with the default [\"acp\"] arguments (the switch's default branch) is implied by the doc comment but decided elsewhere."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Providers/APIKeychain.swift",
+      "sha256": "79739d65caddc0033fbcbc7862bb9c60d782412028ca37566826a13fc152d072",
+      "lines_total": 66,
+      "ranges_read": [
+        [
+          1,
+          66
+        ]
+      ],
+      "purpose": "A single caseless enum holding the one copy of the macOS Keychain SecItem code that stores, reads and deletes the API keys of the native (API-key based) providers. The four per-provider wrapper enums still exist (ZaiKeychain, CommandCodeKeychain, DeepSeekKeychain, MetaKeychain) and delegate to APIKeychain.key(for:fallback:) and APIKeychain.setKey(_:account:); only their duplicated SecItem calls moved here (doc comment lines 4-8). Every key lives as a generic-password item in the Keychain service AppInfo.name (\"Droppy Code\") with one account per provider, is trimmed before storage and on read, and is never read during a capture run (key(for:) returns \"\" then), although setKey has no capture guard.",
+      "key_symbols": [
+        "enum APIKeychain",
+        "static func key(for account: String, fallback: String) -> String",
+        "@discardableResult static func setKey(_ key: String, account: String) -> Bool",
+        "private static func read(_ account: String) -> String?",
+        "private static func delete(_ account: String)"
+      ],
+      "calls_into": [
+        "CaptureRun.isEnabled",
+        "AppInfo.name (Keychain service name): Core/Support/Text.swift:4 `static let name = Bundle.main.object(forInfoDictionaryKey: \"CFBundleDisplayName\") as? String ?? \"Droppy Code\"`; project.pbxproj sets INFOPLIST_KEY_CFBundleDisplayName = \"Droppy Code\" (line 293) and \"Droppy Code Dev\" for the dev configuration (line 317)",
+        "String.trimmed (Core/Support/Text.swift)",
+        "Security: SecItemDelete, SecItemAdd, SecItemCopyMatching, kSecClass/kSecClassGenericPassword, kSecAttrService, kSecAttrAccount, kSecValueData, kSecAttrAccessible/kSecAttrAccessibleWhenUnlocked, kSecReturnData, kSecMatchLimit/kSecMatchLimitOne, errSecSuccess",
+        "Callers (outside this file, still present in B2): ZaiKeychain.swift:6 account \"Z.ai API Key\", CommandCodeKeychain.swift:8 account \"Command Code API Key\", DeepSeekKeychain.swift:6 account \"DeepSeek API Key\", MetaKeychain.swift:6 account \"Meta API Key\"; each calls APIKeychain.key(for: account, fallback: fallback) and APIKeychain.setKey(key, account: account)"
+      ],
+      "state_owned": [
+        "No in-memory state; the Keychain items (service AppInfo.name, account = caller-supplied provider account) are the state."
+      ],
+      "side_effects": [
+        "setKey deletes any existing item for the account, then adds a new one; an empty or whitespace-only key deletes the item and returns true",
+        "key(for:) reads the Keychain unless CaptureRun is enabled (`guard !CaptureRun.isEnabled else { return \"\" }`, line 14)",
+        "setKey (lines 22-40) and delete have no CaptureRun guard, so a capture run that calls setKey still deletes and writes real Keychain items"
+      ],
+      "platform_assumptions": [
+        "macOS Security framework Keychain (SecItem* APIs, kSecClassGenericPassword, kSecAttrAccessibleWhenUnlocked). A Windows port must replace this with Windows Credential Manager or DPAPI-protected storage keyed by the same service/account pair.",
+        "Foundation Data / String(data:encoding: .utf8) UTF-8 encoding of the secret"
+      ],
+      "persisted_fields": [
+        "Keychain generic password (kSecClassGenericPassword): service = AppInfo.name, literally \"Droppy Code\" in the release build (CFBundleDisplayName; \"Droppy Code Dev\" in the dev build, same fallback literal \"Droppy Code\"); account = one of \"Z.ai API Key\", \"Command Code API Key\", \"DeepSeek API Key\", \"Meta API Key\" (from the four wrapper enums); value = UTF-8 bytes of the trimmed key; accessibility kSecAttrAccessibleWhenUnlocked. No default; an absent item means the caller's fallback is used. A Windows Credential Manager port must keep this service/account pair."
+      ],
+      "ui_elements": [
+        "None."
+      ],
+      "feature_notes": [
+        "key(for:fallback:) returns \"\" (not the fallback) when CaptureRun.isEnabled; otherwise the Keychain value when present and non-empty, else fallback.",
+        "setKey: trims whitespace and newlines; empty -> delete(account) and return true; else SecItemDelete on {class, service, account} followed by SecItemAdd with kSecValueData and kSecAttrAccessibleWhenUnlocked merged in (new value wins); returns SecItemAdd == errSecSuccess so the caller knows whether a fallback copy is still needed (doc comment lines 19-20). SecItemDelete's status is ignored.",
+        "read: query adds kSecReturnData true and kSecMatchLimitOne; returns nil unless status is errSecSuccess, the item is Data, decodes as UTF-8 and is non-empty after trimming; returns the trimmed string.",
+        "delete: SecItemDelete on {class, service, account}; status ignored.",
+        "Doc comment (lines 4-8) explains the consolidation: a fix such as the accessibility level previously had to be applied four times.",
+        "B1->B2: whitespace trimming refactor only, no behaviour change. setKey line 23 now uses key.trimmed and read lines 54-55 use key.trimmed instead of trimmingCharacters(in: .whitespacesAndNewlines); String.trimmed is defined as exactly that trim. Line count unchanged at 66; B1 sha 54ef58c9... became 79739d65....",
+        "Capture run asymmetry: only key(for:fallback:) checks CaptureRun.isEnabled; setKey writes (SecItemDelete then SecItemAdd) regardless of capture mode.",
+        "Service literal: AppInfo.name resolves to \"Droppy Code\" (CFBundleDisplayName, fallback \"Droppy Code\"); the dev build's display name \"Droppy Code Dev\" gives it a separate Keychain service."
+      ],
+      "unresolved_questions": [
+        "Where each wrapper's fallback value comes from (the caller of ZaiKeychain/CommandCodeKeychain/DeepSeekKeychain/MetaKeychain) is decided outside this file; the account strings themselves are resolved above."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Providers/AntigravitySession.swift",
+      "sha256": "18a346dc6e88127899bd0385f9e6d04a54381a658ed972207753a5ea863a93b8",
+      "lines_total": 730,
+      "ranges_read": [
+        [
+          1,
+          369
+        ],
+        [
+          370,
+          730
+        ]
+      ],
+      "purpose": "Implements the ProviderSession for Google's Antigravity CLI (`agy`), holding one persistent headless process per thread that speaks newline-delimited stream-json: one {\"event\":\"user\",...} object per turn on stdin and init / step_update / result events on stdout. It builds the launch flags (workspace via --add-dir, model and effort normalisation, --mode and --dangerously-skip-permissions, --conversation resume), maps step updates onto message deltas, tool rows (with before/after file snapshots to synthesise edit diffs), context usage, cumulative-to-per-turn token spend and turn completion statuses, and turns denied actions and sign-in failures into readable notices. It also provides static helpers for the model catalog (`agy models` plus `/model`), sign-in status and plan limits (`/usage` and `/credits`), all as zero-token headless calls.",
+      "key_symbols": [
+        "@MainActor final class AntigravitySession: ProviderSession",
+        "var onEvent: ((ProviderEvent) -> Void)?",
+        "private let configuration: SessionConfiguration; private var process: StdioProcess?; readTask: Task<Void, Never>?; initContinuation: CheckedContinuation<String, Error>?; conversationID: String?; runtimeMode: RuntimeMode; interactionMode: InteractionMode; model: String?; effort: String?; turnActive = false; interruptRequested = false; isStopping = false",
+        "private var spendTracker = TokenSpendTracker(); private var spendBaselineKnown: Bool",
+        "private let launchID = String(UUID().uuidString.prefix(8))",
+        "private var streamedText = false; private var editSnapshots: [String: String] = [:]; private var startedTools: Set<String> = []",
+        "static let efforts = [\"low\", \"medium\", \"high\"]",
+        "init(configuration: SessionConfiguration)  (spendBaselineKnown = configuration.resumeID?.isEmpty != false)",
+        "var isRunning: Bool { process?.isRunning ?? false }",
+        "func start() async throws -> String",
+        "private func modeArguments(runtimeMode: RuntimeMode, interaction: InteractionMode) -> [String]",
+        "private func failStartAfterTimeout()",
+        "func send(_ input: TurnInput) async throws",
+        "func interrupt() async",
+        "func compact() async throws",
+        "func resolveApproval(_ requestID: String, optionID: String) {}  and func answerQuestion(_ requestID: String, answers: [String: [String]]) {}",
+        "func stop()",
+        "private func handle(_ message: JSONValue)",
+        "private func handleStep(_ step: JSONValue)",
+        "private func finishEdit(_ id: String, parameters: JSONValue) -> [FileEdit]?",
+        "private static func snapshot(_ path: String) -> String?",
+        "private static func isDenied(_ message: String) -> Bool",
+        "private static func contextUsage(_ usage: JSONValue?) -> ContextUsage?",
+        "private func handleResult(_ result: JSONValue)",
+        "private func didClose()",
+        "private func authHint(in text: String) -> String?",
+        "struct ParsedModelRow { let baseSlug: String; let baseName: String; let effort: String? }",
+        "static func parseModelRow(slug: String, name: String) -> ParsedModelRow",
+        "static func normalize(model: String?, effort: String?) -> (model: String?, effort: String?)",
+        "static func listModels(executable: URL, environment: [String: String]) async throws -> [ModelOption]",
+        "private static func isSlug(_ text: String) -> Bool",
+        "static func authStatus(executable: URL, environment: [String: String]) async -> ProviderStatus.Auth",
+        "static func readPlanLimits(executable: URL, environment: [String: String]) async throws -> PlanLimits?",
+        "private static func parseUsage(_ data: JSONValue?, fallback response: String?) -> [PlanLimits.Window]",
+        "private static func parseUsageText(_ response: String) -> [PlanLimits.Window]",
+        "private static func parseCredits(_ data: JSONValue?, fallback response: String?) -> PlanLimits.Window?",
+        "private func makeToolCall(name: String, parameters: JSONValue) -> ToolCall",
+        "private static func kind(of name: String) -> ToolCall.Kind",
+        "private static func path(in parameters: JSONValue) -> String?",
+        "private static func string(in parameters: JSONValue, keys: [String]) -> String?",
+        "private static func lineRange(in parameters: JSONValue) -> String?",
+        "private static func humanize(_ name: String) -> String"
+      ],
+      "calls_into": [
+        "StdioProcess(executable:arguments:directory:environment:), .start(), .messages (async sequence of JSONValue), .send(_:), .terminate(), .isRunning, .errorTail",
+        "Shell.run(_:_:environment:timeout:) -> ShellResult (.stdout Data, .output, .errorOutput, .succeeded), ShellError(_:)",
+        "TokenSpendTracker.spend(total:), .seedBaseline(total:)",
+        "TokenLedger.shared.record(spend:)",
+        "TokenSpend(provider: .antigravity, totalTokens:model:)",
+        "Notice(level: .warning, message:)",
+        "ContextUsage(usedTokens:windowTokens:)",
+        "TextCleanup.lastLines(_:), TextCleanup.stripANSI(_:), TextCleanup.singleLine(_:limit:)",
+        "ToolTitles.relativePath(_:to:), ToolTitles.unwrapShell(_:)",
+        "ISO8601.date(from:) (Core/Support/ISO8601.swift)",
+        "String.trimmed (Core/Support/Text.swift)",
+        "JSONValue.parse(_:), .compactString, subscripts, .string/.int/.double/.array/.isNull",
+        "PlanLimits(planName:windows:), PlanLimits.Window(id:title:percent:resetsAt:)",
+        "ProviderStatus.Auth .signedIn(nil), .signedOut, .unknown",
+        "ModelOption(id:name:detail:efforts:defaultEffort:isDefault:)",
+        "ProviderError.notInstalled(_:), .notRunning, .failed(_:)",
+        "ProviderEvent cases: .sessionReady(sessionID:), .messageDelta, .messageCompleted(id:text:), .toolStarted, .toolUpdated, .usage, .tokenSpend, .notice, .turnStarted, .turnCompleted(status:error:), .exited(error:)",
+        "Referenced only in a comment: ProviderRegistry hands the CLI GEMINI_CLI_SYSTEM_SETTINGS_PATH (confirmed at ProviderRegistry.swift:277, outside this bundle)"
+      ],
+      "state_owned": [
+        "The agy StdioProcess and its readTask",
+        "initContinuation (pending start) and conversationID",
+        "runtimeMode, interactionMode (initialised from configuration at lines 57-58 and overwritten from each TurnInput at lines 153-154, but never read: start() passes configuration.runtimeMode / configuration.interactionMode to modeArguments at line 91); model, effort (initialised from configuration, overwritten from each TurnInput when non-empty at lines 155-156, and read by start() through Self.normalize(model: model, effort: effort) at line 88; model is also the raw value sent in .tokenSpend at line 314)",
+        "turnActive, interruptRequested, isStopping",
+        "spendTracker and spendBaselineKnown (true for a fresh conversation, false for a resumed one until the first total is seeded)",
+        "launchID (8 chars of a UUID, per session object) namespacing step ids",
+        "streamedText, editSnapshots (tool id -> file text before edit), startedTools (both cleared at every result)"
+      ],
+      "side_effects": [
+        "Spawns `agy` with stream-json flags; writes JSON lines to its stdin; terminates it on stop, interrupt or 30 s start timeout",
+        "Reads files from disk (up to 1,000,000 bytes, UTF-8) before and after edit tools to synthesise diffs",
+        "Records per-turn spend into TokenLedger.shared",
+        "Static helpers run `agy models`, `agy -p /model --output-format json`, `agy -p /usage --output-format json`, `agy -p /credits --output-format json` as subprocesses"
+      ],
+      "platform_assumptions": [
+        "Foundation: UUID, URL(fileURLWithPath:), URLResourceValues .fileSizeKey, String(contentsOf:encoding:), String(data:encoding:), CharacterSet .newlines/.whitespaces, Date.ISO8601FormatStyle via ISO8601 helper",
+        "Swift concurrency: @MainActor, CheckedThrowingContinuation, Task.sleep(for: .seconds(30)), async let parallel subprocess calls",
+        "StdioProcess and Shell (Foundation Process) must be replaced by Windows child-process equivalents; resolving the `agy` executable on Windows (.exe/.cmd) is external",
+        "Error hints tell the user to \"Run `agy` once in Terminal\"; on Windows the wording would refer to a terminal/PowerShell (parity decision needed)",
+        "Comment references ~/.gemini/antigravity-cli/scratch as the CLI's fallback workspace; on Windows that is under %USERPROFILE%",
+        "File paths from tool parameters (AbsolutePath etc.) are read directly; on Windows they will be drive-letter paths"
+      ],
+      "persisted_fields": [
+        "None written by this file. The agy conversation_id is emitted via .sessionReady and comes back as configuration.resumeID for --conversation."
+      ],
+      "ui_elements": [
+        "No views. User-visible strings: \"Antigravity did not answer. Is `agy` signed in? Run `agy` once in Terminal.\"; \"Antigravity manages its own context.\"; \"The tool failed.\"; \"Antigravity held back <names> without prompting. Use Full access or add an allow rule in the CLI's settings.\" (warning notice); \"Antigravity held back <names> waiting for a permission it could not ask for. Use Full access for this chat.\"; \"Antigravity stopped before finishing.\"; \"Antigravity exited.\"; \"Antigravity is not signed in. Run `agy` once in Terminal to sign in.\"; ShellError texts \"`agy models` produced no output.\" and \"`agy models` listed no models.\"",
+        "Plan-limit window titles: \"<group> · <bucket name or Limit>\" (group default \"Models\"), \"<col0> · <col1>\" for text rows, \"AI credits · <n> remaining\"",
+        "Tool row titles: MCP \"<server> · <tool>\" with defaults \"MCP\" and \"tool\"; read line-range detail (only when a path exists) \"L<start>–<end>\" when EndLine > StartLine, else \"L<start>\"; humanized names capitalise the first underscore-separated word and join with spaces (e.g. \"Run command\")"
+      ],
+      "feature_notes": [
+        "Launch arguments in order: \"--input-format\", \"stream-json\", \"--output-format\", \"stream-json\", \"--print-timeout\", \"30m\", \"--add-dir\", <workingDirectory>; then \"--model\" <slug> and \"--effort\" <level> from `Self.normalize(model: model, effort: effort)` (line 88, the mutable model/effort properties) when non-empty; then `modeArguments(runtimeMode: configuration.runtimeMode, interaction: configuration.interactionMode)` (line 91), always the original configuration's modes, never the per-turn ones; then \"--conversation\" <resumeID> when configuration.resumeID is non-empty. The --add-dir comment says the CLI does not adopt its cwd and otherwise works in ~/.gemini/antigravity-cli/scratch.",
+        "modeArguments: interaction .plan -> [\"--mode\", \"plan\"]; else .supervised adds nothing, .autoAcceptEdits/.auto/.fullAccess -> [\"--mode\", \"accept-edits\"]; additionally .fullAccess always appends \"--dangerously-skip-permissions\" (also in plan mode).",
+        "start(): creates the process, clears isStopping, starts a read loop that dispatches each message to handle() and calls didClose() when the stream ends; awaits the init event with a 30-second timeout (failStartAfterTimeout terminates the process and throws the not-answered message). The 30-second timeout Task (lines 115-118) is never cancelled: after a successful init it still wakes and calls failStartAfterTimeout(), which returns harmlessly because handle() already set initContinuation = nil (`guard let continuation = initContinuation else { return }`); [weak self] makes it a no-op if the session is gone.",
+        "send(): requires a running process (else ProviderError.notRunning); writes runtimeMode/interactionMode (never read afterwards) and non-empty model/effort (read only by a later start() and, for model, by .tokenSpend); none of this changes the running process's flags; sets turnActive, clears interruptRequested and streamedText; emits .turnStarted(providerTurnID: nil); writes {\"event\": \"user\", \"message\": {\"content\": <text>}}. Images are never sent because stream-json accepts only text blocks.",
+        "interrupt(): only during a turn; sets interruptRequested and isStopping (so no .exited follows) and terminates the process; the conversation persists server-side for the next --conversation resume.",
+        "handle(): \"init\" with non-empty conversation_id resolves start() and emits .sessionReady; \"step_update\" -> handleStep; \"result\" -> handleResult; other events ignored.",
+        "handleStep: step_type \"agent_response\" emits .usage from step.usage (input_tokens + cache_read_tokens + output_tokens, windowTokens nil, only when > 0) and .messageDelta id \"agy-<launchID>-message-<step_index>\" for non-empty text_delta. step_type \"tool\": name from tool_name or tool_info.name; id \"agy-<launchID>-tool-<step_index>\"; first sighting emits .toolStarted and, for an edit in state ACTIVE with a path, snapshots the file; returns if ACTIVE. State \"ERROR\" or \"DONE\" with tool_info.error.message -> .toolUpdated with the error (default \"The tool failed.\"), status .declined if the message contains \"permission check failed\", \"denied permission\" or \"permission denied\" (case-insensitive) else .failed, plus finishEdit. \"DONE\" -> .completed with tool_info.output when non-empty and finishEdit. Other step types (user_input, checkpoint) ignored.",
+        "finishEdit: `guard let before = editSnapshots.removeValue(forKey: id), let path = Self.path(in: parameters) else { return nil }`, so it returns nil whenever no snapshot was taken: non-edit steps, edit steps first seen as DONE or ERROR (snapshots are taken only on first sighting in state ACTIVE with a path), and edits without a path. A nil result leaves the row's edits alone, so those rows keep the placeholder `[FileEdit(path: path)]` from makeToolCall (or none without a path). With a snapshot: if before == after returns [FileEdit(path: relative)] with no text, else FileEdit(path, old: before, new: after). snapshot returns nil for files over 1_000_000 bytes, missing or non-UTF-8 (treated as \"\").",
+        "handleResult: clears turnActive, editSnapshots, startedTools. usage.total_tokens (else input_tokens + output_tokens) > 0: when the baseline is known, spend = tracker delta and if > 0 it is recorded in TokenLedger and emitted as .tokenSpend(TokenSpend(provider: .antigravity, totalTokens: spend, model: model)), where model is the raw last TurnInput or configuration model, not the normalized base slug passed to --model; otherwise the first total seeds the baseline uncounted. If nothing streamed and result.response is non-blank, emits .messageCompleted id \"agy-<launchID>-result-<8 UUID chars>\". denied_actions (display_name or action) produce the warning notice. A non-empty result.conversation_id re-emits .sessionReady. Completion: interruptRequested -> .interrupted; status \"WAITING\" with denied actions -> .failed with the held-back message; \"SUCCESS\" or \"WAITING\" -> .completed; \"CANCELED\" or \"INTERRUPTED\" -> .interrupted; anything else -> .failed with result.error or \"Antigravity stopped before finishing.\".",
+        "didClose: a pending start throws authHint or last stderr lines or \"Antigravity exited.\"; an active turn completes .interrupted if requested else .failed with the same fallback chain; then .exited(error: lastLines(errorTail)) unless stopping. authHint matches \"authentication required\", \"not signed in\", \"unauthenticated\", or \"login\" together with \"agy\" (case-insensitive).",
+        "parseModelRow: checks suffixes in the order \"-high\", \"-medium\", \"-low\"; strips the suffix from the slug and \" (High)\"/\" (Medium)\"/\" (Low)\" from the name.",
+        "normalize: nil/empty model -> (nil, nil). Base slug containing \"claude\" -> (base, nil) (no --effort). Effort = given effort, else the slug's suffix effort, else \"medium\" for \"gpt-oss-120b\" and \"high\" otherwise. Then \"gemini-3.1-pro\" with \"medium\" is raised to \"high\", and \"gpt-oss-120b\" is forced to \"medium\".",
+        "listModels: runs `agy models` and `agy -p /model --output-format json` concurrently with 30 s timeouts; current id = command.data.id; throws \"`agy models` produced no output.\" when stdout is missing. Each ANSI-stripped, trimmed line is split on the first tab; the slug must pass isSlug (starts with letter/digit, only letters, digits, -, _, .); name defaults to the slug. Rows group by base slug in first-seen order, accumulating efforts; isCurrent when slug == current, base == current, or current has the base as prefix. Efforts sorted low, medium, high; defaultEffort = \"high\" if present else the last. Throws \"`agy models` listed no models.\" on an empty list; if none is default the first becomes default.",
+        "authStatus: `agy models` with a 20 s timeout; Shell failure -> .unknown. It scans `TextCleanup.stripANSI(result.output + result.errorOutput)` (stdout and stderr together) and counts rows whose untrimmed line, split on \"\\t\", has a first field passing isSlug; success with at least one such row -> .signedIn(nil); text containing \"authentication required\", \"not signed in\", \"unauthenticated\", \"sign in\" or \"login\" (lowercased) -> .signedOut; else .signedIn(nil) if succeeded, otherwise .unknown. This differs from listModels, which reads stdout only and trims each line and each tab part before the slug check.",
+        "readPlanLimits: `agy -p /usage --output-format json` and `agy -p /credits --output-format json` concurrently (30 s); nil when no windows. parseUsage: command.data.groups[].buckets[] with remaining_fraction -> percent = clamp((1 - remaining) * 100, 0, 100), id = bucket.id or `\"\\(groupName)-\\(windows.count)\"` where windows.count is the running count of windows across all groups so far (not a per-group index), group name default \"Models\", resetsAt = reset_time via ISO8601.date(from:); falls back to parseUsageText on the response when no windows. parseUsageText rows \"Group<TAB>Bucket<TAB>95%<TAB><ISO date>\": percent = clamp(100 - remaining), id \"usage-<index>\". parseCredits: command.data.remaining_credits, else a response row whose first column contains \"credit\" (case-insensitive) and second parses as Int; window id \"ai-credits\", percent 0 when remaining > 0 else 100, no reset.",
+        "Tool kind mapping by agy tool name: command = run_command, send_command_input, command_status, wait, wait_5_seconds, schedule; read = view_file, view_file_outline, view_code_item, view_content_chunk, read_resource, read_browser_page, capture_browser_screenshot, capture_browser_console_logs; edit = write_to_file, replace_file_content, multi_replace_file_content, sed_file, notebook_edit, notebook_execution; search = list_dir, grep_search, find_by_name, list_resources, list_browser_pages; web = exactly search_web, read_url_content, open_browser_url, browser_click_element, browser_drag_pixel_to_pixel, browser_get_dom, browser_get_network_request, browser_input, browser_list_network_requests, browser_mouse_down, browser_mouse_up, browser_move_mouse, browser_press_key, browser_refresh_page, browser_resize_window, browser_scroll, browser_scroll_dom, browser_select_option, click_browser_pixel, execute_browser_javascript (an exact list, not a browser_ prefix rule: browser_subagent is .agent); agent = invoke_subagent, browser_subagent, define_subagent, manage_subagents; mcp = call_mcp_tool; anything else = other.",
+        "makeToolCall: path keys in order AbsolutePath, TargetFile, NotebookPath, FilePath, File, file, path, Path, DirectoryPath, directory, dir (first non-empty string), made relative to cwd. command title from CommandLine/command/Command (unwrapShell), else humanized name; read title path, else Url/URL/url, else humanized name, and detail = lineRange only when a path exists (`if path != nil, let range = Self.lineRange(in: parameters)`): lineRange needs StartLine and gives \"L<start>–<end>\" only when EndLine exists and end > start, otherwise \"L<start>\"; edit title path (else humanized name) with a placeholder [FileEdit(path: path)] when a path exists; search: pattern from Query/query/Pattern/pattern and folder from SearchPath/SearchDirectory/DirectoryPath/Path/path (relative); with a pattern title = pattern, detail = folder; without one `ToolCall(kind: .search, title: folder ?? Self.humanize(name))`; web from Url/URL/url/query/Query else humanized name; agent from Task/task/Prompt/prompt/Description/description as TextCleanup.singleLine(limit: 96) else humanized name; mcp title \"<server> · <tool>\" with server from [\"ServerName\", \"server_name\", \"Server\", \"server\"] default \"MCP\" and tool from [\"ToolName\", \"tool_name\", \"Tool\", \"tool\"] default \"tool\", detail = compactString of Arguments ?? arguments ?? Input (nil when absent); other gets the humanized name and a compact JSON detail when non-empty, not \"{}\" and at most 300 characters.",
+        "B1->B2: two changes. (1) Behaviour fix at lines 82-87: B1 appended [\"--allowed-mcp-server-names\"] + MCPProviderConfig.connectedIDs() when any MCP server was connected; B2 removes that entirely and relies on the settings file ProviderRegistry passes in GEMINI_CLI_SYSTEM_SETTINGS_PATH, because agy has no such flag and exits 2 on an unknown flag, which killed every Antigravity session once one MCP server was connected. The file grew from 727 to 730 lines: the diff removes one comment line and two code lines (`let connected = MCPProviderConfig.connectedIDs()` and `if !connected.isEmpty { arguments += [\"--allowed-mcp-server-names\"] + connected }`) and adds six comment lines. (2) Refactors: response and model-row trims now use String.trimmed (lines 326, 469); reset_time parsing in parseUsage (line 577) and parseUsageText (line 594) switched from a fresh ISO8601DateFormatter() to the shared ISO8601.date(from:), which additionally accepts fractional-second stamps (tries fractional then plain Date.ISO8601FormatStyle), so a reset time like 2026-09-13T18:28:42.057Z now parses where B1 returned nil."
+      ],
+      "unresolved_questions": [
+        "TokenSpendTracker semantics (how spend handles a total that goes down) are defined in another file.",
+        "The exact contents of the GEMINI_CLI_SYSTEM_SETTINGS_PATH settings file (MCPProviderConfig.geminiSettingsPath) are outside this bundle."
+      ]
+    }
+  ]
+}

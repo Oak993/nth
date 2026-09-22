@@ -1,0 +1,487 @@
+{
+  "bundle_id": "R2-24",
+  "reader": "R2-24-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Core/Support/HangWatchdog.swift",
+      "sha256": "c8ab0f3de358a3fac78f6224e9d93e8029c1c4aca9a27d09ed9cbb7861c5a5d2",
+      "lines_total": 131,
+      "ranges_read": [
+        [
+          1,
+          131
+        ]
+      ],
+      "purpose": "Self-monitoring for main-thread freezes: a dedicated background thread posts a block to the main queue every 0.5 s and, when the main thread has not answered for 4 s, runs /usr/bin/sample against the app's own pid and writes the captured stacks to ~/Library/Logs/Droppy Code/hang-<stamp>.txt. Its doc comment (lines 6-8) gives two reasons a force-quit freeze otherwise leaves nothing behind: \"spindump declines for a development build, and the crash reporter never sees a process that was killed rather than crashed\" (the second applies to release builds too). It stays on in every build because of its low cost (lines 15-16) and keeps at most 10 reports.",
+      "key_symbols": [
+        "enum HangWatchdog (namespace, all static)",
+        "private static let log = Logger(subsystem: \"iordv.droppycode\", category: \"hang\")",
+        "private static let stallThreshold: TimeInterval = 4",
+        "private static let sampleSeconds = 2",
+        "private static let keptReports = 10",
+        "private static let state = OSAllocatedUnfairLock(initialState: State())",
+        "private struct State { var lastPong = Date(); var reportedThisStall = false; var started = false }",
+        "static func start()",
+        "private static func ping()",
+        "private static func check()",
+        "private static func writeReport(stalledFor: TimeInterval)",
+        "private static func reportsFolder() -> URL",
+        "private static func trimReports(in folder: URL)"
+      ],
+      "calls_into": [
+        "ISO8601.string(from:) (DroppyCode/Core/Support/ISO8601.swift) for the filename stamp",
+        "os.Logger.error with OSLog interpolation (format: .fixed(precision: 1), privacy: .public)",
+        "OSAllocatedUnfairLock.withLock",
+        "Foundation Thread (block initializer), Thread.sleep(forTimeInterval:), DispatchQueue.main.async",
+        "Foundation Process running /usr/bin/sample, Pipe, FileHandle.readDataToEndOfFile, waitUntilExit, terminationStatus",
+        "FileManager.createDirectory(withIntermediateDirectories: true), urls(for: .libraryDirectory, in: .userDomainMask), contentsOfDirectory(atPath:), removeItem(at:)",
+        "String.write(to:atomically: true, encoding: .utf8)",
+        "Bundle.main.infoDictionary keys CFBundleShortVersionString and CFBundleVersion",
+        "ProcessInfo.processInfo.processIdentifier, NSHomeDirectory()",
+        "Caller seen by grep (navigation only, not part of this file): DroppyCode/App/DroppyCodeApp.swift:17 calls HangWatchdog.start()"
+      ],
+      "state_owned": [
+        "Process-global lock-protected State: lastPong (Date of last main-queue answer, initialized to Date() and reset on start), reportedThisStall (Bool, set true once a report is taken for the current stall, cleared by the next pong), started (Bool, makes start() idempotent)",
+        "One detached Thread named \"hang-watchdog\" with qualityOfService .utility that loops forever (never stopped)"
+      ],
+      "side_effects": [
+        "Every 0.5 s enqueues a block on the main queue (ping) and checks elapsed time (check)",
+        "On a stall: logs an error, creates ~/Library/Logs/Droppy Code if missing (try?), spawns /usr/bin/sample <pid> 2 -mayDie synchronously on the watchdog thread (blocking the watchdog loop for the sample duration), then `try? (header + body).write(to: file, atomically: true, encoding: .utf8)` (line 113). The write failure is swallowed, and lines 114-115 `log.error(\"Hang report written to \\(file.path, privacy: .public)\")` and `trimReports(in: folder)` run unconditionally, so the \"written\" log appears even when no file was written. trimReports then deletes the oldest hang-*.txt files beyond 10.",
+        "All filesystem errors are swallowed with try?"
+      ],
+      "platform_assumptions": [
+        "macOS /usr/bin/sample tool with argument order [pid, seconds, \"-mayDie\"]; Windows has no equivalent (needs e.g. a minidump or stack capture via another mechanism)",
+        "~/Library/Logs via FileManager .libraryDirectory in .userDomainMask, fallback NSHomeDirectory() + \"/Library\"; Windows needs a different logs folder",
+        "Apple unified logging os.Logger with subsystem \"iordv.droppycode\"",
+        "OSAllocatedUnfairLock (os module, macOS 13+)",
+        "GCD main queue as the thing being watched (DispatchQueue.main); Windows port would watch the UI/renderer thread instead",
+        "Bundle.main.infoDictionary CFBundleShortVersionString / CFBundleVersion for version text",
+        "Foundation Thread with .utility QoS"
+      ],
+      "persisted_fields": [
+        "Report files: <Library>/Logs/Droppy Code/hang-<stamp>.txt where stamp = ISO8601.string(from: Date()) with every \":\" replaced by \"-\" (ISO8601.plain shape, e.g. hang-2026-09-13T18-28-42Z.txt per the ISO8601.swift example string)",
+        "Report content: line 1 `\"Droppy Code main thread unresponsive for \\(String(format: \"%.1f\", stalledFor))s\\n\"` (line 91), line 2 \"Version <CFBundleShortVersionString or ?> (<CFBundleVersion or ?>)\", line 3 `\"Sampled at \\(Date())\\n\\n\"` (line 93), then the sample output (stdout and stderr merged in one pipe). Line 3 interpolates a Date directly (not ISO8601.string), so its shape is Foundation's Date description, not the filename stamp. UNRESOLVED (Foundation runtime, not pinned source; confirm on a reference runtime): Date.description is expected to be UTC with a space-separated offset, shape `2026-09-13 18:28:42 +0000`.",
+        "Retention: keptReports = 10, oldest removed by lexicographic sort of names matching prefix \"hang-\" and suffix \".txt\"",
+        "SOURCE FACT: the product name is hard-coded, not taken from AppInfo. reportsFolder() is `library.appendingPathComponent(\"Logs/Droppy Code\", isDirectory: true)` (line 120) and the header literal starts `\"Droppy Code main thread unresponsive for \"` (line 91); the Logger subsystem is also the literal \"iordv.droppycode\" (line 18). A development build (AppInfo.isDevelopment, bundle id \"iordv.droppycode.dev\" in Text.swift) therefore writes into the same Logs/Droppy Code folder, and trimReports prunes one shared pool of 10 hang-*.txt files across release and development builds."
+      ],
+      "ui_elements": [
+        "None. No visible UI; output is a log file and os_log entries only."
+      ],
+      "feature_notes": [
+        "start(): under the lock, returns early if started is already true; otherwise sets started = true and lastPong = Date(), then starts the thread. Thread body: while true { Thread.sleep(forTimeInterval: 0.5); ping(); check() }.",
+        "ping(): DispatchQueue.main.async { lastPong = Date(); reportedThisStall = false }. While the main thread is stuck these blocks queue up; they all run once it recovers, which clears reportedThisStall so the next stall gets its own report (doc comment: \"One report per stall; the next stall gets one of its own.\").",
+        "check(): stalled = Date().timeIntervalSince(lastPong); returns nil unless stalled >= 4 (stallThreshold) and reportedThisStall is false; when it fires it sets reportedThisStall = true, so at most one report per stall. The seconds printed in the log (line 79) and the header (line 91) are this `stalled` value at the moment of detection, not the total length of the freeze: check() runs once per loop after `Thread.sleep(forTimeInterval: 0.5)` (line 52) and fires on the first tick with stalled >= 4, so with the watchdog thread on schedule the figure is about 4.0 to 4.5 (plus loop overhead) however long the freeze lasts. A port must print the detection-time value, not a measured total.",
+        "Log strings verbatim: \"Main thread unresponsive for <stalledFor, .fixed(precision: 1)>s, sampling\" and \"Hang report written to <file.path, privacy .public>\".",
+        "Sample failure paths: nonzero exit prefixes the body with \"sample exited with status <N>\" followed by two newlines; a throw from process.run() makes the body \"sample could not run: <error.localizedDescription>\" plus newline. The header is written in all cases.",
+        "Because writeReport runs on the watchdog thread synchronously, pings and checks pause for the ~2 s sample plus write time.",
+        "Doc comment rationale (lines 6-8): \"the Dock asks spindump for a hang report, spindump declines for a development build, and the crash reporter never sees a process that was killed rather than crashed. So the app watches itself.\" Lines 15-16: \"This costs a timer on a background thread and a block on the main queue every half second, nothing more, so it stays on in every build.\" No build-configuration gate exists in the file.",
+        "B1->B2: one line changed (line 88). The stamp was ISO8601DateFormatter().string(from: Date()) in 1.6.0 and is now ISO8601.string(from: Date()) using the new shared ISO8601 enum (ISO8601.plain, Date.ISO8601FormatStyle()); the \":\" to \"-\" replacement and the hang-<stamp>.txt naming are unchanged. Nothing else in the file changed."
+      ],
+      "unresolved_questions": [
+        "Whether ISO8601.plain.format output is byte-identical to the old ISO8601DateFormatter() default output for every date (both documented/intended as 2026-09-13T18:28:42Z shape); not verifiable from this file alone.",
+        "Windows replacement for /usr/bin/sample (stack capture of the UI thread) is a port design decision, not upstream behaviour.",
+        "Exact rendering of `\"Sampled at \\(Date())\"` (line 93) is Foundation Date.description; expected shape `2026-09-13 18:28:42 +0000` (UTC, space-separated offset) is not verifiable from pinned source and needs a reference-runtime check."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Support/ISO8601.swift",
+      "sha256": "8b7a8bf5ba9a2827e5f1030a1490c48946c24810c555a63fef1dc02ac6193218",
+      "lines_total": 32,
+      "ranges_read": [
+        [
+          1,
+          32
+        ]
+      ],
+      "purpose": "A shared namespace of three prebuilt Date.ISO8601FormatStyle values for parsing and writing ISO 8601 stamps that arrive from provider CLIs and GitLab, replacing per-call formatter allocation. It parses stamps with or without fractional seconds (trying fractional first, then plain), parses bare dates such as those from GitHub Copilot's quota endpoint, and writes whole-second UTC stamps with a Z suffix for filenames and prompts.",
+      "key_symbols": [
+        "enum ISO8601 (namespace)",
+        "static let fractional = Date.ISO8601FormatStyle(includingFractionalSeconds: true)  // doc example `2026-09-13T18:28:42.057Z`",
+        "static let plain = Date.ISO8601FormatStyle()  // doc example `2026-09-13T18:28:42Z`, \"also the shape written below\"",
+        "private static let dateOnly = Date.ISO8601FormatStyle().year().month().day()  // doc example `2026-09-13`",
+        "static func date(from text: String) -> Date?  // (try? fractional.parse(text)) ?? (try? plain.parse(text))",
+        "static func dateOnly(from text: String) -> Date?  // try? dateOnly.parse(text)",
+        "static func string(from date: Date) -> String  // plain.format(date)"
+      ],
+      "calls_into": [
+        "Foundation Date.ISO8601FormatStyle (init, init(includingFractionalSeconds:), .year().month().day(), parse(_:), format(_:))",
+        "Files referencing ISO8601.<member> at B2 (grep, navigation only): App/UpdateChecker.swift, Core/Support/HangWatchdog.swift, Services/Providers/AntigravitySession.swift, CodexSession.swift, CopilotSession.swift, OpenAICompatibleSession.swift, PlanLimits.swift, Services/Store/TokenLedger.swift"
+      ],
+      "state_owned": [
+        "Three immutable static format-style values (fractional, plain, private dateOnly); no mutable state"
+      ],
+      "side_effects": [
+        "None."
+      ],
+      "platform_assumptions": [
+        "Foundation Date.ISO8601FormatStyle (Sendable value type, macOS 12+ / Swift Foundation); a Windows/TypeScript port needs an equivalent parser that accepts both fractional and whole-second stamps and a date-only form, and a formatter emitting whole-second UTC with Z"
+      ],
+      "persisted_fields": [
+        "No keys persisted here, but string(from:) defines the written stamp shape used by callers: whole seconds, UTC, `Z` suffix (doc line 28), e.g. 2026-09-13T18:28:42Z"
+      ],
+      "ui_elements": [
+        "None."
+      ],
+      "feature_notes": [
+        "Doc comment: a style that requires fractional seconds rejects a whole-second stamp and vice versa, so date(from:) tries fractional first and falls back to plain; any other input returns nil.",
+        "dateOnly(from:) accepts only a bare date with no time (Copilot quota endpoint shape); returns nil otherwise.",
+        "Name overloading: the private static property dateOnly and the static func dateOnly(from:) share a base name.",
+        "Doc comment rationale: Date.ISO8601FormatStyle is Sendable, so the styles are built once instead of allocating a formatter per stamp.",
+        "B1->B2: added in 1.6.2 (whole 32-line file is new; the diff shows only insertions).",
+        "SOURCE FACT: none of the three styles sets a time zone: `Date.ISO8601FormatStyle(includingFractionalSeconds: true)` (line 10), `Date.ISO8601FormatStyle()` (line 13) and `Date.ISO8601FormatStyle().year().month().day()` (line 16) all use the initializer default. UNRESOLVED (Foundation API, not pinned source): that default is expected to be GMT (`timeZone: TimeZone = TimeZone(secondsFromGMT: 0)!`), which would make dateOnly(from: \"2026-09-13\") UTC midnight and string(from:) UTC; the doc comment on line 28 independently says string(from:) writes \"whole seconds, UTC, `Z` suffix\".",
+        "SOURCE FACT: date(from:) (line 20) tries only the fractional and plain date-time styles, and callers treat a bare date as a separate case: DroppyCode/Services/Providers/CopilotSession.swift:471 chains `ISO8601.date(from: text) ?? ISO8601.dateOnly(from: text)`, while the other callers (UpdateChecker.swift:325, AntigravitySession.swift:577 and 594, CodexSession.swift:472, PlanLimits.swift:334, TokenLedger.swift:585) call date(from:) alone. A JS port built on Date.parse would accept bare dates (and possibly other forms) at those call sites where upstream uses date(from:) alone; exactly which offset or non-Z forms Foundation's parse strategy accepts is not established by the pinned source."
+      ],
+      "unresolved_questions": [
+        "The Foundation default time zone of Date.ISO8601FormatStyle (expected GMT) and the exact set of time-zone designators its parse accepts (Z only, or also +hh:mm / +hhmm offsets) need a reference-runtime check; the pinned file sets neither."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Support/JSONRPC.swift",
+      "sha256": "83b47070cf87f1d337d3fb2da65bdebef49c1fcbf093cb6c03efa0d14797c05f",
+      "lines_total": 157,
+      "ranges_read": [
+        [
+          1,
+          157
+        ]
+      ],
+      "purpose": "A main-actor JSON-RPC 2.0 client/server endpoint over a StdioProcess, used by Codex (which omits the jsonrpc member) and ACP agents (which require it). It correlates outgoing requests to responses by integer id through checked continuations, dispatches incoming requests and notifications to callbacks, answers unhandled requests with -32601, and fails all pending requests with the process's stderr tail when the stream closes.",
+      "key_symbols": [
+        "enum RPCID: Hashable, Sendable { case int(Int); case string(String) }",
+        "RPCID.init?(_ value: JSONValue)  // .int -> .int, .double -> .int(Int(id)), .string -> .string, else nil",
+        "RPCID.json: JSONValue",
+        "RPCID.key: String  // String(id) or the string itself",
+        "struct RPCError: LocalizedError, Sendable { var code: Int; var message: String; var data: JSONValue?; errorDescription = message }",
+        "extension RPCError { init(code: Int, message: String) }  // data nil",
+        "@MainActor final class JSONRPCConnection",
+        "var onNotification: ((String, JSONValue) -> Void)?",
+        "var onRequest: ((RPCID, String, JSONValue) -> Void)?",
+        "var onClose: ((String) -> Void)?",
+        "private(set) var isClosed = false",
+        "private let process: StdioProcess; private let sendsVersion: Bool; private var nextID = 1; private var pending: [RPCID: CheckedContinuation<JSONValue, Error>] = [:]; private var readTask: Task<Void, Never>?",
+        "init(process: StdioProcess, sendsVersion: Bool)",
+        "func start() throws",
+        "func request(_ method: String, _ params: JSONValue = .null) async throws -> JSONValue",
+        "func notify(_ method: String, _ params: JSONValue = .null)",
+        "func respond(to id: RPCID, result: JSONValue)",
+        "func respond(to id: RPCID, errorCode code: Int, message: String)",
+        "func close()",
+        "private func write(_ message: [String: JSONValue])",
+        "private func handle(_ message: JSONValue)",
+        "private func didClose()"
+      ],
+      "calls_into": [
+        "StdioProcess.start(), .messages (AsyncStream<JSONValue>), .send(_:), .terminate(), .errorTail (DroppyCode/Core/Support/StdioProcess.swift)",
+        "String.trimmed (DroppyCode/Core/Support/Text.swift)",
+        "JSONValue cases and accessors .object, .string, .int, .isNull, subscript, .null, .object(...) (defined elsewhere)",
+        "Swift concurrency: withTaskCancellationHandler, withCheckedThrowingContinuation, Task.checkCancellation, CancellationError"
+      ],
+      "state_owned": [
+        "nextID counter starting at 1, incremented per request",
+        "pending map from RPCID to continuation",
+        "isClosed flag (private(set))",
+        "readTask consuming process.messages",
+        "callbacks onNotification, onRequest, onClose"
+      ],
+      "side_effects": [
+        "Writes JSON objects to the child's stdin via StdioProcess.send",
+        "close() terminates the child process (StdioProcess.terminate: stdin close, SIGTERM, SIGKILL after 3 s) without marking the connection closed",
+        "Resumes continuations (success, RPCError, or CancellationError)"
+      ],
+      "platform_assumptions": [
+        "Swift @MainActor isolation and checked continuations; a TypeScript port maps this to promises keyed by id in a single-threaded event loop",
+        "Depends on StdioProcess (Foundation Process/Pipe) for transport"
+      ],
+      "persisted_fields": [
+        "None."
+      ],
+      "ui_elements": [
+        "None."
+      ],
+      "feature_notes": [
+        "request(): if isClosed throws RPCError(code: -32000, message: \"The agent process is not running.\"). Otherwise id = .int(nextID), nextID += 1, checks cancellation, stores the continuation in pending and writes {\"id\", \"method\", \"params\"}. On task cancellation, a main-actor Task removes the pending entry and resumes it with CancellationError (no cancel message is sent to the agent).",
+        "write(): no-op when closed; drops \"params\" when it equals .null; adds \"jsonrpc\": \"2.0\" only when sendsVersion is true; sends .object(message).",
+        "notify() writes {\"method\", \"params\"}; respond(result) writes {\"id\", \"result\"}; respond(errorCode) writes {\"id\", \"error\": {\"code\", \"message\"}}.",
+        "handle(): non-object messages ignored. A message with a string \"method\" is a request if it has a parseable \"id\" (goes to onRequest; if onRequest is nil, responds with code -32601 and message \"Method not found\"), otherwise a notification to onNotification. Missing params become .null.",
+        "handle() responses: requires a parseable id with a pending entry, else ignored. If \"error\" exists and is not null, resumes throwing RPCError(code: error.code ?? -32603, message: error.message ?? \"The agent returned an error.\", data: error.data); else resumes with \"result\" ?? .null.",
+        "RPCID from a JSON double is `case .double(let id): self = .int(Int(id))` (line 10): Int(_:) truncates toward zero, so 3.0 and 3.7 both become .int(3), and Swift's Int(_: Double) traps (the process crashes) for NaN, infinity or a double outside Int's range (JSON text can carry an out-of-range number such as 1e300). This differs from JSONValue.int (JSONValue.swift line 86), which returns nil for a non-finite double. RPCID has separate `.int` and `.string` cases, so a string id \"3\" never matches a pending `.int(3)` and such a response is ignored.",
+        "start(): readTask iterates process.messages holding self weakly per message; when the stream ends calls didClose().",
+        "didClose(): once only; sets isClosed, tail = process.errorTail.trimmed, fails every pending continuation with RPCError(code: -32000, message: tail empty ? \"The agent process exited.\" : tail), then onClose?(tail).",
+        "B1->B2: one line changed in didClose (line 144): process.errorTail.trimmingCharacters(in: .whitespacesAndNewlines) became process.errorTail.trimmed (the new String.trimmed in Text.swift, which is the same whitespacesAndNewlines trim). No behavioural change.",
+        "close() is only `func close() { process.terminate() }` (lines 101-103): it does not set isClosed and does not fail `pending`. Pending requests fail only when process.messages ends and didClose() runs, which is at stdout EOF or 1 s after exit (StdioProcess.didExit asyncAfter 1 s -> finishOutput); if SIGTERM is ignored, exit itself waits for StdioProcess.terminate's SIGKILL at 3 s. In that window request() still passes the `if isClosed` guard, write() still sends, and StdioProcess.send enqueues `try? handle.write(contentsOf: payload)` on writeQueue after terminate()'s `writeQueue.async { try? handle.close() }`, so the write fails silently and the request waits until didClose()."
+      ],
+      "unresolved_questions": [
+        "JSONValue definition (equality with .null, .int/.double distinction, subscript on error objects) lives in another file and is not verified here."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Support/Shell.swift",
+      "sha256": "db1a54d9c3c1456a44af4a12cbd60162fc44a0b20da0451b344364f63de91022",
+      "lines_total": 462,
+      "ranges_read": [
+        [
+          1,
+          462
+        ]
+      ],
+      "purpose": "The app's process-running and environment layer: Shell.run launches an executable off the main actor with a timeout, cancellation, optional stdin and optional per-stream tail limit, collecting stdout and stderr; ShellCommandKind classifies a shell command line as read-only or possibly file-writing so the timeline can skip working-tree snapshots for pure reads. It also defines OnceContinuation and the private OutputCollector, and LoginEnvironment, which captures the user's login-shell environment once (so Finder-launched apps find provider CLIs), augments PATH, resolves executables with which(), and picks the real developer git binary instead of the /usr/bin/git shim.",
+      "key_symbols": [
+        "struct ShellResult: Sendable { var status: Int32; var stdout: Data; var stderr: Data; succeeded (status == 0); output; errorOutput; trimmedOutput; failureMessage }",
+        "struct ShellError: LocalizedError, Sendable { var message: String; errorDescription; init(_ message: String) }",
+        "enum Shell",
+        "@concurrent static func run(_ executable: URL, _ arguments: [String], in directory: URL? = nil, environment: [String: String]? = nil, input: Data? = nil, timeout: TimeInterval = 120, outputLimit: Int? = nil) async throws -> ShellResult",
+        "private static func terminate(_ process: Process)",
+        "static func run(tool name: String, _ arguments: [String], in directory: URL? = nil, environment: [String: String]? = nil, input: Data? = nil, timeout: TimeInterval = 120) async throws -> ShellResult",
+        "enum ShellCommandKind",
+        "private static let readers: Set<String>",
+        "private static let gitReaders: Set<String>",
+        "private static let searchActions: Set<String> = [\"-delete\", \"-exec\", \"-execdir\", \"-ok\", \"-okdir\", \"-x\", \"-X\"]",
+        "static func mayWriteFiles(_ text: String) -> Bool",
+        "private static func parts(of command: String) -> [String]",
+        "private static func onlyReads(_ part: String) -> Bool",
+        "final class OnceContinuation<Value: Sendable>: Sendable { private let continuation: Mutex<CheckedContinuation<Value, Error>?>; init(_:); resume(returning:); resume(throwing:); private take() }",
+        "private final class OutputCollector: Sendable { enum Stream: Hashable { case stdout, stderr }; private struct State { stdout, stderr, closed: Set<Stream>, waiters: [OnceContinuation<Void>] }; private let state = Mutex(State()); private let limit: Int?; init(limit:); reader(for:) -> @Sendable (FileHandle) -> Void; private append(_:to:); finished(within:) async -> (stdout: Data, stderr: Data); private close(_:) }",
+        "enum LoginEnvironment",
+        "private static let cached = Mutex<[String: String]?>(nil)",
+        "private static let loading = Mutex<Task<Void, Never>?>(nil)",
+        "private static let excludedKeys: Set<String>",
+        "static var current: [String: String]",
+        "private static let fallbackEnvironment = fallback()",
+        "static var isLoaded: Bool",
+        "static var homeDirectory: String",
+        "static func load() async",
+        "@concurrent private static func read() async",
+        "static var git: URL",
+        "private static let resolvedGit = Mutex<URL?>(nil)",
+        "private static func developerGit(environment: [String: String]) async -> URL",
+        "static func which(_ name: String, in environment: [String: String]? = nil) -> URL?",
+        "static func userShell() -> String",
+        "static func augmentedPath(_ path: String?) -> String",
+        "private static func fallback() -> [String: String]"
+      ],
+      "calls_into": [
+        "String.trimmed (Text.swift) in trimmedOutput, failureMessage and mayWriteFiles",
+        "Foundation Process, Pipe, FileHandle.readabilityHandler / availableData / nullDevice / write(contentsOf:) / close()",
+        "Synchronization.Mutex (import Synchronization at line 2)",
+        "Darwin kill, getpgid, SIGKILL, getpwuid, getuid",
+        "DispatchQueue.global(qos: .userInitiated / .utility)",
+        "FileManager.isExecutableFile(atPath:), homeDirectoryForCurrentUser",
+        "NSString.lastPathComponent, expandingTildeInPath",
+        "ProcessInfo.processInfo.environment",
+        "/usr/bin/env -0 through the login shell, /usr/bin/xcode-select -p",
+        "Callers of LoginEnvironment.load() at B2 (grep, navigation only): App/AppModel.swift:245, App/Runtime/ThreadRuntime.swift:1461, Services/Providers/ProviderRegistry.swift:294, 366, 481, 634, 655"
+      ],
+      "state_owned": [
+        "LoginEnvironment.cached: the resolved login environment, nil until read() finishes",
+        "LoginEnvironment.loading: the single in-flight load Task shared by all callers",
+        "LoginEnvironment.fallbackEnvironment: process environment snapshot built once",
+        "LoginEnvironment.resolvedGit: git URL resolved after the environment",
+        "Per-run: OutputCollector buffers, a cancelled Mutex<Bool>, a deadline Task",
+        "OnceContinuation: the continuation, taken out exactly once"
+      ],
+      "side_effects": [
+        "Spawns child processes; on timeout or cancellation sends SIGTERM (process.terminate()), then after 1 s SIGKILL to the process group (-pid) if the child leads its own group, else to the pid",
+        "Writes input to child stdin on a global .userInitiated queue then closes it",
+        "Runs the user's login shell interactively (-l -i -c) once at launch with an 8 s timeout, and xcode-select -p with an 8 s timeout"
+      ],
+      "platform_assumptions": [
+        "POSIX login shell capture: userShell() from $SHELL if executable, then getpwuid(getuid()).pw_shell if executable, default \"/bin/zsh\"; script uses /usr/bin/env -0 and printf. Windows has no login shell; environment comes from the process/registry",
+        "PATH separator \":\" in which() and augmentedPath(); Windows uses \";\" and PATHEXT (.exe/.cmd) resolution",
+        "which() treats a name containing \"/\" as a path and expands ~",
+        "Hard-coded macOS/Unix PATH additions: /opt/homebrew/bin, /opt/homebrew/sbin, /usr/local/bin, ~/.local/bin, ~/.bun/bin, ~/.cargo/bin, ~/.npm-global/bin, ~/.volta/bin, /usr/bin, /bin, /usr/sbin, /sbin",
+        "Apple git shim /usr/bin/git and xcode-select; on Windows git is Git for Windows found on PATH",
+        "Signals and process groups (SIGKILL, getpgid, kill(-pid)); Windows needs job objects or taskkill /T",
+        "excludedKeys includes macOS/terminal-specific names (XPC_SERVICE_NAME, __CFBundleIdentifier, ITERM_SESSION_ID, TERM_PROGRAM...)",
+        "ShellCommandKind assumes POSIX shell syntax and Unix tool names (sed -i, awk system(), find -exec, xcodebuild); PowerShell/cmd syntax is not covered",
+        "Swift 6.2 @concurrent, Synchronization.Mutex, FileHandle readabilityHandler"
+      ],
+      "persisted_fields": [
+        "None persisted. In-memory defaults: timeout 120 s for Shell.run, 3 s for collector drain, 8 s for the login-shell and xcode-select runs, LANG default \"en_US.UTF-8\" when absent in fallback, marker \"__DROPPY_CODE_ENVIRONMENT__\"."
+      ],
+      "ui_elements": [
+        "None directly. User-visible error strings: \"The command failed with exit code <status>.\" (ShellResult.failureMessage) and \"<name> was not found on your PATH.\" (ShellError from run(tool:))."
+      ],
+      "feature_notes": [
+        "ShellResult.failureMessage: trimmed stderr if non-empty, else trimmed stdout, else \"The command failed with exit code <status>.\". output/errorOutput decode UTF-8 leniently via String(decoding:as:).",
+        "Shell.run: environment defaults to LoginEnvironment.current; stdin is a Pipe only when input is non-nil, otherwise FileHandle.nullDevice; readabilityHandlers are installed before run. A Mutex<Bool> 'cancelled' guards the race: under the lock, if already cancelled it throws CancellationError, else runs the process; onCancel sets the flag and terminates under the same lock. A deadline Task sleeps timeout seconds then terminates. After exit: cancels the deadline, checks cancellation, waits up to 3 s for both streams to hit EOF (collector.finished(within: 3)), checks cancellation again, returns ShellResult. A timed-out process returns its (signal) status rather than throwing.",
+        "Output limit: with outputLimit set, each stream keeps only its tail; append trims to the last 'limit' bytes once the buffer exceeds 2 x limit (amortized O(1) per byte, O(limit) memory). The run(tool:) overload does not pass outputLimit.",
+        "terminate(): returns if not running; SIGTERM via terminate(); after 1 s on a .utility global queue, if still running, kill(getpgid(pid) == pid ? -pid : pid, SIGKILL).",
+        "ShellCommandKind.readers verbatim: ls, cat, bat, head, tail, wc, grep, egrep, fgrep, rg, tree, pwd, echo, printf, which, command, type, stat, file, du, df, ps, printenv, date, whoami, hostname, uname, basename, dirname, realpath, readlink, column, uniq, cut, tr, nl, diff, cmp, jq, yq, xxd, od, md5, shasum, cksum, man, true, false, sleep, cd, pushd, popd.",
+        "ShellCommandKind.gitReaders verbatim: log, status, diff, show, branch, rev-parse, rev-list, ls-files, ls-tree, blame, remote, describe, shortlog, cat-file, tag, config, grep, whatchanged, reflog, for-each-ref, symbolic-ref, count-objects, var, version, help.",
+        "mayWriteFiles: empty after trim -> false; any \">\", \"$(\" or backtick -> true; then splits on separators in order \"&&\", \"||\", \";\", \"|\", newline, \"&\" (each replaced with U+0001), trims spaces per part, drops empties; true if any part is not onlyReads. Quoting is not parsed (documented as the safe answer).",
+        "onlyReads: tool = lastPathComponent of first token (empty part counts as read). sed reads only if some arg starts with \"-\" but not \"--\" and contains \"n\", and no arg starts with \"-i\" or \"--in-place\". awk/gawk/mawk read unless the part contains \"system(\". find/fd read unless an arg is in searchActions. sort reads unless an arg starts with \"-o\". git: first non-dash argument must be in gitReaders; bare git (no subcommand) reads. xcodebuild reads only with -showBuildSettings, -list, -version or -showsdks. swift, swiftc, node, npm, python, python3 read only when the arguments are exactly [\"--version\"], [\"-version\"] or [\"-v\"]. env reads only when every argument starts with \"-\". Otherwise membership in readers.",
+        "OnceContinuation: the continuation is taken out under the Mutex (set to nil in a defer) and resumed outside the lock, because (doc comment) a resume runs whatever the awaiting task does next and withLock is non-reentrant.",
+        "OutputCollector.reader: empty availableData means EOF: removes the handler and closes that stream; otherwise appends under the lock. finished(within:): returns immediately if both streams closed; else a deadline Task force-closes both after the timeout; waiters are resumed when the second stream closes; task cancellation also closes both. close() only fires waiters on the transition to 2 closed streams.",
+        "LoginEnvironment.load(): creates the read Task once under the loading Mutex and every caller awaits the same task (doc: \"so a codex under nvm is never reported missing\").",
+        "LoginEnvironment.read(): marker = \"__DROPPY_CODE_ENVIRONMENT__\" (line 369); script verbatim (line 370) `\"printf '\\(marker)'; /usr/bin/env -0; printf '\\(marker)'\"`, i.e. `printf '__DROPPY_CODE_ENVIRONMENT__'; /usr/bin/env -0; printf '__DROPPY_CODE_ENVIRONMENT__'`; runs userShell() with [\"-l\", \"-i\", \"-c\", script], environment fallbackEnvironment, timeout 8. `if let result = try? await Shell.run(...)` (line 373): stdout is parsed whenever Shell.run returns, including a nonzero exit or a timeout (a timeout returns a status, not a throw); only a throw skips parsing. Parsing takes `text.range(of: marker)` and `text.range(of: marker, options: .backwards)` and requires `start.upperBound < end.lowerBound` (line 377), so output with a single marker parses nothing. Splits on \"\\0\"; an entry without \"=\" is skipped (`guard let equals = entry.firstIndex(of: \"=\") else { continue }`); key is before the first \"=\", empty keys and excludedKeys skipped; values overlay the fallback. Then PATH = augmentedPath(PATH), stores cached, then resolves developerGit and stores resolvedGit. If the shell run throws, the fallback environment (with augmented PATH) is still cached.",
+        "excludedKeys verbatim: _, SHLVL, PWD, OLDPWD, TERM, TERM_PROGRAM, TERM_PROGRAM_VERSION, TERM_SESSION_ID, COLORTERM, ITERM_SESSION_ID, XPC_SERVICE_NAME, __CFBundleIdentifier, CLAUDECODE, CLAUDE_CODE_ENTRYPOINT, CLAUDE_CODE_SSE_PORT.",
+        "LoginEnvironment.current returns cached ?? fallbackEnvironment; isLoaded is cached != nil; homeDirectory is FileManager.homeDirectoryForCurrentUser.path.",
+        "LoginEnvironment.git: resolvedGit ?? which(\"git\") ?? /usr/bin/git. developerGit (lines 404-413): `let onPath = which(\"git\", in: environment) ?? URL(fileURLWithPath: \"/usr/bin/git\")`, so the xcode-select path is taken when PATH's git is /usr/bin/git and also when git is not on PATH at all. It then requires `/usr/bin/xcode-select -p` (8 s timeout) to succeed, `let developer = result.trimmedOutput`, and `guard !developer.isEmpty, FileManager.default.isExecutableFile(atPath: candidate.path)` for candidate <developer>/usr/bin/git; otherwise returns onPath so the shim's install prompt still shows. Doc cites 11.5 ms per call through the shim vs 4.5 ms for the binary.",
+        "which(): name with \"/\" is tilde-expanded and returned only if executable; else searches (environment ?? current)[\"PATH\"] ?? augmentedPath(nil) split on \":\" in order.",
+        "augmentedPath(): `var entries = (path ?? \"\").split(separator: \":\").map(String.init)` (line 443) drops empty PATH components (\"::\" or a trailing \":\"; split omits empty subsequences by default) and keeps duplicates already in the input; each `common` directory is appended only `where !entries.contains(directory)`, in the order listed in platform_assumptions.",
+        "fallback(): ProcessInfo environment minus excludedKeys, PATH augmented, LANG set to \"en_US.UTF-8\" if missing.",
+        "B1->B2: (1) ShellResult.trimmedOutput, failureMessage and ShellCommandKind.mayWriteFiles now use String.trimmed instead of trimmingCharacters(in: .whitespacesAndNewlines) (same behaviour). (2) OnceContinuation changed from @unchecked Sendable with an NSLock and a mutable optional to a checked Sendable class holding Mutex<CheckedContinuation<Value, Error>?>; take() now uses withLock with defer { continuation = nil }; a doc comment was added explaining take-under-lock, resume-outside. (3) OutputCollector changed from @unchecked Sendable with NSLock and four vars to Sendable with a private struct State (stdout, stderr, closed, waiters) inside Mutex(State()); reader, finished(within:) and close() rewritten to state.withLock with identical logic. The Synchronization import and LoginEnvironment were unchanged. No change to strings, timeouts, reader lists or classification rules.",
+        "run(tool:) (lines 121-133) resolves with `LoginEnvironment.which(name)` and no `in:` argument, so it searches LoginEnvironment.current[\"PATH\"] even when the caller passes a different `environment` (that environment is used only for the child). It does not await LoginEnvironment.load(); before the login shell answers, current is fallbackEnvironment, so the search uses the fallback (augmented process) PATH. Only this overload produces ShellError(\"<name> was not found on your PATH.\").",
+        "userShell() (lines 429-439): `ProcessInfo.processInfo.environment[\"SHELL\"]` is used only if `fileManager.isExecutableFile(atPath: shell)`, then `getpwuid(getuid())` pw_shell only if executable, otherwise \"/bin/zsh\".",
+        "Shell.run errors: a throw from `process.run()` (for example a missing executable) is rethrown as Foundation's own error through `once.resume(throwing: error)` (line 87), not a ShellError; a cancel before launch throws CancellationError (line 78). A timeout returns `process.terminationStatus` from the terminationHandler (line 74) with succeeded false. UNRESOLVED (Foundation runtime, not pinned source): for a child killed by a signal terminationStatus is expected to be the signal number (15 for SIGTERM, 9 for SIGKILL); Node on Windows reports exit code null plus a signal name, so a port needs an explicit mapping where callers compare status."
+      ],
+      "unresolved_questions": [
+        "What the app does with a timed-out Shell.run result (it returns the terminated status, not an error) is decided by callers outside this file.",
+        "The sed rule treats any short flag containing \"n\" (e.g. -n, -En) as printing; a Windows port must decide whether to keep POSIX-only classification or add PowerShell rules; upstream has none."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Support/StdioProcess.swift",
+      "sha256": "3a123ab5c963a9167443e0934943249ba02389d0daad311360d30d4ec40131cd",
+      "lines_total": 183,
+      "ranges_read": [
+        [
+          1,
+          183
+        ]
+      ],
+      "purpose": "Wraps a long-lived child process (a provider CLI or agent) that speaks JSON over stdio, either newline-delimited or with Content-Length headers, and exposes parsed messages as an AsyncStream. It serializes writes on a private queue, keeps a bounded stderr buffer whose last 4,000 bytes become the provider error text, tracks the exit status for waiters, and finishes the message stream when stdout closes or one second after the process exits.",
+      "key_symbols": [
+        "final class StdioProcess: @unchecked Sendable",
+        "typealias Framing = StdioFramer.Framing  // cases used here: .lines, .contentLength",
+        "let messages: AsyncStream<JSONValue>",
+        "private let framing: Framing; private let continuation: AsyncStream<JSONValue>.Continuation; private let process = Process(); private let stdin = Pipe(); private let stdout = Pipe(); private let stderr = Pipe()",
+        "private let writeQueue = DispatchQueue(label: \"droppycode.stdio.write\")",
+        "private struct State { var framer: StdioFramer; var errorBuffer = Data(); var exitStatus: Int32?; var exitWaiters: [CheckedContinuation<Int32, Never>] = [] }",
+        "private let state: Mutex<State>",
+        "init(executable: URL, arguments: [String], directory: URL, environment: [String: String], framing: Framing = .lines)",
+        "var isRunning: Bool",
+        "var errorTail: String",
+        "func start() throws",
+        "func send(_ message: JSONValue)",
+        "func write(_ data: Data)",
+        "func closeInput()",
+        "func terminate()",
+        "func waitForExit() async -> Int32",
+        "private func consume(_ data: Data)",
+        "private func deliver(_ line: Data)",
+        "private func finishOutput()",
+        "private func appendError(_ data: Data)",
+        "private func didExit(_ status: Int32)"
+      ],
+      "calls_into": [
+        "StdioFramer (DroppyCode/Core/Support/StdioFramer.swift): init(framing:), append(_:) -> messages, mutating finish() -> Data?",
+        "JSONValue.data() and JSONValue.parse(_:) (defined elsewhere)",
+        "Synchronization.Mutex (import Synchronization, line 2)",
+        "Foundation Process, Pipe, FileHandle readabilityHandler / availableData / write(contentsOf:) / close()",
+        "DispatchQueue (serial writeQueue, global asyncAfter)",
+        "Darwin kill(_, SIGKILL)",
+        "Used by JSONRPCConnection (JSONRPC.swift): start, messages, send, terminate, errorTail"
+      ],
+      "state_owned": [
+        "Mutex-protected State: the framer's partial buffer, errorBuffer (stderr bytes), exitStatus, exitWaiters",
+        "The Process and its three Pipes, the AsyncStream continuation"
+      ],
+      "side_effects": [
+        "Spawns the child with the given executable, arguments, working directory and full environment (process.environment = environment)",
+        "Writes framed JSON or raw bytes to the child's stdin on the serial queue \"droppycode.stdio.write\" (write errors ignored with try?)",
+        "terminate(): closes stdin, SIGTERM, then SIGKILL after 3 s if still running"
+      ],
+      "platform_assumptions": [
+        "Foundation Process/Pipe/FileHandle readabilityHandler (in a Windows/Node port: child_process spawn with stdio pipes)",
+        "POSIX signals: process.terminate() (SIGTERM) and kill(pid, SIGKILL); Windows needs TerminateProcess/taskkill, no process-group kill here",
+        "GCD queues for write serialization and delayed actions",
+        "Synchronization.Mutex (Swift 6)"
+      ],
+      "persisted_fields": [
+        "None."
+      ],
+      "ui_elements": [
+        "None."
+      ],
+      "feature_notes": [
+        "send(): serializes message.data(); .lines appends a single 0x0A; .contentLength prefixes \"Content-Length: <body byte count>\\r\\n\\r\\n\". Encoding happens on writeQueue.",
+        "write(_:) sends raw bytes (doc: a prompt piped to a one-shot CLI); closeInput() closes stdin on the queue (for processes that read input to EOF before starting).",
+        "stdout handler: holds self weakly; if self is gone removes the handler; empty data (EOF) removes the handler and calls finishOutput(); otherwise consume(data) runs framer.append under the lock and delivers each message outside it.",
+        "deliver(): strips trailing 0x0D and 0x20 bytes, ignores empty lines and lines that fail JSONValue.parse, yields parsed messages.",
+        "stderr handler: on empty data or deallocated self, removes the handler; else appendError. errorBuffer is capped: when it exceeds 64,000 bytes it is cut to its last 16,000 bytes. errorTail is the UTF-8 decode of the last 4,000 bytes.",
+        "start(): installs both handlers and terminationHandler (weak self -> didExit(terminationStatus)) before run(); if run() throws, removes both handlers, finishes the message stream, and rethrows.",
+        "terminate(): always enqueues a stdin close; returns if not running; else process.terminate() and after 3 s on a global queue kill(pid, SIGKILL) if still running (pid only, not the group).",
+        "waitForExit(): returns the stored exit status immediately if known, else appends the continuation under the lock; the resume happens outside the lock.",
+        "didExit(): stores exitStatus, resumes all waiters with it, then (doc: a grandchild can inherit stdout and keep it open) after 1 s removes the stdout handler and calls finishOutput() again, so the message stream ends at most ~1 s after exit even if stdout stays open.",
+        "finishOutput(): delivers framer.finish() remainder if any, then continuation.finish(); it can run twice (EOF and the post-exit timer).",
+        "B1->B2: added import Synchronization; replaced NSLock plus four mutable properties (framer, errorBuffer, exitStatus, exitWaiters) with a private struct State held in Mutex<State>, initialized as Mutex(State(framer: StdioFramer(framing: framing))); errorTail, consume, finishOutput, appendError and didExit now use state.withLock; waitForExit replaced manual lock()/unlock() with withLock returning Int32? and resumes outside the lock. Numbers (4,000 / 64,000 / 16,000 bytes, 3 s kill, 1 s post-exit finish), framing and strings are unchanged."
+      ],
+      "unresolved_questions": [
+        "Whether a second finishOutput() call can deliver a duplicate remainder depends on StdioFramer.finish() clearing its buffer (StdioFramer.swift, not in this bundle).",
+        "JSONValue.parse and JSONValue.data() encoding details (key order, escaping) live elsewhere."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Support/Text.swift",
+      "sha256": "6f53039cbd93d83871d76c56411535877261fda14fec4123aee4c176f27b0299",
+      "lines_total": 133,
+      "ranges_read": [
+        [
+          1,
+          133
+        ]
+      ],
+      "purpose": "A grab bag of app-wide text helpers: AppInfo exposes the display name, development flag, state directory name, version and build from the bundle; TextCleanup strips ANSI escapes, extracts last lines or a single line for error messages, and replaces em dashes and their relatives with hyphens in every model-written string. It also holds SimpleDiff, which builds a compact unified hunk with line counts for reported file edits (capped at 200,000 bytes), the FileEdit convenience initializer that uses it, and String helpers nilIfEmpty and the new trimmed.",
+      "key_symbols": [
+        "enum AppInfo",
+        "static let name = Bundle.main.object(forInfoDictionaryKey: \"CFBundleDisplayName\") as? String ?? \"Droppy Code\"",
+        "static let isDevelopment = Bundle.main.bundleIdentifier == \"iordv.droppycode.dev\"",
+        "static let stateDirectoryName = isDevelopment ? \".droppy-code-dev\" : \".droppy-code\"",
+        "static let version = CFBundleShortVersionString ?? \"1.0.0\"",
+        "static let build = CFBundleVersion ?? \"1\"",
+        "enum TextCleanup",
+        "static func stripANSI(_ text: String) -> String  // regex #/\\x1B\\[[0-9;?]*[ -/]*[@-~]/# replaced with \"\"",
+        "static func lastLines(_ text: String, count: Int = 4) -> String?",
+        "static func singleLine(_ text: String, limit: Int = 120) -> String",
+        "static func withoutEmDashes(_ text: String) -> String",
+        "private static func mayContainEmDash(_ text: String) -> Bool",
+        "private static func isEmDash(_ character: Character) -> Bool",
+        "enum SimpleDiff",
+        "static let diffLimit = 200_000",
+        "static func unified(old: String, new: String) -> FileEdit.Stats",
+        "extension FileEdit { struct Stats { var diff: String?; var additions: Int; var deletions: Int }; init(path: String, old: String, new: String) }",
+        "extension String { var nilIfEmpty: String?; var trimmed: String }"
+      ],
+      "calls_into": [
+        "Bundle.main.object(forInfoDictionaryKey:), Bundle.main.bundleIdentifier",
+        "Swift Regex literal with String.replacing(_:with:)",
+        "FileEdit.init(path:diff:additions:deletions:) (FileEdit defined elsewhere)",
+        "String.trimmingCharacters(in:) with .whitespaces and .whitespacesAndNewlines"
+      ],
+      "state_owned": [
+        "Static constants only (AppInfo values computed once, SimpleDiff.diffLimit)"
+      ],
+      "side_effects": [
+        "None."
+      ],
+      "platform_assumptions": [
+        "Info.plist keys CFBundleDisplayName, CFBundleShortVersionString, CFBundleVersion and bundle identifier \"iordv.droppycode.dev\" for the development flag; Windows port must source name/version/build and the dev flag differently (e.g. package.json / build config)",
+        "stateDirectoryName is a dot-folder name (\".droppy-code\" or \".droppy-code-dev\"); its parent directory is decided by callers",
+        "Swift Regex and Character (grapheme) semantics; a JS port must match the byte-level em-dash test and grapheme mapping"
+      ],
+      "persisted_fields": [
+        "AppInfo.stateDirectoryName: \".droppy-code\" (release) or \".droppy-code-dev\" (bundle id iordv.droppycode.dev) names the app's state folder used elsewhere",
+        "SimpleDiff output is stored in the thread document as FileEdit.diff (doc comment: an unbounded diff would be encoded with every save)"
+      ],
+      "ui_elements": [
+        "No controls. Default display name fallback \"Droppy Code\"; version fallback \"1.0.0\"; build fallback \"1\". singleLine truncation appends the ellipsis character U+2026."
+      ],
+      "feature_notes": [
+        "stripANSI removes CSI sequences matching ESC [ params [0-9;?]* intermediates [ -/]* final [@-~].",
+        "lastLines: strips ANSI, `split(whereSeparator: \\.isNewline)` (line 19), which splits on every Character with isNewline (\"\\n\", \"\\r\", \"\\r\\n\", U+000B, U+000C, U+0085, U+2028, U+2029), not only \"\\n\"; trims `.whitespaces` per line (spaces and tabs, not newlines); drops empty lines; returns the last count (default 4) joined by \"\\n\", or nil if none.",
+        "singleLine: `text.drop(while: \\.isNewline)`, takes up to the next isNewline character, trims `.whitespaces` (spaces and tabs); if longer than limit (default 120) returns the first limit-1 characters plus U+2026.",
+        "withoutEmDashes: fast path returns the text unchanged unless the UTF-8 bytes contain E2 80 94 (U+2014), E2 80 95 (U+2015), E2 B8 BA (U+2E3A) or E2 B8 BB (U+2E3B) and a grapheme equals one of those; then maps each such Character to \"-\" keeping surrounding spaces. Doc examples verbatim (lines 37-40): \"works \u2014 every time\" reads \"works - every time\" and \"ships\u2014sometimes\" reads \"ships-sometimes\" (U+2014 in both); \"The en dash stays: it is the correct mark in a range, as in \"lines 10\u201320\"\" (U+2013). Doc says it is applied to replies as they stream and land, thinking, plans, generated titles and commit messages.",
+        "mayContainEmDash byte scan: on 0xE2 reads the next byte; if 0x80 checks third byte 0x94/0x95, if 0xB8 checks 0xBA/0xBB; a truncated sequence returns false.",
+        "SimpleDiff.unified: `components(separatedBy: \"\\n\")` (empty text -> no lines; a text ending in \"\\n\" gets a trailing empty line that counts toward the numbers), trims common prefix and suffix lines, context of 3 lines before and after. Cap test `old.utf8.count + new.utf8.count <= diffLimit` (line 101): above 200,000 bytes returns Stats(diff: nil) with counts only; exactly 200,000 still emits a diff. Header \"@@ -<oldStart>,<leading+removed+trailing> +<oldStart>,<leading+added+trailing> @@\" where oldStart = prefix - leading.count + 1 (line 104). Reusing oldStart for the new side is correct, not a bug: leading = oldLines[max(0, prefix - 3)..<prefix] lies inside the common prefix, whose lines are identical and at the same indices in both texts, so the hunk starts at the same line number on both sides. Lines prefixed \" \", \"-\", \"+\", \" \" in order leading, removed, added, trailing; joined with \"\\n\". Doc notes the same cap bounds command diffs (ThreadRuntime.fileEdits).",
+        "FileEdit.init(path:old:new:) builds from SimpleDiff.unified stats.",
+        "String.nilIfEmpty returns nil for \"\"; String.trimmed trims .whitespacesAndNewlines (doc: \"The one trim every call site means; narrower sets keep trimmingCharacters(in:)\").",
+        "B1->B2: added the String extension property `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` with its two-line doc comment (lines 130-132). Nothing else changed; it is adopted in 1.6.2 by JSONRPC.swift and Shell.swift in this bundle.",
+        "SimpleDiff edge outputs (traced from lines 84-111): identical non-empty texts still return a non-nil context-only diff, e.g. old = new = \"a\\nb\" gives \"@@ -1,2 +1,2 @@\\n a\\n b\" with additions 0 and deletions 0; both texts empty give \"@@ -1,0 +1,0 @@\"; a new file (old \"\", new \"x\") gives \"@@ -1,0 +1,1 @@\\n+x\" (start 1, not the conventional -0,0)."
+      ],
+      "unresolved_questions": [
+        "Where stateDirectoryName is rooted (home directory or elsewhere) is decided outside this file."
+      ]
+    }
+  ]
+}

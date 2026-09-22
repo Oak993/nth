@@ -1,0 +1,498 @@
+{
+  "bundle_id": "R2-35",
+  "reader": "R2-35-reader",
+  "files": [
+    {
+      "path": "DroppyCode/UI/Chrome/Chrome.swift",
+      "sha256": "a76251f5a3f7c25dfc70a0eb8496cc4449236c69378c27ee89cb216c6a4e4e89",
+      "lines_total": 1140,
+      "ranges_read": [
+        [
+          1,
+          400
+        ],
+        [
+          401,
+          800
+        ],
+        [
+          801,
+          1140
+        ]
+      ],
+      "purpose": "The shared design-token namespace and base component kit of the app's chrome: `enum Chrome` holds every window, sticky-row, sidebar and card metric, the colour accessors that forward to ThemeManager.spec, and the hover/panelSlide/settleFlight animations, and the rest of the file builds the reusable controls on those tokens (glass capsules and circles, icon/menu/text buttons that open PopoverMenu popovers, sidebar rows and search fields, the pane-top veil and compact title driven by ChromeScrollModel, settings cards/sections/rows). It also owns the window's backdrop (Liquid Glass or solid fill, optional wallpaper, scrim, tint and 1pt hairline), the softAppear and settleGlide transitions, and the two AppKit NSView bridges that either start a window drag (WindowDragArea) or refuse one under chrome controls (NoWindowDragArea). In 1.6.2 it moves most fixed point sizes to Dynamic Type text styles, redefines secondaryText as primary at 70%, and adds ChromeQuietButtonStyle and the animatable ChromeRevealLayout.",
+      "key_symbols": [
+        "enum Chrome (line 5): static token namespace",
+        "Chrome.windowCornerRadius: CGFloat = 26 (8); sheetInset = 0 (11); sheetCornerRadius = 16 (13)",
+        "Chrome.trafficLightDiameter = 14 (15); trafficLightSpacing = 9 (16); trafficLightPitch { diameter + spacing } = 23 (17); trafficLightLeading = 18 (18); trafficLightTop = 16 (19); trafficLightsWidth { diameter*3 + spacing*2 } = 60 (20); trafficLightClearance = 10 (21)",
+        "Chrome.iconFont: Font = .system(.callout, weight: .semibold) (28); inlineIconFont = .system(.subheadline, weight: .semibold) (29); chevronFont = .system(size: 8, weight: .bold) (30)",
+        "Chrome.chromeHorizontalPadding = 14 (31); chromeTopPadding = 12 (32); capsuleContentHeight = 28 (33); capsuleVerticalPadding = 2 (34); capsuleHorizontalPadding = 12 (35); iconCapsuleInnerPadding = 3 (36); dividerHeight = 14 (37); capsuleHeight { 28 + 2*2 } = 32 (38); contentBreathBelowChrome = 28 (39); contentTopInset { 12 + 32 + 28 } = 72 (40); veilHeight = 72 (41); titleStartOffset = 10 (42); titleEndOffset = 44 (43); progressQuantum = 0.04 (44)",
+        "Chrome.rowHeight = 28 (48); rowCornerRadius = 7 (49); rowHorizontalPadding = 8 (50); iconSize = 20 (51); symbolSize = 14 (52); groupGap = 10 (53); listInset = 10 (54)",
+        "Chrome.cardCornerRadius = 16 (58); sectionSpacing = 20 (59); sectionHeaderSpacing = 10 (60); contentHorizontalPadding = 16 (61); rowControlTrailingPadding = 10 (63); rowButtonLabelHeight = 16 (67)",
+        "static func Chrome.overlay(_ opacity: Double) -> Color { primaryText.opacity(opacity) } (71-73)",
+        "static let Chrome.primaryText = Color(nsColor: .labelColor) (76); static let secondaryText = primaryText.opacity(0.7) (79); private static let systemAccent = Color(nsColor: .controlAccentColor) (80)",
+        "static var Chrome.accent: Color { ThemeManager.spec.accent ?? systemAccent } (85); static var accentNSColor: NSColor { ThemeManager.spec.accent.map { NSColor($0) } ?? .controlAccentColor } (87)",
+        "static var Chrome.success/warning/danger: Color { ThemeManager.spec.success/.warning/.danger } (91-93); static var glassTint: Color { ThemeManager.spec.surface } (96)",
+        "static var Chrome.hover: Animation { .easeOut(duration: 0.1) } (98)",
+        "static var Chrome.panelSlide: Animation (100-104): reduce motion ? .easeOut(duration: 0.18) : .spring(response: 0.32, dampingFraction: 0.9)",
+        "static let Chrome.glideSpring = Spring(response: 0.6, dampingRatio: 0.86) (108)",
+        "static var Chrome.settleFlight: Animation (112-116): reduce motion ? .easeOut(duration: 0.2) : .spring(glideSpring)",
+        "static let Chrome.gray = Color(red: 0.556, green: 0.557, blue: 0.576) (118); blue = Color(red: 0.040, green: 0.478, blue: 1.000) (119); orange = Color(red: 1.000, green: 0.584, blue: 0.000) (120)",
+        "extension View { func chromeGlassCapsule() -> some View (129); func chromeGlassFieldCapsule() -> some View (137, isInteractive: false); func chromeGlassCircle() -> some View (141); func detailSheet() -> some View (146) }",
+        "private struct ChromeGlassSurface: ViewModifier (153): enum Kind { case capsule, circle }; let shape: Kind; var isInteractive = true; @Environment(\\.isOnGlassPanel); @Environment(\\.colorScheme); @State isHovered; private func surface<S: InsettableShape>(_:in:) (172)",
+        "private struct DetailSheetModifier: ViewModifier (187)",
+        "struct WindowBackdrop: View (202): let opacity: Double; var wallpaper: NSImage? = nil; static func scrim(for opacity: Double, isDark: Bool) -> Double (211-215)",
+        "struct ChromeQuietButtonStyle: ButtonStyle (276-280): makeBody returns configuration.label only (new in 1.6.2)",
+        "struct ChromeRevealLayout: Layout (286-304): var fraction: CGFloat; var animatableData: CGFloat; sizeThatFits(proposal:subviews:cache:) -> CGSize; placeSubviews(in:proposal:subviews:cache:) (new in 1.6.2)",
+        "struct ChromeCapsule<Content: View>: View (308): @ViewBuilder var content",
+        "struct ChromeDivider: View (324)",
+        "struct ChromeIconLabel: View (333): let symbol: String; var isEnabled = true; var isActive = false; var isHovering = false; private var foreground: Color (354)",
+        "struct ChromeIconButton: View (361): let symbol; var isEnabled = true; var isActive = false; let help: String; let action: () -> Void",
+        "struct ChromeMenuButton<Content: View>: View (385): let symbol; let help; @ViewBuilder var content; @State isHovering, isPresented",
+        "struct ChromeCircleButton: View (413): let symbol; let help; let action",
+        "struct ChromeCircleMenu<Content: View>: View (440): let symbol; let help; @ViewBuilder var content",
+        "struct ChromeTextMenu<Content: View>: View (473): let symbol; let title; let help; @ViewBuilder var content",
+        "struct ChromeTextButton: View (518): let symbol; let title; let help; var isEnabled = true; var isDestructive = false; let action",
+        "@MainActor @Observable final class ChromeScrollModel (566-577): private(set) var progress: CGFloat = 0; func update(travel: CGFloat)",
+        "struct PaneTopVeil: View (581): let model: ChromeScrollModel; private static func fade(_ color: Color) -> LinearGradient (616)",
+        "struct ChromeCompactTitle: View (631): let title: String; let model: ChromeScrollModel",
+        "struct SidebarSymbol: View (651): let name: String; var scale: CGFloat = 1; init(_ name: String, scale: CGFloat = 1)",
+        "struct SidebarIconBadge<Glyph: View>: View (671): @ViewBuilder var glyph",
+        "struct SidebarRow<Icon: View, Accessory: View>: View (681): let title; let isSelected: Bool; let isEmphasized: Bool; let accessoryWidth: CGFloat; let action; let icon: Icon; let accessory: (Bool) -> Accessory; init(title: String, isSelected: Bool = false, isEmphasized: Bool = false, accessoryWidth: CGFloat = 0, action:, @ViewBuilder icon:, @ViewBuilder accessory: @escaping (Bool) -> Accessory) (692-708); private var fill: Color (741)",
+        "extension SidebarRow where Accessory == EmptyView { init(title: String, isSelected: Bool = false, action:, @ViewBuilder icon:) } (748-757): takes no isEmphasized or accessoryWidth, so those stay false / 0, and passes `{ _ in EmptyView() }` as the accessory",
+        "struct RowAccessoryIcon: View (759): let symbol; init(_ symbol: String)",
+        "struct SidebarSearchField: View (775): @Binding var text: String; var prompt = \"Search\"; var onSubmit: () -> Void = {}; var onMove: ((Int) -> Void)?; private func move(_ offset: Int) -> KeyPress.Result (818)",
+        "struct ChromeSearchField: View (827): static let width: CGFloat = 200; @Binding var query: String; var prompt = \"Search\"",
+        "struct GlassPickerButton<Value: Hashable>: View (872): let options: [(value: Value, title: String)]; @Binding var selection: Value; var asset: (Value) -> String?; var symbol: (Value) -> String?; var maxWidth: CGFloat? = nil",
+        "struct SoftAppearModifier: ViewModifier (937): let isVisible: Bool",
+        "extension AnyTransition { static var softAppear: AnyTransition } (947-956)",
+        "extension Animation { static var softAppear: Animation { .smooth(duration: 0.32) } } (958-961)",
+        "private struct SettleGlideModifier: ViewModifier, Animatable (967): var progress: Double; animatableData; private static func smoothstep(_:_:_:) -> Double (984)",
+        "extension AnyTransition { static var settleGlide: AnyTransition } (990-1002)",
+        "struct ChromeCard<Content: View>: View (1006)",
+        "struct ChromeSection<Content: View>: View (1023): let title; var accessory: AnyView? = nil; var trailing: AnyView? = nil; @ViewBuilder var content",
+        "struct ChromeRow<Control: View>: View (1049): let title; var detail: String?; @ViewBuilder var control",
+        "struct ChromeRowDivider: View (1076)",
+        "struct WindowDragArea: NSViewRepresentable (1086); final class WindowDragView: NSView (1094)",
+        "struct NoWindowDragArea: NSViewRepresentable (1114); final class NoWindowDragView: NSView (1122)"
+      ],
+      "calls_into": [
+        "ThemeManager.spec (.accent, .success, .warning, .danger, .surface) defined in DroppyCode/UI/Theme/AppTheme.swift line 233",
+        "EnvironmentValues.isOnGlassPanel (@Entry, default false) and Chrome.panelControlFill(isDark:hovered:) defined in DroppyCode/UI/Common/RenderBudget.swift lines 86 and 93",
+        "PopoverMenu and PopoverItem (DroppyCode/UI/Chrome/Popovers.swift) for every popover-opening control",
+        "RowGlideAnimator (DroppyCode/App/Views/Sidebar/RowGlide.swift) referenced only in a comment for the settleGlide design",
+        "WindowChrome.titlebarHeight referenced only in a doc comment on NoWindowDragArea",
+        "SwiftUI: glassEffect(_:in:), Glass.regular.tint().interactive(), Layout protocol, onKeyPress, onExitCommand, focusEffectDisabled, popover(isPresented:arrowEdge:), @Observable",
+        "AppKit: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion, NSView.window?.performDrag(with:), mouseDownCanMoveWindow, NSColor.labelColor/.controlAccentColor"
+      ],
+      "state_owned": [
+        "ChromeGlassSurface: @State isHovered (only used on a glass panel)",
+        "ChromeIconButton/ChromeCircleButton/ChromeTextButton: @State isHovering",
+        "ChromeMenuButton/ChromeCircleMenu/ChromeTextMenu/GlassPickerButton: @State isHovering and @State isPresented (popover open)",
+        "SidebarRow: @State isHovering (also passed to the accessory closure)",
+        "ChromeScrollModel.progress: CGFloat, quantized to 0.04 steps, observable; the only chrome state updated on scroll",
+        "No persisted state anywhere in this file"
+      ],
+      "side_effects": [
+        "WindowDragView.mouseDown calls window?.performDrag(with: event) (moves the window); mouseUp is swallowed",
+        "NoWindowDragView (1122-1140) overrides acceptsFirstMouse(for:) -> true (1123), returns mouseDownCanMoveWindow = false (1126), and forwards only mouseDown, mouseDragged, mouseUp, rightMouseDown and rightMouseUp to superview (1131-1139); rightMouseDragged and the otherMouse* events are not overridden",
+        "Popover-opening buttons toggle their own isPresented. GlassPickerButton's row action `selection = option.value` (925) is passed to PopoverItem with no confirmation, so it takes PopoverItem's plain path (Popovers.swift 270-273): the popover closes first (`closePopoverBox?.close` or `dismiss()`), then `Task { @MainActor in action() }` writes the binding asynchronously, with no withAnimation",
+        "SidebarSearchField: clear button and Escape (onExitCommand) set text = \"\"; up/down arrows call onMove(-1/+1) and return .handled, or .ignored when onMove is nil; Return calls onSubmit",
+        "ChromeSearchField: clear button and Escape set query = \"\"",
+        "Reads NSWorkspace.shared.accessibilityDisplayShouldReduceMotion at each access of panelSlide/settleFlight and in SettleGlideModifier.body"
+      ],
+      "platform_assumptions": [
+        "SwiftUI Liquid Glass (glassEffect, .regular.tint(...).interactive()) from macOS 26: window backdrop, capsules and circles; Windows needs an acrylic/mica or custom blur substitute",
+        "AppKit dynamic system colours NSColor.labelColor and .controlAccentColor wrapped in SwiftUI Color, resolving per appearance at draw time",
+        "SwiftUI Dynamic Type text styles (.callout, .subheadline, .body, .title3) whose macOS point sizes a port must map to fixed sizes (macOS defaults: body 13, callout 12, subheadline 11, title3 15 - consistent with the 1.6.0 fixed sizes they replaced)",
+        "SF Symbols by name: magnifyingglass, xmark.circle.fill, chevron.down plus whatever callers pass",
+        "macOS traffic-light geometry (14pt lights, 9pt spacing, 18/16 leading/top) and title-bar window dragging via NSView.performDrag and mouseDownCanMoveWindow; Windows needs caption hit-testing (WM_NCHITTEST HTCAPTION / -webkit-app-region)",
+        "NSWorkspace accessibilityDisplayShouldReduceMotion (Windows: SPI_GETCLIENTAREAANIMATION / prefers-reduced-motion)",
+        "SwiftUI .popover with arrowEdge: .bottom (NSPopover) for menus",
+        "SwiftUI .help tooltips, onExitCommand (Escape), onKeyPress arrows, focusEffectDisabled focus ring",
+        "Continuous (squircle) corner style on RoundedRectangle and Capsule",
+        "SwiftUI Layout protocol with animatableData (ChromeRevealLayout) and Animatable view modifiers; Spring(response:dampingRatio:) and .smooth/.snappy animations",
+        "LazyVStack in ChromeCard (rows built lazily)",
+        "NSImage for the wallpaper"
+      ],
+      "persisted_fields": [
+        "None. WindowBackdrop receives the backdrop setting (`opacity`, 0 bare glass to 1 solid) and `wallpaper` from callers; the storage of those settings lives elsewhere."
+      ],
+      "ui_elements": [
+        "WindowBackdrop: RoundedRectangle(cornerRadius: 26, .continuous). isSolid when opacity >= 0.98. Wallpaper branch: shape.fill(.clear) overlaid by Image(nsImage:) resizable, .interpolation(.high), aspect fill, .opacity(opacity), clipped to the shape, then (if !isSolid) a clear glassEffect(in: shape) overlay, transition .opacity. Solid branch: fill black (dark) / white (light). Else: clear glass with a black/white overlay at scrim(for:isDark:). .animation(.easeInOut(duration: 0.3), value: wallpaper != nil). Always overlaid by glassTint.opacity(0.12) and a 1pt strokeBorder of Chrome.overlay(0.14)",
+        "WindowBackdrop.scrim: stock = 0.26 dark / 0.18 light; t clamped 0...1; t <= 0.5 -> stock * (t / 0.5); else stock + (1 - stock) * ((t - 0.5) / 0.5)",
+        "ChromeGlassSurface: on a glass panel, a flat fill Chrome.panelControlFill(isDark:hovered:) with contentShape, onHover and .animation(Chrome.hover); else glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape), or without .interactive() for chromeGlassFieldCapsule",
+        "DetailSheetModifier: background Rectangle fill Color.black.opacity(0.22) dark / Color.white.opacity(0.3) light, then Rectangle fill glassTint.opacity(0.22 dark / 0.16 light); square corners",
+        "ChromeCapsule: HStack(spacing: 0), horizontal padding 3, vertical padding 2, chromeGlassCapsule, NoWindowDragArea behind",
+        "ChromeDivider: RoundedRectangle(cornerRadius: 0.5) fill primaryText.opacity(0.22), 1 x 14, accessibilityHidden",
+        "ChromeIconLabel: Image(systemName:) in Chrome.iconFont, 28x28 frame, active background Circle fill overlay(0.12) padded 1; foreground disabled primary 0.32, active primary 1, else 1 on hover / 0.92",
+        "ChromeIconButton: .buttonStyle(.plain), disabled when !isEnabled, hover animated with Chrome.hover, .help(help) and accessibilityLabel(help)",
+        "ChromeMenuButton: ChromeIconLabel(isActive: isPresented); popover arrowEdge .bottom containing PopoverMenu { content }",
+        "ChromeCircleButton / ChromeCircleMenu: Image in iconFont, frame 32x32 (capsuleHeight), contentShape Circle, chromeGlassCircle, opacity 1 on hover (or presented for the menu) else 0.92",
+        "ChromeTextMenu (473-514): HStack(spacing: 6) of symbol (inlineIconFont), title .system(size: 12.5, weight: .medium) lineLimit 1, \"chevron.down\" in chevronFont secondaryText; the HStack's foreground is `Chrome.primaryText.opacity(isHovering || isPresented ? 1 : 0.92)` (496), so it stays at full opacity while its popover is open; padding horizontal 12, height 28, vertical padding 2; fixedSize; chromeGlassCapsule; `.help(help)` (508) and NO accessibilityLabel, so its accessible name comes from its label content (symbol + title + chevron), not the help string; popover PopoverMenu",
+        "ChromeTextButton (518-560): HStack(spacing: 6) of symbol (inlineIconFont) and title .system(size: 12.5, weight: .medium) lineLimit 1, no chevron; padding horizontal 12, height 28, vertical padding 2; .disabled(!isEnabled); fixedSize; chromeGlassCapsule; foreground disabled primary 0.32, destructive Chrome.danger 1 on hover / 0.92, else primary 1 / 0.92. Unlike ChromeTextMenu it has `.help(help)` then `.accessibilityLabel(Text(help))` (550-551), so its VoiceOver name is the help string, not the visible title",
+        "PaneTopVeil: scrim = dark 0.14 + 0.18*progress, light 0.30 + 0.26*progress; base black/white; tint glassTint.opacity(0.30 dark / 0.18 light); only when progress > 0 draws two fade gradients; overall .opacity(0.08 + 0.92*progress); height 72; no hit testing",
+        "PaneTopVeil.fade gradient stops: color at 0, color at 0.28, color.opacity(0.45) at 0.62, color.opacity(0) at 1, top to bottom",
+        "ChromeCompactTitle: Text(verbatim:) .system(.title3, weight: .semibold), primaryText, lineLimit 1, opacity = progress, offset y = (1 - progress) * 5, leading aligned, no hit testing, accessibilityHidden(progress < 0.5)",
+        "SidebarSymbol: resizable symbol, .interpolation(.high), fit, 14*scale square, monochrome rendering",
+        "SidebarIconBadge: glyph foreground primaryText.opacity(0.85), 20x20",
+        "SidebarRow: RoundedRectangle(cornerRadius: 7) background fill selected overlay(0.12) / hover overlay(0.06) / clear (animated Chrome.hover on isSelected); HStack(spacing: 8) icon in 20pt wide frame, title .system(.body, weight: .medium if selected or emphasized else .regular), primaryText opacity 1 selected / 0.92, lineLimit 1, tail truncation, Spacer(minLength: 4); leading padding 8, trailing 8 + accessoryWidth; height 28; the accessory is `.overlay(alignment: .trailing) { accessory(isHovering).padding(.trailing, 6) }` attached to the Button from outside (731-734), so presses on the accessory do not run the row action; traits .isSelected+.isButton or .isButton; no NoWindowDragArea background",
+        "RowAccessoryIcon: symbol in inlineIconFont, secondaryText, 20x20",
+        "SidebarSearchField: HStack(spacing: 6) \"magnifyingglass\" .system(.callout, weight: .medium) secondaryText.opacity(0.85); TextField(prompt) plain .system(.body); clear button \"xmark.circle.fill\" .system(.callout) secondaryText.opacity(0.75) accessibilityLabel \"Clear search\" shown only when text non-empty; horizontal padding 9, height 30, Capsule fill overlay(0.07); default prompt \"Search\"; no NoWindowDragArea background (784-816)",
+        "ChromeSearchField: width 200; \"magnifyingglass\" .system(.callout, weight: .semibold) secondaryText, accessibilityHidden; TextField .plain, focusEffectDisabled, .system(size: 12.5), primaryText; clear \"xmark.circle.fill\" .system(.callout) secondaryText.opacity(0.8), always laid out but opacity 0 / disabled / accessibilityHidden when query empty, label \"Clear search\"; horizontal padding 10, frame 200 x 28, vertical padding 2, chromeGlassFieldCapsule, fixedSize; default prompt \"Search\"",
+        "GlassPickerButton (872-932): title = the option whose value equals selection, else \"\"; the capsule HStack(spacing: 6) draws `if let name = asset(selection)` Image(name) resizable fit 14x14 (890-895) and then, as a separate `if let symbol = symbol(selection)`, Image(systemName:) .system(.callout, weight: .medium) secondaryText (896-900): two independent ifs, so when both closures return a value the asset and the symbol show side by side, and only for the current selection; then title .system(size: 12.5, weight: .medium) lineLimit 1 tail truncation, \"chevron.down\" chevronFont secondaryText; HStack foreground `Chrome.primaryText.opacity(isHovering || isPresented ? 1 : 0.92)` (909); padding horizontal 12, height 28 (no vertical padding here, unlike ChromeTextMenu); no .help and no accessibilityLabel. Modifier order (914-930): .buttonStyle(.plain), .fixedSize(horizontal: maxWidth == nil, vertical: true), .chromeGlassCapsule(), .frame(maxWidth: maxWidth, alignment: .trailing), .onHover, .popover, .background { NoWindowDragArea() }, so the no-drag view covers the whole maxWidth frame including the empty space leading the capsule, not just the capsule. Popover: PopoverMenu with one `PopoverItem(option.title, symbol: symbol(option.value), asset: asset(option.value), isChecked: option.value == selection)` per option (924); in the row, PopoverItem's else-if chain (Popovers.swift 282-306) shows the asset and hides the symbol when both exist",
+        "softAppear transition: insertion opacity 0 -> 1 and offset y 4 -> 0 with .smooth(duration: 0.32); removal .opacity with .easeOut(duration: 0.12)",
+        "settleGlide transition: insertion same as softAppear; removal SettleGlideModifier progress 0 -> 1 on .spring(Chrome.glideSpring): fade = smoothstep(0.45, 0.92, progress) (linear progress under reduce motion), opacity 1 - fade, offset y 22*progress, scaleEffect 1 - 0.04*progress anchored .top (none under reduce motion)",
+        "ChromeCard: LazyVStack(alignment: .leading, spacing: 0), full width, background RoundedRectangle(cornerRadius: 16, .continuous) fill overlay(0.03)",
+        "ChromeSection: VStack spacing 10; header HStack(spacing: 4) title .system(.body, weight: .semibold) Chrome.secondaryText, optional accessory, optional trailing after Spacer(minLength: 8)",
+        "ChromeRow: HStack(alignment: .center, spacing: 16); VStack(spacing: 2) title .system(.body) primaryText, detail (if non-empty) .system(.subheadline) secondaryText wrapping vertically; Spacer(minLength: 12); control; padding leading 16, trailing 10, vertical 11",
+        "ChromeRowDivider: Divider with leading padding 16"
+      ],
+      "feature_notes": [
+        "ChromeScrollModel.update(travel:): raw = (travel - 10) / (44 - 10); clamped to 0...1; quantized = round(clamped / 0.04) * 0.04; progress is assigned only when the quantized value differs, so the veil and compact title re-render at most 26 distinct steps.",
+        "Chrome.contentTopInset = chromeTopPadding 12 + capsuleHeight 32 + contentBreathBelowChrome 28 = 72, equal to veilHeight 72.",
+        "Chrome.accent falls back to NSColor.controlAccentColor when the theme spec has no accent (System/Light/Dark per the comment); the doc comment says the window root also applies it as the view tint.",
+        "WindowBackdrop at the solid end (opacity >= 0.98) draws a plain fill instead of glass to avoid a full-window glass sample every frame; with a wallpaper the scrim is not drawn at all and the wallpaper's own opacity equals the transparency setting.",
+        "ChromeGlassSurface draws a flat fill instead of glass whenever isOnGlassPanel is true, to avoid glass-on-glass double sampling.",
+        "chromeGlassFieldCapsule exists because an interactive glass press bounce flickered as the field took focus; it is the non-interactive variant.",
+        "NoWindowDragArea sits in the background of these controls only: ChromeCapsule (320), ChromeIconButton (381), ChromeMenuButton (408), ChromeCircleButton (435), ChromeCircleMenu (468), ChromeTextMenu (512), ChromeTextButton (552), ChromeSearchField (867), GlassPickerButton (930), ChromeSegmentedPicker.swift:42 and ChromeVisualPicker.swift:48. SidebarRow (710-739), SidebarSearchField (784-816) and Popovers.swift RowActionsButton (389-400) have none. The doc comment (1104-1113) says empty chrome around the controls still drags the window like a title bar. WindowDragArea does the opposite for designated drag stretches; both WindowDragView (1095) and NoWindowDragView (1123) override acceptsFirstMouse(for:) to return true.",
+        "SidebarSearchField: up/down arrow handling only claims the key when onMove is non-nil; the doc says onMove is declared last so a bare trailing closure still binds to onSubmit.",
+        "ChromeSearchField keeps its clear button laid out even when empty (opacity 0, disabled, accessibility hidden) so the text never shifts.",
+        "ChromeRevealLayout (286-304) sizes its single child with ProposedViewSize(width: proposal.width, height: nil) and reports CGSize(width: natural.width, height: natural.height * min(max(fraction, 0), 1)); placeSubviews always places the child at bounds.origin, anchor .topLeading, with ProposedViewSize(width: bounds.width, height: nil), i.e. at full natural height even when the slot is shorter (the placement width is bounds.width, not natural.width); it returns .zero with no child. The layout itself does NOT clip: at fraction 0 the child overflows its zero-height slot. The doc comment (282-285) speaks of 'the clip', but the clip is added by callers, e.g. ModelsSettingsPage.swift 379, 393 and 429 `.clipped()` after ChromeRevealLayout. A port must clip at each call site or build the clip into its layout.",
+        "ChromeQuietButtonStyle renders configuration.label unchanged: no pressed feedback while keeping Button semantics.",
+        "PaneTopVeil was formerly Liquid Glass under a gradient mask; the comment says it is now two gradient fills to avoid a backdrop sample and offscreen mask per frame.",
+        "B1->B2: iconFont changed from .system(size: 12, weight: .semibold) to .system(.callout, weight: .semibold) and inlineIconFont from .system(size: 11, ...) to .system(.subheadline, ...); secondaryText changed from Color(nsColor: .secondaryLabelColor) to primaryText.opacity(0.7) with a new comment that 70% clears the 4.5:1 contrast floor where secondaryLabelColor's 50% alpha does not; added ChromeQuietButtonStyle (lines 275-280) and ChromeRevealLayout (lines 282-304); fixed sizes replaced by text styles: ChromeCompactTitle 15 -> .title3, SidebarRow title 13 -> .body, SidebarSearchField magnifier 12 -> .callout, field 13 -> .body, clear 12 -> .callout, ChromeSearchField magnifier 12 -> .callout and clear 12 -> .callout (field stays size 12.5), GlassPickerButton symbol 12 -> .callout, ChromeSection title 13 semibold -> .body semibold and its colour .secondary -> Chrome.secondaryText, ChromeRow title 13 -> .body and detail 11 -> .subheadline. 12.5pt titles in ChromeTextMenu, ChromeTextButton, GlassPickerButton and the ChromeSearchField text and chevronFont size 8 remain fixed sizes. Diff stat 48 insertions, 15 deletions.",
+        "Effective secondary alphas since B2 (secondaryText = primaryText.opacity(0.7), line 79): SidebarSearchField magnifier secondaryText.opacity(0.85) (788) = 0.595 x primaryText; SidebarSearchField clear .opacity(0.75) (802) = 0.525; ChromeSearchField clear .opacity(0.8) (851) = 0.56; InfoHoverButton.swift:18 secondaryText.opacity(isHovering ? 1 : 0.6) = 0.7 / 0.42. These are products of the source's multipliers on top of primaryText = Color(nsColor: .labelColor) (76), which is itself a dynamic system colour, so the absolute on-screen alpha depends on labelColor's own value (see unresolved_questions)."
+      ],
+      "unresolved_questions": [
+        "The Windows equivalents of the macOS text styles (.callout, .subheadline, .body, .title3) under non-default accessibility text sizes: macOS does not scale these by default, so the port must decide whether to honour Windows text scaling. Needs a decision rather than a source read.",
+        "Where ChromeRevealLayout and ChromeQuietButtonStyle are used (grep shows SettingsView.swift and ModelsSettingsPage.swift reference them); the exact reveal behaviour belongs to those files' readings.",
+        "The resolved RGBA of NSColor.labelColor in light and dark appearance (primaryText, line 76, and every overlay/secondary colour derived from it) cannot be read from the source; it needs a platform measurement on macOS before a port maps primaryText to a fixed colour."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift",
+      "sha256": "ba3870b4267d4533b740bafa6c5e8e0e8f6f8826c218d9aba31659d34911cea6",
+      "lines_total": 82,
+      "ranges_read": [
+        [
+          1,
+          82
+        ]
+      ],
+      "purpose": "A compact settings-row control that lays every option out as a small capsule button inside one glass capsule strip, with the chosen one filled in the accent colour. It is for options that are a few short words or numbers; each option may show an SF Symbol instead of its title while the title stays the accessibility label.",
+      "key_symbols": [
+        "struct ChromeSegmentedOption<Value: Hashable> (8-13): let value: Value; let title: String; var symbol: String? = nil",
+        "struct ChromeSegmentedPicker<Value: Hashable>: View (16-44): let options: [ChromeSegmentedOption<Value>]; @Binding var selection: Value",
+        "init(options: [ChromeSegmentedOption<Value>], selection: Binding<Value>) (20-23)",
+        "init(options: [(value: Value, title: String)], selection: Binding<Value>) (25-27): maps tuples to options with no symbol",
+        "private struct ChromeSegment: View (47-82): let title: String; let symbol: String?; let isSelected: Bool; let select: () -> Void; @State private var isHovering; @ViewBuilder private var label (75-81)"
+      ],
+      "calls_into": [
+        "Chrome.hover, Chrome.capsuleContentHeight, chromeGlassCapsule(), NoWindowDragArea, Chrome.primaryText/secondaryText/accent/overlay (Chrome.swift)"
+      ],
+      "state_owned": [
+        "ChromeSegment @State isHovering per segment",
+        "selection is a caller-owned Binding"
+      ],
+      "side_effects": [
+        "Tapping a segment sets selection = option.value inside withAnimation(Chrome.hover) (line 33); re-selecting the chosen option re-assigns the same value"
+      ],
+      "platform_assumptions": [
+        "SwiftUI glass capsule (Liquid Glass via chromeGlassCapsule)",
+        "SF Symbols for optional symbols",
+        ".callout text style (12pt on macOS)",
+        "onHover pointer tracking",
+        "NoWindowDragArea AppKit NSView to block window drag",
+        "Accessibility traits .isSelected and accessibilityElement(children: .contain)"
+      ],
+      "persisted_fields": [
+        "None"
+      ],
+      "ui_elements": [
+        "Strip: HStack(spacing: 2), horizontal padding 3, height 28 (Chrome.capsuleContentHeight), chromeGlassCapsule, fixedSize, accessibilityElement(children: .contain), NoWindowDragArea background",
+        "Segment: label (Image(systemName: symbol) if symbol, else Text(verbatim: title)) in .system(.callout, weight: .semibold when selected, .medium otherwise); foreground primaryText selected / secondaryText; lineLimit 1; horizontal padding 9; minWidth 26; height 22; background Capsule(.continuous) fill Chrome.accent.opacity(0.22) when selected, else Chrome.overlay(0.08) on hover or overlay(0) at rest; contentShape Capsule; .buttonStyle(.plain)",
+        "Hover animated with Chrome.hover (.easeOut 0.1)",
+        "Accessibility: label Text(verbatim: title) even when a symbol is drawn; trait .isSelected on the chosen segment"
+      ],
+      "feature_notes": [
+        "Options are enumerated and identified by offset (ForEach id: \\.offset), not by value.",
+        "The selected state is value equality option.value == selection; no option is filled if selection matches none.",
+        "B1->B2: the segment label font changed from .system(size: 12, weight: isSelected ? .semibold : .medium) to .system(.callout, weight: isSelected ? .semibold : .medium) (line 57); nothing else changed."
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/UI/Chrome/ChromeVisualPicker.swift",
+      "sha256": "1e9209b5b39d3013e4036d684b1d1eb758e4e6b11375a94a1e9d9be11707f513",
+      "lines_total": 106,
+      "ranges_read": [
+        [
+          1,
+          106
+        ]
+      ],
+      "purpose": "A settings-row control of two or three same-size tiles, each showing one caller-supplied symbol on a stage with the option's name captioned underneath, modelled on macOS Appearance's Light / Dark / Auto chooser. The chosen tile wears a 2pt accent ring and its symbol takes the accent colour; ChromeVisualTileMetrics fixes the tile measures so pickers of two and three options align.",
+      "key_symbols": [
+        "enum ChromeVisualTileMetrics (10-19): height = 48; regularWidth = 76; denseWidth = 76; cornerRadius = 6; ringInset = 3; ringWidth = 2; spacing = 12; captionSpacing = 6",
+        "struct ChromeVisualPicker<Value: Hashable, Preview: View>: View (22-50): let options: [(value: Value, title: String)]; @Binding var selection: Value; @ViewBuilder var preview: (Value) -> Preview; init(options:selection:preview:) (27-31); private var tileWidth: CGFloat (33-35)",
+        "struct ChromeVisualTile<Content: View>: View (53-106): let title: String; let isSelected: Bool; var width: CGFloat = 76; let action: () -> Void; @ViewBuilder var content: () -> Content; @State private var isHovering; private var caption (77-84); private var stage (86-105)"
+      ],
+      "calls_into": [
+        "Chrome.hover, Chrome.primaryText/secondaryText/accent/overlay, NoWindowDragArea (Chrome.swift)",
+        "Caller's preview closure supplies the symbol view"
+      ],
+      "state_owned": [
+        "ChromeVisualTile @State isHovering",
+        "selection is a caller Binding"
+      ],
+      "side_effects": [
+        "Tapping a tile sets selection = option.value in withAnimation(Chrome.hover)"
+      ],
+      "platform_assumptions": [
+        "SwiftUI .title2 (17pt on macOS) and .subheadline (11pt) text styles",
+        "continuous-corner RoundedRectangle",
+        "onHover",
+        "NoWindowDragArea AppKit view",
+        "Chrome.accent from theme or NSColor.controlAccentColor"
+      ],
+      "persisted_fields": [
+        "None"
+      ],
+      "ui_elements": [
+        "Picker: HStack(alignment: .top, spacing: 12), fixedSize, NoWindowDragArea background; options identified by enumerated offset",
+        "tileWidth: 76 when options.count >= 3 (denseWidth), else 76 (regularWidth): both 76, so width never actually differs",
+        "Tile: Button(.plain) containing VStack(spacing: 6) { stage; caption }; accessibilityLabel(title); trait .isSelected when selected",
+        "Stage: content in .system(.title2, weight: .medium); foreground Chrome.accent when selected else secondaryText; frame width x 48; background RoundedRectangle(cornerRadius: 6, .continuous) fill Chrome.overlay(0.10) when hovered or selected else 0.06; clipped to that shape; padding 3; overlay RoundedRectangle(cornerRadius: 9, .continuous) strokeBorder Chrome.accent (selected) or clear, lineWidth 2; contentShape Rectangle",
+        "Caption: Text(verbatim: title) .system(.subheadline), primaryText when selected else secondaryText, centered multiline, lineLimit 2, frame width = tile width"
+      ],
+      "feature_notes": [
+        "Total tile outer size is width + 2*3 by 48 + 2*3 because the ring padding wraps the stage; the ring corner radius is 6 + 3 = 9.",
+        "B1->B2: caption font changed from .system(size: 11) to .system(.subheadline) (line 79) and the stage font from .system(size: 17, weight: .medium) to .system(.title2, weight: .medium) (line 88); no other changes."
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/UI/Chrome/InfoHoverButton.swift",
+      "sha256": "b92ca9b565a0b3e732dc09b6bd425af7f685ba5fbed241998ed467fcff80c2fa",
+      "lines_total": 57,
+      "ranges_read": [
+        [
+          1,
+          57
+        ]
+      ],
+      "purpose": "An \"info.circle\" mark that opens a caller-supplied explainer popover as soon as the pointer hovers it, keeps the popover open while the pointer is over either the mark or the popover, and closes it 320 ms after the pointer has left both. A click toggles the popover too, and the mark is not keyboard-focusable.",
+      "key_symbols": [
+        "struct InfoHoverButton<Content: View>: View (5-57)",
+        "let help: String; var width: CGFloat = 360; @ViewBuilder let content: () -> Content",
+        "@State private var isHovering = false; @State private var isOverPopover = false; @State private var isPresented = false; @State private var closeTask: Task<Void, Never>?",
+        "private func scheduleClose() (49-56)"
+      ],
+      "calls_into": [
+        "Chrome.secondaryText (Chrome.swift)",
+        "Swift concurrency Task.sleep(for: .milliseconds(320))"
+      ],
+      "state_owned": [
+        "isHovering, isOverPopover, isPresented, closeTask"
+      ],
+      "side_effects": [
+        "Spawns a Task per leave event (cancelling the previous) that sets isPresented = false after 320 ms unless cancelled or the pointer is over the mark or popover"
+      ],
+      "platform_assumptions": [
+        "SwiftUI .popover(isPresented:arrowEdge: .bottom) backed by NSPopover",
+        "onHover pointer tracking on both the mark and the popover content",
+        ".help tooltip",
+        "SF Symbol info.circle",
+        ".callout text style",
+        "focusable(false)"
+      ],
+      "persisted_fields": [
+        "None"
+      ],
+      "ui_elements": [
+        "Image(systemName: \"info.circle\") .system(.callout, weight: .medium), foreground Chrome.secondaryText.opacity(1 on hover, 0.6 otherwise), frame 20x20, contentShape .rect",
+        ".help(help), accessibilityLabel(help), trait .isButton",
+        "Popover arrowEdge .bottom, content framed to width (default 360)"
+      ],
+      "feature_notes": [
+        "Hover-in on the mark: cancels closeTask and sets isPresented = true. Hover-out: scheduleClose().",
+        "Hover-in on the popover: sets isOverPopover and cancels closeTask; hover-out schedules close.",
+        "scheduleClose: cancels any existing task, then after 320 ms checks !Task.isCancelled && !isHovering && !isOverPopover before closing.",
+        "onTapGesture toggles isPresented (so a click while hover-opened closes it).",
+        "The hover state change is not animated (no withAnimation).",
+        "B1->B2: the icon font changed from .system(size: 12, weight: .medium) to .system(.callout, weight: .medium) (line 17); nothing else changed.",
+        "isOverPopover (11) is written only by the popover content's onHover (38-45). Nothing resets it when the popover closes by the tap toggle (34) or by an outside click or Escape, so scheduleClose's guard `!Task.isCancelled, !isHovering, !isOverPopover` (53) can read a stale true if the popover vanished while the pointer was over it; a port must decide to reproduce or fix this.",
+        "Effective foreground alpha: Chrome.secondaryText is primaryText.opacity(0.7) (Chrome.swift 79), so line 18 `Chrome.secondaryText.opacity(isHovering ? 1 : 0.6)` gives 0.7 / 0.42 x labelColor."
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/UI/Chrome/Popovers.swift",
+      "sha256": "4d8ffb00302f058c76e6fa31cca35b3762159f65203cb84cc2b1fd62892ae835",
+      "lines_total": 401,
+      "ranges_read": [
+        [
+          1,
+          401
+        ]
+      ],
+      "purpose": "The app's native-popover menu system that replaces pull-down menus: PopoverMenu is the scrolling body every chrome and composer button opens, PopoverItem is the row (checkmark column, icon, styled title, detail, destructive tint and an in-place confirmation such as \"Copied\"), with section headers, notes and dividers. It also carries the plumbing for AppKit-hosted popovers (NSPopover.setFixedContent, a pre-measuring PopoverScroll, and a boxed closePopover environment value) and the RowAction model that feeds both a sidebar row's ellipsis popover and its context menu.",
+      "key_symbols": [
+        "extension View { func presentedChrome() -> some View } (4-13): .buttonBorderShape(.capsule).tint(ThemeManager.spec.accent)",
+        "extension NSPopover { @MainActor func setFixedContent<Content: View>(_ content: Content, size: NSSize) } (15-41)",
+        "struct PopoverScroll<Content: View>: View (54-92): var maxHeight: CGFloat = 460; var minHeight: CGFloat = 80; let content: () -> Content; @State private var contentHeight: CGFloat; private let isPremeasured: Bool; @MainActor init(maxHeight: CGFloat = 460, minHeight: CGFloat = 80, width: CGFloat? = nil, @ViewBuilder content:) (67-73); @MainActor static func measuredHeight(of content: some View, width: CGFloat) -> CGFloat (78-80)",
+        "struct PopoverMenu<Content: View>: View (95-115): var maxHeight: CGFloat = 460; var idealHeight: CGFloat?; @ViewBuilder var content",
+        "struct PopoverSectionHeader: View (117-133): let title; init(_ title: String)",
+        "struct PopoverNote: View (135-150): let text; init(_ text: String)",
+        "struct PopoverDivider: View (152-158)",
+        "final class PopoverCloseBox: Equatable (164-174): let close: @MainActor () -> Void; init(_:); static func == compares identity (===)",
+        "extension EnvironmentValues { @Entry var closePopoverBox: PopoverCloseBox?; var closePopover: (@MainActor () -> Void)? { get set } } (178-187)",
+        "struct PopoverItem: View (190-337): let title; var titleText: Text?; var detail: String?; var symbol: String?; var image: NSImage?; var asset: String?; var leading: AnyView?; var isChecked: Bool?; var isEnabled = true; var isDestructive = false; var confirmation: String?; let action: @MainActor () -> Void; @Environment(\\.dismiss); @Environment(\\.closePopoverBox); @State isHovering; @State isConfirmed; private static let confirmationHold: Duration = .milliseconds(650)",
+        "PopoverItem.init(_ title:detail:symbol:image:asset:leading:isChecked:isEnabled:isDestructive:confirmation:action:) (216-240)",
+        "PopoverItem.init(_ title: String, text: Text, symbol: String? = nil, image: NSImage? = nil, action:) (243-255)",
+        "struct RowAction: Identifiable (342-352): let title: String; var symbol: String?; var isDestructive = false; var startsGroup = false; var confirms: String?; let action: @MainActor () -> Void; var id: String { title }",
+        "struct RowActionItems: View (354-363): let actions: [RowAction]",
+        "struct RowActionMenuButtons: View (365-382): let actions: [RowAction]",
+        "struct RowActionsButton: View (385-401): let actions: [RowAction]; @Binding var isPresented: Bool"
+      ],
+      "calls_into": [
+        "ThemeManager.spec.accent (AppTheme.swift)",
+        "Chrome.secondaryText/primaryText/success/danger/overlay/hover (Chrome.swift)",
+        "RowAccessoryIcon (Chrome.swift)",
+        "AppKit NSPopover, NSHostingController, NSHostingView.fittingSize",
+        "SwiftUI dismiss environment action"
+      ],
+      "state_owned": [
+        "PopoverScroll.contentHeight (@State, initialised from a pre-measure when width is given)",
+        "PopoverItem isHovering and isConfirmed",
+        "RowActionsButton isPresented is a caller Binding"
+      ],
+      "side_effects": [
+        "setFixedContent replaces the popover's contentViewController with an NSHostingController (sizingOptions = []) and sets contentSize",
+        "PopoverScroll.init with width lays the content out once off screen in an NSHostingView to measure its fitting height (rounded up)",
+        "PopoverItem tap without confirmation: closes via closePopoverBox?.close or dismiss(), then runs action in a new MainActor Task so sheets/alerts it presents are not swallowed",
+        "PopoverItem tap with confirmation (first tap, 259-268): runs action() synchronously before any close (the doc comment at 203-204 says 'The action runs at once, so it must not present anything.'), animates isConfirmed = true with .snappy(duration: 0.22), then a MainActor Task sleeps confirmationHold (650 ms) and closes via closePopoverBox?.close or dismiss(). isConfirmed is never reset to false, so if the close does not remove the popover the row keeps its confirmation text and `guard !isConfirmed else { return }` (270) ignores every later tap",
+        "RowActionMenuButtons (365-382, the context menu) ignores `confirms` entirely: Button(role: .destructive when isDestructive) runs item.action() synchronously, with no deferred Task and no close ordering, and its label is Label(item.title, systemImage: symbol) or Text(item.title), so the 'Copied'-style confirmation exists only in the popover (RowActionItems)"
+      ],
+      "platform_assumptions": [
+        "AppKit NSPopover, NSHostingController.sizingOptions, NSHostingView.fittingSize, NSSize",
+        "SwiftUI .popover(isPresented:arrowEdge:)",
+        "NSImage row images and asset-catalog images by name (Image(asset))",
+        "SF Symbols checkmark, ellipsis and caller-supplied symbols",
+        "SwiftUI context menu Button(role: .destructive) and Label(_:systemImage:)",
+        "Dynamic Type text styles .subheadline (11pt), .callout (12pt), .body (13pt)",
+        "contentTransition(.numericText()) text morph",
+        "@Entry environment macro",
+        "scrollBounceBehavior(.basedOnSize)"
+      ],
+      "persisted_fields": [
+        "None"
+      ],
+      "ui_elements": [
+        "presentedChrome (4-13): .buttonBorderShape(.capsule).tint(ThemeManager.spec.accent). spec.accent is Optional (`var accent: Color?`, AppTheme.swift 206; Chrome.swift 85 `ThemeManager.spec.accent ?? systemAccent`), and it is nil for System/Light/Dark (AppTheme.swift 203 'nil keeps the system control accent'), so for those themes the tint passed is nil",
+        "setFixedContent: content framed to size, alignment .top, clipped, presentedChrome",
+        "PopoverScroll: ScrollView with bounce based on size; frame height min(max(contentHeight, minHeight 80), maxHeight 460)",
+        "PopoverMenu (95-115): ScrollView { VStack(alignment: .leading, spacing: 0) padded 6, frame minWidth 210, maxWidth 360, leading } bounce basedOnSize, scrollIndicators .automatic, `.frame(idealHeight: idealHeight, maxHeight: maxHeight)` (112) where `var maxHeight: CGFloat = 460` (96) is caller-overridable, presentedChrome",
+        "PopoverSectionHeader: .system(.subheadline, weight: .semibold), secondaryText, padding horizontal 8, top 6, bottom 3, full width leading",
+        "PopoverNote: .system(.callout), secondaryText, padding horizontal 8, vertical 5, full width leading",
+        "PopoverDivider: Divider padded horizontal 8, vertical 5",
+        "PopoverItem row: HStack(spacing: 8): optional checkmark column (\"checkmark\" .system(.subheadline, weight: .semibold), opacity 1 checked / 0 unchecked, width 14); then one else-if chain (282-306): leading view 16x16, else asset image 16x16 fit, else NSImage 16x16 high interpolation, else when confirmed \"checkmark\" .system(.callout, weight: .semibold) in Chrome.success width 16 with transition scale 0.6 + opacity, else symbol .system(.callout) width 16 with same transition. So a row with leading, asset or image never shows the green confirmation checkmark (only its title swaps), and asset wins over symbol. Title: `(isConfirmed ? Text(verbatim: confirmation ?? title) : (titleText ?? Text(verbatim: title)))` (307), so once confirmed any styled titleText is dropped; .system(.body), lineLimit 1, middle truncation, numericText content transition; Spacer(minLength: 16); detail .system(.callout) secondaryText lineLimit 1",
+        "PopoverItem styling: foreground Chrome.danger if destructive else primaryText; padding horizontal 8; height 26; background RoundedRectangle(cornerRadius: 6, .continuous) fill Chrome.overlay(0.1) when hovered and enabled; contentShape .rect; .plain; disabled and opacity 0.4 when !isEnabled; accessibilityLabel `detail.map { \"\\(title), \\($0)\" } ?? title` (332), which never changes to the confirmation text; hover animated with Chrome.hover",
+        "RowActionItems: PopoverDivider before any action with startsGroup, then PopoverItem(title, symbol, isDestructive, confirmation: confirms, action)",
+        "RowActionMenuButtons: Divider before startsGroup items, Button(role: .destructive when isDestructive) with Label(title, systemImage: symbol) or Text(title)",
+        "RowActionsButton (385-401): RowAccessoryIcon(\"ellipsis\"), .plain, .help(\"More\"), popover arrowEdge .bottom with PopoverMenu { RowActionItems }; no NoWindowDragArea background"
+      ],
+      "feature_notes": [
+        "setFixedContent exists because an NSHostingController publishes preferredContentSize after show(relativeTo:), and AppKit then resizes the shown panel from its top edge, leaving the arrow floating above the anchor; sizingOptions = [] leaves contentSize in charge.",
+        "PopoverScroll with a width is 'premeasured': later onGeometryChange heights are ignored (the panel never resizes), so the scroll absorbs any difference; without a width, contentHeight follows onGeometryChange.",
+        "PopoverCloseBox compares by reference so the environment value does not invalidate every reader on each update; closePopover is the plain-closure facade that wraps a new box on set.",
+        "RowAction.id is its title, so two actions with the same title in one list collide in ForEach.",
+        "Checkmark column is kept for every row of a choice list whenever isChecked is non-nil (true or false).",
+        "B1->B2: only fonts changed, all fixed sizes to text styles: PopoverSectionHeader 11 semibold -> .subheadline semibold (126); PopoverNote 12 -> .callout (144); PopoverItem checkmark column 11 semibold -> .subheadline semibold (278), confirmed checkmark 12 semibold -> .callout semibold (297), symbol 12 -> .callout (303), title 13 -> .body (308), detail 12 -> .callout (315). 7 lines changed, no behaviour change."
+      ],
+      "unresolved_questions": [
+        "Which call sites use setFixedContent and PopoverScroll(width:) (12 references across the repo by grep) is outside this bundle."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Chrome/ProjectIconPicker.swift",
+      "sha256": "79d0756f677307051948f530de7d703d84c1febfe512be6ff7c85c85ae9e8008",
+      "lines_total": 272,
+      "ranges_read": [
+        [
+          1,
+          272
+        ]
+      ],
+      "purpose": "Draws a project's mark (an emoji or a filled SF Symbol, defaulting to \"folder.fill\") and provides the 300x420 popover picker that chooses it: a \"Search symbols\" field, an Emoji grid of 131 fixed emoji, a Popular section of 56 shortlisted filled symbols filtered against the system catalogue, then every group of the generated ProjectSymbolCatalogue, and a Folder tile that clears the mark. Core owns the ProjectIcon value; this file only renders and edits it through a binding.",
+      "key_symbols": [
+        "struct ProjectIconMark: View (11-27): let icon: ProjectIcon?; var size: CGFloat = 13",
+        "struct ProjectIconButton: View (30-51): @Binding var icon: ProjectIcon?; var size: CGFloat = 13; @State private var isPresented",
+        "struct ProjectIconPicker: View (55-240): @Binding var icon: ProjectIcon?; @State private var query = \"\"",
+        "private static let emojis: [String] (60-78), 131 entries",
+        "private static let favourites: [String] (83-85) = shortlist filtered by NSImage(systemSymbolName:accessibilityDescription:) != nil",
+        "private static let shortlist: [String] (87-102), 56 entries",
+        "private static let groups: [ProjectSymbolCatalogue.Group] (107-109) = [Group(id: \"popular\", title: \"Popular\", names: favourites)] + ProjectSymbolCatalogue.groups",
+        "private static let columns = Array(repeating: GridItem(.fixed(26), spacing: 4), count: 9) (111)",
+        "private var matchingSymbols: [String] (115-123)",
+        "private static func filledForm(of name: String) -> String? (128-134)",
+        "private func symbolSection(_ group: ProjectSymbolCatalogue.Group) -> some View (174-186); private var searchField (188-203); private var emojiGrid (205-216); private func symbolGrid(_ names: [String]) (218-230); private func section<Content: View>(_ title: String, @ViewBuilder content:) (232-239)",
+        "private struct IconTile<Content: View>: View (244-272): let isSelected: Bool; let action: () -> Void; @ViewBuilder var content; @State private var isHovering",
+        "ProjectIcon (external, DroppyCode/Core/Models/Library.swift line 6): used members .emoji, .symbolName, .symbol(String), .emoji(String)"
+      ],
+      "calls_into": [
+        "ProjectIcon enum (Core/Models/Library.swift)",
+        "ProjectSymbolCatalogue.groups, .all, ProjectSymbolCatalogue.Group(id:title:names:) (UI/Chrome/ProjectSymbolCatalogue.swift, generated catalogue)",
+        "NSImage(systemSymbolName:accessibilityDescription:) to check symbol availability",
+        "Chrome.primaryText/secondaryText/overlay/accent/hover (Chrome.swift)"
+      ],
+      "state_owned": [
+        "ProjectIconButton.isPresented",
+        "ProjectIconPicker.query",
+        "IconTile.isHovering",
+        "icon is a caller Binding"
+      ],
+      "side_effects": [
+        "Choosing a tile writes icon = .emoji(e), .symbol(name), or nil (Folder tile); the popover does not close on its own after a pick",
+        "favourites is computed once (static let) by probing NSImage for each shortlist name"
+      ],
+      "platform_assumptions": [
+        "SF Symbols catalogue and names, and NSImage(systemSymbolName:) availability probing: Windows has no SF Symbols, so the whole symbol side needs a replacement glyph set and a replacement availability check",
+        "Apple Color Emoji rendering of the emoji list (Windows renders Segoe UI Emoji)",
+        "SwiftUI popover arrowEdge .bottom",
+        "LazyVGrid / LazyVStack, ScrollView with indicators hidden",
+        "String.localizedCaseInsensitiveContains for search",
+        "Text styles .callout, .subheadline, .title3, .footnote",
+        ".help tooltip"
+      ],
+      "persisted_fields": [
+        "None here; ProjectIcon is persisted by Core (Library.swift) as a Codable enum."
+      ],
+      "ui_elements": [
+        "ProjectIconMark: emoji Text(verbatim:) .system(size: size) or Image(systemName: icon?.symbolName ?? \"folder.fill\") .system(size: size); foreground primaryText.opacity(0.9); default size 13 (unchanged fixed size)",
+        "ProjectIconButton: mark framed (size + 9) square, contentShape RoundedRectangle(cornerRadius: 6), .plain, .help(\"Choose this project's icon\"), accessibilityLabel \"Project icon\", popover arrowEdge .bottom with ProjectIconPicker",
+        "Picker: VStack(alignment: .leading, spacing: 10), padding 12, frame 300 x 420",
+        "Header Text \"Project icon\" .system(.callout, weight: .medium) primaryText",
+        "Search field: HStack(spacing: 6) \"magnifyingglass\" .system(.subheadline) secondaryText; TextField(\"Search symbols\") plain .system(.callout); padding horizontal 8, vertical 5; background RoundedRectangle(cornerRadius: 6, .continuous) fill overlay(0.10)",
+        "ScrollView (indicators never) of LazyVStack(alignment: .leading, spacing: 14) padded vertically 1: when matchingSymbols is empty, the Emoji section then every group section; otherwise a single \"Symbols\" section of matches",
+        "Divider overlaid with overlay(0.12), then footer HStack(spacing: 8): IconTile selected when icon == nil containing \"folder.fill\" .system(.callout) secondaryText, and Text \"Folder\" .system(.callout) secondaryText",
+        "Section: VStack(alignment: .leading, spacing: 5), title .system(.footnote, weight: .medium) secondaryText; titles \"Emoji\", \"Symbols\", \"Popular\" and the catalogue group titles",
+        "Grids: LazyVGrid with 9 fixed 26pt columns, spacing 4 both ways; emoji tiles .system(.title3); symbol tiles .system(.callout) primaryText.opacity(0.9)",
+        "IconTile: content 26x26, background RoundedRectangle(cornerRadius: 6, .continuous) fill overlay(0.14) when hovered or selected else 0; selected overlay strokeBorder Chrome.accent lineWidth 1.5; contentShape same rect; hover animated Chrome.hover"
+      ],
+      "feature_notes": [
+        "Emoji list (131, in order): 🚀 🛠️ 📦 🎨 🧪 🌱 🔥 🧩 📊 🕹️ 🎯 🧠 ⚙️ 💎 🪄 🍿 🛰️ 🧭 📚 🔮 🐙 🦀 🐝 🦊 🌊 🌙 ⚡️ 🍀 🧵 🏗️ 🔧 🧰 🫧 🧊 🪵 🪨 🧱 🏺 🪑 🛋️ 🧲 🔋 🔌 💡 🔦 🕯️ 🚿 🛁 🧴 🧹 🧺 🧼 🪣 🧽 🪥 🪒 🗝️ 🔐 🛡️ ⚔️ 🪓 🗡️ 🏹 🪃 🧿 📡 🎛️ 🖲️ 🖨️ ⌨️ 🖥️ 💻 🖱️ 📱 ⌚️ 🎧 🔊 🎤 🎬 📷 🎥 🖼️ 🖌️ 🖍️ ✏️ 📝 📌 📍 📎 🗂️ 🗃️ 🗄️ 📁 📂 🗓️ 📅 ⏰ ⏳ 🧮 🔍 🔎 🔭 🔬 🧫 🧬 🦠 🌡️ 🌋 🏔️ 🏕️ 🧗 🌈 ☄️ 🪐 🛸 🌍 🗺️ 🧳 🎒 🪁 🎲 ♟️ 🧸 🪩 🎺 🎸 🥁 🏆 🥇 🎓 🧑‍🏫",
+        "Shortlist (56, in order, before availability filtering): hammer.fill, wrench.and.screwdriver.fill, gearshape.fill, terminal.fill, curlybraces.square.fill, chevron.left.square.fill, shippingbox.fill, cube.fill, tray.full.fill, doc.fill, square.stack.3d.up.fill, memorychip.fill, cpu.fill, externaldrive.fill, paintbrush.fill, paintpalette.fill, book.closed.fill, graduationcap.fill, lightbulb.fill, key.fill, lock.fill, leaf.fill, flame.fill, drop.fill, sun.max.fill, moon.stars.fill, cloud.fill, bolt.fill, star.fill, heart.fill, diamond.fill, crown.fill, trophy.fill, medal.fill, checkmark.seal.fill, gift.fill, gamecontroller.fill, dpad.fill, popcorn.fill, film.fill, mic.fill, speaker.wave.3.fill, camera.fill, photo.fill, globe.fill, point.3.filled.connected.trianglepath.dotted, hand.point.up.left.fill, person.fill, person.2.fill, pawprint.fill, bird.fill, fish.fill, cup.and.saucer.fill, waterbottle.fill, takeoutbag.and.cup.and.straw.fill, theatermasks.fill",
+        "matchingSymbols (115-123): needle = query.trimmingCharacters(in: .whitespaces) (spaces and tabs only, not newlines); empty -> []; else every ProjectSymbolCatalogue.all name that localizedCaseInsensitiveContains the needle, with filledForm(of: needle) inserted at index 0 when it is non-nil and not already present. Emoji are never searched. When a non-empty query matches nothing, matchingSymbols is empty and body (144-148) falls back to the full default view (Emoji grid plus every group); there is no 'no results' state.",
+        "filledForm(of:) (128-134): if the name ends in \".fill\" or \".inverse\" return it only if NSImage(systemSymbolName:accessibilityDescription:) knows it; else return name + \".fill\" if NSImage knows that; else nil. The typed text is not lowercased first. The doc comments (113-114 'when the catalogue knows that name', 126 'its .fill mark when the catalogue has one') say catalogue, but the check is against the system symbol set, not ProjectSymbolCatalogue.all, so a search can offer a symbol absent from the generated catalogue. On Windows this check must become a lookup in the substitute glyph set.",
+        "Selection is shown by symbolName equality for symbols and emoji equality for emoji; the Folder tile is selected when icon is nil.",
+        "Emoji identity in ForEach is the emoji string (id: \\.self).",
+        "B1->B2: fonts only, fixed sizes to text styles: \"Project icon\" header 12 medium -> .callout medium (139); Folder tile symbol 12 -> .callout (161) and \"Folder\" label 12 -> .callout (165); section group symbol tiles 12 -> .callout (180); search magnifier 11 -> .subheadline (191) and field 12 -> .callout (195); emoji tiles 15 -> .title3 (211); symbolGrid tiles 12 -> .callout (224); section title 10 medium -> .footnote medium (235). ProjectIconMark keeps .system(size: size)."
+      ],
+      "unresolved_questions": [
+        "The content and group order of the generated ProjectSymbolCatalogue (ProjectSymbolCatalogue.swift) are outside this bundle; the Windows glyph substitute for SF Symbols is an open port decision."
+      ]
+    }
+  ]
+}

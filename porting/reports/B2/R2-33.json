@@ -1,0 +1,550 @@
+{
+  "bundle_id": "R2-33",
+  "reader": "R2-33-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/Providers/PlanLimits.swift",
+      "sha256": "bf239d09fc533e5300ef44dac0e6ec28dd9ec0214bbeb0b03137df18456093e9",
+      "lines_total": 336,
+      "ranges_read": [
+        [
+          1,
+          336
+        ]
+      ],
+      "purpose": "Defines the PlanLimits value model (rolling usage windows, an optional plan name, optional banked reset credits and an optional problem string) plus the ResetOutcome and ResetCreditError types used when spending a banked reset. The @MainActor PlanLimitsReader enum decides which providers expose subscription limits, dispatches the read to each provider's own reader (Codex, Antigravity, Copilot sessions, CommandCodeAPI, PiPlanLimits, ZaiAPI for the API-key path), and itself implements Claude's limit read: first the Claude Code OAuth usage endpoint using the stored login (credentials file or macOS Keychain), with a CLI-driven token refresh, and failing that a short-lived `claude -p` stream-json session that sends an `initialize` then a `get_usage` control request. It also holds shared helpers for window titles from minute counts, plan-name capitalisation, Codex plan-name mapping and Claude timestamp parsing.",
+      "key_symbols": [
+        "struct PlanLimits: Sendable, Equatable { var planName: String?; var windows: [Window]; var resetCredits: ResetCredits? = nil; var problem: String? = nil }",
+        "struct PlanLimits.Window: Sendable, Equatable, Identifiable { var id: String; var title: String; var percent: Double; var resetsAt: Date?; var detail: String? = nil }",
+        "struct PlanLimits.ResetCredit: Sendable, Equatable, Identifiable { var id: String; var title: String?; var detail: String?; var expiresAt: Date? }",
+        "struct PlanLimits.ResetCredits: Sendable, Equatable { var availableCount: Int; var credits: [ResetCredit] }",
+        "enum PlanLimits.ResetOutcome: String { case reset, nothingToReset, noCredit, alreadyRedeemed; var message: String }",
+        "enum ResetCreditError: LocalizedError { case codexUnavailable; case unknownOutcome; case rejected(String); var errorDescription: String? }",
+        "@MainActor enum PlanLimitsReader",
+        "static func exposesLimits(_ provider: ProviderKind) -> Bool",
+        "static func read(_ provider: ProviderKind, executable: URL, environment: [String: String]) async -> PlanLimits?",
+        "static func read(_ provider: ProviderKind, apiKey: String) async -> PlanLimits?",
+        "nonisolated static func windowTitle(minutes: Int?) -> String",
+        "nonisolated static func planName(_ raw: String?) -> String?",
+        "nonisolated static func codexPlanName(_ raw: String?) -> String?",
+        "private static func readClaude(executable: URL, environment: [String: String]) async -> PlanLimits?",
+        "private struct ClaudeLogin { let accessToken: String; let expiresAt: Date?; let subscriptionType: String?; let rateLimitTier: String?; var planName: String? }",
+        "private static let usageURL = URL(string: \"https://api.anthropic.com/api/oauth/usage\")!",
+        "private static let keychainService = \"Claude Code-credentials\"",
+        "private static func readClaudeUsageEndpoint(executable: URL, environment: [String: String]) async -> PlanLimits?",
+        "private static func claudeLogin(environment: [String: String]) async -> ClaudeLogin?",
+        "private static func parseLogin(_ data: Data) -> ClaudeLogin?",
+        "private static func hexDecoded(_ text: String) -> Data?",
+        "private static func refreshClaudeLogin(executable: URL, environment: [String: String]) async",
+        "private static func fetchClaudeUsage(token: String) async -> (status: Int, data: Data)?",
+        "private static func readClaudeFromCLI(executable: URL, environment: [String: String]) async -> PlanLimits?",
+        "nonisolated static func parseClaudeUsage(_ root: JSONValue, limits: [JSONValue], planName: String?, titlePrefix: String? = nil) -> PlanLimits?",
+        "nonisolated static func parseDate(_ text: String) -> Date?"
+      ],
+      "calls_into": [
+        "CodexSession.readPlanLimits(executable:environment:)",
+        "AntigravitySession.readPlanLimits(executable:environment:)",
+        "CopilotSession.readPlanLimits(executable:environment:)",
+        "CommandCodeAPI.planLimits(environment:)",
+        "PiPlanLimits.read(environment:)",
+        "ZaiAPI.planLimits(apiKey:)",
+        "Shell.run(_:_:environment:timeout:) for /usr/bin/security and for `<claude> auth status`",
+        "StdioProcess(executable:arguments:directory:environment:) with start(), send(_:), messages, terminate()",
+        "JSONValue.parse, JSONValue subscripts .string/.double/.bool/.array",
+        "LoginEnvironment.homeDirectory",
+        "ISO8601.date(from:) (shared helper, new call site in B2)",
+        "String.trimmed extension",
+        "URLSession.shared.data(for:)"
+      ],
+      "state_owned": [
+        "None persistent. PlanLimitsReader is a stateless enum; two private static constants usageURL and keychainService."
+      ],
+      "side_effects": [
+        "Reads `<CLAUDE_CONFIG_DIR>/.credentials.json` (when that env var is non-empty) then `~/.claude/.credentials.json`.",
+        "Runs `/usr/bin/security find-generic-password -s \"Claude Code-credentials\" -a <user> -w` then `... -s \"Claude Code-credentials\" -w`, each with timeout 5 (Shell.run, `result.succeeded` required). The -a attempt is added only by line 197 `if let user = environment[\"USER\"] ?? environment[\"LOGNAME\"], !user.isEmpty`: LOGNAME is consulted only when USER is absent (nil), not when it is empty; an empty USER skips the -a attempt entirely.",
+        "Runs `<claude executable> auth status` (timeout 20) to make the CLI refresh the OAuth token.",
+        "HTTPS GET https://api.anthropic.com/api/oauth/usage with headers Authorization: Bearer <token>, anthropic-beta: oauth-2025-04-20, Accept: application/json, timeoutInterval 15.",
+        "Spawns `<claude> -p --input-format stream-json --output-format stream-json --verbose` in FileManager.default.temporaryDirectory, killed by a 20-second watchdog and on exit via defer."
+      ],
+      "platform_assumptions": [
+        "macOS Keychain via `/usr/bin/security find-generic-password` (keychain item service \"Claude Code-credentials\"); Windows has no such tool; Claude Code on Windows stores `.credentials.json` only.",
+        "Home directory joined with NSString.appendingPathComponent(\".claude\") and USER/LOGNAME env vars (Windows uses USERNAME/USERPROFILE).",
+        "Foundation URLSession/URLRequest/HTTPURLResponse for the OAuth usage call.",
+        "FileManager.default.temporaryDirectory as the CLI working directory.",
+        "Swift concurrency: @MainActor, Task, Task.sleep(for: .seconds(20)), AsyncSequence over process.messages.",
+        "NSRegularExpression via .regularExpression options (patterns #\"\\d+x\"# and #\"\\.\\d+\"#).",
+        "ISO8601 date parsing helper (Foundation ISO8601DateFormatter behind `ISO8601`)."
+      ],
+      "persisted_fields": [
+        "None written. Reads the JSON key path claudeAiOauth.{accessToken, expiresAt (milliseconds since 1970, divided by 1_000), subscriptionType, rateLimitTier} from the stored Claude login."
+      ],
+      "ui_elements": [
+        "No views. User-visible strings: ResetOutcome.message: reset -> \"Usage was reset.\", nothingToReset -> \"There was no active usage to reset.\", noCredit -> \"No banked resets are left.\", alreadyRedeemed -> \"That reset was already used.\".",
+        "ResetCreditError.errorDescription: codexUnavailable -> \"Codex CLI not found.\", unknownOutcome -> \"Codex returned an unknown reset result.\", rejected(message) -> message.",
+        "Window titles: \"Usage limit\" (nil minutes), \"5-hour limit\" (300), \"Daily\" (1_440), \"Weekly\" (10_080), \"Monthly\" (40_320...44_640), otherwise \"<n>-day limit\" when divisible by 1_440 else \"<max(1, minutes/60)>-hour limit\".",
+        "Claude window titles: kind \"session\" -> \"5-hour limit\", \"weekly_all\" -> \"Weekly · all models\", otherwise \"<Group> · <model display_name>\" or \"<Group>\" (group defaults to \"Usage\"); fallback keys five_hour -> \"5-hour limit\", seven_day -> \"Weekly · all models\"; extra usage -> \"Extra usage\"; with titlePrefix each becomes \"<prefix> · <title>\"."
+      ],
+      "feature_notes": [
+        "exposesLimits is true for exactly .codex, .claude, .antigravity, .copilot, .commandcode, .zai, .pi (doc comment names Codex, Claude, Antigravity, Copilot, Command Code, Z.ai and Pi; Cursor, OpenCode, Grok, DeepSeek, Meta and Devin expose none).",
+        "read(executable:) returns nil for .cursor, .opencode, .opencodeGo, .grok, .deepseek, .meta, .zai, .devin; Z.ai is read only by read(_:apiKey:), which returns ZaiAPI.planLimits for .zai and nil otherwise. Codex/Antigravity/Copilot reads are `try?` so errors become nil.",
+        "planName capitalises only the first character: raw.prefix(1).uppercased() + raw.dropFirst(); nil or empty -> nil.",
+        "codexPlanName (input trimmed and lowercased): \"pro\" -> \"Pro 20x\"; \"prolite\", \"pro lite\" -> \"Pro 5x\"; \"ent26\", \"hc\" -> \"Enterprise\"; \"self_serve_business_prolite\" -> \"Business Premium\"; \"self_serve_business_usage_based\" -> \"Business\"; \"enterprise_cbp_automation\" -> \"Enterprise (Automation)\"; \"enterprise_cbp_usage_based\" -> \"Enterprise\"; \"education\" -> \"Edu\"; \"edu_plus\" -> \"Edu Plus\"; \"edu_pro\" -> \"Edu Pro\"; default planName(raw) (untrimmed raw).",
+        "ClaudeLogin.planName: planName(subscriptionType) plus \" (<Nx>)\" when rateLimitTier matches regex \\d+x, e.g. `max` + `default_claude_max_20x` -> \"Max (20x)\".",
+        "readClaude: usage endpoint first, CLI get_usage fallback when the endpoint path returns nil.",
+        "Token refresh: when expiresAt < now + 300 s the CLI `auth status` is run and the login re-read (nil if gone). On HTTP 401 or 403 it refreshes once and retries only if the new accessToken differs from the old one; otherwise returns nil. Success requires status 200 and parseable JSON; windows come from json[\"limits\"] array with root json.",
+        "claudeLogin search order: CLAUDE_CONFIG_DIR (if non-empty), then ~/.claude, file `.credentials.json`; then Keychain attempts. Keychain output that starts with \"{\" is JSON; otherwise it is hex-decoded when even-length and all hex digits, else used as UTF-8.",
+        "readClaudeFromCLI (253-290) sends {\"type\":\"control_request\",\"request_id\":\"droppy-code-init\",\"request\":{\"subtype\":\"initialize\",\"hooks\":null}}. Every message whose `type` is not \"control_response\" is skipped. The request id is read from the NESTED object, not the top level: `let response = message[\"response\"] ?? .null; switch response[\"request_id\"]?.string`. On \"droppy-code-init\" it sends {\"type\":\"control_request\",\"request_id\":\"droppy-code-usage\",\"request\":{\"subtype\":\"get_usage\"}}. On \"droppy-code-usage\": `let usage = response[\"response\"] ?? .null; let rateLimits = usage[\"rate_limits\"] ?? .null`, so the key paths are message.response.request_id, message.response.response.rate_limits (root for fallback/extra usage), message.response.response.rate_limits.limits (rows) and message.response.response.subscription_type. The plan name is `planName(usage[\"subscription_type\"]?.string)` only, with NO \" (Nx)\" tier suffix (unlike the endpoint path's `login.planName`). Other request ids continue; stream end returns nil.",
+        "parseClaudeUsage (294-329): rows come from `limits.enumerated().compactMap`, so the index is the position in the raw `limits` array BEFORE rows lacking a numeric \"percent\" are dropped; ids can therefore skip numbers. kind = `limit[\"kind\"]?.string ?? \"\"`, so a missing kind gives id \"-<index>\" (e.g. \"-0\"). id is `\"\\(idPrefix)\\(kind)-\\(index)\"` with idPrefix = `titlePrefix.map { $0.lowercased() + \"-\" } ?? \"\"`. group = `self.planName(limit[\"group\"]?.string) ?? \"Usage\"` (capitalises only the first character); model name from `limit[\"scope\"]?[\"model\"]?[\"display_name\"]?.string`. percent is taken as reported and NOT clamped (ZaiAPI clamps to 0...100; Claude does not). resetsAt from `limit[\"resets_at\"]?.string.flatMap(parseDate)`. When no row survives, falls back to root[\"five_hour\"] / root[\"seven_day\"] `utilization` with ids `\"\\(idPrefix)\\(key)\"` (\"five_hour\"/\"seven_day\" without a prefix) and resetsAt from `window[\"resets_at\"]?.string.flatMap(parseDate)`. Extra usage is appended when root.extra_usage.is_enabled == true and utilization is numeric, id `\"\\(idPrefix)extra-usage\"`, resetsAt nil. All three id forms take the lowercased titlePrefix. Returns nil when no windows; planName passed through; problem and resetCredits left nil.",
+        "parseDate strips any fractional seconds matching \\.\\d+ before ISO 8601 parsing, because Claude writes microsecond timestamps.",
+        "B1->B2: four mechanical edits. (1) read(_:executable:environment:) nil case list gained `.opencodeGo` (\"case .cursor, .opencode, .opencodeGo, .grok, .deepseek, .meta, .zai, .devin: nil\"), reflecting the new OpenCode Go provider kind. (2) codexPlanName switched from trimmingCharacters(in: .whitespacesAndNewlines) to the `.trimmed` extension. (3) Keychain output trimming likewise switched to `.trimmed`. (4) parseDate now calls the shared `ISO8601.date(from:)` helper instead of constructing `ISO8601DateFormatter()` per call. No behaviour, string or constant changes otherwise.",
+        "Endpoint failure and timing (134-139, 160-179, 238-250): readClaudeUsageEndpoint returns nil when there is no stored login, when the pre-expiry refresh leaves no login, when a 401/403 refresh yields no login or the same accessToken, when fetchClaudeUsage fails (`try?` on URLSession, so any network error), and for ANY status other than 200 (e.g. 429 or 500) or unparseable JSON. readClaude then always falls back to readClaudeFromCLI. Worst-case chain: keychain attempts (5 s each) + `auth status` (timeout 20) + fetch (timeoutInterval 15) + `auth status` (20) + fetch (15) + CLI session (20-second watchdog). This exceeds ProviderRegistry.refreshPlanLimits' 25-second watchdog, so the registry's loading flag can clear while this read is still running (see ProviderRegistry notes)."
+      ],
+      "unresolved_questions": [
+        "The Claude usage path reads ~/.claude/.credentials.json and the Keychain token; the port's safety rules forbid reading agent credential files, so the Windows port must decide whether to keep only the CLI get_usage fallback. Needs a contract decision.",
+        "Exact semantics of the `.trimmed` extension and the `ISO8601` helper live in other files (not in this bundle); assumed equivalent to whitespacesAndNewlines trimming and a cached ISO8601DateFormatter but not verified here.",
+        "The `problem` field is declared but never set in this file; which reader sets it is outside this bundle."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Providers/ProjectGuidance.swift",
+      "sha256": "e362ff61e3b2680fca28a05b95a6f939630cb666385bc718d8028507d1d635ee",
+      "lines_total": 119,
+      "ranges_read": [
+        [
+          1,
+          119
+        ]
+      ],
+      "purpose": "ProjectGuidance loads a project's own AGENTS.md and CLAUDE.md from the working directory root only (never parents, never a scan) and renders them into one system-prompt block for the native API sessions, which build their system prompt from scratch. It caches the rendered block and re-renders only when a file's size or modification date changes, and it enforces a 16,000-byte per-file and 24,000-byte total budget, replacing any file that does not fit with an instruction to read it through the read_file tool so no rule is silently dropped. Symlinks that resolve outside the working directory and non-regular files are ignored.",
+      "key_symbols": [
+        "struct ProjectGuidance: Sendable",
+        "static let fileNames = [\"AGENTS.md\", \"CLAUDE.md\"]",
+        "static let perFileLimit = 16_000",
+        "static let totalLimit = 24_000",
+        "struct FileState: Equatable, Sendable { var size: Int; var modified: Date? }",
+        "let workingDirectory: String",
+        "private var states: [String: FileState] = [:]",
+        "private var block: String?",
+        "private var didLoad = false",
+        "init(workingDirectory: String)",
+        "mutating func systemPromptBlock() -> String?",
+        "private static func states(in directory: String) -> [String: FileState]",
+        "private static func resolvedFile(named name: String, in directory: String) -> URL?",
+        "private static func render(in directory: String) -> String?",
+        "private static func boundedData(at url: URL) -> Data?"
+      ],
+      "calls_into": [
+        "FileManager.default.attributesOfItem(atPath:), fileExists(atPath:isDirectory:)",
+        "URL.standardizedFileURL, resolvingSymlinksInPath()",
+        "FileHandle(forReadingFrom:), read(upToCount:), close()",
+        "String.trimmed extension"
+      ],
+      "state_owned": [
+        "states: [String: FileState] (last seen size/mtime per file name), block: String? (cached rendered block), didLoad: Bool; value type owned by the API session that holds it."
+      ],
+      "side_effects": [
+        "Reads file attributes and up to perFileLimit + 1 bytes of AGENTS.md and CLAUDE.md at the working directory root, in chunks of at most 65_536 bytes. No writes."
+      ],
+      "platform_assumptions": [
+        "Path containment check uses \"/\" as the separator (`resolvedRoot + \"/\"`, hasPrefix); Windows paths use \"\\\" and are case-insensitive, so the check must be rewritten.",
+        "Symlink resolution via URL.resolvingSymlinksInPath (Windows junctions and symlinks behave differently).",
+        "FileAttributeType.typeRegular, ObjCBool isDirectory out-parameter, FileHandle APIs (Foundation).",
+        "File name matching is exact case (\"AGENTS.md\", \"CLAUDE.md\"); on Windows NTFS lookup is case-insensitive."
+      ],
+      "persisted_fields": [
+        "None."
+      ],
+      "ui_elements": [
+        "No UI. Prompt text (render, 99-102): the multi-line literal is `Project guidelines from \\(directory). They supplement the rules above; where they conflict, the Droppy Code rules take priority.` then a SINGLE newline, then `\\(sections.joined(separator: \"\\n\\n\"))`. So the header and the first section are separated by one \"\\n\" (no blank line); only the sections are separated from each other by a blank line. `\\(directory)` is the raw `workingDirectory` string passed to render(in:), not the resolved (standardized, symlink-resolved) root.",
+        "Per-file section: \"--- <name> ---\\n<text>\".",
+        "Unreadable file: \"Could not load <name>. Read it with the read_file tool before changing the project.\"",
+        "Too large / over budget: \"<name> is too large to include here (<size> bytes). Read <name> with the read_file tool; it may contain rules the project expects you to follow.\""
+      ],
+      "feature_notes": [
+        "Injection order is AGENTS.md then CLAUDE.md.",
+        "systemPromptBlock returns the cached block when didLoad is true and the current states dictionary equals the stored one; otherwise re-renders. Returns nil when there are no sections.",
+        "states(in:) records size (NSNumber intValue, default 0) and modification date only for files that resolvedFile accepts.",
+        "resolvedFile: resolved candidate path must equal the resolved root or start with root + \"/\"; must exist, not be a directory, and have attribute type .typeRegular.",
+        "render: remaining budget starts at 24_000; a file is included whole only when data.count <= 16_000 and data.count <= remaining; the reported size is the file's attribute size (falls back to data.count). Files that are not valid UTF-8 or are whitespace-only are skipped silently (no section). Budget is reduced by the included byte count.",
+        "boundedData reads until more than 16_000 bytes are held (at most 16_001) or EOF; any read error returns nil, which produces the \"Could not load\" section.",
+        "B1->B2: one mechanical edit at line 94: the whitespace-only check changed from `!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` to `!text.trimmed.isEmpty`. No behaviour or string changes."
+      ],
+      "unresolved_questions": [
+        "Which native API sessions (DeepSeek, Meta, Z.ai) hold a ProjectGuidance and where the block sits in their system prompt is outside this file.",
+        "The read_file tool named in the prompt strings is defined elsewhere; the port must keep that tool name identical."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Providers/ProviderRegistry.swift",
+      "sha256": "456174642e860dbd567c196c5d2600a0734209702e43c2215216470d4921eecb",
+      "lines_total": 879,
+      "ranges_read": [
+        [
+          1,
+          450
+        ],
+        [
+          451,
+          879
+        ]
+      ],
+      "purpose": "ProviderRegistry is the @MainActor @Observable hub that finds each provider's CLI (PATH lookup, custom binary path, and per-provider fallback install locations), probes version and sign-in state, validates API keys for DeepSeek, Meta and Z.ai, and caches model catalogs (seeded, merged with live lists, persisted in UserDefaults with fetch dates and a 6-hour freshness). It also owns plan-limit reads (throttled to once a minute, watchdogged at 25 seconds, with queued forced reads), pay-as-you-go credit balances, banked reset spending for Codex and Z.ai, slash-command lists per (provider, directory) with a 600-second freshness and 32-entry cap, recent slash command history, and the in-app sign-in flow. The file also defines ProviderStatus with its install/auth summary strings.",
+      "key_symbols": [
+        "struct ProviderStatus: Equatable, Sendable { enum Auth { case unknown; case signedIn(String?); case signedOut }; var executable: URL?; var version: String?; var auth: Auth = .unknown; var isChecking = false; var apiKeyConfigured = false; var isInstalled: Bool; var summary: String }",
+        "@MainActor @Observable final class ProviderRegistry",
+        "private(set) var statuses: [ProviderKind: ProviderStatus]",
+        "private(set) var catalogs: [ProviderKind: [ModelOption]]",
+        "private(set) var commands: [String: [SlashCommand]]",
+        "private(set) var commandErrors: [String: String]",
+        "private(set) var recentCommands: [String: [String]]",
+        "@ObservationIgnored private var commandLoads: [String: Task<Void, Never>]",
+        "@ObservationIgnored private var commandsFetchedAt: [String: Date]",
+        "private static let commandFreshness: TimeInterval = 600",
+        "private(set) var loadingCatalogs: Set<ProviderKind>",
+        "@ObservationIgnored private let settings: any ProviderSettings",
+        "@ObservationIgnored private let cacheKey = \"providerModelCatalogs\"",
+        "@ObservationIgnored private let catalogDatesKey = \"providerModelCatalogDates\"",
+        "@ObservationIgnored private var catalogFetchedAt: [ProviderKind: Date]",
+        "private static let catalogFreshness: TimeInterval = 6 * 3600",
+        "private(set) var planLimits: [ProviderKind: PlanLimits]",
+        "private(set) var loadingLimits: Set<ProviderKind>",
+        "private(set) var redeemingReset: String?",
+        "@ObservationIgnored private var limitsFetchedAt: [ProviderKind: Date]",
+        "@ObservationIgnored private var forcedLimitReads: Set<ProviderKind>",
+        "private(set) var credits: [ProviderKind: ProviderCredits]",
+        "private(set) var loadingCredits: Set<ProviderKind>",
+        "@ObservationIgnored private var creditsFetchedAt: [ProviderKind: Date]",
+        "private static let claudeEfforts = [\"low\", \"medium\", \"high\", \"xhigh\", \"max\"]",
+        "private static let claudeSeed: [ModelOption]",
+        "private static func mergedClaudeCatalog(_ live: [ModelOption]) -> [ModelOption]",
+        "private static func mergedACPCatalog(_ live: [ModelOption], over cached: [ModelOption]) -> [ModelOption]",
+        "private static func isStaleClaudeSeed(_ list: [ModelOption]) -> Bool",
+        "static let deepseekSeed, metaSeed, zaiSeed, antigravitySeed, copilotAuto, commandcodeSeed, piSeed",
+        "@ObservationIgnored private var attemptedCatalogs: Set<ProviderKind>",
+        "@ObservationIgnored private var openCodeCatalogTask: Task<[ModelOption]?, Never>? (new in B2)",
+        "init(settings: any ProviderSettings)",
+        "var availableProviders: [ProviderKind]",
+        "func countsAsInstalled(_ provider: ProviderKind) -> Bool",
+        "func status(_ provider: ProviderKind) -> ProviderStatus",
+        "func executable(for provider: ProviderKind) -> URL?",
+        "private static func fallbackExecutables(for provider: ProviderKind) -> [URL]",
+        "func environment(for provider: ProviderKind) -> [String: String]",
+        "private(set) var isRefreshing = false",
+        "private(set) var signingIn: ProviderKind?",
+        "func signIn(_ provider: ProviderKind) async -> String?",
+        "func refreshEverything() async",
+        "private static let probeWidth = 4",
+        "func refreshAll() async",
+        "func refresh(_ provider: ProviderKind) async",
+        "private func refreshAPIProvider(_ provider: ProviderKind) async",
+        "func models(for provider: ProviderKind) -> [ModelOption]",
+        "func model(_ id: String?, for provider: ProviderKind) -> ModelOption?",
+        "private static func match(_ id: String, in list: [ModelOption]) -> ModelOption? (new in B2)",
+        "func defaultModel(for provider: ProviderKind) -> ModelOption?",
+        "func loadCatalog(_ provider: ProviderKind, force: Bool = false) async",
+        "private static func lacksEffortWalk(_ list: [ModelOption]) -> Bool",
+        "private func openCodeCatalog(force: Bool, executable: URL, environment: [String: String]) async -> [ModelOption]? (new in B2)",
+        "private static func openCodeModels(_ list: [ModelOption], for provider: ProviderKind) -> [ModelOption] (new in B2)",
+        "private func loadClaudeCatalog(executable: URL, environment: [String: String]) async -> [ModelOption]?",
+        "private func loadAPICatalog(_ provider: ProviderKind, force: Bool) async",
+        "private func storeCatalogDates()",
+        "func refreshPlanLimits(_ provider: ProviderKind, force: Bool = false)",
+        "private func drainedForcedRead(_ provider: ProviderKind)",
+        "func consumeResetCredit(_ provider: ProviderKind, _ creditID: String?) async throws -> PlanLimits.ResetOutcome",
+        "func refreshCredits(_ provider: ProviderKind, force: Bool = false)",
+        "func invalidateCredits(_ provider: ProviderKind)",
+        "func invalidatePlanLimits(_ provider: ProviderKind)",
+        "func updateCatalog(_ list: [ModelOption], for provider: ProviderKind)",
+        "static func commandKey(_ provider: ProviderKind, directory: String) -> String",
+        "func updateCommands(_ list: [SlashCommand], for provider: ProviderKind, directory: String)",
+        "func recordCommand(_ name: String, for provider: ProviderKind)",
+        "func loadCommands(_ provider: ProviderKind, directory: String, force: Bool = false) async",
+        "private static func version(_ executable: URL, _ environment: [String: String]) async -> String?",
+        "private static func auth(_ provider: ProviderKind, _ executable: URL, _ environment: [String: String]) async -> ProviderStatus.Auth",
+        "private static func devinAccount(from text: String) -> String?"
+      ],
+      "calls_into": [
+        "ProviderSettings: isEnabled(_:), binaryPath(for:), apiKey(for:), lastModel(for:)",
+        "LoginEnvironment.load(), .current, .homeDirectory, .which(_:)",
+        "CaptureRun.isEnabled, CaptureRun.defaults",
+        "ACPSession.orderedEfforts(_:), ACPSession.probeModels(provider:executable:environment:)",
+        "DeepSeekAPI.option(for:), validate(apiKey:), listModels(apiKey:)",
+        "MetaAPI.option(for:), validate(apiKey:), listModels(apiKey:)",
+        "ZaiAPI.option(for:), validate(apiKey:), listModels(apiKey:), planLimits(apiKey:), consumeResetCredit(apiKey:creditID:)",
+        "CommandCodeAPI.seed, listModels, authStatus, apiKey(environment:)",
+        "PiCLI.listModels, PiCLI.authStatus",
+        "CodexSession.listModels, readPlanLimits, consumeResetCredit(executable:environment:creditID:), listCommands(executable:directory:environment:)",
+        "ClaudeSession.handshake(executable:directory:environment:) (.models, .commands)",
+        "AntigravitySession.listModels, authStatus; CopilotSession.listModels, authStatus",
+        "PlanLimitsReader.exposesLimits, read(_:apiKey:), read(_:executable:environment:)",
+        "CreditsReader.exposesCredits, CreditsReader.read(_:apiKey:)",
+        "MCPSessionOverrides.opencodeEnvironment(), MCPProviderConfig.geminiSettingsPath()",
+        "Shell.run, TextCleanup.stripANSI",
+        "UserDefaults.standard, JSONEncoder/JSONDecoder, JSONSerialization, JSONValue.parse"
+      ],
+      "state_owned": [
+        "Observable: statuses, catalogs, commands, commandErrors, recentCommands, loadingCatalogs, planLimits, loadingLimits, redeemingReset, credits, loadingCredits, isRefreshing, signingIn.",
+        "Ignored: commandLoads, commandsFetchedAt, catalogFetchedAt, limitsFetchedAt, forcedLimitReads, creditsFetchedAt, attemptedCatalogs, openCodeCatalogTask, settings, cacheKey, catalogDatesKey."
+      ],
+      "side_effects": [
+        "Spawns provider CLIs: `--version`; codex `login status`; claude `auth status`; cursor `status`; devin `auth status`; opencode `auth list`; login commands from provider.loginCommand (timeout 300); probes and listings through the session types. Probe timeouts are 20 seconds.",
+        "Reads ~/.grok/auth.json to decide Grok sign-in (email or first_name fields).",
+        "Network: API key validation, model lists, plan limits and credits through the API helpers.",
+        "Writes UserDefaults keys providerModelCatalogs, providerModelCatalogDates and recentSlashCommands.",
+        "Sets COMMAND_CODE_API_KEY, GEMINI_CLI_SYSTEM_SETTINGS_PATH and OpenCode MCP env vars in child environments; prepends the executable's directory to PATH."
+      ],
+      "platform_assumptions": [
+        "Observation framework (@Observable, @ObservationIgnored) and @MainActor; the port needs an equivalent reactive store.",
+        "UserDefaults.standard (and CaptureRun.defaults) for catalog cache, dates and recent commands.",
+        "PATH split and joined with \":\" (Windows uses \";\") in environment(for:).",
+        "Fallback install paths are Unix: \"<GH_DATA_DIR or XDG_DATA_HOME/gh or ~/.local/share/gh>/copilot/copilot\"; Command Code in \"~/.local/bin\", \"/opt/homebrew/bin\", \"/usr/local/bin\", \"~/.npm-global/bin\", \"~/.volta/bin\" with names \"command-code\" and \"cmd\" (plus which lookups for \"command-code\", \"commandcode\", \"cmd\"); Pi in \"~/.npm-global/bin/pi\", \"/opt/homebrew/bin/pi\", \"/usr/local/bin/pi\", \"~/.local/bin/pi\", \"~/.volta/bin/pi\", \"~/.bun/bin/pi\". On Windows `cmd` collides with cmd.exe and npm shims are .cmd files.",
+        "FileManager.isExecutableFile (no exec bit on Windows).",
+        "CaptureRun status uses executable URL \"/usr/bin/true\".",
+        "NSString.appendingPathComponent for home paths; FileManager.default.temporaryDirectory for the Claude handshake.",
+        "Swift Regex literals #/\\d+\\.\\d+(?:\\.\\d+)?(?:[-.][0-9A-Za-z]+)?/# and #/Logged in as (\\S+)/#.",
+        "OpenCode auth list parsing relies on the U+25CF bullet character in CLI output."
+      ],
+      "persisted_fields": [
+        "UserDefaults \"providerModelCatalogs\": Data, JSON-encoded [String: [ModelOption]] keyed by ProviderKind.rawValue; written by updateCatalog unless CaptureRun is on; read in init unless CaptureRun is on.",
+        "UserDefaults \"providerModelCatalogDates\": Data, JSON-encoded [String: Double] (timeIntervalSince1970) keyed by rawValue; written by storeCatalogDates.",
+        "\"recentSlashCommands\": [String: [String]] dictionary in CaptureRun.defaults ?? .standard, per provider rawValue, most recent first, max 100 names."
+      ],
+      "ui_elements": [
+        "No views. ProviderStatus.summary strings: \"Not installed\"; \"Signed in as <account>\" or \"Signed in\"; \"Not signed in\"; \"Installed · <version>\" or \"Installed\".",
+        "signIn error strings: \"<displayName> was not found.\", \"<displayName> did not finish signing in.\", else the last non-empty line of ANSI-stripped stdout+stderr.",
+        "Model seed labels: Claude \"Default\" (detail \"Claude Code's recommended model\", isDefault, fastTier \"fast\"), \"Opus\" (fastTier \"fast\"), \"Fable\" id \"claude-fable-5-1[1m]\" (detail \"Fable 5.1 · Most capable for your hardest and longest-running tasks\"), \"Sonnet\", \"Haiku\" (no efforts); Copilot \"Auto\" (detail \"Copilot picks the model for each request\"); Pi \"Default\" (detail \"The model pi itself is set to\", efforts off/minimal/low/medium/high/xhigh/max, default \"medium\")."
+      ],
+      "feature_notes": [
+        "ProviderStatus.isInstalled = executable != nil || apiKeyConfigured. countsAsInstalled returns true when no status exists yet.",
+        "availableProviders = ProviderKind.allCases filtered by settings.isEnabled and countsAsInstalled.",
+        "status(_:) under CaptureRun returns executable /usr/bin/true, auth .signedIn(nil), apiKeyConfigured true.",
+        "executable(for:): nil for API-key providers; custom binary path resolved via LoginEnvironment.which; if custom is set and not found, nil (no fallback); else fallbackExecutables first executable.",
+        "Seeds: deepseekSeed from [\"deepseek-v4-pro\", \"deepseek-flash\"]; metaSeed from [\"muse-spark-1.3\", \"muse-spark-1.3-contributor\", \"muse-spark-1.2\", \"muse-spark-1.2-contributor\", \"muse-spark-1.1\"]; zaiSeed from [\"glm-5.3\", \"glm-5.3-flash\"]; antigravitySeed: gemini-3.8-flash (\"Gemini 3.8 Flash\", low/medium/high, default high, isDefault), gemini-3.7-flash, gemini-3.6-flash (same scale), gemini-3.1-pro (low/high, default high), claude-sonnet-4-6 (\"Claude Sonnet 4.6 (Thinking)\", no efforts), claude-opus-4-6-thinking (\"Claude Opus 4.6 (Thinking)\"), gpt-oss-120b (\"GPT-OSS 120B\", medium).",
+        "init: cached catalogs (unless CaptureRun) are split by openCodeModels and efforts reordered via ACPSession.orderedEfforts; Claude re-seeded when empty or all ids in {default, opus, sonnet, haiku}; deepseek/meta/zai/copilot/commandcode/pi seeded when empty; antigravity re-seeded when empty or any id ends -high/-medium/-low.",
+        "mergedClaudeCatalog keeps every seed row, overlays efforts (if non-empty), detail (if non-empty), fastTier and defaultEffort from live rows with the same id, appends new ids. mergedACPCatalog maps live rows and borrows efforts, defaultEffort, fastTier from cached rows only when the live row has no efforts; used for provider.usesACP.",
+        "updateCatalog ignores empty lists and unchanged lists, then persists all catalogs.",
+        "loadCatalog: skips when loading or already attempted (unless force). CLI providers load only when force, seeded (claude, codex always; copilot still [Auto]; commandcode still its seed; pi still its seed; opencode/opencodeGo lacking an effort walk, i.e. at most one row with efforts), stale (> 6 h since fetch, or no date with a non-empty list) or empty. attemptedCatalogs is inserted only when a non-empty list was delivered.",
+        "loadAPICatalog: seeds first when empty, attempts marked before the fetch (even if it fails), requires a non-empty API key.",
+        "refreshPlanLimits (606-641): only exposesLimits providers. Guard order: (1) if a read is in flight (`loadingLimits.contains`), a forced request is queued in forcedLimitReads and the call returns; (2) `if !force, let fetched = limitsFetchedAt[provider], Date.now.timeIntervalSince(fetched) < 60 { return }` runs BEFORE (3) the API-key branch's `guard !apiKey.isEmpty else { planLimits[provider] = nil; return }`, so an unforced call within 60 s of the last success does not clear limits for a removed key. The key emptiness check is untrimmed. The CLI path's `guard let executable = executable(for: provider) else { return }` (635) returns WITHOUT clearing planLimits. Both paths start `let watchdog = Task { try? await Task.sleep(for: .seconds(25)); loadingLimits.remove(provider); drainedForcedRead(provider) }` and a read Task whose `defer { watchdog.cancel(); loadingLimits.remove(provider); drainedForcedRead(provider) }` runs at the end. The watchdog never cancels the read Task (it is not stored): a read finishing after 25 s still writes `planLimits[provider] = limits` and `limitsFetchedAt[provider] = .now`, a drained forced read started by the watchdog can run concurrently with the stale read, and the stale read's defer later removes the loading flag the newer read set. drainedForcedRead is idempotent via `guard forcedLimitReads.remove(provider) != nil else { return }`. Failures (nil limits) leave previous limits in place. PlanLimitsReader's Claude read can exceed 25 s (see PlanLimits notes).",
+        "consumeResetCredit (650-676) sets redeemingReset to creditID or provider.rawValue (\"codex\" for count-only Codex resets), cleared by defer. Codex: needs executable (else throws codexUnavailable), `try await CodexSession.consumeResetCredit`, then `if let limits = try? await CodexSession.readPlanLimits(...) { planLimits[.codex] = limits; limitsFetchedAt[.codex] = .now }`. Z.ai: `let apiKey = settings.apiKey(for: .zai); guard !apiKey.isEmpty, let creditID else { throw ResetCreditError.unknownOutcome }` (untrimmed), `try await ZaiAPI.consumeResetCredit` (errors, including raw URLError, propagate), then ALSO re-reads: `if let limits = await ZaiAPI.planLimits(apiKey: apiKey) { planLimits[.zai] = limits; limitsFetchedAt[.zai] = .now }`. Both re-reads bypass loadingLimits and the 25-second watchdog. Other providers throw unknownOutcome.",
+        "refreshCredits: Command Code key comes from CommandCodeAPI.apiKey(environment:), others from settings; throttled 60 s; no watchdog. invalidatePlanLimits only affects API-key providers exposing limits.",
+        "refreshAll probes at most probeWidth = 4 providers concurrently; refresh runs version then auth sequentially. refreshEverything re-reads limits for every provider whose auth is not .signedOut and reloads catalogs (force) for every installed provider in a task group.",
+        "refresh(_:) (358-378) first sets `status.isChecking = true` on the existing or a new ProviderStatus. API-key providers go to refreshAPIProvider, which replaces the status (resetting isChecking). CLI providers: after LoginEnvironment.load(), a missing executable sets `statuses[provider] = ProviderStatus()` (isChecking reset, 'Not installed'); otherwise version then auth run sequentially and a fresh ProviderStatus(executable:version:auth:) replaces it. refreshAPIProvider (381-425): `let apiKey = settings.apiKey(for: provider); guard !apiKey.isEmpty else { statuses[provider] = ProviderStatus(auth: .signedOut); return }` is UNTRIMMED, so a whitespace-only key passes; DeepSeekAPI/MetaAPI/ZaiAPI.validate trim it to empty and return false, giving ProviderStatus(version: \"API\", auth: .signedOut, apiKeyConfigured: true), i.e. summary 'Not signed in' rather than 'Not installed'. Valid DeepSeek triggers refreshCredits(force), invalid clears credits and creditsFetchedAt; valid Z.ai triggers refreshPlanLimits(force), invalid clears planLimits and limitsFetchedAt; any other API provider becomes ProviderStatus(auth: .signedIn(nil), apiKeyConfigured: true).",
+        "signIn (289-310): `guard signingIn == nil else { return nil }` and `guard !provider.isAPIKeyBased else { return nil }` both return nil, which callers read as success (doc: 'nil on success'), so a second sign-in while one is in flight and any API-key provider report success without doing anything. Then signingIn = provider (defer clears); missing executable -> \"<displayName> was not found.\"; arguments are loginCommand split on whitespace minus the first word; timeout 300; success refreshes status, forces limits (refreshPlanLimits force), forces catalog (loadCatalog force) and returns nil.",
+        "Commands: only codex and claude, not under CaptureRun; key \"<rawValue>\\n<directory>\"; cache capped at 32 by evicting the oldest fetch; errors map capped at 32 by clearing all; concurrent loads share one Task.",
+        "Auth parsing: codex signed in when succeeded and output contains \"logged in\" (case-insensitive); claude JSON loggedIn/email; cursor regex \"Logged in as (\\S+)\" or \"not logged in\"; devin \"not logged in\" -> signedOut, \"logged in\" -> signedIn(Name: line); grok reads ~/.grok/auth.json (empty object -> signedOut, else first non-empty email, then first_name, else signedIn(nil)); deepseek/meta/zai -> .unknown. OpenCode (833-851): `auth list` (timeout 20; a spawn failure -> .unknown) output is parsed whether or not the command succeeded; lines before the first line containing \"Environment\" are kept; bullet lines (U+25CF) give names with \" api\"/\" oauth\" suffix stripped, empty names dropped. `.opencodeGo` picks `credentials.first { $0.localizedCaseInsensitiveContains(\"opencode go\") }`, `.opencode` picks `credentials.first`. When no name is picked (Go with no matching credential even if other credentials exist, or Zen with no non-empty names) it falls through to `return result.succeeded ? .signedOut : .unknown`.",
+        "version(): first match of \\d+\\.\\d+(?:\\.\\d+)?(?:[-.][0-9A-Za-z]+)? in ANSI-stripped stdout+stderr of `--version`.",
+        "B1->B2: this file gained OpenCode Go support as a second provider served by the same opencode CLI. (1) New `openCodeCatalogTask` property and `openCodeCatalog(force:executable:environment:)` (527-539), which probes `ACPSession.probeModels(provider: .opencode, ...)` in a Task shared by Zen and Go. The doc says 'once per launch', but `if force { openCodeCatalogTask = nil }` runs on EVERY forced call, and the Task is forgotten only when the probe returns nil (`if list == nil { openCodeCatalogTask = nil }`); an empty (non-nil) list stays cached and answers later unforced asks without a re-probe. Consequence: refreshEverything's task group calls `self.loadCatalog(provider, force: true)` for both installed .opencode and .opencodeGo (328-331); loadingCatalogs is per provider, so both reach openCodeCatalog and the second forced call discards the first Task and starts a second probe (two opencode probes per Providers-page refresh). signIn(.opencodeGo) followed by signIn(.opencode) likewise re-probes. (2) New `openCodeModels(_:for:)` (543-559): the id filter applies only to .opencode (drops ids starting \"opencode-go/\") and .opencodeGo (keeps only them); `default: list` leaves other providers' rows unfiltered. The name stripping, however, applies to EVERY provider: `let namePrefix = provider.displayName + \"/\"` is removed from any row name that starts with it (\"OpenCode Zen/\" for .opencode per Provider.swift:26 `case .opencode: \"OpenCode Zen\"`, \"OpenCode Go/\" for .opencodeGo, and \"<displayName>/\" for any other provider). It runs on every cached catalog in init (172) and every raw list in loadCatalog (495). B1 had no name stripping at all (and B1's .opencode displayName was \"OpenCode\"), so this is a behaviour change for all providers whose rows start with their display name and a slash. (3) loadCatalog: `.opencodeGo` joins the effort-walk seeded check and routes through openCodeCatalog. The sibling update (504-515) runs only inside `if let list, !list.isEmpty`, i.e. only when the REQUESTED half is non-empty: then each non-empty sibling half is updated, dated, marked attempted and dates persisted. If the requested half filters to empty (e.g. only `opencode-go/` rows exist and .opencode was asked for), nothing is stored for either kind and neither is marked attempted. (4) Migration: a B1 cache stored Go rows under key \"opencode\"; B2's init filters `opencode-go/` rows out of .opencode and DISCARDS them (not moved to .opencodeGo, which starts empty and loads on first ask). `model(_:for:)` (433-440) covers old threads/pins: after a miss, `guard provider == .opencode, id.hasPrefix(\"opencode-go/\") else { return nil }; return Self.match(id, in: models(for: .opencodeGo))`. (5) `match(_:in:)` (442-449): exact id first, then a bracket fallback for Cursor's parameterized ids: `guard id.contains(\"[\"), let bracket = id.firstIndex(of: \"[\") else { return nil }; let base = String(id[..<bracket]); return list.first { $0.id == base }`. defaultModel (451-457) returns `model(settings.lastModel(for:), for:)` when it matches, else `list.first(where: \\.isDefault) ?? list.first`. (6) environment(for:) merges the OpenCode MCP environment for `.opencodeGo` too. (7) auth(): `.opencode, .opencodeGo` share `auth list` parsing; suffix stripping of \" api\"/\" oauth\" now happens per credential and empty names are dropped (B1 returned .signedIn(nil) for an empty first credential; B2 skips it). (8) devinAccount uses `.trimmed`."
+      ],
+      "unresolved_questions": [
+        "For Zen (.opencode) auth, `credentials.first` may be the OpenCode Go credential itself when it is listed first; the comment says Zen is 'whatever else is there' but the code does not exclude Go. Needs checking against real `opencode auth list` output.",
+        "refreshPlanLimits has a redundant second guard (line 627) after the API-key branch; harmless but note for port fidelity.",
+        "Z.ai planLimits trims the key but consumeResetCredit and refreshPlanLimits pass settings.apiKey untrimmed to ZaiAPI.consumeResetCredit; behaviour with surrounding whitespace in the key differs between paths.",
+        "The Grok sign-in probe reads ~/.grok/auth.json, which may count as an agent credential file under the port safety rules; the port needs a decision on reading only non-secret fields.",
+        "ProviderKind.usesACP, displayName and loginCommand values (including for .opencodeGo) are defined outside this bundle."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Providers/ProviderSession.swift",
+      "sha256": "67ca77f0a84d227db3a5278ac266bd9128305640fbce543499d454583bfab501",
+      "lines_total": 209,
+      "ranges_read": [
+        [
+          1,
+          209
+        ]
+      ],
+      "purpose": "Declares the provider-neutral contract every agent adapter implements: TurnInput for one turn, SessionConfiguration for launching, TranscriptMessage for replaying history into stateless API sessions, AgentSpawn for heads started inside a lead session, the normalized ProviderEvent stream (including Hydra head events and, since 1.6.2, token spend), ToolUpdate, the @MainActor ProviderSession protocol, and ProviderError. It also contains ToolTitles helpers that strip shell wrappers from command titles, make paths relative to a root and count unified-diff additions and deletions.",
+      "key_symbols": [
+        "struct TurnInput: Sendable { var text: String; var images: [Attachment]; var model: String?; var effort: String?; var serviceTier: String? = nil; var fastMode = false; var runtimeMode: RuntimeMode; var interactionMode: InteractionMode; var isFinalReport = false; var command: SlashCommand? }",
+        "struct SessionConfiguration: Sendable { var provider: ProviderKind; var executable: URL?; var workingDirectory: URL; var environment: [String: String]; var resumeID: String?; var resumeAt: String?; var model: String?; var effort: String?; var fastMode = false; var runtimeMode: RuntimeMode; var interactionMode: InteractionMode; var apiKey: String?; var hydra: HydraLaunch?; var transcript: [TranscriptMessage] = []; var isHydraHead = false; var antiSlopEnabled = true }",
+        "struct TranscriptMessage: Sendable { enum Role { case user; case assistant }; var role: Role; var text: String }",
+        "struct AgentSpawn: Sendable { var id: String; var taskID: String?; var toolUseID: String?; var description: String; var prompt: String?; var model: String?; var profile: String?; var isBackground = true }",
+        "enum ProviderEvent: Sendable { sessionReady(sessionID:), turnStarted(providerTurnID:), messageDelta(id:text:), messageCompleted(id:text:), reasoningDelta(id:text:), reasoningCompleted(id:text:), toolStarted(id:call:), toolOutput(id:text:), toolUpdated(id:update:), planDelta(id:text:), planCompleted(id:markdown:), todos([TodoStep]), approval(ApprovalRequest), question(QuestionRequest), requestResolved(id:), usage(ContextUsage), tokenSpend(TokenSpend), diff(String), notice(Notice), usageLimit(resetsAt: Date?), modeChanged(InteractionMode), models([ModelOption], current: String?), commands([SlashCommand]), title(String), assistantMessageID(String), turnCompleted(status: TurnStatus, error: String?), exited(error: String?), agentStarted(AgentSpawn), indirect agentEvent(agentID: String, ProviderEvent), agentProgress(agentID:summary:lastTool:tokens:toolCalls:), agentFinished(agentID:status:summary:) }",
+        "struct ToolUpdate: Sendable { var title: String?; var detail: String?; var output: String?; var status: ToolCall.Status?; var exitCode: Int?; var edits: [FileEdit]?; var kind: ToolCall.Kind? }",
+        "@MainActor protocol ProviderSession: AnyObject { var onEvent: ((ProviderEvent) -> Void)? { get set }; var isRunning: Bool { get }; func start() async throws -> String; func send(_ input: TurnInput) async throws; func interrupt() async; func resolveApproval(_ requestID: String, optionID: String); func answerQuestion(_ requestID: String, answers: [String: [String]]); func compact() async throws; func stop(); func stopAgent(_ id: String) async -> Bool }",
+        "extension ProviderSession { func stopAgent(_ id: String) async -> Bool { false } }",
+        "enum ProviderError: LocalizedError { case notInstalled(ProviderKind); case notRunning; case failed(String) }",
+        "enum ToolTitles { static func unwrapShell(_:) -> String; static func relativePath(_:to:) -> String; static func diffStats(_:) -> (additions: Int, deletions: Int) }"
+      ],
+      "calls_into": [
+        "ProviderKind.isAPIKeyBased, displayName, loginCommand",
+        "Types defined elsewhere: Attachment, RuntimeMode, InteractionMode, SlashCommand, HydraLaunch, ToolCall, TodoStep, ApprovalRequest, QuestionRequest, ContextUsage, TokenSpend, Notice, ModelOption, TurnStatus, FileEdit"
+      ],
+      "state_owned": [
+        "None; declarations and pure helpers only."
+      ],
+      "side_effects": [
+        "None."
+      ],
+      "platform_assumptions": [
+        "unwrapShell only recognises Unix shell wrappers: \"/bin/zsh -lc \", \"/bin/bash -lc \", \"bash -lc \", \"zsh -lc \", \"/bin/sh -c \", \"sh -c \"; Windows agents wrap commands in powershell/cmd /c, which this does not strip.",
+        "relativePath uses \"/\" as the root separator and a case-sensitive prefix match.",
+        "@MainActor isolation and Swift async/await for the session protocol."
+      ],
+      "persisted_fields": [
+        "None."
+      ],
+      "ui_elements": [
+        "No views. ProviderError.errorDescription strings: API-key provider: \"<displayName> needs an API key. Add one in Settings → Providers → <displayName>.\"; CLI provider: \"<displayName> is not installed. Install it and sign in with `<loginCommand>`.\"; notRunning: \"The agent session is not running.\"; failed(message): message."
+      ],
+      "feature_notes": [
+        "TurnInput.serviceTier is the Codex service tier (the fast tier, \"default\", or nil); fastMode is Cursor ACP's Fast variant (`model_config` / `fast`) and ignored by others; isFinalReport marks a Hydra head past budget answering once with no tools.",
+        "SessionConfiguration.apiKey is used by the native API providers DeepSeek, Meta and Z.ai; transcript replays exchanges for providers that keep nothing between launches; isHydraHead lets the session pace a head that keeps reading without changing anything; antiSlopEnabled defaults to true.",
+        "AgentSpawn.isBackground defaults to true; a foreground head finishes with its tool result, a background one only when the provider says so.",
+        "unwrapShell trims whitespace, removes the first matching prefix, strips matching surrounding single or double quotes when at least 2 characters, and for single quotes replaces the escape '\\'' with '. Without a prefix it returns the trimmed command.",
+        "relativePath drops root + \"/\" (appended if missing) from path when it is a prefix; otherwise returns path unchanged.",
+        "diffStats skips lines starting \"+++\" or \"---\", counts \"+\" as additions and \"-\" as deletions, splitting on \"\\n\" keeping empty lines.",
+        "B1->B2: added one enum case `case tokenSpend(TokenSpend)` between `usage(ContextUsage)` and `diff(String)`, with a doc comment saying it reports tokens newly consumed by one request or turn with the identity behind them, distinct from `usage` (context occupancy), a head's spend carrying its agentID, and the turn keeping each report for run metrics. The doc comment is followed by a blank line before the case (6 lines added, none removed). Every exhaustive switch over ProviderEvent elsewhere must now handle tokenSpend."
+      ],
+      "unresolved_questions": [
+        "The TokenSpend type's fields (including agentID) are defined outside this bundle.",
+        "Which adapters emit tokenSpend in 1.6.2 is outside this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Providers/TextGeneration.swift",
+      "sha256": "fc378d7297185f3bb1effdef1a8c99dbbe47220ea455cd5cf07325ecc83e1abb",
+      "lines_total": 101,
+      "ranges_read": [
+        [
+          1,
+          101
+        ]
+      ],
+      "purpose": "TextGeneration produces one-shot thread titles and git commit messages by running a provider CLI with tools disabled: Claude Code in print mode on the haiku model, or `codex exec` in a read-only sandbox with low reasoning effort. It builds fixed prompts, cleans the output, and rejects title replies that read like a sentence, apology or question rather than a title, falling back to the first non-empty line of the reply.",
+      "key_symbols": [
+        "enum TextGeneration",
+        "enum Engine: Sendable { case claude(executable: URL, environment: [String: String]); case codex(executable: URL, environment: [String: String], model: String) }",
+        "static func threadTitle(for message: String, engine: Engine) async -> String?",
+        "private static func usable(_ candidate: String) -> String?",
+        "static func commitMessage(summary: String, patch: String, instructions: String, engine: Engine, directory: URL) async -> String?",
+        "private static func run(_ prompt: String, engine: Engine, directory: URL) async -> String?"
+      ],
+      "calls_into": [
+        "Shell.run(_:_:in:environment:input:timeout:) and result.succeeded, trimmedOutput",
+        "TextCleanup.singleLine(_:limit:)",
+        "String.trimmed, String.nilIfEmpty extensions",
+        "FileManager.default.temporaryDirectory, removeItem(at:)",
+        "UUID().uuidString"
+      ],
+      "state_owned": [
+        "None."
+      ],
+      "side_effects": [
+        "Spawns `claude -p --output-format text --model haiku --tools \"\" --disable-slash-commands --strict-mcp-config --permission-mode dontAsk --no-session-persistence` with the prompt on stdin, timeout 120.",
+        "Spawns `codex exec --ephemeral --skip-git-repo-check -s read-only --model <model> --config model_reasoning_effort=\"low\" --output-last-message <tmp>/droppy-code-<UUID>.txt -` with the prompt on stdin, timeout 180; reads and then deletes the temp file.",
+        "Titles run in FileManager.default.temporaryDirectory; commit messages run in the given repository directory."
+      ],
+      "platform_assumptions": [
+        "FileManager.default.temporaryDirectory and URL.path for the Codex output file (Windows temp path with backslashes passed as an argument).",
+        "Process spawning through Shell.run with stdin input.",
+        "Foundation String/CharacterSet APIs.",
+        "The Claude arguments include `\"--tools\", \"\"` (80), an empty-string argument. The port must pass an empty argv element intact; when claude resolves to an npm .cmd shim on Windows, an unquoted empty argument risks being dropped, which would shift the next flag into the value of `--tools`. This is a porting risk to test, not something the source shows.",
+        "Lengths are Swift Character (grapheme cluster) counts, not UTF-16 units or bytes: `message.prefix(4_000)`, `summary.prefix(6_000)`, `patch.prefix(40_000)` and `title.count <= 64` (42). A JS port using .slice/.length would cut at different points for non-BMP or combined characters."
+      ],
+      "persisted_fields": [
+        "None."
+      ],
+      "ui_elements": [
+        "No views. Title prompt (verbatim lines): \"Write a title for this coding task so the user can recognize it weeks later.\" / \"Rules: 3 to 7 words, under 40 characters, sentence case, no quotes, no trailing punctuation.\" / \"Name the subject and the outcome. Do not copy the request word for word.\" / \"The request may be a word or two, or come with attachments; even then, reply with\" / \"your single best title and nothing else. Never ask a question, never explain,\" / \"never mention the request or the word title.\" / \"Reply with the title only.\" / blank / \"Request:\" / <first 4_000 characters of message>.",
+        "Commit prompt (57-68), exact layout: line 1 \"Write a git commit message for the changes below.\"; line 2 is ONE line, because line 60 ends in `period. \\` (the trailing space before the continuation backslash supplies the space): \"Rules: an imperative subject line of at most 72 characters with no trailing period. Optionally add a blank line and a few short bullet points. Reply with the message only, without code fences.\"; then the `\\(extra)` line, where `let extra = instructions.isEmpty ? \"\" : \"\\nFollow these instructions too: \\(instructions)\\n\"` (isEmpty checked UNTRIMMED). With empty instructions that line is empty, giving one blank line before \"Changed files:\". With instructions the text is \"...fences.\\n\\nFollow these instructions too: <instructions>\\n\\nChanged files:\". Then the first 6_000 characters of summary on the next line, a blank line, \"Patch:\", and the first 40_000 characters of patch on the next line."
+      ],
+      "feature_notes": [
+        "threadTitle cleanup: TextCleanup.singleLine(text, limit: 60) then trims the characters \"\\\"'`*#. \" from both ends; if usable, returns it; else the first non-empty line (whitespace-trimmed, same character trim) if usable; else nil.",
+        "usable rejects: empty or more than 64 characters; more than 9 whitespace-separated words; any \"\\n\" or \"?\"; last character in \":;,!…\"; lowercase prefixes \"i \", \"i'\", \"sorry\", \"sure\", \"here\", \"please\", \"could you\", \"can you\", \"what \", \"it seems\", \"it looks\", \"unfortunately\", \"there is no\", \"not enough\", \"need more\", \"maybe \", \"the request\", \"this request\"; lowercase substrings \"more context\", \"meaningful title\", \"as an ai\", \"cannot\", \"can't\", \"unable to\".",
+        "commitMessage removes every \"```\" and trims; empty -> nil.",
+        "Claude run returns trimmedOutput or nil if empty; any failure or non-success exit -> nil. Codex run returns the trimmed contents of the output file, nil if empty or unreadable.",
+        "B1->B2: three mechanical edits replacing `.trimmingCharacters(in: .whitespacesAndNewlines)` with the `.trimmed` extension: in usable (line 41), in commitMessage (line 72) and in the Codex output read (line 97). No prompt, argument, limit or string changes."
+      ],
+      "unresolved_questions": [
+        "Which Codex model is passed to the .codex engine and when the Codex engine is chosen over Claude is decided by callers outside this file.",
+        "TextCleanup.singleLine's exact behaviour (newline collapsing, ellipsis) is outside this bundle."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Providers/ZaiAPI.swift",
+      "sha256": "0d01d260b1b073c4ff89fe7b09f19fc7e32b4ec20aa8d8e0de0a3915e2377953",
+      "lines_total": 224,
+      "ranges_read": [
+        [
+          1,
+          224
+        ]
+      ],
+      "purpose": "ZaiAPI is the lightweight HTTP client for Z.ai's GLM Coding Plan at api.z.ai: it validates an API key by listing models, builds the model catalog (only GLM-5.3 and GLM-5.3 Flash plus other glm-5.3 ids except FlashX), reads the plan's rolling windows from the monitor quota endpoint, lists the account's banked reset cards and spends one. Chat streaming itself lives in ZaiSession; this file also fixes the context window (1,000,000) and max output (128,000) constants and formats credit counts and reset-card expiry dates.",
+      "key_symbols": [
+        "enum ZaiAPI",
+        "static let baseURL = URL(string: \"https://api.z.ai/api/coding/paas/v4\")!",
+        "static let chatURL = baseURL.appendingPathComponent(\"chat/completions\")",
+        "static let modelsURL = baseURL.appendingPathComponent(\"models\")",
+        "static let quotaURL = URL(string: \"https://api.z.ai/api/monitor/usage/quota/limit\")!",
+        "static let resetListURL = URL(string: \"https://api.z.ai/api/biz/customer-package-reset/list?targetType=PERSONAL\")!",
+        "static let resetUseURL = URL(string: \"https://api.z.ai/api/biz/customer-package-reset/use\")!",
+        "static let zaiEfforts = [\"low\", \"high\", \"max\"]",
+        "static let contextWindow = 1_000_000",
+        "static let maxOutputTokens = 128_000",
+        "static func validate(apiKey: String) async -> Bool",
+        "static func listModels(apiKey: String) async throws -> [ModelOption]",
+        "static func option(for id: String) -> ModelOption?",
+        "static func isVisionModel(_ id: String?) -> Bool",
+        "static func planLimits(apiKey: String) async -> PlanLimits?",
+        "static func limits(from json: JSONValue) -> PlanLimits?",
+        "static func resetCredits(apiKey: String) async -> PlanLimits.ResetCredits?",
+        "static func consumeResetCredit(apiKey: String, creditID: String) async throws -> PlanLimits.ResetOutcome",
+        "private static func resetDate(_ text: String) -> Date?",
+        "private static let countFormatter: NumberFormatter",
+        "private static func formatCount(_ value: Double) -> String"
+      ],
+      "calls_into": [
+        "URLSession.shared.data(for:)",
+        "JSONValue.parse, JSONValue.object/.string/.int, body.data()",
+        "PlanLimitsReader.planName(_:), PlanLimitsReader.windowTitle(minutes:)",
+        "ModelOption(id:name:detail:efforts:defaultEffort:isDefault:)",
+        "ResetCreditError.unknownOutcome, ResetCreditError.rejected",
+        "String.trimmed extension, Task.sleep(for: .seconds(2))"
+      ],
+      "state_owned": [
+        "None beyond static constants and the lazily created countFormatter."
+      ],
+      "side_effects": [
+        "GET https://api.z.ai/api/coding/paas/v4/models (validate, listModels) with Authorization: Bearer <key>, Accept: application/json, timeout 15.",
+        "GET https://api.z.ai/api/monitor/usage/quota/limit, timeout 15.",
+        "GET https://api.z.ai/api/biz/customer-package-reset/list?targetType=PERSONAL, timeout 15.",
+        "POST https://api.z.ai/api/biz/customer-package-reset/use, timeout 20, Content-Type and Accept application/json, body {\"targetType\":\"PERSONAL\",\"resetType\":<FIVE_HOUR|WEEK>,\"recordId\":<Int>,\"requestId\":<lowercased UUID>}; then sleeps 2 seconds."
+      ],
+      "platform_assumptions": [
+        "Foundation URLSession/URLRequest/HTTPURLResponse.",
+        "DateFormatter with locale en_US_POSIX, time zone \"Asia/Shanghai\" and format \"yyyy-MM-dd HH:mm:ss\" (port needs an IANA zone library on Windows).",
+        "NumberFormatter locale en_US, .decimal, maximumFractionDigits 0 (thousands separators). roundingMode is not set, so NumberFormatter's default .halfEven applies: 2.5 -> \"2\", 3.5 -> \"4\". A JS Intl.NumberFormat port rounds half away from zero by default (\"3\" for 2.5), so the port must round half-to-even explicitly.",
+        "Swift concurrency Task.sleep."
+      ],
+      "persisted_fields": [
+        "None. Reads JSON: models data[].id; quota code, success, data.level, data.limits[].{type, usage, currentValue, percentage, nextResetTime (ms), unit, number}; reset list code, data.fiveHourResets[] and data.weekResets[] with {available, recordId, expireTime}; reset use code, success, msg."
+      ],
+      "ui_elements": [
+        "Model rows: \"GLM-5.3\" detail \"Best reasoning and coding · 1M context\" (default effort \"max\", isDefault); \"GLM-5.3 Flash\" detail \"Fast, reads images · 1M context\" (default \"max\"); other glm-5.3 ids use the id as the name, default \"max\".",
+        "Plan name \"Coding Plan <Level>\" (level capitalised).",
+        "Window titles (109-147): for CREDIT_LIMIT/TOKENS_LIMIT, minutes is computed only for unit 3/4/6/5 AND `number > 0`; windowTitle(minutes:) is used when minutes is non-nil. Whenever minutes is nil (unit missing, unit not 3/4/5/6, or number <= 0 for a known unit) the title is \"5-hour limit\" when creditIndex == 0, else \"Weekly\". creditIndex counts only CREDIT_LIMIT/TOKENS_LIMIT rows (TIME_LIMIT has its own toolsIndex). TIME_LIMIT is always titled \"Monthly · MCP tools\" regardless of unit or number.",
+        "Window details: \"<current> of <usage> credits\" and \"<current> of <usage> calls\" with en_US grouping.",
+        "Reset credit titles: \"Resets the 5-hour limit\", \"Resets the weekly limit\"; rejection fallback \"Z.ai declined the reset.\""
+      ],
+      "feature_notes": [
+        "validate: trims key, empty -> false; true only on HTTP 200 from the models endpoint.",
+        "listModels (31-45) is `async throws`: empty trimmed key -> []; `let (data, response) = try await URLSession.shared.data(for: request)` (37) THROWS on a transport error (ProviderRegistry.loadAPICatalog swallows it with `try? await ZaiAPI.listModels`, 585); non-200 or bad JSON -> []; empty id list -> []; ids mapped through option(for:), dropping nil, sorted default first then by id.",
+        "option(for:): \"glm-5.3\" and \"glm-5.3-flash\" explicit; any other id must start \"glm-5.3\" and not contain \"flashx\" (lowercased) or it is nil, because GLM-5.3-FlashX is refused with error 1311 on the Coding Plan.",
+        "isVisionModel: nil -> false; true when id contains \"flash\" or ends with \"v\".",
+        "planLimits: HTTP 200, parseable JSON and (code == 200 or success == true) required; limits(from:) must yield windows; then resetCredits attached (may be nil).",
+        "limits(from:): percent = reported \"percentage\" if present, else currentValue / usage * 100 when usage > 0, else 0; clamped to 0...100. resetsAt from nextResetTime / 1_000. CREDIT_LIMIT and TOKENS_LIMIT: unit 3 -> number*60 min, 4 -> number*1_440, 6 -> number*10_080, 5 -> number*43_200 (only when number > 0); ids \"credit-<n>\". TIME_LIMIT: id \"tools-<n>\". Other types skipped. No windows -> nil.",
+        "resetCredits: requires HTTP 200, code == 200 and data; iterates fiveHourResets (type FIVE_HOUR) then weekResets (type WEEK); skips cards with available == false or no integer recordId; id \"<TYPE>:<recordId>\"; detail nil; expiresAt parsed from expireTime; availableCount = credits.count.",
+        "consumeResetCredit (179-202): creditID split on the first \":\" (`maxSplits: 1`); malformed or non-Int record -> throws unknownOutcome; `let (data, _) = try await URLSession.shared.data(for: request)` (194) propagates a raw URLError (not a ResetCreditError) through ProviderRegistry.consumeResetCredit (`try await`, 667) to its caller; unparseable response -> unknownOutcome; code != 200 or success != true -> rejected(msg or \"Z.ai declined the reset.\"); success waits 2 seconds (the dashboard waits the same) and returns .reset. HTTP status is not checked. The apiKey is used as given (not trimmed).",
+        "formatCount falls back to \"\\(Int(value))\" when formatting fails.",
+        "B1->B2: three mechanical edits replacing `apiKey.trimmingCharacters(in: .whitespacesAndNewlines)` with `apiKey.trimmed` in validate (line 21), listModels (line 32) and planLimits (line 75). No URL, constant, model, string or behaviour changes."
+      ],
+      "unresolved_questions": [
+        "resetCredits and consumeResetCredit send the apiKey without trimming (resetCredits receives the trimmed key from planLimits, but ProviderRegistry.consumeResetCredit passes the raw settings value).",
+        "chatURL, contextWindow and maxOutputTokens are consumed by ZaiSession, outside this bundle."
+      ]
+    }
+  ]
+}

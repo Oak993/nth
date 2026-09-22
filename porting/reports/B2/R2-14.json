@@ -1,0 +1,545 @@
+{
+  "bundle_id": "R2-14",
+  "reader": "R2-14-reader",
+  "baseline": "B2 1fbf81e61e28a079508a074c01ee1830a9cc23dc (Droppy Code 1.6.2 build 20)",
+  "diff_base": "B1 dd2b86efef9e77168f304a86e8a8411877578bbe (1.6.0)",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Composer/QuestionTab.swift",
+      "sha256": "9145510eaa6616efc98753f2f22c36be3fcedf6b2cba3c5446cf96b43ace395d",
+      "lines_total": 332,
+      "ranges_read": [[1, 332]],
+      "purpose": "Presents an agent's structured questions (a QuestionRequest) as a chat badge at the end of the conversation whose popover holds a paged question sheet, one page per question, with choice rows, a free-text or secure field, page dots, and Skip/Next/Send buttons. It preselects choices whose label mentions 'recommended', pre-measures every page with NSHostingView so the frozen-size popover opens at its final height, and on Send or Skip closes the popover first and then hands the collected answers to ThreadRuntime.answer.",
+      "key_symbols": [
+        "struct QuestionBadgeRow: View { let request: QuestionRequest; let runtime: ThreadRuntime; @State private var isShowingQuestions = false }",
+        "struct QuestionSheet: View",
+        "QuestionSheet.maxHeight: CGFloat = 360 (private static)",
+        "QuestionSheet.width: CGFloat = 460 (private static)",
+        "QuestionSheet.pageHeight: CGFloat (private let, not @State; computed in init lines 58-65 on every construction)",
+        "@State selections: [String: [String]] (keyed by question.id, values are choice labels)",
+        "@State written: [String: String] = [:]",
+        "@State page = 0",
+        "@Environment(\\.closePopover) private var closePopover (optional closure, called as closePopover?())",
+        "init(request: QuestionRequest, runtime: ThreadRuntime)",
+        "private static func recommended(_ question: QuestionRequest.Question) -> [String]",
+        "private func advance(after delay: Double = 0)",
+        "private func send(_ answers: [String: [String]])",
+        "private struct QuestionPage: View { let question: QuestionRequest.Question; @Binding var selections: [String: [String]]; @Binding var written: [String: String]; let onSubmit: () -> Void; let onPick: () -> Void }",
+        "private static func bareLabel(_ label: String) -> (label: String, isRecommended: Bool)",
+        "private func choiceRow(_ question: QuestionRequest.Question, _ choice: QuestionRequest.Choice) -> some View",
+        "private func symbol(selected: Bool, multiple: Bool) -> String",
+        "private enum QuestionAnswers { static func collect(_ request: QuestionRequest, selections: [String: [String]], written: [String: String]) -> [String: [String]]; static func unansweredCount(_ request: QuestionRequest, answers: [String: [String]]) -> Int }",
+        "Question fields used: id, header, prompt, choices, allowsMultiple, allowsOther, isSecret; Choice fields used: label, detail"
+      ],
+      "calls_into": [
+        "ChatBadge(title:caption:needsAttention:isPresented:glyph:detail:)",
+        "ThreadRuntime.answer(_:answers:)",
+        "Chrome.panelSlide, Chrome.hover (animations)",
+        "Chrome.accent, Chrome.overlay(_:), Chrome.secondaryText, Chrome.primaryText",
+        "EnvironmentValues.closePopover (defined elsewhere; see BadgePopoverCoordinator)",
+        "String.trimmed (extension defined elsewhere)",
+        "NSHostingView(rootView:).fittingSize"
+      ],
+      "state_owned": [
+        "QuestionBadgeRow.isShowingQuestions (popover presented flag)",
+        "QuestionSheet.selections, written, page",
+        "QuestionSheet.pageHeight (a plain `private let` set in init, so it is recomputed whenever a new QuestionSheet value is constructed; it is not preserved across re-inits the way the @State selections, written and page are)"
+      ],
+      "side_effects": [
+        "send(_:) calls closePopover?() and then runtime.answer(request, answers: answers)",
+        "advance(after:) with delay > 0 spawns an unstored, never-cancelled `Task { @MainActor in try? await Task.sleep(for: .seconds(delay)); withAnimation(Chrome.panelSlide) { page += 1 } }` (lines 180-183)",
+        "init builds one NSHostingView per question (`NSHostingView(rootView: probe).fittingSize.height`, lines 59-64) to measure its height: AppKit layout work on the main thread on EVERY QuestionSheet init, since the result goes into `private let pageHeight`, not @State. QuestionBadgeRow constructs the sheet inside `detail: { QuestionSheet(request: request, runtime: runtime) }` passed to ChatBadge (line 18), so how often it runs depends on how often ChatBadge calls detail() (ChatBadge.swift, other bundle)."
+      ],
+      "platform_assumptions": [
+        "SwiftUI views, @State, @Binding, @Environment, withAnimation, .animation(_:value:)",
+        "AppKit NSHostingView(rootView:).fittingSize used to measure each QuestionPage at width 460 before the popover opens (popover freezes its size, see BadgePopoverCoordinator)",
+        "SF Symbols: questionmark.bubble, chevron.left, checkmark.square.fill, square, checkmark.circle.fill, circle",
+        "ScrollView(.vertical) with .scrollBounceBehavior(.basedOnSize)",
+        "SecureField and TextField with .textFieldStyle(.roundedBorder), .onSubmit",
+        ".keyboardShortcut(.defaultAction) (Return), .help tooltips, .buttonStyle(.bordered/.borderedProminent/.plain), .controlSize(.regular)",
+        ".textSelection(.enabled), .textCase(.uppercase), .monospacedDigit()",
+        "macOS text styles .subheadline, .body, .footnote (at macOS defaults 11 pt, 13 pt, 10 pt)",
+        "Foundation locale-aware String.localizedCaseInsensitiveContains and localizedCaseInsensitiveCompare",
+        "Swift concurrency Task.sleep(for: .seconds(delay)) on @MainActor"
+      ],
+      "persisted_fields": [
+        "None. Selections, written text and page are view state only and are lost when the sheet goes away."
+      ],
+      "ui_elements": [
+        "Badge: title \"1 question\" when count == 1 else \"\\(count) questions\"; caption \"to answer\"; needsAttention true; glyph Image(systemName: \"questionmark.bubble\") with .foregroundStyle(.tint)",
+        "Sheet width 460; page area height = min(max(tallest measured page, 120), 360); pages scroll vertically past that",
+        "Page dots (only when count > 1): HStack(spacing: 5) of Capsule buttons; fill Chrome.accent for the current page, Chrome.accent.opacity(0.35) for answered, Chrome.overlay(0.18) otherwise; frame width 18 for current page else 6, height 6; tapping a dot sets page with withAnimation(Chrome.panelSlide)",
+        "Page counter text \"\\(page + 1) of \\(count)\", font .system(.subheadline) .monospacedDigit(), Chrome.secondaryText; dots row padding horizontal 16, top 12, bottom 6; .animation(Chrome.panelSlide, value: page)",
+        "Pager: HStack(spacing: 0) of per-question ScrollViews each framed 460 x pageHeight; .offset(x: -CGFloat(page) * 460); frame 460 x pageHeight alignment .leading; .clipped(); .animation(Chrome.panelSlide, value: page)",
+        "Divider between pager and footer",
+        "Footer HStack(spacing: 8), .controlSize(.regular), padding horizontal 16, vertical 10",
+        "Previous button (count > 1): Image(systemName: \"chevron.left\"), .bordered, disabled when page == 0, help \"Previous question\"",
+        "Unanswered note (unanswered > 0): \"1 question still to answer\" or \"\\(unanswered) questions still to answer\", .system(.subheadline), Chrome.secondaryText, lineLimit 1",
+        "\"Skip\" button, .bordered, help \"Sends no answers and lets the agent carry on\"",
+        "\"Next\" button: .borderedProminent with .keyboardShortcut(.defaultAction) when page < count - 1 and not complete; otherwise (page < count - 1 and complete) .bordered without shortcut; help \"Goes to the next question\"",
+        "\"Send\" button (shown when on last page or complete): .borderedProminent, .keyboardShortcut(.defaultAction), disabled unless complete; help \"Sends your answers\" when complete, else \"Answer the question to send\" (count == 1) or \"Answer all \\(count) questions to send\"",
+        "QuestionPage: VStack(alignment: .leading, spacing: 10), padding horizontal 16, vertical 12, frame maxWidth .infinity leading",
+        "Header (if non-empty): .system(.subheadline, weight: .medium), Chrome.secondaryText, .textCase(.uppercase)",
+        "Prompt: .system(.body, weight: .semibold), Chrome.primaryText, fixedSize vertical, text selectable",
+        "Free text field (when allowsOther or no choices): SecureField \"Your answer\" if isSecret, else TextField placeholder \"Your answer\" (no choices) or \"Something else\"; .roundedBorder, .controlSize(.regular)",
+        "Choice row: HStack(alignment: .top, spacing: 10); indicator image .system(size: 14), Chrome.accent when selected else Chrome.secondaryText, frame width 18, top padding 1; label .system(.body, weight: selected ? .semibold : .regular) Chrome.primaryText; row padding horizontal 12, vertical 9; background RoundedRectangle(cornerRadius: 10, style: .continuous) filled Chrome.accent.opacity(0.12) when selected else Chrome.overlay(0.06); .contentShape(.rect); .buttonStyle(.plain); .animation(Chrome.hover, value: isSelected)",
+        "\"Recommended\" pill: .system(.footnote, weight: .medium), Chrome.accent, padding horizontal 6 vertical 2, Capsule fill Chrome.accent.opacity(0.14); inner HStack spacing 6",
+        "Choice detail: .system(.subheadline), Chrome.secondaryText, fixedSize vertical; label/detail VStack spacing 2",
+        "Indicator symbols: multi selected \"checkmark.square.fill\", multi unselected \"square\", single selected \"checkmark.circle.fill\", single unselected \"circle\""
+      ],
+      "feature_notes": [
+        "Preselection: for each question, choice labels containing \"recommended\" (localizedCaseInsensitiveContains) are preselected in order; a multiple-choice question gets all matches, a single-choice question only the first; questions with no match get no entry.",
+        "Page height: computed in init as `pageHeight = min(max(largest, 120), Self.maxHeight)` where largest is the tallest `NSHostingView(rootView: probe).fittingSize.height` over all questions, each probe a QuestionPage with `selections: .constant([:]), written: .constant([:])` framed to width 460; so a page's measured height ignores selection-driven weight changes; min 120, max 360. The doc comment at line 27 says \"the largest page is measured once, here\", but the code does not enforce once: pageHeight is a `private let`, not @State, so the measurement (one NSHostingView per question) re-runs on every QuestionSheet init, while selections/written/page keep their @State values across re-inits.",
+        "Single-choice pick (not multiple) on any page but the last calls advance(after: 0.18): the page moves on 0.18 s later. Picking on the last page does not auto-send.",
+        "onPick fires only when the tapped choice ends up selected (current.contains(choice.label)); deselecting does not advance.",
+        "Single choice toggles: tapping the selected choice clears the question's selection to []; multiple choice appends or removes the label.",
+        "Return in the text field calls advance(): on a non-last page it moves on; on the last page it sends only when unansweredCount is 0.",
+        "advance() on the last page recomputes answers and sends only if every question has at least one value; otherwise does nothing.",
+        "The delayed advance (single-choice pick on a non-last page, `advance(after: 0.18)`) checks `guard page < count - 1` only when called, then spawns an unstored Task that after 0.18 s runs `page += 1` from whatever page is current then, with no bounds re-check and no cancellation. So a dot tap or Previous within the 0.18 s is followed by +1 from the new page (a dot tap to the last page within 0.18 s pushes page to count, past the last page); Skip or Send within the 0.18 s closes the popover and answers, and the task still runs its `page += 1` afterwards on the dismissed sheet.",
+        "Answers: per question, the selected labels (full label text, including any ' (Recommended)' suffix) followed by the written text trimmed via String.trimmed, appended only when non-empty. Skip sends an empty dictionary [:].",
+        "A question counts as answered when its answer array is non-empty; isComplete means unanswered == 0.",
+        "bareLabel strips a trailing \" (Recommended)\" (case-insensitive compare of the last 14 characters) and marks it recommended; otherwise the label is kept whole and marked recommended if it contains \"recommended\" anywhere, so the pill can show beside an unstripped label.",
+        "Choices are keyed by index (id: \\.offset) so identical labels both render, but selection is by label string, so two identical labels select together.",
+        "Send order: closePopover?() first so the popover animates away from the badge, then runtime.answer.",
+        "B1->B2: typography and one helper only. Fixed sizes replaced with text styles: page counter size 11 -> .subheadline; unanswered note size 11 -> .subheadline and foreground .secondary -> Chrome.secondaryText; header size 11 medium -> .subheadline medium; prompt size 13 semibold -> .body semibold; choice label size 13 -> .body; \"Recommended\" pill size 10 medium -> .footnote medium; choice detail size 11 -> .subheadline. QuestionAnswers.collect now uses written[question.id]?.trimmed instead of trimmingCharacters(in: .whitespacesAndNewlines). The indicator image stays .system(size: 14).",
+        "Return conflict: with every question answered (isComplete) on a non-last page, the footer shows a .bordered \"Next\" (no shortcut) and a \"Send\" button holding `.keyboardShortcut(.defaultAction)` (lines 150-159), while the focused text field's `.onSubmit` calls `advance()` (line 108 passes `onSubmit: { advance() }`), which on a non-last page moves to the next page instead of sending. The comment at lines 142-144 says \"once every question has one ... Return sends from any page\". Which of the two runs for Return while a text field has focus is not decided in this file. Likewise with !isComplete on a non-last page both the \"Next\" default-action button and the field's onSubmit call advance()."
+      ],
+      "unresolved_questions": [
+        "Definition of String.trimmed is not in this file; B1 trimmed .whitespacesAndNewlines, confirm the extension trims the same set.",
+        "Why fixed sizes became text styles in 1.6.2 (for example an app-wide text size setting that scales text styles) is not visible here; each replacement matches the macOS default size of the new style, so default rendering is unchanged.",
+        "EnvironmentValues.closePopover and ChatBadge are defined elsewhere (BadgePopoverCoordinator); their frozen-size behaviour must be read in their own bundle.",
+        "QuestionRequest / Question / Choice model definitions (id format, isSecret origin) are outside this file.",
+        "Which handler receives Return when a TextField/SecureField in a QuestionPage has focus and a footer button holds .keyboardShortcut(.defaultAction): the field's onSubmit (advance), the default button (Send or Next), or both. Needs a run of the macOS app; the comment at lines 142-144 intends Return to send once complete."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Composer/RequestCards.swift",
+      "sha256": "32368409a7b8cd6c330b97cc33b11ca5df6899af8f0388981ace62b7d4e05da9",
+      "lines_total": 66,
+      "ranges_read": [[1, 66]],
+      "purpose": "Defines ApprovalCard, the warning-tinted glass card that asks the user to approve or deny an agent's pending ApprovalRequest (a command to run, a plan, or another kind). It shows the request's symbol, headline, title (monospaced for commands, fixed copy for plans), optional detail and reason, and one button per option, with Command-Return bound to the approve option only on the card at the front of runtime.approvals.",
+      "key_symbols": [
+        "struct ApprovalCard: View { let request: ApprovalRequest; let runtime: ThreadRuntime }",
+        "ApprovalRequest fields used: symbol, headline, kind (.command, .plan, default), title, detail: String?, reason: String?, options, id",
+        "option fields used: title, role (.approve vs other)",
+        "let ownsShortcut = request.id == runtime.approvals.first?.id"
+      ],
+      "calls_into": [
+        "ThreadRuntime.resolve(_:option:)",
+        "ThreadRuntime.approvals",
+        "Chrome.warning, Chrome.secondaryText"
+      ],
+      "state_owned": [
+        "None (stateless view)"
+      ],
+      "side_effects": [
+        "Each option button calls runtime.resolve(request, option: option)"
+      ],
+      "platform_assumptions": [
+        "SwiftUI Liquid Glass (macOS 26): .glassEffect(.regular.tint(...), in:), .buttonStyle(.glassProminent) and .buttonStyle(.glass)",
+        "KeyboardShortcut(.return, modifiers: .command) (Command-Return; Ctrl+Enter on Windows)",
+        "SF Symbol named by request.symbol",
+        "Text styles .headline, .callout, .caption; .system(.callout, design: .monospaced); .quaternary hierarchical style; .textSelection(.enabled)"
+      ],
+      "persisted_fields": [
+        "None"
+      ],
+      "ui_elements": [
+        "Card VStack(alignment: .leading, spacing: 10), padding 16, .glassEffect(.regular.tint(Chrome.warning.opacity(0.1)), in: .rect(cornerRadius: 20, style: .continuous))",
+        "Header HStack(spacing: 8): Image(systemName: request.symbol) in Chrome.warning, Text(request.headline) .headline, Spacer",
+        "Command kind: Text(request.title) .system(.callout, design: .monospaced), selectable, lineLimit 8, padding 10, full width leading, background .quaternary.opacity(0.5) in .rect(cornerRadius: 10, style: .continuous)",
+        "Plan kind: fixed text \"Approve the plan above to let the agent start building.\" .callout, Chrome.secondaryText",
+        "Other kinds: Text(request.title) .callout, selectable",
+        "Detail (if non-empty): .caption, Chrome.secondaryText, lineLimit 3",
+        "Reason (if non-empty): .callout, Chrome.secondaryText",
+        "Buttons row HStack(spacing: 8) with leading Spacer; options drawn in reversed order; approve-role option .glassProminent, others .glass"
+      ],
+      "feature_notes": [
+        "Options render as request.options.reversed(), so the last option in the model is leftmost and the first is rightmost.",
+        "Only the card whose request.id equals runtime.approvals.first?.id binds Command-Return, and only on options with role .approve; comment: two cards both claiming it left neither reliably approving. If several options have role .approve on that card, each gets the shortcut.",
+        "The card tint uses Chrome.warning so a theme recolours card and symbol together.",
+        "B1->B2: three foreground styles changed from .secondary to Chrome.secondaryText: the plan text, the detail text and the reason text. No other change."
+      ],
+      "unresolved_questions": [
+        "ApprovalRequest.Kind cases beyond .command and .plan, and the option role enum, are defined elsewhere.",
+        "Behaviour if more than one option has role .approve on the front card (duplicate Command-Return) is not handled here."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Composer/ThreadChangesTab.swift",
+      "sha256": "22ee4ff062911374b731db9fdf53c7d10d80cacd53cbc68d9312f4f024c84959",
+      "lines_total": 46,
+      "ranges_read": [[1, 46]],
+      "purpose": "Draws the small glass tab that rises from the top edge of the composer and summarises the thread's changes as a file count with green additions and red deletions. Its bottom padding extends 14 pt under the composer so the composer overlaps it, it reports its own NSView through AttachmentAnchorCapture so the diff popover can anchor to it, and clicking it runs the supplied action (opening the changes popover).",
+      "key_symbols": [
+        "struct ThreadChangesTab: View",
+        "static let overlap: CGFloat = 14",
+        "let stats: FileChangeSummary (uses files.count, additions, deletions)",
+        "let anchor: (NSView) -> Void",
+        "let action: () -> Void"
+      ],
+      "calls_into": [
+        "AttachmentAnchorCapture(onResolve:)",
+        "ShortcutStore.hint(for: .toggleChanges)",
+        "Chrome.inlineIconFont, Chrome.secondaryText, Chrome.primaryText, Chrome.success, Chrome.danger"
+      ],
+      "state_owned": [
+        "None"
+      ],
+      "side_effects": [
+        "Calls anchor(view) when AttachmentAnchorCapture resolves the backing NSView",
+        "Button tap calls action()"
+      ],
+      "platform_assumptions": [
+        "AppKit NSView handed out for popover anchoring",
+        "SwiftUI Liquid Glass .glassEffect(.regular.interactive(), in: shape)",
+        "UnevenRoundedRectangle with .continuous corners",
+        ".focusable(false), .help tooltip, .accessibilityLabel",
+        "SF Symbol \"plusminus\"; text style .callout (12 pt at macOS default) with .monospacedDigit()"
+      ],
+      "persisted_fields": [
+        "None"
+      ],
+      "ui_elements": [
+        "Shape: UnevenRoundedRectangle(topLeadingRadius: 12, topTrailingRadius: 12, style: .continuous) (bottom corners square)",
+        "HStack(spacing: 7): Image(systemName: \"plusminus\") font Chrome.inlineIconFont in Chrome.secondaryText; \"1 file\" or \"\\(n) files\" in Chrome.primaryText.opacity(0.9); \"+\\(additions)\" in Chrome.success; \"\\u{2212}\\(deletions)\" (U+2212 minus sign) in Chrome.danger",
+        "Font .system(.callout, weight: .medium).monospacedDigit()",
+        "Padding horizontal 12, top 7, bottom 7 + 14 = 21",
+        ".contentShape(shape), .buttonStyle(.plain), .focusable(false), .glassEffect(.regular.interactive(), in: shape), .fixedSize()",
+        "Tooltip \"Show this thread's changes\\(ShortcutStore.hint(for: .toggleChanges))\"",
+        "Accessibility label \"\\(n) files changed, \\(additions) added, \\(deletions) removed\" (always plural 'files')"
+      ],
+      "feature_notes": [
+        "The 14 pt overlap is exposed as ThreadChangesTab.overlap so the composer can draw over the tab's lower edge.",
+        "Colours match DiffStatLabel per the comment, so theme recolours apply to both.",
+        "B1->B2: one line: the HStack font changed from .system(size: 12, weight: .medium).monospacedDigit() to .system(.callout, weight: .medium).monospacedDigit()."
+      ],
+      "unresolved_questions": [
+        "AttachmentAnchorCapture, Chrome.inlineIconFont and ShortcutStore.hint output format are defined elsewhere."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Diff/DiffInspector.swift",
+      "sha256": "9175c08227a6cd699605135521c319195bfff1d10c62f2a53d114c63235d2fd4",
+      "lines_total": 692,
+      "ranges_read": [[1, 692]],
+      "purpose": "Implements the thread diff viewer: DiffInspector (header with turn picker, file count, stats, expand/collapse and close; a lazy list of collapsible per-file cards), DiffLinesView (row grouping of hunks into headers, merged tinted add/delete blocks and plain runs, with a 200-line collapsed budget), DiffLineRow (fixed-width gutter columns), and DiffPopoverCoordinator, the AppKit NSPopover controller that shows the inspector at 640 x 540 anchored to the changes tab, a tool row, a Review button or the composer. It also merges a tapped tool row's own patches for files the checkpoint diff cannot show, focuses and scrolls to those files, and handles dismissal via local event monitors, Escape and session counters.",
+      "key_symbols": [
+        "struct DiffInspector: View { let runtime: ThreadRuntime; @State files: [DiffFile] = []; @State summary = FileChangeSummary(files: []); @State isLoading = false; @State collapsed: Set<String> = []; @State changedTurns: [TurnRecord] = []; @State scrollTarget: String?; @State scrollRequest = 0 }",
+        "private var loadKey: String = \"\\(runtime.diffRevision)-\\(runtime.diffSelection?.uuidString ?? \"all\")-\\(runtime.diffFocusRevision)\"",
+        "private func load() async",
+        "private func focusedFiles(_ edits: [FileEdit], missingFrom files: [DiffFile]) -> [DiffFile] (file-private free function)",
+        "private struct DiffFileCard: View, Equatable { let file: DiffFile; let isCollapsed: Bool; let toggle: () -> Void; nonisolated static func ==; private var symbol: String; private var color: Color }",
+        "struct DiffLinesView: View, Equatable { let file: DiffFile; var showsLineNumbers = true; @State showsAll = false; @State sections: [Section] = [] }",
+        "DiffLinesView.sectionsKey (private nonisolated var) = \"\\(file.id)|\\(file.hunks.count)|\\(file.additions)|\\(file.deletions)|\\(totalLines)\"",
+        "DiffLinesView.collapsedLineLimit = 200, tintedChunk = 40 (private nonisolated static let)",
+        "DiffLinesView.totalLines: Int (private nonisolated var) = sum of hunk line counts",
+        "enum DiffLinesView.Section: Identifiable, Equatable { case header(String, Int); case tinted(lines: [DiffLine], offset: Int, count: Int); case plain([DiffLine]) } with id \"h\\(index)-\\(text)\" / \"t\\(first line id ?? 0)\" / \"p\\(first line id ?? 0)\"",
+        "nonisolated static func makeSections(file: DiffFile, showsLineNumbers: Bool, limit: Int) -> [Section]",
+        "@ViewBuilder private func rowList(_ rows: [Section]) -> some View",
+        "private struct DiffLineBlock: Identifiable { var lines: [DiffLine]; var isTinted: Bool; var id: Int }",
+        "private func lineBlocks(_ lines: ArraySlice<DiffLine>) -> [DiffLineBlock]",
+        "private struct DiffLineRow: View { let line: DiffLine; let showsLineNumbers: Bool; var rounding: UnevenRoundedRectangle (all radii 0, .continuous) }",
+        "DiffLineRow.numberColumnWidth: CGFloat = 30, markerColumnWidth: CGFloat = 14",
+        "static func DiffLineRow.blockRounding(index: Int, count: Int) -> UnevenRoundedRectangle (radius 8)",
+        "@MainActor final class DiffPopoverCoordinator: NSObject, NSPopoverDelegate",
+        "DiffPopoverCoordinator.width: CGFloat = 640, height: CGFloat = 540",
+        "private let popover = NSPopover(); anchor: WeakView?; runtime: ThreadRuntime?; desiredVisible = false; monitors: [Any] = []; session = 0; pendingSession = 0; fallback: WeakView?; weak shownOn: NSView?; weak shownRuntime: ThreadRuntime?; seenOpenRequest = 0",
+        "func setAnchor(_ view: NSView)",
+        "func sync(isVisible: Bool, runtime: ThreadRuntime)",
+        "func close()",
+        "func setFallbackAnchor(_ view: NSView)",
+        "func reopen(runtime: ThreadRuntime)",
+        "private func resolvedAnchor() -> (view: NSView, edge: NSRectEdge)?",
+        "private func show()",
+        "nonisolated func popoverDidClose(_ notification: Notification)",
+        "private func handleMouseDown(_ event: NSEvent) -> NSEvent?",
+        "private func handleKeyDown(_ event: NSEvent) -> NSEvent?",
+        "private func startMonitors(), private func stopMonitors()"
+      ],
+      "calls_into": [
+        "ThreadRuntime: diffRevision, diffSelection (UUID?), diffFocusRevision, turns, clearDiffFocus(), isDiffVisible, hasCachedDiff(selection:), turnsWithChanges(), parsedDiff(selection:) async, diffFocusEdits, diffOpenRequest, diffAnchor (weak view box with .value), diffAnchorEdge",
+        "FileChangeSummary(files:) (files, additions, deletions)",
+        "TouchedPaths.matches(_:touched:)",
+        "DiffParser.parseHunks(_:path:)",
+        "DiffStatLabel(additions:deletions:)",
+        "ChromeTextMenu(symbol:title:help:), PopoverItem(_:isChecked:action) and PopoverItem(_:symbol:action), ChromeCapsule, ChromeMenuButton(symbol:help:), ChromeDivider, ChromeIconButton(symbol:help:action)",
+        "GlassEffectContainer(spacing:)",
+        "ShortcutStore.hint(for: .toggleChanges)",
+        "Chrome.chromeHorizontalPadding, Chrome.chromeTopPadding, Chrome.secondaryText",
+        "WebsiteCaptures.isEnabled",
+        "WeakView(_:)",
+        "NSPopover.setFixedContent(_:size:) (extension defined elsewhere)"
+      ],
+      "state_owned": [
+        "DiffInspector: files, summary, isLoading, collapsed (file ids), changedTurns, scrollTarget, scrollRequest",
+        "DiffLinesView: showsAll, sections",
+        "DiffPopoverCoordinator: popover, anchor, fallback, runtime, desiredVisible, monitors, session, pendingSession, shownOn, shownRuntime, seenOpenRequest"
+      ],
+      "side_effects": [
+        "Selecting a turn or All changes calls runtime.clearDiffFocus() and writes runtime.diffSelection",
+        "Close button sets runtime.isDiffVisible = false",
+        "load() runs runtime.parsedDiff (git diff and parse, per comments) and a detached userInitiated task parsing focus patches",
+        "DiffPopoverCoordinator installs NSEvent local monitors for leftMouseDown, rightMouseDown and keyDown while shown and removes them on close",
+        "Coordinator writes runtime.isDiffVisible = false in several paths (thread switch, first appearance without captures, didClose of the current session)",
+        "popoverDidClose sets popover.contentViewController = nil to release the inspector"
+      ],
+      "platform_assumptions": [
+        "AppKit NSPopover with behavior .semitransient, animates true, delegate popoverDidClose, show(relativeTo:of:preferredEdge:), performClose(nil), close(), contentViewController",
+        "NSRectEdge (.maxY used for the tab/composer anchor), NSView.window checks, NSSize",
+        "NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) and (.keyDown), NSEvent.removeMonitor, event.keyCode == 53 (macOS virtual key code for Escape)",
+        "NSObject subclass and @MainActor isolation; nonisolated delegate hopping back via Task { @MainActor }",
+        "DispatchQueue.main.async for post-layout scroll; Task.detached(priority: .userInitiated); Task.sleep(for: .milliseconds(180))",
+        "SwiftUI ScrollViewReader.scrollTo(_:anchor: .top) with .smooth(duration: 0.25) animation; LazyVStack; .equatable(); ContentUnavailableView; ProgressView(_:)",
+        "SwiftUI Liquid Glass GlassEffectContainer; hierarchical styles .quaternary, .secondary, .primary; Color.accentColor; system colors .green .red .blue .orange",
+        "SF Symbols: plusminus, ellipsis, xmark, arrow.down.right.and.arrow.up.left, arrow.up.left.and.arrow.down.right, doc.text.magnifyingglass, chevron.right, plus.circle.fill, minus.circle.fill, arrow.right.circle.fill, pencil.circle.fill",
+        "Text interpolation of a styled Text inside Text (directory part coloured separately); .truncationMode(.head); .textSelection(.enabled)",
+        "Monospaced system font at 11.5 pt; text style .subheadline and .caption/.caption2/.callout"
+      ],
+      "persisted_fields": [
+        "None in this file. runtime.diffSelection, isDiffVisible and diff caches live on ThreadRuntime."
+      ],
+      "ui_elements": [
+        "Popover content size 640 x 540 (DiffPopoverCoordinator.width/height)",
+        "Header: GlassEffectContainer(spacing: 2) holding HStack(spacing: 10); padding horizontal Chrome.chromeHorizontalPadding, top Chrome.chromeTopPadding, bottom 10",
+        "Turn picker ChromeTextMenu symbol \"plusminus\", help \"Choose which changes to show\"; title computed as `runtime.diffSelection.flatMap { id in runtime.turns.first { $0.id == id } }.map { \"Turn \\($0.index + 1)\" } ?? \"All changes\"` (lines 29-31), i.e. looked up in runtime.turns, while the items come from the changedTurns snapshot: \"All changes\" (checked when diffSelection == nil) then \"Turn \\(turn.index + 1)\" for each turn in changedTurns (checked when diffSelection == turn.id). So a diffSelection not found in runtime.turns titles the menu \"All changes\" with \"All changes\" unchecked (diffSelection is non-nil) and a turn item checked only if the changedTurns snapshot still holds that id; a selected turn present in runtime.turns but absent from changedTurns shows \"Turn N\" as title with no item checked.",
+        "Spacer(minLength: 8); when files non-empty: \"1 file\" or \"\\(n) files\" in .system(.subheadline) Chrome.secondaryText, then DiffStatLabel(additions:deletions:) from summary",
+        "ChromeCapsule: ChromeMenuButton symbol \"ellipsis\" help \"More\" with items \"Expand all\" (symbol \"arrow.down.right.and.arrow.up.left\") and \"Collapse all\" (symbol \"arrow.up.left.and.arrow.down.right\"); ChromeDivider; ChromeIconButton symbol \"xmark\" help \"Hide changes\" + ShortcutStore.hint(for: .toggleChanges)",
+        "Empty states are shown only when `files.isEmpty` (line 71): ProgressView(\"Reading the diff…\") when isLoading, else ContentUnavailableView. isLoading starts false (`@State private var isLoading = false`, line 9) and becomes true only inside load() (`isLoading = true`, line 126), which for an uncached diff runs after `try? await Task.sleep(for: .milliseconds(180))` (line 116). So an uncached open shows \"No changes yet\" for about the first 180 ms, then \"Reading the diff…\" until parsing ends. The comment at lines 74-75 (\"Named, so the panel says what the wait is for instead of spinning ...\") covers only the load() part, not the 180 ms wait.",
+        "Empty state when files is empty and not loading (including the 180 ms pre-load wait): ContentUnavailableView(\"No changes yet\", systemImage: \"doc.text.magnifyingglass\", description: Text(\"Files the agent changes appear here after each turn.\"))",
+        "File list: ScrollView > LazyVStack(alignment: .leading, spacing: 10), padding 12; each card .id(file.id)",
+        "File card header button: HStack(spacing: 8): chevron.right .caption2.weight(.semibold) Chrome.secondaryText rotated 0 degrees collapsed / 90 degrees expanded; change symbol in change color; Text(directory in Chrome.secondaryText + name) .callout lineLimit 1 truncationMode .head; Spacer(minLength: 8); DiffStatLabel; padding horizontal 12 vertical 9",
+        "Change symbols/colors: added \"plus.circle.fill\" .green; deleted \"minus.circle.fill\" .red; renamed \"arrow.right.circle.fill\" .blue; modified \"pencil.circle.fill\" .orange",
+        "Card body when expanded: `if file.isBinary || file.hunks.isEmpty { Text(file.isBinary ? \"Binary file\" : \"Diff details unavailable\") }` (lines 216-217, .caption, Chrome.secondaryText, padding horizontal 12 bottom 10), so a non-binary file with zero hunks shows \"Diff details unavailable\"; otherwise DiffLinesView(file:) .equatable() with bottom padding 6",
+        "Card background .quaternary.opacity(0.3) in .rect(cornerRadius: 12, style: .continuous) and clipShape same",
+        "Lines font .system(size: 11.5, design: .monospaced), text selectable",
+        "Hunk header row: Chrome.secondaryText, lineLimit 1, padding horizontal 10 vertical 3, full width, background Color.accentColor.opacity(0.06)",
+        "\"Show all \\(totalLines) lines\" button: .caption Chrome.secondaryText, padding horizontal 10 vertical 6, background .quaternary.opacity(0.5) in Capsule(style: .continuous); outer padding horizontal 10 vertical 8; .buttonStyle(.plain)",
+        "Line row: HStack(alignment: .top, spacing: 0); old and new number columns width 30 trailing Chrome.secondaryText (when showsLineNumbers); marker column width 14 centred; text column fills width, empty text drawn as \" \", .secondary for .note lines else .primary; padding vertical 1, leading 6, trailing 8",
+        "Markers: addition \"+\" (.green), deletion \"−\" (U+2212, .red), context and note \"\" (.secondary)",
+        "Row backgrounds: addition .green.opacity(0.12), deletion .red.opacity(0.12), else .clear; tinted block corners radius 8 on first and last row of the block only (continuous)"
+      ],
+      "feature_notes": [
+        "Load trigger: .task(id: loadKey) where loadKey combines diffRevision, diffSelection uuid or \"all\", and diffFocusRevision. If `!runtime.hasCachedDiff(selection: runtime.diffSelection)` it first runs `try? await Task.sleep(for: .milliseconds(180))` then `guard !Task.isCancelled else { return }`, per the comment so the empty popover appears cheaply before git, parse and view build. During that wait isLoading is still false, so an empty list shows \"No changes yet\", not the spinner.",
+        "load(): captures `let selection = runtime.diffSelection`; sets `changedTurns = runtime.turnsWithChanges()` BEFORE any await; `isLoading = true` with `defer { isLoading = false }`; `let parsed = await runtime.parsedDiff(selection: selection)`; `guard !Task.isCancelled else { return }` (line 129); `let focusEdits = runtime.diffFocusEdits` (line 135) captured and passed to `Task.detached(priority: .userInitiated) { focusedFiles(focusEdits, missingFrom: parsed) }.value`; a second `guard !Task.isCancelled else { return }` (line 137); then `files = missing.isEmpty ? parsed : missing + parsed` and `summary = FileChangeSummary(files: files)`. A load cancelled at either guard has already updated changedTurns (the turn menu) but leaves files, summary and collapsed untouched; the defer still clears isLoading.",
+        "Collapse rules after load: the focus set is re-read after the awaits as `let focus = Set(runtime.diffFocusEdits.map(\\.path))` (line 143), separately from the focusEdits captured at line 135 for the patch parse, and it includes every edit path, also edits that focusedFiles skipped for an empty path or nil/empty diff (such an edit still focuses a parsed file its path matches). If any file matches focus (TouchedPaths.matches), `collapsed = Set(files.map(\\.id)).subtracting(focused)`, scrollTarget = focused.first and scrollRequest += 1; else if files.count > 6 and collapsed is empty, every file but the first is collapsed; else collapsed is intersected with the current file ids (stale ids dropped). With 6 or fewer files and no focus, all start expanded.",
+        "Scroll: onChange(of: scrollRequest) scrolls to scrollTarget with anchor .top inside DispatchQueue.main.async and withAnimation(.smooth(duration: 0.25)); a counter is used because state can survive a reopened popover.",
+        "focusedFiles skips edits with empty path or nil/empty diff, skips a path already covered by the parsed files or already added, parses with DiffParser.parseHunks(patch, path:) and keeps it only if it has hunks. Purpose per comment: a running turn has no end checkpoint, and reverted or worktree-moved work leaves the checkpoint diff empty, so a tapped row always opens its edit instead of \"No changes yet\".",
+        "Expand all clears collapsed; Collapse all sets collapsed to every file id; tapping a card header toggles its id.",
+        "DiffFileCard equality compares file.id, additions, deletions, hunks.count, change, isBinary and isCollapsed only.",
+        "DiffLinesView equality compares sectionsKey and showsLineNumbers. Sections are rebuilt onChange(of: \"\\(sectionsKey)|\\(showsAll)\", initial: true) and also built inline in body when sections is empty so a lazily materialised card draws rows on its first frame.",
+        "Budget: 200 lines while collapsed (showsAll false), Int.max after \"Show all\". The \"Show all \\(totalLines) lines\" button appears only when !showsAll and totalLines > 200; it sets showsAll to true and there is no control to collapse again.",
+        "Stack choice: showsAll with totalLines > 200 uses LazyVStack; otherwise a VStack with fixedSize(horizontal: false, vertical: true) so the outer lazy stack gets exact card heights.",
+        "makeSections: for each hunk with lines while budget remains, splits the budgeted prefix into runs of tinted (addition/deletion) vs untinted lines. If the first run is tinted and a tinted run is pending from the previous hunk, the runs continue the pending block with no header (header dropped inside a merged run); otherwise pending is flushed and a .header(hunk.header, hunkIndex) is appended only when showsLineNumbers is true. Tinted runs accumulate in pending; plain runs flush pending then append .plain. Flush splits pending into .tinted chunks of 40 lines, each carrying offset (chunk start) and count (whole block length) so corner rounding spans the whole block.",
+        "blockRounding(index:count:) gives radius 8 to top corners when index == 0 and bottom corners when index == count - 1.",
+        "DiffPopoverCoordinator doc: semitransient with a pass-through monitor; taps outside close it but still reach their target, so another turn's Review opens its diff in one tap; closes on Escape, the X button, Command-D, tapping the tab, or the thread going away.",
+        "sync(isVisible:runtime:): (1) a different runtime than the current one: close(), set the old runtime's isDiffVisible false if it was true, adopt the new runtime, seenOpenRequest = runtime.diffOpenRequest, and if the new runtime's isDiffVisible is true and WebsiteCaptures.isEnabled is false set it false; return without opening. (2) first adoption (runtime nil): adopt, record seenOpenRequest, and if isVisible and captures are off set isDiffVisible false and return. (3) otherwise set desiredVisible = isVisible and show() or close().",
+        "close(): stop monitors, desiredVisible false, session += 1, pendingSession = session, performClose(nil) if shown.",
+        "reopen(runtime:): for a different runtime falls back to sync(isVisible: runtime.isDiffVisible, runtime:); ignores it when diffOpenRequest equals seenOpenRequest; otherwise records it, sets desiredVisible, and if already shown on the same resolved anchor view does nothing, else stops monitors, bumps session and pendingSession, popover.close(), then show().",
+        "resolvedAnchor(): prefers runtime.diffAnchor view (if in a window) with runtime.diffAnchorEdge; else the first of the tab anchor or fallback (composer) view that is in a window, with edge .maxY; nil if none.",
+        "show(): requires runtime and an anchor; session += 1; returns if already shown; setFixedContent(DiffInspector(runtime:), size 640 x 540); starts monitors; records shownOn and shownRuntime; shows relative to the anchor view's bounds.",
+        "popoverDidClose: on the main actor stops monitors and clears desiredVisible; only when session == pendingSession (the close that posted it) clears shownRuntime.isDiffVisible and sets contentViewController = nil; always sets shownRuntime = nil.",
+        "Mouse monitor: a click whose window is the popover content's window passes through; any other left or right click calls close() and is still returned (delivered). Key monitor: keyCode 53 (Escape) closes and swallows the event (returns nil); other keys pass.",
+        "setAnchor and setFallbackAnchor call show() if desiredVisible.",
+        "B1->B2: foreground and typography changes plus isolation annotations. Header file count font size 11 -> .system(.subheadline). DiffFileCard chevron foreground .tertiary -> Chrome.secondaryText; directory part .secondary -> Chrome.secondaryText; \"Binary file\"/\"Diff details unavailable\" .secondary -> Chrome.secondaryText. DiffLinesView: sectionsKey, collapsedLineLimit, tintedChunk and totalLines gained the nonisolated modifier; hunk header text .secondary -> Chrome.secondaryText; \"Show all\" label .secondary -> Chrome.secondaryText. DiffLineRow line number columns Color.secondary.opacity(0.6) -> Chrome.secondaryText. Values (200, 40, 11.5 pt, 30, 14, 640 x 540) and all logic are unchanged.",
+        "Reload with a non-empty list (turn switch, diffRevision or diffFocusRevision bump): the spinner and empty state are inside `if files.isEmpty` (line 71), so the previous files stay on screen, with no loading indicator, until `files = missing.isEmpty ? parsed : missing + parsed` (line 138) replaces them. The changedTurns menu updates at the start of load().",
+        "reopen/didClose interaction (re-anchor while shown): reopen() runs `stopMonitors(); session += 1; pendingSession = session; popover.close()` (lines 606-609) and then show() (line 611), which runs `session += 1` (line 629) before `guard !popover.isShown else { return }` and, if the popover is no longer shown, sets content, startMonitors(), shownOn and `shownRuntime = runtime` (line 634) and shows. popoverDidClose only enqueues `Task { @MainActor [weak self] in ... }` (line 641; body lines 642-656), which cannot run until the synchronous reopen() returns, so its body runs after show(): stopMonitors() (removing the monitors show() just started), `desiredVisible = false`, then `self.session == self.pendingSession` is false (show() bumped session), so isDiffVisible is not cleared and contentViewController is not nilled, which is what keeps a Review reopen alive (comment lines 645-646 \"a Review tap that already reopened (newer session) must survive\"); finally `self.shownRuntime = nil` (line 656) unconditionally. So after a re-anchor reopen the new popover is up with no local event monitors, desiredVisible false and shownRuntime nil; a later didClose of that popover with session == pendingSession then finds shownRuntime nil and cannot clear isDiffVisible."
+      ],
+      "unresolved_questions": [
+        "NSPopover.setFixedContent(_:size:), WeakView, TouchedPaths.matches semantics, DiffParser.parseHunks and runtime.parsedDiff caching are defined elsewhere.",
+        "WebsiteCaptures.isEnabled appears to be a capture or screenshot mode that lets a diff stay open on arrival; its meaning is outside this file.",
+        "Line number columns now use Chrome.secondaryText at full strength instead of 60 percent secondary; whether Chrome.secondaryText is itself translucent is defined in Chrome.",
+        "Whether NSPopover.isShown is already false immediately after popover.close() inside reopen(): if still true, show() returns after `session += 1` without reshowing. AppKit behaviour, not visible in this file.",
+        "Whether the missing monitors and nil shownRuntime after a re-anchor reopen (see feature note) are observable in practice: .semitransient still lets AppKit close the popover on outside clicks. Needs a run on macOS."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/Palette/CommandPalette.swift",
+      "sha256": "69ffaf3f13b95f285734d1db21eef71a16bd31df01281e28fea08dfc2f9311f3",
+      "lines_total": 211,
+      "ranges_read": [[1, 211]],
+      "purpose": "Implements the command palette overlay: a dimmed backdrop and a 600 pt wide glass panel with a search field that lists matching threads, app actions and (when searching) projects to start a thread in. Arrow keys and hover move a single selection, Return or a tap runs it after closing the palette, Escape or a backdrop tap closes it, and the result list is rebuilt only when ResultsKey changes (query, model.threads, model.projects, model.selectedThreadID, model.finishActionTitle), not when finishActionSymbol or a shortcut label changes.",
+      "key_symbols": [
+        "struct CommandPalette: View",
+        "@Environment(AppModel.self) private var model; @Environment(\\.colorScheme) private var colorScheme",
+        "@State private var query = \"\"; @State private var selection = 0; @State private var items: [Item] = []; @FocusState private var isFocused: Bool",
+        "private struct ResultsKey: Equatable { var query: String; var threads: [ChatThread]; var projects: [Project]; var selectedThreadID: UUID?; var finishActionTitle: String }",
+        "private struct Item: Identifiable { let id: String; let title: String; var subtitle: String?; var icon: ProjectIcon?; let symbol: String; var shortcut: String?; let perform: () -> Void }",
+        "private func row(_ item: Item, isSelected: Bool) -> some View",
+        "private var results: [Item]",
+        "private func run(_ items: [Item])",
+        "private func close()"
+      ],
+      "calls_into": [
+        "AppModel: threads, projects, selectedThreadID, finishActionTitle, finishActionSymbol, newThread(), newThread(workspace: .worktree), newThread(in:), chooseProjectFolder(), runtime(for:), finishSelectedThread(), project(_:), isCommandPalettePresented",
+        "ThreadRuntime.isTerminalVisible (toggled), toggleDiff()",
+        "ShortcutStore.label(for:) with .newThread, .newWorktreeThread, .addProject, .toggleTerminal, .toggleChanges, .finishThread, .openSettings",
+        "WindowManager.shared.showSettings()",
+        "ProjectIconMark(icon:size:)",
+        "Chrome.secondaryText"
+      ],
+      "state_owned": [
+        "query, selection, items, isFocused"
+      ],
+      "side_effects": [
+        "close() sets model.isCommandPalettePresented = false",
+        "Running an item closes the palette then performs the action (new thread, worktree thread, add project, toggle terminal, toggle changes, finish thread, open settings, select thread, new thread in project)"
+      ],
+      "platform_assumptions": [
+        "SwiftUI .onKeyPress(.upArrow/.downArrow/.escape) returning .handled, @FocusState, .onSubmit, .onHover, .onTapGesture",
+        "Liquid Glass .glassEffect(.regular, in: .rect(cornerRadius: 24, style: .continuous))",
+        "@Environment(\\.colorScheme) for backdrop strength",
+        "Accessibility: .accessibilityElement(children: .combine), .accessibilityAddTraits([.isButton, .isSelected]), .accessibilityHidden(true)",
+        "SF Symbols: magnifyingglass, square.and.pencil, arrow.triangle.branch, folder.badge.plus, terminal, plusminus, gearshape, bubble.left, folder, plus model.finishActionSymbol",
+        "Text styles .title3, .body, .caption; .tint hierarchical style",
+        "Foundation String.trimmingCharacters(in: .whitespaces), lowercased(), contains (not locale-aware)"
+      ],
+      "persisted_fields": [
+        "None"
+      ],
+      "ui_elements": [
+        "Backdrop: Color.black.opacity(0.24) in dark scheme, 0.08 in light; ignores safe area; tap closes; accessibility hidden",
+        "Panel: VStack(spacing: 0), frame width 600, glass rect corner radius 24 continuous, top padding 72, aligned top in a ZStack",
+        "Search row HStack(spacing: 10): Image(systemName: \"magnifyingglass\") Chrome.secondaryText; TextField \"Search threads, projects and actions\" .plain style, .title3 font; padding horizontal 18, vertical 15",
+        "No results (shown when `items.isEmpty`): Text(\"Nothing matches “\\(query)”\") interpolating the raw, untrimmed query (matching uses `needle = query.trimmingCharacters(in: .whitespaces).lowercased()`, line 150); curly quotes U+201C/U+201D; .system(.body) Chrome.secondaryText lineLimit 1 truncation middle, full width leading, padding horizontal 18 bottom 16. With an empty needle (empty or whitespace-only query) matchingActions is all actions, at least 4 (New thread, New thread in worktree, Add project, Settings), so once items is built the no-match row can appear only for a non-empty needle.",
+        "Results: VStack(spacing: 2), padding horizontal 6 bottom 6",
+        "Row HStack(spacing: 12): icon slot width 18 (ProjectIconMark size 13 when item.icon set, else SF Symbol tinted .tint when selected else .secondary); VStack(alignment: .leading, spacing: 1) title lineLimit 1 and optional subtitle .caption Chrome.secondaryText lineLimit 1 truncation middle; Spacer(minLength: 8); optional shortcut .caption Chrome.secondaryText; padding horizontal 12 vertical 8; selected background .tint.opacity(0.16) in rect corner radius 12 continuous, else clear"
+      ],
+      "feature_notes": [
+        "Focus goes to the field on appear; `.onChange(of: query) { selection = 0 }` (line 101) is the only reset of selection; items are recomputed `.onChange(of: ResultsKey(...), initial: true) { _, _ in items = results }`. When items is rebuilt because model data changed (threads, projects, selectedThreadID, finishActionTitle) with the query unchanged, selection keeps its index, which may now point at a different row or past the end (run() then does nothing because of `guard items.indices.contains(selection)`; the down arrow clamps to `min(max(0, items.count - 1), selection + 1)`).",
+        "Up arrow: selection = max(0, selection - 1). Down arrow: selection = min(max(0, items.count - 1), selection + 1). Escape closes. Return (onSubmit) runs the selected item.",
+        "Hover sets selection to the row so pointer and arrows agree; tap sets selection and runs.",
+        "run: ignores an out-of-range selection; closes the palette first, then calls perform.",
+        "needle = query trimmed of whitespace (not newlines) and lowercased; matching is lowercased substring contains on titles and project names.",
+        "Actions in order: \"New thread\" (id new-thread, square.and.pencil, .newThread) -> model.newThread(); \"New thread in worktree\" (new-worktree, arrow.triangle.branch, .newWorktreeThread) -> model.newThread(workspace: .worktree); \"Add project\" (add-project, folder.badge.plus, .addProject) -> model.chooseProjectFolder(); only when a thread is selected: \"Toggle terminal\" (terminal, terminal, .toggleTerminal) -> runtime.isTerminalVisible.toggle(), \"Toggle changes\" (changes, plusminus, .toggleChanges) -> runtime.toggleDiff(), model.finishActionTitle (finish, model.finishActionSymbol, .finishThread) -> model.finishSelectedThread(); then \"Settings\" (settings, gearshape, .openSettings) -> WindowManager.shared.showSettings().",
+        "Threads: excluding isArchived and isInPanel, filtered by title, sorted by updatedAt descending, limited to 6 with an empty query or 10 with a query; id = thread uuid string, subtitle = project name, symbol \"bubble.left\", runs model.selectedThreadID = thread.id.",
+        "Projects (only with a non-empty query): filtered by name; title \"New thread in \\(project.name)\", subtitle project.path, icon project.icon, symbol \"folder\", runs model.newThread(in: project).",
+        "Ordering: empty needle -> `Array(threads) + matchingActions` (threads then all actions); non-empty -> `matchingActions + Array(threads) + projects`. Result is `Array(ordered.prefix(12))` (line 198). Consequence with an empty query: with a selected thread (7 actions) and 6 or more eligible threads, 6 + 7 = 13 and the last action, \"Settings\", is cut; Settings appears with an empty query only when fewer than 6 threads qualify or no thread is selected (at most 6 + 4 = 10).",
+        "Shortcut labels come from ShortcutStore so a remapped or cleared chord is shown correctly (cleared shows nothing).",
+        "B1->B2: magnifying glass .secondary -> Chrome.secondaryText; no-match text font .system(size: 13) -> .system(.body) and .secondary -> Chrome.secondaryText; row subtitle .secondary -> Chrome.secondaryText; shortcut text .tertiary -> Chrome.secondaryText. The row icon in its unselected state still uses .secondary. No logic change.",
+        "ResultsKey (lines 15-21) holds only query, threads, projects, selectedThreadID and finishActionTitle. It omits model.finishActionSymbol and the ShortcutStore labels, so a finish-symbol change or a chord remap while the palette is open is not shown until one of the key fields changes. The \"Toggle terminal\" and \"Toggle changes\" closures capture `let runtime = model.runtime(for: threadID)` (line 165) resolved when the list was built."
+      ],
+      "unresolved_questions": [
+        "model.runtime(for:) is called while building results whenever a thread is selected; whether it creates a runtime as a side effect is defined in AppModel.",
+        "Whether the selected thread itself is excluded from the thread list: it is not filtered here (only archived and in-panel threads are)."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/Views/RootView.swift",
+      "sha256": "4b2a7b59360fcca67684a48be854da13f89f34018c36263ffdcdc5920ab98a0e",
+      "lines_total": 479,
+      "ranges_read": [[1, 479]],
+      "purpose": "Composes the main window: RootView lays out the resizable, slide-clipped sidebar beside the detail sheet with inset padding, a floating sidebar panel mode, the window backdrop and chrome configurator, the rounded window clip, Genie and row-glide overlays, the command palette overlay, folder/file drop handling and the app alert. DetailView hosts the selected thread's chat column through ThreadColumns, an NSViewRepresentable that keeps up to 8 hidden per-thread hosting views warm and prebuilds neighbours when the user is idle, and falls back to WelcomeView (onboarding with provider checklist) or NoThreadView; the file also defines ProviderChecklist, ProviderStatusRow, OpenProvidersSettingsButton and CopyCommandButton.",
+      "key_symbols": [
+        "struct RootView: View { @Environment(AppModel.self) model; @State private var detailSize: CGSize = .zero }",
+        "@discardableResult private func RootView.handleDrop(_ urls: [URL]) -> Bool",
+        "extension EnvironmentValues { @Entry var chatColumnIsShown = true }",
+        "struct DetailView: View { @Environment(AppModel.self) model; @Environment(WindowLiveResize.self) liveResize; @State prebuilt: [UUID] = []; @State hasPrebuiltTopRows = false; private static let anyInput = CGEventType(rawValue: ~0)! }",
+        "private struct ThreadColumns: NSViewRepresentable { static let topRowsBuiltAtLaunch = 6; let threadID: UUID; let prebuilt: [UUID]; let running: Set<UUID>; let model: AppModel; let liveResize: WindowLiveResize }",
+        "ThreadColumns.makeNSView(context:) -> NSView; updateNSView(_:context:); makeCoordinator() -> Coordinator",
+        "@MainActor final class ThreadColumns.Coordinator { private static let keptLimit = 8; columns: [UUID: FrameHostingView]; order: [UUID]; shown: UUID?; requested: Set<UUID>; retired: [FrameHostingView]; retirement: Task<Void, Never>? }",
+        "Coordinator.show(_ id: UUID, in pane: NSView, model: AppModel, liveResize: WindowLiveResize)",
+        "Coordinator.dropHidden(where goes: (UUID) -> Bool)",
+        "Coordinator.prebuild(_ ids: [UUID], in pane: NSView, model: AppModel, liveResize: WindowLiveResize)",
+        "@discardableResult private func Coordinator.make(_ id: UUID, isShown: Bool, in pane: NSView, model: AppModel, liveResize: WindowLiveResize) -> FrameHostingView",
+        "private static func Coordinator.root(_ id: UUID, isShown: Bool, model: AppModel, liveResize: WindowLiveResize) -> AnyView",
+        "private func Coordinator.drop(_ id: UUID)",
+        "struct WelcomeView: View",
+        "struct ProviderChecklist: View",
+        "private struct ProviderStatusRow: View { let provider: ProviderKind }",
+        "private struct OpenProvidersSettingsButton: View",
+        "struct CopyCommandButton: View { let command: String; @State private var didCopy = false }",
+        "struct NoThreadView: View"
+      ],
+      "calls_into": [
+        "AppModel: sidebar, settings (sidebarFloats, sidebarOnlyFloats, backdropOpacity, activityThreadStyle), isCommandPalettePresented, alert (title, message), addProject(at:), newThread(in:), newThread(), selectedThreadID, runtime(for:), existingRuntime(for:), thread(_:), threads, neighbors(of:), sidebarThreads, projects, chooseProjectFolder(), providers.status(_:)",
+        "Sidebar model: width, renderedWidth, isVisible, noteLaidOutWidth(_:), beginDrag(), drag(by:), endDrag(), toggle(), holdsTrafficLights, isDragging",
+        "SidebarView, SidebarResizeHandle(isActive:onBegin:onChange:onEnd:) and SidebarResizeHandle.hitWidth, FloatingSidebarPanel(area:canClose:action)",
+        "WindowBackdrop(opacity:wallpaper:), WallpaperStore.shared.image, WindowChromeConfigurator(sidebarVisible:sidebarDragging:)",
+        "GenieAnimator.coordinateSpace, GenieLayer, RowGlideLayer, CommandPalette",
+        "Storage.attach(_:to:), AttachmentSource.file, ThreadRuntime.draft.attachments",
+        "ChatView(runtime:), HostedEnvironment(model:liveResize:), FrameHostingView(rootView:), SwitchLatency.note(_:)",
+        "View.detailSheet()",
+        "ChromeSection(title:), ChromeCard, ChromeRow(title:detail:), ChromeVisualPicker(options:selection:), ChromeRowDivider, ActivityThreadStyle.allCases/.title/.detail/.icon",
+        "ProviderKind.allCases, displayName, isAPIKeyBased, installURL, loginCommand; ProviderIcon(provider:size:); status.isChecking, summary, isInstalled, auth (.signedOut)",
+        "Workspace.openTerminal(running:), WindowManager.shared.showSettings(), SettingsNavigation.shared.requestedPage = .providers, ShortcutStore.label(for: .newThread)",
+        "Chrome: trafficLightTop, trafficLightDiameter, sheetInset, panelSlide, windowCornerRadius, secondaryText, primaryText, success, rowButtonLabelHeight"
+      ],
+      "state_owned": [
+        "RootView.detailSize",
+        "DetailView.prebuilt, hasPrebuiltTopRows",
+        "ThreadColumns.Coordinator: columns, order, shown, requested, retired, retirement",
+        "CopyCommandButton.didCopy"
+      ],
+      "side_effects": [
+        "Dropping folders adds each as a project (model.addProject(at:)) and then `model.newThread(in: lastProject)` (line 105), which sets `selectedThreadID = thread.id` (AppModel.swift:614); only after that are dropped files attached, to `model.selectedThreadID`'s draft (lines 106-107). So in a mixed folder-and-file drop the files go to the NEW thread's draft, not to the thread that was selected when the drop happened.",
+        "Alert dismissal sets model.alert = nil",
+        "DetailView task polls CGEventSource idle time and appends prebuild candidates",
+        "Coordinator adds, hides, shows and removes NSHostingView subclasses in the pane; removal deferred 500 ms",
+        "SwitchLatency.note logs prebuild time",
+        "WelcomeView writes settings.activityThreadStyle through its binding",
+        "Provider row Login runs Workspace.openTerminal(running: provider.loginCommand); Install opens provider.installURL; Add key opens Settings on the Providers page",
+        "CopyCommandButton writes the command to NSPasteboard.general"
+      ],
+      "platform_assumptions": [
+        "AppKit NSViewRepresentable hosting per-thread FrameHostingView (NSHostingView-based) subviews with isHidden, autoresizingMask [.width, .height], frame, layoutSubtreeIfNeeded, removeFromSuperview",
+        "Quartz CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: CGEventType(rawValue: ~0)!) (kCGAnyInputEventType) for global idle detection",
+        "NSApp.applicationIconImage shown via Image(nsImage:)",
+        "NSPasteboard.general.clearContents() and setString(_:forType: .string)",
+        "Foundation FileManager.default.fileExists(atPath:isDirectory:) with ObjCBool",
+        "SwiftUI .dropDestination(for: URL.self), .alert(_:isPresented:presenting:actions:message:), .onGeometryChange(for:of:action:), .coordinateSpace(.named(...)), .ignoresSafeArea, @Entry environment values, @Bindable",
+        "macOS traffic lights geometry (Chrome.trafficLightTop + Chrome.trafficLightDiameter) and window corner clipping",
+        "Liquid Glass button styles .glass and .glassProminent, .controlSize(.extraLarge) and .large",
+        "SwiftUI Link(_:destination:) opening an external URL",
+        "SF Symbols: folder.badge.plus, list.bullet, text.alignleft, checkmark.circle.fill, checkmark, terminal, bubble.left.and.text.bubble.right, square.and.pencil",
+        "Text styles .title3, .callout, .body, .subheadline, .footnote, .title2 (macOS defaults 15, 12, 13, 11, 10, 17 pt)",
+        "ContinuousClock for timing"
+      ],
+      "persisted_fields": [
+        "settings.activityThreadStyle (ActivityThreadStyle) is edited here through the Welcome view's picker; persistence and default are defined in the settings model",
+        "Read only here: settings.sidebarFloats, settings.sidebarOnlyFloats, settings.backdropOpacity"
+      ],
+      "ui_elements": [
+        "Sidebar: SidebarView laid out at sidebar.width, clipped to sidebar.renderedWidth (0 when only-floating) aligned trailing so the slide moves the clip; resize handle overlay on its trailing edge (active when not only-floating and sidebar visible), width SidebarResizeHandle.hitWidth, top padding Chrome.trafficLightTop + Chrome.trafficLightDiameter",
+        "Leading-edge resize handle over the whole HStack, active when not only-floating and sidebar hidden, same width and top padding",
+        "Detail: clipped; leading padding 0 when sidebar visible and not only-floating else Chrome.sheetInset; trailing and vertical padding Chrome.sheetInset",
+        "Floating sidebar panel overlay top-leading when floats and detailSize non-zero: FloatingSidebarPanel(area: detailSize, canClose: !onlyFloats) toggling the sidebar; transition .scale(scale: 0.94) combined with .opacity; animation Chrome.panelSlide on floats",
+        "Window: WindowBackdrop(opacity: settings.backdropOpacity, wallpaper: WallpaperStore.shared.image) background; WindowChromeConfigurator background; clipShape RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style: .continuous); overlays GenieLayer, RowGlideLayer, CommandPalette (when presented)",
+        "Alert: title model.alert?.title ?? \"\", single button \"OK\" (role .cancel), message Text(alert.message)",
+        "WelcomeView: ScrollView, VStack(spacing: 30), padding 48, indicators never, bounce basedOnSize; app icon 104 x 104; \"Droppy Code\" .system(size: 34, weight: .semibold); \"The coding app by Droppy. A calm, native home for your coding agents.\" .system(.title3) Chrome.secondaryText (icon/title group spacing 14)",
+        "WelcomeView button: action `model.chooseProjectFolder()` (lines 317-318); label Label(\"Add a project\", systemImage: \"folder.badge.plus\") horizontal padding 6, .glassProminent, .controlSize(.extraLarge); caption \"Or drop a folder anywhere in this window.\" .system(.callout) Chrome.secondaryText (group spacing 10)",
+        "WelcomeView section \"Activity list\": ChromeCard with ChromeRow title \"Project mark\", detail settings.activityThreadStyle.detail, ChromeVisualPicker over ActivityThreadStyle.allCases titles showing \"list.bullet\" for .icon and \"text.alignleft\" otherwise; max width 480",
+        "WelcomeView section \"Providers\": ProviderChecklist; max width 480",
+        "ProviderChecklist: ChromeCard with a ProviderStatusRow per ProviderKind.allCases, ChromeRowDivider between rows",
+        "ProviderStatusRow: HStack(spacing: 12), padding horizontal 16 vertical 11; ProviderIcon size 18 in Chrome.primaryText, frame width 22; name .system(.body); status line \"Checking…\" or status.summary .system(.subheadline) Chrome.secondaryText (VStack spacing 2); trailing: small ProgressView while checking, \"Add key\" or Link \"Install\" (.glass) when not installed, \"Add key\" or Button \"Login\" (.glass) when signed out, else checkmark.circle.fill in Chrome.success",
+        "OpenProvidersSettingsButton: \"Add key\", .glass, help \"Open Settings > Providers\"",
+        "CopyCommandButton: HStack(spacing: 4) Image \"checkmark\" when copied else \"terminal\" .system(.footnote); text \"Copied\" or the command .system(.subheadline, design: .monospaced); label height Chrome.rowButtonLabelHeight; .glass; help \"Copy the sign-in command, then run it in Terminal\"",
+        "NoThreadView: VStack(spacing: 16); Image \"bubble.left.and.text.bubble.right\" .system(size: 46, weight: .light) Chrome.secondaryText; \"Pick a thread or start a new one\" .system(.title2, weight: .medium); Button with action `model.newThread()` (lines 463-464) and label Label(\"New thread\", systemImage: \"square.and.pencil\") .glassProminent .controlSize(.large); chord text from ShortcutStore.label(for: .newThread) .system(.subheadline) Chrome.secondaryText"
+      ],
+      "feature_notes": [
+        "onlyFloats = settings.sidebarFloats && settings.sidebarOnlyFloats; floats = settings.sidebarFloats && (onlyFloats || !sidebar.isVisible). With floating on, the collapsed column hands its list to a panel over the chat instead of the toolbar popover.",
+        "handleDrop: each URL that exists (FileManager.fileExists with isDirectory) is classed as folder or file; every folder goes through `lastProject = model.addProject(at: folder)`; then `if let lastProject { model.newThread(in: lastProject) }` runs BEFORE the files, and newThread(in:) sets `selectedThreadID = thread.id` (AppModel.swift:614); then `if !files.isEmpty, let threadID = model.selectedThreadID { Storage.attach(files.map(AttachmentSource.file), to: Bindable(model.runtime(for: threadID)).draft.attachments) }`. So files attach to whatever is selected after the folder step: the new thread when the drop also had a folder, else the previously selected thread, and nothing when no thread is selected. Returns true if any folder or file was found.",
+        "DetailView: when a thread is selected and exists, running = ids of threads whose existing runtime isRunning; ThreadColumns is shown. onChange of threadID clears prebuilt.",
+        "Prebuild task (id: threadID): `try? await Task.sleep(for: .milliseconds(1500))` (the try? swallows cancellation, so a task cancelled during the wait continues); candidates = model.neighbors(of: threadID); `if !hasPrebuiltTopRows { hasPrebuiltTopRows = true; candidates += model.sidebarThreads.prefix(ThreadColumns.topRowsBuiltAtLaunch).map(\\.id) }` (topRowsBuiltAtLaunch = 6); then `for id in candidates where !Task.isCancelled` waits while the system has had any input within the last 1 s (polling every 300 ms), returns if cancelled or the selected thread is running, appends the id if not the selected thread and not already in prebuilt, then waits 400 ms. Consequence: if the thread changes within 1.5 s of the first run, the cancelled task still sets hasPrebuiltTopRows = true and adds the top rows to its candidates, then its loop skips them all, so the launch top-rows prebuild is spent without building anything and later tasks never add the top rows.",
+        "No selection: WelcomeView if there are no projects else NoThreadView, full frame, .detailSheet().",
+        "ThreadColumns.updateNSView: show the selected column; drop hidden columns whose thread is running, gone, or has no existing runtime; prebuild the requested ids that still exist and are not running.",
+        "Coordinator.show: no-op if already shown; hides the previous column (isHidden true, autoresizingMask [], rootView re-rendered with chatColumnIsShown false); reuses a kept column (rootView with isShown true, frame = pane bounds, autoresizes, unhidden) or makes one; moves the id to the end of order; drops from the front while order.count > 9 (keptLimit 8 + the shown one).",
+        "Coordinator.prebuild: for ids neither requested before nor built, makes a hidden column at pane size, forces layoutSubtreeIfNeeded, logs \"prebuilt <title prefix 24 or ?> in <duration>\" via SwitchLatency.note, then `order.insert(id, at: 0)` and `while order.count > Self.keptLimit + 1 { drop(order[0]) }`; then requested = Set(ids). Because the new id is at index 0, when 9 columns already exist (8 hidden + the shown one) the column just built is itself the one dropped at once, after paying for its build and layout, and `requested = Set(ids)` stops it being built again while it stays requested.",
+        "Hidden columns keep the size they were built at; only the shown one follows the pane size, to avoid per-frame resizes during slides or live resize.",
+        "Coordinator.drop: removes from order and columns, parks the view in retired, cancels any pending retirement and schedules removeFromSuperview of all retired views after 500 ms.",
+        "Column root: AnyView(ChatView(runtime: model.runtime(for: id)).environment(\\.chatColumnIsShown, isShown).modifier(HostedEnvironment(model:liveResize:))).",
+        "ProviderStatusRow precedence: checking -> spinner; not installed -> API-key providers get \"Add key\", others get Link \"Install\" to provider.installURL; signed out -> API-key providers get \"Add key\", others get \"Login\" which opens a terminal running provider.loginCommand; otherwise a green checkmark.",
+        "Add key: WindowManager.shared.showSettings() then SettingsNavigation.shared.requestedPage = .providers.",
+        "CopyCommandButton: each tap clears the pasteboard, sets the command, sets didCopy = true and starts a new, unstored, uncancelled `Task { try? await Task.sleep(for: .seconds(1.4)); didCopy = false }` (lines 435-438). A second tap within 1.4 s is therefore reverted to the command by the first tap's task, earlier than 1.4 s after the second tap. The comment says it used to read \"Copied\" for the rest of the launch. It is declared here but not used in this file.",
+        "NoThreadView chord text is read from ShortcutStore at render so a remap never shows a stale key; hidden when no chord is set.",
+        "B1->B2: typography only, fixed sizes replaced with text styles: Welcome tagline size 15 -> .title3; drop hint size 12 -> .callout; ProviderStatusRow name size 13 -> .body and status size 11 -> .subheadline; CopyCommandButton icon size 10 -> .footnote and text size 11 monospaced -> .subheadline monospaced; NoThreadView title size 17 medium -> .title2 medium; chord text size 11 -> .subheadline. Unchanged fixed sizes: \"Droppy Code\" 34 semibold and the NoThreadView symbol 46 light. No logic change."
+      ],
+      "unresolved_questions": [
+        "FrameHostingView, HostedEnvironment, SwitchLatency, WindowLiveResize and .detailSheet() are defined elsewhere.",
+        "CGEventSource idle detection is system-wide on macOS; a Windows port needs an equivalent (for example GetLastInputInfo), to be confirmed against the port contract.",
+        "Where CopyCommandButton is used is outside this file.",
+        "Whether the text-style switch in 1.6.2 ties into an app text-size setting is not visible in this file."
+      ]
+    }
+  ]
+}

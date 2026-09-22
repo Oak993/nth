@@ -1,0 +1,312 @@
+{
+  "bundle_id": "R2-41",
+  "reader": "R2-41-reader",
+  "files": [
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "fde0544376e91dbfa0259831d5c70a0f547befb53b3e994f327f44659fe15994",
+      "lines_total": 400,
+      "ranges_read": [
+        [
+          1,
+          200
+        ],
+        [
+          201,
+          400
+        ]
+      ],
+      "purpose": "The hand-written release history of Droppy Code in Keep a Changelog 1.1.0 form, newest first, covering 1.0.0 (2026-09-13) through 1.6.2 (2026-09-18) plus an undated `## [Unreleased]` block at the top. Line 5 makes it the machine-read source for two release scripts: scripts/publish_release.sh takes the section whose heading matches the version in project.yml, passes it through `python3 scripts/build_changelog.py --section \"$VERSION\"` (publish_release.sh:21), which promotes every `### ` heading to `## ` (build_changelog.py:126-127 `out.append(\"## \" + line[4:])`), and publishes the result as the GitLab release notes that Settings › About parses into its New features / Bug fixes / Refinements cards, and scripts/build_changelog.py turns every versioned section into website/changelog.json. At B2 it is the only place in the repository that describes, in prose, what 1.6.1 and 1.6.2 changed for the user (concise replies, thread forwarding, custom MCP servers, the inline About release-note cards, renamed Codex and CommandCode plans, the favicon lookup order, persisted Hydra auto-hide) and what has merged but not shipped (Hydra token and timing breakdown, restored design, concurrent native read tools, the token-activity measured/inherited split).",
+      "key_symbols": [
+        "line 1: '# Changelog'",
+        "line 3: format statement: follows Keep a Changelog https://keepachangelog.com/en/1.1.0/; 'versions are the release tags without the `v`'",
+        "line 5: release-tooling contract paragraph (publish_release.sh, build_changelog.py, `## [Unreleased]` skipped by both scripts, `### Thanks` form, `python3 scripts/release_credits.py`)",
+        "line 7: '## [Unreleased]' (### New features line 9, ### Refinements line 12, ### Bug fixes line 17). This is the only section in the file with Refinements before Bug fixes; every versioned section runs New features, Bug fixes, Refinements (e.g. 1.6.1 at 34/37/43, 1.3.0 at 244/260/280).",
+        "line 20: '## [1.6.2] - 2026-09-18' (### New features 22, ### Bug fixes 25, ### Thanks 28)",
+        "line 32: '## [1.6.1] - 2026-09-18' (### New features 34, ### Bug fixes 37, ### Refinements 43)",
+        "line 47: '## [1.6.0] - 2026-09-18' (summary 49, ### New features 51, ### Bug fixes 57, ### Refinements 62, ### Thanks 67)",
+        "line 72: '## [1.5.6] - 2026-09-17'",
+        "line 82: '## [1.5.5] - 2026-09-17'",
+        "line 107: '## [1.5.4] - 2026-09-17'",
+        "line 126: '## [1.5.3] - 2026-09-17'",
+        "line 154: '## [1.5.2] - 2026-09-17'",
+        "line 163: '## [1.5.1] - 2026-09-17'",
+        "line 181: '## [1.5.0] - 2026-09-16'",
+        "line 198: '## [1.4.1] - 2026-09-16'",
+        "line 219: '## [1.4.0] - 2026-09-16'",
+        "line 230: '## [1.3.1] - 2026-09-16'",
+        "line 240: '## [1.3.0] - 2026-09-16'",
+        "line 301: '## [1.2.0] - 2026-09-15'",
+        "line 334: '## [1.1.1] - 2026-09-14'",
+        "line 350: '## [1.1.0] - 2026-09-14'",
+        "line 385: '## [1.0.0] - 2026-09-13'",
+        "subsection headings used: '### New features', '### Bug fixes', '### Refinements', '### Thanks' (a `### Thanks` block only under 1.6.2 and 1.6.0). 1.5.0 also credits a contributor, but inline: line 186 ends 'Contributed by nik1tsyganov.' inside a New features bullet, so build_changelog.py puts it in sections[].items and website/changelog.json's 1.5.0 entry has \"thanks\": [] (json line 302, item at json line 283)."
+      ],
+      "calls_into": [
+        "scripts/publish_release.sh: reads MARKETING_VERSION from project.yml (line 17 `sed -nE 's/^[[:space:]]*MARKETING_VERSION:[[:space:]]*\"([^\"]+)\".*/\\1/p' project.yml | head -1`), runs `python3 scripts/build_changelog.py --section \"$VERSION\" > \"$NOTES\"` (line 21; failure prints 'No ## [$VERSION] section in CHANGELOG.md. Add one before publishing.'), and refuses to publish unless `grep -qE '^## (New features|Bug fixes|Refinements)' \"$NOTES\"` matches (line 30-33, message 'needs at least one of the three headings: ## New features, ## Bug fixes, ## Refinements.'). It then runs `python3 scripts/release_credits.py --check \"$NOTES\"` (line 36). No summary paragraph is required.",
+        "scripts/build_changelog.py: parses this file into website/changelog.json; its RELEASE_RE (line 20 of that script) is `^## \\[(\\d+(?:\\.\\d+)*)\\](?: - (\\d{4}-\\d{2}-\\d{2}))?\\s*$`, so `## [Unreleased]` never matches and is skipped; its strip_emphasis (lines 54-55) deletes every `**`, `__`, `*` and `_` from each bullet (cross-reference read by grep/sed only, file not in this bundle)",
+        "scripts/build_changelog.py extract_section (lines 114-131, the --section mode used for the GitLab notes): trims leading/trailing blank lines, rewrites each line starting `### ` to `## ` + the rest, and passes every other line (the summary paragraph, bullets, the Thanks bullets) through unchanged. Unlike parse_notes it does NOT call strip_emphasis and does NOT reorder sections, so the GitLab release text keeps the file's section order and its underscores and asterisks.",
+        "DroppyCode/App/Views/Settings/AboutUpdateViews.swift UpdateReleaseNotesDigest.parseNotes (lines 100-130): reads the GitLab notes; category(forHeader:) (153-166) strips any number of leading `#`, so it would accept `###` as well as `##`, and maps 'new features'/'new', 'bug fixes'/'fixes'/'bugs', 'refinements'/'improvements'; any other heading such as `## Thanks` sets current = nil (114-118) so its bullets are left out (doc comment 64-66); plain lines such as a summary paragraph are ignored. Sections are emitted in ReleaseNoteCategory.allCases order (line 120; enum order newFeatures, bugFixes, refinements at 12-15) and the cards are laid out with ForEach(ReleaseNoteCategory.allCases) (198), so the About cards never follow file order. strippedInlineMarkdown (180-185) removes only links, `**bold**` and backticks, so underscores survive in-app (e.g. 'self_serve_business_prolite') while backticks are removed; the website keeps backticks but loses underscores.",
+        "scripts/release_credits.py: prints the `### Thanks` block for the changes since the previous tag (line 5)",
+        "project.yml: holds the version (MARKETING_VERSION \"1.6.2\") that publish_release.sh matches against a heading",
+        "website/changelog.json: generated from this file"
+      ],
+      "state_owned": [
+        "No runtime state. Owns the canonical wording of every release note that reaches the GitLab release (and therefore the in-app About cards) and the website."
+      ],
+      "side_effects": [
+        "None by itself. Per line 5, publishing stops until every outside contributor is named in the version's `### Thanks` block, and the next release renames `## [Unreleased]` to its version and date. When the Unreleased block ships with its current order (Refinements line 12 before Bug fixes line 17), the raw GitLab release description keeps that file order (extract_section does not reorder), while the website (SECTION_ORDER = [\"New features\", \"Bug fixes\", \"Refinements\"], build_changelog.py:29) and the in-app About cards (ReleaseNoteCategory.allCases) both show New features, Bug fixes, Refinements."
+      ],
+      "platform_assumptions": [
+        "Every versioned summary paragraph from 1.0.0 to 1.6.0 ends 'Apple silicon, macOS 26 or later. Signed and notarized.'; 1.6.1 and 1.6.2 carry no summary paragraph at all.",
+        "1.6.2: custom MCP server 'secret fields stored in the Keychain' (a Windows port must map to its own secret store, e.g. Credential Manager / DPAPI).",
+        "1.6.1: a macOS 27 AppKit/SwiftUI failure mode: 'a popover's window coming on screen can make the framework's remote view throw from inside the notification that announces it', AppKit catches the exception during a SwiftUI layout pass and stops the app; the fix wraps the app's notification posts to catch the raise, log it 'with the raising observer's frames', and carry on. NotificationCenter/NSException semantics have no Windows equivalent.",
+        "1.6.1: favicon lookup uses DuckDuckGo's icon service first and Google's service as fallback, and removes solid white backgrounds (network services and image processing to replicate).",
+        "1.6.0: project marks may be an emoji or an SF Symbol (SF Symbols are Apple-only; Windows needs a substitute glyph set).",
+        "Older entries name macOS-only mechanisms: Keychain for API keys (1.2.0, 1.1.0), Liquid Glass knob and glass themes (1.2.0, 1.1.0), 'traffic lights' (only 1.2.0, lines 322 and 331; 1.1.1 line 344 says 'the window buttons sat too high beside the chat's chrome; they drop to its centre line as they move over' without the phrase), window drag region and title-bar layout crashes (1.5.0, 1.4.1, 1.5.4), key view loop owned by AppKit (1.3.0), VoiceOver label 'No cap' (1.5.6), disk image drag-to-Applications window (1.5.5), ⌘ shortcuts (1.5.3), iMessage's bubble (1.1.0), native text selection runs (1.5.3)."
+      ],
+      "persisted_fields": [
+        "No app persistence. Document format fields: version heading `## [X.Y.Z] - YYYY-MM-DD`; optional prose summary paragraph under the heading; bullets `- ` under `### New features`, `### Bug fixes`, `### Refinements`; Thanks bullets in the form `- Name (@gitlab-handle): what they did (!MR).`.",
+        "Behavioural persistence facts stated in the notes: 1.6.2 'The Hydra sidebar auto-hide setting persists and defaults to off.'; 1.6.2 custom MCP secret fields stored in the Keychain; 1.6.1 concise replies option in Settings, General takes effect on the next message; 1.6.0 'a new install starts on the compact one' (activity list); 1.5.5 Chronological order and Heads at once 'Off by default'; 1.3.0 'The last Hydra pair is remembered and applied to new chats.'"
+      ],
+      "ui_elements": [
+        "Settings › About cards 'New features', 'Bug fixes', 'Refinements' (1.6.1): each opens its section 'in a card under the row instead of in a popover', notes 'scroll with' the page, and 'tapping the card again, or the card's close button, folds them away'.",
+        "Settings, General: Concise AI replies option (1.6.1), keeps 'replies, code comments and Hydra head work focused', effective on the next message.",
+        "Thread forwarding (1.6.1): 'A thread can also be forwarded to a new thread, carrying its request and context so the work can continue with another model.'",
+        "Codex usage panel plan names (1.6.1): `pro` -> 'Pro 20x' (was 'Pro'; the $200 Pro tier), `prolite` -> 'Pro 5x' (was 'Prolite'), self-serve business Pro Lite -> 'Business Premium' (was 'self_serve_business_prolite').",
+        "CommandCode plan names (1.6.1, line 41): 'CommandCode plan names now match commandcode.ai's tiers, including Go, GOAT, Pro, Provider, Max 10×, Max 20× and Teams Pro' (the list is explicitly partial: 'including'; U+00D7 multiplication sign, unlike Codex's ASCII 'x'); 'an unfamiliar plan ID is still shown in readable words instead of disappearing' ('still': the readable-words fallback already existed and is not new in 1.6.1).",
+        "Custom MCP servers in Settings (1.6.2): added via 'a local command or a remote HTTP address'.",
+        "Hydra panel (Unreleased): 'recorded lead and head tokens by provider and model, with queue, startup, execution and landing timings where available'.",
+        "Token activity grid (Unreleased): 'the line under the grid names how much of the year's total those are' (inherited totals).",
+        "Older strings kept for reference: \"Worked for …\" fold line (1.6.0), 'Cancel' and 'New thread' usage-limit buttons (1.6.0), 'Auto-hide heads in the sidebar' (1.6.0, Settings, Hydra, Heads), 'Heads at once' Off/1-8 with infinity sign read as 'No cap' (1.5.5/1.5.6), 'One panel' / 'A panel each' (1.5.3), 'The chat's last pair' (1.5.0), 'Banked resets · 2 available' (1.4.1), 'Update & restart' (1.1.0), 'Show activity while working' (1.3.0)."
+      ],
+      "feature_notes": [
+        "Unreleased New features (line 10): Hydra's panel shows recorded lead and head tokens by provider and model, with queue, startup, execution and landing timings where available.",
+        "Unreleased Refinements (lines 13-15): 'Restored the previous Droppy Code design and removed the judgment service integration.'; Hydra 'parses streamed delegations incrementally, reuses incremental checkout snapshots and avoids repeated timeline scans while waiting to land edits'; 'Native API providers run up to four independent automatic read tools concurrently and load bounded root project guidelines.'",
+        "Unreleased Bug fixes (line 18): token activity separates measured from inherited: daily totals recorded before spend kept its source are still counted, and the line under the grid states their share of the year's total instead of presenting them as measured.",
+        "Per line 5, Unreleased is 'Work that has merged but not shipped', so these four areas are described as already merged at the B2 commit even though the build is labelled 1.6.2 build 20.",
+        "1.6.2 (lines 20-30): one New feature (custom MCP servers: local command or remote HTTP address, secret fields in the Keychain), one Bug fix (Hydra sidebar auto-hide persists, defaults to off), Thanks: 'Nikita Tsyganov (@nik1tsyganov): the Hydra auto-hide setting (!358).' and 'Bryan Galdámez (@JosueGalRe): custom MCP server definitions and settings (!305).' No summary paragraph.",
+        "1.6.1 (lines 32-45): New features: Concise AI replies option in Settings, General plus thread forwarding. Bug fixes (4): notification-post raise guard (macOS 27 popover, reports of September 18 from the About release-note cards); About cards expand inline; Codex plan names; CommandCode plan names. Refinements (2): favicon lookup DuckDuckGo first, Google fallback, solid white backgrounds removed; moving a thread to another project uses 'the same project-move path everywhere' and 'automatically expands and reveals the moved thread in the sidebar'. No summary paragraph and no Thanks.",
+        "1.6.0 summary (line 49) and items unchanged from B1: Netlify MCP catalog entry, project marks (emoji or SF Symbol), usage-limit Cancel / New thread notice, Auto-hide heads in the sidebar off by default, GitLab 19.4 404 handling with proxy 502, scroll and diff performance fixes, folded finished turns, Chronological order switch removed; Thanks for René (@diazdesandi) (!307, !308), Bryan Galdámez (@JosueGalRe) (!283, !285, !304, !306), Nikita Tsyganov (@nik1tsyganov) (!293).",
+        "Formatting quirks: lines 124-125, 152-153, 161-162, 179-180, 196-197, 217-218, 228-229, 238-239, 299-300, 332-333, 348-349 and 383-384 are double blank lines before the next heading; the file has no trailing blank line (last line 400 is the 1.0.0 'A terminal under every thread.' bullet). Working-tree bytes are CRLF (git index is LF, core.autocrlf=true); the sha256 above is of the CRLF working-tree bytes, 42292 bytes.",
+        "Bullets containing underscores or asterisks lose them when build_changelog.py writes the website JSON (e.g. line 40 `self_serve_business_prolite` and line 68 `search_text`), so this file, not the JSON, is the verbatim source.",
+        "B1->B2: 33 lines added, none removed (367 -> 400 lines). A new `## [Unreleased]` block (New features 1 item, Refinements 3, Bug fixes 1) was inserted at lines 9-18; new headings `## [1.6.2] - 2026-09-18` (lines 20-30, including its two-entry Thanks block) and `## [1.6.1] - 2026-09-18` (line 32) plus 1.6.1's `### New features` item (lines 34-35) were inserted. The three bug fixes that sat under B1's `## [Unreleased]` (notification raise guard, inline About cards, Codex plan names) are now the first three items of 1.6.1's Bug fixes (lines 38-40, text unchanged), followed by a new CommandCode plan-name item (line 41) and a new `### Refinements` with the favicon and thread-move items (lines 43-45). Everything from `## [1.6.0]` down is byte-identical in content.",
+        "Licence history: 1.3.0 Refinements (line 293) already says 'The license is GNU AGPL v3 with attribution.', yet B1's project.yml line 46 still set INFOPLIST_KEY_NSHumanReadableCopyright: \"Droppy Code, the coding app by Droppy. MIT License.\"; so the MIT string in the macOS About panel contradicted the changelog from 1.3.0 until B2 replaced it with the AGPL copyright line. The port's About surface must show the B2 AGPL string."
+      ],
+      "unresolved_questions": [
+        "Resolved: 1.6.1 and 1.6.2 having no summary paragraph is fine for every consumer. publish_release.sh:30 requires only one `^## (New features|Bug fixes|Refinements)` heading, extract_section passes any summary through unchanged, the About parser ignores plain lines, and website/assets/js/changelog.js:302-303 (`var summary = typeof release.summary === \"string\" ? release.summary.trim() : \"\"; if (summary) {`) simply renders no summary paragraph for \"\".",
+        "'Restored the previous Droppy Code design and removed the judgment service integration' names neither the design being restored nor what the 'judgment service' was; the Swift sources and the B1->B2 source diff must define it.",
+        "'load bounded root project guidelines' gives no bound (bytes, lines or file names) and 'up to four independent automatic read tools' does not name which tools count as automatic reads; both must come from the native provider source.",
+        "The build number 1.6.1 shipped with is not recorded here (B1 1.6.0 was build 19, B2 1.6.2 is build 20)."
+      ]
+    },
+    {
+      "path": "DroppyCode.xcodeproj/project.pbxproj",
+      "sha256": "6f0613e59ed7da428ba6ceecf3e8f1cb2438d8592f30351550de9fc56b0b25fc",
+      "lines_total": 375,
+      "ranges_read": [
+        [
+          1,
+          375
+        ]
+      ],
+      "purpose": "The committed Xcode project (old-style plist, header `// !$*UTF8*$!`, archiveVersion 1, objectVersion 77) that XcodeGen generates from project.yml for the one macOS application target DroppyCode. It records the concrete build settings the 1.6.2 build 20 app is compiled with: the SwiftTerm 1.20.0 package link, the three legal files copied as bundle resources, the file-system-synchronized DroppyCode source folder, and four XCBuildConfiguration blocks (project Debug/Release, target Debug/Release) that fix version, bundle identity, signing, architecture and Info.plist keys including the AGPL copyright line shown in the macOS About panel.",
+      "key_symbols": [
+        "PBXBuildFile 0C5E1AD4E1B130D7F6AC8A14 LICENSE in Resources (line 10); 5E7A412B75FC1E7F98E7345E THIRD_PARTY_NOTICES.md in Resources (11); 5F2F518CEF30ADDE0C59C38D TRADEMARK.md in Resources (12); 60662C7E8940020A2244EB93 SwiftTerm in Frameworks, productRef 46198FD9B910732AD71A6686 (13)",
+        "PBXFileReference 407374162B673FE1CFDB0507 TRADEMARK.md (lastKnownFileType net.daringfireball.markdown); AE8B6A92FB544EA3A8C2FF3A LICENSE (no file type); BF08528FE4987FB150391D97 DroppyCode.app (explicitFileType wrapper.application, includeInIndex 0, sourceTree BUILT_PRODUCTS_DIR); F27C3C109E48B14D114F56CA THIRD_PARTY_NOTICES.md (net.daringfireball.markdown) (lines 17-20)",
+        "PBXFileSystemSynchronizedRootGroup D316607E993AEB4CB4FF2F06 /* DroppyCode */ path DroppyCode, empty explicitFileTypes and explicitFolders (lines 24-32)",
+        "PBXFrameworksBuildPhase 0FEDA1B3D9EF0C27157128ED with the SwiftTerm build file (36-43)",
+        "PBXGroup D704310475EAFAAE7FA6AD13 Products; mainGroup E79E0F24BD6C0E578BFB5406 children LICENSE, THIRD_PARTY_NOTICES.md, TRADEMARK.md, DroppyCode, Products (47-65)",
+        "PBXNativeTarget D15F2F8750A508AD043EC141 DroppyCode: buildPhases Sources 6FB0B0F54C3B5B2B02EA0E7E, Resources BE9E6EB86C22850C1861BB64, Frameworks 0FEDA1B3D9EF0C27157128ED; empty buildRules and dependencies; fileSystemSynchronizedGroups D316607E...; packageProductDependencies SwiftTerm; productType com.apple.product-type.application (69-91)",
+        "PBXProject 32D783F101A2C316C4AD2D96: BuildIndependentTargetsInParallel = YES, LastUpgradeCheck = 1430, TargetAttributes DevelopmentTeam = NARHG44L48, developmentRegion en, knownRegions (Base, en), minimizedProjectReferenceProxies = 1, preferredProjectObjectVersion = 77 (95-125)",
+        "PBXResourcesBuildPhase BE9E6EB86C22850C1861BB64 (129-138); PBXSourcesBuildPhase 6FB0B0F54C3B5B2B02EA0E7E with an empty files list (142-148)",
+        "XCBuildConfiguration 159D9F131CCC81DDCD5A09EA Debug (project, 152-220); 1A191CE045894F543A4BC4B6 Release (project, 221-282); 20740E6438C47C1B239165BE Release (target, 283-307); E1E513E524E933F3C8C16C09 Debug (target, 308-331)",
+        "XCConfigurationList 45C29B052842130283C38DF5 (target, defaultConfigurationName Debug) and 6E93EAC4B95FA531E37D24A6 (project, defaultConfigurationName Debug) (335-352)",
+        "XCRemoteSwiftPackageReference DA7BAC145AD453FC5EB71BFD repositoryURL https://github.com/migueldeicaza/SwiftTerm, requirement kind exactVersion, version 1.20.0 (356-363); XCSwiftPackageProductDependency 46198FD9B910732AD71A6686 productName SwiftTerm (367-371)",
+        "rootObject = 32D783F101A2C316C4AD2D96 (line 374)"
+      ],
+      "calls_into": [
+        "SwiftTerm Swift package, https://github.com/migueldeicaza/SwiftTerm, exactVersion 1.20.0, linked in the Frameworks phase",
+        "DroppyCode/ source folder via PBXFileSystemSynchronizedRootGroup (all Swift sources and resources arrive this way; the Sources phase lists nothing)",
+        "DroppyCode/App/Window/DroppyCode-Bridging-Header.h via SWIFT_OBJC_BRIDGING_HEADER (lines 304, 328)",
+        "AppIcon via ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon (lines 286, 311)",
+        "LICENSE, THIRD_PARTY_NOTICES.md, TRADEMARK.md at the repository root, copied as resources",
+        "project.yml, the XcodeGen spec it mirrors"
+      ],
+      "state_owned": [
+        "Build settings only. Project-level Debug: CURRENT_PROJECT_VERSION = 20, MARKETING_VERSION = 1.6.2, ARCHS = arm64, EXCLUDED_ARCHS = x86_64, MACOSX_DEPLOYMENT_TARGET = 26.0, SWIFT_VERSION = 6.0, SWIFT_APPROACHABLE_CONCURRENCY = YES, SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG, GCC_PREPROCESSOR_DEFINITIONS (\"$(inherited)\", \"DEBUG=1\"), GCC_OPTIMIZATION_LEVEL = 0, SWIFT_OPTIMIZATION_LEVEL = \"-Onone\", ENABLE_TESTABILITY = YES, ONLY_ACTIVE_ARCH = YES, DEBUG_INFORMATION_FORMAT = dwarf, MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE, PRODUCT_NAME = \"$(TARGET_NAME)\", SDKROOT = macosx.",
+        "Project-level Release: same versions and arch; DEBUG_INFORMATION_FORMAT = \"dwarf-with-dsym\", ENABLE_NS_ASSERTIONS = NO, MTL_ENABLE_DEBUG_INFO = NO, SWIFT_COMPILATION_MODE = wholemodule, SWIFT_OPTIMIZATION_LEVEL = \"-O\". Keys present in project Debug but absent from Release: ENABLE_TESTABILITY = YES (191), GCC_DYNAMIC_NO_PIC = NO (194), GCC_OPTIMIZATION_LEVEL = 0 (196), GCC_PREPROCESSOR_DEFINITIONS (\"$(inherited)\", \"DEBUG=1\") (197-200), ONLY_ACTIVE_ARCH = YES (211) and SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG (214).",
+        "Target Release: CODE_SIGN_IDENTITY = \"Developer ID Application\", CODE_SIGN_STYLE = Manual, PRODUCT_BUNDLE_IDENTIFIER = iordv.droppycode, PRODUCT_NAME = \"Droppy Code\", INFOPLIST_KEY_CFBundleDisplayName = \"Droppy Code\".",
+        "Target Debug: CODE_SIGN_STYLE = Automatic, PRODUCT_BUNDLE_IDENTIFIER = iordv.droppycode.dev, PRODUCT_NAME = \"Droppy Code Dev\", INFOPLIST_KEY_CFBundleDisplayName = \"Droppy Code Dev\".",
+        "Both target configs: ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon, COMBINE_HIDPI_IMAGES = YES, DEAD_CODE_STRIPPING = YES, ENABLE_HARDENED_RUNTIME = YES, GENERATE_INFOPLIST_FILE = YES, INFOPLIST_KEY_LSApplicationCategoryType = \"public.app-category.developer-tools\", LD_RUNPATH_SEARCH_PATHS (\"$(inherited)\", \"@executable_path/../Frameworks\"), PRODUCT_MODULE_NAME = DroppyCode, SDKROOT = macosx."
+      ],
+      "side_effects": [
+        "Building copies LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md into the app bundle's Resources.",
+        "Resolving the project fetches SwiftTerm 1.20.0 from GitHub.",
+        "GENERATE_INFOPLIST_FILE synthesizes Info.plist: CFBundleShortVersionString 1.6.2, CFBundleVersion 20, CFBundleDisplayName, LSApplicationCategoryType and NSHumanReadableCopyright.",
+        "Release signs with a Developer ID Application identity under Hardened Runtime (notarization prerequisite) and emits a dSYM."
+      ],
+      "platform_assumptions": [
+        "SDKROOT = macosx, MACOSX_DEPLOYMENT_TARGET = 26.0: macOS 26 or later only.",
+        "ARCHS = arm64 with EXCLUDED_ARCHS = x86_64: Apple silicon only (Windows port targets x64).",
+        "Swift 6.0 toolchain, Objective-C bridging header, ARC/modules settings, Metal settings (MTL_FAST_MATH = YES): the whole toolchain is Apple's and is replaced wholesale.",
+        "SwiftTerm (AppKit terminal emulator) must be replaced by a Windows terminal stack (ConPTY plus a terminal renderer).",
+        "Bundle layout (@executable_path/../Frameworks), Info.plist keys, asset-catalog AppIcon, Developer ID signing and Hardened Runtime/notarization have no Windows equivalent; the port needs its own version resource, icon and (unsigned or Authenticode) installer.",
+        "LSApplicationCategoryType public.app-category.developer-tools is a macOS Launch Services category."
+      ],
+      "persisted_fields": [
+        "MARKETING_VERSION = 1.6.2 (lines 208, 271) -> CFBundleShortVersionString. Read at runtime as AppInfo.version (DroppyCode/Core/Support/Text.swift:7, fallback `?? \"1.0.0\"`), compared against the downloaded update's CFBundleShortVersionString in AppUpdater.swift:333-336 ('The downloaded app is version \\(version ?? \"unknown\"), not \\(expectedVersion).'), and written into hang reports by HangWatchdog.swift:92 as `Version <short> (<build>)` with `?` for a missing key.",
+        "CURRENT_PROJECT_VERSION = 20 (lines 187, 256) -> CFBundleVersion. Read as AppInfo.build (Text.swift:8, fallback `?? \"1\"`) and in the HangWatchdog.swift:92 header.",
+        "PRODUCT_BUNDLE_IDENTIFIER = iordv.droppycode (Release, line 300) and iordv.droppycode.dev (Debug, line 324). It scopes UserDefaults.standard (macOS keys defaults by bundle id), and the source compares against the exact string: Text.swift:5 `static let isDevelopment = Bundle.main.bundleIdentifier == \"iordv.droppycode.dev\"`, Text.swift:6 `static let stateDirectoryName = isDevelopment ? \".droppy-code-dev\" : \".droppy-code\"`, used by Storage.swift:43-45 for ~/<stateDirectoryName>/worktrees and ~/<stateDirectoryName>/patches under LoginEnvironment.homeDirectory. isDevelopment also disables update install (AppUpdater.swift:262), background update checks and check() (UpdateChecker.swift:133, 158), and the legacy 'iordv.cody' / 'Cody' migration (LegacyMigration.swift:10), and enables switch-latency logging (SwitchLatency.swift:21). It does NOT key the Keychain or the Application Support folder; both use the display name (next entry).",
+        "INFOPLIST_KEY_CFBundleDisplayName = \"Droppy Code\" (Release, 293) / \"Droppy Code Dev\" (Debug, 317) is also a persistence key: Text.swift:4 `static let name = Bundle.main.object(forInfoDictionaryKey: \"CFBundleDisplayName\") as? String ?? \"Droppy Code\"`. APIKeychain.swift:31,45,61 and MCPKeychain.swift:15,39,55 use `kSecAttrService as String: AppInfo.name` (accounts: the provider account, e.g. 'Command Code API Key', or 'MCP <server> <field>'), and Storage.swift:21-22 puts library.json, threads, attachments and wallpaper under Application Support/<AppInfo.name>; MCPBridgeSource.swift:243 and CommandCodeAPI.swift:443 use '<AppInfo.name>/MCP' and '<AppInfo.name>/CommandCode' there. So Release keeps secrets under Keychain service \"Droppy Code\" and Debug under \"Droppy Code Dev\"; renaming the display name orphans stored API keys, MCP secrets and the library folder. The Windows secret store and data folder must reproduce these names.",
+        "DEVELOPMENT_TEAM = NARHG44L48 (lines 102, 189, 258)"
+      ],
+      "ui_elements": [
+        "INFOPLIST_KEY_CFBundleDisplayName = \"Droppy Code\" (Release, line 293) / \"Droppy Code Dev\" (Debug, line 317): the name in Finder, Dock and menu bar, and via AppInfo.name the main window title (WindowManager.swift:63, 77) and the app menu button (AppCommands.swift:22). It is also the Keychain service and Application Support folder name (see persisted_fields).",
+        "INFOPLIST_KEY_NSHumanReadableCopyright = \"Copyright © 2026 Jordy Spruit (Droppy). Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. GNU AGPL v3.0 with additional attribution terms.\" on both target configs (lines 295, 319): the copyright line the standard macOS About panel shows. The © is stored as raw UTF-8 in the file.",
+        "AppIcon as the app icon."
+      ],
+      "feature_notes": [
+        "Only one target and one product; no test target, no PBXTargetDependency, no extensions.",
+        "The Sources build phase's files list is empty (lines 145-146); sources come only from fileSystemSynchronizedGroups = (D316607E993AEB4CB4FF2F06 /* DroppyCode */).",
+        "The product file reference is named DroppyCode.app (lines 19, 50) while the target's PRODUCT_NAME is \"Droppy Code\" / \"Droppy Code Dev\", so the built bundle is named after PRODUCT_NAME, not the reference path.",
+        "Three warnings are errors: CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR, CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR, GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR; CLANG_WARN_UNGUARDED_AVAILABILITY, GCC_WARN_UNINITIALIZED_AUTOS and CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION are YES_AGGRESSIVE.",
+        "COPY_PHASE_STRIP = NO in both project configs; DEAD_CODE_STRIPPING = YES in both target configs.",
+        "Working-tree bytes are CRLF (index LF, core.autocrlf=true); 14014 bytes.",
+        "B1->B2: exactly six lines changed, line count unchanged at 375: CURRENT_PROJECT_VERSION 19 -> 20 at lines 187 (project Debug) and 256 (project Release); MARKETING_VERSION 1.6.0 -> 1.6.2 at lines 208 and 271; INFOPLIST_KEY_NSHumanReadableCopyright changed at lines 295 (target Release) and 319 (target Debug) from \"Droppy Code, the coding app by Droppy. MIT License.\" to \"Copyright © 2026 Jordy Spruit (Droppy). Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. GNU AGPL v3.0 with additional attribution terms.\". No object IDs, phases, packages or other settings changed.",
+        "SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG (line 214) exists only in project Debug and no target config sets it, so `#if DEBUG` code is compiled only into the Debug (Droppy Code Dev) build. Example: DroppyCode/App/Views/Chat/ThreadTimeline.swift:1707-1709 (`private var tailBuilds = 0`) and 1755-1767, where every 20th tail build is checked against a full build and a mismatch prints 'ThreadTimeline: the tail build differed from a full build after \\(entries.count) entries' and falls back to the full build. Release has no such check."
+      ],
+      "unresolved_questions": [
+        "LastUpgradeCheck = 1430 is older than the objectVersion 77 format; it has no observable effect that this file shows.",
+        "Whether release builds are always produced from this committed pbxproj or regenerated from project.yml first is not stated here."
+      ]
+    },
+    {
+      "path": "project.yml",
+      "sha256": "ccf8ed7edffa278bcc8cfea6c6d96c3e6e49185c976d665c2299db07ffd7ba98",
+      "lines_total": 59,
+      "ranges_read": [
+        [
+          1,
+          59
+        ]
+      ],
+      "purpose": "The XcodeGen spec from which DroppyCode.xcodeproj/project.pbxproj is generated, and the file whose MARKETING_VERSION the release script matches against a CHANGELOG heading. It declares the project name DroppyCode, the SwiftTerm 1.20.0 package, the base build settings (version 1.6.2, build 20, arm64 only, Swift 6.0, macOS 26.0), and the single macOS application target with its synced source folder, the three legal resource files, bundle identity, Info.plist keys and the Debug/Release overrides.",
+      "key_symbols": [
+        "name: DroppyCode (line 1)",
+        "options: bundleIdPrefix: iordv; deploymentTarget.macOS: \"26.0\"; developmentLanguage: en (lines 2-6)",
+        "packages.SwiftTerm: url https://github.com/migueldeicaza/SwiftTerm, exactVersion: 1.20.0 (lines 7-10)",
+        "settings.base: MARKETING_VERSION \"1.6.2\", CURRENT_PROJECT_VERSION \"20\", ARCHS arm64, EXCLUDED_ARCHS x86_64, SWIFT_VERSION \"6.0\", SWIFT_APPROACHABLE_CONCURRENCY YES, DEVELOPMENT_TEAM NARHG44L48, MACOSX_DEPLOYMENT_TARGET \"26.0\" (lines 11-20)",
+        "targets.DroppyCode: type application, platform macOS (lines 22-24)",
+        "sources: DroppyCode (type: syncedFolder); LICENSE, THIRD_PARTY_NOTICES.md, TRADEMARK.md each with buildPhase: resources (lines 25-35)",
+        "dependencies: - package: SwiftTerm (lines 36-37)",
+        "target settings.base (lines 38-51): PRODUCT_NAME \"Droppy Code\", PRODUCT_MODULE_NAME DroppyCode, PRODUCT_BUNDLE_IDENTIFIER iordv.droppycode, GENERATE_INFOPLIST_FILE YES, INFOPLIST_KEY_CFBundleDisplayName \"Droppy Code\", INFOPLIST_KEY_LSApplicationCategoryType public.app-category.developer-tools, INFOPLIST_KEY_NSHumanReadableCopyright (AGPL string), ASSETCATALOG_COMPILER_APPICON_NAME AppIcon, ENABLE_HARDENED_RUNTIME YES, CODE_SIGN_STYLE Automatic, DEAD_CODE_STRIPPING YES, SWIFT_OBJC_BRIDGING_HEADER DroppyCode/App/Window/DroppyCode-Bridging-Header.h",
+        "configs.Debug (lines 53-56): PRODUCT_NAME \"Droppy Code Dev\", PRODUCT_BUNDLE_IDENTIFIER iordv.droppycode.dev, INFOPLIST_KEY_CFBundleDisplayName \"Droppy Code Dev\"",
+        "configs.Release (lines 57-59): CODE_SIGN_STYLE Manual, CODE_SIGN_IDENTITY Developer ID Application"
+      ],
+      "calls_into": [
+        "DroppyCode/ folder (synced), LICENSE, THIRD_PARTY_NOTICES.md, TRADEMARK.md",
+        "SwiftTerm package at https://github.com/migueldeicaza/SwiftTerm exactVersion 1.20.0",
+        "DroppyCode/App/Window/DroppyCode-Bridging-Header.h",
+        "MARKETING_VERSION (line 13) is read by three scripts, all requiring the double-quoted form: scripts/publish_release.sh:17 and scripts/release.sh:19 `sed -nE 's/^[[:space:]]*MARKETING_VERSION:[[:space:]]*\"([^\"]+)\".*/\\1/p' project.yml | head -1`, and scripts/release_credits.py:25 `VERSION_RE = re.compile(r'^\\s*MARKETING_VERSION:\\s*\"([^\"]+)\"\\s*$', re.MULTILINE)` (read at line 37, searched at line 40). An unquoted `MARKETING_VERSION: 1.6.2` yields an empty VERSION in both shell scripts (publish_release.sh would then fail at `build_changelog.py --section \"\"`) and None in release_credits.py."
+      ],
+      "state_owned": [
+        "The authored version pair MARKETING_VERSION \"1.6.2\" / CURRENT_PROJECT_VERSION \"20\" and all authored build settings listed above. The double quotes on lines 13-14 are load-bearing for MARKETING_VERSION: the release scripts' regexes only match a quoted value (see calls_into)."
+      ],
+      "side_effects": [
+        "Running XcodeGen regenerates project.pbxproj from this spec.",
+        "Resource entries copy the three legal files into the app bundle; the package entry makes Xcode fetch SwiftTerm."
+      ],
+      "platform_assumptions": [
+        "platform: macOS, deployment target 26.0, arm64 only, Swift 6.0, XcodeGen syncedFolder (Xcode 16+ project format).",
+        "Developer ID Application signing with Hardened Runtime (notarized direct distribution).",
+        "Objective-C bridging header in DroppyCode/App/Window (AppKit interop).",
+        "SwiftTerm as the terminal emulator; asset-catalog AppIcon; Info.plist keys synthesized by Xcode."
+      ],
+      "persisted_fields": [
+        "MARKETING_VERSION: \"1.6.2\" (line 13); CURRENT_PROJECT_VERSION: \"20\" (line 14)",
+        "PRODUCT_BUNDLE_IDENTIFIER: iordv.droppycode (base, line 42) / iordv.droppycode.dev (Debug, line 55). The source tests the exact string: Text.swift:5 `static let isDevelopment = Bundle.main.bundleIdentifier == \"iordv.droppycode.dev\"`; Text.swift:6 picks `.droppy-code-dev` vs `.droppy-code` as the home-directory state folder (Storage.swift:43-45, worktrees and patches); isDevelopment turns off update install (AppUpdater.swift:262), update checks (UpdateChecker.swift:133, 158) and legacy migration (LegacyMigration.swift:10), and turns on switch-latency logging (SwitchLatency.swift:21).",
+        "INFOPLIST_KEY_CFBundleDisplayName: \"Droppy Code\" (line 44) / \"Droppy Code Dev\" (Debug, line 56) is AppInfo.name (Text.swift:4, fallback \"Droppy Code\"), the Keychain service for API keys and MCP secrets (APIKeychain.swift:31,45,61; MCPKeychain.swift:15,39,55 `kSecAttrService as String: AppInfo.name`) and the Application Support folder name (Storage.swift:21-22). Changing it orphans stored secrets and the library.",
+        "bundleIdPrefix: iordv; DEVELOPMENT_TEAM: NARHG44L48; developmentLanguage: en"
+      ],
+      "ui_elements": [
+        "INFOPLIST_KEY_CFBundleDisplayName: \"Droppy Code\" (base, line 44), \"Droppy Code Dev\" (Debug, line 56): shown name and window title; also a persistence key (see persisted_fields).",
+        "INFOPLIST_KEY_NSHumanReadableCopyright: \"Copyright © 2026 Jordy Spruit (Droppy). Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. GNU AGPL v3.0 with additional attribution terms.\" (line 46)",
+        "Comment lines 28-29: \"The license, the third-party notices and the trademark policy travel with every copy of the app; About shows them under Licenses.\""
+      ],
+      "feature_notes": [
+        "The Debug config overrides exactly three keys (PRODUCT_NAME, PRODUCT_BUNDLE_IDENTIFIER, INFOPLIST_KEY_CFBundleDisplayName) so 'Droppy Code Dev' installs beside the release app; Release overrides exactly two (CODE_SIGN_STYLE Manual, CODE_SIGN_IDENTITY Developer ID Application).",
+        "DEAD_CODE_STRIPPING and ENABLE_HARDENED_RUNTIME sit in target settings.base, so they apply to Debug too.",
+        "The comment at lines 28-29 is a product requirement: LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md ship in every copy and About lists them under Licenses.",
+        "No test target, extension or scheme is declared.",
+        "Working-tree bytes are CRLF (index LF, core.autocrlf=true); 2113 bytes.",
+        "B1->B2: three lines changed, line count unchanged at 59: line 13 MARKETING_VERSION \"1.6.0\" -> \"1.6.2\", line 14 CURRENT_PROJECT_VERSION \"19\" -> \"20\", and line 46 INFOPLIST_KEY_NSHumanReadableCopyright from \"Droppy Code, the coding app by Droppy. MIT License.\" to \"Copyright © 2026 Jordy Spruit (Droppy). Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app. GNU AGPL v3.0 with additional attribution terms.\". These match the six generated-setting changes in project.pbxproj.",
+        "Licence mismatch fixed at B2: B1 line 46 read \"Droppy Code, the coding app by Droppy. MIT License.\" although CHANGELOG 1.3.0 (B2 line 293, B1 line 260) already said 'The license is GNU AGPL v3 with attribution.'."
+      ],
+      "unresolved_questions": [
+        "Which XcodeGen version generated the committed pbxproj is not recorded in this file.",
+        "The version jumped from 1.6.0 build 19 to 1.6.2 build 20 between the baselines; the build number used for 1.6.1 is not recorded here."
+      ]
+    },
+    {
+      "path": "website/changelog.json",
+      "sha256": "8cd4c794c57bc79555900caba5431d44e83b6066b475d883e2650be7f7a351a3",
+      "lines_total": 596,
+      "ranges_read": [
+        [
+          1,
+          300
+        ],
+        [
+          301,
+          596
+        ]
+      ],
+      "purpose": "Generated website data: scripts/build_changelog.py (json.dumps with indent=2, ensure_ascii=False, trailing newline) rewrites it from the versioned sections of CHANGELOG.md, and website/assets/js/changelog.js line 510 fetches it with fetch(\"changelog.json\", { cache: \"no-cache\" }) to render the site's changelog page. At B2 it lists 18 releases, 1.6.2 down to 1.0.0, each with version, date, platform \"mac\", summary, ordered sections and a thanks array, and it omits the CHANGELOG's Unreleased block.",
+      "key_symbols": [
+        "generated_at: \"2026-09-18T21:18:49.770425+00:00\" (line 2)",
+        "releases[] (line 3), 18 objects",
+        "releases[].version, .date (YYYY-MM-DD), .platform (always \"mac\"), .summary, .sections[] {title, items[]}, .thanks[]",
+        "sections[].title values only 'New features', 'Bug fixes', 'Refinements', in that order when present"
+      ],
+      "calls_into": [
+        "Produced by scripts/build_changelog.py from CHANGELOG.md (not in this bundle; relevant lines 18, 20, 54-55, 96-111, 139-172 inspected as cross-reference)",
+        "Consumed by website/assets/js/changelog.js (fetch at line 510, error log '[changelog] failed to load changelog.json:' at line 521) and referenced in a comment in website/changelog.html line 7; changelog.js:302-303 skips the summary paragraph when summary is empty after trim."
+      ],
+      "state_owned": [
+        "Static data only. generated_at is datetime.now(timezone.utc).isoformat() at generation time."
+      ],
+      "side_effects": [
+        "None; a static file served by the website."
+      ],
+      "platform_assumptions": [
+        "Every release has \"platform\": \"mac\" (hard-coded by the generator).",
+        "Content repeats the CHANGELOG's macOS specifics: Keychain (1.6.2 custom MCP secrets, 1.2.0, 1.1.0), macOS 27 popover/AppKit exception (1.6.1), SF Symbol project marks (1.6.0), Liquid Glass, traffic lights, ⌘ chords, VoiceOver, disk image, 'Apple silicon, macOS 26 or later. Signed and notarized.' summaries."
+      ],
+      "persisted_fields": [
+        "Top level: generated_at (ISO 8601 with microseconds and +00:00), releases (array).",
+        "Per release: version (string), date (string YYYY-MM-DD), platform (\"mac\"), summary (string, \"\" when the CHANGELOG version has no prose paragraph), sections (array of {title, items}; empty sections omitted), thanks (array of strings, [] when none)."
+      ],
+      "ui_elements": [
+        "Order in the file, newest first: 1.6.2, 1.6.1, 1.6.0 (all 2026-09-18), 1.5.6, 1.5.5, 1.5.4, 1.5.3, 1.5.2, 1.5.1 (2026-09-17), 1.5.0, 1.4.1, 1.4.0, 1.3.1, 1.3.0 (2026-09-16), 1.2.0 (2026-09-15), 1.1.1, 1.1.0 (2026-09-14), 1.0.0 (2026-09-13).",
+        "Item counts: 1.6.2 = 2 (New features 1, Bug fixes 1) + 2 thanks; 1.6.1 = 7 (1/4/2), 0 thanks; 1.6.0 = 10 (4/3/3) + 3 thanks; 1.5.6 = 2; 1.5.5 = 15; 1.5.4 = 8; 1.5.3 = 17; 1.5.2 = 2; 1.5.1 = 9; 1.5.0 = 6; 1.4.1 = 12; 1.4.0 = 2; 1.3.1 = 3; 1.3.0 = 50; 1.2.0 = 22; 1.1.1 = 5; 1.1.0 = 24; 1.0.0 = 11.",
+        "1.6.2 and 1.6.1 have summary \"\"; every other release has a prose summary.",
+        "Non-ASCII kept literally (ensure_ascii=False): '›', '…', '×', '·', '⌘', 'é' (René, Galdámez)."
+      ],
+      "feature_notes": [
+        "1.6.2 entry (lines 4-27): New features 'Custom MCP servers can be added in Settings using a local command or a remote HTTP address, with secret fields stored in the Keychain.'; Bug fixes 'The Hydra sidebar auto-hide setting persists and defaults to off.'; thanks 'Nikita Tsyganov (@nik1tsyganov): the Hydra auto-hide setting (!358).' and 'Bryan Galdámez (@JosueGalRe): custom MCP server definitions and settings (!305).'",
+        "1.6.1 entry (lines 28-58): the same seven items as CHANGELOG.md lines 35-45, in New features / Bug fixes / Refinements order.",
+        "Generator artefact: strip_emphasis removes every underscore and asterisk, so line 45 reads \"selfservebusinessprolite\" where CHANGELOG.md line 40 has \"self_serve_business_prolite\", and line 92 reads `searchtext` where CHANGELOG.md line 68 has `search_text`. Backticks survive (`pro`, `prolite`, `--`, `saveNow`, `WorkingTreeWatch`). A port reproducing the site or About text should take wording from CHANGELOG.md.",
+        "The CHANGELOG's `## [Unreleased]` block (Hydra token/timing panel, restored design, concurrent native read tools, token-activity measured/inherited split) is absent, because RELEASE_RE only matches numeric versions.",
+        "Releases 1.6.0 down to 1.0.0 (lines 59-594) are unchanged in content from B1.",
+        "Working-tree bytes are CRLF (index LF, core.autocrlf=true); 48857 bytes; the file ends with '}' and a newline at line 596.",
+        "B1->B2: 55 lines added and 1 changed (541 -> 596 lines). generated_at changed from \"2026-09-18T17:57:43.854565+00:00\" to \"2026-09-18T21:18:49.770425+00:00\" (line 2), and two release objects were inserted at the head of releases: 1.6.2 (lines 4-27, 2 items, 2 thanks) and 1.6.1 (lines 28-58, 7 items, no thanks), both dated 2026-09-18 with empty summaries. Release count went from 16 to 18; nothing below 1.6.0's opening brace changed.",
+        "1.5.0 (json line 275) has \"thanks\": [] (line 302) although its New features item at line 283 ends 'Contributed by nik1tsyganov.': the CHANGELOG credits inline (CHANGELOG.md:186) rather than under `### Thanks`, so the generator keeps it as an item."
+      ],
+      "unresolved_questions": [
+        "Resolved: website/assets/js/changelog.js:302-303 `var summary = typeof release.summary === \"string\" ? release.summary.trim() : \"\"; if (summary) {` renders the summary <p class=\"changelog-entry__summary\"> only when non-empty, so 1.6.2 and 1.6.1 simply show no summary.",
+        "The underscore stripping looks like an unintended generator side effect rather than intended wording; nothing in this file says which is intended."
+      ]
+    }
+  ]
+}

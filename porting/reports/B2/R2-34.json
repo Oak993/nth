@@ -1,0 +1,156 @@
+{
+  "bundle_id": "R2-34",
+  "reader": "R2-34-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/Store/TokenLedger.swift",
+      "sha256": "8fef606154126adacd34e63aba41bff810e02cceda7f1ec0183a1cd67d65afde",
+      "lines_total": 707,
+      "ranges_read": [
+        [
+          1,
+          360
+        ],
+        [
+          361,
+          707
+        ]
+      ],
+      "purpose": "Holds the whole data side of the Token activity heatmap shown at the top of Settings, General: a per-session delta tracker (TokenSpendTracker) that turns cumulative provider counters into per-event spend, and the @MainActor @Observable singleton TokenLedger that sums live spend per local day, persists it to token-activity-live-v2.json with a coalesced write (one pending save lands 2 s after the first record following the previous save; later records do not reschedule it, so this is a throttle, not a resetting debounce), and merges it with a once-per-process background history scan of Codex rollout files (started only by TokenActivitySection.swift:97 `.task { await ledger.refreshIfNeeded() }`, i.e. the first time the Token activity section appears, never at app launch) under ~/.codex/sessions and ~/.codex/archived_sessions. The Codex scan reads only the last 131,072 bytes of each .jsonl for the final token_count event, subtracts the total the file inherited from a resumed thread (read from the first token_count within the first 8 MiB), caches per-path fingerprints (mtime, size, tokens, day, identity) in token-activity-codex-v3.json, skips files modified at or after launchDate (the Date() taken when the lazily created TokenLedger.shared singleton is first touched, not process start), and reconciles live Codex spend recorded by earlier processes per rollout session id so nothing is counted twice. It also defines TokenActivityMode (Daily/Weekly/Cumulative) and TokenActivityGrid.build, which lays the current calendar year (Jan 1 to Dec 31) out as Sunday-first 7-row week columns with per-mode display values, a max value and English month ticks.",
+      "key_symbols": [
+        "struct TokenSpendTracker { private var lastTotal = 0; private var seeded = false }",
+        "mutating func TokenSpendTracker.spend(total: Int, before: Int = 0) -> Int  // first call seeds lastTotal = max(0, min(total, before)); returns max(0, total - lastTotal); defer sets lastTotal = max(0, total)",
+        "mutating func TokenSpendTracker.seedBaseline(total: Int)  // guard !seeded; seeded = true; lastTotal = max(0, total)",
+        "@MainActor @Observable final class TokenLedger",
+        "static let TokenLedger.shared = TokenLedger()",
+        "private(set) var dailyTotals: [String: Int] = [:]",
+        "private(set) var legacyDaily: [String: Int] = [:]",
+        "var uncertainTokensThisYear: Int  // sum of legacyDaily values whose key hasPrefix String(format: \"%04d-\", current year)",
+        "private static let legacyLiveDefaultsKey = \"droppycode.tokenActivity.liveDaily\"",
+        "private static let defaults: UserDefaults = CaptureRun.defaults ?? .standard",
+        "private var state = LiveSpendState()",
+        "private var historyDaily: [String: Int] = [:]",
+        "private var didStartLoad = false",
+        "@ObservationIgnored private var liveSave: Task<Void, Never>?",
+        "private let launchDate = Date()",
+        "private init()  // state = LiveSpendStateStore.load(defaults: Self.defaults); legacyDaily = state.legacyDaily; dailyTotals = mergedTotals()",
+        "func record(spend: Int, on date: Date = Date())",
+        "func record(_ spend: TokenSpend, on date: Date = Date())  // uses spend.totalTokens",
+        "func record(codexSpend spend: Int, rolloutID: String, on date: Date = Date())  // returns silently when rolloutID is empty; lowercases the id",
+        "private func record(spend: Int, codexRollout: String?, on date: Date)",
+        "func flushLiveSpend()",
+        "func refreshIfNeeded() async",
+        "private func mergedTotals() -> [String: Int]  // legacyDaily + state.daily + historyDaily",
+        "nonisolated static func dayKey(for date: Date) -> String  // Calendar.current, \"%04d-%02d-%02d\"",
+        "private struct CodexFileFingerprint: Sendable, Codable { var mtime: Double; var size: UInt64; var tokens: Int; var day: String; var identity: String = \"\" }",
+        "CodexFileFingerprint.init(mtime: Double, size: UInt64, tokens: Int, day: String, identity: String)",
+        "CodexFileFingerprint.init?(dict: [String: Any], path: String)  // legacy defaults migration",
+        "CodexFileFingerprint.init(from decoder: Decoder) throws  // mtime and size required; tokens default 0, day default \"\", identity default \"\"",
+        "static func CodexFileFingerprint.rolloutIdentity(path: String) -> String",
+        "private enum CodexFingerprintStore { legacyDefaultsKey = \"droppycode.tokenActivity.codexFiles\"; fileURL = Storage.root/token-activity-codex-v3.json; static func load() -> [String: CodexFileFingerprint]; static func save(_:) }",
+        "private struct LiveSpendState: Codable, Sendable { var daily: [String: Int]; var settledCodex: [String: Int]; var liveCodex: [String: Int]; var legacyDaily: [String: Int] }  // all default [:]; lenient decode",
+        "private enum LiveSpendStateStore { fileURL = Storage.root/token-activity-live-v2.json; static func load(defaults: UserDefaults) -> LiveSpendState; static func save(_ state: LiveSpendState) }",
+        "private enum TokenHistoryScanner",
+        "struct TokenHistoryScanner.Result: Sendable { var daily: [String: Int]; var fingerprints: [String: CodexFileFingerprint]; var identities: Set<String> }",
+        "private static let tailBytes = 131_072",
+        "private static let historyMonths = 12",
+        "private static let headBytes = 8 * 1_048_576",
+        "static func scanCodexHistory(cached: [String: CodexFileFingerprint], liveCutoff: Date, settledLive: [String: Int]) -> Result",
+        "private static func reconcile(_ contributions: [String: [(day: String, tokens: Int)]], settledLive: [String: Int]) -> [String: Int]",
+        "private static var codexDirectories: [URL]  // ~/.codex/sessions, ~/.codex/archived_sessions",
+        "private static func inheritedTotal(at url: URL) -> Int",
+        "private static func tailContribution(at url: URL) -> (tokens: Int, day: String)?",
+        "private static func eventDate(from stamp: String) -> Date?  // ISO8601.date(from: stamp)",
+        "enum TokenActivityMode: String, Sendable, CaseIterable { case daily; case weekly; case cumulative; var title: String }",
+        "struct TokenActivityGrid { var columns: [[Date?]]; var values: [[Int]]; var maxValue: Int; var monthTicks: [(label: String, column: Int)]; var tomorrow: Date }",
+        "static let TokenActivityGrid.rows = 7; static let TokenActivityGrid.months = 12",
+        "private static let TokenActivityGrid.monthNames = [\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\"]",
+        "static func TokenActivityGrid.build(daily: [String: Int], mode: TokenActivityMode, now: Date = Date()) -> TokenActivityGrid"
+      ],
+      "calls_into": [
+        "CaptureRun.defaults (DroppyCode/Core/Support/CaptureRun.swift) for the capture-run UserDefaults suite, falling back to .standard",
+        "Storage.root (DroppyCode/Services/Store/Storage.swift) as the directory for token-activity-live-v2.json and the token-activity-codex*.json files",
+        "ISO8601.date(from:) (DroppyCode/Core/Support/ISO8601.swift, B2): tries Date.ISO8601FormatStyle(includingFractionalSeconds: true) then Date.ISO8601FormatStyle()",
+        "KeyedDecodingContainer.value(_:default:) (DroppyCode/Core/Support/Coding.swift): ((try? decodeIfPresent) ?? nil) ?? fallback, used by the lenient decoders of CodexFileFingerprint and LiveSpendState",
+        "TokenSpend.totalTokens (DroppyCode/Core/Models/TokenSpend.swift)",
+        "Foundation: FileManager (enumerator, fileExists, removeItem, homeDirectoryForCurrentUser), FileHandle, JSONSerialization, JSONEncoder/JSONDecoder, UserDefaults, Calendar, Task.detached, Task.sleep",
+        "Callers (not in this file, verified by grep): AppDelegate.swift:52 TokenLedger.shared.flushLiveSpend(); CodexSession.swift:671 record(codexSpend:rolloutID:); ClaudeSession.swift:584, AntigravitySession.swift:310, CommandCodeSession.swift:348, CopilotSession.swift:547, OpenAICompatibleSession.swift:491 record(spend:); TokenActivitySection.swift:38 @State private var ledger = TokenLedger.shared, :91 sums dailyTotals.values and reads uncertainTokensThisYear, :93-95 TokenActivityGrid.build, :97 .task { await ledger.refreshIfNeeded() } (the only refreshIfNeeded call site; TokenActivitySection() is placed at SettingsView.swift:314 in GeneralSettingsPage). record(_ spend: TokenSpend, on:) has no caller in B2 (ClaudeSession.swift:584 passes spend.totalTokens to record(spend:)). TokenSpendTracker users: CodexSession.swift:43 spendTracker, CodexSession.swift:48 headSpend: [String: TokenSpendTracker] and :618 one tracker per head (headSpend[head] ?? TokenSpendTracker()), AntigravitySession.swift:31 spendTracker"
+      ],
+      "state_owned": [
+        "TokenSpendTracker per instance: lastTotal (Int, 0), seeded (Bool, false)",
+        "TokenLedger.shared singleton (main actor, observable): dailyTotals (merged view), legacyDaily, state: LiveSpendState, historyDaily (scan result), didStartLoad (scan runs once per process), liveSave (the single pending coalesced write task, observation-ignored), launchDate (`private let launchDate = Date()`, evaluated when `static let shared = TokenLedger()` is first accessed; Swift static lets are lazy, so this is the first touch of TokenLedger.shared, e.g. a provider record(...), TokenActivitySection.swift:38 `@State private var ledger = TokenLedger.shared`, or AppDelegate.swift:52 flushLiveSpend in applicationWillTerminate; it is NOT process start. It is the live cutoff for the scan)",
+        "LiveSpendState: daily (live spend per local day, all providers), settledCodex (live Codex spend of earlier processes per rollout identity), liveCodex (this process's live Codex spend per identity), legacyDaily (v1 per-day values)",
+        "Codex fingerprint cache keyed by absolute file path, loaded and saved inside the detached scan task",
+        "Nothing in this file prunes state.daily or legacyDaily (nor settledCodex): lines 131 and 186 only add, so dailyTotals holds every day ever recorded live, across all years, while historyDaily only covers rollouts whose mtime is within the last 12 months. TokenActivitySection.swift:91 legend(total: ledger.dailyTotals.values.reduce(0, +), ...) sums all years, not just the grid year."
+      ],
+      "side_effects": [
+        "init: reads token-activity-live-v2.json from Storage.root; if absent or undecodable reads UserDefaults key \"droppycode.tokenActivity.liveDaily\" (from CaptureRun.defaults ?? .standard) as [String: Int] into legacyDaily and leaves that key on disk. Any liveCodex in the loaded file is added into settledCodex and liveCodex is cleared (in memory; persisted on the next save).",
+        "record: mutates state.daily and dailyTotals (observable, redraws Settings), adds to state.liveCodex when a Codex rollout id is given, and schedules at most one pending save: Task { @MainActor } sleeping 2 seconds, then liveSave = nil and LiveSpendStateStore.save(state). Further records during the 2 s window do not reschedule; they ride the pending save.",
+        "flushLiveSpend: only when a save is pending, cancels it, clears liveSave and saves synchronously (called from AppDelegate on quit).",
+        "LiveSpendStateStore.save / CodexFingerprintStore.save: JSONEncoder().encode then data.write(to:options: .atomic); errors swallowed with try?.",
+        "CodexFingerprintStore.load: deletes Storage.root/token-activity-codex.json if it exists (not migrated); if v3 is missing OR fails to decode and token-activity-codex-v2.json decodes, fills empty identities from the path, deletes the v2 file and writes v3; else migrates UserDefaults.standard dictionary \"droppycode.tokenActivity.codexFiles\" (removing the key) and writes v3; when v3, v2 and the defaults key all fail it returns [:] without writing anything.",
+        "refreshIfNeeded (only call site in B2: TokenActivitySection.swift:97 `.task { await ledger.refreshIfNeeded() }`, so the scan and the v3 fingerprint write happen the first time the Token activity section of Settings, General appears, not at launch): once per process spawns Task.detached(priority: .utility) that enumerates ~/.codex/sessions and ~/.codex/archived_sessions recursively (skipsHiddenFiles), opens and reads file tails and heads, and rewrites token-activity-codex-v3.json; then sets historyDaily and recomputes dailyTotals on the main actor."
+      ],
+      "platform_assumptions": [
+        "Observation framework @Observable and @ObservationIgnored on a @MainActor class; a Windows port needs an equivalent observable store driving the heatmap redraw.",
+        "Swift concurrency: @MainActor isolation, Task { @MainActor [weak self] } with Task.sleep(for: .seconds(2)) coalesced write (guard liveSave == nil, never rescheduled), Task.detached(priority: .utility) for the scan, Sendable value types.",
+        "UserDefaults (macOS preferences plist) for the legacy keys \"droppycode.tokenActivity.liveDaily\" (via CaptureRun.defaults ?? .standard) and \"droppycode.tokenActivity.codexFiles\" (always UserDefaults.standard); a Windows port has no plist and must decide whether these legacy migrations exist at all.",
+        "Storage.root (Application Support on macOS, per the file's comment 'in Application Support instead, beside the library') for token-activity-live-v2.json, token-activity-codex-v3.json and legacy token-activity-codex-v2.json / token-activity-codex.json.",
+        "FileManager.default.homeDirectoryForCurrentUser + \".codex/sessions\" and \".codex/archived_sessions\" (forward-slash relative components); on Windows this maps to %USERPROFILE%\\.codex\\... CODEX_HOME is not consulted here.",
+        "FileManager.enumerator(at:includingPropertiesForKeys: [.contentModificationDateKey, .fileSizeKey], options: [.skipsHiddenFiles]); hidden-file semantics differ on Windows (dot-prefix vs hidden attribute).",
+        "URL.resourceValues contentModificationDate compared by exact Double equality of timeIntervalSince1970 against the cached mtime; Windows file time resolution (100 ns) and conversion must be stable across runs or every file rescans.",
+        "URL.path used as the fingerprint key (absolute POSIX path on macOS); on Windows keys would be backslash paths, and case-insensitive file systems may produce duplicates if casing varies.",
+        "(path as NSString).lastPathComponent and String.range(of:options: [.regularExpression, .backwards]) for the UUID pattern.",
+        "FileHandle(forReadingFrom:), seekToEnd, seek(toOffset:), readToEnd, read(upToCount:), close.",
+        "JSONSerialization.jsonObject with NSNumber bridging for total_tokens; JSONEncoder/JSONDecoder default (non-pretty, unsorted keys) for persisted files.",
+        "Calendar.current for dayKey, the 12-month cutoff and uncertainTokensThisYear; Calendar(identifier: .gregorian) with firstWeekday = 1 for the grid. dayKey reads year/month/day from Calendar.current, which on macOS may be non-Gregorian; a port should mirror local-time Gregorian behavior.",
+        "String(format:) with %04d/%02d for day keys.",
+        "Date.ISO8601FormatStyle (through the ISO8601 helper) for event timestamps.",
+        "Swift `static let shared` is lazily initialised on first access, which fixes launchDate; a port must take the live cutoff at the same first-touch moment of the ledger, not at process start.",
+        "tailContribution splits a Swift String with text.split(separator: \"\\n\"); in Swift \"\\r\\n\" is one Character not equal to \"\\n\", so a CRLF-terminated rollout is not split: the whole tail is one line, JSON parsing fails and the function returns nil. inheritedTotal instead splits raw bytes on 0x0A (buffer[start...].firstIndex(of: 0x0A)) and JSONSerialization tolerates the trailing \\r. A JS split(\"\\n\") port would accept CRLF files in the tail that upstream rejects."
+      ],
+      "persisted_fields": [
+        "File Storage.root/token-activity-live-v2.json: JSONEncoder output of LiveSpendState, object with keys \"daily\" ({\"YYYY-MM-DD\": Int}), \"settledCodex\" ({lowercased rollout identity: Int}), \"liveCodex\" ({identity: Int}), \"legacyDaily\" ({\"YYYY-MM-DD\": Int}). Every key optional on decode, default [:] (lenient container.value). Written atomically 2 s after the first record following a save (coalesced; guard liveSave == nil, not rescheduled) or on flushLiveSpend. Leniency is per field, not per entry: container.value(.daily, default: [:]) is ((try? decodeIfPresent(T.self, forKey: key)) ?? nil) ?? fallback() (Coding.swift:5-7), so one non-Int value inside \"daily\", \"settledCodex\", \"liveCodex\" or \"legacyDaily\" empties that whole map, and the next LiveSpendStateStore.save persists the loss. If the file exists but JSONDecoder fails outright, load uses LiveSpendState() (plus the legacy defaults) and the next save overwrites the corrupt file, losing its daily, settledCodex and liveCodex.",
+        "File Storage.root/token-activity-codex-v3.json: JSON object keyed by absolute file path, each value {\"mtime\": Double (seconds since 1970), \"size\": UInt64, \"tokens\": Int, \"day\": \"YYYY-MM-DD\" or \"\", \"identity\": String}. Each entry's init(from:) uses try container.decode for mtime and size (throws when missing); tokens default 0, day default \"\", identity default \"\". The file is decoded as a whole [String: CodexFileFingerprint] with try? JSONDecoder().decode (lines 285-288), so a single entry without \"mtime\" or \"size\" fails the whole decode: load then falls through to the v2 file, then UserDefaults, then return [:], and the next scan re-tails every file and overwrites v3. Negative results are cached too (lines 440-449): a file whose tail has no usable token_count is stored with tokens: parsed?.tokens ?? 0, day: parsed?.day ?? \"\" (also when own growth clamps to 0) and is not re-read until its mtime or size changes. size is UInt64(values.fileSize ?? 0) (line 429), so a missing fileSize is cached and compared as 0. Paths not seen in the latest scan are dropped before save.",
+        "Legacy file Storage.root/token-activity-codex-v2.json: same shape without reliable identity; migrated to v3 (identity from path), then deleted.",
+        "Legacy file Storage.root/token-activity-codex.json: first shape, deleted on load without migration (it counted a resumed thread's history once per file).",
+        "Legacy UserDefaults.standard key \"droppycode.tokenActivity.codexFiles\": [String: [String: Any]] with \"mtime\" (Double), \"size\" (NSNumber or Int, required), \"tokens\" (NSNumber or Int, default 0), \"day\" (String, required), optional \"identity\" (String); migrated then removed.",
+        "Legacy UserDefaults key \"droppycode.tokenActivity.liveDaily\" (suite CaptureRun.defaults ?? .standard): [String: Int] per-day mixed-provider totals; read only when token-activity-live-v2.json is missing or undecodable, copied into legacyDaily, never removed. The read (line 367) is defaults.dictionary(forKey:) as? [String: Int] ?? [:], an all-or-nothing cast: any value that is not an Int drops every legacy day.",
+        "Day key format: \"%04d-%02d-%02d\" from Calendar.current year/month/day (missing components become 0)."
+      ],
+      "ui_elements": [
+        "No views are drawn in this file; it supplies the model for TokenActivitySection.swift.",
+        "TokenActivityMode titles, verbatim: .daily \"Daily\", .weekly \"Weekly\", .cumulative \"Cumulative\"; CaseIterable order daily, weekly, cumulative.",
+        "Grid geometry constants: rows = 7 (Sunday-first rows, calendar.firstWeekday = 1), months = 12; one column per week from the Sunday on or before Jan 1 through the week holding Dec 31.",
+        "Month tick labels, fixed English: \"Jan\" \"Feb\" \"Mar\" \"Apr\" \"May\" \"Jun\" \"Jul\" \"Aug\" \"Sep\" \"Oct\" \"Nov\" \"Dec\"; one tick per month at column = (days from gridStart to the month's first day) / 7, appended only when column < columns.count.",
+        "Cells outside the year are nil; future days stay in the grid (the canvas uses `tomorrow` to draw them faint); no colours or animations are defined here."
+      ],
+      "feature_notes": [
+        "TokenSpendTracker.spend: first call seeds lastTotal to max(0, min(total, before)), so the part of the first total at or below `before` is not spend. A total lower than the previous one returns 0 and the baseline drops to the new total (defer sets lastTotal = max(0, total)), so growth after a compaction or reused session counts from there.",
+        "TokenSpendTracker.seedBaseline(total:) is a no-op once seeded; otherwise marks seeded and sets lastTotal = max(0, total) without returning spend (for resumed sessions whose first total is inherited history).",
+        "record(spend:...) ignores spend <= 0. Codex spend with an empty rolloutID is dropped entirely (comment: 'Without identity, only the rollout scan can own the daily contribution.'). Codex rollout ids are lowercased before use as keys.",
+        "Coalesced write, not a resetting debounce (the source comment \"waits for a lull\" at line 137 is inaccurate; follow the code): guard liveSave == nil else { return }, so a single pending save lands 2 s after the first record following the previous save even while records keep arriving; the Task sleeps 2 seconds, then guard let self, !Task.isCancelled, sets liveSave = nil and saves the whole state.",
+        "refreshIfNeeded runs once per process (didStartLoad). It passes state.settledCodex (earlier processes only; this process's liveCodex is excluded because its rollouts are modified after launch and skipped).",
+        "Scan filter: only files with pathExtension == \"jsonl\", readable resource values, mtime >= now minus 12 months (Calendar.current, fallback Date.distantPast) and mtime < launchDate (launchDate = first access of the lazy TokenLedger.shared, not process start).",
+        "Cache hit when cached mtime == mtime.timeIntervalSince1970 and cached size == size: contributes (known.day, known.tokens) if tokens > 0 under known.identity (or path-derived identity if empty) without opening the file.",
+        "rolloutIdentity: last path component searched backwards for the regex \"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\", lowercased; if no match the full path is the identity.",
+        "tailContribution: seeks to max(0, size - 131072), reads to end, decodes lossy UTF-8, walks lines from last to first (text.split(separator: \"\\n\"), so CRLF lines are not split; see platform_assumptions); takes the first (i.e. latest) line containing \"\\\"token_count\\\"\" that parses as JSON with payload.info.total_token_usage.total_tokens > 0 and a timestamp parsed by ISO8601.date(from:) into a non-empty day key; lines failing any step are skipped. Returns (max(0, total - inheritedTotal(at:)), day) or nil.",
+        "inheritedTotal: reads the head in 512 * 1024 byte chunks up to 8 MiB (8 * 1_048_576), splitting on 0x0A; only lines containing \"\\\"token_count\\\"\" are JSON-decoded; the first with total_token_usage.total_tokens > 0 returns max(0, total_tokens - last_token_usage.total_tokens) (last 0 when absent). Unterminated trailing bytes carry to the next chunk but are never parsed at the end: a short read (if chunk.count < want { break }), an empty read or the exhausted 8 MiB budget ends the loop with the remainder dropped, returning 0. So a file whose first token_count is its last line without a trailing newline, or starts beyond 8 MiB, yields inherited 0 and its whole inherited history counts as its own growth.",
+        "Deleted files: fingerprints whose path was not seen this scan are removed (note: files older than 12 months or modified after launch are also not 'seen' and therefore dropped from the cache, and will be re-tailed if they later qualify).",
+        "reconcile: per identity, remaining = max(0, settledLive[identity] ?? 0); files sorted by day string descending (newest first); each file's tokens minus min(remaining, tokens) is added to its day when > 0. Excess live spend beyond scanned growth is left unclaimed, never negative.",
+        "Result.identities is computed ('for pruning settled live spend whose rollouts are gone') but refreshIfNeeded does not use it; settledCodex is never pruned in this file.",
+        "mergedTotals = legacyDaily + state.daily + historyDaily per day key. uncertainTokensThisYear counts only legacyDaily days whose key starts with the current year and '-'.",
+        "The private static legacyLiveDefaultsKey is declared but LiveSpendStateStore.load uses the same literal \"droppycode.tokenActivity.liveDaily\" directly.",
+        "Grid build: Gregorian calendar, firstWeekday = 1; rangeStart = Jan 1 of now's year; rangeEnd = rangeStart + (1 year, -1 day) = Dec 31; tomorrow = startOfToday + 1 day; leadingGap = (weekday(rangeStart) - 1 + 7) % 7; gridStart = rangeStart - leadingGap days. totalsByDay collects daily[dayKey] only for Jan 1 through today. Columns of 7 are appended until day > rangeEnd.",
+        "Grid values: daily = the day's total; weekly = the column's week sum in every non-nil cell, 0 in nil cells; cumulative = running total in column-major order, and nil cells also receive the running value. maxValue = max of all values or 0.",
+        "B1->B2: only eventDate(from:) changed. In 1.6.0 it built two ISO8601DateFormatter instances per call (formatOptions [.withInternetDateTime, .withFractionalSeconds], then [.withInternetDateTime]) with a longer doc comment about Sendable and per-call cost; in 1.6.2 the doc comment is reduced to 'Parses both fractional and whole-second event stamps.' and the body is ISO8601.date(from: stamp), delegating to the new shared DroppyCode/Core/Support/ISO8601.swift helper (Date.ISO8601FormatStyle(includingFractionalSeconds: true) tried first, then Date.ISO8601FormatStyle()). Accepted shapes are intended to be the same; nothing else in the file changed (diff hunk @@ -580,18 +580,9 @@, 9 lines removed net).",
+        "record(_ spend: TokenSpend, on:) (lines 114-116) is unused in B2. TokenSpendTracker (seedBaseline and the before parameter) is used per session (CodexSession.swift:43, AntigravitySession.swift:31) and per Codex head (CodexSession.swift:48, 618)."
+      ],
+      "unresolved_questions": [
+        "Whether Date.ISO8601FormatStyle parsing in B2 accepts exactly the same Codex timestamp variants as the B1 ISO8601DateFormatter pair (for example timezone offsets other than Z or more than three fractional digits); not determinable from this file alone.",
+        "Result.identities is produced for pruning but never consumed; settledCodex grows unbounded across restarts. Intended future work or dead code, unknown.",
+        "The Windows mapping of the Codex rollout root (%USERPROFILE%\\.codex vs CODEX_HOME) and of Storage.root is defined elsewhere in the port contract, not here."
+      ]
+    }
+  ]
+}

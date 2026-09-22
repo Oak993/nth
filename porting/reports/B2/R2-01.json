@@ -1,0 +1,400 @@
+{
+  "bundle_id": "R2-01",
+  "reader": "R2-01-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/AppCommands.swift",
+      "sha256": "9f671104403d28bbe46cda064cd23ce252d4d42ca63e5f12f075f9b1b89a381f",
+      "lines_total": 115,
+      "ranges_read": [
+        [
+          1,
+          115
+        ]
+      ],
+      "purpose": "Declares the whole SwiftUI macOS menu bar for the app as one `struct AppCommands: Commands`: it replaces the stock App Settings, Save/Close, New and Help groups, adds items before Window arrangement and after the Sidebar group, and adds a top-level \"Thread\" menu. Every item forwards to AppModel, ThreadRuntime, WindowManager or Tour, and most chords come from ShortcutStore (user-rebindable), while the nine \"Thread N\" chords and the four 1.6.2 zoom items are hard-coded Command chords.",
+      "key_symbols": [
+        "struct AppCommands: Commands (line 3)",
+        "let model: AppModel (line 4)",
+        "private let shortcuts = ShortcutStore.shared (line 5)",
+        "private var runtime: ThreadRuntime? { model.selectedThreadID.map(model.runtime(for:)) } (lines 7-9)",
+        "var body: some Commands (line 11)",
+        "CommandGroup(replacing: .appSettings) (line 12)",
+        "CommandGroup(replacing: .saveItem) {} (line 19)",
+        "CommandGroup(before: .windowArrangement) (line 21)",
+        "CommandGroup(replacing: .newItem) (line 27)",
+        "CommandGroup(after: .sidebar) (line 37)",
+        "CommandMenu(\"Thread\") (line 65)",
+        "CommandGroup(replacing: .help) (line 111)",
+        "ShortcutStore action keys used: .openSettings, .showMainWindow, .newThread, .newWorktreeThread, .addProject, .toggleSidebar, .commandPalette, .toggleTerminal, .toggleChanges, .toggleActivityView, .stopTurn, .queueChat, .togglePlanMode, .previousThread, .nextThread, .runScript, .finishThread, .archiveThread, .settleThread"
+      ],
+      "calls_into": [
+        "WindowManager.shared.showSettings()",
+        "WindowManager.shared.showMain()",
+        "AppInfo.name",
+        "ShortcutStore.shared.keyboardShortcut(for:)",
+        "AppModel.newThread() and AppModel.newThread(workspace: .worktree)",
+        "AppModel.chooseProjectFolder()",
+        "AppModel.sidebar.toggle()",
+        "AppModel.isCommandPalettePresented.toggle()",
+        "AppModel.runtime(for:) via model.selectedThreadID.map",
+        "ThreadRuntime.isTerminalVisible.toggle()",
+        "ThreadRuntime.toggleDiff()",
+        "withAnimation(Chrome.panelSlide) { model.settings.sidebarActivityView.toggle() }",
+        "AppZoom.next(_:increasing:)",
+        "model.settings.appZoom (set to AppZoom.next result or 100)",
+        "ThreadRuntime.interrupt()",
+        "ThreadRuntime.isRunning",
+        "ThreadRuntime.queueDraftAsFollowUp()",
+        "ThreadRuntime.draftIsEmpty",
+        "ThreadRuntime.approvals.isEmpty",
+        "AppModel.updateThread(_:_:) toggling interactionMode between .plan and .build",
+        "AppModel.selectThread(offset:) and AppModel.selectThread(number:)",
+        "AppModel.topScript, AppModel.runScript(_:threadID:)",
+        "AppModel.finishActionTitle, AppModel.finishSelectedThread()",
+        "AppModel.askToArchiveSelectedThread()",
+        "AppModel.selectedThread?.isSettled, AppModel.settleSelectedThread()",
+        "ChatThread.isHelper",
+        "Tour.present(model:)"
+      ],
+      "state_owned": [
+        "None persistent. Holds a reference to AppModel and to ShortcutStore.shared. `runtime` (lines 7-9) is `model.selectedThreadID.map(model.runtime(for:))`, evaluated on each access; `model.runtime(for:)` is not a lookup: it returns `runtimes[id]` or creates `ThreadRuntime(threadID: id, app: self)` and stores it (AppModel.swift 425-430), so reading `runtime` for a selected thread with no live runtime creates one (unlike `existingRuntime(for:)`, which only returns `runtimes[id]`)."
+      ],
+      "side_effects": [
+        "Menu actions mutate AppModel settings (appZoom, sidebarActivityView), selected thread state (interactionMode), sidebar/palette visibility, the selected runtime (terminal visibility, diff toggle, interrupt, queued follow-up), and open windows (Settings, main window, Welcome tour).",
+        "Replacing .saveItem with an empty group removes the stock File > Close item so that Command-W is not taken from \"Archive thread…\" (comment lines 17-18)."
+      ],
+      "platform_assumptions": [
+        "SwiftUI `Commands`, `CommandGroup(replacing:/before:/after:)` with placements .appSettings, .saveItem, .windowArrangement, .newItem, .sidebar, .help, and `CommandMenu`: a macOS menu bar model that a Windows port must rebuild as its own menu/accelerator system.",
+        "`.keyboardShortcut(...)` with `modifiers: .command` (Command key) and `KeyEquivalent(Character(String(number)))`; Windows must map Command chords to its own modifier per the port's shortcut decisions.",
+        "The stock macOS File > Close item bound to Command-W, which this file deliberately removes; the comment says secondary windows close on Command-W themselves (SecondaryWindow).",
+        "`.hidden()` on a menu Button to register a second accelerator (Command-=) without a visible item.",
+        "`withAnimation(Chrome.panelSlide)` SwiftUI animation for the activity view toggle.",
+        "Comment line 59: US keyboards produce '=' for Command-plus without Shift."
+      ],
+      "persisted_fields": [
+        "model.settings.appZoom (written: AppZoom.next(current, increasing: true/false), or literal 100 for Actual Size); storage format defined outside this file.",
+        "model.settings.sidebarActivityView (Bool, toggled); storage format defined outside this file.",
+        "Thread interactionMode (.plan / .build) written through model.updateThread; storage defined outside this file."
+      ],
+      "ui_elements": [
+        "App menu (replacing .appSettings): \"Settings…\" (U+2026 ellipsis), shortcut .openSettings.",
+        "File menu: the stock .saveItem group replaced by an empty group (no Save/Close items).",
+        "Window menu, before .windowArrangement: a Button titled AppInfo.name, shortcut .showMainWindow, followed by a Divider.",
+        "File/New group (replacing .newItem): \"New thread\" (.newThread); \"New thread in worktree\" (.newWorktreeThread); Divider; \"Add project…\" (.addProject).",
+        "View menu, after .sidebar: \"Toggle sidebar\" (.toggleSidebar); \"Command palette\" (.commandPalette); \"Toggle terminal\" (.toggleTerminal, disabled when model.selectedThreadID == nil); \"Toggle changes\" (.toggleChanges, disabled when no selected thread); \"Toggle activity view\" (.toggleActivityView, animated with Chrome.panelSlide); Divider; \"Zoom In\" Command-+; \"Zoom Out\" Command--; \"Actual Size\" Command-0; hidden \"Zoom In\" Command-=.",
+        "\"Thread\" menu (CommandMenu): \"Stop\" (.stopTurn, disabled unless runtime?.isRunning); \"Queue a chat\" (.queueChat, disabled when (runtime?.draftIsEmpty ?? true) || !(runtime?.approvals.isEmpty ?? true)); \"Toggle plan mode\" (.togglePlanMode, disabled with no selected thread); Divider; \"Previous thread\" (.previousThread); \"Next thread\" (.nextThread); title \"Run <script name>\" or \"Run top script\" when model.topScript is nil (.runScript, disabled when topScript == nil); \"Thread 1\" .. \"Thread 9\" with Command-1 .. Command-9; Divider; title model.finishActionTitle (.finishThread, disabled with no selected thread); \"Archive thread…\" (.archiveThread, disabled with no selected thread); \"Reopen thread\" when selectedThread?.isSettled == true else \"Settle thread\" (.settleThread, disabled when selectedThread is nil or isHelper). \"Previous thread\" (line 85), \"Next thread\" (line 87) and \"Thread 1\"..\"Thread 9\" (lines 95-98) carry no `.disabled` modifier, so they are always enabled, even with no selected thread.",
+        "Help menu (replacing .help): \"Welcome tour\" only, no shortcut. Because the group replaces `.help`, \"Welcome tour\" (`Tour.present(model: model)`) is the only Help menu item; it has no `.disabled` modifier."
+      ],
+      "feature_notes": [
+        "Toggle plan mode: guard on model.selectedThreadID, then updateThread sets interactionMode = (interactionMode == .plan ? .build : .plan).",
+        "Run script item: guard both model.topScript and model.selectedThreadID, then model.runScript(script, threadID: threadID); the label is computed as model.topScript.map { \"Run \\($0.name)\" } ?? \"Run top script\".",
+        "Queue a chat rationale (comment lines 69-73): off while an approval is pending because the approve button uses the same Command-Return and a menu command beats a button shortcut; on with nothing to queue behind so the draft just goes out (see queueDraftAsFollowUp).",
+        "Thread 1-9 use ForEach(1...9, id: \\.self) with KeyEquivalent(Character(String(number))) and modifiers .command; they are not routed through ShortcutStore and so are not user-rebindable here.",
+        "Zoom items are hard-coded: Command-\"+\" increasing, Command-\"-\" decreasing, Command-\"0\" sets appZoom = 100, and a hidden duplicate \"Zoom In\" on Command-\"=\"; step values come from AppZoom.next (defined elsewhere).",
+        "Settle item is disabled when selectedThread.map { $0.isHelper } ?? true, i.e. disabled with no selection or for helper threads.",
+        "B1->B2: 10 lines added at lines 53-62 inside CommandGroup(after: .sidebar), after the Divider that follows \"Toggle activity view\": \"Zoom In\" (Command-+), \"Zoom Out\" (Command--), \"Actual Size\" (Command-0, sets model.settings.appZoom = 100), the comment \"// US keyboards produce '=' for Command-plus without Shift.\" and a hidden \"Zoom In\" (Command-=). Nothing else changed (B1 was 105 lines, B2 is 115)."
+      ],
+      "unresolved_questions": [
+        "AppZoom.next step table and bounds, and the allowed appZoom values, are defined outside this file.",
+        "Default chords of every ShortcutStore action used here are defined outside this file (ShortcutStore).",
+        "model.finishActionTitle wording is computed outside this file.",
+        "Which Windows modifier replaces Command for the hard-coded Thread 1-9 and zoom chords is a port decision not answerable from this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/AppModel+Hydra.swift",
+      "sha256": "9a3136aa87060c3d3f184a96957fa7fe1b339f4e287cf726a4f8e2074618adda",
+      "lines_total": 1144,
+      "ranges_read": [
+        [
+          1,
+          400
+        ],
+        [
+          401,
+          800
+        ],
+        [
+          801,
+          1144
+        ]
+      ],
+      "purpose": "AppModel extension that runs Hydra teams: it decides whether a chat leads, which provider/model/effort its heads use (HydraLaunch), creates head threads (native mirrors of provider sub-agents and Droppy-run heads with their own sessions), gives Droppy-run heads an isolated detached git worktree copy of the checkout, and lands their finished work back into the lead's checkout as a three-way applied patch. It also owns the private tree-capture cache shared by heads of one delegation block, the 30-second watchdog that labels quiet heads \"Thinking for N min…\" and stops stalled ones, stopping/clearing heads, releasing and sweeping worktree copies (keeping unlanded work as patch files), and the chat-context summary handed to queued heads.",
+      "key_symbols": [
+        "private struct HydraPatch: Sendable { var text: String; var files: [HydraLanding.File]; var droppedBuildOutputFiles: Int; var after: String } (lines 13-18)",
+        "@MainActor private enum HydraTreeCache (lines 28-107): private struct Capture { tree: String; commit: String; capturedAt: Date; generation: UInt64 }; private static let lifetime: TimeInterval = 3; private static var captures: [String: Capture]; private static var generations: [String: UInt64]; private static var inFlight: [String: (generation: UInt64, task: Task<(tree: String, commit: String), any Error>)]; static func capture(of checkout: String, with git: Git) async throws -> (tree: String, commit: String); static func invalidate(_ checkout: String)",
+        "@MainActor private enum HydraWatchdog (lines 113-127): static let tick: Duration = .seconds(30); static let thinkingAfter: TimeInterval = 180; static let stalledAfter: TimeInterval = 600; static var loop: Task<Void, Never>?; static var toolCounts: [UUID: Int]; static var labelled: Set<UUID>; static var stalledHeadIDs: Set<UUID>; static let stalledNote",
+        "func hydraIsOn(_ thread: ChatThread) -> Bool",
+        "static func hydraIsNative(_ provider: ProviderKind) -> Bool",
+        "func hydraPair(for thread: ChatThread) -> HydraPair?",
+        "func hydraHeadsProvider(of pair: HydraPair) -> ProviderKind",
+        "func hydraHeadsFallbackNote(of pair: HydraPair) -> String?",
+        "static func hydraHeadsEffort(leadEffort: String?, scale: [String]) -> String?",
+        "func hydraLaunch(for thread: ChatThread) -> HydraLaunch?",
+        "func setHydra(_ on: Bool, for id: UUID)",
+        "func hydraHeads(of parentID: UUID) -> [ChatThread]",
+        "func runningDroppyHeads(of parentID: UUID) -> Int",
+        "func runningHydraHeads(of parentID: UUID) -> Int",
+        "func hydraUnmergedFileCount(of leadID: UUID) -> Int",
+        "func hydraTeam(of parentID: UUID) -> [ChatThread]",
+        "func workingHydraHeadNames(of parentID: UUID, excluding: Set<Int> = []) -> [String]",
+        "private func hydraCheckout(of lead: ChatThread) -> String?",
+        "func hydraProject(named reference: String?, for lead: ChatThread) -> Project?",
+        "private func hydraCheckout(of head: ChatThread, lead: ChatThread) -> String?",
+        "@discardableResult func spawnNativeHead(from parentID: UUID, spawn: AgentSpawn) -> ChatThread?",
+        "@discardableResult func spawnDroppyHead(from parentID: UUID, task: String, origin: HydraHeadInfo.Origin, attachments: [Attachment] = [], batchID: UUID? = nil, preferredIndex: Int? = nil, project: String? = nil, profile: String? = nil, brief: @escaping @Sendable (HydraPersona, HydraPrompts.Workplace) -> String) -> ChatThread?",
+        "private func insertHydraHead(from parentID: UUID, task: String, kind: HydraHeadInfo.Kind, origin: HydraHeadInfo.Origin, native: AgentSpawn?, batchID: UUID?, preferredIndex: Int? = nil, project: String? = nil, profile: String? = nil) -> ChatThread?",
+        "private func startDroppyHead(_ id: UUID, attachments: [Attachment], brief: @Sendable (HydraPersona, HydraPrompts.Workplace) -> String) async",
+        "private func makeHydraCopy(for head: ChatThread, of checkout: String) async -> (path: String, tree: String)?",
+        "func updateHydraHead(_ id: UUID, _ change: (inout HydraHeadInfo) -> Void)",
+        "func finishHydraHead(_ id: UUID, status: TurnStatus, summary: String?, landing: HydraLanding? = nil)",
+        "func hydraHeadTurnFinished(_ head: ChatThread, status: TurnStatus)",
+        "private static func failedTurnReport(error: String?, partial: String) -> String",
+        "private static func isLaunchFailure(_ report: String) -> Bool",
+        "private func landHydraHead(_ id: UUID) async -> HydraLanding",
+        "private func prepareHydraPatch(_ id: UUID) async throws -> HydraPatch?",
+        "private static func hydraWork(in copyGit: Git, from base: String, to after: String) async throws -> (paths: [String], droppedBuildOutputFiles: Int)",
+        "private func waitForSettledCheckout(_ parentID: UUID, paths: [String]) async",
+        "private func applyHydraHead(_ id: UUID, landing: HydraLanding, patch: HydraPatch) async -> HydraLanding",
+        "private func keepHydraPatch(_ text: String, of info: HydraHeadInfo, headID: UUID) -> String?",
+        "private func noteHydraLanding(_ landing: HydraLanding, of info: HydraHeadInfo, to parentID: UUID)",
+        "func stopHydraHead(_ id: UUID)",
+        "func stopAllHydraHeads(of parentID: UUID)",
+        "func dismissHydraHeads(of parentID: UUID)",
+        "func clearFinishedHydraHeads(of parentID: UUID)",
+        "func releaseHydraCopy(of id: UUID)",
+        "private func keepHydraCopyAsPatch(_ id: UUID, name: String, copy: String, base: String) async",
+        "func startHydraWatchdog()",
+        "private func watchHydraHeads()",
+        "func sweepHydraCopies()",
+        "private func sweepOrphanHydraCopies(of projects: [Project]) async",
+        "func hydraChatContext(for parentID: UUID) -> HydraPrompts.ChatContext"
+      ],
+      "calls_into": [
+        "Git: currentTree(), commitTree(_:message:), isRepository(), hasCommits(), addDetachedWorktree(at:commit:), captureTree(), changedPaths(from:to:), diff(from:to:binary:paths:), hasOperationInProgress(), apply(_:) (returns conflicts), removeWorktree(at:), pruneWorktrees()",
+        "DiffParser.parse(_:) (off main actor via Task.detached(priority: .utility))",
+        "TouchedPaths.isBuildOutput(_:), TouchedPaths.relative(_:root:)",
+        "TextCleanup.singleLine(_:limit:)",
+        "HydraRoster.personas, HydraRoster.persona(at:)",
+        "HydraPanel.finishHold",
+        "HydraLaunch initializer and HydraLaunch.profile(named:)",
+        "HydraPrompts.Workplace.shared(path:) / .ownCopy(path:), HydraPrompts.ChatContext",
+        "settings.hydraPair(_:) and settings.hydraPair(for:model:), settings.isEnabled(_:)",
+        "providers.countsAsInstalled(_:), providers.status(_:).isInstalled, providers.model(_:for:), providers.defaultModel(for:), providers.loadCatalog(_:)",
+        "AppModel: panelHeads(of:), children(of:), thread(_:), project(_:), projects, threads, updateThread(_:_:), insertThread(_:), addProject(at:), runtime(for:), existingRuntime(for:), hydraHeadRetries",
+        "ThreadRuntime: rehearseTurn(_:), sendHydraBrief(_:attachments:), appendHydraNote(_:), hydraLanding (Task), isHydraMerging, phase, hydraCurrentTurnTouchedPaths, hydraUnmergedTurns, hydraHeadFinished(_:info:status:summary:landing:copyPath:), stopNativeHead(_:), stopSession(), interrupt(), isRunning, send(), draft, entries, turns, noteDiffChanged(), hydraActivity, hydraToolCalls, hydraTokens, hydraIdleSeconds, hydraEditCount, isHydraPanelHidden, hydraSelectedHeadID, hydraPoppedHeadID, hydraAutoPopHeld, hydraAutoPanelDocks, panelStackOrder",
+        "Storage.worktreesDirectory, Storage.patchesDirectory",
+        "FileManager.default fileExists/removeItem/contentsOfDirectory; URL.resourceValues(forKeys: [.creationDateKey])"
+      ],
+      "state_owned": [
+        "HydraTreeCache static dictionaries captures, generations, inFlight keyed by checkout path (main actor, process lifetime only).",
+        "HydraWatchdog static loop task, toolCounts, labelled, stalledHeadIDs (main actor, process lifetime only).",
+        "Writes to thread state: hydraSpawnCount, hydraEnabled, hydraPairID, model, effort, worktreePath, branch, isInPanel, title, hasCustomTitle, and the HydraHeadInfo record (status, summary, finishedAt, landing, activity, toolCalls, tokens, baseTree, canStop, executionStartedAt, executionFinishedAt, landingStartedAt, landingFinishedAt).",
+        "Writes to lead runtime transient state: isHydraPanelHidden, hydraSelectedHeadID, hydraPoppedHeadID, hydraAutoPopHeld, hydraAutoPanelDocks, panelStackOrder, hydraLanding (serialising landings).",
+        "AppModel.hydraHeadRetries counter per head id (declared elsewhere, incremented here)."
+      ],
+      "side_effects": [
+        "Creates git objects (a tree and a commit with message \"Droppy Code: a Hydra head's starting point\") in the checkout and a detached git worktree per isolated head under Storage.worktreesDirectory.",
+        "Applies patches into the lead's checkout (three-way where needed), possibly leaving conflict markers. After an apply attempt (success or `apply` throwing) applyHydraHead runs `HydraTreeCache.invalidate(checkout)` and `existingRuntime(for: parentID)?.noteDiffChanged()` (lines 867-869). The operation-in-progress guard (lines 849-854) returns before any apply and does NOT invalidate the cache or call noteDiffChanged.",
+        "Writes patch files into Storage.patchesDirectory: \"<persona-slug>-<8 hex>.patch\" when a landing fails, \"<persona-slug>-<8 hex>-unlanded.patch\" when a copy with unlanded work is released.",
+        "Removes worktrees and runs git worktree prune for projects that ever had a copy. releaseHydraCopy removes a head's copy with `try? await Git(project.path).removeWorktree(at: copy)` (line 985) and has no FileManager fallback. Only sweepOrphanHydraCopies falls back: `if (try? await Git(owner.project.path).removeWorktree(at: folder.path)) == nil { try? FileManager.default.removeItem(at: folder) }` (lines 1109-1111).",
+        "May add a new sidebar project (addProject(at:)) when a delegation names an absolute folder inside a git repository.",
+        "Stops head sessions (stopSession) and interrupts head turns; restarts heads that failed at launch by resending their brief.",
+        "Appends Hydra notes into the lead's timeline; marks head status; sleeps/polls on the main actor (250 ms polls, up to 30 minutes)."
+      ],
+      "platform_assumptions": [
+        "POSIX paths: hydraProject requires expanded.hasPrefix(\"/\"), walks up with (dir as NSString).deletingLastPathComponent until dir == \"/\", and tests dir + \"/.git\"; Windows drive-letter/UNC paths and \\\\ separators need an equivalent.",
+        "NSString path APIs: expandingTildeInPath, standardizingPath, deletingLastPathComponent; ObjCBool with FileManager.fileExists(atPath:isDirectory:).",
+        "FileManager.contentsOfDirectory(at:includingPropertiesForKeys: [.creationDateKey], options: [.skipsHiddenFiles]) and URL creationDate resource value for the 600-second youth check.",
+        "Swift concurrency: @MainActor enums, Task, Task.detached(priority: .utility), Task.sleep(for:), Task.checkCancellation(), Duration.seconds.",
+        "git command-line semantics (worktree add --detach, commit-tree, apply --3way, worktree remove --force, worktree prune) wrapped by the Git type; Git.currentTree relies on a WorkingTreeWatch (per the comment) that on macOS is file-event based.",
+        "User-facing strings say \"on this Mac\" (hydraProject doc and the note \"...is in the sidebar or on this Mac...\", hydraHeadsFallbackNote \"is not installed on this Mac\")."
+      ],
+      "persisted_fields": [
+        "ChatThread fields written here (encoding defined elsewhere): hydraEnabled, hydraPairID, hydraSpawnCount, model, effort, worktreePath, branch, isInPanel, title, hasCustomTitle, parentThreadID, projectID, provider, runtimeMode, fastMode, hydra (HydraHeadInfo).",
+        "HydraHeadInfo fields set here: index, task, kind, origin, profile, nativeID, nativeTaskID, toolUseID, batchID, isBackground (native?.isBackground ?? true), canStop, status, summary, finishedAt, landing, activity, toolCalls, tokens, baseTree, executionStartedAt, executionFinishedAt, landingStartedAt, landingFinishedAt.",
+        "HydraLanding fields set here: files, droppedBuildOutputFiles, conflicts, patchPath, error.",
+        "settings.hydraDefaultEnabled written by setHydra (true on, false off).",
+        "Patch files on disk under Storage.patchesDirectory as UTF-8 text written atomically."
+      ],
+      "ui_elements": [
+        "No views are declared here. Visible text produced: head titles \"<Persona>\", \"<Persona> · <task, single line, limit 60>\", \"<Persona> · <task> · <target project name>\" for another project, plus \" · <profile name>\" for a routed head (U+00B7 middle dot separators).",
+        "Watchdog row label \"Thinking for <N> min…\" (N = Int(idle / 60), U+2026), removed when the head is active again.",
+        "Panel state: a new head sets isHydraPanelHidden = false and hydraSelectedHeadID = new head. dismissHydraHeads (lines 944-953) first calls clearFinishedHydraHeads (lines 956-961), which, for every head in hydraHeads(of:) with `hydra?.isFinished == true`, sets `isInPanel = false` and calls releaseHydraCopy (stopping the session, clearing worktreePath/branch/baseTree, possibly writing a \"-unlanded.patch\", and running `git worktree remove`). Only then does it set isHydraPanelHidden = true and clear hydraSelectedHeadID, hydraPoppedHeadID, hydraAutoPopHeld, hydraAutoPanelDocks and every `.auto` entry of panelStackOrder.",
+        "Auto-clear waits HydraPanel.finishHold + 0.2 seconds before moving a finished head out of the panel."
+      ],
+      "feature_notes": [
+        "hydraIsOn: settings.hydraEnabled && thread.hydraEnabled && !thread.isHelper. hydraIsNative: provider == .claude || .codex || .copilot.",
+        "hydraHeadsProvider falls back to pair.provider unless pair.workerProvider differs, providers.countsAsInstalled(provider) and settings.isEnabled(provider). Fallback note: \"The pair's heads run on <lead provider> for now: <provider> is switched off in Settings.\" or \"... is not installed on this Mac.\"",
+        "hydraHeadsEffort: nil when lead effort nil/empty; lead effort unchanged when not on the scale; working rung = index of \"medium\" else (count - 1) / 2; returns scale[working] only when lead index > working. An empty scale returns the lead effort at line 180 (`guard let lead = scale.firstIndex(of: leadEffort) else { return leadEffort }`), before the working rung; line 181-182 `(scale.isEmpty ? nil : (scale.count - 1) / 2)` then `guard let working else { return leadEffort }` also yields the lead effort for that case.",
+        "hydraLaunch: project refs list the chat's own project first. keepsModel = `pair.map { !$0.sendsHeadsElsewhere || elsewhere } ?? true` (line 199). Heads label only when elsewhere: `let model = providers.model(pair?.workerModel, for: headsProvider) ?? providers.defaultModel(for: headsProvider)` then \"\\(model?.shortName ?? pair?.workerModel ?? \"the default model\") on \\(headsProvider.displayName)\" (lines 202-203), so an unknown pair workerModel shows the heads provider's default model shortName; the raw workerModel string appears only when there is no default model either. `let pairEffort = keepsModel ? pair?.workerEffort : nil` (line 205); workerEffort = pairEffort when non-nil, else `Self.hydraHeadsEffort(leadEffort: thread.effort, scale: providers.model(thread.model, for: thread.provider)?.efforts ?? [])` when settings.hydraTempersHeadEffort and !elsewhere (line 210), else nil. workerModel = `keepsModel ? pair?.workerModel : nil` (line 218). runsNatively = !elsewhere && hydraIsNative(thread.provider); maxHeads = `[pair?.maxHeads, settings.hydraMaxHeads].compactMap { $0 }.min()` (nil when neither); also passes headProfiles (pair?.headProfiles ?? []), isolatesHeads (hydraIsolateHeads), autoMerges (hydraAutoMerge), reviewsHeads (hydraReviewHeads), projects, antiSlopEnabled.",
+        "setHydra on: picks settings.hydraPair(for: provider, model:), sets hydraEnabled and hydraPairID, saves hydraDefaultEnabled = true, and switches the thread to pair.orchestratorModel (with orchestratorEffort ?? current effort) when that model exists for the provider, else applies orchestratorEffort alone.",
+        "hydraUnmergedFileCount: union of non-running unmerged lead turns' touchedPaths and landing files of team heads with mergedAt == nil and no patchPath/error, filtered to non-build-output paths under some sidebar project.",
+        "hydraTeam: children not archived and isHydraHead, sorted by hydra.index.",
+        "hydraProject: nil/blank (`reference.trimmed.isEmpty`) reference -> lead's project. `let expanded = (reference as NSString).expandingTildeInPath`; name match is `$0.name.caseInsensitiveCompare(expanded) == .orderedSame` against the tilde-expanded string (line 322). Then `inside` = projects where `TouchedPaths.relative(expanded, root: $0.path) != nil` (containment on the unstandardized `expanded`, line 325) or `($0.path as NSString).standardizingPath == standard` with `standard = (expanded as NSString).standardizingPath` (equality on standardized paths, line 326); the longest such project path wins. Else, for an absolute (`hasPrefix(\"/\")`) existing directory, walks up to the first folder with \".git\" and adds it as a project; nil otherwise.",
+        "Naming heads: roster restarts at 0 when the team is empty, else parent.hydraSpawnCount. A preferredIndex is pinned; if a finished head holds it, the candidate advances by HydraRoster.personas.count rounds; a running holder or unknown name falls to the next free sequential index. hydraSpawnCount = max((pinned == nil ? index : sequential) + 1, old + 1).",
+        "Unknown delegated project note: \"Hydra: no project named <reference> is in the sidebar or on this Mac, so <persona> works in <project name | \\\"this chat's project\\\">.\"",
+        "Head thread: provider = routed profile provider ?? launch.headsProvider ?? parent provider for Droppy heads, parent provider for native; model = native.model ?? routed.model ?? launch.workerModel ?? (elsewhere ? provider default model id : parent.model); effort = routed.effort ?? launch.workerEffort ?? (elsewhere ? nil : parent.effort); runtimeMode .fullAccess for Droppy heads, parent's for native; fastMode false; worktreePath/branch copied from parent only in the same project; canStop = kind == .droppy || native.taskID != nil || parent.provider == .codex.",
+        "Isolation copy: waits for the lead's in-flight hydraLanding; requires isRepository and hasCommits; worktree folder Storage.worktreesDirectory/\"<project name, spaces to '-', lowercased>-<persona name likewise>-<first 8 of lowercased UUID>\"; on failure removes the folder and the head works in the shared checkout.",
+        "HydraTreeCache.capture loop: checks cancellation; a stored capture of the current generation younger than 3 s is reused only if git.currentTree() still equals its tree; joins an in-flight capture of the same generation; otherwise starts git.currentTree() + commitTree; a failed/cancelled capture clears inFlight and rethrows; if the generation changed during the walk the result is discarded and the loop repeats. invalidate clears the capture and increments the generation.",
+        "startDroppyHead: loads the heads' provider catalog and default model if the head has no model on a different provider; if stopped while copying, never starts; stamps executionStartedAt = now and executionFinishedAt = nil, then sendHydraBrief.",
+        "finishHydraHead: stalled heads get HydraWatchdog.stalledNote prefixed (\"Stalled: no edits for 10 minutes; stopped by Droppy Code. Resend with a sharper brief.\"); status map completed->completed, failed->failed, interrupted->stopped, running->running; copies live activity, max toolCalls, max tokens; with settings.hydraAutoClearFinished, after HydraPanel.finishHold + 0.2 s moves the head out of the panel and clears its panel references; relays to lead runtime hydraHeadFinished with copyPath when info.hasOwnCopy; releases the copy only for auto-clear and outcome .completed.",
+        "hydraHeadTurnFinished (Droppy heads only): stamps executionFinishedAt; error = last error-level notice of the closing turn; report = last assistant text (for failed status only non-empty text in that turn); failed report = error or \"The turn failed without a recorded error.\" plus \"Partial output before the failure:\\n\\n<partial>\" joined by blank lines; toolCalls = count of tool entries; stops the session unless provider.isAPIKeyBased.",
+        "Launch-failure retry: failed status, error matches one of \"database is locked\", \"database locked\", \"sqlite_busy\", \"did not start a session\", \"the agent exited\", \"stopped unexpectedly\" (lowercased contains), no tool entries, fewer than 2 retries, and a user entry exists; pause = attempt * 2 + (index % 4) * 0.5 seconds; resends the first user message as a ComposerDraft unless the head is running or no longer .running. The retry resends through `headRuntime.draft = ComposerDraft(text: brief, attachments: [])` and `headRuntime.send()` (lines 695-696), not through startDroppyHead, so executionStartedAt is not stamped again (lines 522-525 run only in startDroppyHead), and executionFinishedAt, already set to .now at line 638 before the retry decision, stays set while the retried turn runs, until hydraHeadTurnFinished stamps it again when that turn ends.",
+        "Landing: only completed heads with their own copy land; skipped if the head is running again; a finished head reporting again is set back to .running before finishHydraHead. If prepareHydraPatch throws, landHydraHead (lines 751-757) returns a HydraLanding with only `landing.error = error.localizedDescription`: no files, no patchPath, no noteHydraLanding call (no note in the lead timeline from landHydraHead) and no landingStartedAt/landingFinishedAt stamps (those are set only in applyHydraHead). finishHydraHead stores that landing (line 591). With landing.error non-nil the head is skipped by hydraUnmergedFileCount (line 289) and by hydraWork (HydraMerge lines 482-483), so its timeline tool edits no longer count toward any merge; and because releaseHydraCopy computes `unlanded = info.status != .completed || info.landing == nil` (line 973), a completed head with such an error landing is not unlanded, so releasing its copy writes no -unlanded.patch before `git worktree remove`.",
+        "prepareHydraPatch: base tree vs copyGit.captureTree(); build-output paths excluded before diffing (binary: true); DiffParser off-main; nil when nothing changed.",
+        "waitForSettledCheckout: deadline 30 * 60 s; busy when lead phase != .idle and the paths intersect leadRuntime.hydraCurrentTurnTouchedPaths, or lead isHydraMerging; polls every 250 ms; a thrown sleep (cancellation) returns at once.",
+        "Landings are serialised per lead through leadRuntime.hydraLanding chaining on the previous Task.",
+        "applyHydraHead: stamps landingStartedAt = now, landingFinishedAt = nil, and defers landingFinishedAt = now (lines 843-844). With an operation in progress (lines 849-854) it keeps the patch (keepHydraPatch), sets error \"a rebase or merge is underway in the checkout, or its git state cannot be read\", calls noteHydraLanding and returns early, WITHOUT HydraTreeCache.invalidate and WITHOUT noteDiffChanged. Otherwise it applies; baseTree moves to patch.after only when conflicts are empty; apply errors keep the patch with error.localizedDescription; then (lines 867-870) it invalidates HydraTreeCache for the checkout, calls existingRuntime(for: parentID)?.noteDiffChanged(), and notes the landing.",
+        "Conflict note: \"<Name>'s work landed; the lead is settling a conflict in 1 file|N files.\" then the backticked files, then \"The checkout had moved on where <Name> was working, so the merge was three-way and left markers in this file|these files. The lead resolves them before the work goes out; nothing to do on your side.\"",
+        "Kept-patch note: \"<Name>'s work did not land and was kept as a patch.\" then files, then optional \"Why it did not land: <error>.\" and \"Apply it with `git apply --3way <path>` and settle what conflicts.\"",
+        "stopHydraHead: Droppy head running -> interrupt; not running -> finishHydraHead(.interrupted, summary: nil); native -> leadRuntime.stopNativeHead(nativeID), setting canStop = false if it returns false.",
+        "releaseHydraCopy: returns at once unless `thread(id)`, `head.hydra`, `info.hasOwnCopy`, `head.worktreePath` and `project(head.projectID)` all exist (lines 966-967); no-op when the head is running again (line 970); unlanded = status != .completed || landing == nil; stops the session, clears worktreePath/branch/baseTree, then in a Task keeps an unlanded patch (when a baseTree existed) and runs `try? await Git(project.path).removeWorktree(at: copy)` with no FileManager fallback (line 985).",
+        "Unlanded note: \"<Name>'s unfinished work was kept as a patch before its copy was cleared.\" then the path, then \"Nothing of it had landed in your checkout. Apply it with `git apply --3way <path>` if you still want it.\" Skipped when the copy differs only by build output.",
+        "Watchdog: one loop app-wide (startHydraWatchdog returns if HydraWatchdog.loop exists). The loop sleeps HydraWatchdog.tick (.seconds(30)) BEFORE each look, so nothing is checked at start-up (line 1025). Each look covers running Droppy heads whose runtime exists and isRunning; stalled when idle >= stalledAfter (600 s), hydraEditCount == 0 and `HydraWatchdog.toolCounts[head.id] == tools` (the count recorded at the previous look) -> inserted in stalledHeadIDs, removed from labelled, stopHydraHead. On a head's first look toolCounts[head.id] is nil, so it cannot stall before its second look (at the earliest 60 s after the watchdog starts). Label when idle >= thinkingAfter (180 s); otherwise the label is removed only if the head was in labelled and hydraActivity starts with \"Thinking for \". After the loop, `HydraWatchdog.toolCounts = toolCounts` (only heads seen this look) and `HydraWatchdog.labelled.formIntersection(toolCounts.keys)` drops heads no longer running (their hydraActivity label is not cleared by this).",
+        "sweepHydraCopies: prunes worktrees for projects with copies, sweeps orphans, clears worktreePath/branch/baseTree for copies missing on disk, and starts the watchdog.",
+        "Orphan sweep: only folders not named by any thread, whose name starts with the longest project slug + \"-\", followed by \"<persona>-<8 hex>\" or \"<persona>-<round digits>-<8 hex>\" with a roster persona. A folder is skipped only when `if let born = try? folder.resourceValues(forKeys: [.creationDateKey]).creationDate, Date.now.timeIntervalSince(born) < 600 { continue }` (line 1106): a readable creation date younger than 600 s. A folder whose creation date cannot be read is removed regardless of age. Removal is git worktree remove, falling back to FileManager.removeItem when that throws (lines 1109-1111).",
+        "hydraChatContext: last non-Hydra user prompt, last assistant reply, and unique non-empty edit paths from tool entries of the lead's last turn.",
+        "B1->B2: (1) HydraTreeCache rewritten: captures carry a `generation: UInt64`, a new `generations` map is bumped by invalidate, inFlight stores (generation, task), a fresh capture is reused only when git.currentTree() still matches it, the walk uses git.currentTree() instead of git.captureTree(), failed/cancelled captures clear inFlight, and a capture overtaken by a landing is discarded and retried in a `while true` loop (was a single pass with defer clearing inFlight). (2) hydraUnmergedFileCount dropped the lastMergedTurnStart shortcut that skipped heads finished before the last hydraMerged turn. (3) startDroppyHead now sets executionStartedAt = .now and executionFinishedAt = nil before sending the brief. (4) hydraHeadTurnFinished now sets executionFinishedAt = .now. (5) waitForSettledCheckout reads leadRuntime.hydraCurrentTurnTouchedPaths instead of hydraChatContext(for:).touchedPaths. (6) applyHydraHead stamps landingStartedAt/landingFinishedAt (defer) and its in-progress error text gained \", or its git state cannot be read\". (7) Four trimmingCharacters(in: .whitespacesAndNewlines) calls became .trimmed (hydraProject, insertHydraHead, hydraHeadTurnFinished, failedTurnReport)."
+      ],
+      "unresolved_questions": [
+        "Git.currentTree and WorkingTreeWatch semantics (event fence, full-walk fallback) are defined elsewhere; a Windows file-watch equivalent must be specified from those files.",
+        "ThreadRuntime.hydraCurrentTurnTouchedPaths, isReadyForHydraMerge and hydraLanding are defined elsewhere.",
+        "HydraPanel.finishHold value is defined elsewhere.",
+        "Where executionStartedAt/executionFinishedAt/landingStartedAt/landingFinishedAt are displayed is not in this file.",
+        "Exact git arguments behind addDetachedWorktree, apply, removeWorktree and pruneWorktrees are in the Git type, not here.",
+        "How absolute-path detection and the walk to \"/\" should behave for Windows paths is a port decision."
+      ]
+    },
+    {
+      "path": "DroppyCode/App/AppModel+HydraMerge.swift",
+      "sha256": "cbac441bed2d92af63b4e336b9e36d4fb1eb66f453d5b384fe814d8700d20692",
+      "lines_total": 893,
+      "ranges_read": [
+        [
+          1,
+          450
+        ],
+        [
+          451,
+          893
+        ]
+      ],
+      "purpose": "AppModel extension implementing Hydra's \"Merge when the team is done\" auto-merge: it gathers exactly the files a lead and its heads changed, commits a snapshot of them without switching branches, pushes a branch, opens and merges a pull/merge request through the forge CLI (with a dedicated glab path for GitLab), and syncs the checkout's default branch. In 1.6.2 it also arbitrates files contested between chats in the same checkout (reservations vs blocking claims, ordering by lead UUID), records hold/settled/stray/failed/merged outcomes, and posts Hydra notes plus notifications to the lead.",
+      "key_symbols": [
+        "struct HydraMergeHead { var name: String; var index: Int; var task: String; var files: [String] } (lines 12-18)",
+        "private enum HydraProjectMerge { case merged; case alreadyOnMain; case failed } (lines 21-25)",
+        "typealias HydraWork = (paths: [String], turnIDs: [UUID], headIDs: [UUID], outside: [String], heads: [HydraMergeHead], held: [String: String]) (line 32)",
+        "var isAnyHydraMergeRunning: Bool { liveRuntimes.contains { $0.isHydraMerging } } (line 35)",
+        "private static var hydraMergeWindow: TimeInterval { 3 * 24 * 3600 } (line 41)",
+        "func resumeHydraMerges() async (line 48)",
+        "func autoMergeHydraWork(of leadID: UUID) async (line 78)",
+        "private static func isScratchPath(_ path: String) -> Bool (line 190)",
+        "private func mergeHydraProject(of leadID: UUID, lead: ChatThread, project: Project, checkout: String, work: HydraWork, runtime: ThreadRuntime, several: Bool) async -> HydraProjectMerge (line 212)",
+        "private func hydraCreateMergeRequest(git: Git, title: String, body: String, source: String, target: String) async throws -> URL? (line 374)",
+        "private func hydraGitLabAuthFailure(in directory: URL) async -> String? (line 425)",
+        "private static func isGitLabAuthFailure(_ result: ShellResult) -> Bool (line 435)",
+        "private static func mentionsRecoverFile(_ result: ShellResult) -> Bool (line 442)",
+        "private static func hydraMergeRequestURL(from result: ShellResult) -> URL? (line 447)",
+        "private func hydraWork(of leadID: UUID, runtime: ThreadRuntime, checkout: String, git: Git, projectID: UUID, leadCheckout: String, leadProjectID: UUID, sweepsCheckout: Bool) async -> HydraWork (line 471)",
+        "private func siblingOwnedPaths(in checkout: String, projectID: UUID, excluding leadID: UUID) -> (reserved: [String: String], blocking: [String: String]) (line 634)",
+        "private func hydraIsFinishedIdleEligible(_ lead: ChatThread) -> Bool (line 679)",
+        "private func hydraHasPendingLanding(_ leadID: UUID) -> Bool (line 689)",
+        "private func hydraRanksAfter(_ lead: ChatThread, _ other: UUID) -> Bool (line 699)",
+        "private func canStillMerge(_ lead: ChatThread) -> Bool (line 705)",
+        "private func syncDefaultBranch(_ git: Git, from head: String, target: String, ownPaths: [String]) async -> Bool (line 722)",
+        "private func commitMessage(for lead: ChatThread, files: [DiffFile], patch: String, directory: String) async -> String (line 752)",
+        "private func mergeRequestBody(for lead: ChatThread, files: [DiffFile], through: Set<UUID>, runtime: ThreadRuntime) -> String (line 774)",
+        "private static func hydraBranchName(for lead: ChatThread) -> String (line 801)",
+        "private nonisolated static func pathsWithConflictMarkers(_ paths: [String], in checkout: String) async -> [String] (line 814)",
+        "private func recordHydraSettlement(leadID: UUID, runtime: ThreadRuntime) (line 829)",
+        "private func recordHydraHold(_ held: [String: String], leadID: UUID, runtime: ThreadRuntime) (line 835)",
+        "private static func heldDetail(_ held: [String: String]) -> String (line 846)",
+        "private static func filesLine(_ files: [DiffFile]) -> String (line 853)",
+        "private func note(_ leadID: UUID, _ title: String, _ body: String) (line 860)",
+        "private enum HydraMergeRequestError: LocalizedError { case gitLabAuth(host: String, branch: String, detail: String); case creationFailed(String); var errorDescription: String? } (lines 879-893)"
+      ],
+      "calls_into": [
+        "Git: isRepository(), hasCommits(), remoteURL(), hasOperationInProgress(), commitHash(), captureTree(paths:), captureTree(), treeHash(of:), diff(from:to:), status() (.branch), defaultBranch(), commitWork(_:parent:message:), updateRef(_:to:expecting:), resetIndex(paths:), pushBranch(_:), createPullRequest(title:body:source:target:), mergePullRequest(_:), forge() (== .gitlab), remoteWebURL(), directory, fetch(), isAncestor(_:of:), changedPaths(from:to:), dirtyPaths(), presentPaths(among:in:), resetSoft(to:), checkoutPaths(from:_:), removePaths(_:), pullFastForward(), ignoredPaths(among:), trackedPaths(among:)",
+        "Shell.run(tool: \"glab\", _:in:timeout:) returning ShellResult (succeeded, output, errorOutput, failureMessage)",
+        "LoginEnvironment.which(\"glab\"), LoginEnvironment.homeDirectory",
+        "MergeRequestLink(url:) and link.label",
+        "DiffParser.parse(_:) via Task.detached(priority: .utility)",
+        "TextGeneration.commitMessage(summary:patch:instructions:engine:directory:), AppModel.textEngine(preferring:)",
+        "TouchedPaths.relative(_:root:), TouchedPaths.isBuildOutput(_:)",
+        "TextCleanup.singleLine(_:limit:), String.trimmed",
+        "HydraRoster.persona(at:)",
+        "Storage.decodeDocument(_:)?.items (off main actor for cold head timelines), Storage.worktreesDirectory",
+        "ThreadRuntime: ensureLoaded(), isReadyForHydraMerge, isHydraMerging, hydraMergeStartedAt, hydraMergeNoteID, hydraMergeStage, hydraMergeStep, hydraLanding, hydraUnmergedTurns, hydraMerges, recordHydraMerge(_:), markHydraMerged(_:), appendHydraNote(_:id:), noteDiffChanged(), entries, turns, phase",
+        "HydraMergeStage (.gathering, .committing, .describing, .pushing, .opening, .merging, .syncing) and .words",
+        "HydraMergeRecord(at:outcome:project:label:url:files:detail:) with outcomes .stray, .failed, .merged, .held, .settled",
+        "AppModel: hydraIsOn, hydraTeam(of:), hydraUnmergedFileCount(of:), updateHydraHead, runtime(for:), existingRuntime(for:), liveRuntimes, threads, projects, project(_:), thread(_:), updateThread, updateDockBadge(), notify(threadID:title:body:), selectedThreadID, settings (hydraAutoMerge, commitInstructions, notifyWhenFinished)",
+        "NSApp.isActive (AppKit)"
+      ],
+      "state_owned": [
+        "No stored properties. Drives per-lead ThreadRuntime merge state: isHydraMerging, hydraMergeStartedAt, hydraMergeNoteID (fresh UUID string per run), hydraMergeStage (words), hydraMergeStep; all reset in a defer.",
+        "hydraMergeWindow constant 3 * 24 * 3600 seconds (3 days)."
+      ],
+      "side_effects": [
+        "Creates a commit from a snapshot tree without checking out, writes a branch ref (compare-and-swap via expecting), resets the index for the team's paths, pushes to origin, opens and merges a PR/MR through the forge CLI, fetches and soft-resets the default branch, checks out/removes remote-changed paths, or fast-forward pulls the project checkout when the lead used a worktree.",
+        "Runs `glab auth status` (timeout 30) and `glab mr create ...` (timeout 300), possibly retried, possibly with --recover.",
+        "Records HydraMergeRecord entries, marks turns merged, stamps head mergedAt, appends Hydra notes, sets hasUnread, updates the Dock badge and posts a notification when the chat is not on screen with the app active.",
+        "Reads files from the checkout (up to 4,000,000 bytes each) to detect conflict markers; decodes cold head timelines from storage."
+      ],
+      "platform_assumptions": [
+        "import AppKit for NSApp.isActive in note(); Dock badge via updateDockBadge(); user notification via notify().",
+        "isScratchPath roots are macOS-specific: Storage.worktreesDirectory, NSTemporaryDirectory(), \"/tmp\", \"/private/tmp\", \"/var/folders\", \"/private/var/folders\", <home>/Library, and any dot-folder directly under home; also the /private prefix double spelling because standardizingPath drops /private only for existing files.",
+        "POSIX absolute-path checks: hasPrefix(\"/\"), hasPrefix(\"~\"), contains(\"://\") in hydraWork; NSString appendingPathComponent/expandingTildeInPath/standardizingPath.",
+        "External CLIs on PATH: glab via LoginEnvironment.which, plus the Git type's forge CLI for createPullRequest/mergePullRequest.",
+        "URL(fileURLWithPath:), URL.resourceValues(forKeys: [.fileSizeKey]), Data(contentsOf:) for conflict scanning; Swift concurrency Task.detached."
+      ],
+      "persisted_fields": [
+        "HydraMergeRecord fields: at (Date), outcome (.stray/.failed/.merged/.held/.settled), project (name or nil), label (MR label or nil), url (URL or nil), files (Int), detail (String or nil); persistence format defined elsewhere. Every .failed record has files: 0; detail strings verbatim (title() adds \"<project>: \" with several projects): no remote (line 221) title(\"Hydra did not merge: no remote.\") + \": The team's work is in the checkout; there is no origin to push it to.\" (doubled punctuation \".: \"); operation in progress (226) title(\"Hydra did not merge: a rebase or merge is underway.\") + \": The team's work is in the checkout; finish that first and merge by hand.\"; conflict markers (238) title(\"Hydra did not merge: conflict markers in a file|N files.\") + \": <backticked files> still holds|hold conflict markers from a head's landing.\" (no \"Resolve them, then ask for the merge again.\"); moved (287) title(\"Hydra did not merge: the checkout moved while it worked.\") + \": A commit landed on `<current ?? target>` while the team's work was being prepared.\"; MR-create failure (308) title(\"Hydra pushed <branch> but could not open a merge request.\") + \": <error.localizedDescription>\"; no URL/link (314) title(\"Hydra pushed <branch> but could not open a merge request.\") alone, no colon; merge failure (322) title(\"Hydra opened <link.label> but could not merge it.\") + \": <error>\" with label: link.label and url: url; generic catch (360) \"Hydra could not merge the team's work: <error>\" (not wrapped by title()). The merged record (355) has label: link.label, url: url, files: files.count, detail: nil.",
+        "HydraHeadInfo.mergedAt (Date) set for merged or spent heads.",
+        "Turns marked via runtime.markHydraMerged(ids).",
+        "ChatThread.hasUnread = true on an unseen note.",
+        "Git refs: refs/heads/hydra/<slug>-<6 hex> branches pushed to origin."
+      ],
+      "ui_elements": [
+        "No views here. Progress pill text comes from runtime.hydraMergeStage and hydraMergeStep drives the dot on the pill's track (comment line 215). autoMergeHydraWork sets the initial `runtime.hydraMergeStage = HydraMergeStage.gathering.words` (line 91) with no project prefix; only advance() inside mergeHydraProject (lines 213-216) prefixes \"<project name>: \" when several projects merge (committing, describing, pushing, opening, merging, syncing).",
+        "One note row per run: the note is appended under hydraMergeNoteID (the id the merging pill was drawn with); the id is spent so a second note in the same run gets its own row.",
+        "Note titles verbatim: \"Hydra did not merge: the team's files are outside every project.\"; \"Hydra left a file|N files outside every project.\"; \"Hydra did not merge: no remote.\"; \"Hydra did not merge: a rebase or merge is underway.\"; \"Hydra did not merge: conflict markers in a file|N files.\"; \"Hydra did not merge: the checkout moved while it worked.\"; \"Hydra pushed <branch> but could not open a merge request.\"; \"Hydra opened <label> but could not merge it.\"; \"Hydra merged <label>\"; \"Hydra could not merge the team's work.\"; \"Hydra has no files left to merge.\"; \"Hydra is waiting for another chat's files.\" (each wrapped by title() with \"<project>: \" prefix when several projects, except the stray, settled and held notes)."
+      ],
+      "feature_notes": [
+        "resumeHydraMerges: requires settings.hydraAutoMerge; leads = not archived, hydraIsOn, updatedAt within 3 days, sorted ascending by id.uuidString; then `await runtime(for: lead.id).ensureLoaded()` for every lead (line 56). `runtime(for:)` creates and stores a ThreadRuntime when none exists (AppModel.swift 425-430), so every lead in the window gets a live runtime; this changes canStillMerge (line 706-714: with a live runtime it uses `live.turns.last?.status == .completed && (!live.hydraUnmergedTurns.isEmpty || landedHeadWork)` instead of `lead.lastStatus == .completed`) and siblingOwnedPaths (line 659: chats with a live runtime reserve their unmerged turns' paths). Then each lead with existingRuntime, isReadyForHydraMerge and not merging, and own work (a completed unmerged turn with touchedPaths, or a team head with mergedAt == nil and landing?.landed == true) gets autoMergeHydraWork.",
+        "autoMergeHydraWork guard: hydraAutoMerge, lead exists, hydraIsOn, project exists, runtime exists, not isHydraMerging, not isAnyHydraMergeRunning (one global merge at a time), isReadyForHydraMerge. Sets merge flags then awaits runtime.hydraLanding and re-checks isReadyForHydraMerge.",
+        "Grouping: own checkout = lead.worktreePath ?? project.path (sweepsCheckout: true); outside paths go to the sidebar project with the longest path containing them (sweepsCheckout: false). Stray = outside paths not scratch and under no project.",
+        "Stray body: \"1 file was|N files were changed outside every project: <up to 6 backticked paths>[ and K more]. Add the folder that holds them to the sidebar and ask for the merge again.\"",
+        "Holds: any group's held paths (keyed by full checkout path) -> recordHydraHold and return, before empty groups are removed. recordHydraHold skips a duplicate when the last record is .held with the same detail; note body = heldDetail + \" The work stays in the checkout. Hydra retries after the other chat finishes or its queued merge completes.\"; heldDetail = \"1 file the team changed is|N files the team changed are also claimed by <sorted unique chat names joined ', '>: <up to 6 backticked sorted paths>[ and K more].\"",
+        "No groups and no stray: marks own.turnIDs merged and own.headIDs mergedAt = now, and if the last merge record was .held calls recordHydraSettlement (only when hydraUnmergedFileCount == 0; note \"Hydra has no files left to merge.\" / \"The checkout has no remaining changes from this job to send. No new merge request was needed.\").",
+        "After merging all groups: any .failed -> return without marking; else mark turns merged, stamp heads mergedAt; stray -> record + note; else if every outcome was .alreadyOnMain -> recordHydraSettlement.",
+        "mergeHydraProject order: isRepository && hasCommits (else .failed silently); remoteURL (body \"The team's work is in the checkout; there is no origin to push it to.\"); hasOperationInProgress (body \"The team's work is in the checkout; finish that first and merge by hand.\"); conflict markers (body \"<files> still holds|hold conflict markers from a head's landing. Resolve them, then ask for the merge again.\"); commitHash; stage committing; captureTree(paths:); re-check isReadyForHydraMerge (return .failed silently); re-check blocking sibling claims (hold -> .failed); tree == HEAD tree -> .alreadyOnMain; diff and parse; stage describing; commit message; subject = singleLine(message, limit: 72); status/defaultBranch; current = status?.branch; ownBranch when current == nil or current == target; branch = ownBranch ? hydraBranchName(for: lead) : current!; commitWork; HEAD re-read must equal head (else note body \"A commit landed on `\\(current ?? target)` while the team's work was being prepared, and moving the branch now would orphan it. The work is still in the checkout; ask for the merge again.\" where the interpolated name is the checkout's current branch, or the default branch when current is nil, never the hydra/<slug>-<6hex> branch); updateRef expecting nil for own branch or head otherwise; resetIndex when not own branch; stage pushing; pushBranch; stage opening; create request; stage merging; mergePullRequest.",
+        "Failure bodies: MR creation error -> \"<error>\\n\\nOpen one for `<branch>` into `<target>` and merge it from there. The work is still in the checkout.\"; no URL/link -> \"Open one for `<branch>` into `<target>` and merge it from there.\"; merge failure -> \"<url>\\n\\n<error>\\n\\nMerge it from the link once it is ready; the branch `<branch>` has the team's work.\"; generic catch -> \"<error>\\n\\nThe work is still in the checkout.\" with record detail \"Hydra could not merge the team's work: <error>\".",
+        "Success note lines: URL, blank, \"<filesLine> landed on `<target>` from `<branch>`.\", then optional blank + \"Heads\" + \"- <name> (<index>): <task> — no files\" or \"- <name> (<index>): <task> — 1 file|N files: <files joined ', '>\" (U+2014 em dash in source). Own branch: stage syncing and append \"The checkout is up to date.\" or \"The checkout was left as it was: `<target>` moved on in other ways meanwhile, or the team's files changed again; `git pull` when it suits you.\". Worktree lead: stage syncing, fast-forward the project checkout when it is on target, clean and no operation in progress, appending \"The project checkout is up to date.\" on success. Records .merged with files.count and calls noteDiffChanged. In the Heads lines `(<index>)` is the raw HydraMergeHead.index = HydraHeadInfo.index, which is 0-based (the roster starts at 0 when the team is empty, Hydra.swift line 402), and `<task>` is `TextCleanup.singleLine(info.task, limit: 120)` (line 525); `<name>` is `HydraRoster.persona(at: info.index).name`.",
+        "filesLine: \"1 file|N files (+<additions> −<deletions>)\" (U+2212 minus).",
+        "glab path used only when git.forge() == .gitlab and glab is on PATH, else git.createPullRequest. Arguments: [\"mr\", \"create\", \"--title\", title, \"--description\", body, \"--yes\", \"--squash-before-merge\"] + [\"--repo\", <remote web URL with user/password stripped>] when a host exists + [\"--source-branch\", source, \"--target-branch\", target]. Host fallback text \"your GitLab host\". Pre-check glab auth status (non-zero -> gitLabAuth, empty message -> \"glab is not signed in to this GitLab host.\"); on auth failure re-check and retry once; on output mentioning \"recover\" retry once with \"--recover\"; else creationFailed(failureMessage). Detail sources: the pre-check throws gitLabAuth with the `glab auth status` failureMessage (or the fallback text) (lines 395-396, 428-431). If `glab auth status` throws (glab cannot run), hydraGitLabAuthFailure returns nil and creation proceeds. On an auth failure of `mr create`, when the re-check still reports not signed in, no retry runs and gitLabAuth is thrown with the first `mr create` failureMessage; when the re-check is good, one retry runs and, if it fails, `failure = retry`; if the retry's output still matches isGitLabAuthFailure, gitLabAuth is thrown with `detail: failure.failureMessage` (the retry's), otherwise control falls through to the --recover check (lines 401-419). The final error is creationFailed(failure.failureMessage).",
+        "isGitLabAuthFailure: lowercased output+errorOutput contains \"401\" or \"unauthorized\", or \"authentication\" together with one of \"failed\", \"expired\", \"invalid\", \"required\". MR URL = first match of regex https://\\S+ in output + errorOutput.",
+        "gitLabAuth errorDescription: \"GitLab refused the login (401 Unauthorized) for <host>: the token glab signs in with is missing or expired.\\n\\n<detail>\\n\\nSign back in with `glab auth login --hostname <host>` (or export a valid GITLAB_TOKEN), then ask for the merge again. The branch `<branch>` is already pushed, so the team's work is safe.\"",
+        "hydraWork: reported = unmerged turns' touchedPaths + for each team head with mergedAt == nil and no landing patchPath/error: its landing files and its timeline tool edits (live runtime entries, or Storage.decodeDocument off main), anchored to the head's checkout (copy paths mapped back); + the lead's own tool edits in unmerged turns. Paths not build output are split into inside (relative) and outside. Checkout sweep (sweepsCheckout only) adds files changed since the first unmerged turn's baseCheckpoint that were not already dirty at that checkpoint and are not sibling reservations. Blocking claims are subtracted (and remembered as claimed); build output, ignored paths, and missing untracked paths removed. turnIDs/headIDs exclude any turn/head touching a claimed path; held maps claimed path -> owner name. Precisely (lines 568-576): the sweep runs only when sweepsCheckout and `turns.first?.baseCheckpoint` exists; `alreadyDirty = git.changedPaths(from: \"HEAD\", to: base)` compares the CURRENT HEAD with that checkpoint (not the dirty set at checkpoint time, so once HEAD has moved since the checkpoint, files committed in between also count as \"theirs\"); `now = git.captureTree()`; `changedSince = git.changedPaths(from: base, to: now)`; fresh = changedSince not in alreadyDirty, minus sibling reservations. If any of the three git calls throws (`try?`), the whole sweep is skipped silently.",
+        "siblingOwnedPaths: other threads in the same project, not this lead or its team. Heads: mergedAt == nil and (running or parent canStillMerge); rankedOut only when completed and the parent ranks after this lead and is finished-idle-eligible; reserves landing files under parent title (or head title). Chats with live runtime: rankedOut = ranks after and finished-idle-eligible; reserves touchedPaths of unmerged turns where canStillMerge(other) or the turn is not completed. Owner name = chat title. hydraIsFinishedIdleEligible(lead) (lines 679-684): `guard hydraIsOn(lead), let live = existingRuntime(for: lead.id) else { return false }`, then `guard live.isReadyForHydraMerge, !live.isHydraMerging, !hydraHasPendingLanding(lead.id) else { return false }`, then `return canStillMerge(lead)`. A lead with no live runtime is never eligible, so its claims are never ranked out.",
+        "hydraRanksAfter: lead.id.uuidString > other.uuidString (the earliest UUID string wins). canStillMerge: live runtime not idle or merging -> true; else requires not archived, hydraIsOn, updatedAt within 3 days; without a live runtime -> lead.lastStatus == .completed; with one -> last turn completed and (unmerged turns non-empty or landed unmerged head work). hydraHasPendingLanding: any unmerged team head with non-empty landing files and !landing.landed.",
+        "syncDefaultBranch: remote = \"origin/<target>\"; requires fetch success and head ancestor of remote; other changed paths must not be dirty; presentPaths splits kept/gone; HEAD must still equal head; then resetSoft(remote), resetIndex(ownPaths), checkoutPaths(kept), removePaths(gone); any throw -> false.",
+        "commitMessage: text engine via textEngine(preferring: lead.provider) with summary lines \"A|D|M <path>\" and settings.commitInstructions; fallback = lead title (or \"Hydra: the team's work\" when title == ChatThread.untitled), blank line, \"- <persona>: <task singleLine limit 100>\" for every head of `hydraTeam(of: lead.id)` with a non-empty task (every non-archived head of the lead, including heads merged by earlier jobs, not just this merge's heads), joined by \"\\n\" and trimmed.",
+        "mergeRequestBody: \"Opened by Droppy Code once its Hydra team finished.\", blank; then, only when non-empty, \"## Heads\" with \"- **<persona>**: <task singleLine limit 120>\" for every head of `hydraTeam(of: lead.id)` with a non-empty task (all non-archived heads, including heads merged by earlier jobs), plus \" (1 file|N files)\" only when `landing` exists and `landing.files` is non-empty, followed by a blank line; then, only when a non-empty reply exists, \"## The lead's summary\" with the last assistant reply of the merged turns trimmed, cut to 2,000 characters + \"…\", followed by a blank line; then \"## Files\" with \"- `<path>` (+<a> −<d>)\" (no trailing blank line); joined by \"\\n\".",
+        "hydraBranchName: title (\"team\" when title == ChatThread.untitled) lowercased, non letter/number -> \"-\", \"--\" collapsed, \"-\" trimmed, cut to 40 then trimmed; suffix = `String(UUID().uuidString.lowercased().prefix(6))` from a FRESH random UUID (line 807), not from the lead's id; result \"hydra/<slug or 'team'>-<suffix>\". A new random name is made each time mergeHydraProject runs with ownBranch, so a retried merge pushes a different branch.",
+        "pathsWithConflictMarkers: skips files larger than 4,000,000 bytes or unreadable; prepends 0x0A and requires both \"\\n<<<<<<< \" and \"\\n>>>>>>> \".",
+        "note(): appends title + \"\\n\" + body under the spent hydraMergeNoteID; if NSApp.isActive and the lead is selected, nothing more; otherwise hasUnread = true, updateDockBadge(), and if settings.notifyWhenFinished notify(threadID:, title: lead.title, body: title).",
+        "Doc comment (lines 372-373) says \"Squash and source-branch removal are explicit for GitLab team merges\", but the arguments contain only \"--squash-before-merge\"; no source-branch-removal flag is passed in this file.",
+        "B1->B2: HydraWork tuple gained `held: [String: String]`; new `hydraMergeWindow` (3 days) replaces the inline cutoff; resumeHydraMerges now sorts leads by UUID string, loads all runtimes before merging, and requires isReadyForHydraMerge (was phase == .idle, no running heads, non-empty finished turns and last turn completed) with head own-work now keyed on landing?.landed instead of non-empty landing files; autoMergeHydraWork also requires !isAnyHydraMergeRunning and isReadyForHydraMerge and re-checks readiness after awaiting the landing; groups always include the own checkout and other projects then drop empty groups after a new all-project hold check (recordHydraHold); a spent job whose last record was .held now records a settlement; the leftover-changes note (\"Hydra merged <project>, but left ... no turn or head recorded.\") was removed and replaced by a settlement when all outcomes are .alreadyOnMain; mergeHydraProject re-checks readiness and blocking claims after the snapshot; glab mr create gained \"--squash-before-merge\" and its doc comment changed; hydraWork drops the lastMergedTurnStart shortcut, skips heads whose landing has patchPath or error, tracks head ids in headPaths, uses reserved vs blocking sibling claims, and computes turnIDs/headIDs/held excluding claimed paths; siblingOwnedPaths now returns (reserved, blocking) maps with owner names, honouring canStillMerge and UUID ordering; new functions hydraIsFinishedIdleEligible, hydraHasPendingLanding, hydraRanksAfter, canStillMerge, recordHydraSettlement, recordHydraHold, heldDetail; three trimmingCharacters calls became .trimmed."
+      ],
+      "unresolved_questions": [
+        "ThreadRuntime.isReadyForHydraMerge, HydraLanding.landed, HydraMergeStage words and HydraMergeRecord persistence are defined elsewhere.",
+        "Git.createPullRequest/mergePullRequest forge CLI usage (gh or glab) and Git.forge() detection are defined in the Git type.",
+        "Whether GitLab source-branch removal is intended: the doc comment claims it is explicit, but no flag for it is passed; recorded as a source discrepancy, not resolved here.",
+        "Windows equivalents for isScratchPath roots (%TEMP%, AppData, dot-folders under the profile) are a port decision.",
+        "notify() and updateDockBadge() behaviour (Windows taskbar badge equivalent) are defined elsewhere."
+      ]
+    }
+  ]
+}

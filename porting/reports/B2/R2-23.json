@@ -1,0 +1,292 @@
+{
+  "bundle_id": "R2-23",
+  "reader": "R2-23-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Core/Models/Provider.swift",
+      "sha256": "735a5f37c56903c4b7ddcd8c0b855821d67dbb3e545b0c63c20b9d0de66366ec",
+      "lines_total": 351,
+      "ranges_read": [
+        [
+          1,
+          351
+        ]
+      ],
+      "purpose": "Defines the provider catalogue (ProviderKind, 14 cases) with every per-provider constant the app keys off: display name, CLI executable, icon asset name, login command hint, install URL, API-key host/source/env var, and capability flags (ACP transport, rewind, local /compact, image support). It also holds the small shared model enums for runtime approval mode (RuntimeMode with title, one-line summary and SF Symbol), plan/build interaction mode and local/worktree workspace mode, the ModelOption value type with its custom decoder (absent or null optional keys fall back to defaults; a wrong-typed value still throws) and name-shortening rules for the picker and composer chip, and the SlashCommand type with its suggestion ranking and its parsers for Claude command lists and Codex skill lists. At 1.6.2 it adds the separate OpenCode Go provider and the supportsCompact flag.",
+      "key_symbols": [
+        "enum ProviderKind: String, Codable, CaseIterable, Identifiable, Sendable { case codex, claude, cursor, opencode, opencodeGo, grok, deepseek, meta, zai, devin, antigravity, copilot, commandcode, pi } (declaration order is the CaseIterable order)",
+        "ProviderKind.id: String { rawValue }",
+        "ProviderKind.displayName: String",
+        "ProviderKind.executableName: String",
+        "ProviderKind.iconName: String { self == .opencodeGo ? \"provider-opencode\" : \"provider-\\(rawValue)\" }",
+        "ProviderKind.loginCommand: String",
+        "ProviderKind.installURL: URL",
+        "ProviderKind.isAPIKeyBased: Bool { self == .deepseek || self == .meta || self == .zai }",
+        "ProviderKind.usesACP: Bool { self == .cursor || self == .opencode || self == .opencodeGo || self == .grok || self == .devin }",
+        "ProviderKind.acceptsAPIKey: Bool { isAPIKeyBased || self == .commandcode }",
+        "ProviderKind.apiHost: String?",
+        "ProviderKind.apiKeySource: String?",
+        "ProviderKind.apiKeyEnvVar: String?",
+        "ProviderKind.supportsRewind: Bool { self == .codex || self == .claude || self == .copilot }",
+        "ProviderKind.supportsCompact: Bool { true for .codex, .claude, .copilot, .deepseek, .meta, .zai, .pi; false otherwise }",
+        "ProviderKind.supportsImages: Bool { self != .grok && self != .antigravity }",
+        "enum RuntimeMode: String, Codable, CaseIterable, Identifiable, Sendable { case supervised, autoAcceptEdits, auto, fullAccess }; id, title, summary, symbol",
+        "enum InteractionMode: String, Codable, Sendable { case build, plan }",
+        "enum WorkspaceMode: String, Codable, CaseIterable, Identifiable, Sendable { case local, worktree }; id, title",
+        "struct ModelOption: Codable, Hashable, Identifiable, Sendable { var id: String; var name: String; var detail: String?; var efforts: [String]; var defaultEffort: String?; var isDefault: Bool; var fastTier: String? }",
+        "ModelOption.init(id:name:detail: = nil, efforts: = [], defaultEffort: = nil, isDefault: = false, fastTier: = nil)",
+        "ModelOption.init(from decoder: Decoder) throws",
+        "ModelOption.supportsFast: Bool { fastTier != nil }",
+        "ModelOption.shortName: String",
+        "ModelOption.chipName: String",
+        "static func ModelOption.effortTitle(_ effort: String) -> String",
+        "struct SlashCommand: Hashable, Identifiable, Sendable { var name: String; var detail: String; var isBuiltIn: Bool = false; var skillPath: String?; var id: String { name } }",
+        "static func SlashCommand.name(in text: String) -> String?",
+        "static func SlashCommand.suggestions(_ commands: [Self], matching query: String, recent: [String]) -> [Self]",
+        "func SlashCommand.codexInput(for text: String) -> [JSONValue]",
+        "static func SlashCommand.claudeCommands(_ entries: [JSONValue]) -> [Self]",
+        "static func SlashCommand.codexSkills(_ result: JSONValue) -> [Self]"
+      ],
+      "calls_into": [
+        "JSONValue (defined elsewhere): subscript by key (entry[\"name\"]), .string, .array, .bool accessors, dictionary and string literal construction (.string(...))",
+        "Foundation: URL(string:)!, String.replacingOccurrences(of:with:), String.range(of:), trimmingCharacters(in: .whitespaces), Dictionary(_:uniquingKeysWith: min), Set.insert",
+        "Swift Codable KeyedDecodingContainer decode/decodeIfPresent (synthesised CodingKeys)"
+      ],
+      "state_owned": [
+        "None global. Value types only; ModelOption and SlashCommand hold per-instance fields listed in key_symbols."
+      ],
+      "side_effects": [
+        "None. All members are pure computed properties or pure static functions; no I/O, no logging."
+      ],
+      "platform_assumptions": [
+        "import Foundation only; URL, String/Character APIs and Codable are portable to TypeScript equivalents.",
+        "RuntimeMode.symbol returns SF Symbols names (\"hand.raised\", \"pencil.line\", \"wand.and.sparkles\", \"lock.open\"), which are Apple-only glyphs; a Windows port needs a mapped icon set.",
+        "iconName returns asset catalogue names (\"provider-<rawValue>\", with opencodeGo mapped to \"provider-opencode\"), resolved from Assets.xcassets on macOS; the port needs equivalent bundled icons.",
+        "executableName values are Unix CLI names without extension (e.g. \"cursor-agent\", \"agy\", \"cmd\"); on Windows these resolve through PATHEXT (.exe/.cmd) and \"cmd\" collides with Windows cmd.exe, which a port must handle.",
+        "loginCommand strings for API-key providers are POSIX shell env syntax (\"DEEPSEEK_API_KEY=sk-...\", \"MODEL_API_KEY=...\", \"ZAI_API_KEY=...\"), not valid in PowerShell/cmd as written.",
+        "String.count/prefix/dropFirst operate on grapheme clusters (Swift Character), relevant for chipName/shortName/effortTitle parity in JS."
+      ],
+      "persisted_fields": [
+        "ProviderKind is Codable as its String rawValue: \"codex\", \"claude\", \"cursor\", \"opencode\", \"opencodeGo\", \"grok\", \"deepseek\", \"meta\", \"zai\", \"devin\", \"antigravity\", \"copilot\", \"commandcode\", \"pi\" (new at 1.6.2: \"opencodeGo\").",
+        "RuntimeMode rawValues: \"supervised\", \"autoAcceptEdits\", \"auto\", \"fullAccess\".",
+        "InteractionMode rawValues: \"build\", \"plan\".",
+        "WorkspaceMode rawValues: \"local\", \"worktree\".",
+        "ModelOption JSON keys: \"id\" (required String), \"name\" (required String), \"detail\" (optional String), \"efforts\" ([String], absent or null -> []), \"defaultEffort\" (optional String), \"isDefault\" (Bool, absent or null -> false), \"fastTier\" (optional String). The decoder (lines 244-253) uses only `try container.decode(...)` for id/name and `try container.decodeIfPresent(...)` for the rest, so it tolerates only absent or null keys: a wrong-typed value (e.g. \"efforts\": \"high\" or \"isDefault\": \"true\") throws and fails the whole ModelOption rather than falling back. Encoding is synthesised (no custom encode(to:)): nil optionals \"detail\", \"defaultEffort\" and \"fastTier\" are omitted (encodeIfPresent), never written as null, while \"efforts\" (even []) and \"isDefault\" (even false) are always written.",
+        "SlashCommand is not Codable (not persisted by this file)."
+      ],
+      "ui_elements": [
+        "Provider display names verbatim: \"Codex\", \"Claude\", \"Cursor\", \"OpenCode Zen\" (.opencode), \"OpenCode Go\" (.opencodeGo), \"Grok\", \"DeepSeek\", \"Meta\", \"Z.ai\", \"Devin\", \"Antigravity\", \"Copilot\", \"Command Code\", \"Pi\".",
+        "Login command hints verbatim: codex \"codex login\"; claude \"claude auth login\"; cursor \"cursor-agent login\"; opencode and opencodeGo \"opencode auth login\"; grok \"grok login\"; deepseek \"DEEPSEEK_API_KEY=sk-...\"; meta \"MODEL_API_KEY=...\"; zai \"ZAI_API_KEY=...\"; devin \"devin auth login\"; antigravity \"agy\"; copilot \"copilot login\"; commandcode \"cmd login\"; pi \"pi\".",
+        "Install URLs verbatim: codex https://developers.openai.com/codex/cli; claude https://claude.com/product/claude-code; cursor https://cursor.com/cli; opencode and opencodeGo https://opencode.ai; grok https://x.ai/cli; deepseek https://platform.deepseek.com/api_keys; meta https://dev.meta.ai/; zai https://z.ai/manage-apikey/apikey-list; devin https://cli.devin.ai; antigravity https://antigravity.google/docs/cli/overview; copilot https://github.com/github/copilot-cli; commandcode https://commandcode.ai/docs/quickstart; pi https://pi.dev/docs/latest.",
+        "Settings API host strings: deepseek \"api.deepseek.com\", meta \"api.meta.ai/v1\", zai \"api.z.ai/api/coding/paas/v4\", others nil.",
+        "Settings API key source strings: deepseek \"platform.deepseek.com\", meta \"dev.meta.ai\", zai \"z.ai/manage-apikey/apikey-list\", commandcode \"commandcode.ai/studio\", others nil.",
+        "RuntimeMode titles: \"Supervised\", \"Auto-accept edits\", \"Auto\", \"Full access\".",
+        "RuntimeMode summaries: supervised \"Asks before commands and file changes\"; autoAcceptEdits \"Edits files freely, asks before other actions\"; auto \"The provider's reviewer approves routine actions\"; fullAccess \"Runs commands and edits without asking\".",
+        "RuntimeMode SF Symbols: supervised \"hand.raised\", autoAcceptEdits \"pencil.line\", auto \"wand.and.sparkles\", fullAccess \"lock.open\".",
+        "WorkspaceMode titles: local \"Local\", worktree \"New worktree\".",
+        "Effort titles: \"xhigh\" and \"extra-high\" -> \"Extra High\"; \"\" -> \"Default\"; any other effort -> first character uppercased + rest unchanged (e.g. \"medium\" -> \"Medium\").",
+        "Icon asset names: \"provider-<rawValue>\" for every provider except opencodeGo, which reuses \"provider-opencode\"."
+      ],
+      "feature_notes": [
+        "executableName: codex \"codex\", claude \"claude\", cursor \"cursor-agent\", opencode \"opencode\", opencodeGo \"opencode\", grok \"grok\", deepseek \"\", meta \"\", zai \"\", devin \"devin\", antigravity \"agy\", copilot \"copilot\", commandcode \"cmd\", pi \"pi\". The three API-key providers have empty executable names.",
+        "isAPIKeyBased doc comment (line 100): \"API-key providers talk to their cloud API directly instead of a local CLI.\" This is why deepseek, meta and zai have executableName \"\" (there is no CLI to launch).",
+        "apiKeyEnvVar: deepseek \"DEEPSEEK_API_KEY\", meta \"MODEL_API_KEY\", zai \"ZAI_API_KEY\", commandcode \"COMMAND_CODE_API_KEY\"; others nil. Doc comment: env var fallback read when no key is stored in Settings.",
+        "acceptsAPIKey is true for deepseek, meta, zai and commandcode (Command Code's CLI takes a Studio key through COMMAND_CODE_API_KEY as an alternative to `cmd login`).",
+        "usesACP (driven by ACPSession) is true for cursor, opencode, opencodeGo, grok, devin.",
+        "supportsRewind true only for codex, claude, copilot.",
+        "supportsCompact true for codex, claude, copilot, deepseek, meta, zai, pi: the app runs /compact itself for these; for every other provider the command is passed to the tool.",
+        "supportsImages false only for grok and antigravity (comment: headless stream-json only carries text).",
+        "ModelOption.shortName: if name lowercased has prefix \"gpt-\", drop the first 4 characters; then replace every \"-\" with a space. Example from the doc comment: \"GPT-5.6-Terra\" -> \"5.6 Terra\".",
+        "ModelOption.chipName: starting from shortName, for each separator in order [\" (\", \" · \" (U+00B7), \" — \" (U+2014), \" – \" (U+2013), \" - \", \": \"] truncate at the first occurrence; then, for vendor prefixes in order [\"claude \", \"gpt \", \"gemini \", \"deepseek \", \"openai \", \"anthropic \", \"google \", \"meta \", \"muse \", \"glm \"], if the lowercased text has that prefix and text.count > prefix count, drop the prefix (only the first matching vendor, then break). Trim spaces (.whitespaces, not newlines); if empty return shortName. Doc examples: \"Opus (1M context)\" -> \"Opus\", \"Gemini 3.8 Flash\" -> \"3.8 Flash\", \"V4.1 Flash\" unchanged.",
+        "SlashCommand.name(in:) (lines 301-304): `guard text.first == \"/\" || text.first == \"$\" else { return nil }; return text.dropFirst().split(whereSeparator: \\.isWhitespace).first.map(String.init)`. split omits empty subsequences by default, so whitespace right after the sigil is skipped: \"/ help\" returns \"help\" (not nil), \"/help me\" returns \"help\"; nil only when nothing but whitespace (or nothing) follows the sigil, e.g. \"/\" or \"/   \".",
+        "SlashCommand.suggestions: lowercases the query; recent ranks map name -> smallest index in `recent`; dedupes by exact command name (first occurrence kept); filters to names whose lowercase contains the needle (all when needle empty); sorts prefix matches first, then by recent rank ascending (Int.max when not recent), ties broken by lowercased name ascending.",
+        "SlashCommand.codexInput(for:): when skillPath is set and name(in: text) == name, returns two items: [{\"type\":\"text\",\"text\":\"$\" + text with its first character dropped}, {\"type\":\"skill\",\"name\":name,\"path\":skillPath}]; otherwise [{\"type\":\"text\",\"text\":text}]. So a \"/skill\" typed with a slash is sent to Codex with a \"$\" sigil; and because name(in:) skips leading whitespace, \"/ skill\" also matches skill \"skill\" and is sent as \"$ skill\" (space kept).",
+        "SlashCommand.claudeCommands: each entry's name is entry[\"name\"] as string, else the entry itself if it is a string; detail is entry[\"description\"] or the default \"Claude Code command\"; entries without a name are dropped.",
+        "SlashCommand.codexSkills: iterates result[\"data\"] array, each entry's \"skills\" array; skips skills whose \"enabled\" is explicitly false or that lack \"name\" or \"path\"; detail is skill[\"interface\"][\"shortDescription\"], else skill[\"description\"], else \"\"; skillPath = path.",
+        "B1->B2: (1) new case `opencodeGo` inserted after `opencode` (rawValue \"opencodeGo\"), with displayName \"OpenCode Go\", executableName \"opencode\", loginCommand \"opencode auth login\", installURL https://opencode.ai, and included in usesACP; (2) the `.opencode` displayName changed from \"OpenCode\" to \"OpenCode Zen\"; (3) iconName changed from always \"provider-\\(rawValue)\" to mapping opencodeGo to \"provider-opencode\" (new doc comment: both OpenCode plans are the one `opencode` CLI); (4) new computed property `supportsCompact` (true for codex, claude, copilot, deepseek, meta, zai, pi). Line count 335 -> 351. Nothing else changed."
+      ],
+      "unresolved_questions": [
+        "How opencodeGo differs from opencode at runtime (model list, auth, plan selection) is not defined here; it shares the CLI, login and URL. The distinction must be read in the ACP/OpenCode session and model-list files.",
+        "Where supportsCompact is consumed (the local /compact handler) is outside this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Models/ThreadContinuation.swift",
+      "sha256": "1c1d1984e45ae622059c8a92b9d201db0ae786e4b880b45fbdc54833c3f1866e",
+      "lines_total": 162,
+      "ranges_read": [
+        [
+          1,
+          162
+        ]
+      ],
+      "purpose": "Implements the \"forward this chat into a new thread\" snapshot: a Codable ThreadContinuation that stores the source thread id and title, a creation date, a rendered text context of the earlier conversation, the referenced attachments and a truncation flag. The static capture function turns a ThreadDocument's user and assistant items into a size-bounded transcript (48,000 characters, always keeping up to 4,000 characters of the first real user request and then the newest messages backwards), folding in any previous continuation the source itself inherited; the prompt property wraps that context in fixed instructions and BEGIN/END markers for the next assistant.",
+      "key_symbols": [
+        "struct ThreadContinuation: Codable, Equatable, Sendable { var sourceThreadID: UUID; var sourceTitle: String; var createdAt: Date; var context: String; var attachments: [Attachment]; var isTruncated: Bool }",
+        "ThreadContinuation.init(sourceThreadID: UUID, sourceTitle: String, createdAt: Date = .now, context: String, attachments: [Attachment] = [], isTruncated: Bool = false)",
+        "static let contextBudget = 48_000",
+        "static let firstRequestLimit = 4_000",
+        "private static let truncationMarker = \"… [parts of the forwarded conversation were omitted here to keep the context within its size limit] …\"",
+        "static func capture(sourceID: UUID, title: String, document: ThreadDocument) -> ThreadContinuation",
+        "var prompt: String",
+        "private struct ContinuationUnit { enum Role: String { case user = \"User\"; case assistant = \"Assistant\"; var label: String { \"\\(rawValue):\" } }; var role: Role; var text: String; var attachments: [Attachment]; func rendered(limit: Int? = nil) -> (text: String, wasLimited: Bool) }"
+      ],
+      "calls_into": [
+        "ThreadDocument.items and ThreadDocument.continuation (Timeline.swift)",
+        "TimelineItem.Content .user(UserMessage) / .assistant(AssistantMessage) (Timeline.swift)",
+        "UserMessage.isFromHydra, UserMessage.isHydraBrief, UserMessage.text, UserMessage.attachments (Timeline.swift)",
+        "String.trimmed (Core/Support/Text.swift line 132: trimmingCharacters(in: .whitespacesAndNewlines))",
+        "HydraPrompts.withoutDelegationBlock(_:) (Core/Models/Hydra.swift lines 1165-1169: removes delegationBlockRange(in:) if found, then returns kept.trimmed)",
+        "Attachment.name, Attachment.path (Timeline.swift)"
+      ],
+      "state_owned": [
+        "Instance fields of ThreadContinuation only; no statics other than the three constants."
+      ],
+      "side_effects": [
+        "None. capture and prompt are pure; createdAt defaults to Date.now at construction."
+      ],
+      "platform_assumptions": [
+        "Foundation UUID, Date and Codable (synthesised). Thread files are written with JSONEncoder.storage (Services/Store/Storage.swift:382; Core/Support/Coding.swift:20-25: dateEncodingStrategy = .iso8601, outputFormatting [.sortedKeys]) and read with a JSONDecoder whose dateDecodingStrategy = .iso8601 (Storage.swift:76-77). Foundation's .iso8601 strategy writes whole seconds with no fractional part (e.g. \"2026-09-22T10:15:30Z\"), so createdAt (Date.now) loses sub-second precision on round trip; a JS port using toISOString() writes milliseconds, a different stored format that the .iso8601 decoder does not accept.",
+        "All length arithmetic uses Swift String.count, i.e. extended grapheme clusters (doc comment: counted in Swift characters rather than bytes, so a chat full of emoji is not cut short). A JS port must count graphemes (Intl.Segmenter), not UTF-16 code units, to reproduce the same cuts.",
+        "prefix/suffix on String are grapheme-based as well."
+      ],
+      "persisted_fields": [
+        "Stored inside ThreadDocument under key \"continuation\" (optional). Keys: \"sourceThreadID\" (UUID string), \"sourceTitle\" (String), \"createdAt\" (Date), \"context\" (String), \"attachments\" ([Attachment] with id/name/path/mimeType), \"isTruncated\" (Bool). Synthesised Codable: all keys required when decoding a ThreadContinuation (no custom lenient decoder), but ThreadDocument decodes it through container.value(.continuation, default: nil), so a malformed one becomes nil."
+      ],
+      "ui_elements": [
+        "No UI. Model-facing prompt text only (listed verbatim in feature_notes)."
+      ],
+      "feature_notes": [
+        "Unit selection: iterate document.items in order. .user: skip if isFromHydra or isHydraBrief; text = message.text.trimmed; skip if text empty and no attachments; append role User with the message attachments. .assistant: text = HydraPrompts.withoutDelegationBlock(message.text), which trims: Hydra.swift:1165-1169 is `var kept = text; if let range = delegationBlockRange(in: text) { kept.removeSubrange(range) }; return kept.trimmed` (trimmed = trimmingCharacters(in: .whitespacesAndNewlines)). So assistant units have the delegation block removed and are trimmed of whitespace and newlines, and a whitespace-only assistant message is skipped by `guard !text.isEmpty`; append role Assistant with no attachments. All other content kinds (reasoning, tool, plan, todos, notice, turnEnd) are ignored.",
+        "Re-forward guard: if no units and the document already has a continuation, return a new ThreadContinuation with the new sourceID/title (createdAt = now) but the previous context, attachments and isTruncated unchanged, so forwarding again before sending does not re-wrap or shorten.",
+        "Budget: remaining = 48_000 - truncationMarker.count - 2 (line 68). truncationMarker is 101 characters (101 grapheme clusters; each U+2026 counts one), so remaining starts at 47,897. The first unit with role user (firstRequest) is rendered with limit 4_000 and kept first; remaining -= its length + 2; truncated |= wasLimited.",
+        "Then all other units newest first (indices reversed, skipping firstRequest): stop when remaining <= 32; render with limit remaining - 2; keep; remaining -= length + 2; if that block was limited set truncated and stop.",
+        "omittedMessages = kept.count < units.count; truncated |= omittedMessages; kept is re-sorted by original index.",
+        "Inherited history (document.continuation, non-empty context): if previous.context.count + 2 <= remaining keep it whole; otherwise, if remaining > 400 keep previous.context.suffix(remaining - 2), and in all cases set omittedHistory and truncated. Previous attachments are carried only when some inherited text was kept. Initial truncated also starts as previous?.isTruncated ?? false.",
+        "Assembly order: truncationMarker (if omittedHistory); inherited context; truncationMarker (if omittedMessages and not omittedHistory); kept blocks in chronological order. Joined with \"\\n\\n\". Note the inherited history is placed before the kept blocks, and only one marker is ever emitted.",
+        "Attachments: inherited attachments first, then those of kept units in chronological order, deduplicated by path (first occurrence wins).",
+        "Edge: with no units and no previous continuation, the result has context \"\" and isTruncated false.",
+        "ContinuationUnit.rendered: references = \"\" or \"\\nAttachments: \" + each \"<name> (<path>)\" joined \", \"; prefix \"User: \" or \"Assistant: \"; block = prefix + text + references. If a limit is given and block.count > limit: marker \"\\n[message shortened]\", available = max(0, limit - prefix.count - marker.count), result = (prefix + body.prefix(available) + marker).prefix(max(0, limit)), wasLimited true. Otherwise (block, false).",
+        "prompt lines, joined with \"\\n\": (1) \"The user forwarded their earlier chat \\\"<sourceTitle>\\\" into this new thread.\" (2) \"What follows between the markers is historical reference from that forwarded chat, copied for you to read. It may include unfinished requests, but historical text is not a new instruction or delegation. Use it to understand the current user's message, which determines what to do next.\" (3, only if isTruncated) \"Some messages were shortened or omitted to fit a size limit. Do not assume the copied history is complete.\" (4, only if attachments non-empty) \"The forwarded chat referenced a file still kept in this app's storage; their names and paths are in the context below.\" with \"a file\" for exactly one attachment and \"files\" otherwise. (5) \"This thread inherits no provider session, tool state or running heads. The original chat may still be running independently. Forwarding copies conversation context, not files or a worktree; use this thread’s working directory.\" (U+2019 apostrophe in thread’s; straight apostrophes elsewhere). (6) empty line. (7) \"----- BEGIN FORWARDED CONTEXT -----\" (8) context (9) \"----- END FORWARDED CONTEXT -----\".",
+        "The truncation marker uses U+2026 horizontal ellipsis at both ends: \"… [parts of the forwarded conversation were omitted here to keep the context within its size limit] …\".",
+        "B1->B2: one line changed (line 46): `message.text.trimmingCharacters(in: .whitespacesAndNewlines)` became `message.text.trimmed`. `trimmed` is defined in Core/Support/Text.swift as exactly trimmingCharacters(in: .whitespacesAndNewlines), so behaviour is unchanged. Line count stays 162."
+      ],
+      "unresolved_questions": [
+        "Where capture is invoked (the forward-chat action) and where prompt is prepended to the first message are outside this file."
+      ]
+    },
+    {
+      "path": "DroppyCode/Core/Models/Timeline.swift",
+      "sha256": "3d00a7fce0953d9e8e069b0adff9a688e4c00d1269af4490080de84f5f4a367b",
+      "lines_total": 366,
+      "ranges_read": [
+        [
+          1,
+          366
+        ]
+      ],
+      "purpose": "Holds the persisted data model of one chat thread: the TimelineItem enum-backed rows (user, assistant, reasoning, tool, plan, todos, notice, turnEnd), their payload structs, queued follow-up prompts, attachments, per-turn records with checkpoints and token spends, Hydra merge records, context usage and the top-level ThreadDocument. It carries the compatibility decoders (TurnRecord and ThreadDocument read field by field and drop undecodable elements) so threads written by older builds still open, the em-dash cleanup for stored model prose, the 60,000-byte tool output cap, and at 1.6.2 the ImageIO downscale that turns any image attachment larger than 2000 px on its longest side into a JPEG before it is base64-encoded for a provider.",
+      "key_symbols": [
+        "struct TimelineItem: Codable, Identifiable, Hashable, Sendable { var id: String; var turnID: UUID?; var date: Date; var content: Content }",
+        "TimelineItem.init(id: String = UUID().uuidString, turnID: UUID?, date: Date = .now, content: Content)",
+        "enum TimelineItem.Content: Codable, Hashable, Sendable { case user(UserMessage); case assistant(AssistantMessage); case reasoning(ReasoningBlock); case tool(ToolCall); case plan(ProposedPlan); case todos([TodoStep]); case notice(Notice); case turnEnd(TurnSummary) }",
+        "TimelineItem.isEmptyReasoning: Bool",
+        "TimelineItem.cleanedOfEmDashes: TimelineItem",
+        "struct UserMessage: Codable, Hashable, Sendable { var text: String; var attachments: [Attachment] = []; var hydraHeads: [Int]?; var hydraBrief: Bool?; var isFromHydra: Bool { hydraHeads != nil }; var isHydraBrief: Bool { hydraBrief == true } }",
+        "struct FollowUpPrompt: Codable, Hashable, Identifiable, Sendable { var id = UUID(); var text: String; var attachments: [Attachment] = []; var createdAt = Date.now; var bundleID: UUID? = nil; var isEmpty: Bool }",
+        "struct Attachment: Codable, Hashable, Identifiable, Sendable { var id = UUID(); var name: String; var path: String; var mimeType: String; var url: URL; var isImage: Bool }",
+        "@concurrent static func Attachment.base64Images(_ attachments: [Attachment]) async -> [(image: Attachment, base64: String)]",
+        "private static let Attachment.maxPixelSize = 2000",
+        "private static func Attachment.downscaledJPEG(_ data: Data) -> Data?",
+        "struct AssistantMessage: Codable, Hashable, Sendable { var text: String; var isStreaming = false }",
+        "struct ReasoningBlock: Codable, Hashable, Sendable { var text: String; var isStreaming = false }",
+        "struct ToolCall: Codable, Hashable, Sendable { enum Kind: String { command, read, edit, search, web, mcp, agent, other }; enum Status: String { running, completed, failed, declined }; static let outputLimit = 60_000; var kind: Kind; var title: String; var detail: String?; var output = \"\"; var status: Status = .running; var exitCode: Int?; var edits: [FileEdit] = []; var startedAt = Date.now; var finishedAt: Date? }",
+        "mutating func ToolCall.appendOutput(_ text: String); mutating func ToolCall.setOutput(_ text: String); mutating func ToolCall.finish(_ status: Status); private mutating func ToolCall.trimOutput()",
+        "struct FileEdit: Codable, Hashable, Sendable { var path: String; var diff: String?; var additions = 0; var deletions = 0 }",
+        "struct ProposedPlan: Codable, Hashable, Sendable { enum State: String { drafting, proposed, accepted, dismissed }; var markdown: String; var state: State }",
+        "struct TodoStep: Codable, Hashable, Sendable { enum Status: String { pending, active, done }; var text: String; var status: Status }",
+        "struct Notice: Codable, Hashable, Sendable { enum Level: String { info, warning, error }; var level: Level; var message: String; var limit: LimitNotice? = nil }",
+        "struct LimitNotice: Codable, Hashable, Sendable { var threadID: UUID }",
+        "enum TurnStatus: String, Codable, Sendable { case running, completed, interrupted, failed }",
+        "struct TurnSummary: Codable, Hashable, Sendable { var turnID: UUID; var status: TurnStatus; var duration: TimeInterval; var filesChanged: Int; var additions: Int; var deletions: Int; var changes: FileChangeSummary? }",
+        "struct HydraMergeRecord: Codable, Hashable, Sendable { enum Outcome: String { case merged, failed, stray, held, settled }; var at: Date; var outcome: Outcome; var project: String?; var label: String?; var url: URL?; var files: Int; var detail: String? }",
+        "struct TurnRecord: Codable, Identifiable, Hashable, Sendable { var id = UUID(); var index: Int; var providerTurnID: String?; var startedAt = Date.now; var completedAt: Date?; var status: TurnStatus = .running; var baseCheckpoint: String?; var endCheckpoint: String?; var userItemID: String?; var providerDiff: String?; var providerAnchor: String?; var touchedPaths: [String]?; var tokenSpends: [TokenSpend]?; var hydraMerged = false }",
+        "extension TurnRecord { init(from decoder: Decoder) throws }",
+        "struct ContextUsage: Codable, Hashable, Sendable { var usedTokens: Int; var windowTokens: Int?; var fraction: Double? }",
+        "struct ThreadDocument: Codable, Equatable, Sendable { var threadID: UUID; var items: [TimelineItem] = []; var turns: [TurnRecord] = []; var usage: ContextUsage?; var followUps: [FollowUpPrompt] = []; var hydraMerges: [HydraMergeRecord] = []; var continuation: ThreadContinuation? = nil; init(threadID: UUID); init(from decoder: Decoder) throws }"
+      ],
+      "calls_into": [
+        "String.trimmed (Core/Support/Text.swift line 132, trimmingCharacters(in: .whitespacesAndNewlines))",
+        "TextCleanup.withoutEmDashes(_:) (Core/Support/Text.swift line 41)",
+        "KeyedDecodingContainer.value(_:default:) (Core/Support/Coding.swift line 5: ((try? decodeIfPresent) ?? nil) ?? fallback, so a missing OR undecodable key yields the default)",
+        "Lenient<Element> (Core/Support/Coding.swift line 11: value = try? Element(from:), so a bad element becomes nil and is compactMapped out)",
+        "FileChangeSummary (Core/Models/FileChangeSummary.swift), TokenSpend (Core/Models/TokenSpend.swift), ThreadContinuation (ThreadContinuation.swift)",
+        "ImageIO: CGImageSourceCreateWithData, CGImageSourceCopyPropertiesAtIndex, kCGImagePropertyPixelWidth/Height, CGImageSourceCreateThumbnailAtIndex with kCGImageSourceCreateThumbnailFromImageAlways, kCGImageSourceCreateThumbnailWithTransform, kCGImageSourceThumbnailMaxPixelSize; CGImageDestinationCreateWithData(output, \"public.jpeg\", 1, nil), CGImageDestinationAddImage with kCGImageDestinationLossyCompressionQuality 0.8, CGImageDestinationFinalize; CoreFoundation CFDataCreateMutable",
+        "Foundation: Data(contentsOf:), Data.base64EncodedString(), URL(fileURLWithPath:), UUID, Date"
+      ],
+      "state_owned": [
+        "No global mutable state. Static constants: ToolCall.outputLimit = 60_000; Attachment.maxPixelSize = 2000 (private).",
+        "ThreadDocument owns a thread's items, turns, usage, followUps, hydraMerges and continuation."
+      ],
+      "side_effects": [
+        "Attachment.base64Images reads each image attachment's file from disk (Data(contentsOf:)) off the main actor (@concurrent); unreadable files are silently skipped. It does not write files; the downscaled JPEG exists only in memory.",
+        "ToolCall.finish stamps finishedAt with Date.now the first time only.",
+        "Default initialisers call UUID() and Date.now."
+      ],
+      "platform_assumptions": [
+        "ImageIO / CoreGraphics / CoreFoundation (CGImageSource, CGImageDestination, CFData, UTI \"public.jpeg\") for the downscale; a Windows/Electron port must replace this with e.g. sharp or nativeImage/canvas, including honouring EXIF orientation (kCGImageSourceCreateThumbnailWithTransform) and JPEG quality 0.8.",
+        "Swift concurrency attribute @concurrent (runs off the main actor); in the port this should run in the main process or a worker, not the renderer UI thread.",
+        "URL(fileURLWithPath:) on POSIX paths; Windows paths must be handled.",
+        "Swift Codable synthesised enum encoding for Content with associated values (Swift 5.5+ format: {\"user\":{\"_0\":{...}}}), which the port must reproduce byte-compatibly if it reads macOS thread files.",
+        "String.utf8.count for the tool output cap versus String.suffix counting grapheme clusters for the kept tail.",
+        "Dates (TimelineItem.date, ToolCall.startedAt/finishedAt, FollowUpPrompt.createdAt, TurnRecord.startedAt/completedAt, HydraMergeRecord.at) are written by JSONEncoder.storage (Services/Store/Storage.swift:382; Core/Support/Coding.swift:22 dateEncodingStrategy = .iso8601, sortedKeys) and read with dateDecodingStrategy = .iso8601 (Storage.swift:76-77). Foundation's .iso8601 writes whole seconds with no fractional part, so Date.now values lose sub-second precision on round trip; a JS port using toISOString() writes milliseconds, a different stored format that the Swift .iso8601 decoder does not accept (a TimelineItem or FollowUpPrompt carrying such a date would fail and be dropped by Lenient).",
+        "TurnRecord.touchedPaths are \"Repository-relative paths\" (doc comment lines 297-298), \"/\"-separated on macOS. A Windows port must decide the separator it stores and normalise when comparing with git output (which uses \"/\").",
+        "JPEG has no alpha channel: downscaledJPEG re-encodes any image ImageIO can read that is over 2000 px on its longest side (PNG included) as \"public.jpeg\" (line 133) and base64Images rewrites mimeType to \"image/jpeg\" (line 108), so a transparent PNG loses its transparency. The source sets no flatten colour (ImageIO flattens implicitly); a porter using sharp or canvas must choose a flatten background explicitly and should verify against ImageIO output."
+      ],
+      "persisted_fields": [
+        "Decoding rule for every struct in this file except TurnRecord and ThreadDocument (which have custom init(from:)): synthesised Decodable ignores property initial values, so every non-optional stored property is a required key even when declared with a default (`var x = ...`); only Optional properties are decoded with decodeIfPresent. A missing required key throws, and inside ThreadDocument the Lenient wrapper then drops the whole element (TimelineItem, FollowUpPrompt, HydraMergeRecord). Synthesised encoding omits nil optionals (no null written).",
+        "ThreadDocument keys: \"threadID\" (UUID, required, decode throws if missing), \"items\" ([TimelineItem], default [] and each element lenient), \"turns\" ([TurnRecord], default [], lenient elements), \"usage\" (ContextUsage?, default nil), \"followUps\" ([FollowUpPrompt], default [], lenient), \"hydraMerges\" ([HydraMergeRecord], default [], lenient), \"continuation\" (ThreadContinuation?, default nil).",
+        "TimelineItem keys: \"id\" (String, required on decode; UUID().uuidString is only the init default), \"turnID\" (UUID?, optional: synthesised decoding uses decodeIfPresent, so a missing or null turnID does not drop the item), \"date\" (Date, required), \"content\" (synthesised enum with case keys user, assistant, reasoning, tool, plan, todos, notice, turnEnd; required). A missing id, date or content, or an undecodable content payload, throws and the item is dropped by Lenient.",
+        "UserMessage keys: \"text\", \"attachments\" (declared default [] but synthesised decoding still requires the key), \"hydraHeads\" ([Int]?), \"hydraBrief\" (Bool?).",
+        "FollowUpPrompt keys: \"id\" (UUID, required on decode; UUID() is only the init default), \"text\" (required), \"attachments\" (required on decode; [] is only the init default), \"createdAt\" (Date, required on decode; Date.now is only the init default), \"bundleID\" (UUID?, optional).",
+        "Attachment keys: \"id\" (UUID, required on decode; UUID() is only the init default), \"name\", \"path\", \"mimeType\" (all required). url and isImage are computed, not stored.",
+        "AssistantMessage / ReasoningBlock keys: \"text\", \"isStreaming\" (both required on decode; false is only the init default, not a decode default).",
+        "ToolCall keys: \"kind\" (command|read|edit|search|web|mcp|agent|other), \"title\", \"detail\" (optional), \"output\" (required on decode; \"\" is only the init default), \"status\" (running|completed|failed|declined; required on decode; .running is only the init default), \"exitCode\" (optional), \"edits\" ([FileEdit], required on decode; [] is only the init default), \"startedAt\" (required on decode; Date.now is only the init default), \"finishedAt\" (optional).",
+        "FileEdit keys: \"path\" (required), \"diff\" (optional), \"additions\", \"deletions\" (both required on decode; 0 is only the init default). A FileEdit missing a key fails its ToolCall and so the whole TimelineItem.",
+        "ProposedPlan keys: \"markdown\", \"state\" (drafting|proposed|accepted|dismissed).",
+        "TodoStep keys: \"text\", \"status\" (pending|active|done).",
+        "Notice keys: \"level\" (info|warning|error), \"message\", \"limit\" (LimitNotice? {\"threadID\"}).",
+        "TurnSummary keys: \"turnID\", \"status\" (TurnStatus running|completed|interrupted|failed), \"duration\" (TimeInterval seconds, Double), \"filesChanged\", \"additions\", \"deletions\", \"changes\" (FileChangeSummary?).",
+        "HydraMergeRecord keys: \"at\", \"outcome\" (merged|failed|stray|held|settled), \"project\", \"label\", \"url\" (URL?), \"files\" (Int), \"detail\".",
+        "TurnRecord keys with lenient per-field defaults: id -> new UUID(), index -> 0, providerTurnID -> nil, startedAt -> Date.now, completedAt -> nil, status -> .running, baseCheckpoint -> nil, endCheckpoint -> nil, userItemID -> nil, providerDiff -> nil, providerAnchor -> nil, touchedPaths -> nil, tokenSpends -> nil, hydraMerged -> false.",
+        "ContextUsage keys: \"usedTokens\" (Int), \"windowTokens\" (Int?)."
+      ],
+      "ui_elements": [
+        "No views. Model enums drive UI elsewhere: ToolCall.Kind, ToolCall.Status, ProposedPlan.State, TodoStep.Status, Notice.Level, TurnStatus. Notice.limit marks the usage-limit notice whose row draws the badge with the two auto-continue controls (see AutoContinue). UserMessage.hydraBrief == true marks the lead's brief to a head, \"shown as a pill rather than a plain bubble\" (doc comment lines 64-65), a rendering rule for the message row.",
+        "Tool output truncation prefix is the single character \"…\" (U+2026)."
+      ],
+      "feature_notes": [
+        "isEmptyReasoning: true only for .reasoning whose text.trimmed is empty (a redacted thinking block).",
+        "cleanedOfEmDashes: applies TextCleanup.withoutEmDashes to assistant text, reasoning text and plan markdown only; user messages, tool output and notices are left exactly as stored.",
+        "FollowUpPrompt.isEmpty: no attachments and the text contains no non-whitespace character. Prompts with the same bundleID sit together, show one number and are sent as one message (see ThreadRuntime.bundleFollowUp).",
+        "Attachment.isImage: mimeType has prefix \"image/\". url = URL(fileURLWithPath: path).",
+        "Attachment.base64Images: for each image attachment whose file reads, try downscaledJPEG; if it returns data, the returned Attachment copy has mimeType \"image/jpeg\" (line 108; name, path and id unchanged) and the base64 is of the JPEG; otherwise the original bytes and mime type are used. Non-image and unreadable attachments are dropped from the result. Doc comment (lines 98-101): the downscale happens here \"once, so every provider and every token count gets the smaller copy\", i.e. token counting also uses the downscaled JPEG, not the original file.",
+        "downscaledJPEG returns nil (keep original bytes) when ImageIO cannot open the data, cannot read pixel width/height from properties at index 0, or max(width, height) <= 2000. Otherwise it creates a thumbnail from frame 0 with FromImageAlways true, WithTransform true (EXIF orientation applied), MaxPixelSize 2000, encodes it as a single-image JPEG with lossy quality 0.8, and returns nil if any step or finalize fails. Only frame 0 is used, so an animated GIF over 2000 px becomes a still JPEG.",
+        "ToolCall.appendOutput / setOutput call trimOutput (lines 196-199): `guard output.utf8.count > Self.outputLimit else { return }; output = \"…\" + String(output.suffix(Self.outputLimit / 2))`. The test counts UTF-8 bytes (> 60_000) but the kept tail is 30_000 grapheme clusters, so stored output is not capped at 60,000 bytes: 30,000 three-byte CJK characters are about 90,000 bytes (emoji more). Such output stays over the limit and is trimmed again (to \"…\" + its last 30,000 characters) on every later append or set.",
+        "ToolCall.finish sets status and sets finishedAt = now only if it was nil.",
+        "ContextUsage.fraction: nil when windowTokens is nil or <= 0; otherwise min(1, used / window).",
+        "HydraMergeRecord.Outcome `held` doc: some job files are claimed by another chat's unfinished work, so this merge took nothing and nothing was spent; it goes out once that claim clears. `settled` has no doc comment here.",
+        "TurnRecord.hydraMerged doc: this turn's work has landed on the branch; the auto-merge took it and the next one starts from what came after it. tokenSpends: one report per provider, model and head.",
+        "ThreadDocument decode: threadID must decode (throws otherwise); every other field falls back via container.value; array elements go through Lenient and invalid ones are dropped rather than failing the document.",
+        "B1->B2: (1) added `import ImageIO`; (2) isEmptyReasoning now uses `block.text.trimmed` instead of `trimmingCharacters(in: .whitespacesAndNewlines)` (identical behaviour); (3) Attachment.base64Images now downscales images larger than 2000 px on the longest side to JPEG (quality 0.8, orientation applied) and reports mimeType \"image/jpeg\" for them, via the new `private static let maxPixelSize = 2000` and new `private static func downscaledJPEG(_:) -> Data?`; in 1.6.0 it returned the attachment and raw bytes unchanged; (4) HydraMergeRecord.Outcome gained cases `held` and `settled` (was `merged, failed, stray`) with a doc comment for `held`. Line count 332 -> 366.",
+        "UserMessage doc semantics (lines 61-66): hydraHeads is set when the message is Hydra's rather than the user's own words: \"the roster places of the heads reporting back, or empty for a note from Hydra itself\". isFromHydra is `hydraHeads != nil`, so an empty array [] still counts as from Hydra. hydraBrief marks the lead's brief to a head (shown as a pill); optional so older threads still decode; isHydraBrief is `hydraBrief == true`.",
+        "TurnRecord doc semantics (lines 293-299): providerDiff is \"The provider's own diff, used when the workspace is not a git repository\"; providerAnchor is \"The provider's last message id in this turn, used to rewind a conversation\"; touchedPaths are the repository-relative paths this turn's agent edited, so changes made elsewhere in the repository during the turn are never attributed to the thread, and are nil on turns recorded before the field existed.",
+        "HydraMergeRecord purpose (doc comment line 269): one outcome of the Hydra auto-merge for this thread, \"kept so the lead can be told the true merge state at the front of its next message\"."
+      ],
+      "unresolved_questions": [
+        "Meaning and producer of HydraMergeRecord.Outcome.settled is not documented in this file; see the Hydra auto-merge code.",
+        "Older builds reading a thread containing a `held`/`settled` merge record will drop that record via Lenient; forward compatibility beyond that is not specified here."
+      ]
+    }
+  ]
+}

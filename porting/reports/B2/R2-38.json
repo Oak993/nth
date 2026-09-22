@@ -1,0 +1,366 @@
+{
+  "bundle_id": "R2-38",
+  "reader": "R2-38-reader",
+  "files": [
+    {
+      "path": "DroppyCode/UI/Markdown/MarkdownView.swift",
+      "sha256": "8bfff077620db5968c0185fb9a8613ce4bcdf98ad9c9531ab76180ba910ed46c",
+      "lines_total": 1498,
+      "ranges_read": [
+        [
+          1,
+          500
+        ],
+        [
+          500,
+          999
+        ],
+        [
+          1000,
+          1498
+        ]
+      ],
+      "purpose": "The chat markdown renderer's core: MarkdownView turns a message string into parsed MarkdownBlock values (with a shared 800-entry parse cache for finished text and 48 per-message streaming parse slots that reparse only the extended tail), and chooses between one AppKit ProseRunView per run of prose blocks (finished messages whenever markdownProseRuns is true; its default is true and no file in B2 writes \\.markdownProseRuns, so in B2 every finished message takes this path) or one SwiftUI MarkdownBlockView per block (only while streaming in B2; also when prose runs are off). The file also holds the whole inline-link pipeline (RichLink: pretty link titles, forge references like !3190/#123, bare-domain autolinking against a curated TLD list, a 1200-entry pretty cache plus 4 streaming slots), the favicon fetcher (FaviconCache: host's own /favicon.ico with a 5 s timeout, public-host filter, white-plate removal, 14 pt icon from a 28 px bitmap), InlineText (link paragraphs via LinkParagraphView with hover cursor and head-mention hover card, otherwise a VeiledText), CodeBlock (collapse past 120 lines), TableBlock (collapse past 30 rows), ProseReflow (unwrapping hard-wrapped prose for the clipboard) and CopyButton. It also declares the markdown environment keys (point size 13, dimmed, streaming, block selection, prose runs, list depth, Hydra mention personas and targets).",
+      "key_symbols": [
+        "enum MarkdownSegment: Equatable { case prose([MarkdownBlock]); case block(MarkdownBlock) }",
+        "struct MarkdownView: View, Equatable { let text: String; static let warmCandidateLimit = 96; var isStreaming = false; @Environment(\\.markdownProseRuns) private var proseRuns }",
+        "nonisolated static func == (lhs: MarkdownView, rhs: MarkdownView) -> Bool  // text == text && isStreaming == isStreaming",
+        "static func segments(_ blocks: [MarkdownBlock]) -> [MarkdownSegment]  // heading/paragraph/list/quote join a prose run; code/table/rule close the run and stand alone",
+        "private static func transition(for block: MarkdownBlock) -> AnyTransition  // delegation code block: .asymmetric(insertion: .softAppear, removal: .identity); else .softAppear",
+        "static func isDelegationInfo(_ info: String) -> Bool  // `info == \"hydra\" || info == \"hydra-sent\" || info == \"hydra-leaving\"`, an exact compare; both callers pass `language?.lowercased()` first (line 52 `let info = language?.lowercased(), Self.isDelegationInfo(info)` and line 327 `if let info = language?.lowercased(), MarkdownView.isDelegationInfo(info)`), so \"Hydra\"/\"HYDRA-SENT\" also count",
+        "var body: some View",
+        "@MainActor private static var blockCache = RecentCache<String, [MarkdownBlock]>(limit: 800)",
+        "@MainActor private static var streamingParses: [(text: String, parse: MarkdownParser.Parse)] = []",
+        "private static let streamingSlots = 48",
+        "@MainActor static func streamingParse(for text: String) -> (blocks: [MarkdownBlock], stable: Int)",
+        "@MainActor static func blocks(for text: String, streaming: Bool = false) -> [MarkdownBlock]",
+        "private static func extends(_ earlier: String, to text: String) -> Bool  // probe = 64 bytes head and tail",
+        "private static func fenceMarker(in trimmed: String) -> String?  // private, not referenced anywhere in the file (dead code)",
+        "private static func approximateSourceLength(_ blocks: ArraySlice<MarkdownBlock>) -> Int / (_ block: MarkdownBlock) -> Int  // private, only self-recursive, not called from elsewhere in the file (dead code)",
+        "@MainActor static func warm(_ texts: some Sequence<String>) async throws",
+        "@MainActor static func warmTexts(_ texts: some Sequence<String>) -> [String]",
+        "@concurrent private nonisolated static func parseWarm(_ texts: [String]) async throws -> [(String, [MarkdownBlock], [(String, AttributedString)])]",
+        "nonisolated private static func inlineSources(of blocks: [MarkdownBlock], into sources: inout Set<String>) throws",
+        "struct MarkdownBlockView: View, Equatable { let block: MarkdownBlock; var settled = false; @Environment markdownDimmed, markdownListDepth, markdownStreaming, hydraMentionPersonas, hydraMentionTargets }",
+        "nonisolated static func == (lhs: MarkdownBlockView, rhs: MarkdownBlockView) -> Bool  // both settled -> true, else block == block",
+        "private func headingFont(_ level: Int) -> Font",
+        "private static func mentionGlyphOffset(size: CGFloat) -> CGFloat  // -(size * 0.2)",
+        "@MainActor static func mentionGlyph(_ persona: HydraPersona, size: CGFloat) -> Image",
+        "@MainActor private static var glyphCache: [String: Image]  // key persona.asset + \"@\\(size)\"",
+        "private func mentionsTarget(in text: String) -> Bool",
+        "nonisolated static func mentionRanges(in text: String, names: [String]) -> [Range<String.Index>]",
+        "private func mentionSegments(in text: String) -> [VeiledText.Segment]?",
+        "private func mentionText(_ persona: HydraPersona) -> Text",
+        "@ViewBuilder private func marker(ordered: Bool, number: Int, checked: Bool?) -> some View",
+        "private var markerColor: Color  // Chrome.accent.opacity(dimmed ? 0.55 : 0.9)",
+        "private struct MarkdownListDepthKey: EnvironmentKey { static let defaultValue = 0 }",
+        "extension EnvironmentValues { @Entry var hydraMentionPersonas: [HydraPersona] = []; @Entry var hydraMentionTargets: [String: HydraMentionTarget] = [:]; var markdownListDepth: Int }",
+        "enum RichLink",
+        "@MainActor private static var prettyCache = RecentCache<String, AttributedString>(limit: 1200)",
+        "@MainActor private static var streamingPretty: [(source: String, value: AttributedString)] = []; private static let streamingSlots = 4",
+        "@MainActor static func prettyAttributed(_ source: String, streaming: Bool = false) -> AttributedString",
+        "@MainActor static func warm(_ source: String, with pretty: AttributedString)",
+        "nonisolated static func build(_ source: String) -> AttributedString",
+        "@MainActor static func linkHosts(for source: String, streaming: Bool = false) -> [String]",
+        "@MainActor static func videoIDs(for source: String, streaming: Bool = false) -> [String]",
+        "@MainActor static func linkAssetKey(for source: String, streaming: Bool = false) -> String  // hosts joined \",\" + \"|\" + video ids joined \",\"; \"\" when both empty",
+        "@MainActor static func invalidate(_ source: String)",
+        "static func prettyTitle(for url: URL) -> String",
+        "private static let namelessSegments: Set<String>",
+        "private static func capped(_ title: String, at limit: Int) -> String",
+        "static func forgeReference(for url: URL) -> String?",
+        "static func compactFallback(_ absolute: String) -> String",
+        "@MainActor static func containsLinks(in source: String, streaming: Bool = false) -> Bool",
+        "static func isBareDisplay(_ display: String, url: URL) -> Bool",
+        "private static let bareDomainPattern = try? NSRegularExpression(pattern: \"(?<![A-Za-z0-9@._/-])((?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\\\\.)+[A-Za-z]{2,24})(/[^\\\\s<>()]*)?\", options: [.caseInsensitive])",
+        "private static let bareDomainTLDs: Set<String>",
+        "private static func autolinkedBareDomains(_ parsed: AttributedString) -> AttributedString",
+        "private static func baseAttributed(_ source: String) -> AttributedString",
+        "private struct MarkdownPointSizeKey: EnvironmentKey { static let defaultValue: CGFloat = 13 }",
+        "private struct MarkdownDimmedKey: EnvironmentKey { static let defaultValue = false }",
+        "private struct MarkdownStreamingKey: EnvironmentKey { static let defaultValue = false }",
+        "private struct MarkdownBlockSelectionKey: EnvironmentKey { static let defaultValue = true }",
+        "private struct MarkdownProseRunsKey: EnvironmentKey { static let defaultValue = true }",
+        "extension EnvironmentValues { var markdownPointSize: CGFloat; var markdownDimmed: Bool; var markdownStreaming: Bool; var markdownBlockSelection: Bool; var markdownProseRuns: Bool }",
+        "struct MarkdownBlockSelection: ViewModifier  // .textSelection(.enabled) when markdownBlockSelection else .disabled",
+        "@MainActor enum FaviconCache { private static var memory: [String: NSImage]; private static var failed: Set<String>; private static var inFlight: [String: Task<NSImage?, Never>] }",
+        "static func cached(host: String) -> NSImage?",
+        "static func image(for host: String) async -> NSImage?",
+        "private static func iconData(for host: String) async -> Data?",
+        "private static func cleaned(_ data: Data) -> NSImage?",
+        "private static func removeWhitePlate(in rep: NSBitmapImageRep)",
+        "private static let privateSuffixes: [String]",
+        "static func isPublic(host: String) -> Bool",
+        "private static func resizedIcon(_ image: NSImage) -> NSImage",
+        "struct InlineText: View { let source: String; let hasLinks: Bool?; var hugsContent = false; init(_ source: String, hasLinks: Bool? = nil, hugsContent: Bool = false) }",
+        "@MainActor private static var metricsBySize: [CGFloat: (ascender: CGFloat, lineHeight: CGFloat)]",
+        "@MainActor private static func metrics(pointSize: CGFloat) -> (ascender: CGFloat, lineHeight: CGFloat)",
+        "static func fetchLinkAssets(source: String, streaming: Bool, revision: Binding<Int>) async",
+        "@MainActor static func attributed(_ source: String, streaming: Bool = false) -> AttributedString",
+        "@MainActor @Observable private final class BlockHover { var isHovering = false }",
+        "private struct CodeBlockCopyButton: View { let text: String; let hover: BlockHover }",
+        "struct CodeBlock: View { let language: String?; let code: String; @State hover = BlockHover(); @State showsAll = false; private static let collapsedLineLimit = 120 }",
+        "private static func head(of code: String, lines: Int) -> String",
+        "struct TableBlock: View { let header: [String]; let rows: [[String]]; @State showsAll = false; private static let collapsedRowLimit = 30; @MainActor private static var cellCache = RecentCache<String, AttributedString>(limit: 1200) }",
+        "@MainActor private static func cell(_ source: String) -> AttributedString",
+        "enum ProseReflow { static func reflowed(_ text: String) -> String }",
+        "struct CopyButton: View { let text: String; var label = \"Copy\"; @State private var didCopy = false }"
+      ],
+      "calls_into": [
+        "MarkdownBlock (cases .heading(level, text), .paragraph(text), .list(ordered, start, items with .text/.children/.checked), .quote([MarkdownBlock]), .code(language, code), .table(header, rows), .rule)",
+        "MarkdownParser.parse(_:) and MarkdownParser.parse(_:extending:) returning MarkdownParser.Parse with .blocks and .stable",
+        "RecentCache (value(for:), insert(_:for:), contains(_:), removeValue(for:))",
+        "ProseRunView(blocks:) (ProseRunView.swift)",
+        "VeiledText(segments:), VeiledText(_ attributed), VeiledText(verbatim:), VeiledText.Segment .prose/.fixed (StreamVeil.swift)",
+        "EnvironmentValues.markdownVeiled (declared in StreamVeil.swift)",
+        "AnyTransition.softAppear",
+        "HydraDelegationBlock(json:sent:)",
+        "LinkParagraphView(source:pointSize:dimmed:streaming:revision:mentions:targets:onOpenHead:onHost:) and LinkTextView.hasLink(at:), headMentionRect(at:)",
+        "WeakView (box with .value)",
+        "HydraHeadHoverPopover.shared.show(persona:target:relativeTo:of:) / hide()",
+        "HydraPersona (.asset, .name, .color), HydraMentionTarget (.url, .threadID)",
+        "LinkTitles.cached(for:), LinkTitles.videoID(for:), LinkTitles.title(forVideo:)",
+        "Font.chat(_:weight:) and Font.chat(_:design:) helper",
+        "Chrome.accent, Chrome.secondaryText",
+        "String.trimmed extension",
+        "ThreadRuntime.holdSentDelegationBlock (referenced in a comment only)",
+        "AssistantMessageRow / MessageText (referenced in comments)"
+      ],
+      "state_owned": [
+        "MarkdownView.blockCache: RecentCache<String,[MarkdownBlock]>(limit: 800), main-actor static",
+        "MarkdownView.streamingParses: up to 48 (text, Parse) slots. An exact hit (`streamingParses.last(where: { $0.text.utf8.count == text.utf8.count && $0.text == text })`, lines 125-126) is returned without being moved; only a new or extended parse is appended at the end (the extended slot is removed first, line 130), and when 48 are held with no slot extended `removeFirst()` drops the slot appended longest ago. Eviction is therefore by order of last append, not by recency of reads. blocks(for:) also removes a slot when its text is asked for as finished (line 141-142).",
+        "MarkdownBlockView.glyphCache: [String: Image], unbounded, keyed persona.asset + \"@\" + size",
+        "RichLink.prettyCache: RecentCache<String, AttributedString>(limit: 1200); RichLink.streamingPretty: 4 slots",
+        "FaviconCache.memory [String: NSImage] (cleared entirely with removeAll(keepingCapacity: true) when count >= 300 before insert), failed Set<String>, inFlight [String: Task]",
+        "InlineText.metricsBySize: [CGFloat: (ascender, lineHeight)]",
+        "InlineText @State: faviconRevision (Int, 0), linkView (WeakView), showsHand (Bool), hoveredHeadID (UUID?)",
+        "CodeBlock @State: hover (BlockHover), showsAll (false)",
+        "TableBlock @State showsAll (false); TableBlock.cellCache RecentCache(limit: 1200)",
+        "CopyButton @State didCopy (false)"
+      ],
+      "side_effects": [
+        "Network: FaviconCache.iconData GETs https://<host>/favicon.ico with URLRequest.timeoutInterval = 5 via URLSession.shared.data(for:); accepted only on HTTP 200...299 and when NSImage(data:) decodes",
+        "Network (indirect): LinkTitles.title(forVideo:) for each video id in a paragraph",
+        "Clipboard: CopyButton clears NSPasteboard.general and sets ProseReflow.reflowed(text) as .string",
+        "Cursor: NSCursor.pointingHand.push() when the pointer enters a link, NSCursor.pop() on leaving, on hover end and on disappear",
+        "Shows/hides the shared HydraHeadHoverPopover when hovering a head mention",
+        "Opens a URL through the environment openURL when a head mention is clicked (onOpenHead)",
+        "Off-main-thread parse in parseWarm (@concurrent) and write-back into main-actor caches in warm"
+      ],
+      "platform_assumptions": [
+        "SwiftUI View, Equatable views with .equatable(), @Environment, EnvironmentKey, @Entry macro, @State, @Observable, ViewModifier, .textSelection(.enabled/.disabled)",
+        "SwiftUI layout: VStack/HStack/Grid/GridRow, ForEach, ScrollView(.horizontal, showsIndicators: false), alignmentGuide(.firstTextBaseline/.lastTextBaseline), .fixedSize, .frame(maxWidth: .infinity), .transition, AnyTransition.asymmetric",
+        "SwiftUI hover: .onContinuousHover(coordinateSpace: .local) with .active(point)/.ended, .onHover, .onDisappear, .task(id:)",
+        "SwiftUI Text interpolation of Text and Image values into one flowing Text; Text.baselineOffset; AttributedString with .link, .foregroundColor, .inlinePresentationIntent (.stronglyEmphasized, .code)",
+        "Foundation AttributedString(markdown:options:) with interpretedSyntax .inlineOnlyPreservingWhitespace and failurePolicy .returnPartiallyParsedIfPossible (the inline markdown parser; must be replaced with an equivalent on Windows)",
+        "NSRegularExpression with a lookbehind for bare domains",
+        "AppKit: NSImage(named:), NSImage(size:flipped:drawingHandler:), isTemplate, Image(nsImage:).renderingMode(.template)",
+        "AppKit bitmap work: NSBitmapImageRep, NSGraphicsContext, imageInterpolation .high, colorAt/setColor, NSColor(deviceRed:green:blue:alpha:), usingColorSpace(.deviceRGB)",
+        "AppKit NSFont.systemFont(ofSize:) ascender/descender/leading for baseline metrics",
+        "AppKit NSCursor.pointingHand push/pop",
+        "AppKit NSPasteboard.general",
+        "SF Symbols: \"checkmark.circle.fill\", \"circle\", \"checkmark\", \"doc.on.doc\" and .contentTransition(.symbolEffect(.replace))",
+        "Hierarchical shape styles .quaternary, .tertiary, .tint, .primary",
+        "URLSession / HTTPURLResponse",
+        "Swift concurrency: @MainActor, nonisolated, @concurrent, Task.checkCancellation, MainActor.run, Task.sleep(for: .seconds(1.4))",
+        "Text styles .title2/.title3/.headline/.subheadline/.caption/.callout (through Font.chat), .monospacedDigit, design .monospaced",
+        "Button style .link and .borderless, .help tooltip"
+      ],
+      "persisted_fields": [
+        "None persisted to disk. All caches (blockCache, streamingParses, glyphCache, prettyCache, streamingPretty, FaviconCache memory/failed/inFlight, metricsBySize, cellCache) are in-memory only for the process lifetime."
+      ],
+      "ui_elements": [
+        "MarkdownView: VStack(alignment: .leading, spacing: 12) of segments or blocks, .frame(maxWidth: .infinity, alignment: .leading), environment markdownVeiled = isStreaming",
+        "Heading (SwiftUI path, lines 302-305): `InlineText(text).font(headingFont(level)).padding(.top, level <= 2 ? 6 : 2)`; headingFont: level 1 .chat(.title2, weight: .semibold), 2 .chat(.title3, weight: .semibold), 3 .chat(.headline), else .chat(.subheadline, weight: .semibold). The heading case never sets `\\.markdownPointSize`, so when the heading text has a link InlineText takes the LinkParagraphView path with `pointSize: scaled` from markdownPointSize (default 13) and the SwiftUI `.font(headingFont(level))` does not reach the AppKit text: such a heading draws at body size with no semibold/title style (only the link run is bold). A link-free heading is a VeiledText, which the .font does style. In B2 this path is used for headings only while streaming (and inside the SwiftUI path generally); ProseRunView scales headings itself.",
+        "Delegation card (code info hydra / hydra-sent / hydra-leaving): HydraDelegationBlock(json: code, sent: info != \"hydra\"); for hydra-leaving opacity 0, scaleEffect 0.98 anchored .top, hit testing off",
+        "List: VStack spacing 6; each item HStack(alignment: .firstTextBaseline, spacing: 8) marker + VStack(spacing 6) of item text and child blocks; children get markdownListDepth + 1",
+        "List markers: checked task Image(systemName: \"checkmark.circle.fill\") in .tint, unchecked \"circle\" in .tertiary, .imageScale(.small); ordered Text(\"\\(number).\") monospacedDigit, fontWeight .medium, markerColor; unordered hidden Text(\"•\") overlaid by a filled Circle 5x5 at depth 0 or a strokeBorder Circle lineWidth 1.2 of 5.5x5.5 when nested",
+        "markerColor: Chrome.accent.opacity(dimmed ? 0.55 : 0.9)",
+        "Quote: HStack(alignment: .top, spacing: 10) with Capsule().fill(.quaternary).frame(width: 3) and VStack spacing 8 of child blocks; foregroundStyle(Chrome.secondaryText), markdownDimmed = true",
+        "Rule: Rectangle().fill(.quaternary).frame(height: 1).padding(.vertical, 4)",
+        "Head mention inline: glyph Text of the template Image at size 16, foregroundColor persona.color, baselineOffset -(16 * 0.2) = -3.2, then a space and the name; with a target the name is an AttributedString link in persona.color with .stronglyEmphasized; without a target Text(verbatim:) .fontWeight(.bold) in persona.color",
+        "Mention paragraph path: VeiledText(segments:) with MarkdownBlockSelection, fixedSize(horizontal: false, vertical: true), full width leading",
+        "Links render bold (stronglyEmphasized added to every link run)",
+        "Favicon: 14x14 pt NSImage from a 28x28 px bitmap",
+        "CodeBlock header: HStack of Text(language ?? \"code\") .font(.chat(.caption)) in Chrome.secondaryText, Spacer, `CodeBlockCopyButton(text: code, hover: hover)` (opacity 1 when hovered else 0); header padding leading 12, trailing 6, top 6. The copy control gets the full `code`, not the collapsed `visible` head, so a collapsed 500-line block copies all 500 lines.",
+        "CodeBlock body: horizontal ScrollView with no indicators, VeiledText(verbatim:) .font(.chat(.callout, design: .monospaced)), fixedSize both axes, padding horizontal 12, bottom 12, top 4",
+        "CodeBlock toggle when lineCount > 120: Button label \"Show less\" or \"Show all \\(lineCount) lines\", .buttonStyle(.link), .font(.chat(.caption)), Chrome.secondaryText, padding horizontal 12, bottom 10",
+        "CodeBlock background .quaternary.opacity(0.45) in .rect(cornerRadius: 12)",
+        "TableBlock: horizontal ScrollView, Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 8); header cells .fontWeight(.semibold); body rows iterate `ForEach(head.indices, id: \\.self)` and draw `Text(column < cells[row].count ? cells[row][column] : AttributedString(\"\"))` with .foregroundStyle(.primary.opacity(0.9)), so missing cells are empty and cells beyond the header's column count are dropped; padding 12; background .quaternary.opacity(0.35) in .rect(cornerRadius: 12). Cells are plain SwiftUI Text of an AttributedString from `InlineText.attributed(source)`, which calls non-streaming `RichLink.prettyAttributed` and so also inserts into RichLink.prettyCache; cells get no favicons, no LinkParagraphView hover cursor and no head-mention decoration.",
+        "TableBlock toggle (only while collapsed and rows.count > 30): Button \"Show all \\(rows.count) rows\", .buttonStyle(.link), .font(.chat(.caption)), Chrome.secondaryText, padding horizontal 12, bottom 10; there is no \"Show less\" for tables",
+        "CopyButton: Image(systemName: didCopy ? \"checkmark\" : \"doc.on.doc\") with .contentTransition(.symbolEffect(.replace)), frame 22x22, contentShape .rect, .buttonStyle(.borderless), foregroundStyle(Chrome.secondaryText), .help(label) where label defaults to \"Copy\"; resets to the doc icon after 1.4 s",
+        "Transitions: in the per-block path every MarkdownBlockView gets `.transition(Self.transition(for: block))` (line 94); in the prose-run path only `.block` segments get it (line 80) and `case .prose(let run): ProseRunView(blocks: run)` (line 75-76) has no transition. transition(for:) returns .asymmetric(insertion: .softAppear, removal: .identity) for a delegation code block, else .softAppear. Both ForEach loops use `id: \\.offset` (lines 73 and 88), so a segment's or block's identity is its position."
+      ],
+      "feature_notes": [
+        "Rendering path choice: if `!isStreaming && proseRuns` (markdownProseRuns default `static let defaultValue = true`; no file in B2 writes `\\.markdownProseRuns`, so every finished message takes this branch and the per-block branch runs only while streaming) the blocks are grouped by segments(): consecutive heading/paragraph/list/quote become one ProseRunView with no transition; code/table/rule each get MarkdownBlockView(block:).equatable() with the block transition; the ForEach is keyed `id: \\.offset`, so a ProseRunView at a given position keeps its identity and receives new blocks when the text changes. In this branch `.environment(\\.markdownVeiled, isStreaming)` is always false. Otherwise every block is a MarkdownBlockView(block:, settled: index < stable).equatable() (also keyed by offset) and only the last block gets markdownStreaming = isStreaming && index == last.",
+        "Finished text: blocks(for:) returns blockCache hit; else takes (and removes) a matching streaming slot's parse, else MarkdownParser.parse(text); inserts into blockCache. Streaming text: streamingParse finds an exact slot (utf8 count equal and text equal), else finds the last slot whose text this text extends, calls MarkdownParser.parse(text, extending:), removes that slot or evicts the first when 48 are held, appends the new one.",
+        "extends(): false when earlier is empty or not shorter; for earlier <= 128 bytes a full utf8 prefix test; otherwise compares the first 64 bytes and the 64 bytes at the earlier text's tail position only.",
+        "warmTexts: considers at most the first 96 texts (`texts.prefix(warmCandidateLimit)`), and for each runs `guard bytes <= 262_144, bytes <= remainingBytes, !blockCache.contains(text), seen.insert(text).inserted else { continue }` with bytes = `text.utf8.prefix(262_145).count` and remainingBytes starting at 1_048_576. A text over the remaining budget is skipped, not a stop: the scan continues and smaller later texts can still be taken. Each taken text subtracts its bytes; the loop breaks at 24 texts. warm() parses them in @concurrent parseWarm, building RichLink.build for each distinct paragraph/heading/non-empty list-item source, then inserts into blockCache and RichLink.prettyCache (only when absent), checking cancellation throughout.",
+        "MarkdownBlockView equality: two settled views are equal without comparing content; otherwise block equality.",
+        "Paragraph branch order: (1) RichLink.containsLinks -> InlineText(text, hasLinks: true); (2) not streaming, list depth 0, and a hydraMentionTargets name matches -> InlineText(text, hasLinks: true) so the AppKit view can hit-test; (3) list depth 0 and mentionSegments non-nil -> VeiledText(segments:); (4) InlineText(text, hasLinks: false). A list item's own text (line 343) is always `InlineText(item.text, hasLinks: RichLink.containsLinks(in: item.text, streaming: streaming))`: the head-mention glyph decoration (branches 2 and 3) applies only to `.paragraph` blocks at listDepth 0, so list-item text (and paragraphs nested in list items) gets mentions only when it contains a link, through LinkParagraphView's `mentions:` argument.",
+        "Mention matching: names sorted longest first, word-bounded (the character before and after must be neither letter nor number), scanning left to right and skipping past each hit, so 'Hank 2' beats 'Hank'. mentionSegments runs on the pretty (link-titled) character string and maps character offsets back into the AttributedString.",
+        "Mention glyph: NSImage(named: persona.asset) redrawn into a size x size template image, cached per asset and size.",
+        "RichLink.build: every link run is made bold; a bare display (display equals url.absoluteString after trimming, stripping <> and trailing .,;:!?)]}> characters, or any text starting http:// or https:// with no space or newline) is replaced by prettyTitle(for:). A bare-domain autolink never passes this test: autolinkedBareDomains links the typed text with `URL(string: \"https://\" + matchText)`, so `d == url.absoluteString` fails (\"getdroppy.app\" != \"https://getdroppy.app\") and the http/https prefix test fails too; the typed text (for example `www.droppy.app/pricing?a=1`) is shown verbatim, bold, with a favicon, never shortened by prettyTitle (no www-stripping, no host/…/tail, no forge reference).",
+        "prettyTitle order: forgeReference first; then LinkTitles.cached title capped at 48 (prefix 45 + \"…\"); hostless URL -> compactFallback; host lowercased with leading \"www.\" removed; no path segments -> host; last segment in namelessSegments [\"watch\", \"view\", \"index\", \"index.html\", \"index.php\", \"home\", \"default\", \"page\"] -> host; tail over 24 chars -> prefix 21 + \"…\"; one segment -> host + \"/\" + tail, more -> host + \"/…/\" + tail; over 40 chars -> prefix 19 + \"…\" + suffix 18.",
+        "forgeReference: GitLab /-/merge_requests/<id> -> \"!<id>\", /-/issues/<id> -> \"#<id>\"; GitHub-style last two segments pull/<id> or issues/<id> -> \"#<id>\". compactFallback: strings over 40 chars become prefix 19 + \"…\" + suffix 18.",
+        "Bare domain autolink: skips runs that already have a link or carry the .code intent; trims trailing .,;:!?'\" from each match; links only when the last label of the domain part (before the first /) is in the curated TLD set, as URL(\"https://\" + match). TLD set verbatim: com org net edu gov mil info biz io ai app dev co me xyz site online store shop tech cloud tools blog fm gg so tv live news studio design social works codes run page link chat bot art fun space world email group team digital agency solutions software systems network media photo video games zone city life one plus pro nl de be uk fr es it se no dk fi is ch at pl ie eu ca us au nz jp cn in br mx za pt gr cz ro hu sk kr sg hk tw th my id ph vn tr il ae sa cl ar pe. The link run keeps the typed text as its display (see the RichLink.build note), so prettyTitle is never applied to it.",
+        "Inline parse: AttributedString(markdown:) with .inlineOnlyPreservingWhitespace and .returnPartiallyParsedIfPossible, falling back to the plain string, then autolinked.",
+        "linkAssetKey is hosts joined by \",\" + \"|\" + video ids joined by \",\", or \"\" when there are neither; used as the .task id so a streamed token without a new link leaves the fetch task alone.",
+        "FaviconCache.image: memory hit; known failure -> nil; non-public host -> recorded failed, nil; concurrent asks share one in-flight Task; success stored (memory wiped when it holds 300 or more), failure recorded. No retry for failed hosts during the process.",
+        "isPublic(host:): false for empty, \"localhost\", any host containing \":\" (IPv6), suffixes .local .localhost .localdomain .internal .intranet .lan .home .home.arpa .test .invalid .corp, and dotless names; for dotted-quad IPv4 false for 0.x, 10.x, 127.x, 169.254.x, 192.168.x, 172.16-31.x, 100.64-127.x; true otherwise.",
+        "cleaned(): scales so the long side is at most 64 px, draws into an RGBA deviceRGB bitmap with .copy and high interpolation, then removeWhitePlate: seeds from every pixel of the top and bottom rows and the left and right columns that is white (alpha > 200, min channel >= 236, max - min <= 20), flood-fills 4-connected (neighbours (x+1,y), (x-1,y), (x,y+1), (x,y-1)) through white pixels; plate pixels keep their RGB and get `alpha: 0`; a non-plate pixel with a 4-neighbour in the plate and min channel lo >= 160 gets `alpha = 1 - Double(lo) / 255`; if alpha <= 0.02 it is set to its RGB with alpha 0, else r, g and b become `unpremult(v) = min(1, max(0, (v / 255 - (1 - alpha)) / alpha))` with that alpha. resizedIcon draws into 28x28 px and returns a 14x14 pt image.",
+        "InlineText link path: LinkParagraphView with point size (pointSize * 2).rounded() / 2; first-text-baseline guide = ceil(font.ascender), last = height - ceil(ascender - descender + leading) + ascender, metrics cached per size. Hover pushes the pointing-hand cursor only on change and shows HydraHeadHoverPopover when the head mention under the pointer matches a target with the same url, hides on leaving. .task(id: hostKey) runs fetchLinkAssets, which fetches missing favicons and video titles and, if anything landed, invalidates the paragraph's pretty caches and bumps faviconRevision. The link-free path is VeiledText of prettyAttributed with block selection. fetchLinkAssets ends with `if changed { await MainActor.run { RichLink.invalidate(source); revision.wrappedValue += 1 } }`; invalidate removes only the prettyCache entry and streamingPretty slots whose key equals that exact `source` string.",
+        "CodeBlock: lineCount = 1 + number of 0x0A bytes; when not showsAll and lineCount > 120 only the text before the 120th newline is shown; toggle button labels \"Show all N lines\" / \"Show less\". Copy button appears only while the block is hovered.",
+        "TableBlock: shows first 30 rows until \"Show all N rows\" is tapped; cells are parsed through InlineText.attributed and cached (1200 entries), also during streaming.",
+        "ProseReflow.reflowed: fence lines (trimmed prefix ``` only, not ~~~) flush the paragraph, are kept, and toggle fence state; blank lines and lines inside fences are kept; other lines gather into paragraphs. A paragraph joins into one line with single spaces only when: at least 2 lines, no line is blank or starts with whitespace, no line starts with one of #>-*+| or a digit followed by . or ), every line but the last is at least 45 characters, no line but the last ends in one of {};:=([\\| or with -> or =>, no line contains two spaces or a tab, and the joined text matches [.!?] followed by a space. The code also tests `fenceLanguage.isEmpty`, but that test is dead: flushParagraph() runs (line 1447) before `fenceLanguage` is set when a fence opens (line 1454), lines inside an open fence never join `paragraph` (line 1459-1461), and closing resets `fenceLanguage = \"\"` (line 1451), so fenceLanguage is always empty when a non-empty paragraph is flushed.",
+        "CopyButton copies ProseReflow.reflowed(text), not the raw text, and shows the checkmark for 1.4 s. The code-block copy control (`CodeBlockCopyButton(text: code, hover: hover)` -> `CopyButton(text: text)`) passes the block's full code, which has no ``` fence lines of its own, so code lines that meet the prose heuristics above are reflowed on copy; and a collapsed block still copies all lines.",
+        "Environment defaults: markdownPointSize 13, markdownDimmed false, markdownStreaming false, markdownBlockSelection true, markdownProseRuns true, markdownListDepth 0, hydraMentionPersonas [], hydraMentionTargets [:].",
+        "Dead code: private fenceMarker(in:) and both approximateSourceLength overloads are declared but not called anywhere in this file, and being private cannot be called from elsewhere.",
+        "Comment inconsistency: RichLink.streamingPretty's comment says it keeps as many slots as MarkdownView keeps parses, but streamingSlots is 4 here versus MarkdownView.streamingSlots = 48.",
+        "B1->B2: the chat zoom environment (@Environment(\\.chatZoom) var zoom) was removed from MarkdownBlockView, InlineText, CodeBlock and TableBlock; every .chat(..., zoom: zoom) font call lost its zoom argument, the mention glyph size changed from 16 * zoom to a fixed CGFloat 16, and InlineText's scaled point size changed from (pointSize * zoom * 2).rounded() / 2 to (pointSize * 2).rounded() / 2. Every .foregroundStyle(.secondary) became .foregroundStyle(Chrome.secondaryText) (quote block, code block language label and toggle, table toggle, CopyButton). FaviconCache.iconData no longer asks icons.duckduckgo.com/ip3/<host>.ico then www.google.com/s2/favicons?domain=<host>&sz=64; it fetches https://<host>/favicon.ico directly with a 5 s timeout and requires a 2xx status and a decodable image. isBareDisplay uses display.trimmed instead of trimmingCharacters(in: .whitespacesAndNewlines). The Dutch doc comment on RichLink was translated to English and a comment was added explaining the NSRegularExpression lookbehind. No other logic changed.",
+        "Stale comments after B2 (unchanged from B1 while the fetch changed): FaviconCache.image lines 918-919 still say \"Icons come from a service on the web, so the host is told to it.\", and the isPublic doc at line 1056 still says \"Whether a host is one a public favicon service could possibly know\". In B2 iconData fetches `https://\\(host)/favicon.ico` from the linked host itself, triggered by the .task when a link paragraph renders, with no user action. Only the iconData doc comment (lines 941-944) was updated.",
+        "Comment inconsistency: the MarkdownPointSizeKey doc (lines 837-839) says \"the two non-default contexts (thinking text, headings) set this explicitly\", but the heading case (lines 302-305) never sets `\\.markdownPointSize`; the B2 writers of `\\.markdownPointSize` are outside this file (values 12 and 12.5 in HydraHeadPopovers, HydraReportsPopover, ThreadTimeline, TimelineRows, AboutUpdateViews, SettingsView), none for headings."
+      ],
+      "unresolved_questions": [
+        "What exactly Font.chat(_:weight:) / (_:design:) resolves to now that the zoom argument is gone (defined in another file); whether chat zoom moved elsewhere or was removed from the product.",
+        "Chrome.secondaryText and Chrome.accent colour values are defined outside this file.",
+        "AnyTransition.softAppear parameters, VeiledText veil behaviour and LinkParagraphView/LinkTextView internals are in other files (StreamVeil.swift, LinkParagraphView.swift).",
+        "MarkdownParser.Parse.stable semantics beyond the comments here are in the parser file."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Markdown/ProseRunView.swift",
+      "sha256": "b4e0bd967ab2e2c762165fd4b77940d46d0580fe40b6144c2e3b9582ca615bac",
+      "lines_total": 244,
+      "ranges_read": [
+        [
+          1,
+          244
+        ]
+      ],
+      "purpose": "Renders a whole run of consecutive prose blocks (headings, paragraphs, lists, quotes) of a finished message as a single AppKit LinkTextView, so text can be selected across paragraphs and one view replaces many SwiftUI rows. ProseRunView wires the hover cursor, the head-mention hover card and the favicon/video-title fetch, while ProseRunRepresentable builds one NSAttributedString with explicit paragraph styles (heading scale factors 1.35/1.2/1.08, 18 pt list indent with tab stops, 14 pt quote indent, 12/6 pt paragraph spacing) and re-renders only when source, size, dimming, revision, mentions or head links change.",
+      "key_symbols": [
+        "struct ProseRunView: View { let blocks: [MarkdownBlock]; @Environment markdownPointSize, markdownDimmed, hydraMentionPersonas, hydraMentionTargets, openURL; @State linkView = WeakView(), showsHand = false, hoveredHeadID: UUID?, faviconRevision = 0 }",
+        "var body: some View",
+        "struct ProseRunRepresentable: NSViewRepresentable { let blocks: [MarkdownBlock]; var pointSize: CGFloat = 13; var dimmed: Bool = false; var revision: Int = 0; var mentions: [HydraPersona] = []; var targets: [String: HydraMentionTarget] = [:]; var onOpenHead: ((URL) -> Void)?; var onHost: ((LinkTextView) -> Void)? }",
+        "func makeCoordinator() -> LinkParagraphView.Coordinator",
+        "func makeNSView(context: Context) -> LinkTextView",
+        "func updateNSView(_ view: LinkTextView, context: Context)",
+        "func sizeThatFits(_ proposal: ProposedViewSize, nsView: LinkTextView, context: Context) -> CGSize?",
+        "static func dismantleNSView(_ view: LinkTextView, coordinator: LinkParagraphView.Coordinator)",
+        "static func joinedSources(_ blocks: [MarkdownBlock]) -> String",
+        "private static func collect(_ blocks: [MarkdownBlock], into parts: inout [String])",
+        "@MainActor static func attributed(blocks: [MarkdownBlock], pointSize: CGFloat, dimmed: Bool, mentions: [HydraPersona], targets: [String: HydraMentionTarget] = [:]) -> NSAttributedString",
+        "@MainActor private static func append(_ block: MarkdownBlock, depth: Int, indent: CGFloat, dimmed: Bool, spacing: CGFloat, pointSize: CGFloat, mentions: [HydraPersona], targets: [String: HydraMentionTarget], to out: NSMutableAttributedString)",
+        "@MainActor private static func separate(to out: NSMutableAttributedString, font: NSFont, color: NSColor)"
+      ],
+      "calls_into": [
+        "LinkTextView (delegate, passesProseThrough, mergeTarget, onOpenHead, render(_:), height(forWidth:), hasLink(at:), headMentionRect(at:))",
+        "LinkParagraphView.Coordinator (lastSource, lastPointSize, lastDimmed, lastRevision, lastMentions, lastHeads)",
+        "LinkParagraphView.attributed(source:pointSize:dimmed:mentions:targets:)",
+        "RichLink.linkAssetKey(for:) (MarkdownView.swift)",
+        "InlineText.fetchLinkAssets(source:streaming:revision:) (MarkdownView.swift)",
+        "HydraHeadHoverPopover.shared.show(persona:target:relativeTo:of:) / hide()",
+        "WeakView",
+        "context.environment.mergeRequestTarget",
+        "HydraPersona, HydraMentionTarget (.url, .threadID)"
+      ],
+      "state_owned": [
+        "ProseRunView @State: linkView (WeakView box for the hosted LinkTextView), showsHand (false), hoveredHeadID (nil), faviconRevision (0)",
+        "Coordinator fields written in updateNSView: lastSource, lastPointSize, lastDimmed, lastRevision, lastMentions ([String] of names), lastHeads ([String: URL])"
+      ],
+      "side_effects": [
+        "NSCursor.pointingHand.push()/NSCursor.pop() on entering and leaving links, on hover end and on disappear",
+        "Shows and hides HydraHeadHoverPopover.shared",
+        "Opens head URLs via environment openURL",
+        "Triggers favicon and video-title network fetches through InlineText.fetchLinkAssets (streaming: false) when the run's linkKey is non-empty"
+      ],
+      "platform_assumptions": [
+        "SwiftUI NSViewRepresentable with makeCoordinator/makeNSView/updateNSView/sizeThatFits(ProposedViewSize)/dismantleNSView",
+        "SwiftUI .onContinuousHover(coordinateSpace: .local), .onDisappear, .task(id:), @Environment(\\.openURL)",
+        "AppKit NSAttributedString / NSMutableAttributedString with .font, .foregroundColor, .paragraphStyle",
+        "AppKit NSMutableParagraphStyle (firstLineHeadIndent, headIndent, paragraphSpacing, paragraphSpacingBefore, tabStops, defaultTabInterval) and NSTextTab(textAlignment: .left, location:)",
+        "AppKit NSFont.systemFont(ofSize:) and (ofSize:weight: .semibold), fontDescriptor.symbolicTraits .bold / .monoSpace",
+        "AppKit NSColor.labelColor and labelColor.withAlphaComponent(0.7)",
+        "AppKit NSCursor",
+        "A custom NSTextView-style LinkTextView host (LinkParagraphView.swift) that measures height for a width"
+      ],
+      "persisted_fields": [
+        "None."
+      ],
+      "ui_elements": [
+        "One text view filling width: .frame(maxWidth: .infinity, alignment: .leading); height from nsView.height(forWidth:) for the proposed width (nil size when no width is proposed)",
+        "Point size: (markdownPointSize * 2).rounded() / 2 (half-point rounding), default 13",
+        "Text colour: NSColor.labelColor, or labelColor at alpha 0.7 when dimmed (quotes force dimmed = true)",
+        "Paragraph: firstLineHeadIndent = headIndent = indent, paragraphSpacing = spacing (12 at top level, 6 for list children)",
+        "Heading sizes: level 1 (pointSize * 1.35).rounded(), level 2 (pointSize * 1.2).rounded(), level 3 (pointSize * 1.08).rounded(), else pointSize; non-bold, non-monospaced font runs become semibold at that size; paragraphSpacingBefore 6 for level <= 2 else 2; `style.paragraphSpacing = 12` is hard-coded and ignores the `spacing` parameter, so a heading nested in a list child still gets 12 where its siblings get 6.",
+        "List item line: marker + \"\\t\" then item text; markers \"☑\" checked, \"☐\" unchecked, \"\\(start + index).\" ordered, \"•\" at depth 0 and \"◦\" nested, drawn with `.font: base` (NSFont.systemFont(ofSize: pointSize), regular, not monospacedDigit/medium) and `.foregroundColor: color` (NSColor.labelColor, or labelColor.withAlphaComponent(0.7) when dimmed), not an accent colour as in the SwiftUI path; an item with empty text still gets its `marker + \"\\t\"` line (the text is appended only `if !item.text.isEmpty`); headIndent indent + 18, one left tab stop at indent + 18, defaultTabInterval 18; paragraphSpacing 12 after the last item of a depth-0 list, else 6; children indented a further 18 at spacing 6 and depth + 1.",
+        "Quote: children rendered with `depth: depth` and `spacing: spacing` unchanged; only `indent: indent + 14` and `dimmed: true` change (no bar drawn, unlike the SwiftUI quote). A list inside a top-level quote therefore still uses \"•\" and 12 after its last item.",
+        "Blocks separated by a single \"\\n\" in the base font and colour (none before the first)"
+      ],
+      "feature_notes": [
+        "joinedSources: paragraph and heading text, every list item's text (including empty ones) followed by its children, quote contents recursively; code/table/rule skipped; joined with \"\\n\". collect() records only `parts.append(text)` / `parts.append(item.text)`, dropping heading level, list ordered/start, `item.checked` and quote nesting. Used both as the render-change key and as the favicon fetch source.",
+        "updateNSView re-renders only when any of source, pointSize, dimmed, revision, mention names, or targets' URLs differ from the coordinator's last values; onOpenHead and mergeTarget are reassigned on every update even without a render, with the comment that a new click handler must land on an update that drew nothing. Because `source` is joinedSources, a change of blocks that leaves the joined text the same (for example `- [ ] a` -> `- [x] a`, a paragraph -> `# heading` with the same text, an ordered-list start change, or a paragraph moving into a quote) does not call `view.render(...)`, and the NSView keeps the old checkbox, marker or style; MarkdownView keys segments by `id: \\.offset`, so the same view receives the new blocks.",
+        "makeNSView sets the coordinator as delegate, passesProseThrough = false, calls onHost(view) and sets mergeTarget from the environment's mergeRequestTarget; dismantleNSView clears delegate, onOpenHead and mergeTarget.",
+        "Hover: pointing-hand cursor pushed only when the over-link state changes; head card shown when headMentionRect(at:) returns a name whose target exists with the same url and whose persona is known (first persona wins on duplicate names), and only when the hovered threadID changes; hidden when off any head; .ended pops the cursor if shown and hides the card; .onDisappear does the same.",
+        "Favicon/video-title task keyed by RichLink.linkAssetKey(for: sources) where sources = ProseRunRepresentable.joinedSources(blocks); skipped when the key is empty; always non-streaming. Consequences: (a) linkAssetKey calls prettyAttributed on the joined string, so each multi-block run adds an extra entry to the 1200-entry RichLink.prettyCache besides the per-paragraph entries; (b) fetchLinkAssets ends with `RichLink.invalidate(source); revision.wrappedValue += 1` with source = the joined string, so only the joined entry is dropped, while each paragraph is drawn through `LinkParagraphView.attributed(source: text, ...)`, which calls `RichLink.prettyAttributed(source, streaming: streaming)` per paragraph (LinkParagraphView.swift:112) and hits that paragraph's still-cached entry. The revision bump re-renders and picks up newly cached favicons, but a video title that lands later does not replace the pretty title in a multi-block run while the paragraph's cache entry lives (a run of exactly one paragraph has joined == paragraph text and is invalidated correctly). The SwiftUI InlineText path passes the single paragraph source and is not affected.",
+        "Code, table and rule blocks are ignored inside a run (MarkdownView.segments never puts them in one).",
+        "B1->B2: the @Environment(\\.chatZoom) zoom property was removed and the scaled point size changed from (pointSize * zoom * 2).rounded() / 2 to (pointSize * 2).rounded() / 2; the dimmed text colour changed from NSColor.secondaryLabelColor to NSColor.labelColor.withAlphaComponent(0.7). Nothing else changed."
+      ],
+      "unresolved_questions": [
+        "LinkTextView.render, height(forWidth:), passesProseThrough and mergeTarget semantics are defined in LinkParagraphView.swift, outside this bundle.",
+        "What mergeRequestTarget carries (environment value defined elsewhere)."
+      ]
+    },
+    {
+      "path": "DroppyCode/UI/Markdown/SelectableMessageText.swift",
+      "sha256": "0b5cbef945e5b0e5cf5d3138551ad82a11d5cb62bea85f659f1604d89bb5edfb",
+      "lines_total": 64,
+      "ranges_read": [
+        [
+          1,
+          64
+        ]
+      ],
+      "purpose": "Despite its file name, this file now holds only enum MessageText, which turns a message's markdown into plain text for the row menu's Copy message action. It parses with MarkdownParser, writes headings and paragraphs with links rewritten as \"title (url)\", code blocks verbatim except the hydra delegation block, list items with plain markers, tables as double-space-separated rows, and separates top-level blocks with a blank line.",
+      "key_symbols": [
+        "enum MessageText",
+        "static func plain(_ markdown: String) -> String",
+        "private static func append(_ block: MarkdownBlock, to lines: inout [String])",
+        "private static func inline(_ source: String) -> String"
+      ],
+      "calls_into": [
+        "MarkdownParser.parse(_:)",
+        "MarkdownBlock cases",
+        "Swift Regex literals with String.replacing(_:with:)",
+        "Callers (B2): TimelineRows.swift:1398 inside AssistantMessageRow.messageActions (`RowAction(title: \"Copy message\", symbol: \"doc.on.doc\", confirms: \"Copied\") { copyMessageText(MessageText.plain(textSnapshot)) }`), which the doc comment names, and TimelineRows.swift:219 inside UserMessageRow's private static messageActions (same RowAction), which the doc comment does not name."
+      ],
+      "state_owned": [
+        "None."
+      ],
+      "side_effects": [
+        "None; pure string transformation."
+      ],
+      "platform_assumptions": [
+        "Foundation only (import Foundation); Swift 5.7+ Regex literals (#/.../#) and String.replacing with a closure over match.output capture tuples; a port needs an equivalent regex replace"
+      ],
+      "persisted_fields": [
+        "None."
+      ],
+      "ui_elements": [
+        "None directly; output feeds the \"Copy message\" row action of both the assistant and the user message rows (TimelineRows.swift:1398 and :219)."
+      ],
+      "feature_notes": [
+        "plain(): one line entry per output line, `if !first { lines.append(\"\") }` before every top-level block except the first, joined with \"\\n\". Nested list children and quote contents are not separated by blank lines. `first = false` is set even when append() emits nothing (a `.rule`, a skipped hydra or empty code block, a list whose items are all empty with no children), which yields consecutive empty lines between blocks, a leading \"\\n\" when the first block emits nothing, and a trailing \"\\n\" when the last block emits nothing.",
+        "Heading and paragraph: inline(text). Code: `guard language?.lowercased() != \"hydra\", !code.isEmpty else { return }`, a case-insensitive test, so \"hydra\", \"Hydra\" and \"HYDRA\" are skipped, as is any empty code block; otherwise the code verbatim. Only that one info word is skipped: \"hydra-sent\" and \"hydra-leaving\" blocks (in any case) would be copied.",
+        "List markers: checked \"☑ \", unchecked \"☐ \", ordered \"\\(start + index).  \" (two spaces), unordered \"•  \" (two spaces); an item with empty text writes no line but its children are still appended.",
+        "Quote: children appended with no prefix. Table: header joined with two spaces, then each row joined with two spaces. Rule: nothing.",
+        "inline(): images ![alt](url) become alt; links [title](url \"optional title\") become the bare url when title equals url, else \"title (url)\"; autolinks <https:...>, <http:...> or <mailto:...> lose their angle brackets. Emphasis markers and inline code backticks are not stripped.",
+        "B1->B2: inline() now uses Swift Regex literals and String.replacing: #/!\\[([^\\[\\]]*)\\]\\(\\S+?\\)/#, #/\\[([^\\[\\]]+)\\]\\((\\S+?)(?:\\s+\"[^\"]*\")?\\)/#, #/<((?:https?|mailto):[^<>\\s]+)>/# (same pattern text as before). The private replace(_:in:with:) helper built on NSRegularExpression (ICU, UTF-16 ranges, which replaced matches in reverse order and mapped missing groups to \"\") was deleted. The engines differ: B1 matched per UTF-16 unit, B2's Swift Regex literals match per Character (grapheme cluster) by default, so `\\S`, `\\s`, `[^\\[\\]]` and `[^<>\\s]` classify whole grapheme clusters in B2. A port should reproduce B2's grapheme-level semantics."
+      ],
+      "unresolved_questions": [
+        "Whether leaving hydra-sent and hydra-leaving blocks in the copied text is intended, given MarkdownView.isDelegationInfo treats all three info strings as the delegation card."
+      ]
+    }
+  ]
+}

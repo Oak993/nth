@@ -1,0 +1,245 @@
+{
+  "bundle_id": "R2-25",
+  "reader": "R2-25-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Services/Git/Git.swift",
+      "sha256": "2294e4d921d7124898ed665f70ac24e82d8e4396765829ec9ac57e568a9de953",
+      "lines_total": 723,
+      "ranges_read": [
+        [
+          1,
+          370
+        ],
+        [
+          371,
+          723
+        ]
+      ],
+      "purpose": "Git.swift is the app's single process-level wrapper over the git CLI (plus the glab, gh and tea forge CLIs): every repository query, commit, push, pull/merge request, worktree, checkpoint, tree capture, diff, restore and patch-apply goes through `struct Git`, which runs `git -c core.quotepath=false -c color.ui=false <args>` in its `directory` with `GIT_TERMINAL_PROMPT=0` and `GIT_OPTIONAL_LOCKS=0`. It also defines the two value types the UI reads (`GitStatus`, `GitBranch`), the hidden checkpoint ref scheme `refs/droppy-code/checkpoints/<thread-uuid-lowercased>/<turn>-<phase>`, the scratch-index technique (a temp `GIT_INDEX_FILE` seeded from the real index or `read-tree HEAD`) that snapshots the working tree into a tree object without touching the user's index or branch, and a per-process cache of resolved worktree index paths guarded by a `Mutex`. In 1.6.2 it gained squash-and-delete-source-branch for GitLab merges and swapped every whitespace trim to the shared `String.trimmed` helper.",
+      "key_symbols": [
+        "struct GitStatus: Equatable, Sendable { var branch: String?; var upstream: String?; var ahead = 0; var behind = 0; var changedFiles = 0 }",
+        "struct GitBranch: Identifiable, Hashable, Sendable { var name: String; var isCurrent: Bool; var upstream: String?; var id: String { name } }",
+        "struct Git: Sendable { let directory: URL; init(_ path: String) (directory = URL(fileURLWithPath: path)) }",
+        "private static var executable: URL { LoginEnvironment.git }",
+        "@discardableResult func run(_ arguments: [String], environment extra: [String: String] = [:], input: Data? = nil, timeout: TimeInterval = 120) async throws -> ShellResult",
+        "func output(_ arguments: [String]) async throws -> String",
+        "static func check(_ result: ShellResult) throws  (throws ShellError(result.failureMessage) when !succeeded)",
+        "func isRepository() async -> Bool",
+        "func repositoryRoot() async throws -> URL",
+        "func hasCommits() async -> Bool",
+        "func status() async -> GitStatus?",
+        "func branches() async -> [GitBranch]",
+        "func switchBranch(_ name: String) async throws",
+        "func createBranch(_ name: String) async throws",
+        "func addWorktree(at path: String, branch: String, base: String?) async throws",
+        "func removeWorktree(at path: String) async throws",
+        "func remoteURL() async -> String?",
+        "func remoteWebURL() async -> URL?",
+        "func listFiles() async -> [String]",
+        "func workingChanges() async -> (summary: String, patch: String)",
+        "func commitAll(message: String) async throws",
+        "func push() async throws",
+        "func createPullRequest(title: String, body: String, source: String? = nil, target: String? = nil) async throws -> URL?",
+        "func forge() async -> MergeRequestLink.Forge  (.gitlab / .github / .gitea)",
+        "func mergePullRequest(_ link: MergeRequestLink) async throws",
+        "func defaultBranch() async -> String",
+        "func captureTree(paths: [String]) async throws -> String",
+        "func treeHash(of ref: String) async throws -> String",
+        "func commitHash(of ref: String = \"HEAD\") async throws -> String",
+        "func commitWork(_ tree: String, parent: String, message: String) async throws -> String",
+        "func updateRef(_ ref: String, to commit: String) async throws",
+        "func updateRef(_ ref: String, to commit: String, expecting old: String?) async throws",
+        "func pushBranch(_ name: String) async throws",
+        "func fetch() async throws",
+        "func isAncestor(_ commit: String, of other: String) async -> Bool",
+        "func changedPaths(from: String, to: String) async throws -> [String]",
+        "func dirtyPaths() async -> [String]",
+        "func ignoredPaths(among paths: [String]) async -> Set<String>",
+        "func trackedPaths(among paths: [String]) async -> Set<String>  (= presentPaths(among:in: \"HEAD\"))",
+        "func presentPaths(among paths: [String], in ref: String) async -> Set<String>",
+        "private static func nulSeparated(_ paths: [String]) -> Data",
+        "func hasOperationInProgress() async -> Bool",
+        "func resetSoft(to commit: String) async throws",
+        "func resetIndex(paths: [String]) async throws",
+        "func checkoutPaths(from ref: String, _ paths: [String]) async throws",
+        "func removePaths(_ paths: [String]) async throws",
+        "func pullFastForward() async throws",
+        "static func checkpointRef(thread: UUID, turn: Int, phase: String) -> String",
+        "func captureCheckpoint(_ ref: String) async throws",
+        "func currentTree() async throws -> String",
+        "private func captureTree(scratch: URL, paths: [String]?) async throws -> String",
+        "private func watch() async -> WorkingTreeWatch?",
+        "func captureTree() async throws -> String",
+        "struct Git.GitFileStamp: Equatable (nested inside `struct Git`, l.492, internal access) { var identifier: UInt64?; var modified: Date?; var size: Int?; var overrides: String; init(gitFile: String, environment: [String: String]) }",
+        "static let worktreeIndexPaths = Mutex<[String: (stamp: GitFileStamp, path: String?)]>([:])  (l.509; internal, not private: `static let` with no access modifier inside `struct Git`)",
+        "private func indexPath() async -> String?",
+        "private static let diffPathChunk = 400",
+        "func diff(from: String, to: String, binary: Bool = false, paths: [String]? = nil) async throws -> String",
+        "func previewRestore(base: String, end known: String?, paths: [String]) async throws -> RevertPreview",
+        "func restore(_ paths: [String], from ref: String) async throws",
+        "private func blobs(in ref: String, at paths: [String], root: URL) async throws -> [String: String]",
+        "private func workingBlobs(at paths: [String], root: URL) async throws -> [String: String]",
+        "func deleteCheckpoints(thread: UUID) async",
+        "private static let identity = [\"GIT_AUTHOR_NAME\": \"Droppy Code\", \"GIT_AUTHOR_EMAIL\": \"droppy-code@localhost\", \"GIT_COMMITTER_NAME\": \"Droppy Code\", \"GIT_COMMITTER_EMAIL\": \"droppy-code@localhost\"]",
+        "func commitTree(_ tree: String, message: String) async throws -> String",
+        "func addDetachedWorktree(at path: String, commit: String) async throws",
+        "func pruneWorktrees() async",
+        "func apply(_ patch: String) async throws -> [String]",
+        "private extension Substring { func value(after prefix: String) -> String? }"
+      ],
+      "calls_into": [
+        "LoginEnvironment.git (git executable URL) and LoginEnvironment.current (base environment dictionary)",
+        "Shell.run(_ executable: URL, _ args, in:, environment:, input:, timeout:) for git; Shell.run(tool: \"glab\"|\"gh\"|\"tea\", args, in: directory, timeout: 300) for forge CLIs",
+        "ShellResult (.succeeded, .output, .errorOutput, .status, .trimmedOutput, .failureMessage) and ShellError(String) from Core/Support/Shell.swift",
+        "String.trimmed and String.nilIfEmpty (Core/Support/Text.swift; trimmed = trimmingCharacters(in: .whitespacesAndNewlines))",
+        "MergeRequestLink (.number, .forge) and MergeRequestLink.Forge cases .gitlab/.github/.gitea",
+        "WorkingTreeWatch.shared(for: directory.path, gitDirectory:), watch.commit(of: tree), watch.remember(commit:of:), watch.currentTree(indexPath:) { scratch, paths in ... }",
+        "RevertPreview(files:), RevertPreview(numstat:), file.path, file.isKept",
+        "Swift Regex literal #/https://\\S+/# via String.firstMatch(of:)",
+        "Synchronization.Mutex.withLock",
+        "Task.sleep(for: .seconds(...))"
+      ],
+      "state_owned": [
+        "Instance: `directory: URL` only (value type, Sendable).",
+        "Process-wide static `worktreeIndexPaths: Mutex<[String: (stamp: GitFileStamp, path: String?)]>` keyed by `directory.path`; when count reaches 64 (`paths.count >= 64`) the whole dictionary is cleared before inserting.",
+        "Checkpoint-commit reuse cache lives in WorkingTreeWatch, not here; Git only calls commit(of:)/remember(commit:of:)."
+      ],
+      "side_effects": [
+        "Spawns git processes and glab/gh/tea processes. Timeout 300 s (explicit `timeout: 300`): push (l.169), pushBranch (l.286), fetch (l.290), pullFastForward (l.404), captureTree(paths:) add (l.253), captureTree(scratch:paths:) both adds (l.448, l.459), captureTree() add (l.484), apply's temp-index `run([\"add\", \"-A\", \"--\", \".\"], environment: environment, timeout: 300)` (l.707), every diff(from:to:binary:paths:) call (l.558, l.566), addDetachedWorktree (l.679), and all forge CLI calls in createPullRequest (l.181, 186, 191) and mergePullRequest (l.216-218). Everything else uses run()'s default `timeout: TimeInterval = 120` (l.35), including output() (l.51-55, which calls run(arguments) with no timeout), so read-tree, write-tree, the previewRestore `diff --numstat` (l.586, via output()), ls-tree in blobs (l.625, via output()), hash-object (l.643), restore (l.607-610), rm (l.400, l.615-618), checkout (l.395), cat-file, check-ignore and the plain `apply` (l.693) and `apply --3way` (l.708) all run at 120 s.",
+        "Writes git objects into the repository's real object database: write-tree (tree objects), commit-tree (commit objects), AND every `git add -A` run against a temporary or scratch GIT_INDEX_FILE, which hashes working-tree content and stores blob objects in the ordinary object store (only GIT_INDEX_FILE is redirected; no GIT_OBJECT_DIRECTORY is set, l.251, l.446, l.476, l.701). These are `[\"add\", \"-A\", \"--ignore-errors\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"]` (captureTree(paths:), l.253), `[\"add\", \"-A\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"]` (scratch fast path, l.448) and `[\"add\", \"-A\", \"--\", \".\"]` (scratch full recapture l.459, captureTree() l.484, apply l.707). So every checkpoint, captureTree(), previewRestore fallback capture and 3-way apply can grow .git/objects with unreferenced loose blobs; only the index is throwaway. A port must write these objects too (for example, it must not substitute `hash-object` without -w or a separate object directory). workingBlobs' `hash-object --stdin-paths` (l.643) has no -w, so it writes nothing. Also: moves refs (update-ref, update-ref --stdin deletes), commits (add -A + commit -F -), pushes (push -u origin HEAD; push -u origin refs/heads/<n>:refs/heads/<n>), fetches (fetch --quiet origin), fast-forward pulls, creates/removes/prunes worktrees, resets (--soft, index pathspec), checks out and removes paths, applies patches, creates and merges PR/MRs on remote forges.",
+        "Creates and deletes temp index files in FileManager.default.temporaryDirectory named `droppy-code-index-<UUID>` (captureTree(paths:), captureTree()) and `droppy-code-apply-<UUID>` (apply), removed by defer.",
+        "Copies the real index file to the temp/scratch index (copyItem), removes the scratch index on full recapture.",
+        "restore(_:from:) deletes working-tree files with FileManager.removeItem for paths absent from `ref`.",
+        "mergePullRequest sleeps `try? await Task.sleep(for: .seconds(3 + attempt * 2))` (l.224) after every retryable GitLab failure, including the 6th and last (attempt 5, 13 s) before `throw ShellError(lastFailure)`: 3+5+7+9+11+13 = 48 s of sleep in the worst case."
+      ],
+      "platform_assumptions": [
+        "Foundation URL(fileURLWithPath:), deleteLastPathComponent, appendingPathComponent, FileManager.default (fileExists(atPath:isDirectory:) with ObjCBool, copyItem, removeItem, attributesOfItem with .systemFileNumber/.modificationDate/.size, temporaryDirectory), NSString.deletingLastPathComponent; POSIX `/` path joining (`gitDirectory + \"/\" + marker`, `dotGit + \"/index\"`, prefix split on \"/\" in repositoryRoot) must become Windows-aware (backslashes, drive letters) or normalized.",
+        "Synchronization.Mutex (Swift 6 stdlib); Swift concurrency async/await, Task.sleep.",
+        "LoginEnvironment (macOS login-shell environment capture and git binary resolution) must be replaced by Windows git discovery (Git for Windows) and environment.",
+        "`.systemFileNumber` (inode) has no direct Windows analogue; a file ID (NTFS FileId) or other stamp is needed for GitFileStamp.",
+        "Forge CLIs glab, gh, tea must be discovered on PATH on Windows (Shell.run(tool:)).",
+        "workingBlobs passes absolute paths to `hash-object --stdin-paths` separated by \"\\n\"; restore/blobs pass absolute paths joined with root; on Windows git accepts these but path form and case sensitivity differ.",
+        "Temp index files rely on the system temp directory and git's GIT_INDEX_FILE env var.",
+        "`--pathspec-from-file=-` with `--pathspec-file-nul`, `--path-format=absolute` and `cat-file -Z` are newer git options; the bundled or discovered Git for Windows must support them (minimum versions not established by this file).",
+        "Command-line length: `private static let diffPathChunk = 400` (l.541) is documented only as \"Paths per `git diff` call when a caller names many: well under the argument limit.\" (l.540); the limit it was sized against is the one on macOS, where this app ships. Several calls put caller paths on argv with NO chunking at all: previewRestore `[\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", base, end, \"--\"] + paths` (l.586, commented \"a turn touches tens of files, well within the arguments\"), checkoutPaths `[\"checkout\", \"--quiet\", ref, \"--\"] + paths` (l.395), removePaths `[\"rm\", \"--quiet\", \"--\"] + paths` (l.400) and blobs `[\"ls-tree\", \"-r\", \"-z\", \"--full-name\", ref, \"--\"] + paths.map { root.appendingPathComponent($0).path }` (l.625, ABSOLUTE paths, so each entry carries the full root). Windows CreateProcess caps the whole command line at 32,767 characters, so 400 long paths in one diff chunk, or any of the unchunked lists, can fail on Windows where they work on macOS. A port that keeps upstream argv must handle this (an added Windows-only guard would be a documented divergence)."
+      ],
+      "persisted_fields": [
+        "No UserDefaults or files of its own. Persisted in the user's repository: hidden refs `refs/droppy-code/checkpoints/<uuid lowercased>/<turn>-<phase>` pointing at commits with message \"Droppy Code checkpoint\" authored and committed as \"Droppy Code\" <droppy-code@localhost>.",
+        "commitTree commits (unreferenced) also use the Droppy Code identity; commitWork uses the user's own git identity (no identity override)."
+      ],
+      "ui_elements": [
+        "None: no views. User-visible strings originating here: hash-object mismatch error \"git hash-object answered for \\(hashes.count) of \\(existing.count) files.\"; checkpoint commit message \"Droppy Code checkpoint\"; otherwise ShellError(result.failureMessage) carries git/forge output. The initial `lastFailure` \"The request could not be merged.\" (l.212) is dead code and never reaches the user (see the mergePullRequest note)."
+      ],
+      "feature_notes": [
+        "run(): environment = LoginEnvironment.current, then GIT_TERMINAL_PROMPT=\"0\", GIT_OPTIONAL_LOCKS=\"0\", then `extra` merged with new values winning; argv prefix [\"-c\", \"core.quotepath=false\", \"-c\", \"color.ui=false\"]; default timeout 120.",
+        "isRepository: `rev-parse --is-inside-work-tree` trimmedOutput == \"true\".",
+        "repositoryRoot: `rev-parse --show-prefix`, trimmed, split on \"/\", and deleteLastPathComponent once per component of `directory`.",
+        "hasCommits: `rev-parse --verify --quiet HEAD` succeeded.",
+        "status: `status --porcelain=v2 --branch`; nil if the run fails. Lines \"# branch.head \" -> branch (\"(detached)\" -> nil); \"# branch.upstream \" -> upstream; \"# branch.ab \" tokens \"+N\" ahead, \"-N\" behind (Int parse failure -> 0); any other line not starting with \"#\" increments changedFiles.",
+        "branches: `for-each-ref --sort=-committerdate --format=%(HEAD)%09%(refname:short)%09%(upstream:short) refs/heads`; tab split keeping empties; needs >= 2 parts; isCurrent when part0 == \"*\"; upstream only if a non-empty third part; [] on failure.",
+        "switchBranch: `switch <name>`; createBranch: `switch -c <name>`; addWorktree: `worktree add -b <branch> <path> [base]`; removeWorktree: `worktree remove --force <path>`.",
+        "remoteURL: `remote get-url origin`, trimmed, nil if empty or failed.",
+        "remoteWebURL: strip trailing \".git\" (removeLast(4)); \"git@host:owner/repo\" -> \"https://host/owner/repo\"; \"ssh://git@\" prefix replaced by \"https://\"; returns URL only if result hasPrefix(\"http\").",
+        "listFiles: `ls-files --cached --others --exclude-standard`, newline split.",
+        "workingChanges: summary `status --short`, patch `diff HEAD --no-ext-diff`, both \"\" on failure; patch cut to String(patch.prefix(40_000)) when patch.utf8.count > 40_000 (the cut is by Characters, test is by UTF-8 bytes).",
+        "commitAll: `add -A` then `commit -F -` with message on stdin. push: `push -u origin HEAD` timeout 300.",
+        "createPullRequest: GitLab `glab mr create --title T --description B --yes [--source-branch S] [--target-branch T]`; GitHub `gh pr create --title T --body B [--head S] [--base T]`; Gitea `tea pulls create --title T --description B [--head S] [--base T]`; all timeout 300; checked; returns first match of #/https://\\S+/# in output + \"\\n\" + errorOutput.",
+        "forge: remote URL lowercased; contains \"gitlab\" -> .gitlab, contains \"github\" -> .github, else .gitea (also when no remote).",
+        "mergePullRequest (l.210-227): up to 6 attempts (`for attempt in 0..<6`). GitLab `glab mr merge <n> --yes --squash --remove-source-branch`; GitHub `gh pr merge <n> --merge`; Gitea `tea pulls merge <n>`; all `Shell.run(tool:..., timeout: 300)`. `try await Shell.run(tool: ...)` errors propagate at once with no retry (for example Shell.swift l.129-131 throws ShellError(\"\\(name) was not found on your PATH.\") when the CLI is missing). Success returns. On failure `lastFailure = result.failureMessage` (l.221), then `let text = (result.output + result.errorOutput).lowercased()` (l.222) concatenates with NO separator (createPullRequest uses `result.output + \"\\n\" + result.errorOutput`, l.194). Retry only when `link.forge == .gitlab` (the stored link's forge, not forge() of the current remote) and text contains \"405\" or \"not allowed\" or \"checking\"; otherwise break. `try? await Task.sleep(for: .seconds(3 + attempt * 2))` (3,5,7,9,11,13) also runs after the 6th and final failed attempt, so the worst case waits 48 s in total before `throw ShellError(lastFailure)`. `try?` swallows a cancellation of the sleep, but the next iteration's Shell.run starts with `try Task.checkCancellation()` (Shell.swift l.70), so a cancelled task throws CancellationError on the next attempt rather than looping on. The initial value `var lastFailure = \"The request could not be merged.\"` (l.212) is unreachable: the loop always runs at least once, every path to the throw passes l.221 first, and ShellResult.failureMessage is never empty (Shell.swift l.15-19 falls back to \"The command failed with exit code \\(status).\").",
+        "defaultBranch: `symbolic-ref --short refs/remotes/origin/HEAD` trimmed, non-empty, strip \"origin/\"; else first of [\"main\", \"master\"] whose `rev-parse --verify --quiet refs/remotes/origin/<c>` succeeds; else \"main\".",
+        "captureTree(paths:) (l.247-257): temp index droppy-code-index-<UUID>; `read-tree HEAD` if hasCommits; `add -A --ignore-errors --pathspec-from-file=- --pathspec-file-nul` with nulSeparated(paths) (every path terminated by a NUL, including the last) (timeout 300); `write-tree`; returns trimmedOutput. Per the trackedPaths doc (l.327-330) a path that is neither in HEAD nor on disk \"is a pathspec that matches nothing and takes the whole `git add` down\" (`--ignore-errors` does not prevent it), so captureTree(paths:) throws for such a path and callers must filter through trackedPaths first; the same applies to previewRestore's fallback `end = try await captureTree(paths: paths)` (l.584).",
+        "treeHash: `rev-parse <ref>^{tree}` trimmed; commitHash: `rev-parse --verify <ref>` (default \"HEAD\") trimmed.",
+        "commitWork: `commit-tree <tree> -p <parent> -F -` message on stdin, user's identity. updateRef: `update-ref <ref> <commit>`; expecting variant appends old ?? \"\" (empty means must not exist).",
+        "pushBranch: `push -u origin refs/heads/<n>:refs/heads/<n>` timeout 300. fetch: `fetch --quiet origin` timeout 300. isAncestor: `merge-base --is-ancestor` succeeded.",
+        "changedPaths: `diff --name-only -z <from> <to>` split on NUL.",
+        "dirtyPaths: `status --porcelain=v1 -z --untracked-files=all`, split on NUL keeping empties; entries with count <= 3 skipped; path = entry.dropFirst(3); if the 2-char code contains \"R\" or \"C\", the next record (origin name) is popped and appended when non-empty.",
+        "ignoredPaths: `check-ignore -z --stdin` with NUL input; accepted when succeeded or status == 1; [] for empty input.",
+        "trackedPaths (l.333-335) = presentPaths(among: paths, in: \"HEAD\"). Its doc (l.327-332) gives the contract: \"a path in HEAD can be staged even once it is gone from disk (the deletion is the work), while a path in neither is a pathspec that matches nothing and takes the whole `git add` down\", and explains the method: \"`ls-files` reads no pathspec file, so the check goes through `cat-file --batch-check`, one `HEAD:<path>` per line on stdin\". presentPaths doc (l.337-340): one `cat-file --batch-check` over the lot \"rather than a `cat-file -e` per path\", because thousands of files \"used to mean thousands of git processes one after another\". presentPaths (l.341-354): stdin \"<ref>:<path>\\0\" per path (its own NUL-terminated encoding, l.343-346); `cat-file --batch-check=%(objecttype) -Z`; answers split on NUL keeping empties and zipped with paths in order; answers ending in \" missing\" excluded; [] on failure or empty input.",
+        "hasOperationInProgress: `rev-parse --path-format=absolute --git-dir` trimmed; failure or empty -> true (busy); true if any of \"rebase-merge\", \"rebase-apply\", \"MERGE_HEAD\", \"CHERRY_PICK_HEAD\", \"REVERT_HEAD\", \"BISECT_LOG\" exists in that directory.",
+        "resetSoft: `reset --soft --quiet <commit>`; resetIndex: `reset --quiet --pathspec-from-file=- --pathspec-file-nul` (no-op for empty); checkoutPaths: `checkout --quiet <ref> -- paths...`; removePaths: `rm --quiet -- paths...`; pullFastForward: `pull --ff-only --quiet` timeout 300.",
+        "checkpointRef: \"refs/droppy-code/checkpoints/\\(thread.uuidString.lowercased())/\\(turn)-\\(phase)\".",
+        "captureCheckpoint: tree = currentTree(); reuses watch?.commit(of: tree) if known, else `commit-tree <tree> -m \"Droppy Code checkpoint\"` with Droppy Code identity (no parent) and watch?.remember; then `update-ref <ref> <commit>`.",
+        "currentTree: if indexPath or watch unavailable -> full captureTree(); else watch.currentTree(indexPath:) with closure: scratch nil -> captureTree(); else captureTree(scratch:paths:).",
+        "captureTree(scratch:paths:): if paths non-empty, scratch exists and `add -A --pathspec-from-file=- --pathspec-file-nul` succeeds -> write-tree. Otherwise remove scratch, seed from real index copy or `read-tree HEAD`, `add -A -- .` (timeout 300), write-tree.",
+        "watch(): WorkingTreeWatch.shared(for: directory.path, gitDirectory: indexPath's parent directory); nil without an index path.",
+        "captureTree(): temp droppy-code-index-<UUID>, seeded by copying the real index (keeps stat cache) else `read-tree HEAD`, `add -A -- .` timeout 300, `write-tree`. Respects .gitignore.",
+        "GitFileStamp: identifier from .systemFileNumber (NSNumber uint64), modified .modificationDate, size .size, overrides = GIT_DIR + \"\\u{0}\" + GIT_INDEX_FILE (\"\" defaults).",
+        "indexPath (l.517-538): if <directory>/.git exists and is a directory and neither GIT_DIR nor GIT_INDEX_FILE is set in LoginEnvironment.current -> `dotGit + \"/index\"` with no process. Else stamp = GitFileStamp when .git exists (a file); a cached entry is returned when `cached.stamp == stamp` (l.526-527); else `try? await output([\"rev-parse\", \"--path-format=absolute\", \"--git-path\", \"index\"]).trimmed` and, when a stamp exists, `paths[directory.path] = (stamp, path)` (l.534) after clearing the dictionary at `paths.count >= 64`. A FAILED rev-parse (path == nil) is cached too, and that nil is returned until the `.git` file's systemFileNumber, modificationDate or size, or GIT_DIR/GIT_INDEX_FILE, changes. While it is cached nil, watch() returns nil (l.466), currentTree falls back to full captureTree(), and captureTree(), captureTree(scratch:paths:) and apply seed their temp index with `read-tree HEAD` instead of copying the real index (losing the stat cache). A subdirectory with no .git asks every time and caches nothing.",
+        "diff (l.547-573): `var arguments = paths == nil ? [] : [\"--literal-pathspecs\"]` (global option before \"diff\"); then \"diff\", \"--no-ext-diff\", \"-M\" [+ \"--binary\"], from, to. `guard let paths, paths.count > Self.diffPathChunk` (400) else one call, appending `[\"--\"] + paths` when paths is non-nil. A non-nil EMPTY `paths` therefore runs `--literal-pathspecs diff --no-ext-diff -M <from> <to> --` with no pathspec and returns the FULL diff, not \"\" (a port must not short-circuit [] to empty). Over 400 paths: chunks of 400, one call each, joined, inserting \"\\n\" between chunks when prior output is non-empty and lacks a trailing newline; every call timeout 300; each checked.",
+        "previewRestore: empty paths -> RevertPreview(files: []); end = known ?? captureTree(paths:); `diff --numstat -z --no-renames --no-ext-diff <base> <end> -- paths`; if files non-empty, compares blobs in end with working-tree blobs; file.isKept = left[path] != now[path].",
+        "restore: paths present in ref -> `restore --source <ref> --worktree --staged --pathspec-from-file=- --pathspec-file-nul` with absolute paths NUL-joined (checked); absent paths -> `rm -q --cached --ignore-unmatch --pathspec-from-file=- --pathspec-file-nul` (errors ignored) and FileManager.removeItem per file.",
+        "blobs: `ls-tree -r -z --full-name <ref> -- <absolute paths>`; parses \"<mode> <type> <hash>\\t<path>\" requiring 3 fields; keyed by full repository path.",
+        "workingBlobs: only existing files; `hash-object --stdin-paths` newline-joined absolute paths; throws ShellError(\"git hash-object answered for N of M files.\") on count mismatch.",
+        "deleteCheckpoints: `for-each-ref --format=%(refname) refs/droppy-code/checkpoints/<uuid>/`; builds \"delete <ref>\\n\" lines; `update-ref --stdin`; errors ignored.",
+        "commitTree: `commit-tree <tree> -m <message>` plus `-p HEAD` when hasCommits; Droppy Code identity. addDetachedWorktree: `worktree add --detach <path> <commit>` timeout 300. pruneWorktrees: `worktree prune`, errors ignored.",
+        "apply: first `apply --binary --whitespace=nowarn -` on the real working tree (returns [] on success). Else temp droppy-code-apply-<UUID> index seeded from real index or read-tree HEAD, `add -A -- .` (timeout 300), then `apply --3way --binary --whitespace=nowarn -` with that index; success -> []; otherwise lines of errorOutput starting \"U \" give conflict paths (trimmed of .whitespaces); none -> throw ShellError(merged.failureMessage).",
+        "Substring.value(after:) returns the remainder when hasPrefix, else nil.",
+        "B1->B2: Two kinds of change (8 lines, per `git diff dd2b86ef..1fbf81e6`). (1) Behaviour: GitLab merge in mergePullRequest changed from `glab mr merge <n> --yes` to `glab mr merge <n> --yes --squash --remove-source-branch` (line 216); GitHub (`--merge`) and Gitea unchanged. (2) Refactor with identical semantics: seven `.trimmingCharacters(in: .whitespacesAndNewlines)` calls replaced by the new `String.trimmed` helper (Core/Support/Text.swift, defined as exactly that trim) in repositoryRoot (l.70), remoteURL (l.133), defaultBranch (l.234), treeHash (l.260), commitHash (l.264), hasOperationInProgress (l.373) and indexPath (l.530). The `.trimmingCharacters(in: .whitespaces)` in apply (l.712) was left as is. Line count unchanged at 723.",
+        "Path interpretation: presentPaths/trackedPaths build `\"\\(ref):\\(path)\"` (l.344), and git resolves `<rev>:<path>` from the repository ROOT (unless the path starts with `./` or `../`). The pathspecs given to captureTree(paths:) (l.253), captureTree(scratch:paths:) (l.448), resetIndex (l.389), checkoutPaths (l.395), removePaths (l.400), diff (l.557, 566) and previewRestore's numstat diff (l.586), and the paths given to check-ignore (l.323), are resolved against `directory`, the process working directory (run passes `in: directory`, l.44). When `directory` is a subfolder of the repository, the same `paths` array names different files to trackedPaths than to captureTree(paths:). restore and blobs instead prefix `root = try await repositoryRoot()` (l.603, 588, 625), and their docs say \"(repository-relative)\" (l.599, 623), while previewRestore's doc says \"relative to this directory\" (l.576). A port must keep each call's own resolution.",
+        "Pathspec magic is handled inconsistently, and a port must keep it so: only diff(from:to:binary:paths:) prepends the global `--literal-pathspecs` (l.552; comment l.548-549: \"as plain names: a `?` or `[` in one is a character, not a pattern\"). checkoutPaths `[\"checkout\", \"--quiet\", ref, \"--\"] + paths` (l.395), removePaths `[\"rm\", \"--quiet\", \"--\"] + paths` (l.400), previewRestore `diff --numstat ... \"--\"] + paths` (l.586), blobs `ls-tree ... \"--\"] + <absolute paths>` (l.625), and the pathspec-file calls (captureTree adds l.253/448, resetIndex l.389, restore/rm l.608/616) run WITHOUT --literal-pathspecs, so `*`, `?` and `[` in a file name act as glob characters there.",
+        "Two NUL encodings go to `--pathspec-file-nul`: nulSeparated (l.356-361) appends a 0 after EVERY path (trailing NUL), used by captureTree(paths:), captureTree(scratch:paths:), resetIndex and check-ignore; restore's two calls use `.map { root.appendingPathComponent($0).path }.joined(separator: \"\\0\")` (l.609, l.617): NUL BETWEEN absolute paths, no trailing NUL. presentPaths builds its own trailing-NUL `<ref>:<path>` records (l.343-346), and workingBlobs joins absolute paths with \"\\n\" (l.643)."
+      ],
+      "unresolved_questions": [
+        "WorkingTreeWatch, LoginEnvironment, Shell, MergeRequestLink and RevertPreview are defined in other files; their exact contracts (e.g. when watch.currentTree passes nil scratch or nil paths) are not established by this file.",
+        "Whether the port's GitLab merge should always squash and remove the source branch regardless of project settings (glab flags override project defaults) is a product decision recorded here as upstream behaviour, not verified against a live GitLab."
+      ]
+    },
+    {
+      "path": "DroppyCode/Services/Git/TouchedPaths.swift",
+      "sha256": "0b0a059d6b742f0a36a585a557e6fb63240f06be06b652e6ffec5090a5055adf",
+      "lines_total": 60,
+      "ranges_read": [
+        [
+          1,
+          60
+        ]
+      ],
+      "purpose": "TouchedPaths.swift is a caseless `enum TouchedPaths` namespace of pure, nonisolated static helpers that reconcile file paths an agent reported editing with repository-relative paths in a diff. It normalizes absolute or relative reports against the checkout root, rejects paths outside the checkout (other folders, `..` climbs, URLs) so they are never staged, classifies build-output and tool-cache paths that must never be landed or merged, and matches a DiffFile against a set of touched paths allowing for subfolder-relative reports.",
+      "key_symbols": [
+        "enum TouchedPaths",
+        "nonisolated static func normalize(_ path: String, root: String) -> String",
+        "nonisolated static func relative(_ path: String, root: String) -> String?",
+        "nonisolated static func isBuildOutput(_ path: String) -> Bool",
+        "private static let buildOutputNames: Set<String> = [\"-Xcc\", \"DerivedData\", \".build\", \"node_modules\", \"__pycache__\", \".pytest_cache\", \".mypy_cache\", \".ruff_cache\", \"xcuserdata\", \".swiftpm\", \"ModuleCache\", \".gradle\", \".turbo\", \".parcel-cache\", \".commandcode\"]",
+        "nonisolated static func matches(_ file: DiffFile, touched: Set<String>) -> Bool"
+      ],
+      "calls_into": [
+        "Foundation URL(fileURLWithPath:isDirectory:), URL(fileURLWithPath:relativeTo:), .standardizedFileURL, .path",
+        "NSString.expandingTildeInPath, .standardizingPath, .appendingPathComponent",
+        "String.trimmed and String.nilIfEmpty (Core/Support/Text.swift)",
+        "DiffFile (.path: String, .oldPath: String?)"
+      ],
+      "state_owned": [
+        "None beyond the immutable static set `buildOutputNames` (15 names)."
+      ],
+      "side_effects": [
+        "None: pure string and path computation; the file makes no explicit file system calls."
+      ],
+      "platform_assumptions": [
+        "POSIX paths: `/` separator in prefix checks (`base.path + \"/\"`, `root + \"/\"`), `path.hasPrefix(\"/\")` as the absolute test, `split(separator: \"/\")` in isBuildOutput, and `hasSuffix(\"/\" + path)` in matches. A Windows port needs drive-letter/UNC absolute detection and backslash and forward-slash handling. Case: upstream compares CASE-SENSITIVELY everywhere (`path.hasPrefix(prefix)` l.11, `full.hasPrefix(prefix)` l.27, `buildOutputNames.contains(name)` l.44, `touched.contains(path)` and `hasSuffix(\"/\" + path)` / `hasSuffix(\"/\" + $0)` l.57), even though a default macOS APFS volume is case-insensitive. Case-sensitive comparison is therefore B2 behaviour; case-folding for NTFS would be a deliberate divergence from B2 to be recorded as such, not something parity requires.",
+        "`~` expansion via NSString.expandingTildeInPath (home directory) needs a Windows equivalent (%USERPROFILE%).",
+        "NSString.standardizingPath and URL.standardizedFileURL (remove `.`/`..`, macOS /private symlink quirks) must be replaced by Windows path normalization.",
+        "`.DS_Store`, `.noindex`, `-Xcc`, `DerivedData`, `xcuserdata`, `.swiftpm`, `ModuleCache` are macOS/Xcode artifacts; keeping the list verbatim is harmless for parity, and Windows-specific caches are not listed upstream."
+      ],
+      "persisted_fields": [
+        "None."
+      ],
+      "ui_elements": [
+        "None."
+      ],
+      "feature_notes": [
+        "normalize: empty path -> \"\"; base = URL(fileURLWithPath: root, isDirectory: true).standardizedFileURL; path resolved relative to base and standardized; prefix = base.path with a trailing \"/\" ensured; if the path starts with prefix it is stripped; otherwise returned as the standardized absolute path (never nil, unlike relative).",
+        "relative: trims whitespace and newlines; returns nil when empty or containing \"://\"; expands a leading \"~\"; root standardized; absolute = path if it starts with \"/\" else root appended with path; standardized; must have prefix root + \"/\" (trailing slash ensured) else nil; returns the remainder, nil if empty (so the root itself gives nil).",
+        "isBuildOutput: splits on \"/\" omitting empties; true if any component is \".DS_Store\", ends with \".noindex\", or is in buildOutputNames. Matching is exact and case-sensitive per component; `build` and `dist` are deliberately not listed (doc comment: \"a source folder called `build` or `dist` stays the project's business\").",
+        "Doc comments cite the history: a head's build left \"2,700 compiler cache records under `DroppyCode.xcodeproj/-Xcc`\"; `.commandcode` is Command Code's taste-file folder that \"rode along into two repositories' history before it was listed\".",
+        "matches: over [file.path, file.oldPath] (nil oldPath dropped), true if touched contains the path exactly, or any touched entry hasSuffix(\"/\" + path), or path hasSuffix(\"/\" + touched entry).",
+        "B1->B2: One line changed: in relative(_:root:) line 20 `var path = path.trimmingCharacters(in: .whitespacesAndNewlines)` became `var path = path.trimmed`, using the new String.trimmed helper (defined in Core/Support/Text.swift as exactly `trimmingCharacters(in: .whitespacesAndNewlines)`), so behaviour is unchanged. Line count unchanged at 60.",
+        "normalize vs relative are NOT the same normaliser and can answer differently for the same input: normalize (l.6-13) does no trimming (relative uses `path.trimmed`, l.20), does no `://` rejection (relative: `guard !path.isEmpty, !path.contains(\"://\") else { return nil }`, l.21), has no explicit `~` handling (relative: `if path.hasPrefix(\"~\") { path = (path as NSString).expandingTildeInPath }`, l.22), and standardizes with `URL(fileURLWithPath:relativeTo:).standardizedFileURL` (l.8-9) where relative uses `(root as NSString).standardizingPath` and `(absolute as NSString).standardizingPath` (l.23, l.25). The absolute test differs too: normalize lets URL(fileURLWithPath:relativeTo:) decide, relative tests `path.hasPrefix(\"/\")` (l.24). When path equals root, normalize returns the standardized absolute root (it lacks the `base.path + \"/\"` prefix, so nothing is stripped, l.10-12) while relative returns nil (`full.hasPrefix(prefix)` fails at l.27). normalize never returns nil: a path outside root comes back absolute. A port must keep two separate functions. Whether URL(fileURLWithPath:) itself expands a leading `~`, and whether standardizedFileURL and NSString.standardizingPath differ in `..` or `/private` handling, are Foundation behaviours this file does not establish."
+      ],
+      "unresolved_questions": [
+        "DiffFile's definition (path/oldPath semantics for renames) lives elsewhere and was not read in this bundle."
+      ]
+    }
+  ]
+}

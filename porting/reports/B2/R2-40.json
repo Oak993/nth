@@ -1,0 +1,89 @@
+{
+  "bundle_id": "R2-40",
+  "reader": "R2-40-reader",
+  "files": [
+    {
+      "path": "DroppyCode/UI/Theme/AppTheme.swift",
+      "sha256": "25a77ff062f630c2e7a877dcfbd8ba138fdf6171f219998bd417544008db52b4",
+      "lines_total": 248,
+      "ranges_read": [
+        [
+          1,
+          248
+        ]
+      ],
+      "purpose": "Defines the full catalogue of 26 app themes (enum AppTheme) with their display names, detail strings (shown as the Settings Theme row detail for the selected theme) and a private hex palette (fixed color scheme, accent, glass surface tint, success/warning/danger hues), and turns a theme into a ThemeSpec of SwiftUI Colors plus a circular picker swatch view. It also owns ThemeManager, the process-wide static mirror of AppSettings.theme that caches the current ThemeSpec once per theme change and posts the Notification \"ThemeManager.didChange\" so layer-backed views (spinner cells) can recolor, and a Color(hex:) initializer that parses 6-digit sRGB hex strings with or without a leading '#'.",
+      "key_symbols": [
+        "enum AppTheme: String, Codable, CaseIterable, Identifiable, Sendable (lines 14-200)",
+        "cases in declaration (CaseIterable) order: system, light, dark, catppuccinMocha, catppuccinLatte, dracula, tokyoNight, nord, gruvbox, gruvboxLight, oneDark, everforest, kanagawa, rosePine, solarizedDark, solarizedLight, githubDark, githubLight, ayu, nightOwl, monokai, claude, claudeLight, codex, cursor, matrix (26 cases; raw values equal the case names)",
+        "var id: String { rawValue }",
+        "var displayName: String",
+        "var detail: String (doc comment line 75 says \"Short picker subtitle, e.g. \\\"Dark · Mauve\\\"\", but in B2 it is shown only as the Settings Theme row detail for the selected theme: SettingsView.swift:424 `ChromeRow(title: \"Theme\", detail: settings.theme.detail)`; the popover items at SettingsView.swift:1228 show only displayName and the swatch, no subtitle)",
+        "private var palette: (scheme: ColorScheme?, accent: String?, surface: String, success: String?, warning: String?, danger: String?)",
+        "var scheme: ColorScheme? { palette.scheme } (also drives picker sectioning: SettingsView.swift:1188-1189 `AppTheme.allCases.filter { $0.scheme == .dark }` / `.light`)",
+        "@ViewBuilder var swatch: some View",
+        "var spec: ThemeSpec",
+        "struct ThemeSpec { var scheme: ColorScheme?; var accent: Color?; var surface: Color; var success: Color; var warning: Color; var danger: Color }",
+        "enum ThemeManager",
+        "static let didChange = Notification.Name(\"ThemeManager.didChange\")",
+        "nonisolated(unsafe) static var current: AppTheme = .system { didSet { spec = current.spec; NotificationCenter.default.post(name: didChange, object: nil) } }",
+        "nonisolated(unsafe) private(set) static var spec: ThemeSpec = AppTheme.system.spec",
+        "extension Color { init(hex: String) }"
+      ],
+      "calls_into": [
+        "String.trimmed (defined DroppyCode/Core/Support/Text.swift:132 as trimmingCharacters(in: .whitespacesAndNewlines)), used by Color(hex:) at line 239",
+        "Foundation Scanner(string:).scanHexInt64(&UInt64)",
+        "Foundation NotificationCenter.default.post(name:object:)",
+        "AppKit NSColor(name:dynamicProvider:), NSAppearance.bestMatch(from: [.darkAqua, .aqua]), NSColor(srgbRed:green:blue:alpha:)",
+        "SwiftUI Color(nsColor:), Color(.sRGB, red:green:blue:opacity:), Color.accentColor, Color.primary, .green/.orange/.red, Circle, LinearGradient(stops:startPoint:endPoint:), strokeBorder, overlay",
+        "Observers of ThemeManager.didChange found outside this file (grep): DroppyCode/App/Views/Chat/HydraButton.swift, DroppyCode/UI/Common/WorkingIndicators.swift",
+        "Consumers of ThemeManager.spec (how nil accent and surface take effect): Chrome.swift:80 `private static let systemAccent = Color(nsColor: .controlAccentColor)`; Chrome.swift:85 `static var accent: Color { ThemeManager.spec.accent ?? systemAccent }`; Chrome.swift:87 `static var accentNSColor: NSColor { ThemeManager.spec.accent.map { NSColor($0) } ?? .controlAccentColor }`; Chrome.swift:91-93 `success`/`warning`/`danger` return `ThemeManager.spec.success/.warning/.danger`; Chrome.swift:96 `static var glassTint: Color { ThemeManager.spec.surface }`. The spec accent is also applied as `.tint(ThemeManager.spec.accent)` at Popovers.swift:11 and PromptEditor.swift:210 (nil means no tint override).",
+        "ThemeManager.didChange observers: HydraButton.swift:479 and WorkingIndicators.swift:185 (`addObserver(self, selector: #selector(themeDidChange), name: ThemeManager.didChange, object: nil)`).",
+        "Case count reaches UI text: TourPages.swift:18-24 `themeCount` spells `AppTheme.allCases.count` with NumberFormatter `.spellOut`, locale `en_US`, first letter uppercased (\"Twenty-six\"), used at TourPages.swift:12, interpolated before \" themes, from Catppuccin to Kanagawa, in real Liquid Glass. ...\"."
+      ],
+      "state_owned": [
+        "ThemeManager.current: AppTheme, static, default .system, nonisolated(unsafe); doc comment says it is mirrored from AppSettings.theme, which is the source of truth",
+        "ThemeManager.spec: ThemeSpec, static, private(set), nonisolated(unsafe), initialised to AppTheme.system.spec and rebuilt in current's didSet (cache so hex parsing is not repeated on every Chrome.accent read)"
+      ],
+      "side_effects": [
+        "Setting ThemeManager.current rebuilds ThemeManager.spec and posts Notification ThemeManager.didChange (object nil) on NotificationCenter.default, synchronously on the setter's thread. The didSet fires on every assignment, including assigning the same theme again (Swift didSet has no equality check).",
+        "No file I/O, no persistence, no network."
+      ],
+      "platform_assumptions": [
+        "AppKit NSColor(name: nil, dynamicProvider:) with NSAppearance bestMatch(from: [.darkAqua, .aqua]) == .darkAqua for the .system surface: a Windows port needs a color that re-resolves when the OS light/dark setting changes (e.g. prefers-color-scheme / nativeTheme.shouldUseDarkColors)",
+        "SwiftUI ColorScheme? (.light/.dark/nil = follow system), applied by callers as the preferred color scheme",
+        "Color.accentColor: the macOS system control accent; used in the swatch when a theme's accent is nil (system, light, dark), and ThemeSpec.accent stays nil so callers keep the system accent. Windows needs the Windows accent color (e.g. systemPreferences.getAccentColor) or a fixed fallback",
+        "System semantic colors .green, .orange, .red used as status fallbacks when palette entries are nil; the port needs the macOS systemGreen/systemOrange/systemRed equivalents per appearance",
+        "Color.primary.opacity(0.22) for the swatch rim, which is appearance dependent",
+        "Liquid Glass: the header comment states themes tint glass and never paint opaque surfaces; surface is a tint for macOS glass/material backgrounds, which Windows must approximate (Mica/acrylic or translucent CSS)",
+        "Foundation Scanner.scanHexInt64 and NotificationCenter; Swift nonisolated(unsafe) statics (unsynchronised globals read on the main thread)",
+        "Detail string for .system is \"Follows your Mac\" (macOS-specific wording)"
+      ],
+      "persisted_fields": [
+        "AppTheme is Codable with String raw values equal to case names (e.g. \"system\", \"catppuccinMocha\", \"gruvboxLight\", \"claudeLight\", \"matrix\"). This file writes nothing; persistence is in AppSettings: UserDefaults key \"appTheme\" (AppSettings.swift:135 `static let appTheme = \"appTheme\"`), written in AppSettings.theme didSet as `defaults.set(theme.rawValue, forKey: Key.appTheme)` followed by `ThemeManager.current = theme` (AppSettings.swift:286-290).",
+        "Load (AppSettings.init, AppSettings.swift:724-728): `AppTheme(rawValue: defaults.string(forKey: Key.appTheme) ?? \"\") ?? AppTheme(rawValue: defaults.string(forKey: Key.appearance) ?? \"\") ?? .system`, so an unknown or missing \"appTheme\" value falls back to the legacy \"appearance\" key (AppSettings.swift:137, old System/Light/Dark values \"system\"/\"light\"/\"dark\" map onto the same cases), then to .system. Then `theme = initialTheme` (inside init, so AppSettings.theme didSet does not run) and an explicit `ThemeManager.current = initialTheme`, which runs ThemeManager.current didSet: spec is rebuilt and ThemeManager.didChange is posted once at launch. ThemeManager.current defaults to .system before that."
+      ],
+      "ui_elements": [
+        "displayName strings verbatim: System, Light, Dark, Catppuccin Mocha, Catppuccin Latte, Dracula, Tokyo Night, Nord, Gruvbox, Gruvbox Light, One Dark, Everforest, Kanagawa, Rosé Pine, Solarized Dark, Solarized Light, GitHub Dark, GitHub Light, Ayu, Night Owl, Monokai, Claude, Claude Light, Codex, Cursor, Matrix",
+        "detail strings verbatim (separator is ' · ' with U+00B7 middle dot): system \"Follows your Mac\"; light \"Light · System accent\"; dark \"Dark · System accent\"; catppuccinMocha \"Dark · Mauve\"; catppuccinLatte \"Light · Mauve\"; dracula \"Dark · Purple\"; tokyoNight \"Dark · Blue\"; nord \"Dark · Frost\"; gruvbox \"Dark · Orange\"; gruvboxLight \"Light · Rust\"; oneDark \"Dark · Blue\"; everforest \"Dark · Green\"; kanagawa \"Dark · Wave blue\"; rosePine \"Dark · Rose\"; solarizedDark \"Dark · Blue\"; solarizedLight \"Light · Blue\"; githubDark \"Dark · Blue\"; githubLight \"Light · Blue\"; ayu \"Dark · Amber\"; nightOwl \"Dark · Blue\"; monokai \"Dark · Pink\"; claude \"Dark · Terracotta\"; claudeLight \"Light · Terracotta\"; codex \"Dark · Magenta\"; cursor \"Dark · Frost\"; matrix \"Dark · Green\"",
+        "Palette table (scheme, accent, surface, success, warning, danger): system (nil, nil, 1E1E20, nil, nil, nil); light (.light, nil, FFFFFF, nil, nil, nil); dark (.dark, nil, 1E1E20, nil, nil, nil); catppuccinMocha (.dark, CBA6F7, 1E1E2E, A6E3A1, F9E2AF, F38BA8); catppuccinLatte (.light, 8839EF, EFF1F5, 40A02B, DF8E1D, D20F39); dracula (.dark, BD93F9, 282A36, 50FA7B, FFB86C, FF5555); tokyoNight (.dark, 7AA2F7, 1A1B26, 9ECE6A, E0AF68, F7768E); nord (.dark, 88C0D0, 2E3440, A3BE8C, EBCB8B, BF616A); gruvbox (.dark, FE8019, 282828, B8BB26, FABD2E, FB4934); gruvboxLight (.light, AF3A03, FBF1C7, 79740E, B57614, 9D0006); oneDark (.dark, 61AFEF, 282C34, 98C379, E5C07B, E06C75); everforest (.dark, A7C080, 2D353B, A7C080, DBBC7F, E67E80); kanagawa (.dark, 7E9CD8, 1F1F28, 98BB6C, D7A657, E82424); rosePine (.dark, EB6F92, 191724, 9CCFD8, F6C177, EB6F92); solarizedDark (.dark, 268BD2, 002B36, 859900, B58900, DC322F); solarizedLight (.light, 268BD2, FDF6E3, 859900, B58900, DC322F); githubDark (.dark, 4493F8, 0D1117, 3FB950, D29922, F85149); githubLight (.light, 0969DA, FFFFFF, 1A7F37, 9A6700, CF222E); ayu (.dark, E6B450, 0F1419, AAD94C, FFB454, F58572); nightOwl (.dark, 82AAFF, 011627, C5E478, ECC48D, EF5350); monokai (.dark, F92672, 272822, A6E22E, FD971F, F92672); claude (.dark, C15F3C, 1A1816, 51A556, C9A227, D97757); claudeLight (.light, C15F3C, FAF9F5, 2E7D32, 9A6700, B3261E); codex (.dark, D946EF, 101014, 3FB950, D29922, F85149); cursor (.dark, 88C0D0, 181818, 3FA266, F1B467, E34671); matrix (.dark, 00E676, 000000, 00E676, FFD600, FF5252)",
+        "Swatch (picker badge): a Circle with overlay rim Circle().strokeBorder(Color.primary.opacity(0.22), lineWidth: 0.5). For .system: LinearGradient hard split with stops FFFFFF at 0 and 0.5, then 1E1E20 at 0.5 and 1, startPoint .leading to endPoint .trailing (left half white, right half dark in left-to-right layout; the source uses the layout-relative points .leading/.trailing, not .left/.right; B2 ships no .lproj or .xcstrings localizations and no Swift file sets layoutDirection, so the shipped layout is left-to-right). Other themes: LinearGradient stops surface at 0, surface at 0.42, accent at 1, startPoint .topLeading to endPoint .bottomTrailing; accent is Color(hex: palette.accent) or Color.accentColor when nil (light, dark). No size is set here; callers frame it: the Settings theme button uses `.frame(width: 14, height: 14)` beside `Text(verbatim: selection.displayName)` at `.font(.system(size: 12.5, weight: .medium))` (SettingsView.swift:1196-1199); popover items pass `leading: AnyView(theme.swatch)` (SettingsView.swift:1228) and PopoverItem frames a leading view at `.frame(width: 16, height: 16)` (Popovers.swift:282-284).",
+        "System surface dynamic color: dark appearance sRGB (0x1E/255, 0x1E/255, 0x20/255, alpha 1.0); light appearance sRGB (1.0, 1.0, 1.0, alpha 1.0)",
+        "No animations in this file.",
+        "Theme picker order (SettingsView.swift:1188-1189, 1217-1221): `item(.system)`, `PopoverSectionHeader(\"Dark\")`, `ForEach(Self.dark)`, `PopoverSectionHeader(\"Light\")`, `ForEach(Self.light)`, where dark/light are `AppTheme.allCases.filter { $0.scheme == .dark }` / `{ $0.scheme == .light }`. With the scheme values of lines 114-139 and declaration order, Dark (19): dark, catppuccinMocha, dracula, tokyoNight, nord, gruvbox, oneDark, everforest, kanagawa, rosePine, solarizedDark, githubDark, ayu, nightOwl, monokai, claude, codex, cursor, matrix. Light (6): light, catppuccinLatte, gruvboxLight, solarizedLight, githubLight, claudeLight. .system (scheme nil) appears only as the first item. Case order plus scheme therefore fix the menu order; do not sort or regroup the catalogue."
+      ],
+      "feature_notes": [
+        "Header doc lists the themes as Catppuccin, Dracula, Tokyo Night, Nord, Gruvbox, One Dark, Everforest, Kanagawa, Rosé Pine, Solarized, GitHub, Ayu, Night Owl, Monokai, Claude, Codex, Cursor, Matrix, and states that a theme tints the glass and recolors the accent and status hues and never paints opaque surfaces.",
+        "spec: for .system the surface is the dynamic NSColor (1E1E20 dark / FFFFFF light); for every other theme surface is Color(hex: palette.surface), so .light is fixed FFFFFF and .dark fixed 1E1E20. accent maps through Color(hex:) or stays nil (nil keeps the system control accent). success/warning/danger fall back to .green/.orange/.red when nil (only system, light and dark have nil status hues).",
+        "Palette coincidences to preserve exactly: everforest accent and success both A7C080; rosePine accent and danger both EB6F92; monokai accent and danger both F92672; matrix accent and success both 00E676; nord and cursor share accent 88C0D0; solarizedDark and solarizedLight differ only in scheme and surface; githubDark and codex share success/warning/danger 3FB950/D29922/F85149; claude and claudeLight share accent C15F3C; githubLight and claudeLight share warning 9A6700.",
+        "ThemeManager.didChange doc: posted for layer-backed views whose colours are set once rather than resolved on every draw (the spinners' cells). ThemeManager.spec doc: Chrome.accent and friends are read in hundreds of view bodies per frame and building a spec parses hex colors, so the parse is cached per theme change.",
+        "Color(hex:): trims whitespace/newlines via .trimmed, drops one leading '#', scans with Scanner.scanHexInt64 into a UInt64 starting at 0; red = (value >> 16) & 0xFF, green = (value >> 8) & 0xFF, blue = value & 0xFF, each divided by 255, opacity 1, color space .sRGB. Error path: the Bool result of scanHexInt64 is ignored and value starts at 0 (line 241 `var value: UInt64 = 0`). Foundation scanHexInt64 scans hex digits up to the first non-hex character and keeps that prefix, so only a string whose first character is not a hex digit (or an empty string) yields 0 (black); \"12GG34\" gives 0x12 (red 0, green 0, blue 0x12). scanHexInt64 also accepts an optional \"0x\"/\"0X\" prefix, and on overflow (more than 16 hex digits) stores UInt64.max, giving white (FFFFFF). A port must reproduce this prefix parse; no shipped palette string exercises it (all are 6-digit literals); an 8-digit string uses only the low 24 bits (last six hex digits); 3-digit forms are not expanded ('FFF' gives red 0, green 0x0F, blue 0xFF).",
+        "B1->B2: exactly one line changed, in Color(hex:) at line 239: `var text = hex.trimmingCharacters(in: .whitespacesAndNewlines)` became `var text = hex.trimmed`. String.trimmed (Core/Support/Text.swift:132) is `trimmingCharacters(in: .whitespacesAndNewlines)`, so behaviour is identical; no theme, palette, string, swatch or ThemeManager change between 1.6.0 and 1.6.2."
+      ],
+      "unresolved_questions": [
+        "How ThemeSpec.surface (Chrome.glassTint) is blended into the glass (opacity/material) is decided by Chrome glass modifiers outside this file; not verified here.",
+        "Whether SwiftUI mirrors a LinearGradient with .leading/.trailing unit points under a right-to-left layout direction is framework behaviour not established by the source; moot for the shipped left-to-right, English-only build."
+      ]
+    }
+  ]
+}
