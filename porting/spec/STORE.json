@@ -129,7 +129,7 @@
         "Creation failure swallowed by try?. Wallpaper.swift:130 re-creates the directory before copying, so the swallowed failure is retried there."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "%LOCALAPPDATA%\\Marrow Code\\wallpaper (OD-0008 C7), created once at first access. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
+      "windows_path": "%LOCALAPPDATA%\\Marrow Code\\wallpaper (OD-0008 C7), created once at first access. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write. OD-0014 keeps upstream's default: no wallpaper file is installed until the user picks one (Wallpaper.swift:88-93 uses the stored name only when that file exists), so the directory starts empty, nothing ships in it, and the window stays clear over the desktop.",
       "verification_method": "unit; the install flow itself is verified in the chrome/theme area",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -151,17 +151,17 @@
       "id": "PR-STORE-006",
       "preconditions": "A login home directory exists.",
       "action": "First access to Storage.worktreesDirectory, or a head being given its own checkout.",
-      "expected_result": "The directory is <home>/.droppy-code/worktrees (<home>/.droppy-code-dev/worktrees for the development bundle), created with intermediates. Note the single appendingPathComponent call is handed a value containing a slash, so the two levels are created in one call.",
+      "expected_result": "The directory is <home>/.droppy-code/worktrees (<home>/.droppy-code-dev/worktrees for the development bundle), created with intermediates. Note the single appendingPathComponent call is handed a value containing a slash, so the two levels are created in one call. Deviation, OD-0012 F1: the folder name is shown in Settings (the Worktrees row prints this path) and handed to git, so on Windows the state directory is %USERPROFILE%\\.marrow (%USERPROFILE%\\.marrow-dev for a development build) and worktrees live in %USERPROFILE%\\.marrow\\worktrees; the single-call creation with intermediates is unchanged.",
       "side_effects": [
-        "Creates <home>/.droppy-code/worktrees"
+        "Creates <home>/.droppy-code/worktrees upstream; %USERPROFILE%\\.marrow\\worktrees in the port (OD-0012 F1)"
       ],
-      "persistence": "Directory <home>/.droppy-code/worktrees; individual worktree folder names are owned by the Hydra area.",
+      "persistence": "Directory <home>/.droppy-code/worktrees upstream; %USERPROFILE%\\.marrow\\worktrees in the port (OD-0012 F1); individual worktree folder names are owned by the Hydra area.",
       "failure_cases": [
         "Creation failure swallowed by try?."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "%USERPROFILE%\\.droppy-code\\worktrees. The two-root split (app data for the library, home state directory for worktrees and patches) must be kept, and the dot-folder name kept byte-identical, because these paths are handed to git and appear in user-visible strings (port_impacts.md entry 113). Windows accepts a leading-dot folder name. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
-      "verification_method": "restart test plus a capture comparison of the Settings row that prints this path",
+      "windows_path": "%USERPROFILE%\\.marrow\\worktrees (OD-0012 F1). The two-root split (app data for the library, home state directory for worktrees and patches) must be kept, because these paths are handed to git and appear in user-visible strings (port_impacts.md entry 113); the dot-folder name is the F1 product name, not upstream's .droppy-code. Windows accepts a leading-dot folder name. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
+      "verification_method": "restart test asserting %USERPROFILE%\\.marrow\\worktrees is created and no %USERPROFILE%\\.droppy-code folder is, plus a check that the Settings Worktrees row prints that path",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -172,22 +172,27 @@
         "DroppyCode/Services/Store/Storage.swift:43-48 - stateDirectory builds URL(fileURLWithPath: LoginEnvironment.homeDirectory).appendingPathComponent(AppInfo.stateDirectoryName + \"/\" + name, isDirectory: true) and creates it with intermediates",
         "DroppyCode/Core/Support/Shell.swift:353-355 - LoginEnvironment.homeDirectory = FileManager.default.homeDirectoryForCurrentUser.path",
         "DroppyCode/Core/Support/Text.swift:6 - AppInfo.stateDirectoryName = isDevelopment ? \".droppy-code-dev\" : \".droppy-code\""
-      ]
+      ],
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Core/Support/Text.swift:6 - AppInfo.stateDirectoryName = isDevelopment ? \".droppy-code-dev\" : \".droppy-code\"; Storage.swift:38 and :43-48 put worktrees in <home>/.droppy-code/worktrees, the path the Settings Worktrees row prints (SettingsView.swift:861)",
+        "port": "%USERPROFILE%\\.marrow\\worktrees (%USERPROFILE%\\.marrow-dev\\worktrees for a development build): every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\"; droppy-code.json and DROPPY_CODE_PROJECT_ROOT are the only exceptions"
+      }
     },
     {
       "id": "PR-STORE-007",
       "preconditions": "A login home directory exists.",
       "action": "First access to Storage.patchesDirectory.",
-      "expected_result": "<home>/.droppy-code/patches is created with intermediates and cached.",
+      "expected_result": "<home>/.droppy-code/patches is created with intermediates and cached. Deviation, OD-0012 F1: on Windows the folder is %USERPROFILE%\\.marrow\\patches (%USERPROFILE%\\.marrow-dev\\patches for a development build).",
       "side_effects": [
-        "Creates <home>/.droppy-code/patches"
+        "Creates <home>/.droppy-code/patches upstream; %USERPROFILE%\\.marrow\\patches in the port (OD-0012 F1)"
       ],
-      "persistence": "Directory <home>/.droppy-code/patches",
+      "persistence": "Directory <home>/.droppy-code/patches upstream; %USERPROFILE%\\.marrow\\patches in the port (OD-0012 F1)",
       "failure_cases": [
         "Creation failure swallowed by try?."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "%USERPROFILE%\\.droppy-code\\patches Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
+      "windows_path": "%USERPROFILE%\\.marrow\\patches (OD-0012 F1). Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
       "verification_method": "unit",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -198,22 +203,27 @@
         "DroppyCode/Services/Store/Storage.swift:40-41 - doc comment \"Where a head’s work is kept as a patch when it would not land in the checkout.\" and static let patchesDirectory: URL = stateDirectory(\"patches\")",
         "DroppyCode/Services/Store/Storage.swift:43-48 - stateDirectory(_:)",
         "DroppyCode/App/AppModel+Hydra.swift:878 and :1001 - patch file names \"<slug>-<first 8 of lowercased head uuid>.patch\" and \"<slug>-<first 8 of lowercased uuid>-unlanded.patch\""
-      ]
+      ],
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:41 and :43-48 - patchesDirectory = stateDirectory(\"patches\") under <home>/.droppy-code (Text.swift:6)",
+        "port": "%USERPROFILE%\\.marrow\\patches (%USERPROFILE%\\.marrow-dev\\patches for a development build): every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\"; droppy-code.json and DROPPY_CODE_PROJECT_ROOT are the only exceptions"
+      }
     },
     {
       "id": "PR-STORE-008",
       "preconditions": "None.",
       "action": "Any resolution of Storage.worktreesDirectory or Storage.patchesDirectory.",
-      "expected_result": "A build whose bundle identifier is exactly \"iordv.droppycode.dev\" uses \".droppy-code-dev\"; every other build uses \".droppy-code\". Both values are literal and include the leading dot.",
+      "expected_result": "A build whose bundle identifier is exactly \"iordv.droppycode.dev\" uses \".droppy-code-dev\"; every other build uses \".droppy-code\". Both values are literal and include the leading dot. Deviation, OD-0012 F1: the port's two names are \".marrow\" and \".marrow-dev\", literal and with the leading dot, chosen the same way (development build or not).",
       "side_effects": [],
       "persistence": "Directory name component only.",
       "failure_cases": [
         "A nil bundle identifier is not equal to the development identifier, so the shipping name is used."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The same two literal folder names under %USERPROFILE%, selected by the packaged build channel rather than by a bundle identifier. The identifier string \"iordv.droppycode.dev\" has no Windows equivalent and is replaced by the port build flag that marks a development build; the two resulting folder names must not change.",
+      "windows_path": "Two literal folder names under %USERPROFILE%, selected by the packaged build channel rather than by a bundle identifier. The identifier string \"iordv.droppycode.dev\" has no Windows equivalent and is replaced by the port build flag that marks a development build; the two resulting folder names are \".marrow\" and \".marrow-dev\" (OD-0012 F1) and must not change.",
       "verification_method": "unit on both branches",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -222,22 +232,28 @@
         "DroppyCode/Core/Support/Text.swift:5 - AppInfo.isDevelopment = Bundle.main.bundleIdentifier == \"iordv.droppycode.dev\"",
         "DroppyCode/Core/Support/Text.swift:6 - AppInfo.stateDirectoryName = isDevelopment ? \".droppy-code-dev\" : \".droppy-code\""
       ],
-      "implemented_by_task": "T-M2-075"
+      "implemented_by_task": "T-M2-075",
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Core/Support/Text.swift:6 - AppInfo.stateDirectoryName = isDevelopment ? \".droppy-code-dev\" : \".droppy-code\"",
+        "port": "\".marrow\" for a shipping build and \".marrow-dev\" for a development build: every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\"; droppy-code.json and DROPPY_CODE_PROJECT_ROOT are the only exceptions"
+      },
+      "rework": true
     },
     {
       "id": "PR-STORE-009",
       "preconditions": "None.",
       "action": "Any read of AppInfo.name, AppInfo.version or AppInfo.build.",
-      "expected_result": "Each value is read once from the bundle Info dictionary and cached in a static. When the key is missing or not a String the literal fallback is used: \"Droppy Code\", \"1.0.0\", \"1\".",
+      "expected_result": "Each value is read once from the bundle Info dictionary and cached in a static. When the key is missing or not a String the literal fallback is used: \"Droppy Code\", \"1.0.0\", \"1\". Deviation, OD-0012 F1: the port's name fallback is the literal \"Marrow\"; \"1.0.0\" and \"1\" are unchanged.",
       "side_effects": [],
       "persistence": "Upstream, AppInfo.name is the store root folder name, so this fallback also decides the on-disk path. In the port it does not: the store folder is %LOCALAPPDATA%\\Marrow Code by OD-0008 C7.",
       "failure_cases": [
         "Missing or wrongly typed Info keys fall back to the three literals above rather than trapping."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Read from the packaged application metadata with the same three literal fallbacks. This record's own behaviour is parity. On Windows the store folder does not follow AppInfo.name: OD-0008 C7 fixes it as %LOCALAPPDATA%\\Marrow Code, a deviation recorded on PR-STORE-001, so the display name and its fallback no longer move the user's data.",
+      "windows_path": "Read from the packaged application metadata with the literal fallbacks \"Marrow\" (OD-0012 F1; upstream \"Droppy Code\"), \"1.0.0\" and \"1\". Apart from the name fallback this record's behaviour is parity. On Windows the store folder does not follow AppInfo.name: OD-0008 C7 fixes it as %LOCALAPPDATA%\\Marrow Code, a deviation recorded on PR-STORE-001, so the display name and its fallback no longer move the user's data.",
       "verification_method": "unit on both the present and absent branches",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -247,7 +263,13 @@
         "DroppyCode/Core/Support/Text.swift:7 - version = CFBundleShortVersionString as? String ?? \"1.0.0\"",
         "DroppyCode/Core/Support/Text.swift:8 - build = CFBundleVersion as? String ?? \"1\""
       ],
-      "implemented_by_task": "T-M2-075"
+      "implemented_by_task": "T-M2-075",
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Core/Support/Text.swift:4 - name = CFBundleDisplayName as? String ?? \"Droppy Code\"; AppInfo.name is shown as the main window title (WindowManager.swift:63, :77) and as the menu command that shows the main window (AppCommands.swift:22)",
+        "port": "The name fallback is \"Marrow\": every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\"; droppy-code.json and DROPPY_CODE_PROJECT_ROOT are the only exceptions. The store folder stays %LOCALAPPDATA%\\Marrow Code under OD-0008 C7."
+      },
+      "rework": true
     },
     {
       "id": "PR-STORE-010",
@@ -328,9 +350,9 @@
       "id": "PR-STORE-013",
       "preconditions": "library.json exists but cannot be read or is not decodable as a Library (truncated write, not valid JSON, or a non-object at the top level).",
       "action": "App launch, and every write of library.json that follows in the same run: the debounced save, the immediate saves on settle, reopen and thread delete, and the quit-time save.",
-      "expected_result": "Deviation, OD-0008 A10 (BLK-0010 FIX): the failed load is not swallowed. It is surfaced to the user, and library.json is not overwritten after the failed load: no writer of library.json writes over it in that run. That covers the 400 ms debounced save after a mutation (AppModel.swift:1289-1297), the immediate saveLibrary() calls on settle (AppModel.swift:805-806), reopen (:825) and thread delete (:956), and the synchronous quit-time save (:1317). The thread JSON files under threads/ are not touched by the failed load. Consequence of the ruling: every project or thread change made in that run is never written to library.json, while thread histories are still written to threads/ as usual, so those library changes are gone at the next launch. Upstream instead starts with no projects and no threads, reports nothing, and the first save of any kind writes the empty library over library.json. How and where the failure is shown and its wording are given by neither the source nor the ruling; they are UNRESOLVED (UNK-0020) and must come from the owner before this ships.",
+      "expected_result": "Deviation, OD-0008 A10 (BLK-0010 FIX): the failed load is not swallowed. It is surfaced to the user, and library.json is not overwritten after the failed load: no writer of library.json writes over it in that run. That covers the 400 ms debounced save after a mutation (AppModel.swift:1289-1297), the immediate saveLibrary() calls on settle (AppModel.swift:805-806), reopen (:825) and thread delete (:956), and the synchronous quit-time save (:1317). The thread JSON files under threads/ are not touched by the failed load. Consequence of the ruling: every project or thread change made in that run is never written to library.json, while thread histories are still written to threads/ as usual, so those library changes are gone at the next launch. Upstream instead starts with no projects and no threads, reports nothing, and the first save of any kind writes the empty library over library.json. Place and wording, OD-0012 E4: the failure is shown in the main window at launch with exactly this text: \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\"",
       "side_effects": [
-        "The load failure is surfaced to the user",
+        "The load failure is shown in the main window at launch with the OD-0012 E4 text",
         "library.json keeps its bytes on disk; no write in that run replaces it, so project and thread changes made in that run are not persisted to it"
       ],
       "persistence": "library.json is left exactly as it was found on disk. Thread files under threads/ are written as usual.",
@@ -339,8 +361,8 @@
         "A library.json that does not exist is not a failed load: PR-STORE-012 applies, the app starts empty and ordinary saves create the file."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Storage.LoadLibrary tells a missing file (empty library, ordinary saves, PR-STORE-012) apart from one that exists but cannot be read or decoded. The latter reports the failure to the user and stops every write of library.json for that run: the debounced save, the immediate saves from settle, reopen and delete, and the quit-time synchronous save. Thread file saves are not affected. Named deviation. The surface and wording of the report wait on UNK-0020.",
-      "verification_method": "contract fixture: launch against a deliberately corrupted library.json (truncated, not JSON, a top-level array) and assert the failure is surfaced; then create a thread, wait past the 400 ms debounce, settle it, reopen it, delete it, and quit, asserting after each step that library.json is byte-identical to the corrupted input, and at the end that every threads/ file present before launch is unchanged",
+      "windows_path": "Storage.LoadLibrary tells a missing file (empty library, ordinary saves, PR-STORE-012) apart from one that exists but cannot be read or decoded. The latter reports the failure to the user and stops every write of library.json for that run: the debounced save, the immediate saves from settle, reopen and delete, and the quit-time synchronous save. Thread file saves are not affected. Named deviation. The report is shown in the main window at launch with the OD-0012 E4 text, byte for byte: \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\"",
+      "verification_method": "contract fixture: launch against a deliberately corrupted library.json (truncated, not JSON, a top-level array) and assert the main window shows, at launch, exactly \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\"; then create a thread, wait past the 400 ms debounce, settle it, reopen it, delete it, and quit, asserting after each step that library.json is byte-identical to the corrupted input, and at the end that every threads/ file present before launch is unchanged",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "depends_on_unknown": null,
@@ -356,15 +378,16 @@
         "DroppyCode/App/AppModel.swift:1317 - saveBeforeQuit: DiskWriter.shared.writeSynchronously(library, to: Storage.libraryURL)",
         "DroppyCode/Core/Models/Library.swift:273-277 - per-element leniency means only a top-level structural failure reaches this path",
         "porting/blocked_requirements.json BLK-0010 owner_ruling - \"FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. Named deviation.\"",
-        "porting/decision_batch_20260922.md A10 (BLK-0010), accepted by OD-0008 - \"Do not overwrite after a failed load; show the error\""
+        "porting/decision_batch_20260922.md A10 (BLK-0010), accepted by OD-0008 - \"Do not overwrite after a failed load; show the error\"",
+        "porting/decision_batch_20260922b.md E4 (A10), accepted by OD-0012 - Shown in the main window at launch: \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
       ],
       "blocked_by": null,
       "deviation": {
-        "decision": "OD-0008 A10",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:60-63 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next write of library.json puts the empty library over it: saveLibrary (AppModel.swift:1299-1306), reached through the 400 ms debounce (:1289-1297) or called directly on settle (:806), reopen (:825) and thread delete (:956), or the synchronous write in saveBeforeQuit (:1317)",
-        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save."
+        "decision": "OD-0008 A10; OD-0012 E4",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:60-63 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next write of library.json puts the empty library over it: saveLibrary (AppModel.swift:1299-1306), reached through the 400 ms debounce (:1289-1297) or called directly on settle (:806), reopen (:825) and thread delete (:956), or the synchronous write in saveBeforeQuit (:1317). Upstream has no text for this error, because it never shows one.",
+        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
       },
-      "resolved_unknown": "UNK-0020 resolved by OD-0008 A10 (BLK-0010): an undecodable library.json is surfaced and never overwritten."
+      "resolved_unknown": "UNK-0020 resolved by OD-0008 A10 (BLK-0010): an undecodable library.json is surfaced and never overwritten. Its place and wording are given by OD-0012 E4."
     },
     {
       "id": "PR-STORE-014",
@@ -461,22 +484,27 @@
       "id": "PR-STORE-017",
       "preconditions": "None.",
       "action": "Any encode through DiskWriter.",
-      "expected_result": "Dates are written as ISO 8601 strings. Object keys are emitted in sorted order, which keeps successive saves byte-stable. Pretty printing is not enabled, so the file is one line. Forward slashes are escaped as \\/ by the Foundation encoder, which the orphan sweep depends on.",
+      "expected_result": "Dates are written as ISO 8601 strings. Object keys are emitted in Foundation's .sortedKeys order (Coding.swift:23), which keeps successive saves byte-stable; that order is Foundation's own, and an ordinal code-unit sort is not evidence of it. Pretty printing is not enabled, so the file is one line. Forward slashes are escaped as \\/ by the Foundation encoder, whose default this is. The attachment sweep does not depend on the escaping: its pattern makes the backslash optional (Storage.swift:129), so it matches the escaped and the unescaped form alike. The encoder is Foundation's JSONEncoder on macOS 26.0 or later, the deployment target (project.yml:5); its key collation, its escaping of non-ASCII and control characters and its formatting of Double values are Foundation internals that no pinned file states. The verifier's reading of Foundation (keys compared with [.numeric, .caseInsensitive, .forcedOrdering]; every non-C0 scalar written as raw UTF-8; other C0 controls as \\u00XX with lowercase hex; Doubles from Double.description, such as 1e+16 and 1e-05) was not run on macOS and is UNVERIFIED (UNK-0003); the byte-compare fixture settles each point before it is asserted.",
       "side_effects": [],
       "persistence": "The wire format of library.json and every thread file.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "One shared serializer configured for ISO 8601 dates, sorted keys, no pretty printing and slash escaping. Slash escaping must be kept: the attachment sweep matches on the escaped form.",
+      "windows_path": "One shared serializer configured for ISO 8601 dates, sorted keys, no pretty printing and slash escaping. Slash escaping is kept because it is the encoder's default output, not because the sweep needs it (the sweep matches both forms, Storage.swift:129). The key comparer, the non-ASCII and control-character escaping and the number format must reproduce Foundation's JSONEncoder; an ordinal key sort and a relaxed escaper are not evidence of parity, and each is pinned only by the macOS-produced fixture.",
       "verification_method": "contract fixture: byte-compare encoded output against a macOS-produced file",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null,
+      "depends_on_unknown": "UNK-0003",
       "title": "The shared storage encoder writes ISO 8601 dates and sorted keys, and does not pretty-print",
       "source_evidence": [
-        "DroppyCode/Core/Support/Coding.swift:19-26 - JSONEncoder.storage with dateEncodingStrategy = .iso8601 and outputFormatting = [.sortedKeys]"
+        "DroppyCode/Core/Support/Coding.swift:19-26 - JSONEncoder.storage with dateEncodingStrategy = .iso8601 and outputFormatting = [.sortedKeys]",
+        "DroppyCode/Services/Store/Storage.swift:128-129 - comment \"The encoder writes the path's slashes as `\\/`.\" then text.matches(of: #/attachments\\\\?\\/([0-9A-Fa-f-]{36}\\.[A-Za-z0-9]+)/#): the backslash is optional",
+        "project.yml:4-5 - deploymentTarget: macOS: \"26.0\" (the minimum macOS whose Foundation JSONEncoder writes these files)"
       ],
-      "implemented_by_task": "T-M2-059"
+      "implemented_by_task": "T-M2-059",
+      "spec_fix": "Said slash escaping is something the orphan sweep depends on and that the sweep matches the escaped form -> the sweep pattern makes the backslash optional and matches both forms (Storage.swift:129); and said only that keys are sorted while demanding a byte-compare -> the order, non-ASCII and control escaping and number format are those of Foundation's JSONEncoder behind .sortedKeys (Coding.swift:23, macOS 26 per project.yml:5), which the record now names and marks UNVERIFIED under UNK-0003",
+      "open_question": "Missing: output of the macOS 26 JSONEncoder with .sortedKeys (or the swift-foundation source of that SDK) for sibling keys that differ in case, contain digit runs and contain \"_\", for non-ASCII and C0/C1 control characters in strings, and for Double values, to pin the collation, escaping and number format this record names.",
+      "rework": true
     },
     {
       "id": "PR-STORE-018",
@@ -491,7 +519,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One shared ISO 8601 deserializer.",
       "verification_method": "unit",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -499,7 +527,8 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Coding.swift:28-33 - JSONDecoder.storage with dateDecodingStrategy = .iso8601"
       ],
-      "implemented_by_task": "T-M2-059"
+      "implemented_by_task": "T-M2-059",
+      "rework": true
     },
     {
       "id": "PR-STORE-019",
@@ -536,7 +565,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One helper with exactly these three collapse cases, used by every model decoder in this area. A port that only handles the missing-key case will turn a hand-edited file into a decode failure and lose the record.",
       "verification_method": "unit with all three shapes",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -544,7 +573,8 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Coding.swift:3-8 - func value<T: Decodable>(_ key: Key, default fallback: @autoclosure () -> T) -> T { ((try? decodeIfPresent(T.self, forKey: key)) ?? nil) ?? fallback() }"
       ],
-      "implemented_by_task": "T-M2-059"
+      "implemented_by_task": "T-M2-059",
+      "rework": true
     },
     {
       "id": "PR-STORE-021",
@@ -951,7 +981,7 @@
       "id": "PR-STORE-038",
       "preconditions": "The target directory exists.",
       "action": "The writer writes a snapshot.",
-      "expected_result": "The bytes are written through a temporary file and moved into place, so a reader never sees a half-written file. On failure the exact format string \"Droppy Code could not save %@: %@\" is logged with the file’s last path component and the localised error description. Nothing is shown in the app: no banner, no notice, no dialog.",
+      "expected_result": "The bytes are written through a temporary file and moved into place, so a reader never sees a half-written file. On failure the exact format string \"Droppy Code could not save %@: %@\" is logged with the file’s last path component and the localised error description. Nothing is shown in the app: no banner, no notice, no dialog. Deviation, OD-0012 F1: the port logs \"Marrow could not save %@: %@\" with the same two arguments.",
       "side_effects": [
         "A system log line on failure"
       ],
@@ -960,7 +990,7 @@
         "Disk full, permission denied, or a sharing violation: the log line above and nothing else. The user is not told their work did not save."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Atomic replace: write a temporary file in the same directory, flush it, then ReplaceFile or MoveFileEx with MOVEFILE_REPLACE_EXISTING. PA-0015: the replace can fail transiently while another process holds the target open, so retry with backoff and only then log. The log message text is a system-log string, not user-visible UI; keep the leading product name consistent with the shipping product identity. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
+      "windows_path": "Atomic replace: write a temporary file in the same directory, flush it, then ReplaceFile or MoveFileEx with MOVEFILE_REPLACE_EXISTING. PA-0015: the replace can fail transiently while another process holds the target open, so retry with backoff and only then log. The log message text is a system-log string, not user-visible UI; its product name is \"Marrow\" (OD-0012 F1): \"Marrow could not save <file name>: <error description>\". Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
       "verification_method": "interaction test that holds the target open during a write, plus an inspection of partially written files under a killed process",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -969,7 +999,12 @@
       "title": "A write is atomic, and a write failure is reported only to the system log",
       "source_evidence": [
         "DroppyCode/Services/Store/Storage.swift:383-387 - do { try data.write(to: url, options: .atomic) } catch { NSLog(\"Droppy Code could not save %@: %@\", url.lastPathComponent, error.localizedDescription) }"
-      ]
+      ],
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:383-387 - NSLog(\"Droppy Code could not save %@: %@\", url.lastPathComponent, error.localizedDescription)",
+        "port": "The line written to the log is \"Marrow could not save %@: %@\" with the same arguments: every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\"; droppy-code.json and DROPPY_CODE_PROJECT_ROOT are the only exceptions"
+      }
     },
     {
       "id": "PR-STORE-039",
@@ -1130,7 +1165,8 @@
         "DroppyCode/Services/Store/Storage.swift:281-284 - for id in ids.reversed() where urgent { guard !state.ready.contains(id), let index = state.queue.firstIndex(where: { $0.id == id }) else { continue }; state.queue.insert(state.queue.remove(at: index), at: 0) }",
         "DroppyCode/Services/Store/Storage.swift:289 - if urgent { state.queue.insert(request, at: 0) } else { state.queue.append(request) }",
         "DroppyCode/App/AppModel.swift:438-445 - warmDocuments calls DocumentPrefetch.shared.warm(cold) with no urgent argument, so it defaults to false"
-      ]
+      ],
+      "open_question": "Missing: a ruling on the urgent: true branch. At B2 its only caller, AppModel.swift:444 (warmDocuments), uses the default false (Storage.swift:279), so the branch never runs, but it is not an entry in porting/dead_code.md, so ED-061 does not reach it. Needed: a dead_code.md entry (the record then becomes NOT_APPLICABLE_WITH_EVIDENCE under ED-061) or a ruling that reachable but unexercised API is specified and ported."
     },
     {
       "id": "PR-STORE-046",
@@ -1304,7 +1340,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port the generational structure verbatim. An LRU substitute has a different hit rate and a different memory ceiling and would change how often threads and thumbnails are re-decoded.",
       "verification_method": "unit reproducing a known hit and eviction sequence",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1314,7 +1350,8 @@
         "DroppyCode/Core/Support/RecentCache.swift:30-32 - contains(_:) is true when the key is in either generation",
         "porting/port_impacts.md entry 117 - \"Implement the generational cache exactly; an LRU substitute changes hit rate and memory ceiling.\""
       ],
-      "implemented_by_task": "T-M2-066"
+      "implemented_by_task": "T-M2-066",
+      "rework": true
     },
     {
       "id": "PR-STORE-054",
@@ -1327,7 +1364,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The reader must have write access to the cache. A port that exposes a const read will silently lose the promotion and halve the effective capacity.",
       "verification_method": "unit",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1335,7 +1372,8 @@
       "source_evidence": [
         "DroppyCode/Core/Support/RecentCache.swift:22-28 - mutating func value(for key:) returns current[key] directly, otherwise removes the entry from previous, subtracts its cost from previousCost and re-inserts it into current at the same cost"
       ],
-      "implemented_by_task": "T-M2-066"
+      "implemented_by_task": "T-M2-066",
+      "rework": true
     },
     {
       "id": "PR-STORE-055",
@@ -1348,7 +1386,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same condition, same wholesale discard, same ordering (rollover, then write).",
       "verification_method": "unit on both arms of the condition",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": "44",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1356,7 +1394,8 @@
       "source_evidence": [
         "DroppyCode/Core/Support/RecentCache.swift:47-55 - if current.count >= limit || currentCost > costLimit - cost { previous = current; previousCost = currentCost; current = [:]; current.reserveCapacity(limit); currentCost = 0 }; current[key] = Entry(value:cost:); currentCost += cost"
       ],
-      "implemented_by_task": "T-M2-066"
+      "implemented_by_task": "T-M2-066",
+      "rework": true
     },
     {
       "id": "PR-STORE-056",
@@ -1366,20 +1405,26 @@
       "side_effects": [],
       "persistence": "none",
       "failure_cases": [
-        "A thread document larger than 16 MiB, or a thumbnail bitmap larger than 32 MiB, is never cached and also removes whatever smaller version was cached for that key."
+        "A thread document whose cost exceeds 16 MiB (DocumentPrefetch's ready cache, Storage.swift:264-270) is never cached, and inserting it also removes the earlier version cached under the same thread id.",
+        "Image bitmaps go through two caches with different limits: ThumbnailCache.thumbnails at 32 MiB (ThumbnailCache.swift:16) and ThumbnailMemory.images at 16 MiB (ThumbnailCache.swift:70). A bitmap over 16 MiB is never kept in ThumbnailMemory, and one over 32 MiB is kept in neither. Both keys include the pixel size (:25, :73), so an over-budget bitmap never displaces a smaller version of the same image: ThumbnailCache inserts a key only after a miss for it (:26, :39), and ThumbnailMemory.store (:80-82) can only replace an entry with the same path and pixel size."
       ],
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the ordering exactly: remove, clamp, then reject. It is an ordinary quirk under AM-0001 (a cache miss, no lasting harm), so it is the product.",
       "verification_method": "unit",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": "43",
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "Inserting an over-budget value evicts the existing entry for that key and stores nothing",
       "source_evidence": [
-        "DroppyCode/Core/Support/RecentCache.swift:43-46 - mutating func insert(_ value:for:cost:) { removeValue(for: key); let cost = max(0, cost); guard cost <= costLimit else { return } ... }"
+        "DroppyCode/Core/Support/RecentCache.swift:43-46 - mutating func insert(_ value:for:cost:) { removeValue(for: key); let cost = max(0, cost); guard cost <= costLimit else { return } ... }",
+        "DroppyCode/Core/Support/ThumbnailCache.swift:16 - RecentCache<String, Thumbnail>(limit: 120, costLimit: 32 * 1_024 * 1_024); :25 key \"\\(path)#\\(pixels)#\\(fillingSquare)\"; :26 and :39 lookup, then insert after the decode",
+        "DroppyCode/Core/Support/ThumbnailCache.swift:70 - RecentCache<String, CGImage>(limit: 120, costLimit: 16 * 1_024 * 1_024); :72-74 key \"\\(path)#\\(pixels)\"",
+        "DroppyCode/Services/Store/Storage.swift:264-270 - DocumentPrefetch init(limit: 12, costLimit: 16 * 1_024 * 1_024, ...) builds the ready RecentCache"
       ],
-      "implemented_by_task": "T-M2-066"
+      "implemented_by_task": "T-M2-066",
+      "spec_fix": "Said a thumbnail bitmap over 32 MiB is never cached and that an over-budget insert removes a smaller cached version of it -> there are two bitmap caches, ThumbnailCache.thumbnails at 32 MiB (ThumbnailCache.swift:16) and ThumbnailMemory.images at 16 MiB (:70), and both keys include the pixel size (:25, :73), so no smaller version of the same image shares the key; only a thread document (keyed by thread id, 16 MiB, Storage.swift:264-270) loses an earlier cached version",
+      "rework": true
     },
     {
       "id": "PR-STORE-057",
@@ -1394,7 +1439,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three clamps and the same default cost of 1.",
       "verification_method": "unit",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1404,28 +1449,33 @@
         "DroppyCode/Core/Support/RecentCache.swift:44 - let cost = max(0, cost)",
         "DroppyCode/Core/Support/RecentCache.swift:43 - cost defaults to 1"
       ],
-      "implemented_by_task": "T-M2-066"
+      "implemented_by_task": "T-M2-066",
+      "rework": true
     },
     {
       "id": "PR-STORE-058",
-      "preconditions": "The key may exist in either or both generations.",
+      "preconditions": "The key may be in the current or the previous generation. It is never in both: insert removes the key from both before storing it (RecentCache.swift:44), a promotion removes it from previous before re-inserting it (:24-26), and a rollover replaces previous with the current map and starts current empty (:47-52).",
       "action": "removeValue(for:), directly or through insert.",
-      "expected_result": "Both dictionaries are cleaned, both running cost sums are reduced by the removed entries’ costs, and the current generation’s value wins when both hold one. The result is discardable.",
+      "expected_result": "Both dictionaries are cleaned and both running cost sums are reduced by the removed entry's cost. The removed value is returned: the current generation's entry if there was one, otherwise the previous generation's (:40); the result is discardable. Only currentCost is observable, because it alone decides a rollover (:47). previousCost is written at :25, :39 and :49 and read nowhere in the tree, so its refund has no observable effect.",
       "side_effects": [],
       "persistence": "none",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same dual removal and dual refund; refunding only one counter leaks budget and causes premature rollovers.",
+      "windows_path": "Same dual removal. The currentCost refund is load-bearing: without it the budget leaks and rollovers come early. previousCost is write-only in the source; keeping it is harmless, and no test can observe it.",
       "verification_method": "unit",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "Removing a key clears it from both generations and refunds both cost counters",
       "source_evidence": [
-        "DroppyCode/Core/Support/RecentCache.swift:34-41 - removeValue(for:) removes from current and from previous, subtracts each entry’s cost from the matching counter, and returns the current entry’s value if there was one, otherwise the previous entry’s"
+        "DroppyCode/Core/Support/RecentCache.swift:34-41 - removeValue(for:) removes from current and from previous, subtracts each entry’s cost from the matching counter, and returns the current entry’s value if there was one, otherwise the previous entry’s",
+        "DroppyCode/Core/Support/RecentCache.swift:12, :25, :39, :49 - the only previousCost references at B2 (grep over the pinned tree); none reads it",
+        "DroppyCode/Core/Support/RecentCache.swift:43-56 - insert: removeValue(for: key) first; rollover when current.count >= limit || currentCost > costLimit - cost, then previous = current, current = [:]"
       ],
-      "implemented_by_task": "T-M2-066"
+      "implemented_by_task": "T-M2-066",
+      "spec_fix": "Said refunding only one counter leaks budget, and that a key can sit in both generations with the current value winning -> only currentCost is read (RecentCache.swift:47); previousCost is only written (:12, :25, :39, :49), and insert (:44), promotion (:24-26) and rollover (:47-52) keep the two generations disjoint",
+      "rework": true
     },
     {
       "id": "PR-STORE-059",
@@ -2043,7 +2093,7 @@
         "A missing file, a parse failure and an empty scripts array are indistinguishable: all produce no scripts and no message."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same file name at the project root, same six-branch icon table with the SF Symbol names kept as the stored values, and the same silent empty result. The names are the port’s icon-table keys, not literal Windows assets.",
+      "windows_path": "Same file name at the project root, same six-branch icon table with the SF Symbol names kept as the stored values, and the same silent empty result. The names are the port’s icon-table keys, not literal Windows assets. The file name stays droppy-code.json: it is one of the two exceptions OD-0012 F1 keeps (with DROPPY_CODE_PROJECT_ROOT), as B13 ruled.",
       "verification_method": "unit over a fixture droppy-code.json covering all six icon branches",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2488,23 +2538,27 @@
       "id": "PR-STORE-105",
       "preconditions": "A string written by a model.",
       "action": "Streaming a reply, landing a reply, storing thinking, a plan, a generated title or a commit message.",
-      "expected_result": "Exactly four scalars are replaced, each by a single ASCII hyphen \"-\": U+2014 EM DASH, U+2015 HORIZONTAL BAR, U+2E3A TWO-EM DASH, U+2E3B THREE-EM DASH. Surrounding spacing is untouched, so \"works — every time\" becomes \"works - every time\" and \"ships—sometimes\" becomes \"ships-sometimes\". U+2013 EN DASH is deliberately left alone. The function is idempotent: running it twice changes nothing the second time.",
+      "expected_result": "Exactly four Characters (extended grapheme clusters) are replaced, each by a single ASCII hyphen \"-\": the Characters made of U+2014 EM DASH, U+2015 HORIZONTAL BAR, U+2E3A TWO-EM DASH or U+2E3B THREE-EM DASH alone. The comparison is per Character, not per scalar (Text.swift:42-43, :69-74), so a dash scalar that forms one Character with a following combining mark, variation selector or ZWJ continuation (for example \"—́\") is a different Character and stays unchanged. A UTF-8 byte prescan (:50-65) returns the text untouched when none of the four encodings occurs. Surrounding spacing is untouched, so \"works — every time\" becomes \"works - every time\" and \"ships—sometimes\" becomes \"ships-sometimes\". U+2013 EN DASH is deliberately left alone. The function is idempotent: running it twice changes nothing the second time.",
       "side_effects": [],
       "persistence": "The flattened text is what is written into the thread document.",
       "failure_cases": [],
       "cancellation": "not cancellable",
       "windows_path": "One idempotent helper called at all seven sites, exactly as port_impacts.md entry 118 requires: \"One idempotent helper called at all 7 sites; keep the byte prescan and keep the en dash. Do not try to deduplicate the passes.\"",
       "verification_method": "unit over all four scalars, the en dash and a double application",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "Every long dash a model writes becomes a plain hyphen, and the en dash is kept",
       "source_evidence": [
-        "DroppyCode/Core/Support/Text.swift:36-44 - doc comment \"Model prose never ships an em dash. It is the tell of a machine-written paragraph, so every string a model writes for the thread passes through here: replies as they stream and as they land, thinking, plans, generated titles and commit messages. The dash becomes a plain hyphen with the spacing around it kept, so \\\"works — every time\\\" reads \\\"works - every time\\\" and \\\"ships—sometimes\\\" reads \\\"ships-sometimes\\\".\" and \"The en dash stays: it is the correct mark in a range, as in \\\"lines 10–20\\\".\" then static func withoutEmDashes(_ text: String) -> String",
-        "DroppyCode/Core/Support/Text.swift:68-74 - private static func isEmDash(_ character: Character) -> Bool { case \"\\u{2014}\", \"\\u{2015}\", \"\\u{2E3A}\", \"\\u{2E3B}\": true; default: false }"
+        "DroppyCode/Core/Support/Text.swift:33-44 - doc comment \"Model prose never ships an em dash. It is the tell of a machine-written paragraph, so every string a model writes for the thread passes through here: replies as they stream and as they land, thinking, plans, generated titles and commit messages. The dash becomes a plain hyphen with the spacing around it kept, so \\\"works — every time\\\" reads \\\"works - every time\\\" and \\\"ships—sometimes\\\" reads \\\"ships-sometimes\\\".\" and \"The en dash stays: it is the correct mark in a range, as in \\\"lines 10–20\\\".\" then static func withoutEmDashes(_ text: String) -> String",
+        "DroppyCode/Core/Support/Text.swift:69-74 - private static func isEmDash(_ character: Character) -> Bool { case \"\\u{2014}\", \"\\u{2015}\", \"\\u{2E3A}\", \"\\u{2E3B}\": true; default: false }",
+        "DroppyCode/Core/Support/Text.swift:42-43 - guard mayContainEmDash(text), text.contains(where: { isEmDash($0) }) else { return text }; return String(text.map { isEmDash($0) ? \"-\" : $0 }): both walk Characters",
+        "DroppyCode/Core/Support/Text.swift:50-65 - mayContainEmDash: the byte prescan for E2 80 94, E2 80 95, E2 B8 BA, E2 B8 BB"
       ],
-      "implemented_by_task": "T-M2-075"
+      "implemented_by_task": "T-M2-075",
+      "spec_fix": "Said exactly four scalars are replaced, and cited Text.swift:36-44 and :68-74 -> the match is per Character (Text.swift:42-43 walks Characters; isEmDash(_ character: Character) at :69-74), so a dash scalar carrying a combining mark, variation selector or ZWJ continuation is not replaced; the doc comment starts at :33 and isEmDash at :69",
+      "rework": true
     },
     {
       "id": "PR-STORE-106",
@@ -2519,7 +2573,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the prescan. It is on the hot path for every streamed token, and a naive per-character replace measurably changes streaming cost.",
       "verification_method": "unit including the truncated-tail case, plus a throughput benchmark",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2528,7 +2582,8 @@
         "DroppyCode/Core/Support/Text.swift:42 - guard mayContainEmDash(text), text.contains(where: { isEmDash($0) }) else { return text }",
         "DroppyCode/Core/Support/Text.swift:46-65 - doc comment \"Whether any dash scalar is in the bytes, checked without walking graphemes: every streamed delta and every stored message passes through here, and model prose is full of other E2-led scalars (curly quotes, ellipses, en dashes) that made the lead-byte test alone let most of it through to the slow path.\" then the iterator scanning for 0xE2 followed by 0x80 with third byte 0x94 or 0x95, or 0xB8 with third byte 0xBA or 0xBB"
       ],
-      "implemented_by_task": "T-M2-075"
+      "implemented_by_task": "T-M2-075",
+      "rework": true
     },
     {
       "id": "PR-STORE-107",
@@ -2541,7 +2596,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same pattern. Windows consoles emit the same CSI forms under virtual terminal processing.",
       "verification_method": "unit over a colored git output fixture",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2549,22 +2604,23 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:12-14 - static func stripANSI(_ text: String) -> String { text.replacing(#/\\x1B\\[[0-9;?]*[ -/]*[@-~]/#, with: \"\") }"
       ],
-      "implemented_by_task": "T-M2-075"
+      "implemented_by_task": "T-M2-075",
+      "rework": true
     },
     {
       "id": "PR-STORE-108",
       "preconditions": "A process has failed and produced output.",
       "action": "An error message is built.",
-      "expected_result": "The output is ANSI-stripped, split on any newline character, each line trimmed of whitespace, and empty lines dropped. When nothing remains, nil is returned so the caller can omit the detail entirely. Otherwise the last four surviving lines are joined with a single \"\\n\". The default count is 4.",
+      "expected_result": "The output is ANSI-stripped, split on every Character whose isNewline is true (a CRLF pair is one such Character), each line trimmed of .whitespaces (tab and the Zs space separators), and empty lines dropped. When nothing remains, nil is returned so the caller can omit the detail entirely. Otherwise the last four surviving lines are joined with a single \"\\n\". The default count is 4.",
       "side_effects": [],
       "persistence": "",
       "failure_cases": [
         "Whitespace-only output yields nil, not an empty string."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same. Splitting on any newline character already handles CRLF, because the carriage return is then trimmed as whitespace.",
+      "windows_path": "Same. The split follows Swift's Character.isNewline: \"\\r\\n\" is a single Character and a newline, so a CRLF pair is consumed as one separator, and a lone \"\\r\", U+000B, U+000C, U+0085, U+2028 and U+2029 also split. The per-line trim uses .whitespaces (tab and the Zs space separators), which does not contain U+000D, so an implementation that splits on \"\\n\" alone and relies on the trim leaves a trailing carriage return on every CRLF line.",
       "verification_method": "unit including a CRLF fixture",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2572,7 +2628,9 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:16-24 - doc comment \"The last meaningful lines of process output, for error messages.\" then static func lastLines(_ text: String, count: Int = 4) -> String? { let lines = stripANSI(text).split(whereSeparator: \\.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }; guard !lines.isEmpty else { return nil }; return lines.suffix(count).joined(separator: \"\\n\") }"
       ],
-      "implemented_by_task": "T-M2-075"
+      "implemented_by_task": "T-M2-075",
+      "spec_fix": "windows_path said CRLF is handled because the carriage return is trimmed as whitespace -> .whitespaces (Text.swift:20) does not contain U+000D; CRLF is handled because \"\\r\\n\" is a single Character whose isNewline is true, consumed as one separator by split(whereSeparator: \\.isNewline) (Text.swift:19)",
+      "rework": true
     },
     {
       "id": "PR-STORE-109",
@@ -2585,7 +2643,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same limit of 120, the same off-by-one prefix of limit - 1, and the single ellipsis character rather than three dots.",
       "verification_method": "unit at lengths 119, 120 and 121",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2593,7 +2651,8 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:26-31 - static func singleLine(_ text: String, limit: Int = 120) -> String { let remaining = text.drop(while: \\.isNewline); let end = remaining.firstIndex(where: \\.isNewline) ?? remaining.endIndex; let line = remaining[..<end].trimmingCharacters(in: .whitespaces); return line.count > limit ? String(line.prefix(limit - 1)) + \"…\" : line }"
       ],
-      "implemented_by_task": "T-M2-075"
+      "implemented_by_task": "T-M2-075",
+      "rework": true
     },
     {
       "id": "PR-STORE-110",
@@ -2606,7 +2665,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the literal 200000 and keep it on the input sum. Do not unify the two caps just because the comments claim they are the same.",
       "verification_method": "unit just under and just over the cap",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": "42",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2616,7 +2675,8 @@
         "DroppyCode/Core/Support/Text.swift:101-103 - guard old.utf8.count + new.utf8.count <= diffLimit else { return FileEdit.Stats(diff: nil, additions: added.count, deletions: removed.count) }",
         "porting/upstream_defects.md entry 42 - the two 200_000 constants bound different operands (input sum here, produced hunk in ThreadRuntime); the comments claiming they are \"the same cap\" are misleading but the value really is the same"
       ],
-      "implemented_by_task": "T-M2-075"
+      "implemented_by_task": "T-M2-075",
+      "rework": true
     },
     {
       "id": "PR-STORE-111",
@@ -2631,7 +2691,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the ordering. It is an ordinary quirk under AM-0001: slow, not harmful.",
       "verification_method": "unit asserting the counts are still correct for an over-cap pair",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": "47",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2640,7 +2700,8 @@
         "DroppyCode/Core/Support/Text.swift:87-101 - the prefix scan, the suffix scan and the four slice constructions all run before the guard at :101",
         "porting/upstream_defects.md entry 47 - \"the input-size guard in SimpleDiff.unified is evaluated AFTER the prefix/suffix scans and slice construction at :87-100, so a multi-megabyte pair is fully line-split and walked before being rejected. A cost defect, not a correctness one.\""
       ],
-      "implemented_by_task": "T-M2-075"
+      "implemented_by_task": "T-M2-075",
+      "rework": true
     },
     {
       "id": "PR-STORE-112",
@@ -2650,12 +2711,12 @@
       "side_effects": [],
       "persistence": "The hunk string is stored in the thread document’s FileEdit.",
       "failure_cases": [
-        "Both start line numbers in the header are the same value, taken from the old text, which is not what a real unified diff would emit when the two sides diverge earlier. Reproduce it."
+        "The header prints the same start number on both sides, oldStart = prefix - leading.count + 1 (Text.swift:104-105). That is also the correct new-side start, because the prefix is common to both texts, so the sides cannot diverge earlier. The hunk departs from diff -u elsewhere: an empty range still prints the computed start (old \"\" and new \"a\" give \"@@ -1,0 +1,1 @@\" then \"+a\", where diff -u writes \"@@ -0,0 +1 @@\"), and the \",count\" part is always printed, even for a count of 1. Reproduce it."
       ],
       "cancellation": "not cancellable",
       "windows_path": "Byte-identical hunk text, including the single header, the three-line context on both sides and the removals-before-additions order. The line split is on \"\\n\" only, so a CRLF file keeps its carriage returns inside the line content.",
       "verification_method": "contract fixture comparing produced hunks against macOS output for the same inputs",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2663,7 +2724,9 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:83-111 - doc comment \"A compact unified hunk between two texts, trimming the unchanged head and tail.\" then the prefix and suffix loops, leading = oldLines[max(0, prefix - 3)..<prefix], trailingEnd = min(oldLines.count, oldLines.count - suffix + 3), trailing = oldLines[(oldLines.count - suffix)..<trailingEnd], lines = [\"@@ -\\(oldStart),\\(leading.count + removed.count + trailing.count) +\\(oldStart),\\(leading.count + added.count + trailing.count) @@\"] with oldStart = prefix - leading.count + 1, then leading mapped with \" \", removed with \"-\", added with \"+\", trailing with \" \", joined with \"\\n\""
       ],
-      "implemented_by_task": "T-M2-075"
+      "implemented_by_task": "T-M2-075",
+      "spec_fix": "Failure case said the shared start number is wrong when the two sides diverge earlier -> the prefix is common to both texts, so prefix - leading.count + 1 (Text.swift:104) is the right start on both sides; the real departures from diff -u are the start printed for an empty range and the always-printed \",count\" (Text.swift:105)",
+      "rework": true
     },
     {
       "id": "PR-STORE-113",
@@ -2676,7 +2739,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same convenience constructor.",
       "verification_method": "unit",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2684,7 +2747,8 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:114-125 - extension FileEdit { struct Stats { var diff: String?; var additions: Int; var deletions: Int }; init(path: String, old: String, new: String) { let stats = SimpleDiff.unified(old: old, new: new); self.init(path: path, diff: stats.diff, additions: stats.additions, deletions: stats.deletions) } }"
       ],
-      "implemented_by_task": "T-M2-076"
+      "implemented_by_task": "T-M2-076",
+      "rework": true
     },
     {
       "id": "PR-STORE-114",
@@ -2697,7 +2761,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, and specifically without trimming.",
       "verification_method": "unit",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2705,7 +2769,8 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:128 - var nilIfEmpty: String? { isEmpty ? nil : self }, declared in extension String (:127-133), which at B2 also holds `var trimmed` (:130-132, PR-STORE-167)"
       ],
-      "implemented_by_task": "T-M2-076"
+      "implemented_by_task": "T-M2-076",
+      "rework": true
     },
     {
       "id": "PR-STORE-115",
@@ -3025,31 +3090,42 @@
     {
       "id": "PR-STORE-129",
       "preconditions": "The anti-slop setting is on.",
-      "action": "A turn is started and the system prompt is assembled.",
-      "expected_result": "This exact text is injected, five lines joined by single newlines, with no leading or trailing blank line:\n[Droppy Code anti-slop guidance]\nGive the shortest complete answer, leading with the result. Use plain, natural language. Skip filler, hype, stock openings, repeated summaries and unsolicited closers. Preserve requested detail, facts, uncertainty, blockers and required validation.\nMake focused edits using existing patterns. Add comments only for non-obvious reasons, constraints or pitfalls; omit banners, obvious narration and speculative TODOs. Preserve useful documentation. Avoid unrelated cleanup, dependencies and abstractions.\nFor UI work, follow the product’s components, typography and colors. Prefer purposeful structure and real content; preserve accessibility, responsive layouts and visible loading, empty and error states.\nReuse evidence, read relevant sections and batch independent lookups. Avoid repeated scans, polling and echoed logs. Perform required checks; brevity never excuses incomplete work. Apply this guidance to delegated work too. Report changes, affected files and material limits once. User requests and project requirements take precedence.\nNote the apostrophe in \"product’s\" is U+2019 RIGHT SINGLE QUOTATION MARK, not an ASCII apostrophe, and \"colors\" is the American spelling.",
+      "action": "A provider session is launched, or, for a provider that keeps no session-level instructions, the first ordinary message of a session epoch is sent; the anti-slop setting is on.",
+      "expected_result": "This exact text is delivered, five lines joined by single newlines, with no leading or trailing blank line:\n[Marrow anti-slop guidance]\nGive the shortest complete answer, leading with the result. Use plain, natural language. Skip filler, hype, stock openings, repeated summaries and unsolicited closers. Preserve requested detail, facts, uncertainty, blockers and required validation.\nMake focused edits using existing patterns. Add comments only for non-obvious reasons, constraints or pitfalls; omit banners, obvious narration and speculative TODOs. Preserve useful documentation. Avoid unrelated cleanup, dependencies and abstractions.\nFor UI work, follow the product’s components, typography and colors. Prefer purposeful structure and real content; preserve accessibility, responsive layouts and visible loading, empty and error states.\nReuse evidence, read relevant sections and batch independent lookups. Avoid repeated scans, polling and echoed logs. Perform required checks; brevity never excuses incomplete work. Apply this guidance to delegated work too. Report changes, affected files and material limits once. User requests and project requirements take precedence.\nNote the apostrophe in \"product’s\" is U+2019 RIGHT SINGLE QUOTATION MARK, not an ASCII apostrophe, and \"colors\" is the American spelling. Delivery at B2, the same for both texts: for Claude, Codex and Copilot (AppModel.hydraIsNative, AppModel+Hydra.swift:141-143) and every API-key provider (keepsHydraPolicyInSystemPrompt, ThreadRuntime.swift:1388-1390) the text goes into the session-level instructions when the session is launched, after any Hydra policy and joined to it by a blank line: Claude as the single --append-system-prompt segment (ClaudeSession.swift:121-128), Codex appended to developerInstructions (CodexSession.swift:249-257), Copilot in the appended systemMessage (CopilotSession.swift:147-156), OpenAI-compatible sessions in the system prompt (OpenAICompatibleSession.swift:1188-1195). Every other provider gets it as a prefix of the user prompt, text + \"\\n\\n\" + prompt (ThreadRuntime.swift:1323-1334), once per session epoch: never on a message that starts with a slash command, marked sent only after a successful send in the same epoch (:1365-1367), and sent again after a compaction (:1751) or with a new session (:2090). The flag read is the session signature's antiSlopEnabled, falling back to the app setting (:1329). Claude's --agents head prompts and Copilot's customAgents end with the same text after a blank line (Hydra.swift:808-816, :843). Deviation, OD-0012 F1: the first line is \"[Marrow anti-slop guidance]\"; upstream writes \"[Droppy Code anti-slop guidance]\".",
       "side_effects": [
         "The text is sent to the provider as part of the prompt"
       ],
       "persistence": "Not persisted here; the toggle lives in settings.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Store as an exact string resource, byte for byte, including U+2019 and the American spellings. Do not reflow, re-wrap, spell-check or localise it.",
-      "verification_method": "contract fixture: byte-compare the assembled prompt against the source literal",
-      "status": "IMPLEMENTED",
+      "windows_path": "Store as an exact string resource, byte for byte, including U+2019 and the American spellings, with the OD-0012 F1 first line \"[Marrow anti-slop guidance]\". Do not reflow, re-wrap, spell-check or localise it. Deliver it at exactly the points and with exactly the once-per-epoch rule the expected result names.",
+      "verification_method": "contract fixture: byte-compare the delivered text against the source literal with its first line replaced by \"[Marrow anti-slop guidance]\" (OD-0012 F1), at each delivery point: Claude --append-system-prompt, Codex developerInstructions, Copilot systemMessage, the OpenAI-compatible system prompt, and the user-prompt prefix of another CLI provider (once per session epoch, absent on a slash command)",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "The anti-slop guidance block is injected verbatim when the setting is on",
       "source_evidence": [
-        "DroppyCode/Core/Models/AntiSlopPolicy.swift:2-8 - static let enabledInstructions, a multi-line string literal"
+        "DroppyCode/Core/Models/AntiSlopPolicy.swift:2-8 - static let enabledInstructions, a multi-line string literal",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1323-1334 - \"// Leave slash commands at the start of the input; deliver guidance with the next ordinary message.\" if !Self.keepsHydraPolicyInSystemPrompt(thread.provider), SlashCommand.name(in: text) == nil, !antiSlopFallbackSent { let instructions = AntiSlopPolicy.instructions(enabled: sessionSignature?.antiSlopEnabled ?? app.settings.antiSlopEnabled); if !instructions.isEmpty { prompt = instructions + \"\\n\\n\" + prompt; injectedAntiSlopPolicy = true } }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1365-1367 - if injectedAntiSlopPolicy, sessionEpoch == antiSlopEpoch { antiSlopFallbackSent = true }; reset at :1751 (after compaction) and :2090 (releaseSession)",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1388-1390 - keepsHydraPolicyInSystemPrompt(_:) = AppModel.hydraIsNative(provider) || provider.isAPIKeyBased; AppModel+Hydra.swift:141-143 hydraIsNative = .claude, .codex, .copilot",
+        "DroppyCode/Services/Providers/ClaudeSession.swift:121-128, CodexSession.swift:249-257, CopilotSession.swift:147-156, OpenAICompatibleSession.swift:1188-1195 - the session-level delivery, joined with \"\\n\\n\""
       ],
-      "implemented_by_task": "T-M2-001"
+      "implemented_by_task": "T-M2-001",
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Core/Models/AntiSlopPolicy.swift:3 - first line \"[Droppy Code anti-slop guidance]\"",
+        "port": "First line \"[Marrow anti-slop guidance]\"; the four guidance lines, including the U+2019 in \"product’s\", are unchanged. OD-0012 F1 names the \"[Marrow]\" notes sent to models."
+      },
+      "spec_fix": "Action and expected result said the text is injected into the system prompt when a turn starts -> it goes into the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers (ClaudeSession.swift:121-128, CodexSession.swift:249-257, CopilotSession.swift:147-156, OpenAICompatibleSession.swift:1188-1195), and for every other provider it is prefixed to the user prompt once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367, :1751, :2090)",
+      "rework": true
     },
     {
       "id": "PR-STORE-130",
       "preconditions": "The anti-slop setting is off, possibly in a conversation resumed from a session that had it on.",
-      "action": "A turn is started.",
-      "expected_result": "This exact two-line text is injected instead of nothing:\n[Droppy Code anti-slop guidance: off]\nDisregard earlier app-provided anti-slop guidance. Continue following user requests and project requirements.\nThe reason is stated in the source comment: a resumed conversation may still contain the enabled guidance in its history, so the off state must actively cancel it.",
+      "action": "A provider session is launched, or, for a provider that keeps no session-level instructions, the first ordinary message of a session epoch is sent; the anti-slop setting is off.",
+      "expected_result": "This exact two-line text is delivered instead of nothing:\n[Marrow anti-slop guidance: off]\nDisregard earlier app-provided anti-slop guidance. Continue following user requests and project requirements.\nThe reason is stated in the source comment: a resumed conversation may still contain the enabled guidance in its history, so the off state must actively cancel it. It is delivered at exactly the points PR-STORE-129 names, under the same once-per-epoch rule. Deviation, OD-0012 F1: the first line is \"[Marrow anti-slop guidance: off]\"; upstream writes \"[Droppy Code anti-slop guidance: off]\".",
       "side_effects": [
         "The text is sent to the provider as part of the prompt"
       ],
@@ -3058,18 +3134,26 @@
         "A port that simply omits the block when the setting is off leaves a resumed conversation still following the guidance."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Byte-exact string, and the same always-inject-one-of-two selector. The selector takes a Bool and returns one of the two constants; there is no third state.",
-      "verification_method": "contract fixture over both branches",
-      "status": "IMPLEMENTED",
+      "windows_path": "Byte-exact string with the OD-0012 F1 first line \"[Marrow anti-slop guidance: off]\", and the same always-inject-one-of-two selector. The selector takes a Bool and returns one of the two constants; there is no third state.",
+      "verification_method": "contract fixture over both branches, at each delivery point PR-STORE-129 names, with the first lines \"[Marrow anti-slop guidance]\" and \"[Marrow anti-slop guidance: off]\"",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "Turning the guidance off injects a cancellation block rather than removing the text",
       "source_evidence": [
         "DroppyCode/Core/Models/AntiSlopPolicy.swift:10-14 - comment \"Resumed conversations may still contain the enabled guidance.\" then static let disabledInstructions",
-        "DroppyCode/Core/Models/AntiSlopPolicy.swift:16-18 - static func instructions(enabled: Bool) -> String { enabled ? enabledInstructions : disabledInstructions }"
+        "DroppyCode/Core/Models/AntiSlopPolicy.swift:16-18 - static func instructions(enabled: Bool) -> String { enabled ? enabledInstructions : disabledInstructions }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1323-1334 and :1365-1367 - the same fallback path as PR-STORE-129, choosing the text through AntiSlopPolicy.instructions(enabled:)"
       ],
-      "implemented_by_task": "T-M2-001"
+      "implemented_by_task": "T-M2-001",
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Core/Models/AntiSlopPolicy.swift:12 - first line \"[Droppy Code anti-slop guidance: off]\"",
+        "port": "First line \"[Marrow anti-slop guidance: off]\"; the second line is unchanged. OD-0012 F1 names the \"[Marrow]\" notes sent to models."
+      },
+      "spec_fix": "Action said the text is injected when a turn starts -> it is delivered where PR-STORE-129 now says: in the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers, otherwise as a user-prompt prefix once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367)",
+      "rework": true
     },
     {
       "id": "PR-STORE-131",
@@ -3959,7 +4043,7 @@
         "UNRESOLVED (UNK-0003, no matching-build macOS runtime to run Foundation on): which numeric offsets, fraction lengths and letter cases Foundation's two styles accept was not run at either baseline; the verification fixture settles it before anything beyond the two documented shapes is asserted."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "One shared static parser tried in the same order: fractional form first, whole-second form second, null otherwise. It follows Foundation's ISO8601FormatStyle grammar, not a lenient general-purpose date parser, and every shape beyond the two documented ones is fixed by the fixture.",
+      "windows_path": "One shared static parser tried in the same order: fractional form first, whole-second form second, null otherwise. It follows Foundation's ISO8601FormatStyle grammar, not a lenient general-purpose date parser, and every shape beyond the two documented ones is fixed by the fixture. OD-0012 I1: the Windows update feed is an internal value, empty by default, and no request is made while it is empty, so the UpdateChecker caller parses a release stamp only once a feed is set; the parser itself is unchanged.",
       "verification_method": "unit test: `2026-09-13T18:28:42.057Z` parses to 18:28:42.057 UTC, `2026-09-13T18:28:42Z` parses to 18:28:42 UTC, and `2026-09-13`, `` and `not a date` return null; edge shapes (numeric offsets, lowercase z, one and six fraction digits) asserted only against a fixture of Foundation's results",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -4022,8 +4106,8 @@
       "id": "UI-STORE-001",
       "exact_text": "Worktrees",
       "geometry": "A ChromeRow inside a ChromeCard, first row of the section, followed by a ChromeRowDivider() and the \"Pull requests\" row. The card and row metrics belong to the shared design system, not to this area.",
-      "typography": "design-system ChromeRow title and detail styles",
-      "colors": "design-system card and secondary-text colors",
+      "typography": "Title \"Worktrees\" in the .body text style, detail in .subheadline (ChromeRow, Chrome.swift:1057-1062). ED-059: .body is 13 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:51) and .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53), set in Inter (OD-0009), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001.",
+      "colors": "Title Chrome.primaryText (labelColor, Chrome.swift:76); detail Chrome.secondaryText, which at B2 is primaryText at opacity 0.7 (Chrome.swift:79, ED-062); card colours are the design system's.",
       "states": [
         "always shown; there is no empty or error state",
         "the detail is the resolved absolute path and is never blank, because Storage.worktreesDirectory is a non-optional static"
@@ -4034,12 +4118,21 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:859-865",
         "DroppyCode/Services/Store/Storage.swift:38",
-        "DroppyCode/Services/Store/Storage.swift:43-48"
+        "DroppyCode/Services/Store/Storage.swift:43-48",
+        "DroppyCode/UI/Chrome/Chrome.swift:1049-1074 - ChromeRow: Text(verbatim: title).font(.system(.body)).foregroundStyle(Chrome.primaryText); Text(verbatim: detail).font(.system(.subheadline)).foregroundStyle(Chrome.secondaryText)",
+        "DroppyCode/UI/Chrome/Chrome.swift:76-79 - static let primaryText = Color(nsColor: .labelColor); static let secondaryText = primaryText.opacity(0.7)",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 - case .headline, .body: 13",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:53 - case .subheadline: 11"
       ],
-      "notes": "The detail text is the literal value of Storage.worktreesDirectory.path, so on Windows it reads C:\\Users\\<user>\\.droppy-code\\worktrees with backslashes. It is user-visible, which is one of the two reasons port_impacts.md entry 113 says the home state directory name must stay byte-identical. The row is shared with the settings area; the path it prints is owned here.",
+      "notes": "The detail text is the literal value of Storage.worktreesDirectory.path, so on Windows it reads C:\\Users\\<user>\\.marrow\\worktrees with backslashes (OD-0012 F1; upstream <home>/.droppy-code/worktrees). Because it is shown, F1's product-name rule reaches it; port_impacts.md entry 113 keeps the two-root split. The row is shared with the settings area; the path it prints is owned here.",
       "screen": "Settings, Source control, section \"Worktrees and pull requests\"",
       "element": "Worktrees location row",
-      "role": "row"
+      "role": "row",
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:861 - ChromeRow(title: \"Worktrees\", detail: Storage.worktreesDirectory.path), which prints <home>/.droppy-code/worktrees (Text.swift:6)",
+        "port": "The row prints %USERPROFILE%\\.marrow\\worktrees: every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\"; droppy-code.json and DROPPY_CODE_PROJECT_ROOT are the only exceptions"
+      }
     },
     {
       "id": "UI-STORE-002",

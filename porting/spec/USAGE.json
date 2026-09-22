@@ -152,7 +152,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:413-436 ChromeCircleButton - Image(systemName: symbol).font(Chrome.iconFont).foregroundStyle(Chrome.primaryText.opacity(isHovering ? 1 : 0.92)).frame(width: Chrome.capsuleHeight, height: Chrome.capsuleHeight).contentShape(Circle()), .buttonStyle(.plain), .chromeGlassCircle(), withAnimation(Chrome.hover), .help(help), .accessibilityLabel(Text(help))",
         "DroppyCode/UI/Chrome/Chrome.swift:28 static let iconFont: Font = .system(.callout, weight: .semibold)",
         "DroppyCode/UI/Chrome/Chrome.swift:76-79 static let primaryText = Color(nsColor: .labelColor); static let secondaryText = primaryText.opacity(0.7)",
-        "porting/extracts/chrome-design-tokens.md:199 - capsuleHeight resolves to 32"
+        "porting/extracts/chrome-design-tokens.md:199 - capsuleHeight resolves to 32",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "preconditions": "The usage popover is open.",
       "action": "The popover renders its header.",
@@ -163,7 +164,7 @@
         "Hover raises the glyph opacity from 0.92 to 1 over Chrome.hover (ease-out 0.1s)."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Header div plus a 32px round glass button. The arrow.up.right glyph follows OD-0010: it maps to Lucide arrow-up-right through the published symbol-by-symbol table (porting/icons/sf-symbols-to-lucide.json), which closes the icon half of UNK-0007; Apple glyphs cannot ship. OD-0005 (owner-approved deviation, not parity): on Windows this glass follows the owner's glass ruling: where the window shows the desktop, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop, the full source-defined material (shape, corner radius, tint colour and opacity, .interactive() and container spacing).",
+      "windows_path": "Header div plus a 32px round glass button. The arrow.up.right glyph follows OD-0010: it maps to Lucide arrow-up-right through the published symbol-by-symbol table (porting/icons/sf-symbols-to-lucide.json), which closes the icon half of UNK-0007; Apple glyphs cannot ship. OD-0005 (owner-approved deviation, not parity): on Windows this glass follows the owner's glass ruling: where the window shows the desktop, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop, the full source-defined material (shape, corner radius, tint colour and opacity, .interactive() and container spacing). ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "capture comparison plus interaction test on the tooltip string",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -281,7 +282,8 @@
       "title": "Context window row: label, right-aligned used/total/percent value, monospaced digits",
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsagePanel.swift:35-43 HStack { Text(\"Context window\").foregroundStyle(Chrome.secondaryText); Spacer(minLength: 12); Text(verbatim: \"\\(Self.tokens(usage.usedTokens)) / \\(Self.tokens(window)) (\\(Int((fraction * 100).rounded()))%)\").foregroundStyle(Chrome.secondaryText).monospacedDigit() }.font(.system(.body))",
-        "porting/reference_captures/usage/v1/limits.webp - the row is absent in that capture because no context fraction was reported"
+        "porting/reference_captures/usage/v1/limits.webp - the row is absent in that capture because no context fraction was reported",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "preconditions": "PR-USAGE-011 satisfied.",
       "action": "The context block renders.",
@@ -292,7 +294,7 @@
         "No failure state; the row is either drawn whole or not at all."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Flex row with a monospaced-numeral font feature (font-variant-numeric: tabular-nums) on the value only.",
+      "windows_path": "Flex row with a monospaced-numeral font feature (font-variant-numeric: tabular-nums) on the value only. ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "capture comparison plus unit test on the composed string",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -466,7 +468,8 @@
         "DroppyCode/App/Views/Usage/UsagePanel.swift:91-97 HStack(spacing: 6) { ProviderIcon(provider: p, size: 13); Text(verbatim: \"\\(role) · \\(p.displayName)\").font(.system(.callout, weight: .semibold)).foregroundStyle(Chrome.primaryText) }.padding(.bottom, 8)",
         "DroppyCode/UI/Common/Components.swift:4-14 ProviderIcon - Image(provider.iconName).resizable().aspectRatio(contentMode: .fit).frame(width: size, height: size)",
         "DroppyCode/Core/Models/Provider.swift:59-60 /// Both OpenCode plans are the one `opencode` CLI; the mark is the same. var iconName: String { self == .opencodeGo ? \"provider-opencode\" : \"provider-\\(rawValue)\" }",
-        "porting/reference_captures/usage/v1/limits.webp - shows \"Lead · Claude\" and \"Heads · Antigravity\" with the provider marks"
+        "porting/reference_captures/usage/v1/limits.webp - shows \"Lead · Claude\" and \"Heads · Antigravity\" with the provider marks",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "preconditions": "A section is being drawn.",
       "action": "The header renders.",
@@ -479,7 +482,7 @@
         "A missing asset draws nothing; the source has no placeholder."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "13px SVG plus a 12px semibold label; the middle dot is a literal U+00B7, not a hyphen or bullet.",
+      "windows_path": "13px SVG plus a 12px semibold label; the middle dot is a literal U+00B7, not a hyphen or bullet. ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
       "verification_method": "capture comparison against the field capture plus a unit test on the composed string",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -542,7 +545,8 @@
       "title": "Plan limits header text is Plan usage limits, with the plan name appended after a spaced middle dot",
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:16-19 HStack(spacing: 8) { Text(verbatim: limits?.planName.map { \"Plan usage limits · \\($0)\" } ?? \"Plan usage limits\").font(.system(.body)).foregroundStyle(Chrome.secondaryText)",
-        "porting/reference_captures/usage/v1/limits.webp - reads \"Plan usage limits · Max (20x)\" for the lead and \"Plan usage limits\" for the heads"
+        "porting/reference_captures/usage/v1/limits.webp - reads \"Plan usage limits · Max (20x)\" for the lead and \"Plan usage limits\" for the heads",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "preconditions": "PlanLimitsView is rendering.",
       "action": "The header renders.",
@@ -553,7 +557,7 @@
         "planName is optional on PlanLimits (PlanLimits.swift:13); a provider that reports no plan still gets the bare header."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Single label with a conditional suffix; the separator is U+00B7 with surrounding spaces.",
+      "windows_path": "Single label with a conditional suffix; the separator is U+00B7 with surrounding spaces. ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "capture comparison plus a unit test over nil and non-nil plan names",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -613,7 +617,9 @@
       "title": "LimitRow top line: window title, optional reset text, percentage, all on one line",
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:145-162 VStack(alignment: .leading, spacing: 8) { HStack(spacing: 12) { Text(verbatim: window.title).font(.system(.body)).foregroundStyle(Chrome.primaryText).lineLimit(1); Spacer(minLength: 8); if let resetsAt = window.resetsAt { Text(verbatim: \"Resets \\(Self.resetText(resetsAt))\").font(.system(.callout)).foregroundStyle(Chrome.secondaryText).lineLimit(1) }; Text(verbatim: \"\\(Int(window.percent.rounded()))%\").font(.system(.callout)).foregroundStyle(Chrome.secondaryText).monospacedDigit() } ... }",
-        "porting/reference_captures/usage/v1/limits.webp - rows read \"5-hour limit\", \"Resets in 8 min\", \"89%\" left to right"
+        "porting/reference_captures/usage/v1/limits.webp - rows read \"5-hour limit\", \"Resets in 8 min\", \"89%\" left to right",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "preconditions": "A window is being rendered.",
       "action": "The row renders.",
@@ -624,7 +630,7 @@
         "A long title truncates with an ellipsis at one line, as the field capture shows for \"Gemini Models · Weekly…\"; the reset text and percentage are never truncated away."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Flex row; the title takes the flexible space and truncates, the two right-hand labels keep their intrinsic width.",
+      "windows_path": "Flex row; the title takes the flexible space and truncates, the two right-hand labels keep their intrinsic width. ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`); .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "capture comparison against the field capture including a truncated title",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -709,7 +715,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:163-168 if let detail = window.detail { Text(verbatim: detail).font(.system(.subheadline)).foregroundStyle(Chrome.secondaryText).lineLimit(1) }",
         "DroppyCode/Services/Providers/PlanLimits.swift:10 var detail: String? = nil",
-        "porting/port_impacts.md:12 entry 2 - Keep detail on the model, render only when present, produce it for Z.ai alone with those two exact formats. Do not invent detail strings for any other provider."
+        "porting/port_impacts.md:12 entry 2 - Keep detail on the model, render only when present, produce it for Z.ai alone with those two exact formats. Do not invent detail strings for any other provider.",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline"
       ],
       "preconditions": "A window carries a non-nil detail.",
       "action": "The row renders.",
@@ -720,7 +727,7 @@
         "Only the Z.ai reader populates detail in the pinned source; every other provider leaves it nil, so this line is normally absent."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Optional line in the row component; the producing side belongs to the provider area.",
+      "windows_path": "Optional line in the row component; the producing side belongs to the provider area. ED-059: on Windows .subheadline is 11 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "contract fixture with a Z.ai window carrying a detail and a Claude window without one",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -827,7 +834,9 @@
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:228-238 HStack(spacing: 6) { Text(verbatim: \"Banked resets\").font(.system(.body)).foregroundStyle(Chrome.primaryText); Text(verbatim: \"· \\(countText)\").font(.system(.callout)).foregroundStyle(Chrome.secondaryText).contentTransition(.numericText()) }.accessibilityElement(children: .combine)",
         "DroppyCode/App/Views/Usage/UsageViews.swift:237 comment - One line to a screen reader too, \"Banked resets, 2 available\"",
-        "DroppyCode/App/Views/Usage/UsageViews.swift:285-291 private var countText - case 0: \"None available yet\"; case 1: \"1 available\"; default: \"\\(credits.availableCount) available\""
+        "DroppyCode/App/Views/Usage/UsageViews.swift:285-291 private var countText - case 0: \"None available yet\"; case 1: \"1 available\"; default: \"\\(credits.availableCount) available\"",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "preconditions": "The banked resets block is drawn.",
       "action": "The header renders.",
@@ -838,7 +847,7 @@
         "A negative availableCount would fall into the default branch and print the negative number; the source does not guard it."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Two spans with a digit-morph transition on the count; combine them into one accessible node.",
+      "windows_path": "Two spans with a digit-morph transition on the count; combine them into one accessible node. ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`); .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "unit test on countText at 0, 1, 2 plus an interaction test on the combined accessibility node",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -875,7 +884,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:325-328 Text(verbatim: row.credit?.title ?? (several ? \"Reset \\(index + 1)\" : \"Reset\")).font(.system(.body)).foregroundStyle(Chrome.primaryText).lineLimit(1)",
         "DroppyCode/App/Views/Usage/UsageViews.swift:240-249 BankedResetRow(row:index:several:phase:...) with several: rows.count > 1",
-        "DroppyCode/Services/Providers/PlanLimits.swift:20-25 struct ResetCredit { var id: String; var title: String?; var detail: String?; var expiresAt: Date? } - title and detail are the app-server's own words when it gives any"
+        "DroppyCode/Services/Providers/PlanLimits.swift:20-25 struct ResetCredit { var id: String; var title: String?; var detail: String?; var expiresAt: Date? } - title and detail are the app-server's own words when it gives any",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "preconditions": "A reset row is rendering.",
       "action": "The title renders.",
@@ -886,7 +896,7 @@
         "A listed credit whose title is nil also takes the numbered fallback."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same fallback ladder in the row component.",
+      "windows_path": "Same fallback ladder in the row component. ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
       "verification_method": "unit test over one and several rows, with and without a supplied title",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -899,7 +909,8 @@
       "title": "A reset row's second line is the credit's detail, or its expiry in three exact forms",
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:329-332 Text(verbatim: row.credit?.detail ?? expiryText).font(.system(.subheadline)).foregroundStyle(Chrome.secondaryText).lineLimit(1)",
-        "DroppyCode/App/Views/Usage/UsageViews.swift:339-343 private var expiryText: String { guard let expiresAt = row.credit?.expiresAt else { return \"No expiry reported\" }; if expiresAt <= .now { return \"Expired\" }; return \"Expires \" + LimitRow.resetText(expiresAt) }"
+        "DroppyCode/App/Views/Usage/UsageViews.swift:339-343 private var expiryText: String { guard let expiresAt = row.credit?.expiresAt else { return \"No expiry reported\" }; if expiresAt <= .now { return \"Expired\" }; return \"Expires \" + LimitRow.resetText(expiresAt) }",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline"
       ],
       "preconditions": "A reset row is rendering.",
       "action": "The second line renders.",
@@ -910,7 +921,7 @@
         "The comparison is inclusive of now, so an expiry exactly at the current instant reads \"Expired\", while resetText would have clamped it to \"in 1 min\"."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same ladder, reusing the shared resetText function.",
+      "windows_path": "Same ladder, reusing the shared resetText function. ED-059: on Windows .subheadline is 11 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "unit test over nil expiry, past expiry, exactly-now expiry and a future expiry",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -982,7 +993,8 @@
       "id": "PR-USAGE-041",
       "title": "A reset being spent shows a mini spinner and the word Resetting with a single-character ellipsis",
       "source_evidence": [
-        "DroppyCode/App/Views/Usage/UsageViews.swift:353-360 case .applying(let id) where id == row.id: HStack(spacing: 6) { ProgressView().controlSize(.mini); Text(verbatim: \"Resetting…\").font(.system(.callout)).foregroundStyle(Chrome.secondaryText) }.transition(.blurReplace)"
+        "DroppyCode/App/Views/Usage/UsageViews.swift:353-360 case .applying(let id) where id == row.id: HStack(spacing: 6) { ProgressView().controlSize(.mini); Text(verbatim: \"Resetting…\").font(.system(.callout)).foregroundStyle(Chrome.secondaryText) }.transition(.blurReplace)",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "preconditions": "Reset now was pressed on this row.",
       "action": "The row renders its control.",
@@ -993,7 +1005,7 @@
         "The spinner is bounded only by the provider call; there is no timeout in this view."
       ],
       "cancellation": "The in-flight spend is not cancellable from the UI. Dismissing the panel cancels the settle task (PR-USAGE-044) but the provider call has already been made.",
-      "windows_path": "Small spinner plus a label; the ellipsis must be the U+2026 character.",
+      "windows_path": "Small spinner plus a label; the ellipsis must be the U+2026 character. ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "interaction test with a slow fake registry, asserting the exact string byte for byte",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1031,7 +1043,8 @@
       "title": "The outcome line under the header shows one of four exact messages with a matching symbol and colour",
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:260-273 case .done(let outcome): HStack(spacing: 5) { Image(systemName: outcome == .reset ? \"checkmark.circle.fill\" : \"info.circle\").font(.system(.subheadline, weight: .semibold)).foregroundStyle(outcome == .reset ? Chrome.success : Chrome.secondaryText).symbolEffect(.bounce, value: phase); Text(verbatim: outcome.message).font(.system(.subheadline)).foregroundStyle(outcome == .reset ? Chrome.success : Chrome.secondaryText) }.padding(.top, 4).transition(.blurReplace)",
-        "DroppyCode/Services/Providers/PlanLimits.swift:34-45 enum ResetOutcome { case reset, nothingToReset, noCredit, alreadyRedeemed } with messages \"Usage was reset.\", \"There was no active usage to reset.\", \"No banked resets are left.\", \"That reset was already used.\""
+        "DroppyCode/Services/Providers/PlanLimits.swift:34-45 enum ResetOutcome { case reset, nothingToReset, noCredit, alreadyRedeemed } with messages \"Usage was reset.\", \"There was no active usage to reset.\", \"No banked resets are left.\", \"That reset was already used.\"",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline"
       ],
       "preconditions": "A spend completed without throwing.",
       "action": "The status line renders.",
@@ -1042,7 +1055,7 @@
         "The four outcome rawValues are reset, nothingToReset, noCredit and alreadyRedeemed; they are the app-server's own answers, mapped by the provider reader."
       ],
       "cancellation": "The line is removed when the phase returns to idle after four seconds.",
-      "windows_path": "Status row with two redrawn glyphs; the bounce is a one-shot scale animation. Keep all four sentences verbatim including the full stops.",
+      "windows_path": "Status row with two redrawn glyphs; the bounce is a one-shot scale animation. Keep all four sentences verbatim including the full stops. ED-059: on Windows .subheadline is 11 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "unit test on the four messages plus capture comparison of the success and info variants",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1104,7 +1117,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:274-279 case .failed(let message): Text(verbatim: message).font(.system(.subheadline)).foregroundStyle(Chrome.danger).padding(.top, 4).transition(.blurReplace)",
         "DroppyCode/App/Views/Usage/UsageViews.swift:301 catch { phase = .failed(error.localizedDescription) }",
-        "DroppyCode/Services/Providers/PlanLimits.swift:49-61 enum ResetCreditError - codexUnavailable gives \"Codex CLI not found.\", unknownOutcome gives \"Codex returned an unknown reset result.\", rejected(let message) gives that message unchanged"
+        "DroppyCode/Services/Providers/PlanLimits.swift:49-61 enum ResetCreditError - codexUnavailable gives \"Codex CLI not found.\", unknownOutcome gives \"Codex returned an unknown reset result.\", rejected(let message) gives that message unchanged",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline"
       ],
       "preconditions": "consumeResetCredit threw.",
       "action": "The status line renders.",
@@ -1115,7 +1129,7 @@
         "An error from a lower layer surfaces its own description verbatim; the view adds nothing."
       ],
       "cancellation": "Cleared when the phase returns to idle after four seconds.",
-      "windows_path": "Danger-coloured line with the raw message. Do not wrap the message in a sentence of your own.",
+      "windows_path": "Danger-coloured line with the raw message. Do not wrap the message in a sentence of your own. ED-059: on Windows .subheadline is 11 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
       "verification_method": "unit test on the three error descriptions plus an interaction test with a throwing fake",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1175,7 +1189,9 @@
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:44-57 if let problem = limits.problem { if provider.isAPIKeyBased { HStack(alignment: .center, spacing: 6) { Image(systemName: \"exclamationmark.triangle.fill\").font(.system(.footnote, weight: .semibold)).foregroundStyle(Chrome.warning); Text(verbatim: problem).font(.system(.subheadline)).foregroundStyle(Chrome.secondaryText).lineLimit(2).fixedSize(horizontal: false, vertical: true); Spacer(minLength: 8) }.padding(.top, 14) }",
         "DroppyCode/Services/Providers/PlanLimits.swift:16-17 var problem: String? - Why the read filled no windows, in the provider's own words; shown in place of the bars so an expired login never reads as an unchanged number",
-        "DroppyCode/Core/Models/Provider.swift:101 var isAPIKeyBased - deepseek, meta or zai"
+        "DroppyCode/Core/Models/Provider.swift:101 var isAPIKeyBased - deepseek, meta or zai",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2) - the size ED-059 adopts for .footnote"
       ],
       "preconditions": "The limits object carries a non-nil problem and the provider is one of deepseek, meta or zai.",
       "action": "PlanLimitsView renders the foot of the block.",
@@ -1186,7 +1202,7 @@
         "Of the API-key providers only Z.ai exposes limits, so Z.ai is the only provider that can reach this branch."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Warning row with a redrawn triangle glyph and a two-line clamp.",
+      "windows_path": "Warning row with a redrawn triangle glyph and a two-line clamp. ED-059: on Windows .subheadline is 11 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`); .footnote is 10 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "contract fixture with a Z.ai limits value carrying a problem",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1199,7 +1215,8 @@
       "title": "A signed-in provider's read problem shows Click here to login again beside a Login button",
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:58-69 } else { HStack(spacing: 8) { Text(verbatim: \"Click here to login again\").font(.system(.callout)).foregroundStyle(Chrome.secondaryText); Spacer(minLength: 8); Button(\"Login\") { Workspace.openTerminal(running: provider.loginCommand) }.buttonStyle(.glass).controlSize(.small) }.padding(.top, 14) }",
-        "DroppyCode/Core/Models/Provider.swift:62-79 loginCommand - codex \"codex login\", claude \"claude auth login\", antigravity \"agy\", copilot \"copilot login\", commandcode \"cmd login\", pi \"pi\""
+        "DroppyCode/Core/Models/Provider.swift:62-79 loginCommand - codex \"codex login\", claude \"claude auth login\", antigravity \"agy\", copilot \"copilot login\", commandcode \"cmd login\", pi \"pi\"",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "preconditions": "The limits object carries a non-nil problem and the provider is not API-key based.",
       "action": "PlanLimitsView renders the foot of the block.",
@@ -1212,7 +1229,7 @@
         "The row is a label plus a button, not a clickable row, despite the wording \"Click here\": only the button acts."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Launch the user's terminal running the same command string in a new window. macOS uses Workspace.openTerminal; Windows must use its own terminal launch, which is a recorded platform boundary and must not change the command strings. OD-0005 (owner-approved deviation, not parity): on Windows this glass follows the owner's glass ruling: where the window shows the desktop, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop, the full source-defined material (shape, corner radius, tint colour and opacity, .interactive() and container spacing).",
+      "windows_path": "Launch the user's terminal running the same command string in a new window. macOS uses Workspace.openTerminal; Windows must use its own terminal launch, which is a recorded platform boundary and must not change the command strings. OD-0005 (owner-approved deviation, not parity): on Windows this glass follows the owner's glass ruling: where the window shows the desktop, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop, the full source-defined material (shape, corner radius, tint colour and opacity, .interactive() and container spacing). ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "interaction test asserting the exact argv string handed to the terminal launcher for each of the six providers",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1229,7 +1246,8 @@
       "id": "PR-USAGE-051",
       "title": "A provider that reported no limits at all shows a one-line sentence naming it, but only once loading has stopped",
       "source_evidence": [
-        "DroppyCode/App/Views/Usage/UsageViews.swift:71-76 } else if !isLoading { Text(verbatim: \"\\(provider.displayName) did not report plan limits.\").font(.system(.callout)).foregroundStyle(Chrome.secondaryText).padding(.top, 8) }"
+        "DroppyCode/App/Views/Usage/UsageViews.swift:71-76 } else if !isLoading { Text(verbatim: \"\\(provider.displayName) did not report plan limits.\").font(.system(.callout)).foregroundStyle(Chrome.secondaryText).padding(.top, 8) }",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "preconditions": "The registry holds no PlanLimits for the provider.",
       "action": "PlanLimitsView renders.",
@@ -1240,7 +1258,7 @@
         "Because a nil read is never assigned, a provider that once reported limits and then failed keeps showing the old bars instead of this sentence."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same empty state with the same padding difference.",
+      "windows_path": "Same empty state with the same padding difference. ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "interaction test across loading, loaded-empty and previously-loaded states",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1252,7 +1270,9 @@
       "id": "PR-USAGE-052",
       "title": "Credits row: Remaining credits on the left with a note under it, amount and Top up on the right",
       "source_evidence": [
-        "DroppyCode/App/Views/Usage/UsageViews.swift:94-124 HStack(alignment: .center, spacing: 16) { VStack(alignment: .leading, spacing: 2) { Text(verbatim: \"Remaining credits\").font(.system(.body)).foregroundStyle(Chrome.primaryText); if let note ... } ; Spacer(minLength: 12); HStack(spacing: 10) { if isLoading { ProgressView().controlSize(.mini) }; if let credits { Text(verbatim: credits.amountText)... }; if let topUpURL = CreditsReader.topUpURL(provider) { Link(\"Top up\", destination: topUpURL).buttonStyle(.glass).controlSize(.small) } } }"
+        "DroppyCode/App/Views/Usage/UsageViews.swift:94-124 HStack(alignment: .center, spacing: 16) { VStack(alignment: .leading, spacing: 2) { Text(verbatim: \"Remaining credits\").font(.system(.body)).foregroundStyle(Chrome.primaryText); if let note ... } ; Spacer(minLength: 12); HStack(spacing: 10) { if isLoading { ProgressView().controlSize(.mini) }; if let credits { Text(verbatim: credits.amountText)... }; if let topUpURL = CreditsReader.topUpURL(provider) { Link(\"Top up\", destination: topUpURL).buttonStyle(.glass).controlSize(.small) } } }",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline"
       ],
       "preconditions": "CreditsView is rendering.",
       "action": "The row renders.",
@@ -1263,7 +1283,7 @@
         "With no balance and no loading, the right-hand group holds only the Top up button."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Flex row; the left column grows, the right group keeps intrinsic width. OD-0005 (owner-approved deviation, not parity): on Windows this glass follows the owner's glass ruling: where the window shows the desktop, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop, the full source-defined material (shape, corner radius, tint colour and opacity, .interactive() and container spacing).",
+      "windows_path": "Flex row; the left column grows, the right group keeps intrinsic width. OD-0005 (owner-approved deviation, not parity): on Windows this glass follows the owner's glass ruling: where the window shows the desktop, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop, the full source-defined material (shape, corner radius, tint colour and opacity, .interactive() and container spacing). ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`); .subheadline is 11 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
       "verification_method": "capture comparison across loading, loaded and failed states",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1281,7 +1301,8 @@
       "title": "The credits note has four states: silent while loading, a failure sentence, a depletion sentence, or the breakdown",
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:130-138 private func note(for credits: ProviderCredits?, isLoading: Bool) -> String? { guard let credits else { return isLoading ? nil : \"\\(provider.displayName) did not report a balance.\" }; if credits.isDepleted { return \"\\(provider.displayName) declines turns until the balance is topped up.\" }; return credits.breakdownText }",
-        "DroppyCode/App/Views/Usage/UsageViews.swift:99-104 if let note ... Text(verbatim: note).font(.system(.subheadline)).foregroundStyle(Chrome.secondaryText).fixedSize(horizontal: false, vertical: true)"
+        "DroppyCode/App/Views/Usage/UsageViews.swift:99-104 if let note ... Text(verbatim: note).font(.system(.subheadline)).foregroundStyle(Chrome.secondaryText).fixedSize(horizontal: false, vertical: true)",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline"
       ],
       "preconditions": "CreditsView is rendering.",
       "action": "The note is computed.",
@@ -1292,7 +1313,7 @@
         "A non-depleted balance the provider reported as one number has no breakdown and therefore no note."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same four-way ladder; both sentences end with a full stop.",
+      "windows_path": "Same four-way ladder; both sentences end with a full stop. ED-059: on Windows .subheadline is 11 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "unit test over the four states",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1306,7 +1327,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:111-117 if let credits { Text(verbatim: credits.amountText).font(.system(.body, weight: .semibold)).monospacedDigit().foregroundStyle(credits.isDepleted ? Chrome.danger : Chrome.primaryText).lineLimit(1) }",
         "DroppyCode/Services/Providers/ProviderCredits.swift:21 var amountText: String { Self.money(total, currency: currency) }",
-        "DroppyCode/Services/Providers/ProviderCredits.swift:32 var isDepleted: Bool { !isUsable || total <= 0 }"
+        "DroppyCode/Services/Providers/ProviderCredits.swift:32 var isDepleted: Bool { !isUsable || total <= 0 }",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "preconditions": "A balance is known.",
       "action": "The amount renders.",
@@ -1317,7 +1339,7 @@
         "A usable account with a total of exactly 0 is depleted and reads in danger with the declining-turns note."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Tabular-numeral semibold label with a conditional danger colour.",
+      "windows_path": "Tabular-numeral semibold label with a conditional danger colour. ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
       "verification_method": "unit test on isDepleted over (usable, 0), (usable, 0.01), (unusable, 5)",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1477,7 +1499,8 @@
       "title": "An empty floating panel shows a sentence naming the provider and reports a fixed content height",
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:38-45 } else { Text(verbatim: \"Nothing to show for \\(provider.displayName) yet.\").font(.system(.body)).foregroundStyle(Chrome.secondaryText).padding(.top, HydraPanel.stripHeight).frame(maxWidth: .infinity, maxHeight: .infinity).onAppear { onContentHeight(HydraPanel.stripHeight + 44) } }",
-        "porting/port_impacts.md:410 entry 201 - stripHeight derived as 50, reported content height measured + 58 and 94 for the empty state"
+        "porting/port_impacts.md:410 entry 201 - stripHeight derived as 50, reported content height measured + 58 and 94 for the empty state",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "preconditions": "hasSomething is false.",
       "action": "The panel renders.",
@@ -1490,7 +1513,7 @@
         "The sentence ends with a full stop and the provider's display name is interpolated, not a generic word."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Centred placeholder with a 50px top inset; report 94px to the placer on mount.",
+      "windows_path": "Centred placeholder with a 50px top inset; report 94px to the placer on mount. ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "interaction test with a provider that exposes nothing, asserting the reported height",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1542,7 +1565,7 @@
         "Adding a border to compensate for a missing glass effect changes the panel's read and is not parity."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Windows has no Liquid Glass. The glass layer follows OD-0005, an owner-approved deviation, not parity (UNK-0004 resolved as an accepted deviation): where the window shows the desktop behind the panel, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop behind the panel, the full source-defined material is reproduced: the continuous rounded rectangle of radius 22 and the Chrome.glassTint tint at 0.22 in dark or 0.16 in light. In both cases the layer order, the scrim opacities and the exact shadow are reproduced as specified above.",
+      "windows_path": "Windows has no Liquid Glass. The glass layer follows OD-0005, an owner-approved deviation, not parity (UNK-0004 resolved as an accepted deviation): where the window shows the desktop behind the panel, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop behind the panel, the full source-defined material is reproduced: the continuous rounded rectangle of radius 22 and the Chrome.glassTint tint at 0.22 in dark or 0.16 in light. In both cases the layer order, the scrim opacities and the exact shadow are reproduced as specified above. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the panel's glass sits over the desktop and takes the Acrylic branch (Acrylic plus the app-drawn scrim, probe P3); the drawn material applies once a wallpaper is set. This default is exact parity, not a deviation.",
       "verification_method": "capture comparison in both themes against the reference panel",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1571,7 +1594,7 @@
         "Animating this frame produces visible lag during a window drag."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Disable the panel's layout transition while the window is being resized; the Windows shell must expose an equivalent live-resize flag.",
+      "windows_path": "Disable the panel's layout transition while the window is being resized; the Windows shell must expose an equivalent live-resize flag. OD-0013: the window live resize this record reacts to is the main window's, whose live-resize edge strip measured by probe P4 (a 3-5 px strip of the window's own backdrop on growing edges and a clip of about a frame on shrinking edges while the pointer moves) must be fixed before the main window chrome is accepted, and is not downgraded to a deviation; the panel behaviour specified here is unchanged.",
       "verification_method": "interaction test resizing the window and sampling the panel frame per frame",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2792,7 +2815,7 @@
         ".callout and .subheadline differ by one point, so a site mapped to the wrong style is off by one point and easy to miss in a capture."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Resolve the four styles through one table to 13, 12, 11 and 10 pixels at 100% zoom, taken from upstream's B1 table, and apply them per site as listed. Whether they should follow a system text-size setting is not settled by the pinned source (UNKNOWN, UNVERIFIED under UNK-0003); flag it rather than decide it. The face follows OD-0009.",
+      "windows_path": "Resolve the four styles through one table to 13, 12, 11 and 10 pixels at 100% zoom, taken from upstream's B1 table, and apply them per site as listed. ED-059 settles the scaling question for the port: each style is fixed at the size in upstream's B1 table (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, :52 `case .callout: 12`, :53 `case .subheadline: 11`, :54 `case .footnote, .caption, .caption2: 10`) and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; the port does not follow a Windows text-size setting. Visual size parity with macOS stays UNVERIFIED (OD-0001, UNK-0003). The face follows OD-0009 (Inter).",
       "verification_method": "static check that every font site in the usage views uses the style listed in source_evidence, a unit test on the style-to-size table (body 13, callout 12, subheadline 11, footnote 10), and a capture comparison of the popover at the default zoom; the macOS side of the table stays UNVERIFIED (OD-0001, UNK-0003)",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2857,15 +2880,16 @@
       "role": "label",
       "exact_text": "Usage",
       "geometry": "Header row padded 10 at the top and 16 on both sides; Spacer(minLength: 8) separates it from the button.",
-      "typography": "Text style .callout, semibold (12 point at the macOS default per upstream's B1 table; UNVERIFIED).",
-      "colors": "Chrome.secondaryText, which is Chrome.primaryText (Color(nsColor: .labelColor)) at 0.7 opacity and resolves per appearance.",
+      "typography": "Text style .callout, semibold (12 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
+      "colors": "Chrome.secondaryText, which is Chrome.primaryText (Color(nsColor: .labelColor)) at 0.7 opacity and resolves per appearance. ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "states": [
         "static; no hover, disabled or loading variant"
       ],
       "interactions": [],
       "source_evidence": [
         "DroppyCode/App/Views/Composer/ComposerView.swift:743-746",
-        "DroppyCode/UI/Chrome/Chrome.swift:76-79"
+        "DroppyCode/UI/Chrome/Chrome.swift:76-79",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "notes": "The field capture at porting/reference_captures/usage/v1/limits.webp shows the panel without this header row; the capture predates it. Source wins.",
       "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:745 `.font(.system(size: 12, weight: .semibold))` -> B2 DroppyCode/App/Views/Composer/ComposerView.swift:745 `.font(.system(.callout, weight: .semibold))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Colour: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`."
@@ -2877,7 +2901,7 @@
       "role": "button",
       "exact_text": null,
       "geometry": "32 x 32 points (Chrome.capsuleHeight), circular hit shape, at the trailing end of the header row.",
-      "typography": "Glyph at Chrome.iconFont: text style .callout, semibold (12 point at the macOS default per upstream's B1 table; UNVERIFIED).",
+      "typography": "Glyph at Chrome.iconFont: text style .callout, semibold (12 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
       "colors": "Glyph Chrome.primaryText at 0.92 opacity, rising to 1 on hover. Surface: chromeGlassCircle, a Circle with glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive()).",
       "states": [
         "rest: glyph at 0.92",
@@ -2891,7 +2915,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/ComposerView.swift:748-753",
         "DroppyCode/UI/Chrome/Chrome.swift:413-436",
-        "DroppyCode/UI/Chrome/Chrome.swift:28"
+        "DroppyCode/UI/Chrome/Chrome.swift:28",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "notes": "Tooltip and accessibility label are the same string. The glyph follows OD-0010: arrow.up.right maps to Lucide arrow-up-right through the published symbol-by-symbol table (porting/icons/sf-symbols-to-lucide.json), which closes the icon half of UNK-0007; SF Symbols cannot ship. OD-0005 (owner-approved deviation, not parity): on Windows this glass follows the owner's glass ruling: where the window shows the desktop, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop, the full source-defined material (shape, corner radius, tint colour and opacity, .interactive() and container spacing).",
       "b2_change": "B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(.callout, weight: .semibold)`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Colours, surface and geometry unchanged.",
@@ -2908,14 +2933,15 @@
       "role": "label",
       "exact_text": "Context window",
       "geometry": "Left item of an HStack; Spacer(minLength: 12) to its right. The row is the first child of the panel's VStack, so it sits at the 16 point content inset.",
-      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED), applied to the whole row.",
-      "colors": "Chrome.secondaryText.",
+      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED), applied to the whole row. ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
+      "colors": "Chrome.secondaryText. ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "states": [
         "absent when the usage has no fraction or no windowTokens"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Usage/UsagePanel.swift:35-43"
+        "DroppyCode/App/Views/Usage/UsagePanel.swift:35-43",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "This label uses the localized Text(\"...\") form rather than Text(verbatim:), which in this checkout resolves to the key itself because no string catalogue exists; port it as a plain string (port_impacts entry 207).",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsagePanel.swift:43 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsagePanel.swift:43 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String and colour unchanged."
@@ -2927,8 +2953,8 @@
       "role": "label",
       "exact_text": "<used> / <window> (<n>%)",
       "geometry": "Trailing item of the context row.",
-      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED), inherited from the row, with monospaced digits.",
-      "colors": "Chrome.secondaryText.",
+      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED), inherited from the row, with monospaced digits. ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
+      "colors": "Chrome.secondaryText. ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "states": [
         "always present when the row is present"
       ],
@@ -2936,7 +2962,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsagePanel.swift:39",
         "DroppyCode/App/Views/Usage/UsagePanel.swift:110-119",
-        "DroppyCode/App/Views/Usage/UsagePanel.swift:43"
+        "DroppyCode/App/Views/Usage/UsagePanel.swift:43",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "Spaces are load-bearing: one space either side of the slash and one before the opening parenthesis, none inside it. Counts are compacted with k, M and B and a stripped .0.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsagePanel.swift:43 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsagePanel.swift:43 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). The value inherits the row font; monospacedDigit unchanged."
@@ -2970,7 +2997,7 @@
       "role": "label",
       "exact_text": "Lead · <provider display name> | Heads · <provider display name>",
       "geometry": "HStack with 6 points of spacing; a 13 x 13 provider icon then the text; 8 points of bottom padding.",
-      "typography": "Text style .callout, semibold (12 point at the macOS default per upstream's B1 table; UNVERIFIED).",
+      "typography": "Text style .callout, semibold (12 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
       "colors": "Chrome.primaryText; the icon is the provider's own asset.",
       "states": [
         "absent unless a distinct heads provider is set",
@@ -2979,7 +3006,8 @@
       "interactions": [],
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsagePanel.swift:91-97",
-        "porting/reference_captures/usage/v1/limits.webp"
+        "porting/reference_captures/usage/v1/limits.webp",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "notes": "The separator is U+00B7 MIDDLE DOT with one space each side. The role words are the literals Lead and Heads.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsagePanel.swift:94 `.font(.system(size: 12, weight: .semibold))` -> B2 DroppyCode/App/Views/Usage/UsagePanel.swift:94 `.font(.system(.callout, weight: .semibold))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Icon, spacing and string unchanged."
@@ -2991,8 +3019,8 @@
       "role": "label",
       "exact_text": "Plan usage limits | Plan usage limits · <plan name>",
       "geometry": "HStack with 8 points of spacing; Spacer(minLength: 8) before the spinner slot.",
-      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED).",
-      "colors": "Chrome.secondaryText.",
+      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
+      "colors": "Chrome.secondaryText. ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "states": [
         "no plan name: the bare header",
         "plan name present: header, spaced middle dot, plan name",
@@ -3002,7 +3030,8 @@
       "interactions": [],
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:16-24",
-        "porting/reference_captures/usage/v1/limits.webp"
+        "porting/reference_captures/usage/v1/limits.webp",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "Claude's plan name is composed upstream as, for example, Max (20x); Codex has its own name table. The view prints whatever it is given.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:18 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:18 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Strings unchanged."
@@ -3033,7 +3062,7 @@
       "role": "label",
       "exact_text": "<window title>, for example 5-hour limit, Weekly · all models, Weekly · Fable, Daily, Weekly, Monthly, Extra usage, Usage limit, <n>-day limit, <n>-hour limit",
       "geometry": "Leading item of an HStack with 12 points of spacing, inside a VStack with 8 points of spacing; the row block is padded 14 at the top.",
-      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED).",
+      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
       "colors": "Chrome.primaryText.",
       "states": [
         "one line only; a long title truncates with an ellipsis"
@@ -3042,7 +3071,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:145-151",
         "DroppyCode/Services/Providers/PlanLimits.swift:92-102, :294-326",
-        "porting/reference_captures/usage/v1/limits.webp"
+        "porting/reference_captures/usage/v1/limits.webp",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "Titles are produced by the provider readers, not by this view. The per-model weekly bucket is the group and the model display name joined by a spaced middle dot.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:148 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:148 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Colour and lineLimit unchanged."
@@ -3054,8 +3084,8 @@
       "role": "label",
       "exact_text": "Resets in <h> hr <m> min | Resets in <m> min | Resets <Abbreviated weekday> <time> | Resets <Abbreviated month> <day>",
       "geometry": "Between the title's Spacer(minLength: 8) and the percentage.",
-      "typography": "Text style .callout (12 point at the macOS default per upstream's B1 table; UNVERIFIED).",
-      "colors": "Chrome.secondaryText.",
+      "typography": "Text style .callout (12 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
+      "colors": "Chrome.secondaryText. ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "states": [
         "absent when the window carries no reset date",
         "one line, never truncated away before the title is"
@@ -3063,7 +3093,8 @@
       "interactions": [],
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:152-157, :180-191",
-        "porting/reference_captures/usage/v1/limits.webp"
+        "porting/reference_captures/usage/v1/limits.webp",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "notes": "The word Resets plus one space is added by the row; the rest comes from resetText. A past date reads Resets in 1 min, never in 0 min.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:154 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:154 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Strings unchanged."
@@ -3075,15 +3106,16 @@
       "role": "label",
       "exact_text": "<n>%",
       "geometry": "Trailing item of the row.",
-      "typography": "Text style .callout (12 point at the macOS default per upstream's B1 table; UNVERIFIED) with monospaced digits.",
-      "colors": "Chrome.secondaryText; the percentage never takes the warning or danger colour.",
+      "typography": "Text style .callout (12 point at the macOS default per upstream's B1 table; UNVERIFIED) with monospaced digits. ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
+      "colors": "Chrome.secondaryText; the percentage never takes the warning or danger colour. ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "states": [
         "always present when the row is present",
         "unclamped: a negative reported percent prints as a negative number"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Usage/UsageViews.swift:158-161"
+        "DroppyCode/App/Views/Usage/UsageViews.swift:158-161",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "notes": "Rounded, not truncated, and no space before the percent sign.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:159 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:159 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). monospacedDigit unchanged."
@@ -3095,8 +3127,8 @@
       "role": "label",
       "exact_text": "<reader-supplied detail>",
       "geometry": "Second child of the row's VStack, 8 points below the title row and 8 above the bar.",
-      "typography": "Text style .subheadline (11 point at the macOS default per upstream's B1 table; UNVERIFIED).",
-      "colors": "Chrome.secondaryText.",
+      "typography": "Text style .subheadline (11 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .subheadline is 11 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
+      "colors": "Chrome.secondaryText. ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "states": [
         "absent when the window carries no detail",
         "one line, truncating"
@@ -3104,7 +3136,8 @@
       "interactions": [],
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:163-168",
-        "porting/port_impacts.md:12 entry 2"
+        "porting/port_impacts.md:12 entry 2",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline"
       ],
       "notes": "Only the Z.ai reader supplies this in the pinned source. Do not invent detail strings for other providers.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:165 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:165 `.font(.system(.subheadline))`. At the macOS default .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Presence rule and lineLimit unchanged."
@@ -3137,15 +3170,17 @@
       "role": "label",
       "exact_text": "<provider's own message>",
       "geometry": "Centre-aligned HStack with 6 points of spacing, padded 14 at the top; a warning triangle, the text, then Spacer(minLength: 8).",
-      "typography": "Glyph in text style .footnote, semibold (10 point at the macOS default per upstream's B1 table; UNVERIFIED); text in text style .subheadline (11 point at the macOS default per upstream's B1 table; UNVERIFIED).",
-      "colors": "Glyph Chrome.warning; text Chrome.secondaryText.",
+      "typography": "Glyph in text style .footnote, semibold (10 point at the macOS default per upstream's B1 table; UNVERIFIED); text in text style .subheadline (11 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .subheadline is 11 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`); .footnote is 10 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
+      "colors": "Glyph Chrome.warning; text Chrome.secondaryText. ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "states": [
         "shown only when the limits carry a problem and the provider is deepseek, meta or zai",
         "text wraps to at most two lines and grows the row vertically"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Usage/UsageViews.swift:44-57"
+        "DroppyCode/App/Views/Usage/UsageViews.swift:44-57",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2) - the size ED-059 adopts for .footnote"
       ],
       "notes": "The glyph is exclamationmark.triangle.fill and must be redrawn. Of the API-key providers only Z.ai exposes limits, so only Z.ai can reach this.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:48 `.font(.system(size: 10, weight: .semibold))`; B1 DroppyCode/App/Views/Usage/UsageViews.swift:51 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:48 `.font(.system(.footnote, weight: .semibold))`; B2 DroppyCode/App/Views/Usage/UsageViews.swift:51 `.font(.system(.subheadline))`. At the macOS default .footnote is 10 and .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`; DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Colours, lineLimit and padding unchanged."
@@ -3157,14 +3192,15 @@
       "role": "label",
       "exact_text": "Click here to login again",
       "geometry": "HStack with 8 points of spacing, padded 14 at the top; the text, Spacer(minLength: 8), then the Login button.",
-      "typography": "Text style .callout (12 point at the macOS default per upstream's B1 table; UNVERIFIED).",
-      "colors": "Chrome.secondaryText.",
+      "typography": "Text style .callout (12 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
+      "colors": "Chrome.secondaryText. ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "states": [
         "shown only when the limits carry a problem and the provider is not API-key based"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Usage/UsageViews.swift:58-69"
+        "DroppyCode/App/Views/Usage/UsageViews.swift:58-69",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "notes": "Despite the wording, the label is not clickable; only the adjacent button acts. The provider's own problem text is not shown on this branch.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:61 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:61 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String unchanged."
@@ -3203,15 +3239,16 @@
       "role": "label",
       "exact_text": "<provider display name> did not report plan limits.",
       "geometry": "Padded 8 at the top, directly under the header.",
-      "typography": "Text style .callout (12 point at the macOS default per upstream's B1 table; UNVERIFIED).",
-      "colors": "Chrome.secondaryText.",
+      "typography": "Text style .callout (12 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
+      "colors": "Chrome.secondaryText. ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "states": [
         "shown only when no limits are stored AND the provider is not loading",
         "hidden while loading, leaving header plus spinner alone"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Usage/UsageViews.swift:71-76"
+        "DroppyCode/App/Views/Usage/UsageViews.swift:71-76",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "notes": "The top padding here is 8, not the 14 used by the problem rows. The sentence ends with a full stop.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:73 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:73 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String and padding unchanged."
@@ -3223,14 +3260,15 @@
       "role": "label",
       "exact_text": "Banked resets",
       "geometry": "HStack with 6 points of spacing; the block is padded 14 at the top and preceded by a divider when there are windows.",
-      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED).",
+      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
       "colors": "Chrome.primaryText.",
       "states": [
         "present only when the provider reported reset credits"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Usage/UsageViews.swift:228-238"
+        "DroppyCode/App/Views/Usage/UsageViews.swift:228-238",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "Combined with the count into one accessibility element, read as for example Banked resets, 2 available.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:230 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:230 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String unchanged."
@@ -3242,8 +3280,8 @@
       "role": "label",
       "exact_text": "· None available yet | · 1 available | · <n> available",
       "geometry": "Immediately after the header, 6 points apart.",
-      "typography": "Text style .callout (12 point at the macOS default per upstream's B1 table; UNVERIFIED), with a numeric text content transition.",
-      "colors": "Chrome.secondaryText.",
+      "typography": "Text style .callout (12 point at the macOS default per upstream's B1 table; UNVERIFIED), with a numeric text content transition. ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
+      "colors": "Chrome.secondaryText. ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "states": [
         "0: None available yet",
         "1: 1 available",
@@ -3252,7 +3290,8 @@
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Usage/UsageViews.swift:232-235, :285-291"
+        "DroppyCode/App/Views/Usage/UsageViews.swift:232-235, :285-291",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "notes": "The leading U+00B7 and its trailing space belong to this label, not to the header.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:233 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:233 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Strings and transition unchanged."
@@ -3264,8 +3303,8 @@
       "role": "label",
       "exact_text": "Usage was reset. | There was no active usage to reset. | No banked resets are left. | That reset was already used.",
       "geometry": "HStack with 5 points of spacing, padded 4 at the top, directly under the header.",
-      "typography": "Glyph in text style .subheadline, semibold; text in text style .subheadline (11 point at the macOS default for both per upstream's B1 table; UNVERIFIED).",
-      "colors": "Chrome.success for the reset outcome, Chrome.secondaryText for the other three, applied to both glyph and text.",
+      "typography": "Glyph in text style .subheadline, semibold; text in text style .subheadline (11 point at the macOS default for both per upstream's B1 table; UNVERIFIED). ED-059: on Windows .subheadline is 11 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
+      "colors": "Chrome.success for the reset outcome, Chrome.secondaryText for the other three, applied to both glyph and text. ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "states": [
         "reset: filled check-circle glyph in the success colour",
         "nothingToReset, noCredit, alreadyRedeemed: info-circle glyph in the secondary colour",
@@ -3275,7 +3314,8 @@
       "interactions": [],
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:260-273",
-        "DroppyCode/Services/Providers/PlanLimits.swift:34-45"
+        "DroppyCode/Services/Providers/PlanLimits.swift:34-45",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline"
       ],
       "notes": "Glyphs are checkmark.circle.fill and info.circle. All four sentences end with a full stop.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:265 `.font(.system(size: 11, weight: .semibold))`; B1 DroppyCode/App/Views/Usage/UsageViews.swift:269 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:265 `.font(.system(.subheadline, weight: .semibold))`; B2 DroppyCode/App/Views/Usage/UsageViews.swift:269 `.font(.system(.subheadline))`. At the macOS default .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Messages, symbols, colours and bounce unchanged."
@@ -3287,7 +3327,7 @@
       "role": "label",
       "exact_text": "<error description>, for example Codex CLI not found. or Codex returned an unknown reset result.",
       "geometry": "Padded 4 at the top, directly under the header. No glyph.",
-      "typography": "Text style .subheadline (11 point at the macOS default per upstream's B1 table; UNVERIFIED).",
+      "typography": "Text style .subheadline (11 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .subheadline is 11 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
       "colors": "Chrome.danger.",
       "states": [
         "shown for four seconds after a failed spend, then removed",
@@ -3296,7 +3336,8 @@
       "interactions": [],
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:274-279",
-        "DroppyCode/Services/Providers/PlanLimits.swift:49-61"
+        "DroppyCode/Services/Providers/PlanLimits.swift:49-61",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline"
       ],
       "notes": "The message is the error's own description, printed with nothing added. A provider rejection passes its own text through unchanged.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:276 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:276 `.font(.system(.subheadline))`. At the macOS default .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Colour and message unchanged."
@@ -3308,7 +3349,7 @@
       "role": "label",
       "exact_text": "<credit title> | Reset <n> | Reset",
       "geometry": "First line of the row's left column, which uses 2 points of spacing; the row is padded 12 at the top.",
-      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED).",
+      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
       "colors": "Chrome.primaryText.",
       "states": [
         "one line, truncating",
@@ -3316,7 +3357,8 @@
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Usage/UsageViews.swift:323-328"
+        "DroppyCode/App/Views/Usage/UsageViews.swift:323-328",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "The index counts all rows, listed and placeholder together, and is one-based.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:326 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:326 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Fallback ladder unchanged."
@@ -3328,15 +3370,16 @@
       "role": "label",
       "exact_text": "<credit detail> | No expiry reported | Expired | Expires <reset text>",
       "geometry": "Second line of the row's left column, 2 points under the title.",
-      "typography": "Text style .subheadline (11 point at the macOS default per upstream's B1 table; UNVERIFIED).",
-      "colors": "Chrome.secondaryText.",
+      "typography": "Text style .subheadline (11 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .subheadline is 11 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
+      "colors": "Chrome.secondaryText. ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "states": [
         "always present; never omitted",
         "one line, truncating"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Usage/UsageViews.swift:329-332, :339-343"
+        "DroppyCode/App/Views/Usage/UsageViews.swift:329-332, :339-343",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline"
       ],
       "notes": "A placeholder row always reads No expiry reported, because its credit is nil. Expired wins at exactly the current instant.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:330 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:330 `.font(.system(.subheadline))`. At the macOS default .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Expiry strings unchanged."
@@ -3425,15 +3468,16 @@
       "role": "progress indicator",
       "exact_text": "Resetting…",
       "geometry": "HStack with 6 points of spacing at the trailing end of the row: a mini spinner then the label.",
-      "typography": "Text style .callout (12 point at the macOS default per upstream's B1 table; UNVERIFIED).",
-      "colors": "Chrome.secondaryText.",
+      "typography": "Text style .callout (12 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
+      "colors": "Chrome.secondaryText. ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "states": [
         "present only on the row being spent",
         "blur-replace transition in and out"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Usage/UsageViews.swift:353-360"
+        "DroppyCode/App/Views/Usage/UsageViews.swift:353-360",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "notes": "The ellipsis is the single character U+2026, not three periods.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:357 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:357 `.font(.system(.callout))`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String and spinner unchanged."
@@ -3445,14 +3489,15 @@
       "role": "label",
       "exact_text": "Remaining credits",
       "geometry": "First line of the left column of a centre-aligned HStack with 16 points of spacing; the column uses 2 points of spacing.",
-      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED).",
+      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
       "colors": "Chrome.primaryText.",
       "states": [
         "always present when the credits row is drawn"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Usage/UsageViews.swift:94-98"
+        "DroppyCode/App/Views/Usage/UsageViews.swift:94-98",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "Shown for DeepSeek and Command Code only.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:97 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:97 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String unchanged."
@@ -3464,8 +3509,8 @@
       "role": "label",
       "exact_text": "<provider display name> did not report a balance. | <provider display name> declines turns until the balance is topped up. | Monthly <money> · Topped up <money> · Granted <money>",
       "geometry": "Second line of the left column, 2 points under the title; wraps to as many lines as needed.",
-      "typography": "Text style .subheadline (11 point at the macOS default per upstream's B1 table; UNVERIFIED).",
-      "colors": "Chrome.secondaryText.",
+      "typography": "Text style .subheadline (11 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .subheadline is 11 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
+      "colors": "Chrome.secondaryText. ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "states": [
         "loading with no balance: no note at all",
         "not loading with no balance: the did-not-report sentence",
@@ -3475,7 +3520,8 @@
       "interactions": [],
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:99-104, :130-138",
-        "DroppyCode/Services/Providers/ProviderCredits.swift:23-30"
+        "DroppyCode/Services/Providers/ProviderCredits.swift:23-30",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2) - the size ED-059 adopts for .subheadline"
       ],
       "notes": "Breakdown parts appear in the fixed order Monthly, Topped up, Granted, only when strictly positive, joined by a spaced middle dot.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:101 `.font(.system(size: 11))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:101 `.font(.system(.subheadline))`. At the macOS default .subheadline is 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Note states unchanged."
@@ -3487,7 +3533,7 @@
       "role": "label",
       "exact_text": "<formatted money>, for example $0.43",
       "geometry": "Second item of the right-hand group, which uses 10 points of spacing, after Spacer(minLength: 12).",
-      "typography": "Text style .body, semibold (13 point at the macOS default per upstream's B1 table; UNVERIFIED), monospaced digits.",
+      "typography": "Text style .body, semibold (13 point at the macOS default per upstream's B1 table; UNVERIFIED), monospaced digits. ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
       "colors": "Chrome.primaryText normally, Chrome.danger when the balance is depleted.",
       "states": [
         "absent until a balance has been read",
@@ -3497,7 +3543,8 @@
       "interactions": [],
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageViews.swift:111-117",
-        "DroppyCode/Services/Providers/ProviderCredits.swift:21, :32-49"
+        "DroppyCode/Services/Providers/ProviderCredits.swift:21, :32-49",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "Currency formatting is pinned to en_US regardless of the user's locale, so it reads $0.43 rather than US$ 0,43.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageViews.swift:113 `.font(.system(size: 13, weight: .semibold))` -> B2 DroppyCode/App/Views/Usage/UsageViews.swift:113 `.font(.system(.body, weight: .semibold))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). monospacedDigit, lineLimit and colours unchanged."
@@ -3598,7 +3645,7 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:489-528, :945-954",
         "porting/reference_captures/field/field-03-sidebar-usage-twopanels.webp"
       ],
-      "notes": "OD-0005 (owner-approved deviation, not parity; UNK-0004 resolved as an accepted deviation): where the window shows the desktop behind the panel, the glass layer is a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop, the full source-defined material is reproduced (shape, radius 22, tint colour and opacity). The layer order, both theme tints, both scrim opacities and the exact shadow must be reproduced in both cases.",
+      "notes": "OD-0005 (owner-approved deviation, not parity; UNK-0004 resolved as an accepted deviation): where the window shows the desktop behind the panel, the glass layer is a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop, the full source-defined material is reproduced (shape, radius 22, tint colour and opacity). The layer order, both theme tints, both scrim opacities and the exact shadow must be reproduced in both cases. OD-0013: the live window resize in the states above is the main window's, whose live-resize edge strip (probe P4) must be fixed before the main window chrome is accepted, and is not downgraded to a deviation; the panel behaviour specified here is unchanged. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper this panel's glass sits over the desktop and takes the Acrylic branch (Acrylic plus the app-drawn scrim, probe P3); the drawn material applies once a wallpaper is set.",
       "b2_change": "No behaviour change. Flagged citation re-checked at B2: DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:24-74 is the same body on the same lines; the only B2 edit inside it is :40 `.font(.system(size: 13))` -> `.font(.system(.body))`, which UI-USAGE-040 specifies. Shape, layers, tints, scrim and shadow unchanged.",
       "deviation": {
         "decision": "OD-0005",
@@ -3663,7 +3710,7 @@
       "role": "button",
       "exact_text": null,
       "geometry": "32 x 32 points, circular; inset 12 from the panel top and 14 from the trailing edge.",
-      "typography": "Glyph at Chrome.iconFont: text style .callout, semibold (12 point at the macOS default per upstream's B1 table; UNVERIFIED).",
+      "typography": "Glyph at Chrome.iconFont: text style .callout, semibold (12 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
       "colors": "Glyph Chrome.primaryText at 0.92, rising to 1 on hover; chromeGlassCircle surface.",
       "states": [
         "rest and hover as above; no disabled state"
@@ -3675,7 +3722,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:105-109",
         "DroppyCode/App/Views/Chat/ChatView.swift:520-525",
-        "DroppyCode/UI/Chrome/Chrome.swift:28"
+        "DroppyCode/UI/Chrome/Chrome.swift:28",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2) - the size ED-059 adopts for .callout"
       ],
       "notes": "The tooltip contains a semicolon and is also the accessibility label. Closing is app-wide, not per chat. OD-0005 (owner-approved deviation, not parity): on Windows this glass follows the owner's glass ruling: where the window shows the desktop, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop, the full source-defined material (shape, corner radius, tint colour and opacity, .interactive() and container spacing).",
       "b2_change": "B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(.callout, weight: .semibold)`. At the macOS default .callout is 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Not flagged by the citation remap because UsageFloatingPanel.swift:105-109 is unchanged; the glyph font comes from Chrome.iconFont. Tooltip, geometry and colours unchanged.",
@@ -3692,14 +3740,15 @@
       "role": "label",
       "exact_text": "Nothing to show for <provider display name> yet.",
       "geometry": "Padded 50 at the top, then centred in the remaining width and height. The panel reports a wanted height of 94 points.",
-      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED).",
-      "colors": "Chrome.secondaryText.",
+      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED). ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
+      "colors": "Chrome.secondaryText. ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "states": [
         "shown when the lead has no fraction and neither provider exposes limits or credits"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:38-45"
+        "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:38-45",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "The panel's own hasSomething predicate tests only the fraction while the body's context test also requires windowTokens; keep both as written.",
       "b2_change": "B1 DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:40 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:40 `.font(.system(.body))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). String, padding and reported height unchanged."
@@ -3793,7 +3842,7 @@
       "role": "button",
       "exact_text": "Daily | Weekly | Cumulative",
       "geometry": "Chips in the section header row, following Spacer(minLength: 12), rendered in case order.",
-      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED); medium weight for the selected chip, regular for the others.",
+      "typography": "Text style .body (13 point at the macOS default per upstream's B1 table; UNVERIFIED); medium weight for the selected chip, regular for the others. ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001).",
       "colors": "Chip button style with an active variant.",
       "states": [
         "selected: medium weight and the active chip style; marked selected to assistive technology",
@@ -3805,7 +3854,8 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Settings/TokenActivitySection.swift:61-87",
-        "DroppyCode/Services/Store/TokenLedger.swift:589-602"
+        "DroppyCode/Services/Store/TokenLedger.swift:589-602",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "The three titles come from TokenActivityMode, which is in this area; the section's own layout, heatmap canvas and legend belong to the settings area's specification.",
       "b2_change": "B1 DroppyCode/App/Views/Settings/TokenActivitySection.swift:77 `.font(.system(size: 13, weight: mode == option ? .medium : .regular))` -> B2 DroppyCode/App/Views/Settings/TokenActivitySection.swift:77 `.font(.system(.body, weight: mode == option ? .medium : .regular))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Titles, order, chip style and the 0.45 second blend unchanged."

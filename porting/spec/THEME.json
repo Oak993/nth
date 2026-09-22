@@ -863,7 +863,7 @@
         "None expressed in source."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Platform boundary: Windows has no Liquid Glass. The tint colour and its per-site opacity are the parity contract; the backdrop material underneath is specified by the WIN area. Whatever material Windows uses, the theme surface must be composited over it at exactly these opacities. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field.",
+      "windows_path": "Platform boundary: Windows has no Liquid Glass. The tint colour and its per-site opacity are the parity contract; the backdrop material underneath is specified by the WIN area. Whatever material Windows uses, the theme surface must be composited over it at exactly these opacities. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field. ED-063 (probe P2): the glass needs the GPU; with no GPU context at startup the app degrades the glass as a named deviation rather than running the scene in software. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "verification_method": "unit: token resolution per theme; capture comparison per theme against reference_captures for structure",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -893,7 +893,7 @@
         "An unknown future scheme value clears the process appearance rather than guessing."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Platform boundary: set the app's dark-mode state for framework chrome (immersive dark mode on each window and the app's own resource theme) and clear it back to the OS setting for System. Both halves must happen: the in-app scheme alone leaves title bars and native menus out of step.",
+      "windows_path": "Platform boundary: set the app's dark-mode state for framework chrome (immersive dark mode on each window and the app's own resource theme) and clear it back to the OS setting for System. Both halves must happen: the in-app scheme alone leaves title bars and native menus out of step. The main window's chrome is built as ED-063 decides (probe P7): WindowDecorations.Full with ExtendClientAreaToDecorationsHint and a 44 px title bar, the leading-edge controls declared through Win32Properties.SetNonClientHitTestResult, and a WndProc hook that performs minimise, maximise, restore and close and shows the system menu. Owner ruling OD-0013: that window chrome is not accepted until the one-frame live-resize edge strip measured by probe P4 is gone; it is not downgraded to a deviation without the owner.",
       "verification_method": "interaction test: picking Light while the OS is dark leaves no dark framework chrome anywhere; restart test: the process appearance is applied once at launch, not only on a later change",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1110,7 +1110,7 @@
         "None expressed in source."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The 0.92 to 1.0 opacity step is the only hover feedback; there is no background change. Keep the 0.1 second ease-out. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field.",
+      "windows_path": "The 0.92 to 1.0 opacity step is the only hover feedback; there is no background change. Keep the 0.1 second ease-out. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "verification_method": "interaction test: hover changes only the label opacity; capture comparison for the capsule metrics",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1159,7 +1159,7 @@
       ],
       "preconditions": "Settings is open at the Appearance page, whose Appearance section holds this row.",
       "action": "The user drags the transparency slider.",
-      "expected_result": "The row reads exactly \"Transparency\" with the detail \"How much shows through the window\". A 140 point small slider runs from 0 to 1, flanked by an outline-dotted circle glyph on the left (tooltip \"Clear\") and a filled circle glyph on the right (tooltip \"Solid\"), both in the subheadline text style (B2 source states no point size, so the size is UNVERIFIED here and comes from the port's text-style table (PR-CHAT-193)) in Chrome.secondaryText, which at B2 is the label colour at 70 percent opacity (`primaryText.opacity(0.7)`, Chrome.swift:79), with 8 points between the three. Every change is persisted immediately under the exact key \"backdropOpacity\". With no stored value the setting is 0.5.",
+      "expected_result": "The row reads exactly \"Transparency\" with the detail \"How much shows through the window\". A 140 point small slider runs from 0 to 1, flanked by an outline-dotted circle glyph on the left (tooltip \"Clear\") and a filled circle glyph on the right (tooltip \"Solid\"), both in the subheadline text style (B2 source states no point size; by ED-059 the port's text-style table (PR-CHAT-193) gives .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001) in Chrome.secondaryText, which at B2 is the label colour at 70 percent opacity (`primaryText.opacity(0.7)`, Chrome.swift:79), with 8 points between the three. Every change is persisted immediately under the exact key \"backdropOpacity\". With no stored value the setting is 0.5.",
       "side_effects": [
         "Writes the backdrop opacity default on every change",
         "Repaints the window backdrop live (rendering specified by the WIN area)"
@@ -1169,7 +1169,7 @@
         "A stored value that is not a Double falls back to 0.5."
       ],
       "cancellation": "not cancellable; there is no drag-end commit, every intermediate value is written",
-      "windows_path": "Persist on every change as upstream does. The backdrop's own rendering (scrim curve, the 0.98 solid cutover) is specified by the WIN area; this requirement covers only the control and the stored value. Where the desktop shows through, the material is an owner-approved deviation (OD-0005), not parity; see this record's deviation field.",
+      "windows_path": "Persist on every change as upstream does. The backdrop's own rendering (scrim curve, the 0.98 solid cutover) is specified by the WIN area; this requirement covers only the control and the stored value. Where the desktop shows through, the material is an owner-approved deviation (OD-0005), not parity; see this record's deviation field. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "verification_method": "interaction test: drag writes continuously; restart test: the value survives",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1204,7 +1204,7 @@
         "None expressed in source."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The control must not participate in layout, or the slider will shift when it appears. The 0.005 threshold is what keeps it from flickering at values adjacent to the default.",
+      "windows_path": "The control must not participate in layout, or the slider will shift when it appears. The 0.005 threshold is what keeps it from flickering at values adjacent to the default. Text size (ED-059): .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "interaction test: the slider does not move horizontally when the reset appears; unit: the 0.005 threshold",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1330,7 +1330,7 @@
         "Stored file missing: no wallpaper, no error message, the key is not cleaned up."
       ],
       "cancellation": "The start render is cancellable by a later render (PR-THEME-061).",
-      "windows_path": "Same behaviour. Note the clamp at read time is separate from the clamp in the setter and both are required.",
+      "windows_path": "Same behaviour. Note the clamp at read time is separate from the clamp in the setter and both are required. OD-0014: with no wallpaper (none stored, or the stored file gone) the window keeps upstream's clear default: the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "verification_method": "restart test with a deleted wallpaper file: the app starts with no wallpaper and no error",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1516,7 +1516,7 @@
         "The file cannot be deleted: ignored, the wallpaper is still cleared from the UI and from the defaults."
       ],
       "cancellation": "not cancellable, and not confirmed: Remove takes effect on the click",
-      "windows_path": "Same order. Note that softness survives a removal, so the next picture installs at the same softness.",
+      "windows_path": "Same order. Note that softness survives a removal, so the next picture installs at the same softness. OD-0014: after removal the window is back at upstream's clear default, so the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "verification_method": "interaction test: Remove clears the backdrop and the file; restart test: nothing comes back",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1666,14 +1666,14 @@
       ],
       "preconditions": "No wallpaper is installed.",
       "action": "The Appearance section is on screen.",
-      "expected_result": "The well is a 150 point high plate filled with the primary label colour at 4 percent, showing a picture-frame glyph in the title text style above the text \"Drop a picture here, or choose one\" in the callout text style, 6 points apart, both in Chrome.secondaryText, which at B2 is the label colour at 70 percent opacity (`primaryText.opacity(0.7)`, Chrome.swift:79). B2 source states no point size for either text style; the sizes are UNVERIFIED here and come from the port's text-style table (PR-CHAT-193).",
+      "expected_result": "The well is a 150 point high plate filled with the primary label colour at 4 percent, showing a picture-frame glyph in the title text style above the text \"Drop a picture here, or choose one\" in the callout text style, 6 points apart, both in Chrome.secondaryText, which at B2 is the label colour at 70 percent opacity (`primaryText.opacity(0.7)`, Chrome.swift:79). B2 source states no point size; by ED-059 the port's text-style table (PR-CHAT-193) gives .title 22 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .callout 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "side_effects": [],
       "persistence": "not persisted",
       "failure_cases": [
         "None expressed in source."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The sentence is verbatim, comma included. The 4 percent fill is the primary label colour, so it inverts correctly between light and dark rather than being a fixed grey.",
+      "windows_path": "The sentence is verbatim, comma included. The 4 percent fill is the primary label colour, so it inverts correctly between light and dark rather than being a fixed grey. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "capture comparison; unit: the exact string",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1800,7 +1800,7 @@
         "An error sentence replaces the detail text until the next install attempt clears it or the wallpaper is removed."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Reproduce all three detail strings and the U+2026 ellipsis in the button titles. Note Remove is unconfirmed by design here and the confirm-before-deleting setting does not apply to it; that setting governs threads, not the wallpaper. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field.",
+      "windows_path": "Reproduce all three detail strings and the U+2026 ellipsis in the button titles. Note Remove is unconfirmed by design here and the confirm-before-deleting setting does not apply to it; that setting governs threads, not the wallpaper. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "verification_method": "unit: the three detail strings and the two button titles; interaction test: Remove appears only with a wallpaper",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1822,7 +1822,7 @@
       ],
       "preconditions": "A wallpaper is installed.",
       "action": "The user drags the softness slider.",
-      "expected_result": "A row titled exactly \"Softness\" with the detail exactly \"Blurs the picture so text stays easy to read\" appears below a divider. It holds a small slider 140 points wide running 0 to 1, flanked by an outline drop glyph (tooltip \"Sharp\") and a filled drop glyph (tooltip \"Blurred\"), both in the subheadline text style (B2 source states no point size, so the size is UNVERIFIED here and comes from the port's text-style table (PR-CHAT-193)) in Chrome.secondaryText, which at B2 is the label colour at 70 percent opacity (`primaryText.opacity(0.7)`, Chrome.swift:79), 8 points apart. Dragging sets the store's softness continuously; pressing and releasing sets and clears the adjusting flag, which switches the render path (PR-THEME-058). With no wallpaper the row and its divider are absent entirely, not disabled.",
+      "expected_result": "A row titled exactly \"Softness\" with the detail exactly \"Blurs the picture so text stays easy to read\" appears below a divider. It holds a small slider 140 points wide running 0 to 1, flanked by an outline drop glyph (tooltip \"Sharp\") and a filled drop glyph (tooltip \"Blurred\"), both in the subheadline text style (B2 source states no point size; by ED-059 the port's text-style table (PR-CHAT-193) gives .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001) in Chrome.secondaryText, which at B2 is the label colour at 70 percent opacity (`primaryText.opacity(0.7)`, Chrome.swift:79), 8 points apart. Dragging sets the store's softness continuously; pressing and releasing sets and clears the adjusting flag, which switches the render path (PR-THEME-058). With no wallpaper the row and its divider are absent entirely, not disabled.",
       "side_effects": [
         "Persists softness on every change",
         "Re-renders the wallpaper"
@@ -1832,7 +1832,7 @@
         "None expressed in source."
       ],
       "cancellation": "not cancellable; every intermediate value is persisted",
-      "windows_path": "Row presence, not row disabling. The editing-began and editing-ended callbacks are load-bearing: without them the drag blurs the full-size picture per frame.",
+      "windows_path": "Row presence, not row disabling. The editing-began and editing-ended callbacks are load-bearing: without them the drag blurs the full-size picture per frame. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "interaction test: the row appears when a picture is installed and disappears on Remove",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1861,7 +1861,7 @@
         "None expressed in source."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same zero-layout overlay as the transparency reset, but note the different threshold test (a one-sided `> 0.005`, not a distance from a default) and the different tooltip.",
+      "windows_path": "Same zero-layout overlay as the transparency reset, but note the different threshold test (a one-sided `> 0.005`, not a distance from a default) and the different tooltip. Text size (ED-059): .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "unit: the threshold and the tooltip; interaction test: the slider does not shift when the reset appears",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2649,7 +2649,7 @@
       ],
       "preconditions": "A heading block is rendered in a streaming or non-run context.",
       "action": "The heading is drawn.",
-      "expected_result": "Level 1 draws in the system title2 text style, semibold; level 2 in title3, semibold; level 3 in headline, semibold by the font helper's own default; levels 4 to 6 in subheadline, semibold. The helper always returns the plain system text style with no size arithmetic, so the sizes are the text styles' own. B2 source states no number, so the point sizes are UNVERIFIED here and come from the port's text-style table (PR-CHAT-193). Levels 1 and 2 get 6 points of padding above; levels 3 and deeper get 2. No per-conversation zoom applies; the only scaling is the app-wide zoom of the whole window (PR-THEME-179).",
+      "expected_result": "Level 1 draws in the system title2 text style, semibold; level 2 in title3, semibold; level 3 in headline, semibold by the font helper's own default; levels 4 to 6 in subheadline, semibold. The helper always returns the plain system text style with no size arithmetic, so the sizes are the text styles' own. B2 source states no point size; by ED-059 the port's text-style table (PR-CHAT-193) gives .title2 17 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:49), .title3 15 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .headline 13 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. Levels 1 and 2 get 6 points of padding above; levels 3 and deeper get 2. No per-conversation zoom applies; the only scaling is the app-wide zoom of the whole window (PR-THEME-179).",
       "side_effects": [],
       "persistence": "not persisted",
       "failure_cases": [
@@ -2794,7 +2794,7 @@
         "None expressed in source."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The bar is a capsule (fully rounded ends), not a square rule.",
+      "windows_path": "The bar is a capsule (fully rounded ends), not a square rule. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "capture comparison; unit: the dimmed flag propagates to nested markers",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2837,14 +2837,14 @@
       ],
       "preconditions": "A code block is rendered.",
       "action": "The reader looks at it and moves the pointer over it.",
-      "expected_result": "The block is a panel filled with the quaternary label colour at 45 percent opacity and a 12 point corner radius. Its header shows the info string, or the literal \"code\" when there is none, in the caption text style in Chrome.secondaryText, which at B2 is the label colour at 70 percent opacity (`primaryText.opacity(0.7)`, Chrome.swift:79), with 12 points of leading padding, 6 trailing and 6 above. The copy control sits at the trailing end and is fully transparent until the pointer is over the block, when it becomes fully opaque. The code itself is monospaced in the callout text style, selectable, scrollable horizontally without a visible scroll indicator, and never wrapped. No chat zoom applies to either font. B2 source states no point size for either text style; the sizes are UNVERIFIED here and come from the port's text-style table (PR-CHAT-193). Hovering does not rebuild the code text.",
+      "expected_result": "The block is a panel filled with the quaternary label colour at 45 percent opacity and a 12 point corner radius. Its header shows the info string, or the literal \"code\" when there is none, in the caption text style in Chrome.secondaryText, which at B2 is the label colour at 70 percent opacity (`primaryText.opacity(0.7)`, Chrome.swift:79), with 12 points of leading padding, 6 trailing and 6 above. The copy control sits at the trailing end and is fully transparent until the pointer is over the block, when it becomes fully opaque. The code itself is monospaced in the callout text style, selectable, scrollable horizontally without a visible scroll indicator, and never wrapped. No chat zoom applies to either font. B2 source states no point size; by ED-059 the port's text-style table (PR-CHAT-193) gives .caption 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), .callout 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52) in Inter, the monospaced code in Cascadia Mono (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. Hovering does not rebuild the code text.",
       "side_effects": [],
       "persistence": "not persisted",
       "failure_cases": [
         "None expressed in source."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The hover flag must live outside the block's own state, or every pointer move re-lays out a large dump. Keep the copy control at opacity 0 rather than removing it, so its space is reserved. The language label is in the port's text face, Inter, and the code in its monospace face, Cascadia Mono (owner ruling OD-0009).",
+      "windows_path": "The hover flag must live outside the block's own state, or every pointer move re-lays out a large dump. Keep the copy control at opacity 0 rather than removing it, so its space is reserved. The language label is in the port's text face, Inter, and the code in its monospace face, Cascadia Mono (owner ruling OD-0009). ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "capture comparison; interaction test: the copy control appears on hover and the code does not reflow",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2871,7 +2871,7 @@
         "None expressed in source."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Count line feeds rather than splitting: a large dump split into an array on every hover is the performance bug the source records.",
+      "windows_path": "Count line feeds rather than splitting: a large dump split into an array on every hover is the performance bug the source records. Text size (ED-059): .caption 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "unit: the two button strings and the boundary at exactly 120 lines",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2899,7 +2899,7 @@
         "A row longer than the header loses its extra cells, because the grid iterates the header's indices."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Reproduce the asymmetry with the code block: a table can be expanded but not collapsed again.",
+      "windows_path": "Reproduce the asymmetry with the code block: a table can be expanded but not collapsed again. Text size (ED-059): .caption 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "unit: the button string, the 30 row boundary, ragged-row padding and truncation",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2926,7 +2926,7 @@
         "None expressed in source."
       ],
       "cancellation": "The reset task holds only the flag binding, so a control that goes away does not keep its text alive; the reset itself is not cancelled.",
-      "windows_path": "Clipboard as plain text only; no rich-text flavour is written.",
+      "windows_path": "Clipboard as plain text only; no rich-text flavour is written. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "interaction test: the check mark lasts 1.4 seconds; unit: the clipboard receives the reflowed text",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3082,7 +3082,7 @@
         "None expressed in source."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Do not implement the disabled branch or the pass-through hit testing it feeds: both are proven dead (dead_code.md entries 29 and 30) and carry no requirement.",
+      "windows_path": "Do not implement the disabled branch or the pass-through hit testing it feeds: both are proven dead (dead_code.md entries 29 and 30) and carry no requirement. ED-061: those dead branches are neither implemented nor counted as missing; this record covers only the live behaviour.",
       "verification_method": "interaction test: a drag selects within one block and stops at its edge",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -4348,7 +4348,8 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0004"
+      "depends_on_unknown": null,
+      "resolved_unknown": "UNK-0004 resolved by OD-0005"
     },
     {
       "id": "PR-THEME-176",
@@ -4442,7 +4443,7 @@
         "None expressed in source."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Do not port the B1 chat zoom or its \"chatZoom\" stored value: nothing at B2 reads it and there is no migration. Markdown sizes come from the port's text-style table; scaling is applied once at the window root by the app zoom, never per font.",
+      "windows_path": "Do not port the B1 chat zoom or its \"chatZoom\" stored value: nothing at B2 reads it and there is no migration. Markdown sizes come from the port's text-style table; scaling is applied once at the window root by the app zoom, never per font. Text size (ED-059): .title2 17 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:49), .title3 15 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .headline 13 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .callout 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .caption 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54) in Inter, monospaced code in Cascadia Mono (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "unit: the font helper has no zoom input and returns the plain text style (semibold for headline by default) for every style; capture comparison: the same reply at app zoom 100 and 150 differs only by the whole-window scale",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -4470,7 +4471,7 @@
         "None expressed in source."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The native path writes `NSColor.labelColor.withAlphaComponent(0.7)` while the SwiftUI paths write `Color.primary.opacity(0.7)` or Chrome.secondaryText (`primaryText.opacity(0.7)`); the two constructions are reproduced as written. Their resolved macOS values were not measured (OD-0001), so the rendered match between them is UNVERIFIED.",
+      "windows_path": "The native path writes `NSColor.labelColor.withAlphaComponent(0.7)` while the SwiftUI paths write `Color.primary.opacity(0.7)` or Chrome.secondaryText (`primaryText.opacity(0.7)`); the two constructions are reproduced as written. Their resolved macOS values were not measured (OD-0001), so the rendered match between them is UNVERIFIED. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "unit: a dimmed paragraph's attributed string carries the label colour at alpha 0.7 on prose and on the spaces after a favicon and a head glyph, no foreground colour on link runs, and the persona colour on head names",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -4553,7 +4554,7 @@
         "None expressed in source."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Stroke the ring inside the padded bounds (strokeBorder), not centred on its edge, and clip the fill to the stage before padding, so a chosen tile shows a 1 point gap between fill and ring. SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010). Text is set in the port's text face, Inter (owner ruling OD-0009); where its wrap points differ from the macOS face that is OD-0009's named deviation.",
+      "windows_path": "Stroke the ring inside the padded bounds (strokeBorder), not centred on its edge, and clip the fill to the stage before padding, so a chosen tile shows a 1 point gap between fill and ring. SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010). Text is set in the port's text face, Inter (owner ruling OD-0009); where its wrap points differ from the macOS face that is OD-0009's named deviation. Text size (ED-059): .title2 17 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:49), .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "capture comparison: a two-option and a three-option picker with one tile chosen and one hovered, in light and dark themes; unit: fill opacities 0.06 and 0.10, ring width 2, ring corner radius 9, caption line limit 2",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -4584,7 +4585,7 @@
         "None expressed in source."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "A symbol-only segment still needs its title as the accessible name (the Hydra \"No cap\" segment draws the infinity symbol). The strip's capsule is the shared chrome glass capsule. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field. The segment symbol (for example \"infinity\" for \"No cap\") is an SF Symbol. SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010). Text is set in the port's text face, Inter (owner ruling OD-0009); where its wrap points differ from the macOS face that is OD-0009's named deviation.",
+      "windows_path": "A symbol-only segment still needs its title as the accessible name (the Hydra \"No cap\" segment draws the infinity symbol). The strip's capsule is the shared chrome glass capsule. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field. The segment symbol (for example \"infinity\" for \"No cap\") is an SF Symbol. SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010). Text is set in the port's text face, Inter (owner ruling OD-0009); where its wrap points differ from the macOS face that is OD-0009's named deviation. Text size (ED-059): .callout 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "verification_method": "capture comparison: the Hydra head-cap strip with \"No cap\" chosen and with a number chosen, plus a hovered segment, in light and dark themes; unit: segment height 22, minimum width 26, accent fill 0.22 when chosen and label fill 0.08 on hover; accessibility test: the infinity segment is announced as \"No cap\"",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -4628,7 +4629,7 @@
       "exact_text": "<the active theme's display name>",
       "geometry": "Glass capsule, height 28 (Chrome.capsuleContentHeight), horizontal padding 12 (Chrome.capsuleHorizontalPadding), fixed to its content width. Contents in an HStack with spacing 6: swatch framed 14 by 14, the name, then the chevron. Hit shape is the continuous capsule.",
       "typography": "Name: system 12.5 point, weight medium, one line. Chevron: system 8 point, weight bold.",
-      "colors": "Name and swatch drawn in Chrome.primaryText at opacity 0.92, rising to 1.0 while hovered or while the popover is open. Chevron in Chrome.secondaryText at all times, which at B2 is the label colour at 70 percent opacity (Chrome.swift:79).",
+      "colors": "Name and swatch drawn in Chrome.primaryText at opacity 0.92, rising to 1.0 while hovered or while the popover is open. Chevron in Chrome.secondaryText at all times, which at B2 is the label colour at 70 percent opacity (Chrome.swift:79). ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "states": [
         "hover: label opacity 0.92 to 1.0, animated ease-out 0.1 s",
         "popover open: same as hover",
@@ -4643,7 +4644,7 @@
         "DroppyCode/UI/Chrome/Chrome.swift:98",
         "DroppyCode/UI/Chrome/Chrome.swift:76-79"
       ],
-      "notes": "The only hover feedback is the label opacity; the capsule itself does not change. The chevron never brightens. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field.",
+      "notes": "The only hover feedback is the label opacity; the capsule itself does not change. The chevron never brightens. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "b2_change": "Chevron colour: Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79). The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage). Capsule tokens (Chrome.swift:33-35) and hover (B1 Chrome.swift:96 -> B2 :98) unchanged; the button is still B2 SettingsView.swift:1182-1225.",
       "deviation": {
         "decision": "OD-0005",
@@ -4800,7 +4801,7 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:532-534",
         "DroppyCode/App/AppSettings.swift:293-299"
       ],
-      "notes": "There is no editing-changed callback here, unlike the softness slider: the backdrop renders live at every value. Where the desktop shows through, the material is an owner-approved deviation (OD-0005), not parity; see this record's deviation field.",
+      "notes": "There is no editing-changed callback here, unlike the softness slider: the backdrop renders live at every value. Where the desktop shows through, the material is an owner-approved deviation (OD-0005), not parity; see this record's deviation field. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "b2_change": "The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage). The slider (B2 SettingsView.swift:532-534) is unchanged.",
       "deviation": {
         "decision": "OD-0005",
@@ -4815,8 +4816,8 @@
       "role": "label",
       "exact_text": null,
       "geometry": "Leading the slider, 8 points away.",
-      "typography": "The subheadline text style (`.font(.system(.subheadline))`; B2 source states no point size, so the size is UNVERIFIED here and comes from the port's text-style table (PR-CHAT-193)), the dotted-outline circle glyph.",
-      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79).",
+      "typography": "The subheadline text style (`.font(.system(.subheadline))`; B2 source states no point size; by ED-059 the port's text-style table (PR-CHAT-193) gives .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001), the dotted-outline circle glyph.",
+      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79). ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "states": [
         "static"
       ],
@@ -4836,8 +4837,8 @@
       "role": "label",
       "exact_text": null,
       "geometry": "Trailing the slider, 8 points away.",
-      "typography": "The subheadline text style (`.font(.system(.subheadline))`; B2 source states no point size, so the size is UNVERIFIED here and comes from the port's text-style table (PR-CHAT-193)), the filled circle glyph.",
-      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79).",
+      "typography": "The subheadline text style (`.font(.system(.subheadline))`; B2 source states no point size; by ED-059 the port's text-style table (PR-CHAT-193) gives .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001), the filled circle glyph.",
+      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79). ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "states": [
         "static"
       ],
@@ -4857,8 +4858,8 @@
       "role": "button",
       "exact_text": null,
       "geometry": "22 by 22 with a rectangular hit shape, offset 28 points to the left of the control group's leading edge, in an overlay that takes no layout room.",
-      "typography": "The subheadline text style at medium weight (`.font(.system(.subheadline, weight: .medium))`; B2 source states no point size, so the size is UNVERIFIED here and comes from the port's text-style table (PR-CHAT-193)), the counterclockwise arrow glyph.",
-      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79).",
+      "typography": "The subheadline text style at medium weight (`.font(.system(.subheadline, weight: .medium))`; B2 source states no point size; by ED-059 the port's text-style table (PR-CHAT-193) gives .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001), the counterclockwise arrow glyph.",
+      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79). ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "states": [
         "hidden while the value is within 0.005 of 0.5",
         "fades in with a 6 point horizontal offset over a snappy 0.2 s animation once the value leaves that band",
@@ -4933,8 +4934,8 @@
       "role": "label",
       "exact_text": "Drop a picture here, or choose one",
       "geometry": "Centred in the 150 point well, in a VStack of spacing 6 under the glyph.",
-      "typography": "The callout text style for the text (`.font(.system(.callout))`); the title text style for the picture-frame glyph above it (`.font(.system(.title))`). B2 source states no point size for either; the sizes are UNVERIFIED here and come from the port's text-style table (PR-CHAT-193).",
-      "colors": "Both in Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79).",
+      "typography": "The callout text style for the text (`.font(.system(.callout))`); the title text style for the picture-frame glyph above it (`.font(.system(.title))`). B2 source states no point size; by ED-059 the port's text-style table (PR-CHAT-193) gives .callout 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .title 22 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:48) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
+      "colors": "Both in Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79). ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "states": [
         "shown only when no wallpaper is installed"
       ],
@@ -5008,7 +5009,7 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/WallpaperCard.swift:112-117"
       ],
-      "notes": "Not styled as destructive and not confirmed. The confirm-before-deleting setting governs threads, not this. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field.",
+      "notes": "Not styled as destructive and not confirmed. The confirm-before-deleting setting governs threads, not this. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "deviation": {
         "decision": "OD-0005",
         "upstream": "`.buttonStyle(.glass)` (DroppyCode/App/Views/Settings/WallpaperCard.swift:114), macOS Liquid Glass",
@@ -5034,7 +5035,7 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/WallpaperCard.swift:118-121"
       ],
-      "notes": "Both titles end in the single character U+2026, never three full stops. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field.",
+      "notes": "Both titles end in the single character U+2026, never three full stops. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "deviation": {
         "decision": "OD-0005",
         "upstream": "`.buttonStyle(.glass)` (DroppyCode/App/Views/Settings/WallpaperCard.swift:119), macOS Liquid Glass",
@@ -5115,8 +5116,8 @@
       "role": "label",
       "exact_text": null,
       "geometry": "Leading the slider, 8 points away.",
-      "typography": "The subheadline text style (`.font(.system(.subheadline))`; B2 source states no point size, so the size is UNVERIFIED here and comes from the port's text-style table (PR-CHAT-193)), the outline drop glyph.",
-      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79).",
+      "typography": "The subheadline text style (`.font(.system(.subheadline))`; B2 source states no point size; by ED-059 the port's text-style table (PR-CHAT-193) gives .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001), the outline drop glyph.",
+      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79). ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "states": [
         "static"
       ],
@@ -5136,8 +5137,8 @@
       "role": "label",
       "exact_text": null,
       "geometry": "Trailing the slider, 8 points away.",
-      "typography": "The subheadline text style (`.font(.system(.subheadline))`; B2 source states no point size, so the size is UNVERIFIED here and comes from the port's text-style table (PR-CHAT-193)), the filled drop glyph.",
-      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79).",
+      "typography": "The subheadline text style (`.font(.system(.subheadline))`; B2 source states no point size; by ED-059 the port's text-style table (PR-CHAT-193) gives .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001), the filled drop glyph.",
+      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79). ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "states": [
         "static"
       ],
@@ -5157,8 +5158,8 @@
       "role": "button",
       "exact_text": null,
       "geometry": "22 by 22 with a rectangular hit shape, offset 28 points to the left of the control group's leading edge, in an overlay that takes no layout room.",
-      "typography": "The subheadline text style at medium weight (`.font(.system(.subheadline, weight: .medium))`; B2 source states no point size, so the size is UNVERIFIED here and comes from the port's text-style table (PR-CHAT-193)), the counterclockwise arrow glyph.",
-      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79).",
+      "typography": "The subheadline text style at medium weight (`.font(.system(.subheadline, weight: .medium))`; B2 source states no point size; by ED-059 the port's text-style table (PR-CHAT-193) gives .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001), the counterclockwise arrow glyph.",
+      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79). ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "states": [
         "hidden while softness is 0.005 or less",
         "fades in with a 6 point offset over a snappy 0.2 s animation above that"
@@ -5227,8 +5228,8 @@
       "role": "label",
       "exact_text": null,
       "geometry": "Padding above: 6 for levels 1 and 2, 2 for levels 3 to 6. In a prose run instead: paragraph spacing before 6 or 2, paragraph spacing after 12.",
-      "typography": "Streaming or standalone path: level 1 title2 semibold, level 2 title3 semibold, level 3 headline (semibold by the helper's default), levels 4 to 6 subheadline semibold, as plain system text styles with no chat zoom (B2 source states no point size; the sizes are UNVERIFIED here and come from the port's text-style table (PR-CHAT-193)). Prose run path: the markdown point size rounded to the nearest half point, times 1.35, 1.2, 1.08 or 1, rounded, with non-bold non-monospaced runs forced semibold.",
-      "colors": "Primary label colour. Inside a quote, the label colour at 70 percent: Chrome.secondaryText on the streaming path, `NSColor.labelColor.withAlphaComponent(0.7)` on the prose run path.",
+      "typography": "Streaming or standalone path: level 1 title2 semibold, level 2 title3 semibold, level 3 headline (semibold by the helper's default), levels 4 to 6 subheadline semibold, as plain system text styles with no chat zoom (B2 source states no point size; by ED-059 the port's text-style table (PR-CHAT-193) gives .title2 17 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:49), .title3 15 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .headline 13 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001). Prose run path: the markdown point size rounded to the nearest half point, times 1.35, 1.2, 1.08 or 1, rounded, with non-bold non-monospaced runs forced semibold.",
+      "colors": "Primary label colour. Inside a quote, the label colour at 70 percent: Chrome.secondaryText on the streaming path, `NSColor.labelColor.withAlphaComponent(0.7)` on the prose run path. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "states": [
         "veiled while its text is arriving"
       ],
@@ -5315,7 +5316,7 @@
       "exact_text": null,
       "geometry": "A capsule 3 points wide running the full height, 10 points from the content. The content's blocks are 8 points apart.",
       "typography": "Inherited.",
-      "colors": "Bar: the quaternary label colour. Content: Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79), with the dimmed flag set for everything inside.",
+      "colors": "Bar: the quaternary label colour. Content: Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79), with the dimmed flag set for everything inside. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "states": [
         "dimmed content propagates to nested markers at accent 0.55"
       ],
@@ -5355,8 +5356,8 @@
       "role": "container",
       "exact_text": null,
       "geometry": "Corner radius 12. Header padded 12 leading, 6 trailing, 6 top. Code padded 12 horizontally, 4 top, 12 bottom, inside a horizontal scroll view with no visible indicator. Stack spacing 0.",
-      "typography": "Header label in the caption text style (`.chat(.caption)`), in the port's text face, Inter (owner ruling OD-0009). Code in the callout text style (`.chat(.callout, design: .monospaced)`) in the monospaced design, which the port draws in Cascadia Mono (owner ruling OD-0009). No chat zoom. B2 source states no point size for either style; the sizes are UNVERIFIED here and come from the port's text-style table (PR-CHAT-193).",
-      "colors": "Panel: the quaternary label colour at 45 percent. Header label: Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79). Code: the primary label colour.",
+      "typography": "Header label in the caption text style (`.chat(.caption)`), in the port's text face, Inter (owner ruling OD-0009). Code in the callout text style (`.chat(.callout, design: .monospaced)`) in the monospaced design, which the port draws in Cascadia Mono (owner ruling OD-0009). No chat zoom. B2 source states no point size; by ED-059 the port's text-style table (PR-CHAT-193) gives .caption 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), .callout 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52) in Inter, the monospaced code in Cascadia Mono (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
+      "colors": "Panel: the quaternary label colour at 45 percent. Header label: Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79). Code: the primary label colour. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "states": [
         "hover reveals the copy control",
         "collapsed above 120 lines",
@@ -5381,8 +5382,8 @@
       "role": "label",
       "exact_text": "<the fence's info string>  |  code  (when the fence had none)",
       "geometry": "Leading in the header, 12 points from the panel edge.",
-      "typography": "The caption text style (`.font(.chat(.caption))`; B2 source states no point size, so the size is UNVERIFIED here and comes from the port's text-style table (PR-CHAT-193)), with no chat zoom.",
-      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79).",
+      "typography": "The caption text style (`.font(.chat(.caption))`; B2 source states no point size; by ED-059 the port's text-style table (PR-CHAT-193) gives .caption 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001), with no chat zoom.",
+      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79). ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "states": [
         "static"
       ],
@@ -5403,7 +5404,7 @@
       "exact_text": null,
       "geometry": "22 by 22 with a rectangular hit shape; trailing in the code block header, 6 points from the panel edge.",
       "typography": "Symbol glyph: a two-document glyph normally, a check mark for 1.4 seconds after a copy, swapped with a symbol replace transition.",
-      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79).",
+      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79). ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "states": [
         "opacity 0 until the pointer is over the block, then 1",
         "check mark for exactly 1.4 s after a copy",
@@ -5427,8 +5428,8 @@
       "role": "button",
       "exact_text": "Show all <N> lines  |  Show less",
       "geometry": "Padded 12 horizontally and 10 at the bottom of the panel.",
-      "typography": "The caption text style (`.font(.chat(.caption))`), with no chat zoom (B2 source states no point size, so the size is UNVERIFIED here and comes from the port's text-style table (PR-CHAT-193)).",
-      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79), in the link button style.",
+      "typography": "The caption text style (`.font(.chat(.caption))`), with no chat zoom (B2 source states no point size; by ED-059 the port's text-style table (PR-CHAT-193) gives .caption 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001).",
+      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79), in the link button style. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "states": [
         "present only when the block has more than 120 lines",
         "title toggles between the two forms"
@@ -5472,8 +5473,8 @@
       "role": "button",
       "exact_text": "Show all <N> rows",
       "geometry": "Padded 12 horizontally and 10 at the bottom of the panel.",
-      "typography": "The caption text style (`.font(.chat(.caption))`), with no chat zoom (B2 source states no point size, so the size is UNVERIFIED here and comes from the port's text-style table (PR-CHAT-193)).",
-      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79), in the link button style.",
+      "typography": "The caption text style (`.font(.chat(.caption))`), with no chat zoom (B2 source states no point size; by ED-059 the port's text-style table (PR-CHAT-193) gives .caption 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001).",
+      "colors": "Chrome.secondaryText, the label colour at 70 percent opacity (Chrome.swift:79), in the link button style. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "states": [
         "present only while collapsed and the table has more than 30 rows",
         "disappears once expanded and does not come back"
@@ -5797,8 +5798,8 @@
       "role": "radio button",
       "exact_text": "<the option's title>",
       "geometry": "A 76 by 48 stage, corner radius 6 continuous, padded 3 on every side; over the padded 82 by 54 area a ring of corner radius 9 stroked 2 points inside its edge; 6 points below the stage the caption, 76 wide, centred, at most two lines. The whole tile is the hit area.",
-      "typography": "Symbol in the title2 text style, medium weight. Caption in the subheadline text style.",
-      "colors": "Stage fill: the label colour at 6 percent, at 10 percent when hovered or chosen. Symbol: the theme accent when chosen, Chrome.secondaryText (the label colour at 70 percent) otherwise. Ring: the theme accent when chosen, clear otherwise. Caption: the primary label colour when chosen, Chrome.secondaryText otherwise.",
+      "typography": "Symbol in the title2 text style, medium weight. Caption in the subheadline text style. Text size (ED-059): .title2 17 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:49), .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
+      "colors": "Stage fill: the label colour at 6 percent, at 10 percent when hovered or chosen. Symbol: the theme accent when chosen, Chrome.secondaryText (the label colour at 70 percent) otherwise. Ring: the theme accent when chosen, clear otherwise. Caption: the primary label colour when chosen, Chrome.secondaryText otherwise. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "states": [
         "idle: fill 0.06, secondary symbol and caption, no ring",
         "hovered: fill 0.10, animated ease-out 0.1 s",
@@ -5837,7 +5838,7 @@
         "DroppyCode/UI/Chrome/Chrome.swift:33",
         "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:65-67"
       ],
-      "notes": "Options in order: \"No cap\" drawn as the infinity symbol, then one numbered segment per value of HydraPair.maxHeadsRange. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field. The infinity symbol is an SF Symbol. SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010).",
+      "notes": "Options in order: \"No cap\" drawn as the infinity symbol, then one numbered segment per value of HydraPair.maxHeadsRange. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field. The infinity symbol is an SF Symbol. SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010). OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "b2_change": "No B2 change to the strip; not covered by any record before.",
       "deviation": {
         "decision": "OD-0005",
@@ -5852,8 +5853,8 @@
       "role": "radio button",
       "exact_text": "<the option's title, or its symbol when one is given>",
       "geometry": "A capsule 22 points high, at least 26 points wide, with 9 points of horizontal padding; the capsule is the hit shape.",
-      "typography": "The callout text style, semibold when chosen and medium otherwise, one line.",
-      "colors": "Chosen: the primary label colour on a capsule filled with the theme accent at 22 percent. Others: Chrome.secondaryText (the label colour at 70 percent) with no fill, and a label-colour fill at 8 percent while hovered.",
+      "typography": "The callout text style, semibold when chosen and medium otherwise, one line. Text size (ED-059): .callout 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
+      "colors": "Chosen: the primary label colour on a capsule filled with the theme accent at 22 percent. Others: Chrome.secondaryText (the label colour at 70 percent) with no fill, and a label-colour fill at 8 percent while hovered. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "states": [
         "idle: no fill, medium weight, secondary colour",
         "hovered: label fill 0.08, animated ease-out 0.1 s",

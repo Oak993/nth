@@ -207,24 +207,27 @@
     },
     {
       "id": "PR-CHAT-010",
-      "title": "A notice has one of three levels and may carry a limit marker naming the chat whose auto-continue it belongs to",
+      "title": "A notice has one of three levels; its limit marker is always null in the shipped flow",
       "source_evidence": [
         "DroppyCode/Core/Models/Timeline.swift:232-244 struct Notice - Level: info, warning, error; fields level, message, limit: LimitNotice? = nil",
-        "DroppyCode/Core/Models/Timeline.swift:246-250 struct LimitNotice - threadID: UUID"
+        "DroppyCode/Core/Models/Timeline.swift:246-250 struct LimitNotice - threadID: UUID",
+        "DroppyCode/App/Runtime/AutoContinue.swift:144-148 `private func notice(_ threadID: UUID, _ level: Notice.Level, _ message: String, limitMark: Bool = false) { var notice = Notice(level: level, message: message); if limitMark { notice.limit = LimitNotice(threadID: threadID) }; app?.existingRuntime(for: threadID)?.rehearse(.notice(notice)) }`",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3739-3741 `func rehearse(_ event: ProviderEvent) { handle(event) }`; :2187-2188 `case .notice(let notice): appendNotice(notice.level, notice.message)`; :3549-3551 appendNotice builds `Notice(level: level, message: message)`"
       ],
       "preconditions": "The runtime raises a notice.",
       "action": "The notice is appended to the timeline.",
-      "expected_result": "level is one of info, warning, error; message is the text shown verbatim; limit is null except on the usage-limit notice, where it carries the thread id.",
+      "expected_result": "level is one of info, warning, error; message is the text shown verbatim. limit is null on every notice the timeline holds: AutoContinue marks its usage-limit notice with the thread id, but the runtime appends every notice through appendNotice, which rebuilds it from level and message alone, so the marker never reaches the timeline, the stored document or any view.",
       "side_effects": [],
-      "persistence": "level and message always; limit only when set.",
+      "persistence": "level and message always; limit never, because it is always nil and the synthesized Codable encoding of struct Notice omits a nil optional.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Carry the limit field through even though the only view that reads it is dead in this checkout (dead_code.md entry 21). Dropping the field would change the stored document shape.",
+      "windows_path": "Keep an optional limit on the notice model so the document shape matches, but nothing sets it: the marker is dead in the shipped flow (porting/dead_code.md entry 24, ED-061), and the only view that would read it is dead too (entry 21, PR-CHAT-011).",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "spec_fix": "expected_result said limit is null except on the usage-limit notice, where it carries the thread id, and persistence said limit is stored when set -> the marker set at DroppyCode/App/Runtime/AutoContinue.swift:146 is dropped: rehearse (ThreadRuntime.swift:3739-3741) routes .notice to appendNotice (:2187-2188), which appends a new Notice(level:message:) (:3549-3551), so limit is always nil (porting/dead_code.md entry 24)."
     },
     {
       "id": "PR-CHAT-011",
@@ -243,11 +246,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not port LimitResumeBadge. Proven dead by dead_code.md entry 21 (a repository-wide grep for the identifier returns only its own declaration) and entries 22 and 23 for the AutoContinue.cancel/handOff/outcomes it would have driven.",
       "verification_method": "capture comparison of a limit notice against NoticeRow, plus a static check that no Cancel/New thread affordance exists on a notice row",
-      "status": "SPECIFIED",
+      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citations moved, behaviour unchanged: B1 LimitResumeBadge.swift:1-61 -> B2 :1-60 (the `@Environment(\\.chatZoom) private var zoom` line was removed, its fonts dropped zoom and the info glyph went `.foregroundStyle(.secondary)` -> `.foregroundStyle(Chrome.secondaryText)` at B2 :17); `git grep LimitResumeBadge` at B2 still finds only its own declaration (LimitResumeBadge.swift:5). B1 TimelineRows.swift:2400-2447 NoticeRow -> B2 :2385-2431; ThreadTimeline.swift:2046 still selects NoticeRow for every notice."
+      "b2_change": "Citations moved, behaviour unchanged: B1 LimitResumeBadge.swift:1-61 -> B2 :1-60 (the `@Environment(\\.chatZoom) private var zoom` line was removed, its fonts dropped zoom and the info glyph went `.foregroundStyle(.secondary)` -> `.foregroundStyle(Chrome.secondaryText)` at B2 :17); `git grep LimitResumeBadge` at B2 still finds only its own declaration (LimitResumeBadge.swift:5). B1 TimelineRows.swift:2400-2447 NoticeRow -> B2 :2385-2431; ThreadTimeline.swift:2046 still selects NoticeRow for every notice.",
+      "not_applicable": "ED-061: porting/dead_code.md entry 21. LimitResumeBadge is never instantiated: at B2 `git grep LimitResumeBadge` finds only its own declaration (DroppyCode/App/Views/Chat/LimitResumeBadge.swift:5), and every .notice item renders through NoticeRow (TimelineRows.swift:2385-2431, selected at ThreadTimeline.swift:2046). Entries 22 and 23 cover the AutoContinue cancel, handOff and outcomes it would drive, and entry 24 the limit marker it would read, which is always nil (PR-CHAT-010). Nothing is implemented for the badge; a limit notice renders as an ordinary notice row (PR-CHAT-115)."
     },
     {
       "id": "PR-CHAT-012",
@@ -495,7 +499,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Quantize the layout width the same way during a live resize; the exact width must land when the drag ends.",
+      "windows_path": "Quantize the layout width the same way during a live resize; the exact width must land when the drag ends. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner.",
       "verification_method": "interaction test measuring re-layout count during a simulated drag",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -896,10 +900,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not ship the comparison. Port it, if at all, as a test-only assertion; it must not exist in the release path.",
       "verification_method": "static check of the release bundle for the literal message",
-      "status": "SPECIFIED",
+      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "not_applicable": "ED-061: porting/dead_code.md entry 60 records that the only #if DEBUG code in the Swift tree is ThreadTimeline.swift's tail-build self-check (B2 DroppyCode/App/Views/Chat/ThreadTimeline.swift:1707 and :1755). A shipped build compiles none of it, so upstream never runs the comparison, keeps no counter and prints nothing; nothing is implemented for it."
     },
     {
       "id": "PR-CHAT-043",
@@ -1159,7 +1164,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Snap, do not animate. An animated correction here reads as the timeline fighting the reader.",
+      "windows_path": "Snap, do not animate. An animated correction here reads as the timeline fighting the reader. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner.",
       "verification_method": "interaction test",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1587,7 +1592,7 @@
       "title": "The rail's hover card is 300 points wide, mounts only while hovering, and is clamped inside the rail",
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:306-344 previewCard - width 300 via Self.cardWidth (:356); 12 horizontal and 10 vertical padding; glassEffect(.regular) in a rounded rect of Chrome.cardCornerRadius, continuous; 34 points of leading padding; offset to the tick's centre y clamped between half the card height plus 2 and the rail height minus half minus 2",
-        "DroppyCode/App/Views/Chat/TimelineMinimap.swift:318-333 the contents - title `.font(.system(.body, weight: .semibold))` in Chrome.primaryText, one line, tail truncation, opacity content transition; snippet `.font(.system(.callout))` in Chrome.secondaryText, up to three lines, tail truncation, leading alignment (body and callout are 13 and 12 points on macOS, B1 B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize)",
+        "DroppyCode/App/Views/Chat/TimelineMinimap.swift:318-333 the contents - title `.font(.system(.body, weight: .semibold))` in Chrome.primaryText, one line, tail truncation, opacity content transition; snippet `.font(.system(.callout))` in Chrome.secondaryText, up to three lines, tail truncation, leading alignment (body and callout are 13 and 12 points per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:51 and B1:DroppyCode/UI/Common/ChatZoom.swift:52)",
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:234-238 mounted only when a tick is hovered, with an opacity transition combined with a 6-point leading offset, zero under reduced motion; never hit-testable",
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:347-354 estimatedCardHeight - title 17, padding 20, no snippet returns 37; else glyphsPerLine = max(1, (300 - 24) / 7) and lines = min(3, ceil(snippet.count / glyphsPerLine)), total = 17 + 3 + lines*15 + 20"
       ],
@@ -1598,7 +1603,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "The card unmounts as soon as the hover ends.",
-      "windows_path": "Reproduce the estimate rather than measuring, including the deliberately crude 7-points-per-glyph assumption, so the clamping matches. The card's glassEffect(.regular) surface is a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001).",
+      "windows_path": "Reproduce the estimate rather than measuring, including the deliberately crude 7-points-per-glyph assumption, so the clamping matches. The card's glassEffect(.regular) surface is a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison at the top, middle and bottom of a long rail",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1621,7 +1626,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Keep the outline build out of the timeline's own render path: the titles read message text, and building them in the timeline made the whole conversation re-render on every streamed token.",
+      "windows_path": "Keep the outline build out of the timeline's own render path: the titles read message text, and building them in the timeline made the whole conversation re-render on every streamed token. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner.",
       "verification_method": "unit counting outline builds during a simulated resize",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1675,7 +1680,7 @@
       "id": "PR-CHAT-078",
       "title": "Quotes a message led with are peeled back out and shown as chips above the bubble",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:92-117 the quote strip - ReplyQuote.peel(message.text); each quote is an HStack of spacing 5 with a text.quote glyph at `.system(.footnote, weight: .semibold)` (10 pt on macOS, B1 B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize) in Chrome.secondaryText and the excerpt at `.system(.subheadline)` (11 pt on macOS) in Chrome.primaryText at 0.9 opacity, one line, tail truncated, capped at 260 points wide, fixed size, ChipChrome, tooltip of the full quote text, trailing padding of UserBubble.tail; the strip is trailing-aligned with 4-point spacing",
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:92-117 the quote strip - ReplyQuote.peel(message.text); each quote is an HStack of spacing 5 with a text.quote glyph at `.system(.footnote, weight: .semibold)` (10 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:54) in Chrome.secondaryText and the excerpt at `.system(.subheadline)` (11 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Chrome.primaryText at 0.9 opacity, one line, tail truncated, capped at 260 points wide, fixed size, ChipChrome, tooltip of the full quote text, trailing padding of UserBubble.tail; the strip is trailing-aligned with 4-point spacing",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:112-113 accessibility - children combined, labelled Quote: followed by the excerpt",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:58-63 ReplyQuote.excerpt - the first non-empty line, whitespace-collapsed, cut at 72 characters with a trailing U+2026",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:71-99 peel - a leading slash command line followed by a blank line and a quote line is lifted out; each run of lines starting with > becomes one quote with the marker and one following space stripped; a single blank line between two quote blocks is consumed; the body is everything after, with leading newlines removed and the command rejoined with a single space; a message with no leading quote comes back whole with no quotes",
@@ -1690,7 +1695,7 @@
         "A message whose text merely contains > lines that are not at the start shows no chips and keeps them in the bubble."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "peel must be the exact inverse of the composer's outgoing-text builder; port it character for character, including the slash-command lift and the single-blank-line consumption.",
+      "windows_path": "peel must be the exact inverse of the composer's outgoing-text builder; port it character for character, including the slash-command lift and the single-blank-line consumption. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "unit over peel with round-trip fixtures, plus capture comparison of the chips",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1817,7 +1822,7 @@
         "A failed preview shows the error's localized description next to a warning triangle, in Chrome.secondaryText, and sending is still allowed."
       ],
       "cancellation": "The preview task is keyed on the edit id and cancelled when the edit changes; a cancelled task writes nothing.",
-      "windows_path": "Reproduce the four states and their exact strings. The preview comes from the git layer, so an unavailable reason on Windows is whatever that layer reports.",
+      "windows_path": "Reproduce the four states and their exact strings. The preview comes from the git layer, so an unavailable reason on Windows is whatever that layer reports. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "interaction test with a stubbed preview per state",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1840,7 +1845,7 @@
       "persistence": "None; the toggle resets to on each time the editor opens.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "The minus sign is U+2212; a hyphen-minus is wrong. Use tabular figures for the stat.",
+      "windows_path": "The minus sign is U+2212; a hyphen-minus is wrong. Use tabular figures for the stat. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1861,7 +1866,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Middle truncation on the path, not tail, so the file name stays readable.",
+      "windows_path": "Middle truncation on the path, not tail, so the file name stays readable. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison with six files including one kept and one binary",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1888,7 +1893,7 @@
         "A failed resend shows the error's localized description in the danger colour inside the editor and leaves the editor open with its text intact."
       ],
       "cancellation": "Cancel clears runtime.messageEdit and closes the editor without touching the thread.",
-      "windows_path": "Keep the restore flag derivation: restore is true only when the toggle is on and the preview's file list is non-empty. The glass and glass-prominent button styles are a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001).",
+      "windows_path": "Keep the restore flag derivation: restore is true only when the toggle is on and the preview's file list is non-empty. The glass and glass-prominent button styles are a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "interaction test over the disabled cases and the error path",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1930,7 +1935,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "The hover binding must not capture the row, so a hover responder never keeps a scrolled-away message alive.",
+      "windows_path": "The hover binding must not capture the row, so a hover responder never keeps a scrolled-away message alive. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison plus interaction test",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1980,7 +1985,7 @@
       "persistence": "None; the fold is view state and resets when the row is rebuilt.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Keep WorkGroup's reveal call outside its animation transaction (port_impacts.md 252 and 282); the other three reveal call sites are inside theirs.",
+      "windows_path": "Keep WorkGroup's reveal call outside its animation transaction (port_impacts.md 252 and 282); the other three reveal call sites are inside theirs. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "interaction test over open, arriving reply, and re-collapse",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2024,7 +2029,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "The indent for narration is exactly iconWidth + iconSpacing = 24 points, derived from the metrics.",
+      "windows_path": "The indent for narration is exactly iconWidth + iconSpacing = 24 points, derived from the metrics. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "interaction test plus capture comparison",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2158,7 +2163,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Two distinct affordances; do not unify them.",
+      "windows_path": "Two distinct affordances; do not unify them. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2180,7 +2185,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Chrome.danger and Chrome.warning are theme colours, not system red and orange (chrome-design-tokens section 6.1).",
+      "windows_path": "Chrome.danger and Chrome.warning are theme colours, not system red and orange (chrome-design-tokens section 6.1). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison across the four statuses in both themes",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2226,7 +2231,7 @@
       "persistence": "None; the expansion is row state.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Count lines by scanning for newline bytes; do not split the whole output into an array, because a running command's row re-renders on every flush.",
+      "windows_path": "Count lines by scanning for newline bytes; do not split the whole output into an array, because a running command's row re-renders on every flush. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "unit over the head function plus capture comparison at 29, 30 and 31 lines",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2298,7 +2303,7 @@
       "persistence": "None; the fold is view state, initialized from the chronological flag, which the timeline always passes as false (PR-CHAT-125), so a finished turn always opens folded.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "The fold is a change of what the block shows in the same frame with no transition, because a fade over a block that can run to thousands of points is a whole-layer composite the renderer may draw as nothing.",
+      "windows_path": "The fold is a change of what the block shows in the same frame with no transition, because a fade over a block that can run to thousands of points is a whole-layer composite the renderer may draw as nothing. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "interaction test plus capture comparison folded and expanded",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2377,7 +2382,7 @@
       "title": "A turn's file card names the file count, shows the stat, and carries two round controls",
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2735-2827 TurnFileCard - the title is Edited 1 file for one file and Edited N files otherwise; a badge-edit image at 18 by 18 in Chrome.secondaryText, the title at callout medium in Chrome.primaryText at 0.9, a DiffStatLabel of the card's totals, and a chevron.right at caption2 semibold in `Chrome.secondaryText` when there are files (:2753-2756); the title button is disabled with no files and has the tooltip Show the files this turn changed; a fixed 20-point gap follows; when the turn can be undone a MutedRoundGlyph with arrow.uturn.backward and the tooltip Revert this turn's files and conversation; then a MutedRoundGlyph with plusminus and the tooltip Show this turn's changes; the card is padded 12 leading, 6 trailing and 6 vertical, filled with .quaternary at 0.32 in a pillRadius continuous rounded rect, and hugs its content",
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2463-2478 MutedRoundGlyph - the symbol at Chrome.iconFont (`.system(.callout, weight: .semibold)`, 12 pt on macOS, B1 B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize), Chrome.secondaryText rising to Chrome.primaryText under the pointer, in a 28 by 28 circle filled with Chrome.overlay(0.1) rising to Chrome.overlay(0.18), animated with Chrome.hover (.easeOut(duration: 0.1))"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2463-2478 MutedRoundGlyph - the symbol at Chrome.iconFont (`.system(.callout, weight: .semibold)`, 12 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:52), Chrome.secondaryText rising to Chrome.primaryText under the pointer, in a 28 by 28 circle filled with Chrome.overlay(0.1) rising to Chrome.overlay(0.18), animated with Chrome.hover (.easeOut(duration: 0.1))"
       ],
       "preconditions": "A finished turn changed files.",
       "action": "The card renders and its controls are used.",
@@ -2390,7 +2395,7 @@
         "The review control does nothing when its anchor has not been captured yet, which happens only if it is clicked without ever being hovered."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The anchor is captured lazily on first hover because a folded turn is a block of a virtualized list; keep that laziness but ensure a keyboard activation also captures an anchor, or the control silently does nothing.",
+      "windows_path": "The anchor is captured lazily on first hover because a folded turn is a block of a virtualized list; keep that laziness but ensure a keyboard activation also captures an anchor, or the control silently does nothing. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison plus interaction test",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2411,7 +2416,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Verbatim strings including the leading and.",
+      "windows_path": "Verbatim strings including the leading and. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison at 12, 13 and 20 files",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2423,7 +2428,7 @@
       "id": "PR-CHAT-110",
       "title": "The file card's revert control asks for confirmation in a 300-point popover before reverting",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2777-2798 the confirmation popover - Revert up to this point? at system size 14 semibold; Files go back to how they were before this turn, and the turn leaves the conversation. at `.system(.callout)` (12 pt on macOS, B1 B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize) in Chrome.secondaryText; a trailing pair of small buttons Cancel with the glass style and Revert with the glass-prominent style bound to the default action; padded 16 and fixed at 300 points wide",
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2777-2798 the confirmation popover - Revert up to this point? at system size 14 semibold; Files go back to how they were before this turn, and the turn leaves the conversation. at `.system(.callout)` (12 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:52) in Chrome.secondaryText; a trailing pair of small buttons Cancel with the glass style and Revert with the glass-prominent style bound to the default action; padded 16 and fixed at 300 points wide",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2695 onRevert - Task { _ = try? await runtime.revert(to: turnID, restoreFiles: true) }"
       ],
       "preconditions": "The turn can be undone.",
@@ -2437,7 +2442,7 @@
         "The revert's error is discarded by try?; the user learns of a failure only through whatever the runtime posts into the thread."
       ],
       "cancellation": "Dismissing the popover cancels.",
-      "windows_path": "This revert always restores files, unlike the message menu's two-way choice. Do not merge the two confirmations. The glass and glass-prominent button styles are a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001).",
+      "windows_path": "This revert always restores files, unlike the message menu's two-way choice. Do not merge the two confirmations. The glass and glass-prominent button styles are a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "interaction test plus capture comparison",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2528,7 +2533,7 @@
         "A todos item with no steps renders nothing at all, not an empty card."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "One checklist per turn; identity is positional, so the animation must key on the step array rather than on synthesized ids.",
+      "windows_path": "One checklist per turn; identity is positional, so the animation must key on the step array rather than on synthesized ids. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison across the three statuses plus an interaction test on an update",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2575,7 +2580,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Reproduce the duration format exactly, including the space between the two components and the lowercase unit letters, and the rounding to whole seconds.",
+      "windows_path": "Reproduce the duration format exactly, including the space between the two components and the lowercase unit letters, and the rounding to whole seconds. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "unit over the formatter plus capture comparison of the three phrasings",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2634,7 +2639,7 @@
       "id": "PR-CHAT-119",
       "title": "The working line's title breathes and a soft band sweeps across it while the turn runs",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/HydraProgressBar.swift:486-540 HydraWorkingTitle - `.font(.system(.body, weight: .medium))` (:504; 13 pt on macOS, B1 B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize); sweep 3.2 seconds, sweepRest 3.0 seconds, breath 3.2 seconds, reach 0.3; a 20-frames-per-second timeline that is paused when not animating or while any timeline is scrolling; the band's centre runs from -0.3 to 1.3 over the sweep then rests at the right; the gradient dips the primary text to 0.6 opacity at the band's centre; the whole title's opacity is 0.86 + 0.14 * (0.5 + 0.5 sin(t / 3.2 * 2 pi)); limited to two lines; still text when not running or with reduced motion"
+        "DroppyCode/App/Views/Chat/HydraProgressBar.swift:486-540 HydraWorkingTitle - `.font(.system(.body, weight: .medium))` (:504; 13 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:51); sweep 3.2 seconds, sweepRest 3.0 seconds, breath 3.2 seconds, reach 0.3; a 20-frames-per-second timeline that is paused when not animating or while any timeline is scrolling; the band's centre runs from -0.3 to 1.3 over the sweep then rests at the right; the gradient dips the primary text to 0.6 opacity at the band's centre; the whole title's opacity is 0.86 + 0.14 * (0.5 + 0.5 sin(t / 3.2 * 2 pi)); limited to two lines; still text when not running or with reduced motion"
       ],
       "preconditions": "A turn is running.",
       "action": "Time passes and the reader is not scrolling.",
@@ -2657,7 +2662,7 @@
       "id": "PR-CHAT-120",
       "title": "The elapsed clock ticks once a second and only while someone can see it",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/HydraProgressBar.swift:543-566 HydraElapsedTime - while running, a periodic timeline from startedAt by 1 second showing RelativeTime.duration since the start; otherwise the fixed duration to finishedAt or now; `.font(.system(.subheadline))` (:558; 11 pt on macOS, B1 B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize) with monospaced digits in Chrome.secondaryText",
+        "DroppyCode/App/Views/Chat/HydraProgressBar.swift:543-566 HydraElapsedTime - while running, a periodic timeline from startedAt by 1 second showing RelativeTime.duration since the start; otherwise the fixed duration to finishedAt or now; `.font(.system(.subheadline))` (:558; 11 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:53) with monospaced digits in Chrome.secondaryText",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2177-2184 the indicator's own clock task - keyed on FrontMonitor.shared.isVisible && isRunning; it sleeps one second at a time and updates now only while the app is visible and the turn is running"
       ],
       "preconditions": "A turn is running.",
@@ -2669,7 +2674,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "The task is cancelled when visibility or the running flag changes.",
-      "windows_path": "Gate the timer on window visibility and app activation, the same two conditions FrontMonitor tracks.",
+      "windows_path": "Gate the timer on window visibility and app activation, the same two conditions FrontMonitor tracks. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "interaction test toggling app visibility",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3109,7 +3114,7 @@
         "A cancelled folder picker leaves everything unchanged."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The application icon is the app's own icon at 72 points. Add project… uses the horizontal ellipsis U+2026, not three full stops.",
+      "windows_path": "The application icon is the app's own icon at 72 points. Add project… uses the horizontal ellipsis U+2026, not three full stops. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison plus interaction test moving a thread",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3131,7 +3136,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "One replicated dot-field control with the nine literals, used in three places, drawing nothing under reduced motion (port_impacts.md 310).",
+      "windows_path": "One replicated dot-field control with the nine literals, used in three places, drawing nothing under reduced motion (port_impacts.md 310). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison plus interaction test",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3202,7 +3207,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "The disabled-with-no-tooltip case is deliberate (port_impacts.md 288). The outcome markers are the literal substrings (failed and (stopped, with the opening parenthesis.",
+      "windows_path": "The disabled-with-no-tooltip case is deliberate (port_impacts.md 288). The outcome markers are the literal substrings (failed and (stopped, with the opening parenthesis. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "unit over the summary builder plus capture comparison of the pill",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3229,7 +3234,7 @@
         "A first line that is an address with trailing text is not treated as a link."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Keep the link as a sibling control, not nested in the button; the nesting bug is platform-specific but the layout is what the capture shows.",
+      "windows_path": "Keep the link as a sibling control, not nested in the button; the nesting bug is platform-specific but the layout is what the capture shows. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "unit over leadingURL plus an interaction test that the pill still opens its popover",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3268,7 +3273,7 @@
       ],
       "preconditions": "A report pill is tapped.",
       "action": "The popover opens.",
-      "expected_result": "A 460 by up-to-460 panel whose markdown reads at the popover's own compact size: 12-point markdown under the callout text style (12 pt on macOS, B1 ChatZoom.swift:52). It opens at its final size rather than growing after it is shown, because the whole body is laid out once to size the panel.",
+      "expected_result": "A 460 by up-to-460 panel whose markdown reads at the popover's own compact size: 12-point markdown under the callout text style (12 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:52). It opens at its final size rather than growing after it is shown, because the whole body is laid out once to size the panel.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [],
@@ -3295,7 +3300,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "The apostrophe in <name>'s brief is U+0027 as written in the source, not a typographic apostrophe.",
+      "windows_path": "The apostrophe in <name>'s brief is U+0027 as written in the source, not a typographic apostrophe. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison in both states",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3343,7 +3348,7 @@
         "An unparseable block keeps the title Summoning heads and lists nothing."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The streaming reader is a single linear pass that reads partial blocks on purpose; every flush is cached so a finished block is the same card on every evaluation (TimelineRows.swift:771-782, a 200-entry recent cache).",
+      "windows_path": "The streaming reader is a single linear pass that reads partial blocks on purpose; every flush is cached so a finished block is the same card on every evaluation (TimelineRows.swift:771-782, a 200-entry recent cache). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "interaction test streaming a fixture block",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3411,7 +3416,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Trailing alignment is explicitly wrong here; the source records that it hung each narrower pill off the widest one's right edge.",
+      "windows_path": "Trailing alignment is explicitly wrong here; the source records that it hung each narrower pill off the widest one's right edge. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison with heads of differing name lengths",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3463,7 +3468,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "A row that did not send a head mounts no popover, no state and no anchor at all (TimelineRows.swift:1858-1872).",
+      "windows_path": "A row that did not send a head mounts no popover, no state and no anchor at all (TimelineRows.swift:1858-1872). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison plus interaction test on a running head",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3580,7 +3585,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Two gradient fills and nothing else; the earlier implementation was liquid glass under a gradient mask, which cost a backdrop sample and an offscreen mask pass on every scrolled frame of every chat.",
+      "windows_path": "Two gradient fills and nothing else; the earlier implementation was liquid glass under a gradient mask, which cost a backdrop sample and an offscreen mask pass on every scrolled frame of every chat. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "verification_method": "capture comparison at travel 0, 20 and 44 in both themes",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3650,7 +3655,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "A single reshaping flag covering window resize, sidebar drag, sidebar slide and terminal divider drag, read by the timeline, the rail and the composer alike.",
+      "windows_path": "A single reshaping flag covering window resize, sidebar drag, sidebar slide and terminal divider drag, read by the timeline, the rail and the composer alike. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner.",
       "verification_method": "interaction test resizing the window on a long thread",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3883,7 +3888,7 @@
       "persistence": "Not persisted; derived from the sidebar model.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "The caption-button band, not the sidebar, is the trigger. If the Windows build mirrors the caption buttons to the trailing edge (the open question recorded against WIN), the inset moves with them; the rule stays 'clear the caption buttons, animated on the same value'.",
+      "windows_path": "The caption-button band, not the sidebar, is the trigger. ED-063: the caption controls are app-drawn on the leading edge; the main window uses WindowDecorations.Full with ExtendClientAreaToDecorationsHint and a 44 px title bar, declares its leading-edge controls through SetNonClientHitTestResult, and a WndProc hook performs minimise, maximise, restore and close and shows the system menu. The caption buttons therefore stay on the leading edge and the inset is the leading clearance the source states; the rule stays 'clear the caption buttons, animated on the same value'. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner.",
       "verification_method": "interaction test toggling the sidebar across the holdsTrafficLights threshold and asserting the leading inset and the animation token",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3914,23 +3919,21 @@
     },
     {
       "id": "PR-CHAT-174",
-      "title": "The Threads popover holds the sidebar list at the sidebar's width by a fixed height of 560, and publishes its frame for capture runs",
+      "title": "The Threads popover holds the sidebar list at the sidebar's width by a fixed height of 560",
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1255-1259 `.popover(isPresented: $isPresented, arrowEdge: .bottom) { SidebarView(inPopover: true, dismiss: { isPresented = false }).frame(width: model.sidebar.width, height: 560).presentedChrome() }`",
         "DroppyCode/App/Views/Chat/ChatView.swift:1260-1263 `.onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in if WebsiteCaptures.isEnabled { WebsiteCaptures.threadsButtonFrame = frame } }` with the comment 'The capture run hangs the list's still from the button, where the app shows it.'"
       ],
       "preconditions": "The sidebar does not hold the window buttons and it does not float as the only sidebar.",
       "action": "The user presses the Threads button while the sidebar does not float.",
-      "expected_result": "A popover opens with its arrow on the bottom edge, holding the sidebar view in its in-popover form with a dismiss closure that closes the popover. Its content is the sidebar's own current width by a fixed 560 points, wearing the presented-chrome treatment. Independently of the popover, the button publishes its global frame to WebsiteCaptures.threadsButtonFrame on every geometry change, but only while captures are enabled.",
-      "side_effects": [
-        "Writes WebsiteCaptures.threadsButtonFrame while captures are enabled"
-      ],
+      "expected_result": "A popover opens with its arrow on the bottom edge, holding the sidebar view in its in-popover form with a dismiss closure that closes the popover. Its content is the sidebar's own current width by a fixed 560 points, wearing the presented-chrome treatment. Upstream also publishes the button's global frame to WebsiteCaptures.threadsButtonFrame on every geometry change, but only while captures are enabled, which no normal launch reaches; the port has no capture subsystem, so no frame is published.",
+      "side_effects": [],
       "persistence": "Not persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "The width follows the live sidebar width; only the 560 height is fixed. The capture-frame publication belongs to the capture subsystem whose porting is an unresolved port decision (the first LAUNCH open question); if that subsystem is dropped the geometry observer goes with it and nothing else in this requirement changes.",
-      "verification_method": "interaction test asserting the popover size and arrow edge, and that the frame is published only under the capture flag",
-      "status": "DISCOVERED",
+      "windows_path": "The width follows the live sidebar width; only the 560 height is fixed. The capture-frame observer is not ported: the capture subsystem runs only under the --website-captures or --tour-captures launch arguments (porting/dead_code.md entries 28 and 33, ED-061) and ED-001 decides not to port it or its CaptureRun indirection.",
+      "verification_method": "interaction test asserting the popover size and arrow edge",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3970,18 +3973,23 @@
       ],
       "preconditions": "A chat is open on a thread whose title may be empty.",
       "action": "The title renders, and the user clicks it.",
-      "expected_result": "The label is verbatim text: the literal \"New thread\" when the title is empty, otherwise the title itself, at the title3 text style in semibold (15 pt on macOS, B1 DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize), in Chrome.secondaryText when empty and Chrome.primaryText otherwise, one line, truncating at the tail, with 6 points of vertical padding and a rectangular hit shape. It is a plain-styled real button, not a label, so the extended title bar around it cannot swallow the press; it takes the whole leftover width, leading-aligned. Its tooltip is exactly \"Thread title — click to copy or rename\" (with a U+2014 em dash), its accessibility label is exactly \"Thread title\" and it carries the button trait. Animation is explicitly disabled on the title value, so a thread switch cuts the text rather than crossfading it. Clicking seeds the rename field with the current title and toggles the title popover.",
+      "expected_result": "The label is verbatim text: the literal \"New thread\" when the title is empty, otherwise the title itself, at the title3 text style in semibold (15 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:50), in Chrome.secondaryText when empty and Chrome.primaryText otherwise, one line, truncating at the tail, with 6 points of vertical padding and a rectangular hit shape. It is a plain-styled real button, not a label, so the extended title bar around it cannot swallow the press; it takes the whole leftover width, leading-aligned. Its tooltip is exactly \"Thread title — click to copy or rename\" (with a U+2014 em dash), its accessibility label is exactly \"Thread title\" and it carries the button trait. Animation is explicitly disabled on the title value, so a thread switch cuts the text rather than crossfading it. Clicking seeds the rename field with the current title and toggles the title popover.",
       "side_effects": [],
       "persistence": "Not persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "The em dash in the tooltip is part of the reproduced upstream string and is kept; the port repository's own no-em-dash rule governs its own code and prose, not text copied verbatim from the source. The disabled animation is load-bearing and must not be left to a default crossfade.",
+      "windows_path": "The em dash in the tooltip is part of the reproduced upstream string and is kept; the port repository's own no-em-dash rule governs its own code and prose, not text copied verbatim from the source. The disabled animation is load-bearing and must not be left to a default crossfade. The row's gaps drag the window while the button takes its presses through the title-bar hit testing of ED-063 (leading-edge controls declared through SetNonClientHitTestResult, WndProc hook for the caption actions). Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison of the empty and non-empty title, plus an interaction test that a thread switch shows no crossfade",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Font respelled as a text style of the same macOS size: B1 ChatView.swift:1208 `.font(.system(size: 15, weight: .semibold))` -> B2 :1204 `.font(.system(.title3, weight: .semibold))`; the Text moved from B1 :1207-1213 to B2 :1203-1209. Strings and behaviour are unchanged."
+      "b2_change": "Font respelled as a text style of the same macOS size: B1 ChatView.swift:1208 `.font(.system(size: 15, weight: .semibold))` -> B2 :1204 `.font(.system(.title3, weight: .semibold))`; the Text moved from B1 :1207-1213 to B2 :1203-1209. Strings and behaviour are unchanged.",
+      "deviation": {
+        "decision": "OD-0012 G3",
+        "upstream": "DroppyCode/App/Views/Chat/ChatView.swift:1212 `.help(\"Thread title — click to copy or rename\")`",
+        "port": "Kept verbatim: the tooltip reads \"Thread title — click to copy or rename\" with the U+2014 em dash, as OD-0008 B14 keeps the other eight."
+      }
     },
     {
       "id": "PR-CHAT-177",
@@ -4052,13 +4060,13 @@
     },
     {
       "id": "PR-CHAT-180",
-      "title": "The Open in menu lists Finder, every installed editor, a divider and Copy path",
+      "title": "The Open in menu lists File Explorer, every installed editor, a divider and Copy path",
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1411-1432 `ChromeMenuButton(symbol: \"arrow.up.forward.app\", help: \"Open in another app\") { PopoverSectionHeader(\"Open in\"); PopoverItem(\"Finder\", image: Workspace.finderIcon) { NSWorkspace.shared.open(URL(fileURLWithPath: directory)) }; ForEach(Workspace.installedEditors) { editor in PopoverItem(editor.name, symbol: \"chevron.left.forwardslash.chevron.right\", image: Workspace.icon(for: editor)) { Workspace.open(directory, with: editor) } }; PopoverDivider(); PopoverItem(\"Copy path\", symbol: \"doc.on.doc\") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(directory, forType: .string) } }`"
       ],
       "preconditions": "A chat is open on a directory.",
       "action": "The user opens the Open in menu and picks an item.",
-      "expected_result": "A chrome menu button with the symbol arrow.up.forward.app whose tooltip is exactly \"Open in another app\". Its menu holds a section header reading exactly \"Open in\"; then an item reading exactly \"Finder\" carrying the Finder application icon, which opens the chat's directory in the system file browser; then one item per installed editor, in the catalogue's own order, each labelled with that editor's display name, carrying the fallback symbol chevron.left.forwardslash.chevron.right and the editor's own application icon, opening the directory with that editor; then a divider; then an item reading exactly \"Copy path\" with the symbol doc.on.doc, which clears the pasteboard and writes the directory path. When no editor is installed the editor items are simply absent and the divider and Copy path still follow Finder.",
+      "expected_result": "A chrome menu button with the symbol arrow.up.forward.app whose tooltip is exactly \"Open in another app\". Its menu holds a section header reading exactly \"Open in\"; then an item reading exactly \"File Explorer\" carrying File Explorer's icon, which opens the chat's directory in File Explorer (OD-0012 G4; upstream reads \"Finder\" with Finder's icon); then one item per installed editor of the Windows catalogue (PR-CHAT-181), in the catalogue's own order, each labelled with that editor's display name, carrying the fallback symbol chevron.left.forwardslash.chevron.right and the editor's own application icon, opening the directory with that editor; then a divider; then an item reading exactly \"Copy path\" with the symbol doc.on.doc, which clears the pasteboard and writes the directory path. When no editor is installed the editor items are simply absent and the divider and Copy path still follow File Explorer.",
       "side_effects": [
         "Launches other applications",
         "Copy path replaces the system pasteboard contents"
@@ -4066,33 +4074,44 @@
       "persistence": "Not persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "\"Finder\" is a macOS application name. No owner ruling covers this menu item: decision B1 of OD-0008 renames only \"Reveal in Finder\", \"Reveal worktree in Finder\" and \"Show in Finder\", so the Windows label for this item is an open owner question and is not chosen here; whatever is ruled is recorded as a named deviation. \"Open in another app\", \"Open in\" and \"Copy path\" are platform-neutral and are kept verbatim.",
-      "verification_method": "interaction test asserting the header, the Finder item, the editor items in catalogue order, the divider and Copy path, and the clear-then-set clipboard write",
-      "status": "DISCOVERED",
+      "windows_path": "Deviation OD-0012 G4: the first item reads \"File Explorer\" and opens the directory in File Explorer; \"Terminal\" in the editor list is Windows Terminal, and Xcode and iTerm are left out because they do not exist on Windows. \"Open in another app\", \"Open in\" and \"Copy path\" are platform-neutral and are kept verbatim. Which editors count as installed, and how the directory is handed to each, follow PR-CHAT-181 and PR-CHAT-182.",
+      "verification_method": "interaction test asserting the header, the File Explorer item, the editor items in catalogue order, the divider and Copy path, and the clear-then-set clipboard write",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 G4",
+        "upstream": "DroppyCode/App/Views/Chat/ChatView.swift:1417-1419 `PopoverItem(\"Finder\", image: Workspace.finderIcon) { NSWorkspace.shared.open(URL(fileURLWithPath: directory)) }`; the editor items come from Workspace.installedEditors (:1420-1424), filtered from the seven-entry catalogue at DroppyCode/UI/Common/Components.swift:109-117, which includes Xcode, Terminal (com.apple.Terminal) and iTerm.",
+        "port": "The first item reads \"File Explorer\", carries File Explorer's icon and opens the chat's directory in File Explorer. The editor items come from the Windows catalogue of PR-CHAT-181, where \"Terminal\" is Windows Terminal and Xcode and iTerm are left out, so they never appear."
+      }
     },
     {
       "id": "PR-CHAT-181",
-      "title": "The editor catalogue is seven fixed entries with exact display names and bundle identifiers",
+      "title": "The editor catalogue is a fixed list with exact display names: upstream's seven entries less Xcode and iTerm",
       "source_evidence": [
         "DroppyCode/UI/Common/Components.swift:102-107 `struct Editor: Identifiable { var id: String { bundleID }; var name: String; var bundleID: String }`",
         "DroppyCode/UI/Common/Components.swift:109-117 `static let editors = [Editor(name: \"Visual Studio Code\", bundleID: \"com.microsoft.VSCode\"), Editor(name: \"Cursor\", bundleID: \"com.todesktop.230313mzl4w4u92\"), Editor(name: \"Zed\", bundleID: \"dev.zed.Zed\"), Editor(name: \"Xcode\", bundleID: \"com.apple.dt.Xcode\"), Editor(name: \"Terminal\", bundleID: \"com.apple.Terminal\"), Editor(name: \"Ghostty\", bundleID: \"com.mitchellh.ghostty\"), Editor(name: \"iTerm\", bundleID: \"com.googlecode.iterm2\")]`"
       ],
       "preconditions": "The application has launched.",
       "action": "The Open in menu asks for the editor catalogue.",
-      "expected_result": "Exactly seven entries, in this order, with these exact display names and these exact bundle identifiers: \"Visual Studio Code\" / com.microsoft.VSCode; \"Cursor\" / com.todesktop.230313mzl4w4u92; \"Zed\" / dev.zed.Zed; \"Xcode\" / com.apple.dt.Xcode; \"Terminal\" / com.apple.Terminal; \"Ghostty\" / com.mitchellh.ghostty; \"iTerm\" / com.googlecode.iterm2. An entry's identity is its bundle identifier, not its name. No eighth entry exists and none is discovered at runtime.",
+      "expected_result": "Exactly five entries, in this order, with these exact display names: \"Visual Studio Code\", \"Cursor\", \"Zed\", \"Terminal\" (Windows Terminal), \"Ghostty\". This is upstream's order with Xcode and iTerm left out (OD-0012 G4). Upstream's seven entries and bundle identifiers are \"Visual Studio Code\" / com.microsoft.VSCode; \"Cursor\" / com.todesktop.230313mzl4w4u92; \"Zed\" / dev.zed.Zed; \"Xcode\" / com.apple.dt.Xcode; \"Terminal\" / com.apple.Terminal; \"Ghostty\" / com.mitchellh.ghostty; \"iTerm\" / com.googlecode.iterm2, and an entry's identity is its bundle identifier, not its name. No other entry exists and none is discovered at runtime.",
       "side_effects": [],
       "persistence": "A compile-time constant.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Platform boundary: bundle identifiers have no Windows counterpart, so the detection key becomes a Windows one per editor (an executable path, a registry App Paths entry or an installed-app record). Xcode, Terminal and iTerm are macOS-only applications with no Windows build, so the Windows catalogue cannot be a translation of all seven and the substitutions must be chosen and recorded rather than derived. The four display names that do carry over (\"Visual Studio Code\", \"Cursor\", \"Zed\", \"Ghostty\") are kept verbatim.",
-      "verification_method": "contract fixture over the seven name and identifier pairs and their order",
+      "windows_path": "Platform boundary: bundle identifiers have no Windows counterpart, so each entry needs a Windows detection key, which is not yet decided (see open_question). OD-0012 G4 settles the substitutions: \"Terminal\" is Windows Terminal, and Xcode and iTerm are left out because they do not exist on Windows. G4 names only Finder, Terminal, Xcode and iTerm, so \"Visual Studio Code\", \"Cursor\", \"Zed\" and \"Ghostty\" stay, with their display names verbatim.",
+      "verification_method": "contract fixture over the five display names and their order, and over each entry's Windows detection key once it is decided",
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 G4",
+        "upstream": "DroppyCode/UI/Common/Components.swift:109-117 `static let editors` holds seven entries in the order Visual Studio Code, Cursor, Zed, Xcode, Terminal (com.apple.Terminal), Ghostty, iTerm, each identified by its bundle identifier.",
+        "port": "Five entries in the order Visual Studio Code, Cursor, Zed, Terminal (Windows Terminal), Ghostty; Xcode and iTerm are left out."
+      },
+      "open_question": "The Windows detection key and launch method for each of the five entries. The source identifies an editor by its macOS bundle identifier (DroppyCode/UI/Common/Components.swift:103-106), resolves it through Launch Services (:139-141) and opens the directory with the resolved application (:144-147). No owner ruling or engineering decision names the Windows key (an executable path, an App Paths registry entry, a packaged-app family name or an installed-app record) or how the directory is passed to each application, so the identity and the resolution rule cannot be stated without inventing them."
     },
     {
       "id": "PR-CHAT-182",
@@ -4106,7 +4125,7 @@
       ],
       "preconditions": "The chrome row is being rebuilt, which happens on every render.",
       "action": "The Open in menu asks for the installed editors and their icons.",
-      "expected_result": "The installed list is computed exactly once for the process lifetime, by filtering the catalogue down to the entries the system can resolve. An editor installed after launch does not appear until the next launch, and one uninstalled after launch still appears but opens nothing, because the open path re-resolves and returns silently when the application is gone. Each editor's icon is read at most once per bundle identifier and resized to 16 by 16 before being cached; a second menu build reads no icons. The Finder icon is read once, from the fixed path /System/Library/CoreServices/Finder.app. Revealing a path selects that path in the file viewer rather than opening its parent.",
+      "expected_result": "The installed list is computed exactly once for the process lifetime, by filtering the catalogue down to the entries the system can resolve. An editor installed after launch does not appear until the next launch, and one uninstalled after launch still appears but opens nothing, because the open path re-resolves and returns silently when the application is gone. Each editor's icon is read at most once per bundle identifier and resized to 16 by 16 before being cached; a second menu build reads no icons. File Explorer's icon, for the menu's File Explorer item, is read once (OD-0012 G4; upstream reads Finder's icon once from the fixed path /System/Library/CoreServices/Finder.app). Revealing a path selects that path in File Explorer rather than opening its parent.",
       "side_effects": [
         "One application-lookup query per catalogue entry at first use",
         "One icon read per resolved editor at first use"
@@ -4119,7 +4138,13 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 G4",
+        "upstream": "DroppyCode/UI/Common/Components.swift:163 `@MainActor static let finderIcon = NSWorkspace.shared.icon(forFile: \"/System/Library/CoreServices/Finder.app\")`, the icon of the menu's Finder item.",
+        "port": "The menu's first item is File Explorer, so the icon read once is File Explorer's."
+      },
+      "open_question": "The Windows detection key per editor (the open question of PR-CHAT-181): the once-per-launch resolution filters the catalogue by it and the icon cache is keyed on it, so neither can be stated until it is decided. The file File Explorer's icon is read from is likewise not fixed by any ruling or decision."
     },
     {
       "id": "PR-CHAT-183",
@@ -4386,7 +4411,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "One text-style table for the whole app; the conversation carries no second scale and no zoom factor. The per-style sizes are the macOS ones recorded in B1 DroppyCode/UI/Common/ChatZoom.swift:44-57 (title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); the face follows OD-0009.",
+      "windows_path": "One text-style table for the whole app; the conversation carries no second scale and no zoom factor. Per ED-059 each text style takes the size of upstream's B1 table, in Inter, and in Cascadia Mono where the design is .monospaced (OD-0009): largeTitle 26 (B1:DroppyCode/UI/Common/ChatZoom.swift:47), title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), title2 17 (B1:DroppyCode/UI/Common/ChatZoom.swift:49), title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), headline and body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), footnote, caption and caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). The sizes are fixed per style and scale only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); no B2 file restates them, so visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "unit over the font helper for every text style with and without an explicit weight, plus a capture comparison showing a chat row and a chrome label at the same text style render at the same size",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -4402,7 +4427,7 @@
       "role": "list",
       "exact_text": null,
       "geometry": "maxWidth 820 lead-aligned; horizontal padding 20; top padding Chrome.contentTopInset = 12 + 32 + 28 = 72; bottom padding 18; minHeight equal to the measured viewport height, top-aligned, with a zero-minimum spacer above the rows; row spacing TimelineMetrics.rowSpacing = 20; during a reshape the layout width is quantized to 12 and capped at 860",
-      "typography": "Inherited; every font inside is Font.chat(style), the plain system text style with no separate chat zoom (DroppyCode/UI/Common/ChatFont.swift:6-10)",
+      "typography": "Inherited; every font inside is Font.chat(style), the plain system text style with no separate chat zoom (DroppyCode/UI/Common/ChatFont.swift:6-10); each text style takes its ED-059 size (B1:DroppyCode/UI/Common/ChatZoom.swift:47-54), in Inter, and in Cascadia Mono where the design is .monospaced (OD-0009)",
       "colors": "No background of its own; the window backdrop shows through",
       "states": [
         "loading history: renders a transparent zero-content view only",
@@ -4420,7 +4445,7 @@
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:432-436",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:325-341"
       ],
-      "notes": "The column width and padding are shared with the composer so messages line up with its edges. contentTopInset must be computed from its three parts, not hard-coded, even though it equals veilHeight by coincidence.",
+      "notes": "The column width and padding are shared with the composer so messages line up with its edges. contentTopInset must be computed from its three parts, not hard-coded, even though it equals veilHeight by coincidence. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "b2_change": "Typography: B1 fonts were `Font.chat(style, zoom:)` at the chat zoom (B1 ChatView.swift:123) -> B2 `Font.chat(style)` with no zoom (ChatFont.swift:6). Rows are built by the extracted row(_:rewindable:) (B2 ThreadTimeline.swift:325-341) with RowContext chronological false. The scroll content moved from B1 :323-408 to B2 :359-425; geometry and colours are unchanged."
     },
     {
@@ -4430,7 +4455,7 @@
       "role": "button",
       "exact_text": "Show 42 earlier messages",
       "geometry": "Horizontal padding 14, vertical padding 7, continuous capsule background, centered in the column, 20 points of top padding",
-      "typography": "Font.chat(.callout)",
+      "typography": "Font.chat(.callout) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; in Inter per OD-0009)",
       "colors": "Foreground .secondary; background .quaternary at 0.5 opacity",
       "states": [
         "hidden when no blocks are hidden",
@@ -4497,7 +4522,7 @@
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:272-296",
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:387-424"
       ],
-      "notes": "The ticks themselves never hit-test; the rail's own hit area takes the pointer, so a scrub never drops between ticks. Each tick's accessibility label is the message title."
+      "notes": "The ticks themselves never hit-test; the rail's own hit area takes the pointer, so a scrub never drops between ticks. Each tick's accessibility label is the message title. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner."
     },
     {
       "id": "UI-CHAT-005",
@@ -4506,8 +4531,8 @@
       "role": "popover",
       "exact_text": null,
       "geometry": "Width exactly 300; horizontal padding 12, vertical padding 10; corner radius Chrome.cardCornerRadius = 16, continuous; 34 points of leading padding from the rail; vertically centred on the tick, clamped 2 points inside the rail's top and bottom using an arithmetic height estimate",
-      "typography": "Title .system(.body, weight: .semibold); snippet .system(.callout) (13 and 12 pt on macOS, B1 DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize)",
-      "colors": "Title Chrome.primaryText; snippet Chrome.secondaryText; regular glass surface (glassEffect(.regular)); on Windows the material is a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001)",
+      "typography": "Title .system(.body, weight: .semibold); snippet .system(.callout) (13 and 12 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:51 and B1:DroppyCode/UI/Common/ChatZoom.swift:52)",
+      "colors": "Title Chrome.primaryText; snippet Chrome.secondaryText; regular glass surface (glassEffect(.regular)); on Windows the material is a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001); Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "mounted only while a tick is hovered",
         "arrives and leaves with opacity combined with a 6-point leading offset, zero offset under reduced motion",
@@ -4529,7 +4554,7 @@
       "role": "button",
       "exact_text": null,
       "geometry": "A chrome circle button; 10 points of bottom padding; held in a zero-height bottom-aligned frame so it floats without taking layout",
-      "typography": "Chrome.iconFont, .system(.callout, weight: .semibold) (12 pt on macOS, B1 DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize)",
+      "typography": "Chrome.iconFont, .system(.callout, weight: .semibold) (12 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:52)",
       "colors": "The chrome circle button's own surface",
       "states": [
         "shown only while the end-of-conversation sentinel is under 1 percent visible",
@@ -4578,8 +4603,8 @@
       "role": "label",
       "exact_text": null,
       "geometry": "Glyph and text 5 points apart; chip padding 9 leading, 7 trailing, 5 vertical; continuous capsule; excerpt capped at 260 points wide; the strip is trailing-aligned with 4-point spacing and a trailing padding of 4 to clear the bubble's tail",
-      "typography": "Glyph .system(.footnote, weight: .semibold); excerpt .system(.subheadline) (10 and 11 pt on macOS, B1 DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize)",
-      "colors": "Glyph Chrome.secondaryText; excerpt Chrome.primaryText at 0.9; capsule fill Chrome.overlay(0.12), i.e. the label colour at 12 percent",
+      "typography": "Glyph .system(.footnote, weight: .semibold); excerpt .system(.subheadline) (10 and 11 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:54 and B1:DroppyCode/UI/Common/ChatZoom.swift:53)",
+      "colors": "Glyph Chrome.secondaryText; excerpt Chrome.primaryText at 0.9; capsule fill Chrome.overlay(0.12), i.e. the label colour at 12 percent; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "shown only when the message led with one or more quote blocks"
       ],
@@ -4730,8 +4755,8 @@
       "role": "popover",
       "exact_text": "Edit message",
       "geometry": "A PromptEditor anchored to the pencil; the file-changes box is padded 12 with corner radius 12 continuous; the file list becomes a 110-point scroller past five files",
-      "typography": "Callout throughout the extra content",
-      "colors": "The box is Chrome.overlay(0.05); the four state labels and the Sending replaces line are Chrome.secondaryText; the error line is Chrome.danger",
+      "typography": "Callout throughout the extra content (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; in Inter per OD-0009)",
+      "colors": "The box is Chrome.overlay(0.05); the four state labels and the Sending replaces line are Chrome.secondaryText; the error line is Chrome.danger; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "checking: a small progress spinner beside Checking for file changes…",
         "unavailable: the failure reason beside an exclamationmark.triangle in Chrome.secondaryText",
@@ -4757,8 +4782,8 @@
       "role": "toggle",
       "exact_text": "Undo the file changes this thread made",
       "geometry": "Switch style at the small control size, full width, with a minimum 8-point spacer before the count",
-      "typography": "Callout",
-      "colors": "The count is Chrome.secondaryText; the stat uses Chrome.success and Chrome.danger",
+      "typography": "Callout (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; in Inter per OD-0009)",
+      "colors": "The count is Chrome.secondaryText; the stat uses Chrome.success and Chrome.danger; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "on by default every time the editor opens",
         "off: every file row dims to 0.45 opacity"
@@ -4823,8 +4848,8 @@
       "role": "row",
       "exact_text": null,
       "geometry": "A leading stack of spacing 2; the hover line is pinned to 22 points and the row's height is reduced by -(22 + 2)",
-      "typography": "The markdown renderer's own type; the summary label at Font.chat(.caption)",
-      "colors": "The summary label is Chrome.secondaryText",
+      "typography": "The markdown renderer's own type; the summary label at Font.chat(.caption) (ED-059: caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "The summary label is Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "hover and not streaming: the turn duration fades in over 0.12 seconds on the leading edge of the line below",
         "streaming: the hover line never appears"
@@ -4889,8 +4914,8 @@
       "role": "button",
       "exact_text": "Edited files, ran commands",
       "geometry": "Icon column 16 wide, 8 points before the text; 12 points of trailing padding; the group's inner spacing is TimelineMetrics.rowSpacing = 20",
-      "typography": "Font.chat(.callout); the glyph at Font.chat(.caption); the chevron at Font.chat(.caption2, weight: .semibold)",
-      "colors": "Glyph, text and chevron Chrome.secondaryText",
+      "typography": "Font.chat(.callout); the glyph at Font.chat(.caption); the chevron at Font.chat(.caption2, weight: .semibold) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; caption2 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "Glyph, text and chevron Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "collapsed: chevron at 0 degrees",
         "expanded: chevron rotated 90 degrees",
@@ -4914,8 +4939,8 @@
       "role": "button",
       "exact_text": "5 earlier steps",
       "geometry": "Ellipsis glyph in the 16-point icon column, 8 points before the text, 12 points of trailing padding",
-      "typography": "Font.chat(.callout); glyph at Font.chat(.caption)",
-      "colors": "Glyph and text Chrome.secondaryText",
+      "typography": "Font.chat(.callout); glyph at Font.chat(.caption) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "Glyph and text Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "shown only when more than two steps are hidden; the singular form is exactly 1 earlier step",
         "disappears once all steps are shown"
@@ -4936,8 +4961,8 @@
       "role": "row",
       "exact_text": "Ran npm test",
       "geometry": "Icon column 16 wide, 8 points before the text; 12 points of trailing padding; a minimum 8-point spacer before any trailing status text; a badge variant uses the pill insets and a 0.32 quaternary fill at corner radius 18",
-      "typography": "Font.chat(.callout) for a plain row; Font.chat(.callout, weight: .medium) for a badge",
-      "colors": "Plain row text .secondary; badge text Chrome.primaryText at 0.9; chevron Chrome.secondaryText",
+      "typography": "Font.chat(.callout) for a plain row; Font.chat(.callout, weight: .medium) for a badge (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; in Inter per OD-0009)",
+      "colors": "Plain row text .secondary; badge text Chrome.primaryText at 0.9; chevron Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "running: a mini progress spinner in the icon column",
         "failed: xmark.circle.fill in Chrome.danger, plus exit N at the trailing edge when an exit code is known",
@@ -4965,7 +4990,7 @@
       "role": "label",
       "exact_text": null,
       "geometry": "Padding 10; corner radius 10 continuous; full width lead-aligned; the whole detail is inset 12 points from the trailing edge",
-      "typography": "Font.chat(.caption, design: .monospaced)",
+      "typography": "Font.chat(.caption, design: .monospaced) (ED-059: caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Cascadia Mono, the monospace face, per OD-0009)",
       "colors": "Background .quaternary at 0.45",
       "states": [
         "collapsed to the first 30 lines whenever the output has more",
@@ -4988,7 +5013,7 @@
       "role": "button",
       "exact_text": "Show full output (142 lines)",
       "geometry": "Link button beneath the output block",
-      "typography": "Font.chat(.caption)",
+      "typography": "Font.chat(.caption) (ED-059: caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
       "colors": "Link style",
       "states": [
         "shown whenever the output exceeds 30 lines, in both states",
@@ -5010,8 +5035,8 @@
       "role": "label",
       "exact_text": null,
       "geometry": "Inline, above any diffs and output",
-      "typography": "Font.chat(.caption, design: .monospaced)",
-      "colors": "Chrome.secondaryText",
+      "typography": "Font.chat(.caption, design: .monospaced) (ED-059: caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Cascadia Mono, the monospace face, per OD-0009)",
+      "colors": "Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "limited to 12 lines",
         "omitted when the detail is null or empty"
@@ -5032,8 +5057,8 @@
       "role": "list",
       "exact_text": null,
       "geometry": "The path row is padded 10 horizontally and 6 vertically above the diff lines; the block is filled at .quaternary 0.45 and clipped to corner radius 10 continuous",
-      "typography": "Path at Font.chat(.caption)",
-      "colors": "Path Chrome.secondaryText",
+      "typography": "Path at Font.chat(.caption) (ED-059: caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "Path Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "one block per edit that carries a non-empty diff",
         "line numbers are not shown"
@@ -5054,8 +5079,8 @@
       "role": "button",
       "exact_text": "Plan ready",
       "geometry": "Chat badge pill: glyph 18 by 18, spacing 8, pill insets 12 leading, 14 trailing, 8 vertical, corner radius 18 continuous; full width lead-aligned with 96 points of trailing padding",
-      "typography": "Title Font.chat(.callout, weight: .medium); caption Font.chat(.caption); chevron Font.chat(.caption2, weight: .semibold)",
-      "colors": "Fill .tint at 0.1; title Chrome.primaryText at 0.9; caption Chrome.secondaryText; chevron Chrome.secondaryText; the attention wave is Chrome.accentNSColor",
+      "typography": "Title Font.chat(.callout, weight: .medium); caption Font.chat(.caption); chevron Font.chat(.caption2, weight: .semibold) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; caption2 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "Fill .tint at 0.1; title Chrome.primaryText at 0.9; caption Chrome.secondaryText; chevron Chrome.secondaryText; the attention wave is Chrome.accentNSColor; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "drafting: title Writing a plan, no caption, a working spinner at cell size 3 in a 14-point frame",
         "proposed: title Plan ready, caption Implement or dismiss, the accent dot wave along the top quarter",
@@ -5080,7 +5105,7 @@
       "role": "popover",
       "exact_text": "Plan",
       "geometry": "Fixed width 520, padded 16; the markdown scroller has a maximum height of 420 and 16 points of horizontal padding; the header and content are 12 points apart; the button row is 8 points apart",
-      "typography": "Header Font.chat(.headline)",
+      "typography": "Header Font.chat(.headline) (ED-059: headline 13 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:51; in Inter per OD-0009)",
       "colors": "The popover chrome",
       "states": [
         "proposed: the two action buttons are shown",
@@ -5147,8 +5172,8 @@
       "role": "list",
       "exact_text": "2 of 5 done",
       "geometry": "Padding 14; corner radius 18 continuous; inner spacing 7; the header's glyph and text 6 points apart; each step is a first-baseline row 8 points apart; the card hugs its longest step and the row carries 96 points of trailing padding",
-      "typography": "Header Font.chat(.caption); steps Font.chat(.callout)",
-      "colors": "Card .quaternary at 0.32; header Chrome.secondaryText; a pending glyph .tertiary, active and done glyphs in the tint; done text .secondary with a secondary strikethrough; other text .primary",
+      "typography": "Header Font.chat(.caption); steps Font.chat(.callout) (ED-059: caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; in Inter per OD-0009)",
+      "colors": "Card .quaternary at 0.32; header Chrome.secondaryText; a pending glyph .tertiary, active and done glyphs in the tint; done text .secondary with a secondary strikethrough; other text .primary; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "pending: circle",
         "active: circle.dotted.circle",
@@ -5171,7 +5196,7 @@
       "role": "label",
       "exact_text": null,
       "geometry": "A first-baseline row 8 points apart; at warning and error level the pill insets 12 leading, 14 trailing, 8 vertical and corner radius 18 continuous; at info level no padding at all; full width lead-aligned",
-      "typography": "Font.chat(.callout)",
+      "typography": "Font.chat(.callout) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; in Inter per OD-0009)",
       "colors": "Info: glyph and text .secondary, background clear. Warning: Chrome.warning, background Chrome.warning at 0.1, text .primary. Error: Chrome.danger, background Chrome.danger at 0.1, text .primary",
       "states": [
         "info, warning and error, differing in glyph, colour and whether the pill exists"
@@ -5192,8 +5217,8 @@
       "role": "label",
       "exact_text": "Worked for 1m 4s",
       "geometry": "Full width lead-aligned",
-      "typography": "Font.chat(.caption)",
-      "colors": "Chrome.secondaryText",
+      "typography": "Font.chat(.caption) (ED-059: caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "completed or still running: Worked for D",
         "interrupted: Stopped after D",
@@ -5217,8 +5242,8 @@
       "role": "button",
       "exact_text": "Worked for 1m 4s",
       "geometry": "Label and chevron 6 points apart; a divider at 0.6 opacity with 10 points of padding above and below sits between the header and the body when there is one",
-      "typography": "Font.chat(.callout); chevron Font.chat(.caption2, weight: .semibold)",
-      "colors": "Label and chevron Chrome.secondaryText; the expanded steps card is .quaternary at 0.32 with corner radius 18",
+      "typography": "Font.chat(.callout); chevron Font.chat(.caption2, weight: .semibold) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; caption2 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "Label and chevron Chrome.secondaryText; the expanded steps card is .quaternary at 0.32 with corner radius 18; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "collapsed: the conclusive answer, any plan cards, any warning or error notices, the heads list and the file card",
         "expanded: the turn's full steps in a filled card, plus the heads list and the file card",
@@ -5240,8 +5265,8 @@
       "role": "row",
       "exact_text": "Edited 3 files",
       "geometry": "Leading padding 12, trailing padding 6, vertical padding 6; corner radius 18 continuous; a fixed 20-point gap between the title button and the round controls; the card hugs its content and is lead-aligned",
-      "typography": "Title Font.chat(.callout, weight: .medium); chevron Font.chat(.caption2, weight: .semibold)",
-      "colors": "Card .quaternary at 0.32; the badge-edit glyph Chrome.secondaryText; the title Chrome.primaryText at 0.9; chevron Chrome.secondaryText",
+      "typography": "Title Font.chat(.callout, weight: .medium); chevron Font.chat(.caption2, weight: .semibold) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; caption2 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "Card .quaternary at 0.32; the badge-edit glyph Chrome.secondaryText; the title Chrome.primaryText at 0.9; chevron Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "one file: the title is exactly Edited 1 file",
         "no files: the title button is disabled and the chevron is absent",
@@ -5265,8 +5290,8 @@
       "role": "button",
       "exact_text": null,
       "geometry": "28 by 28 circle",
-      "typography": "Chrome.iconFont, .system(.callout, weight: .semibold) (12 pt on macOS, B1 DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize)",
-      "colors": "Glyph Chrome.secondaryText rising to Chrome.primaryText on hover; fill Chrome.overlay(0.1) rising to Chrome.overlay(0.18); animated with Chrome.hover, .easeOut(duration: 0.1)",
+      "typography": "Chrome.iconFont, .system(.callout, weight: .semibold) (12 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:52)",
+      "colors": "Glyph Chrome.secondaryText rising to Chrome.primaryText on hover; fill Chrome.overlay(0.1) rising to Chrome.overlay(0.18); animated with Chrome.hover, .easeOut(duration: 0.1); Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "present only when the turn can be undone",
         "hover: brighter glyph and fill"
@@ -5288,8 +5313,8 @@
       "role": "popover",
       "exact_text": "Revert up to this point?",
       "geometry": "Fixed width 300, padded 16, inner spacing 10, arrow on the bottom edge; the button row is 8 points apart at the small control size, trailing aligned",
-      "typography": "Title system size 14 semibold; body .system(.callout) (12 pt on macOS, B1 DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize)",
-      "colors": "Body Chrome.secondaryText",
+      "typography": "Title system size 14 semibold; body .system(.callout) (12 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:52)",
+      "colors": "Body Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "Revert is the default action, so Return activates it"
       ],
@@ -5331,8 +5356,8 @@
       "role": "row",
       "exact_text": null,
       "geometry": "Horizontal padding 12, vertical padding 7; a minimum 8-point spacer before the trailing value",
-      "typography": "Path Font.chat(.callout); Binary at Font.chat(.caption)",
-      "colors": "Binary label Chrome.secondaryText; the stat uses Chrome.success and Chrome.danger",
+      "typography": "Path Font.chat(.callout); Binary at Font.chat(.caption) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "Binary label Chrome.secondaryText; the stat uses Chrome.success and Chrome.danger; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "binary file: the literal Binary instead of a stat",
         "at most twelve rows"
@@ -5353,8 +5378,8 @@
       "role": "label",
       "exact_text": "and 8 more files",
       "geometry": "Horizontal padding 12, vertical padding 7",
-      "typography": "Font.chat(.callout)",
-      "colors": "Chrome.secondaryText",
+      "typography": "Font.chat(.callout) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; in Inter per OD-0009)",
+      "colors": "Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "exactly thirteen files: the line reads exactly and 1 more file",
         "absent at twelve files or fewer"
@@ -5375,8 +5400,8 @@
       "role": "row",
       "exact_text": "Pondering…",
       "geometry": "Card: fixed width 380, padding 14 on each side and 11 vertical, inner spacing 10, header spacing 8, corner radius 18 continuous. Badge: the pill insets 12 leading, 14 trailing, 8 vertical, hugging its words. The opened body is padded 14 horizontally and 11 at the bottom",
-      "typography": "Title .system(.body, weight: .medium); elapsed time .system(.subheadline) with monospaced digits (13 and 11 pt on macOS, B1 DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize); chevron Font.chat(.caption2, weight: .semibold); the card's own text Font.chat(.callout)",
-      "colors": "Background .quaternary at 0.32; the title gradient uses Chrome.primaryText; the time Chrome.secondaryText; the chevron .tertiary; the progress bar is tinted with Chrome.accent",
+      "typography": "Title .system(.body, weight: .medium); elapsed time .system(.subheadline) with monospaced digits (13 and 11 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:51 and B1:DroppyCode/UI/Common/ChatZoom.swift:53); chevron Font.chat(.caption2, weight: .semibold); the card's own text Font.chat(.callout) (ED-059: caption2 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; in Inter per OD-0009)",
+      "colors": "Background .quaternary at 0.32; the title gradient uses Chrome.primaryText; the time Chrome.secondaryText; the chevron .tertiary; the progress bar is tinted with Chrome.accent; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "card on (showsWorkingCard): the progress bar is drawn and the card is 380 wide",
         "card off: a one-line badge that hugs its words with no bar",
@@ -5427,7 +5452,7 @@
       "exact_text": "What should we build in Marrow?",
       "geometry": "A centred stack of spacing 26; the app icon at 72 by 72; 40 points of horizontal padding; filling the pane",
       "typography": "System size 28 regular, one line, minimum scale factor 0.6",
-      "colors": "Chrome.primaryText; the project name's dotted underline is Chrome.secondaryText, rising to Chrome.primaryText on hover",
+      "colors": "Chrome.primaryText; the project name's dotted underline is Chrome.secondaryText, rising to Chrome.primaryText on hover; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "no project name: the line is exactly What should we build?",
         "appears fading in and scaling from 0.97 over .easeOut(duration: 0.3)",
@@ -5488,8 +5513,8 @@
       "role": "button",
       "exact_text": "Hank and Walter are done",
       "geometry": "Pill insets 12 leading, 14 trailing, 8 vertical, corner radius 18 continuous; glyphs 18 by 18 overlapped by -4 points; content spacing 8; full width lead-aligned with 96 points of trailing padding",
-      "typography": "Font.chat(.callout, weight: .medium); chevron Font.chat(.caption2, weight: .semibold)",
-      "colors": "Fill .tint at 0.1; title Chrome.primaryText at 0.9; chevron Chrome.secondaryText; the Hydra mark Chrome.secondaryText",
+      "typography": "Font.chat(.callout, weight: .medium); chevron Font.chat(.caption2, weight: .semibold) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; caption2 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "Fill .tint at 0.1; title Chrome.primaryText at 0.9; chevron Chrome.secondaryText; the Hydra mark Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "a note from Hydra itself: the Hydra mark in place of the glyphs, and the note's first line without one trailing full stop as the title",
         "a head with a failed or stopped section is named with that outcome instead of done",
@@ -5514,8 +5539,8 @@
       "role": "button",
       "exact_text": "Open",
       "geometry": "A sibling control 8 points after the pill's button, never nested inside it",
-      "typography": "Font.chat(.caption, weight: .semibold)",
-      "colors": "Chrome.secondaryText",
+      "typography": "Font.chat(.caption, weight: .semibold) (ED-059: caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "present only when the note's body leads with a bare http or https address on its own line"
       ],
@@ -5536,7 +5561,7 @@
       "role": "popover",
       "exact_text": null,
       "geometry": "Fixed width 460 with a maximum scroll height of 460; content padded 16 horizontally and 14 vertically; block spacing 10",
-      "typography": ".system(.callout) (12 pt on macOS, B1 DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize) with the markdown point size pinned to 12",
+      "typography": ".system(.callout) (12 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:52) with the markdown point size pinned to 12",
       "colors": "The popover chrome; the dimmed markdown environment is off",
       "states": [
         "opens at its final size because the whole body is laid out once before it is shown"
@@ -5558,8 +5583,8 @@
       "role": "button",
       "exact_text": "Pip's brief",
       "geometry": "Pill insets 12 leading, 14 trailing, 8 vertical, corner radius 18 continuous; glyph 18 by 18; content spacing 8; trailing-aligned with 96 points of leading padding, like a sent message; the stack spacing is 6",
-      "typography": "Font.chat(.callout, weight: .medium); chevron Font.chat(.caption2, weight: .semibold)",
-      "colors": "Fill .tint at 0.1; title Chrome.primaryText at 0.9; chevron Chrome.secondaryText",
+      "typography": "Font.chat(.callout, weight: .medium); chevron Font.chat(.caption2, weight: .semibold) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; caption2 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "Fill .tint at 0.1; title Chrome.primaryText at 0.9; chevron Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "cooking (the brief's turn has produced nothing and the thread is running): the title is <name> is starting to cook… and the text carries the shimmer",
         "answered: the title is <name>'s brief with no shimmer"
@@ -5580,8 +5605,8 @@
       "role": "button",
       "exact_text": "Hank finished working",
       "geometry": "Pill insets 12 leading, 14 trailing, 8 vertical, corner radius 18 continuous; glyph 18 by 18; content spacing 8; pills stack 6 points apart, all starting at the same leading edge, with 96 points of trailing padding on the row",
-      "typography": "Font.chat(.callout, weight: .medium); chevron Font.chat(.caption2, weight: .semibold)",
-      "colors": "Fill .tint at 0.1; the name is styled by the head's own name style over Chrome.primaryText at 0.75; chevron Chrome.secondaryText",
+      "typography": "Font.chat(.callout, weight: .medium); chevron Font.chat(.caption2, weight: .semibold) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; caption2 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "Fill .tint at 0.1; the name is styled by the head's own name style over Chrome.primaryText at 0.75; chevron Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "failed: the title is <name> failed",
         "stopped: the title is <name> was stopped",
@@ -5605,8 +5630,8 @@
       "role": "row",
       "exact_text": "Gathering the team's files…",
       "geometry": "Pill insets 12 leading, 14 trailing, 8 vertical, corner radius 18 continuous; content spacing 8; the label slot is padded 6 vertically and 2 horizontally, clipped, then given back; full width lead-aligned with 96 points of trailing padding. The track: dot 4, gap 3, head 12 growing to 18 at rest, height 20, lift 4",
-      "typography": "Stage and outcome titles at Font.chat(.callout, weight: .medium); the Open link at Font.chat(.caption, weight: .semibold)",
-      "colors": "Fill .tint at 0.1; title Chrome.primaryText at 0.9; unlit dots Chrome.overlay(0.28) with Chrome.accent lighting them; the head mark Chrome.secondaryText; the outcome chevron Chrome.secondaryText",
+      "typography": "Stage and outcome titles at Font.chat(.callout, weight: .medium); the Open link at Font.chat(.caption, weight: .semibold) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "Fill .tint at 0.1; title Chrome.primaryText at 0.9; unlit dots Chrome.overlay(0.28) with Chrome.accent lighting them; the head mark Chrome.secondaryText; the outcome chevron Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "merging: the head hops along seven dots and the current stage's words shimmer, with a trailing horizontal ellipsis",
         "outcome: the note's title with a chevron when there is a report, and an Open link when the body led with an address",
@@ -5632,8 +5657,8 @@
       "role": "row",
       "exact_text": "Summoning 3 heads",
       "geometry": "Pill insets 12 leading, 14 trailing, 8 vertical, corner radius 18 continuous; header spacing 8 with a 16-point mark; the head list is 5 points apart under a 16-point column; the outer stack is 6 points apart",
-      "typography": "Title Font.chat(.callout, weight: .medium); task Font.chat(.caption); project Font.chat(.caption2, weight: .medium)",
-      "colors": "Fill .tint at 0.1; the mark Chrome.secondaryText; the task Chrome.primaryText at 0.75; the project Chrome.secondaryText; the sent check is green",
+      "typography": "Title Font.chat(.callout, weight: .medium); task Font.chat(.caption); project Font.chat(.caption2, weight: .medium) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; caption2 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "Fill .tint at 0.1; the mark Chrome.secondaryText; the task Chrome.primaryText at 0.75; the project Chrome.secondaryText; the sent check is green; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "streaming or no delegations yet: the title is exactly Summoning heads and nothing is listed",
         "closed block, one named head: Summoning <name>, or Summoning a head when unnamed",
@@ -5657,8 +5682,8 @@
       "role": "popover",
       "exact_text": null,
       "geometry": "Fixed width 440 with a maximum height of 520; padded 16; section spacing 16; the steps list uses row spacing 20; the header's glyph is 22 points with a minimum 12-point spacer before the status line",
-      "typography": "Name Font.chat(.headline); section titles Font.chat(.caption, weight: .semibold); body Font.chat(.callout)",
-      "colors": "Name and body Chrome.primaryText; section titles and the status line Chrome.secondaryText; step labels Chrome.secondaryText; notice steps in the level's colour",
+      "typography": "Name Font.chat(.headline); section titles Font.chat(.caption, weight: .semibold); body Font.chat(.callout) (ED-059: headline 13 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:51; caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; in Inter per OD-0009)",
+      "colors": "Name and body Chrome.primaryText; section titles and the status line Chrome.secondaryText; step labels Chrome.secondaryText; notice steps in the level's colour; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "no steps yet: the literal No steps yet.",
         "head finished with a non-empty summary: a Report section is appended",
@@ -5681,7 +5706,7 @@
       "role": "row",
       "exact_text": "Sending out Pip: the merge popover",
       "geometry": "Pill insets 12 leading, 14 trailing, 8 vertical, corner radius 18 continuous, with a 0.32 quaternary fill; glyph 18 by 18; badge content spacing 8",
-      "typography": "Font.chat(.callout, weight: .medium)",
+      "typography": "Font.chat(.callout, weight: .medium) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; in Inter per OD-0009)",
       "colors": "Fill .quaternary at 0.32; text Chrome.primaryText at 0.9",
       "states": [
         "running, head linked: Sending out <name>: <title>",
@@ -5707,7 +5732,7 @@
       "role": "row",
       "exact_text": "Context7: resolve-library-id",
       "geometry": "Pill insets 12 leading, 14 trailing, 8 vertical, corner radius 18 continuous, with a 0.32 quaternary fill; MCP glyph 18 by 18",
-      "typography": "Font.chat(.callout, weight: .medium)",
+      "typography": "Font.chat(.callout, weight: .medium) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; in Inter per OD-0009)",
       "colors": "Fill .quaternary at 0.32; text Chrome.primaryText at 0.9",
       "states": [
         "running, completed, failed and declined are carried on the glyph",
@@ -5800,7 +5825,7 @@
       "exact_text": null,
       "geometry": "Indented by iconWidth + iconSpacing = 24 points, in line with the tool rows",
       "typography": "Markdown at point size 12",
-      "colors": "Chrome.secondaryText with the dimmed markdown environment on",
+      "colors": "Chrome.secondaryText with the dimmed markdown environment on; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "shown for an assistant entry that sits inside a work run"
       ],
@@ -5841,7 +5866,7 @@
       "role": "label",
       "exact_text": "Declined",
       "geometry": "At the tool row's trailing edge, after a minimum 8-point spacer",
-      "typography": "Font.chat(.caption)",
+      "typography": "Font.chat(.caption) (ED-059: caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
       "colors": "Chrome.warning",
       "states": [
         "present only when the call's status is declined"
@@ -5862,7 +5887,7 @@
       "role": "label",
       "exact_text": "exit 127",
       "geometry": "At the tool row's trailing edge, after a minimum 8-point spacer",
-      "typography": "Font.chat(.caption) with monospaced digits",
+      "typography": "Font.chat(.caption) with monospaced digits (ED-059: caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
       "colors": "Chrome.danger",
       "states": [
         "present only when the call failed and an exit code is known"
@@ -5883,8 +5908,8 @@
       "role": "label",
       "exact_text": "Kept",
       "geometry": "At the file row's trailing edge, after a minimum 4-point spacer",
-      "typography": "Caption",
-      "colors": "Chrome.secondaryText",
+      "typography": "Caption (ED-059: caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "present when the file changed again since the thread last touched it, so it is left alone"
       ],
@@ -5904,8 +5929,8 @@
       "role": "label",
       "exact_text": "Checking for file changes…",
       "geometry": "A small progress spinner and the text 8 points apart",
-      "typography": "Callout",
-      "colors": "Chrome.secondaryText",
+      "typography": "Callout (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; in Inter per OD-0009)",
+      "colors": "Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "shown until the revert preview resolves or fails",
         "Send is disabled while it is showing"
@@ -5926,8 +5951,8 @@
       "role": "label",
       "exact_text": "This thread changed no files since this message",
       "geometry": "A label beside a checkmark.circle glyph",
-      "typography": "Callout",
-      "colors": "Chrome.secondaryText",
+      "typography": "Callout (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; in Inter per OD-0009)",
+      "colors": "Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "shown when the preview resolved with an empty file list"
       ],
@@ -5947,8 +5972,8 @@
       "role": "label",
       "exact_text": "The 3 files it changed have changed again since, so they stay as they are",
       "geometry": "A label beside a hand.raised glyph, above the file list",
-      "typography": "Callout",
-      "colors": "Chrome.secondaryText",
+      "typography": "Callout (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; in Inter per OD-0009)",
+      "colors": "Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "one file: the line reads exactly The file it changed has changed again since, so it stays as it is"
       ],
@@ -5968,7 +5993,7 @@
       "role": "label",
       "exact_text": "Earlier steps",
       "geometry": "In the working line's header, in place of the rotating word",
-      "typography": ".system(.body, weight: .medium), set by HydraWorkingTitle (13 pt on macOS, B1 DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize), drawn without the breathing animation",
+      "typography": ".system(.body, weight: .medium), set by HydraWorkingTitle (13 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:51), drawn without the breathing animation",
       "colors": "Chrome.primaryText",
       "states": [
         "shown only for a segment that has finished and holds no tool calls"
@@ -5991,8 +6016,8 @@
       "role": "label",
       "exact_text": "No steps yet.",
       "geometry": "In the Steps section",
-      "typography": "Font.chat(.callout)",
-      "colors": "Chrome.secondaryText",
+      "typography": "Font.chat(.callout) (ED-059: callout 12 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:52; in Inter per OD-0009)",
+      "colors": "Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "shown while the head has produced no step worth a line"
       ],
@@ -6012,8 +6037,8 @@
       "role": "label",
       "exact_text": "Writing the next brief…",
       "geometry": "In the delegation card, indented past a 16-point clear column",
-      "typography": "Font.chat(.caption)",
-      "colors": "Chrome.secondaryText",
+      "typography": "Font.chat(.caption) (ED-059: caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "shown only while the delegation block is still streaming and at least one head is already listed"
       ],
@@ -6033,8 +6058,8 @@
       "role": "label",
       "exact_text": "Binary",
       "geometry": "At the file row's trailing edge",
-      "typography": "Font.chat(.caption)",
-      "colors": "Chrome.secondaryText",
+      "typography": "Font.chat(.caption) (ED-059: caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
+      "colors": "Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "shown instead of a diff stat for a binary file"
       ],
@@ -6055,7 +6080,7 @@
       "role": "toolbar",
       "exact_text": null,
       "geometry": "One GlassEffectContainer(spacing: 2) around an HStack(alignment: .center, spacing: 10); a trailing inner HStack(spacing: 8) holds the two capsules; leading padding Chrome.trafficLightsWidth + Chrome.trafficLightClearance (10) while the sidebar does not hold the window buttons, otherwise 0; horizontal padding Chrome.chromeHorizontalPadding = 14; top padding Chrome.chromeTopPadding = 12",
-      "typography": "Per control; the title is .system(.title3, weight: .semibold) (15 pt on macOS, B1 DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize)",
+      "typography": "Per control; the title is .system(.title3, weight: .semibold) (15 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:50)",
       "colors": "Liquid Glass, one pass for the whole row, as a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001); controls tinted with Chrome.glassTint at 0.3 (PR-WIN-180)",
       "states": [
         "sidebar holds the window buttons: no leading inset and no Threads button",
@@ -6071,7 +6096,7 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1106-1182"
       ],
-      "notes": "Left to right: Threads, New thread, Hydra, Permissions, Branch, Title, capsule[Open in | Scripts | Git actions], capsule[Terminal | Changes]. WIN's UI-WIN-005 covers only the drag region between these controls, not the controls themselves."
+      "notes": "Left to right: Threads, New thread, Hydra, Permissions, Branch, Title, capsule[Open in | Scripts | Git actions], capsule[Terminal | Changes]. WIN's UI-WIN-005 covers only the drag region between these controls, not the controls themselves. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner. ED-063: the caption controls are app-drawn on the leading edge; the main window uses WindowDecorations.Full with ExtendClientAreaToDecorationsHint and a 44 px title bar, declares its leading-edge controls through SetNonClientHitTestResult, and a WndProc hook performs minimise, maximise, restore and close and shows the system menu."
     },
     {
       "id": "UI-CHAT-074",
@@ -6125,8 +6150,8 @@
       "role": "button",
       "exact_text": "New thread",
       "geometry": "Fills the leftover row width, leading-aligned; 6 points of vertical padding; one line, tail truncation; rectangular hit shape",
-      "typography": ".system(.title3, weight: .semibold) (15 pt on macOS, B1 DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize)",
-      "colors": "Chrome.secondaryText when the title is empty, Chrome.primaryText otherwise",
+      "typography": ".system(.title3, weight: .semibold) (15 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:50)",
+      "colors": "Chrome.secondaryText when the title is empty, Chrome.primaryText otherwise; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
       "states": [
         "empty title: shows the literal \"New thread\" in the secondary colour",
         "non-empty title: shows the title in the primary colour",
@@ -6141,8 +6166,13 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:1189-1240",
         "DroppyCode/App/Views/Chat/ChatView.swift:1147-1151"
       ],
-      "notes": "A real button, not a label, so the extended title bar cannot swallow the press. The tooltip carries a U+2014 em dash.",
-      "b2_change": "Font respelled as a text style of the same macOS size: B1 ChatView.swift:1208 `.font(.system(size: 15, weight: .semibold))` -> B2 :1204 `.font(.system(.title3, weight: .semibold))`. Moved from B1 :1193-1244 to B2 :1189-1240. Strings and behaviour are unchanged."
+      "notes": "A real button, not a label, so the extended title bar cannot swallow the press. The tooltip carries a U+2014 em dash. Title-bar hit testing follows ED-063.",
+      "b2_change": "Font respelled as a text style of the same macOS size: B1 ChatView.swift:1208 `.font(.system(size: 15, weight: .semibold))` -> B2 :1204 `.font(.system(.title3, weight: .semibold))`. Moved from B1 :1193-1244 to B2 :1189-1240. Strings and behaviour are unchanged.",
+      "deviation": {
+        "decision": "OD-0012 G3",
+        "upstream": "DroppyCode/App/Views/Chat/ChatView.swift:1212 `.help(\"Thread title — click to copy or rename\")`",
+        "port": "Kept verbatim: the tooltip reads \"Thread title — click to copy or rename\" with the U+2014 em dash, as OD-0008 B14 keeps the other eight."
+      }
     },
     {
       "id": "UI-CHAT-077",
@@ -6217,10 +6247,10 @@
       "typography": "Popover menu defaults",
       "colors": "Chrome glass capsule",
       "states": [
-        "no editor installed: only Finder, the divider and Copy path"
+        "no editor installed: only File Explorer, the divider and Copy path"
       ],
       "interactions": [
-        "Finder opens the directory",
+        "File Explorer opens the directory",
         "an editor item opens the directory in that editor",
         "Copy path clears the pasteboard and writes the directory"
       ],
@@ -6228,7 +6258,12 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:1411-1432",
         "DroppyCode/UI/Common/Components.swift:109-167"
       ],
-      "notes": "Symbol arrow.up.forward.app. Header \"Open in\"; items \"Finder\" (Finder's own icon), each installed editor by display name with chevron.left.forwardslash.chevron.right and its own 16x16 icon, a divider, then \"Copy path\" (doc.on.doc). \"Finder\" is a macOS application name; no owner ruling covers it (decision B1 of OD-0008 names only \"Reveal in Finder\", \"Reveal worktree in Finder\" and \"Show in Finder\"), so its Windows label is an open owner question."
+      "notes": "Symbol arrow.up.forward.app. Header \"Open in\"; items \"File Explorer\" (File Explorer's own icon), each installed editor by display name with chevron.left.forwardslash.chevron.right and its own 16x16 icon, a divider, then \"Copy path\" (doc.on.doc). Deviation OD-0012 G4: upstream's \"Finder\" item reads \"File Explorer\"; in the editor list \"Terminal\" is Windows Terminal and Xcode and iTerm are left out (PR-CHAT-181).",
+      "deviation": {
+        "decision": "OD-0012 G4",
+        "upstream": "DroppyCode/App/Views/Chat/ChatView.swift:1417-1419 `PopoverItem(\"Finder\", image: Workspace.finderIcon) { NSWorkspace.shared.open(URL(fileURLWithPath: directory)) }`; the editor items come from Workspace.installedEditors (:1420-1424), filtered from the seven-entry catalogue at DroppyCode/UI/Common/Components.swift:109-117, which includes Xcode, Terminal (com.apple.Terminal) and iTerm.",
+        "port": "The first item reads \"File Explorer\", carries File Explorer's icon and opens the chat's directory in File Explorer. The editor items come from the Windows catalogue of PR-CHAT-181, where \"Terminal\" is Windows Terminal and Xcode and iTerm are left out, so they never appear."
+      }
     },
     {
       "id": "UI-CHAT-081",
@@ -6259,7 +6294,7 @@
       "role": "typography",
       "exact_text": null,
       "geometry": "Not applicable; the rule sets type, not layout",
-      "typography": "Font.chat(style, weight:, design:) is Font.system(style, design:) at the given weight; with no weight, headline is semibold and every other style keeps its own. No zoom parameter and no point-size scaling. On macOS the styles lay out at title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10 points (B1 DroppyCode/UI/Common/ChatZoom.swift:44-57 chatBaseSize; no B2 source restates the sizes, so every point size quoted for a text style in this area rests on that B1 table and stays UNVERIFIED against a B2 build without macOS (OD-0001))",
+      "typography": "Font.chat(style, weight:, design:) is Font.system(style, design:) at the given weight; with no weight, headline is semibold and every other style keeps its own. No zoom parameter and no point-size scaling. Per ED-059 the port sets each style at the size of upstream's B1 table, in Inter, and in Cascadia Mono where the design is .monospaced (OD-0009): largeTitle 26 (B1:DroppyCode/UI/Common/ChatZoom.swift:47), title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), title2 17 (B1:DroppyCode/UI/Common/ChatZoom.swift:49), title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), headline and body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), footnote, caption and caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54); fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift). No B2 source restates the sizes, so every point size quoted for a text style in this area rests on that table and stays UNVERIFIED under OD-0001",
       "colors": "Not applicable",
       "states": [
         "the same at every app zoom level: the app-wide zoom scales the window content, not the type"

@@ -103,16 +103,16 @@
         "None."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "A single application-owned window manager builds the real windows and constructs the single model on first access. No menu bar is built (OD-0008 C3): every command the source defines keeps the shortcut and the command-palette entry the source gives it. Most AppCommands entries have a shortcut and no palette entry, since the palette lists only New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (CommandPalette.swift:153-178), and \"Welcome tour\" has neither (AppCommands.swift:111-113; it stays reachable from Settings, see UI-LAUNCH-002). Text fields keep the standard Ctrl+C/V/X/Z/A editing keys.",
+      "windows_path": "A single application-owned window manager builds the real windows and constructs the single model on first access. No menu bar is built (OD-0008 C3): every command the source defines keeps the shortcut and the command-palette entry the source gives it. Most AppCommands entries have a shortcut and no palette entry, since the palette lists only New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (CommandPalette.swift:153-178), and \"Welcome tour\" has neither upstream (AppCommands.swift:111-113); under OD-0012 G5 the port adds \"Welcome tour\" to the command palette so it stays reachable without the Help menu (it is also reachable from Settings, see UI-LAUNCH-002). Text fields keep the standard Ctrl+C/V/X/Z/A editing keys.",
       "verification_method": "unit test that no window exists until showMain() is called and that no menu bar is created",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "deviation": {
-        "decision": "OD-0008 C3",
-        "upstream": "DroppyCode/App/DroppyCodeApp.swift:21-25 - Settings { EmptyView() }.commands { AppCommands(model: WindowManager.shared.model) }, the scene that installs the macOS menu bar",
-        "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A"
+        "decision": "OD-0008 C3; OD-0012 G5",
+        "upstream": "DroppyCode/App/DroppyCodeApp.swift:21-25 - Settings { EmptyView() }.commands { AppCommands(model: WindowManager.shared.model) }, the scene that installs the macOS menu bar; DroppyCode/App/AppCommands.swift:111-113 - 'CommandGroup(replacing: .help) { Button(\"Welcome tour\") { Tour.present(model: model) } }', with no shortcut and no command-palette item (CommandPalette.swift:153-178)",
+        "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A; OD-0012 G5: \"Welcome tour\" is added to the command palette so it stays reachable"
       }
     },
     {
@@ -133,12 +133,13 @@
         "A flag as the last argument is ignored (the indices.contains(index + 1) guard fails) and the scan continues to the next flag."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "OPEN ENGINEERING DECISION: whether capture mode is ported at all. port_impacts.md:344 entry 168 records 'Capture mode is tooling, not shipped behaviour' while requiring exact argv token matching, next-argv-element-is-the-folder, a single parse per process and the derived <folder>/storage redirection if it IS ported; dead_code.md entries 33, 38 and 42 state the subsystem is shipped but unreachable in a user launch and that the port does not need it.",
-      "verification_method": "unit test over an argv vector table",
-      "status": "DISCOVERED",
+      "windows_path": "Not ported: NOT_APPLICABLE_WITH_EVIDENCE under ED-061 (dead_code.md entries 28, 33, 38, 42 and 44); ED-001 decides the capture subsystem and the CaptureRun indirection are not ported.",
+      "verification_method": "code review and Gate C scan: the Windows tree contains no capture-run code (no --website-captures or --tour-captures handling, no CaptureRun, WebsiteCaptures or TourCaptures identifier)",
+      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42, and the capture-mode short circuits at :97 entry 44; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection, which is observationally identical for every launch reachable through the shipped UI. Dead code is neither implemented nor counted as missing."
     },
     {
       "id": "PR-LAUNCH-006",
@@ -156,12 +157,13 @@
         "--tour-captures without a following argument yields isTourRun false, and outputDirectory is also nil, so no capture run starts."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same open decision as PR-LAUNCH-005.",
-      "verification_method": "unit test over an argv vector table",
-      "status": "DISCOVERED",
+      "windows_path": "Not ported: NOT_APPLICABLE_WITH_EVIDENCE under ED-061 (dead_code.md entries 28, 33, 38, 42 and 44); ED-001 decides the capture subsystem and the CaptureRun indirection are not ported.",
+      "verification_method": "code review and Gate C scan: the Windows tree contains no capture-run code (no --website-captures or --tour-captures handling, no CaptureRun, WebsiteCaptures or TourCaptures identifier)",
+      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42, and the capture-mode short circuits at :97 entry 44; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection, which is observationally identical for every launch reachable through the shipped UI. Dead code is neither implemented nor counted as missing."
     },
     {
       "id": "PR-LAUNCH-007",
@@ -183,12 +185,13 @@
         "None; both are optional accessors."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same open decision as PR-LAUNCH-005. port_impacts.md:188 entry 90 - if capture mode is dropped, the CaptureRun.defaults indirection must still be kept because AppModel.notify and threadNeedsAttention hard-bail on the same flag.",
-      "verification_method": "unit test on the store-root resolver",
-      "status": "DISCOVERED",
+      "windows_path": "Not ported: NOT_APPLICABLE_WITH_EVIDENCE under ED-061 (dead_code.md entries 28, 33, 38, 42 and 44); ED-001 decides the capture subsystem and the CaptureRun indirection are not ported.",
+      "verification_method": "code review and Gate C scan: the Windows tree contains no capture-run code (no --website-captures or --tour-captures handling, no CaptureRun, WebsiteCaptures or TourCaptures identifier)",
+      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42, and the capture-mode short circuits at :97 entry 44; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection, which is observationally identical for every launch reachable through the shipped UI. Dead code is neither implemented nor counted as missing."
     },
     {
       "id": "PR-LAUNCH-008",
@@ -209,12 +212,13 @@
         "All filesystem calls use try? and failures are silent."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same open decision as PR-LAUNCH-005; in a normal launch this is an inert call and the port may omit it entirely.",
-      "verification_method": "unit test: normal launch performs no filesystem write in this step",
-      "status": "DISCOVERED",
+      "windows_path": "Not ported: NOT_APPLICABLE_WITH_EVIDENCE under ED-061 (dead_code.md entries 28, 33, 38, 42 and 44); ED-001 decides the capture subsystem and the CaptureRun indirection are not ported.",
+      "verification_method": "code review and Gate C scan: the Windows tree contains no capture-run code (no --website-captures or --tour-captures handling, no CaptureRun, WebsiteCaptures or TourCaptures identifier)",
+      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42, and the capture-mode short circuits at :97 entry 44; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection, which is observationally identical for every launch reachable through the shipped UI. Dead code is neither implemented nor counted as missing."
     },
     {
       "id": "PR-LAUNCH-009",
@@ -473,7 +477,7 @@
         "The write uses try? - a write failure is silent, and the 'Hang report written to' log line is emitted anyway."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PLATFORM BOUNDARY (platform_adaptations PA-0005, closed by engineering_decisions.md ED-003) and OD-0008 C7: the folder is %LOCALAPPDATA%\\Marrow Code\\Logs in place of ~/Library/Logs/Droppy Code. ED-003 places it at %LOCALAPPDATA%\\<AppInfo.name>\\Logs, but under OD-0002 AppInfo.name is \"Marrow\" and %LOCALAPPDATA%\\Marrow belongs to the owner's Electron Marrow, which C7 rules the port never touches; the port's data identity \"Marrow Code\" therefore names the folder. The file-name pattern, the timestamp sanitisation (a Windows filename cannot contain ':' either, so the same replacement is required), the three header lines and the blank separator line are all reproduced. The product name inside the header line follows the approved rename.",
+      "windows_path": "PLATFORM BOUNDARY (platform_adaptations PA-0005, closed by engineering_decisions.md ED-003) and OD-0008 C7: the folder is %LOCALAPPDATA%\\Marrow Code\\Logs in place of ~/Library/Logs/Droppy Code. ED-003 places it at %LOCALAPPDATA%\\<AppInfo.name>\\Logs, but under OD-0002 AppInfo.name is \"Marrow\" and %LOCALAPPDATA%\\Marrow belongs to the owner's Electron Marrow, which C7 rules the port never touches; the port's data identity \"Marrow Code\" therefore names the folder. The file-name pattern, the timestamp sanitisation (a Windows filename cannot contain ':' either, so the same replacement is required), the three header lines and the blank separator line are all reproduced. Under OD-0012 F1 line 1 reads exactly \"Marrow main thread unresponsive for <x.x>s\", with exactly one fractional digit; lines 2 and 3 are unchanged.",
       "verification_method": "integration test on the written file's name and first four lines",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -481,9 +485,9 @@
       "depends_on_unknown": null,
       "b2_change": "Re-cited only; the behaviour is unchanged. B1 HangWatchdog.swift:88 'ISO8601DateFormatter().string(from: Date())' -> B2 HangWatchdog.swift:88 'ISO8601.string(from: Date())', the shared ISO8601.plain style (ISO8601.swift:13, :28-31), which writes the same whole-second UTC 'Z' stamp before the ':' -> '-' replacement.",
       "deviation": {
-        "decision": "OD-0008 C7",
-        "upstream": "DroppyCode/Core/Support/HangWatchdog.swift:118-121 reportsFolder() - 'FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first ?? URL(fileURLWithPath: NSHomeDirectory() + \"/Library\")' then 'library.appendingPathComponent(\"Logs/Droppy Code\", isDirectory: true)'",
-        "port": "The port installs and stores data under \"Marrow Code\" (folder %LOCALAPPDATA%\\Marrow Code, Start menu \"Marrow Code\"), so the two apps never touch each other"
+        "decision": "OD-0008 C7; OD-0012 F1",
+        "upstream": "DroppyCode/Core/Support/HangWatchdog.swift:118-121 reportsFolder() - 'FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first ?? URL(fileURLWithPath: NSHomeDirectory() + \"/Library\")' then 'library.appendingPathComponent(\"Logs/Droppy Code\", isDirectory: true)'; DroppyCode/Core/Support/HangWatchdog.swift:91 - 'var header = \"Droppy Code main thread unresponsive for \\(String(format: \"%.1f\", stalledFor))s\\n\"'",
+        "port": "The port installs and stores data under \"Marrow Code\" (folder %LOCALAPPDATA%\\Marrow Code, Start menu \"Marrow Code\"), so the two apps never touch each other; OD-0012 F1: line 1 of the report reads \"Marrow main thread unresponsive for <x.x>s\""
       }
     },
     {
@@ -696,12 +700,13 @@
       "persistence": "Nothing in a normal launch.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same open decision as PR-LAUNCH-005. port_impacts.md:188 entry 90 - 'Keep the ordering if capture mode is ported.'",
-      "verification_method": "unit test on the launch sequencer with the flag set and unset",
-      "status": "DISCOVERED",
+      "windows_path": "Not ported: NOT_APPLICABLE_WITH_EVIDENCE under ED-061 (dead_code.md entries 28, 33, 38, 42 and 44); ED-001 decides the capture subsystem and the CaptureRun indirection are not ported.",
+      "verification_method": "code review and Gate C scan: the Windows tree contains no capture-run code (no --website-captures or --tour-captures handling, no CaptureRun, WebsiteCaptures or TourCaptures identifier)",
+      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42, and the capture-mode short circuits at :97 entry 44; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection, which is observationally identical for every launch reachable through the shipped UI. Dead code is neither implemented nor counted as missing."
     },
     {
       "id": "PR-LAUNCH-028",
@@ -722,7 +727,7 @@
       "persistence": "The window frame is saved under the autosave name \"DroppyCodeMainWindow\".",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Create or restore the main window with the same default and minimum sizes and the same persisted-frame key, then activate and foreground it. The detailed window chrome is specified by the shell and chrome area; this requirement covers only that launch shows it.",
+      "windows_path": "Create or restore the main window with the same default and minimum sizes and the same persisted-frame key, then activate and foreground it. The detailed window chrome is specified by the shell and chrome area; this requirement covers only that launch shows it. That chrome follows ED-063 (WindowDecorations.Full, ExtendClientAreaToDecorationsHint, 44 px title bar, the WndProc caption and system-menu hook), and it is not accepted while live resize shows the edge strip OD-0013 rules must be fixed. The window stays clear by default as upstream (OD-0014).",
       "verification_method": "restart test: window position and size survive a restart",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -859,26 +864,26 @@
       ],
       "preconditions": "First read of the library at startup.",
       "action": "AppModel() is constructed.",
-      "expected_result": "The five collaborators are constructed in the order settings, providers, mcp, terminals, sidebar, then library.json is read from the store root. A missing file yields an empty library with no message, as upstream. A file that exists but cannot be read or decoded is a failed load: it is surfaced to the user as an error and is never overwritten by the next save (named deviation OD-0008 A10, whose ruling is 'Do not overwrite after a failed load; show the error'); upstream both cases silently open an empty library (Storage.swift:61 for the read, :62 for the decode) and the first save overwrites the file.",
+      "expected_result": "The five collaborators are constructed in the order settings, providers, mcp, terminals, sidebar, then library.json is read from the store root. A missing file yields an empty library with no message, as upstream. A file that exists but cannot be read or decoded is a failed load: it is surfaced to the user as an error and is never overwritten by the next save (named deviation OD-0008 A10, whose ruling is 'Do not overwrite after a failed load; show the error'). The error is shown in the main window at launch with the exact text \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4); upstream both cases silently open an empty library (Storage.swift:61 for the read, :62 for the decode) and the first save overwrites the file.",
       "side_effects": [
         "Reads library.json; creates the store root directory if missing (Storage.swift:23)"
       ],
       "persistence": "Reads <store root>/library.json. After a failed read or decode, no save writes over that file.",
       "failure_cases": [
         "File missing: empty library, no message",
-        "File unreadable, corrupt or schema-incompatible: the error is shown to the user and library.json is left as it is on disk by every later save (OD-0008 A10)"
+        "File unreadable, corrupt or schema-incompatible: the main window shows at launch \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4) and library.json is left as it is on disk by every later save (OD-0008 A10)"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Direct port of the construction order, the file name and the missing-file fallback. The unreadable-file path follows OD-0008 A10: show the error, do not overwrite. The store root is %LOCALAPPDATA%\\Marrow Code (OD-0008 C7, see PR-LAUNCH-070).",
-      "verification_method": "integration test with a missing file (empty library, no message) and with a truncated file (the error is surfaced, and after a mutation that schedules a save the file on disk is byte-identical to the truncated original)",
+      "windows_path": "Direct port of the construction order, the file name and the missing-file fallback. The unreadable-file path follows OD-0008 A10: show the error, do not overwrite; the error text is exactly \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\", shown in the main window at launch (OD-0012 E4). The store root is %LOCALAPPDATA%\\Marrow Code (OD-0008 C7, see PR-LAUNCH-070).",
+      "verification_method": "integration test with a missing file (empty library, no message) and with a truncated file (the error is surfaced with the exact OD-0012 E4 text, and after a mutation that schedules a save the file on disk is byte-identical to the truncated original)",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null,
       "deviation": {
-        "decision": "OD-0008 A10",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:60-63 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next save writes the empty library over it",
-        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save."
+        "decision": "OD-0008 A10; OD-0012 E4",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:60-63 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next save writes the empty library over it; upstream has no text for this error because it never shows one",
+        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
       }
     },
     {
@@ -1188,23 +1193,23 @@
       "action": "startBackgroundChecks() runs.",
       "expected_result": "In a development build or a capture run nothing starts. Otherwise exactly one background task starts: wait 8 seconds, then check, then repeat every 21600 seconds. In addition, every time the app becomes active, a check runs if the last check is older than 21600 seconds or has never happened. A second call to startBackgroundChecks is a no-op while the task exists.",
       "side_effects": [
-        "Network calls to the release feed; may post one notification per version (UpdateChecker.swift:245-252)"
+        "Network calls to the release feed; may post one notification per version (UpdateChecker.swift:245-252). Port: none while the feed value is empty (OD-0012 I1)"
       ],
       "persistence": "Specified by the update area; the notified-version key lives there.",
       "failure_cases": [
         "Check failures are handled inside check(background:) and do not stop the loop."
       ],
       "cancellation": "The loop is never cancelled by the quit path; it ends with the process. The activation observer is never removed here.",
-      "windows_path": "Direct port of the three literals - 8 s delay, 6 h interval, stale-on-activation rule - and the three start guards. The activation notification is replaced by the Windows window-activation event. Under OD-0008 C6 the check itself shows its \"Check failed\" state until the owner has a Windows release feed, which is one setting; the schedule above is unchanged.",
+      "windows_path": "Direct port of the three literals - 8 s delay, 6 h interval, stale-on-activation rule - and the three start guards. The activation notification is replaced by the Windows window-activation event. Under OD-0008 C6 and OD-0012 I1 the feed is an internal value, empty by default, with no settings UI until the owner has a feed; while it is empty each scheduled or activation check makes no network request and the About pill shows upstream's \"Check failed\" (AboutUpdateViews.swift:603) with the note \"No update feed is set.\"; the schedule above is unchanged.",
       "verification_method": "unit test with an injected clock and an activation event",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "deviation": {
-        "decision": "OD-0008 C6",
-        "upstream": "DroppyCode/App/UpdateChecker.swift:134-140 - each scheduled 'await self?.check(background: true)' queries Droppy's release feed, :70 'https://gitlab.com/api/v4/projects/\\(projectID)/releases?per_page=20', whose assets :290 accepts only as 'path.hasSuffix(\".dmg\") || name.lowercased().hasSuffix(\".dmg\")'",
-        "port": "Update check shows its \"Check failed\" state until you have your own Windows release feed; the switch is one setting"
+        "decision": "OD-0008 C6; OD-0012 I1",
+        "upstream": "DroppyCode/App/UpdateChecker.swift:134-140 - each scheduled 'await self?.check(background: true)' queries Droppy's release feed, :70 'https://gitlab.com/api/v4/projects/\\(projectID)/releases?per_page=20', whose assets :290 accepts only as 'path.hasSuffix(\".dmg\") || name.lowercased().hasSuffix(\".dmg\")'; DroppyCode/App/Views/Settings/AboutUpdateViews.swift:603 - 'case .failed: \"Check failed\"'",
+        "port": "Update check shows its \"Check failed\" state until you have your own Windows release feed; the switch is one setting; OD-0012 I1: the feed is an internal value, empty by default, with no settings UI; while it is empty no network request is made and the About pill shows \"Check failed\" with the note \"No update feed is set.\""
       }
     },
     {
@@ -1352,12 +1357,13 @@
       "persistence": "Into the capture run's own store root.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "If capture mode is ported, reproduce the asymmetry; if it is dropped, the asymmetry disappears with it.",
-      "verification_method": "unit test asserting the shutdown sequence is unconditional",
-      "status": "SPECIFIED",
+      "windows_path": "Not ported: NOT_APPLICABLE_WITH_EVIDENCE under ED-061 (dead_code.md entries 28, 33, 38, 42 and 44); ED-001 decides the capture subsystem and the CaptureRun indirection are not ported.",
+      "verification_method": "code review and Gate C scan: the Windows tree contains no capture-run code (no --website-captures or --tour-captures handling, no CaptureRun, WebsiteCaptures or TourCaptures identifier)",
+      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42, and the capture-mode short circuits at :97 entry 44; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection, which is observationally identical for every launch reachable through the shipped UI. Dead code is neither implemented nor counted as missing."
     },
     {
       "id": "PR-LAUNCH-053",
@@ -1404,12 +1410,17 @@
         "Write failure: one NSLog line with the verbatim format \"Droppy Code could not save %@: %@\" carrying the file's last path component and the localized error. Nothing is shown to the user and the quit continues."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Direct port: atomic replace, synchronous on the writer queue, drop-the-queued-value-first, and the same silent-except-for-a-log failure behavior. The log line's product name follows the approved rename.",
+      "windows_path": "Direct port: atomic replace, synchronous on the writer queue, drop-the-queued-value-first, and the same silent-except-for-a-log failure behavior. Under OD-0012 F1 the log line's format is exactly \"Marrow could not save %@: %@\", carrying the file's last path component and the localized error.",
       "verification_method": "integration test asserting library.json is complete and valid immediately after the process exits",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:386 - 'NSLog(\"Droppy Code could not save %@: %@\", url.lastPathComponent, error.localizedDescription)'",
+        "port": "The save-failure log line reads \"Marrow could not save %@: %@\""
+      }
     },
     {
       "id": "PR-LAUNCH-055",
@@ -1683,12 +1694,17 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not applicable",
-      "windows_path": "PLATFORM BOUNDARY: same routing branch, same order, same skip of the main window. Closing the main window quits the app in the port (OD-0008 C1, PR-LAUNCH-074), so the upstream case in which every window was closed and the main window stays closed is not reached by closing it. The notification's own text belongs to the update area.",
+      "windows_path": "PLATFORM BOUNDARY: same routing branch, same order, same skip of the main window. Closing the main window quits the app in the port (OD-0008 C1, PR-LAUNCH-074), so the upstream case in which every window was closed and the main window stays closed is not reached by closing it. The notification's own text belongs to the update area; under OD-0012 F1 its title is \"Marrow <version> is available\" and its body \"Open Settings › About to update and restart.\" is unchanged. Under OD-0012 I1, while the update feed value is empty no update request is made, so no update is ever found and this notification is never posted.",
       "verification_method": "interaction test on the update toast activation: showMain is not called, the app is activated, and the Settings window opens on About",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1, I1",
+        "upstream": "DroppyCode/App/UpdateChecker.swift:250 - 'content.title = \"Droppy Code \\(update.version) is available\"', posted when a background check against Droppy's feed finds a new version",
+        "port": "OD-0012 F1: the title reads \"Marrow <version> is available\"; OD-0012 I1: while the update feed is empty no request is made and no update notification is posted"
+      }
     },
     {
       "id": "PR-LAUNCH-066",
@@ -1751,7 +1767,7 @@
       ],
       "preconditions": "Any launch, including one where the library is corrupt, the migration failed, or the store root could not be created.",
       "action": "The app launches.",
-      "expected_result": "The user sees the main window with a chat selected. No splash screen, no progress indicator and no migration dialog is shown by the launch path. Failures are silent, the only diagnostic surfaces being log lines, with one exception made by owner ruling: a library.json that exists but cannot be read or decoded is surfaced to the user as an error (OD-0008 A10, see PR-LAUNCH-034). Upstream that case is silent too.",
+      "expected_result": "The user sees the main window with a chat selected. No splash screen, no progress indicator and no migration dialog is shown by the launch path. Failures are silent, the only diagnostic surfaces being log lines, with one exception made by owner ruling: a library.json that exists but cannot be read or decoded is surfaced to the user as an error (OD-0008 A10, see PR-LAUNCH-034), shown in the main window with the exact text \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4). Upstream that case is silent too.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
@@ -1759,14 +1775,14 @@
       ],
       "cancellation": "not applicable",
       "windows_path": "Reproduce. No Windows-only splash, first-run wizard or error dialog may be added to the launch path beyond the failed-library-load error (an unreadable or undecodable library.json) ruled by OD-0008 A10. The legacy migration is not ported (BLK-0005, OD-0008 A5), so it has no failure to surface.",
-      "verification_method": "capture comparison and interaction tests: with a failing store-root creation assert no dialog appears; with a corrupted library.json, and with one that exists but cannot be read, assert the A10 error is the only surface shown",
+      "verification_method": "capture comparison and interaction tests: with a failing store-root creation assert no dialog appears; with a corrupted library.json, and with one that exists but cannot be read, assert the A10 error, with the exact OD-0012 E4 text, is the only surface shown",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
-        "decision": "OD-0008 A10",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:60-63 - a failed library load falls back to an empty library with no message",
-        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save."
+        "decision": "OD-0008 A10; OD-0012 E4",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:60-63 - a failed library load falls back to an empty library with no message; upstream has no text for this error because it never shows one",
+        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
       }
     },
     {
@@ -1810,16 +1826,16 @@
         "Directory creation uses try? and failure is silent; a later read or write then fails silently too."
       ],
       "cancellation": "not applicable",
-      "windows_path": "PLATFORM BOUNDARY (port_impacts.md entry 113): the two-root split must be preserved deliberately, because worktree paths are handed to git and appear in user-visible strings. The store root is %LOCALAPPDATA%\\Marrow Code (OD-0008 C7) in place of ~/Library/Application Support/<AppInfo.name>; a dotted folder under the user profile replaces the home state directory. The development-build suffix rule is reproduced.",
+      "windows_path": "PLATFORM BOUNDARY (port_impacts.md entry 113): the two-root split must be preserved deliberately, because worktree paths are handed to git and appear in user-visible strings. The store root is %LOCALAPPDATA%\\Marrow Code (OD-0008 C7) in place of ~/Library/Application Support/<AppInfo.name>; a dotted folder under the user profile replaces the home state directory, named under OD-0012 F1 %USERPROFILE%\\.marrow, or %USERPROFILE%\\.marrow-dev in a development build (upstream \".droppy-code\" / \".droppy-code-dev\", Text.swift:6). The development-build suffix rule is reproduced.",
       "verification_method": "integration test asserting both roots exist and hold the expected files after a launch",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "deviation": {
-        "decision": "OD-0008 C7",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:19-25 - 'let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]' then 'base.appendingPathComponent(AppInfo.name, isDirectory: true)'",
-        "port": "The port installs and stores data under \"Marrow Code\" (folder %LOCALAPPDATA%\\Marrow Code, Start menu \"Marrow Code\"), so the two apps never touch each other"
+        "decision": "OD-0008 C7; OD-0012 F1",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:19-25 - 'let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]' then 'base.appendingPathComponent(AppInfo.name, isDirectory: true)'; DroppyCode/Core/Support/Text.swift:6 - 'AppInfo.stateDirectoryName = isDevelopment ? \".droppy-code-dev\" : \".droppy-code\"', the home state directory whose worktrees path the Settings \"Worktrees\" row shows and git receives",
+        "port": "The port installs and stores data under \"Marrow Code\" (folder %LOCALAPPDATA%\\Marrow Code, Start menu \"Marrow Code\"), so the two apps never touch each other; OD-0012 F1: the home state directory is %USERPROFILE%\\.marrow (%USERPROFILE%\\.marrow-dev in a development build); only droppy-code.json and DROPPY_CODE_PROJECT_ROOT keep the old name"
       }
     },
     {
@@ -2046,12 +2062,17 @@
         "An offline machine changes nothing about the launch sequence; failures are absorbed by the provider and update areas."
       ],
       "cancellation": "not applicable",
-      "windows_path": "Reproduce; no telemetry, ping or licence check may be added to the launch path.",
+      "windows_path": "Reproduce; no telemetry, ping or licence check may be added to the launch path. Under OD-0012 I1, while the update feed value is empty the update check makes no network request at all, so the only launch-time traffic is the provider refresh in bootstrap.",
       "verification_method": "integration test capturing outbound connections during the first 8 seconds",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 I1",
+        "upstream": "DroppyCode/App/UpdateChecker.swift:134-140 - the first background check, 8 seconds after launch, queries Droppy's release feed",
+        "port": "While the update feed value is empty no update request is made; the About pill shows \"Check failed\" with the note \"No update feed is set.\""
+      }
     },
     {
       "id": "PR-LAUNCH-080",
@@ -2140,10 +2161,10 @@
       "screen": "Main window, shown by launch",
       "element": "The application's main window, created on first use and restored to its last frame",
       "role": "window",
-      "exact_text": "Droppy Code",
+      "exact_text": "Marrow",
       "geometry": "Content size 1320 x 860 points on a first ever launch; content minimum size 860 x 560; afterwards the frame saved under the autosave name \"DroppyCodeMainWindow\"; centered on screen when no saved frame exists",
       "typography": "Title bar type is system-provided; the window is created titled with a transparent title bar, specified by the shell and chrome area",
-      "colors": "Clear window background with a SwiftUI glass pane over it (WindowManager.swift:4-8); resolved per theme by the shell and chrome area",
+      "colors": "Clear window background with a SwiftUI glass pane over it (WindowManager.swift:4-8); resolved per theme by the shell and chrome area. OD-0014 keeps upstream's clear window by default (parity): over the desktop the material is Acrylic plus the app-drawn scrim (OD-0005), and the drawn material appears once the user sets a wallpaper",
       "states": [
         "First launch: no saved frame, so the window is centered at 1320 x 860",
         "Subsequent launch: restored to the saved frame",
@@ -2153,7 +2174,7 @@
       "interactions": [
         "Shown automatically at launch",
         "A second launch of the app shows and activates it through the applicationShouldHandleReopen path (PR-LAUNCH-048); upstream this is the Dock reopen when no window is visible",
-        "The .showMainWindow shortcut shows it again; upstream it is also the Window menu item labelled with AppInfo.name (AppCommands.swift:21-25), which the port does not add (OD-0008 C3, no menu bar)"
+        "The .showMainWindow action, titled \"Show Marrow\" (upstream \"Show Droppy Code\", Shortcuts.swift:185; OD-0012 F1), shows it again; upstream its default chord is Cmd+0 (Shortcuts.swift:233 KeyChord(keyCode: 29, modifiers: .command)), and under OD-0012 G6 it keeps no default chord in the port because Ctrl+0 is Actual Size; upstream it is also the Window menu item labelled with AppInfo.name (AppCommands.swift:21-25), which the port does not add (OD-0008 C3, no menu bar)"
       ],
       "source_evidence": [
         "DroppyCode/App/AppDelegate.swift:16",
@@ -2162,11 +2183,11 @@
         "DroppyCode/App/Window/WindowManager.swift:62-69",
         "DroppyCode/Core/Support/Text.swift:4"
       ],
-      "notes": "The title is AppInfo.name, which reads CFBundleDisplayName and falls back to the literal \"Droppy Code\"; under the approved rename it becomes the new product name. The window is an AppKit window owned by WindowManager, not a SwiftUI WindowGroup, so no scene background draws a second corner. Its contents and chrome belong to the shell and chrome area; this record covers only what launch does to it.",
+      "notes": "The title is AppInfo.name, which reads CFBundleDisplayName and falls back to the literal \"Droppy Code\"; under OD-0002 and OD-0012 F1 the port's title is exactly \"Marrow\". The window is an AppKit window owned by WindowManager, not a SwiftUI WindowGroup, so no scene background draws a second corner. Its contents and chrome belong to the shell and chrome area; this record covers only what launch does to it. Window chrome follows ED-063: WindowDecorations.Full with ExtendClientAreaToDecorationsHint and the 44 px source title bar, leading-edge caption controls declared through SetNonClientHitTestResult, and a WndProc hook that performs minimise, maximise, restore and close and shows the system menu. Under OD-0013 the main window chrome is not accepted while live resize shows the one-frame edge strip measured by probe P4; if no remedy removes it, it returns to the owner and is not downgraded to a deviation.",
       "deviation": {
-        "decision": "OD-0008 C1, C3",
-        "upstream": "DroppyCode/App/AppDelegate.swift:30-33 - closing the window leaves the app running and the Dock reopens it; DroppyCode/App/AppCommands.swift:21-25 - 'CommandGroup(before: .windowArrangement) { Button(AppInfo.name) { WindowManager.shared.showMain() }' with the .showMainWindow shortcut",
-        "port": "Closing the main window quits the app, keeping the upstream wait while a Hydra merge is running. No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A"
+        "decision": "OD-0008 C1, C3; OD-0012 F1, G6",
+        "upstream": "DroppyCode/App/AppDelegate.swift:30-33 - closing the window leaves the app running and the Dock reopens it; DroppyCode/App/AppCommands.swift:21-25 - 'CommandGroup(before: .windowArrangement) { Button(AppInfo.name) { WindowManager.shared.showMain() }' with the .showMainWindow shortcut; DroppyCode/Core/Support/Text.swift:4 - AppInfo.name falls back to \"Droppy Code\", the window title (WindowManager.swift:62-69); DroppyCode/Core/Models/Shortcuts.swift:185 - 'case .showMainWindow: \"Show Droppy Code\"' and :233 - 'case .showMainWindow: KeyChord(keyCode: 29, modifiers: .command)' (Cmd+0)",
+        "port": "Closing the main window quits the app, keeping the upstream wait while a Hydra merge is running. No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A; OD-0012 F1: the window title is \"Marrow\" and the action is \"Show Marrow\"; OD-0012 G6: Ctrl+0 is Actual Size and \"Show Marrow\" keeps no default chord"
       }
     },
     {
@@ -2186,7 +2207,7 @@
       ],
       "interactions": [
         "Appears automatically; no user action opens it at launch",
-        "Upstream the Help menu item \"Welcome tour\" (AppCommands.swift:111-112) opens it again, outside this area; the port has no menu bar (OD-0008 C3), and the source gives this command no shortcut and no command-palette entry",
+        "Upstream the Help menu item \"Welcome tour\" (AppCommands.swift:111-112) opens it again, outside this area; the port has no menu bar (OD-0008 C3), and the source gives this command no shortcut and no command-palette entry, so under OD-0012 G5 the port adds a \"Welcome tour\" entry to the command palette that opens it again",
         "The Settings row \"Welcome tour\" with its \"Show\" button (SettingsView.swift:1008-1009) also opens it again, outside this area; this path is unchanged in the port"
       ],
       "source_evidence": [
@@ -2199,9 +2220,9 @@
       ],
       "notes": "The 700 ms delay is deliberate: the main window and the opened chat are already painted when the tour appears over them. A porter who presents the tour synchronously during launch will show it over an unpainted window. Both the finish and the close callbacks write the same setting, so dismissing counts as seeing it.",
       "deviation": {
-        "decision": "OD-0008 C3",
-        "upstream": "DroppyCode/App/AppCommands.swift:111-112 - 'CommandGroup(replacing: .help) { Button(\"Welcome tour\") { Tour.present(model: model) }'",
-        "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A"
+        "decision": "OD-0008 C3; OD-0012 G5",
+        "upstream": "DroppyCode/App/AppCommands.swift:111-112 - 'CommandGroup(replacing: .help) { Button(\"Welcome tour\") { Tour.present(model: model) }'; the Help menu item is the only upstream command for it; CommandPalette.swift:153-178 has no tour entry",
+        "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A; OD-0012 G5: \"Welcome tour\" is added to the command palette so it stays reachable"
       }
     },
     {
@@ -2345,7 +2366,7 @@
       "screen": "No UI surface",
       "element": "Hang report file",
       "role": "file artifact",
-      "exact_text": "Line 1: \"Droppy Code main thread unresponsive for <x.x>s\". Line 2: \"Version <short version> (<build>)\", with \"?\" for either value when the bundle key is missing. Line 3: \"Sampled at <date>\". Line 4: empty. Then the captured stacks. A failed sample gives the body \"sample could not run: <error>\" and a non-zero exit prefixes the body with \"sample exited with status <n>\" followed by a blank line.",
+      "exact_text": "Line 1: \"Marrow main thread unresponsive for <x.x>s\" (upstream \"Droppy Code main thread unresponsive for <x.x>s\", OD-0012 F1). Line 2: \"Version <short version> (<build>)\", with \"?\" for either value when the bundle key is missing. Line 3: \"Sampled at <date>\". Line 4: empty. Then the captured stacks. A failed sample gives the body \"sample could not run: <error>\" and a non-zero exit prefixes the body with \"sample exited with status <n>\" followed by a blank line.",
       "geometry": "Not applicable; plain UTF-8 text",
       "typography": "Not applicable",
       "colors": "Not applicable",
@@ -2362,7 +2383,12 @@
         "DroppyCode/Core/Support/HangWatchdog.swift:118-121",
         "DroppyCode/Core/Support/HangWatchdog.swift:123-130"
       ],
-      "notes": "This is a user-reachable artifact with no user-visible control anywhere in the app. The file name is hang-<ISO8601 with ':' replaced by '-'>.txt under ~/Library/Logs/Droppy Code. A porter must not add a notification, a dialog or a settings toggle for it: nothing in the source surfaces it."
+      "notes": "This is a user-reachable artifact with no user-visible control anywhere in the app. The file name is hang-<ISO8601 with ':' replaced by '-'>.txt under ~/Library/Logs/Droppy Code upstream and under %LOCALAPPDATA%\\Marrow Code\\Logs in the port (OD-0008 C7, see PR-LAUNCH-018). A porter must not add a notification, a dialog or a settings toggle for it: nothing in the source surfaces it.",
+      "deviation": {
+        "decision": "OD-0008 C7; OD-0012 F1",
+        "upstream": "DroppyCode/Core/Support/HangWatchdog.swift:118-121 reportsFolder() - 'library.appendingPathComponent(\"Logs/Droppy Code\", isDirectory: true)'; HangWatchdog.swift:91 - 'var header = \"Droppy Code main thread unresponsive for \\(String(format: \"%.1f\", stalledFor))s\\n\"'",
+        "port": "The report folder is %LOCALAPPDATA%\\Marrow Code\\Logs (OD-0008 C7); OD-0012 F1: line 1 reads \"Marrow main thread unresponsive for <x.x>s\""
+      }
     },
     {
       "id": "UI-LAUNCH-009",
@@ -2374,7 +2400,7 @@
       "typography": "Not applicable",
       "colors": "Not applicable",
       "states": [
-        "Corrupt or unreadable library: upstream opens empty with no message; the port surfaces the load error and never overwrites the file (OD-0008 A10, see PR-LAUNCH-034)",
+        "Corrupt or unreadable library: upstream opens empty with no message; the port surfaces the load error in the main window as \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4) and never overwrites the file (OD-0008 A10, see PR-LAUNCH-034)",
         "Failed legacy folder move: upstream opens without the old data and with no message; the port has no legacy migration (BLK-0005, OD-0008 A5)",
         "Failed store-root creation: the app opens and later writes fail silently",
         "Slow bootstrap: the window is already usable; there is no blocking indicator"
@@ -2389,11 +2415,11 @@
         "DroppyCode/Services/Store/Storage.swift:60-63",
         "DroppyCode/App/AppModel.swift:106"
       ],
-      "notes": "Recorded as UI because the temptation to add a splash screen, a 'restoring your data' step or a friendly error dialog on Windows is strong and would be an invention. Launch shows the main window with a chat in it, and nothing else. The single exception is the failed-library-load error (an unreadable or undecodable library.json) ruled by OD-0008 A10.",
+      "notes": "Recorded as UI because the temptation to add a splash screen, a 'restoring your data' step or a friendly error dialog on Windows is strong and would be an invention. Launch shows the main window with a chat in it, and nothing else. The single exception is the failed-library-load error (an unreadable or undecodable library.json) ruled by OD-0008 A10, whose text is exactly \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4).",
       "deviation": {
-        "decision": "OD-0008 A10",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:60-63 - a corrupt library opens empty with no message",
-        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save."
+        "decision": "OD-0008 A10; OD-0012 E4",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:60-63 - a corrupt library opens empty with no message; upstream has no text for this error because it never shows one",
+        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
       }
     }
   ]

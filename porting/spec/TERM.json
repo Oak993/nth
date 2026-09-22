@@ -152,7 +152,7 @@
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:35-43 - Button calling terminals.open(threadID:directory:), label Image(systemName: \"plus\").font(Chrome.iconFont), .buttonStyle(.chip), .help(\"New terminal\"), .accessibilityLabel(Text(\"New terminal\"))",
         "DroppyCode/App/Views/Terminal/TerminalStore.swift:118-125 open - appends and sets selection",
         "DroppyCode/UI/Chrome/Chrome.swift:28 - static let iconFont: Font = .system(.callout, weight: .semibold)",
-        "B1 B1:DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003) - case .callout: 12"
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "preconditions": "The panel is visible.",
       "action": "The user clicks the plus button.",
@@ -165,7 +165,7 @@
         "Shell launch failure is not reported: the tab still appears and its shell reports exited (see PR-TERM-048)."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same, spawning a ConPTY session.",
+      "windows_path": "Same, spawning a ConPTY session. ED-059: the plus glyph's Chrome.iconFont (.callout, semibold) is 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "interaction test asserting tab count, title and selection",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -179,7 +179,9 @@
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:45-53 - Button setting runtime.isTerminalVisible = false, label Image(systemName: \"chevron.down\").font(Chrome.iconFont), .buttonStyle(.chip), .help(\"Hide terminal\" concatenated with ShortcutStore.hint(for: .toggleTerminal)), .accessibilityLabel(Text(\"Hide terminal\"))",
         "DroppyCode/Core/Models/Shortcuts.swift:295-298 hint(for:) - returns a leading space then the label in parentheses, or the empty string when the chord is cleared",
-        "DroppyCode/Core/Models/Shortcuts.swift:230 - .toggleTerminal default chord is KeyChord(keyCode: 38, modifiers: .command), which is Command-J"
+        "DroppyCode/Core/Models/Shortcuts.swift:230 - .toggleTerminal default chord is KeyChord(keyCode: 38, modifiers: .command), which is Command-J",
+        "DroppyCode/UI/Chrome/Chrome.swift:28 - static let iconFont: Font = .system(.callout, weight: .semibold)",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "preconditions": "The panel is visible.",
       "action": "The user clicks the chevron.",
@@ -188,7 +190,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same strings and behaviour; the chord label is rendered in Windows notation (OD-0008 B7).",
+      "windows_path": "Same strings and behaviour; the chord label is rendered in Windows notation (OD-0008 B7). ED-059: the chevron glyph's Chrome.iconFont (.callout, semibold) is 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "interaction test plus a cleared-chord case",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -229,18 +231,18 @@
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:64-78 - the else branch: VStack(spacing: 10) with Text(\"No shell open in this thread\").font(.system(.body)).foregroundStyle(Chrome.secondaryText) and Button(\"New shell\") calling terminals.open, .buttonStyle(.glass), .controlSize(.small), framed .frame(maxWidth: .infinity, maxHeight: .infinity)",
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:65-66 - the comment: every tab closed leaves the drawer open with nothing in it; the way back is here rather than only on the plus in the corner",
         "DroppyCode/UI/Chrome/Chrome.swift:76 and :79 - static let primaryText = Color(nsColor: .labelColor); static let secondaryText = primaryText.opacity(0.7)",
-        "B1 B1:DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003) - upstream's own table of the point size macOS lays each text style out at: case .headline, .body: 13"
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 - `case .headline, .body: 13` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "preconditions": "The thread has zero sessions and the drawer is open.",
       "action": "The panel lays out.",
-      "expected_result": "The drawer keeps its height and shows, centred in the remaining area, the literal text \"No shell open in this thread\" in the .body system text style (13 points at the default text size according to B1's chatBaseSize table, which B2 deleted; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003) in Chrome.secondaryText, which is the label colour at 0.7 opacity, 10 points above a small glass button labelled exactly \"New shell\". Clicking it opens a session exactly as the plus button does. The empty state does NOT re-run ensureTerminal, because onAppear already fired when the panel was mounted.",
+      "expected_result": "The drawer keeps its height and shows, centred in the remaining area, the literal text \"No shell open in this thread\" in the .body system text style (13 points at the default text size per B1's chatBaseSize table, which B2 deleted; ED-059 sets the port at that size in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001) in Chrome.secondaryText, which is the label colour at 0.7 opacity (ED-062), 10 points above a small glass button labelled exactly \"New shell\". Clicking it opens a session exactly as the plus button does. The empty state does NOT re-run ensureTerminal, because onAppear already fired when the panel was mounted.",
       "side_effects": [
         "The button launches a shell process."
       ],
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same strings, the body text style of the port's type scale (13px at the default size, UNVERIFIED as stated in expected_result), the secondary text token (label colour at 0.7 opacity at B2), same 10px gap. Platform boundary: the .glass button style is macOS Liquid Glass. The button sits on the drawer's opaque fill (TerminalPanel.swift:101-108), which is the app's own content, so under OD-0005 (Acrylic where the window shows the desktop, the source-defined material reproduced over app content) its glass is the source-defined material reproduced by the port's shader, not Acrylic. A named deviation.",
+      "windows_path": "Same strings, the body text style of the port's type scale (13 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:51; visual size parity UNVERIFIED under OD-0001), the secondary text token (label colour at 0.7 opacity at B2; ED-062 supersedes ED-051's secondaryLabelColor literal for this token), same 10px gap. Platform boundary: the .glass button style is macOS Liquid Glass. The button sits on the drawer's opaque fill (TerminalPanel.swift:101-108), which is the app's own content, so under OD-0005 (Acrylic where the window shows the desktop, the source-defined material reproduced over app content) its glass is the source-defined material reproduced by the port's shader, not Acrylic. A named deviation.",
       "verification_method": "interaction test closing every tab, then capture comparison",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -484,7 +486,9 @@
       "title": "A terminal tab shows a terminal glyph and the session title on one line inside a capsule",
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:268-271 - HStack(spacing: 6) with Image(systemName: \"terminal\").font(.caption) and Text(session.title).lineLimit(1)",
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:297-302 - .font(.callout), .padding(.horizontal, 10), .padding(.vertical, 5), .background in .capsule, .contentShape(.capsule)"
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:297-302 - .font(.callout), .padding(.horizontal, 10), .padding(.vertical, 5), .background in .capsule, .contentShape(.capsule)",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "preconditions": "A session exists.",
       "action": "The tab draws.",
@@ -495,7 +499,7 @@
         "A long title is truncated with an ellipsis by the text engine; the chip does not grow unbounded."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same padding and capsule shape. Platform boundary: the terminal SF Symbol draws as Lucide \"square-terminal\" under OD-0010 (porting/icons/sf-symbols-to-lucide.json), and .caption and .callout must map to the app's resolved point sizes.",
+      "windows_path": "Same padding and capsule shape. Platform boundary: the terminal SF Symbol draws as Lucide \"square-terminal\" under OD-0010 (porting/icons/sf-symbols-to-lucide.json). Sizes per ED-059: the glyph's .caption is 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54) and the chip's .callout 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), the text set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -508,7 +512,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:273-283 - the comment 'An exited shell used to be a dead tab that could only be closed', then the restart Button shown only when !session.isRunning, label Image(systemName: \"arrow.clockwise\").font(.caption2.weight(.bold)), .buttonStyle(.plain), .foregroundStyle(Chrome.secondaryText), .help(\"Start a new shell in this tab\"), .accessibilityLabel(Text(\"Restart \\(session.title)\"))",
         "DroppyCode/App/Views/Terminal/TerminalStore.swift:139-155 restart - see PR-TERM-056",
-        "DroppyCode/UI/Chrome/Chrome.swift:76 and :79 - static let primaryText = Color(nsColor: .labelColor); static let secondaryText = primaryText.opacity(0.7)"
+        "DroppyCode/UI/Chrome/Chrome.swift:76 and :79 - static let primaryText = Color(nsColor: .labelColor); static let secondaryText = primaryText.opacity(0.7)",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "preconditions": "The session's shell has exited, so isRunning is false.",
       "action": "The user clicks the restart button.",
@@ -519,7 +524,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same conditional control, same strings, drawn in the secondary text token (label colour at 0.7 opacity at B2), not in the tab's inherited foreground.",
+      "windows_path": "Same conditional control, same strings, drawn in the secondary text token (label colour at 0.7 opacity at B2, ED-062), not in the tab's inherited foreground. ED-059: the restart glyph's .caption2 is 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), bold, fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "interaction test: exit the shell, assert the button appears, click it, assert a live shell in the same position",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -533,7 +538,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:284-295 - the close Button with Image(systemName: \"xmark\").font(.caption2.weight(.bold)), .buttonStyle(.plain), .foregroundStyle(Chrome.secondaryText), .opacity(isHovering || isSelected ? 1 : 0), .help(\"Close terminal\"), .accessibilityLabel(Text(\"Close \\(session.title)\")), .allowsHitTesting(isHovering || isSelected)",
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:293-294 - the comment: hidden means unclickable, so a tab that shows no cross takes no tap where its cross would be and selects like the rest of the tab",
-        "DroppyCode/UI/Chrome/Chrome.swift:76 and :79 - static let primaryText = Color(nsColor: .labelColor); static let secondaryText = primaryText.opacity(0.7)"
+        "DroppyCode/UI/Chrome/Chrome.swift:76 and :79 - static let primaryText = Color(nsColor: .labelColor); static let secondaryText = primaryText.opacity(0.7)",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "preconditions": "A session exists.",
       "action": "The pointer hovers the tab, or the tab is selected, or neither.",
@@ -544,7 +550,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "opacity 0 plus pointer-events: none, not display: none, so the layout width is unchanged. The glyph uses the secondary text token (label colour at 0.7 opacity at B2).",
+      "windows_path": "opacity 0 plus pointer-events: none, not display: none, so the layout width is unchanged. The glyph uses the secondary text token (label colour at 0.7 opacity at B2, ED-062). ED-059: the close glyph's .caption2 is 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), bold, fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "interaction test clicking the invisible cross position on an unselected, unhovered tab and asserting selection rather than close",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -736,7 +742,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "ED-046 (Q126) decides the Windows approximation and this record quotes it, but ED-046 itself says the result is a DEVIATION, not parity, and PORT_CONTRACT.md:294-296 admits only deviations the owner explicitly authorizes (:181 likewise for any visible compromise); no owner ruling (OD-0001 to OD-0014) accepts it. Missing: that owner acceptance of ED-046's descendant-process approximation as a named deviation."
     },
     {
       "id": "PR-TERM-032",
@@ -783,7 +790,7 @@
         "No hosted view or the window is not live-resizing: nothing is scheduled and the ordinary autoresizing path applies."
       ],
       "cancellation": "The pending beat is cancelled by finishResize and by the container's deinit.",
-      "windows_path": "Throttle the terminal fit/reflow to one call per 50 ms while a window resize is in progress, and stop the element from following the container in the meantime. Platform boundary: Windows has no willStartLiveResize notification; use the window's resize-modal messages or an equivalent in the host layer.",
+      "windows_path": "Throttle the terminal fit/reflow to one call per 50 ms while a window resize is in progress, and stop the element from following the container in the meantime. Platform boundary: Windows has no willStartLiveResize notification; use the window's resize-modal messages or an equivalent in the host layer. OD-0013 (owner ruling): the main window chrome is not accepted until the one-frame live-resize edge strip probe P4 measured is gone (3-5 px of the window's own backdrop without the app layer at the growing edges, clipping for about a frame at the shrinking edges); it is not downgraded to a deviation. That ruling concerns the window edges; this 50 ms terminal throttle is the source's own behaviour (TerminalPanel.swift:378-381, :414-426) and is kept.",
       "verification_method": "unit test on the coalescer plus a timing assertion during a scripted resize",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -806,7 +813,7 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "On resize end, clear the throttle and issue one final fit.",
+      "windows_path": "On resize end, clear the throttle and issue one final fit. OD-0013 (owner ruling): the main window chrome is not accepted until the one-frame live-resize edge strip probe P4 measured is gone (3-5 px of the window's own backdrop without the app layer at the growing edges, clipping for about a frame at the shrinking edges); it is not downgraded to a deviation. That ruling concerns the window edges; it does not change this single final fit.",
       "verification_method": "interaction test asserting the final column count matches the settled width",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -936,7 +943,8 @@
         "decision": "OD-0008 C5",
         "upstream": "DroppyCode/App/Views/Terminal/TerminalStore.swift:28 let shell = LoginEnvironment.userShell(); DroppyCode/Core/Support/Shell.swift:429-439 userShell() - SHELL if executable, else getpwuid(getuid()).pw_shell if executable, else \"/bin/zsh\"",
         "port": "PowerShell 7 if installed, otherwise Windows PowerShell"
-      }
+      },
+      "open_question": "How the port decides that PowerShell 7 is installed: which executable name, PATH lookup or install location counts. OD-0008 C5 names only the two interpreters, the source has no such check, and no engineering decision (ED-001 to ED-063) records one."
     },
     {
       "id": "PR-TERM-040",
@@ -1082,7 +1090,8 @@
         "decision": "OD-0008 C5",
         "upstream": "DroppyCode/App/Views/Terminal/TerminalStore.swift:37-39 - if let command { arguments = [\"-l\", \"-i\", \"-c\", \"\\(command); exec \\(shell) -l\"] }",
         "port": "PowerShell 7 if installed, otherwise Windows PowerShell: the script runs in PowerShell and the tab stays an interactive PowerShell afterwards."
-      }
+      },
+      "open_question": "The exact PowerShell argument vector that runs the script command as written and then leaves an interactive PowerShell in the same tab whether the command succeeded or failed. OD-0008 C5 fixes only the interpreter, the source vector is POSIX shell syntax, and no engineering decision (ED-001 to ED-063) records the Windows vector."
     },
     {
       "id": "PR-TERM-044",
@@ -1227,7 +1236,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "ED-046 (Q126) decides the Windows approximation and this record quotes it, but ED-046 itself says the result is a DEVIATION, not parity, and PORT_CONTRACT.md:294-296 admits only deviations the owner explicitly authorizes (:181 likewise for any visible compromise); no owner ruling (OD-0001 to OD-0014) accepts it. Missing: that owner acceptance of ED-046's descendant-process approximation as a named deviation."
     },
     {
       "id": "PR-TERM-050",
@@ -1827,16 +1837,17 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:1660-1665 - VStack(alignment: .leading, spacing: 14) starting with Text(\"Project scripts\").font(.system(.title2, weight: .semibold)) and Text(\"Scripts run in a terminal at the project root. Droppy Code also picks up scripts from droppy-code.json.\").font(.system(.callout)).foregroundStyle(Chrome.secondaryText)",
         "DroppyCode/App/Views/Chat/ChatView.swift:1721-1722 - .padding(20) and .frame(width: 580, height: 460)",
         "DroppyCode/App/Views/Chat/ChatView.swift:1456-1463 - the sheet carries .presentedChrome(), .presentationCornerRadius(Chrome.windowCornerRadius) and a WindowBackdrop at the user's backdropOpacity",
-        "B1 B1:DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003) - case .title2: 17 and case .callout: 12"
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:49 - `case .title2: 17` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "preconditions": "The user clicked the add or edit row.",
       "action": "The sheet appears.",
-      "expected_result": "A 580 by 460 point sheet padded 20 points, its children 14 points apart, leading-aligned. The heading is exactly \"Project scripts\" in the .title2 system text style, semibold (17 points at the default text size according to B1's chatBaseSize table, which B2 deleted; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003). Below it, in the .callout text style (12 points at the default size by the same B1 table, likewise UNVERIFIED at B2) in Chrome.secondaryText, is exactly \"Scripts run in a terminal at the project root. Droppy Code also picks up scripts from droppy-code.json.\" The sheet paints the app's own window glass at the user's backdrop opacity and is clipped to the window corner radius so it reads as one window's worth of chrome.",
+      "expected_result": "A 580 by 460 point sheet padded 20 points, its children 14 points apart, leading-aligned. The heading is exactly \"Project scripts\" in the .title2 system text style, semibold (17 points at the default text size per B1's chatBaseSize table, which B2 deleted; ED-059 sets the port at that size). Below it, in the .callout text style (12 points by the same B1 table and ED-059; both set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001) in Chrome.secondaryText (the label colour at 0.7 opacity, ED-062), is exactly \"Scripts run in a terminal at the project root. Marrow also picks up scripts from droppy-code.json.\" DEVIATION (OD-0012 F1): upstream's second sentence begins \"Droppy Code also picks up scripts\"; the file name droppy-code.json is kept (OD-0008 B13, excepted by F1). The sheet paints the app's own window glass at the user's backdrop opacity and is clipped to the window corner radius so it reads as one window's worth of chrome.",
       "side_effects": [],
       "persistence": "None on open.",
       "failure_cases": [],
       "cancellation": "The sheet is dismissed by Cancel (PR-TERM-080); nothing is written on dismissal.",
-      "windows_path": "Same fixed size and strings, with the title2 semibold and callout styles of the port's type scale. The product name inside the explanation is a product-identity string under OD-0002; no ruling in OD-0008 B1-B15 rewrites it, so the source wording stands. The file name droppy-code.json stays as is (OD-0008 B13). The sheet's glass (WindowBackdrop at the user's backdropOpacity) is painted by the app under a sheet, over the app's own window rather than the desktop (ChatView.swift:1459-1461), so under OD-0005 (Acrylic where the window shows the desktop, the source-defined material reproduced over app content) it is the source-defined material reproduced by the port's shader, not Acrylic. A named deviation.",
+      "windows_path": "Same fixed size and strings, with the title2 semibold and callout styles of the port's type scale (17 pt and 12 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:49 and :52). OD-0012 F1 rewrites the product name inside the explanation, which reads exactly \"Scripts run in a terminal at the project root. Marrow also picks up scripts from droppy-code.json.\"; the file name droppy-code.json stays as is (OD-0008 B13, excepted by F1). The sheet's glass (WindowBackdrop at the user's backdropOpacity) is painted by the app under a sheet, over the app's own window rather than the desktop (ChatView.swift:1459-1461), so under OD-0005 (Acrylic where the window shows the desktop, the source-defined material reproduced over app content) it is the source-defined material reproduced by the port's shader, not Acrylic. A named deviation.",
       "verification_method": "capture comparison plus a byte comparison of the two strings",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1844,9 +1855,9 @@
       "depends_on_unknown": null,
       "b2_change": "B1 DroppyCode/App/Views/Chat/ChatView.swift:1666 `.font(.system(size: 17, weight: .semibold))` -> B2 DroppyCode/App/Views/Chat/ChatView.swift:1662 `.font(.system(.title2, weight: .semibold))`; B1 DroppyCode/App/Views/Chat/ChatView.swift:1668 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Chat/ChatView.swift:1664 `.font(.system(.callout))`. Fixed points became text styles, 17 and 12 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003). Strings, size and padding unchanged; lines moved by -4 (B1 DroppyCode/App/Views/Chat/ChatView.swift:1725-1726 -> B2 :1721-1722).",
       "deviation": {
-        "decision": "OD-0005",
-        "upstream": "DroppyCode/App/Views/Chat/ChatView.swift:1456-1463 `.sheet(isPresented: $isEditing) {` ... `.presentationBackground { WindowBackdrop(opacity: model.settings.backdropOpacity) }`, whose glass is macOS Liquid Glass (DroppyCode/UI/Chrome/Chrome.swift:201-202 `/// One shaped surface for the whole window: glass or a solid fill, a legibility tint and a hairline.` `struct WindowBackdrop: View {`)",
-        "port": "Over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing. The Acrylic-class Windows system material, without lensing, refraction or chromatic fringing, is used only where the window shows the desktop, which this surface does not"
+        "decision": "OD-0005; OD-0012 F1",
+        "upstream": "DroppyCode/App/Views/Chat/ChatView.swift:1456-1463 `.sheet(isPresented: $isEditing) {` ... `.presentationBackground { WindowBackdrop(opacity: model.settings.backdropOpacity) }`, whose glass is macOS Liquid Glass (DroppyCode/UI/Chrome/Chrome.swift:201-202 `/// One shaped surface for the whole window: glass or a solid fill, a legibility tint and a hairline.` `struct WindowBackdrop: View {`); DroppyCode/App/Views/Chat/ChatView.swift:1663 `Text(\"Scripts run in a terminal at the project root. Droppy Code also picks up scripts from droppy-code.json.\")`",
+        "port": "Over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing. The Acrylic-class Windows system material, without lensing, refraction or chromatic fringing, is used only where the window shows the desktop, which this surface does not; OD-0012 F1: the explanation reads \"Scripts run in a terminal at the project root. Marrow also picks up scripts from droppy-code.json.\""
       }
     },
     {
@@ -1878,16 +1889,16 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1666-1699 - a ScrollView over ForEach($scripts) of ChromeCard, each containing VStack(alignment: .leading, spacing: 8) with an HStack of TextField(\"Name\", text: $script.name).textFieldStyle(.roundedBorder) and a destructive borderless Button with Image(systemName: \"trash\"), then TextField(\"Command\", text: $script.command).textFieldStyle(.roundedBorder).font(.system(.callout, design: .monospaced)), then Toggle(\"Run when a worktree is created\", isOn: $script.runOnWorktreeCreate).toggleStyle(.checkbox), with .padding(14) inside the card",
         "DroppyCode/App/Views/Chat/ChatView.swift:1667 and :1700 - the cards are in a VStack(spacing: 10) and the ScrollView is .frame(minHeight: 220)",
-        "B1 B1:DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003) - case .callout: 12"
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "preconditions": "The editor is open with at least one script.",
       "action": "The user reads and edits a card.",
-      "expected_result": "Cards are 10 points apart inside a scroll area at least 220 points tall. Each card is padded 14 points and holds, 8 points apart: a rounded-border Name field with the placeholder exactly \"Name\" beside a borderless trash button; a rounded-border Command field with the placeholder exactly \"Command\" rendered in the .callout system text style in the monospaced design (12 points at the default text size according to B1's chatBaseSize table, which B2 deleted; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003); and a checkbox labelled exactly \"Run when a worktree is created\". There is no icon picker, so an imported symbol cannot be changed here.",
+      "expected_result": "Cards are 10 points apart inside a scroll area at least 220 points tall. Each card is padded 14 points and holds, 8 points apart: a rounded-border Name field with the placeholder exactly \"Name\" beside a borderless trash button; a rounded-border Command field with the placeholder exactly \"Command\" rendered in the .callout system text style in the monospaced design (12 points at the default text size per B1's chatBaseSize table, which B2 deleted; ED-059 sets the port at that size, fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001); and a checkbox labelled exactly \"Run when a worktree is created\". There is no icon picker, so an imported symbol cannot be changed here.",
       "side_effects": [],
       "persistence": "None until Save.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same layout, placeholders and label, with a monospaced command field in the callout style of the port's type scale (Cascadia Mono under OD-0009, a named deviation).",
+      "windows_path": "Same layout, placeholders and label, with a monospaced command field in the callout style of the port's type scale, 12 pt per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:52) (Cascadia Mono under OD-0009, a named deviation).",
       "verification_method": "capture comparison",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2111,7 +2122,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "No ruling is missing: ED-047 (Q127) decides this ladder on Windows (own Job Object per child, CTRL_BREAK_EVENT to the child's process group, TerminateJobObject one second later). This record's windows_path predates ED-047 and was not rewritten; ED-047 is outside the decisions this maintenance pass applies (OD-0012 to OD-0014, ED-059 to ED-063), so the record stays DISCOVERED until a pass writes ED-047 into it."
     },
     {
       "id": "PR-TERM-086",
@@ -2270,7 +2282,7 @@
       "persistence": "None directly.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Port the lists and rules verbatim, except the three corrections OD-0008 A8 rules for sort, find and git (PR-TERM-119, PR-TERM-118, PR-TERM-098); they classify the text the MODEL produced, not the host platform's tools. OD-0008 C5 settles UNK-0005's interpreter (PowerShell 7 if installed, otherwise Windows PowerShell); no ruling adds Windows tool names to the lists, so none are added.",
+      "windows_path": "Port the lists and rules verbatim, except the three corrections OD-0008 A8 rules for sort, find and git (PR-TERM-119, PR-TERM-118, PR-TERM-098); they classify the text the MODEL produced, not the host platform's tools. OD-0008 C5 settles UNK-0005's interpreter (PowerShell 7 if installed, otherwise Windows PowerShell); no ruling adds Windows tool names to the lists, so none are added. ED-060 fixes the exact write actions of those corrections (find and fd, sort, git config, git tag, git remote); no other rule changes.",
       "verification_method": "unit test corpus over the whole rule set",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2393,58 +2405,61 @@
     },
     {
       "id": "PR-TERM-118",
-      "title": "find and fd read unless an argument is one of the seven search actions; the port adds -fprintf and the other file-writing find actions",
+      "title": "find and fd read unless an argument is one of the seven search actions; the port adds -fprint, -fprint0, -fprintf and -fls for find and --exec and --exec-batch for fd",
       "source_evidence": [
         "DroppyCode/Core/Support/Shell.swift:198-199 - case \"find\", \"fd\": return !arguments.contains { searchActions.contains($0) }",
-        "DroppyCode/Core/Support/Shell.swift:161-162 - /// Searches that run something of their own, which may well write. private static let searchActions: Set<String> = [\"-delete\", \"-exec\", \"-execdir\", \"-ok\", \"-okdir\", \"-x\", \"-X\"]"
+        "DroppyCode/Core/Support/Shell.swift:161-162 - /// Searches that run something of their own, which may well write. private static let searchActions: Set<String> = [\"-delete\", \"-exec\", \"-execdir\", \"-ok\", \"-okdir\", \"-x\", \"-X\"]",
+        "porting/engineering_decisions.md:246-248 ED-060 (1) and (2) - the exact write actions for OD-0008 A8: find -delete, -exec, -execdir, -ok, -okdir, -fprint, -fprint0, -fprintf and -fls, whichever of them searchActions lacks at B2; fd -x / --exec and -X / --exec-batch"
       ],
       "preconditions": "A part's tool is find or fd.",
       "action": "The rule runs.",
-      "expected_result": "Upstream: membership is tested by EXACT equality of a whole argument against the seven-element set \"-delete\", \"-exec\", \"-execdir\", \"-ok\", \"-okdir\", \"-x\", \"-X\", in that set and no other. Any one match makes the part a writer; otherwise it reads. Note -x and -X are both present and are fd's execute flags, and that -execdir and -okdir are separate members rather than prefixes, so a joined form such as -exec=... does not match. The test is over the argument list, not over the part's text, unlike the awk rule. DEVIATION (OD-0008 A8): in the port -fprintf and the other write actions missing from searchActions also make the part a writer, so `find . -fprintf out.txt '%p'` is classified as writing. The ruling (BLK-0008) names only -fprintf; which other find and fd arguments count as \"the other write actions\" is not listed by the ruling, the source or any recorded engineering decision, so that set must be recorded as an engineering decision before this requirement is SPECIFIED.",
+      "expected_result": "Upstream: membership is tested by EXACT equality of a whole argument against the seven-element set \"-delete\", \"-exec\", \"-execdir\", \"-ok\", \"-okdir\", \"-x\", \"-X\", in that set and no other. Any one match makes the part a writer; otherwise it reads. Note -x and -X are both present and are fd's execute flags, and that -execdir and -okdir are separate members rather than prefixes, so a joined form such as -exec=... does not match. The test is over the argument list, not over the part's text, unlike the awk rule. DEVIATION (OD-0008 A8, exact set per ED-060): in the port the seven upstream members still make either tool a writer; in addition an argument exactly equal to -fprint, -fprint0, -fprintf or -fls makes a find part a writer, and an argument exactly equal to --exec or --exec-batch (fd's long spellings of -x and -X) makes an fd part a writer. These are the find and fd write actions B2's searchActions lacks (Shell.swift:162 holds -delete, -exec, -execdir, -ok, -okdir, -x and -X). The test stays exact equality over the argument list, so `find . -fprintf out.txt '%p'`, `find . -fls out.txt` and `fd -e txt --exec rm` are writers while `find . -name x` reads. Nothing else about the rule changes.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
         "Upstream: find -fprintf writes a file and is not in the set, so it is classified as a reader (BLK-0008). Corrected in the port by OD-0008 A8."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Port the seven strings verbatim, case included (-x and -X are distinct members and a case-insensitive set would collapse them), plus the OD-0008 A8 additions.",
-      "verification_method": "unit asserting each of the seven members and -fprintf triggers, each member of the recorded engineering-decision set triggers, plus a negative for a joined form",
-      "status": "DISCOVERED",
+      "windows_path": "Port the seven strings verbatim, case included (-x and -X are distinct members and a case-insensitive set would collapse them), plus the OD-0008 A8 additions ED-060 fixes: -fprint, -fprint0, -fprintf and -fls for find, --exec and --exec-batch for fd, each tested by exact equality like the seven.",
+      "verification_method": "unit asserting each of the seven members triggers for both find and fd, -fprint, -fprint0, -fprintf and -fls trigger for find, --exec and --exec-batch trigger for fd, plus negatives for a joined form and for find . -name x",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "deviation": {
-        "decision": "OD-0008 A8",
+        "decision": "OD-0008 A8; ED-060",
         "upstream": "DroppyCode/Core/Support/Shell.swift:161-162 searchActions = [\"-delete\", \"-exec\", \"-execdir\", \"-ok\", \"-okdir\", \"-x\", \"-X\"] and :198-199 case \"find\", \"fd\": return !arguments.contains { searchActions.contains($0) }, which omits -fprintf (BLK-0008)",
-        "port": "find -fprintf (and the other write actions missing from searchActions) classify as file-writing, so .auto mode prompts for them and they are checkpointed."
+        "port": "Per ED-060, find is also a writer with -fprint, -fprint0, -fprintf or -fls, and fd with --exec or --exec-batch, so .auto mode prompts for them and they are checkpointed. The seven upstream members, their use for both tools and the exact-equality test are unchanged."
       }
     },
     {
       "id": "PR-TERM-119",
-      "title": "sort reads unless an argument starts with -o; the port also treats --output= as writing",
+      "title": "sort reads unless an argument starts with -o; the port also treats --output and --output= as writing",
       "source_evidence": [
-        "DroppyCode/Core/Support/Shell.swift:200-201 - case \"sort\": return !arguments.contains { $0.hasPrefix(\"-o\") }"
+        "DroppyCode/Core/Support/Shell.swift:200-201 - case \"sort\": return !arguments.contains { $0.hasPrefix(\"-o\") }",
+        "porting/engineering_decisions.md:246-248 ED-060 (3) - sort: -o in any spelling, including --output and --output="
       ],
       "preconditions": "A part's tool is sort.",
       "action": "The rule runs.",
-      "expected_result": "Upstream: a PREFIX test, not an equality test: any argument beginning with \"-o\" makes the part a writer, so -o, -ofile and -o=file all match. A double-dashed --output does not match, because it begins with \"--\", so `sort --output=x` is classified as a reader. Nothing else about sort is examined. DEVIATION (OD-0008 A8): in the port an argument beginning with \"--output=\" also makes the part a writer, so `sort --output=x` is classified as writing, is checkpointed, and is asked for in .auto mode.",
+      "expected_result": "Upstream: a PREFIX test, not an equality test: any argument beginning with \"-o\" makes the part a writer, so -o, -ofile and -o=file all match. A double-dashed --output does not match, because it begins with \"--\", so `sort --output=x` is classified as a reader. Nothing else about sort is examined. DEVIATION (OD-0008 A8; ED-060: -o in any spelling, including --output and --output=): in the port an argument exactly equal to \"--output\" or beginning with \"--output=\" also makes the part a writer, so `sort --output=x` and `sort --output x` are classified as writing, are checkpointed, and are asked for in .auto mode. The -o prefix test is unchanged.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
         "Upstream: `sort --output=file` writes a file and is classified as a reader (BLK-0008). Corrected in the port by OD-0008 A8."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same -o prefix test plus the ruled --output= correction (OD-0008 A8).",
-      "verification_method": "unit over -o, -ofile, --output=x and a plain sort, asserting --output=x is a writer",
+      "windows_path": "Same -o prefix test plus the ruled correction (OD-0008 A8, ED-060): an argument exactly --output, or beginning with --output=.",
+      "verification_method": "unit over -o, -ofile, --output=x, --output x and a plain sort, asserting --output=x and --output x are writers and the plain sort reads",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "deviation": {
-        "decision": "OD-0008 A8",
+        "decision": "OD-0008 A8; ED-060",
         "upstream": "DroppyCode/Core/Support/Shell.swift:200-201 - case \"sort\": return !arguments.contains { $0.hasPrefix(\"-o\") }, so sort --output= reads as read-only (BLK-0008)",
-        "port": "sort --output= classifies as file-writing, so .auto mode prompts for it and it is checkpointed. The -o prefix rule is unchanged."
-      }
+        "port": "sort --output and --output= (ED-060: -o in any spelling) classify as file-writing, so .auto mode prompts for them and they are checkpointed. The -o prefix rule is unchanged."
+      },
+      "open_question": "ED-060 says \"-o in any spelling, including --output and --output=\"; it does not say whether the unambiguous abbreviations of --output that a getopt_long-based sort also accepts (--o, --ou, --out, --outp, --outpu, alone or with =value) count as spellings, nor whether -o clustered after other short options (for example -ro out.txt or -uo out.txt, which upstream's prefix test also misses) does. This record specifies only the forms ED-060 names; the abbreviations and clustered forms need an engineering decision."
     },
     {
       "id": "PR-TERM-120",
@@ -2515,31 +2530,32 @@
     },
     {
       "id": "PR-TERM-098",
-      "title": "git reads for exactly 25 subcommands, the subcommand is the first non-dash argument, and bare git reads; the port treats git config, git tag and git remote add as writing",
+      "title": "git reads for exactly 25 subcommands, the subcommand is the first non-dash argument, and bare git reads; the port treats the writing forms of git config, git tag and git remote as writing",
       "source_evidence": [
         "DroppyCode/Core/Support/Shell.swift:202-204 - case \"git\": guard let subcommand = arguments.first(where: { !$0.hasPrefix(\"-\") }) else { return true }; return gitReaders.contains(subcommand)",
         "DroppyCode/Core/Support/Shell.swift:153-159 gitReaders - log, status, diff, show, branch, rev-parse, rev-list, ls-files, ls-tree, blame, remote, describe, shortlog, cat-file, tag, config, grep, whatchanged, reflog, for-each-ref, symbolic-ref, count-objects, var, version, help",
-        "porting/platform_adaptations.md:262 - the exact 25-entry list"
+        "porting/platform_adaptations.md:262 - the exact 25-entry list",
+        "porting/engineering_decisions.md:246-248 ED-060 (4)-(6) - the exact git config read forms, git tag listing forms and git remote write subcommands for OD-0008 A8"
       ],
       "preconditions": "A part's tool is git.",
       "action": "The rule runs.",
-      "expected_result": "Global options are skipped: `git -C /tmp status` classifies on \"status\". A git invocation with no non-dash argument, including bare `git` and `git --version`, reads. Upstream: only the 25 listed subcommands read, and `tag`, `config` and `remote` are among them, so `git config user.name x`, `git tag v1` and `git remote add origin url` all read. DEVIATION (OD-0008 A8): in the port git config and git tag classify as file-writing, and git remote does when the first non-dash argument after it is add; every other subcommand keeps the upstream table.",
+      "expected_result": "Only arguments that begin with a dash are skipped, not the values some of them take: `git --no-pager log` classifies on \"log\", but in `git -C /tmp status` the first non-dash argument is \"/tmp\", which is not in the table, so that part is a writer. A git invocation with no non-dash argument, including bare `git` and `git --version`, reads. Upstream: only the 25 listed subcommands read, and `tag`, `config` and `remote` are among them, so `git config user.name x`, `git tag v1` and `git remote add origin url` all read. DEVIATION (OD-0008 A8, exact forms per ED-060): in the port (a) git config is a writer unless every argument is a read form: --get, --get-all, --get-regexp, --get-urlmatch, --list / -l, --show-origin, --show-scope, --name-only, --null / -z, --file / -f with only read forms, --global / --system / --local / --worktree with only read forms; (b) git tag is a writer unless it only lists: no arguments, -l / --list, -n, --contains, --points-at, --merged, --no-merged, --sort, --format; (c) git remote is a writer when the first non-dash argument after remote is add, remove, rm, rename, set-url, set-head, set-branches, prune or update, while bare git remote, git remote -v and git remote show / get-url stay readers. The key or pattern a read form takes belongs to that form, so git config --get user.email reads. So git config user.name x, git tag v1, git tag -d v1, git remote add origin url and git remote set-url origin url are writers, and git config --get user.email, git config --list, git tag, git tag -l, git remote, git remote -v, git remote show origin and git remote get-url origin read. Every other subcommand keeps the upstream table.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
         "Upstream: `git config user.name x`, `git tag v1` and `git remote add origin url` are classified as readers, so their effects are not snapshotted and .auto auto-approves them (BLK-0008). Corrected in the port by OD-0008 A8."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "All 25 entries verbatim, same first-non-dash rule, same bare-git reads, with the OD-0008 A8 corrections for config, tag and remote add.",
-      "verification_method": "unit test asserting the table plus the global-option and bare cases, and that git config user.name x, git tag v1 and git remote add origin url are writers while git remote -v reads",
+      "windows_path": "All 25 entries verbatim, same first-non-dash rule, same bare-git reads, with the OD-0008 A8 corrections ED-060 fixes for config, tag and remote (add, remove / rm, rename, set-url, set-head, set-branches, prune, update).",
+      "verification_method": "unit test asserting the table plus the dash-skipping and bare cases (git --no-pager log reads; git -C /tmp status is a writer because /tmp is taken as the subcommand); that git config user.name x, git tag v1, git tag -d v1, git remote add origin url, git remote remove origin, git remote rm origin, git remote rename a b, git remote set-url origin url, git remote set-head origin -a, git remote set-branches origin main, git remote prune origin and git remote update are writers; and that git config --get user.email, git config --list, git tag, git tag -l, git remote, git remote -v, git remote show origin and git remote get-url origin read",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "deviation": {
-        "decision": "OD-0008 A8",
+        "decision": "OD-0008 A8; ED-060",
         "upstream": "DroppyCode/Core/Support/Shell.swift:153-159 gitReaders contains \"remote\", \"tag\" and \"config\", and :202-204 classify on the first non-dash argument (BLK-0008)",
-        "port": "git config, git tag and git remote add classify as file-writing, so .auto mode prompts for them and they are checkpointed. Everything else in the table is unchanged."
+        "port": "Per ED-060: git config is a writer unless every argument is a read form; git tag is a writer unless it only lists; git remote is a writer for add, remove / rm, rename, set-url, set-head, set-branches, prune and update. .auto mode prompts for these and they are checkpointed. Everything else in the table is unchanged."
       }
     },
     {
@@ -2561,7 +2577,7 @@
         "A misclassified reader means an edit is never reported on that row, and in auto mode means a writing command is approved without asking. This is the reason the lists must be ported verbatim."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same two consumers with the same predicate, including the OD-0008 A8 corrections (PR-TERM-098, PR-TERM-118, PR-TERM-119), so the corrected commands are both snapshotted and asked for in .auto. The three Command Code tool names are protocol constants and are unchanged.",
+      "windows_path": "Same two consumers with the same predicate, including the OD-0008 A8 corrections (PR-TERM-098, PR-TERM-118, PR-TERM-119), so the corrected commands are both snapshotted and asked for in .auto. The three Command Code tool names are protocol constants and are unchanged. The corrected forms are exactly those ED-060 lists.",
       "verification_method": "integration test over a reading and a writing command in both consumers",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2585,11 +2601,12 @@
         "Nothing found: nil, which the by-name run overload turns into the not-found error (PR-TERM-090)."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PLATFORM BOUNDARY, tracked as PA-0010 and UNK-0006. Split PATH on semicolons, resolve through PATHEXT, and treat a backslash as well as a forward slash as the path marker. Contract section 11 requires validating the actual executable identity rather than the name for the provider whose command name is cmd, because a bare cmd resolves to the Windows command interpreter long before any provider CLI. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "PLATFORM BOUNDARY, tracked as PA-0010 and UNK-0006. Split PATH on semicolons, resolve through PATHEXT, and treat a backslash as well as a forward slash as the path marker. Contract section 11 requires validating the actual executable identity rather than the name for the provider whose command name is cmd, because a bare cmd resolves to the Windows command interpreter long before any provider CLI. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture over path-like names, bare names and a PATHEXT shim",
       "status": "DISCOVERED",
       "upstream_defect": null,
-      "blocked_by": null
+      "blocked_by": null,
+      "open_question": "No ruling is missing: ED-031 (Q84) decides the Windows lookup (PATH split on semicolons, PATHEXT, / or \\ or a drive or UNC prefix as the path marker, first match wins) and PA-0016 the cmd identity check that resolved UNK-0006; the windows_path states PA-0016 and most of ED-031 but neither cites ED-031 nor states its drive-or-UNC path marker. They are outside the decisions this maintenance pass applies (OD-0012 to OD-0014, ED-059 to ED-063), so the record stays DISCOVERED until a pass writes ED-031 into it."
     },
     {
       "id": "PR-TERM-101",
@@ -2615,7 +2632,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "What the Windows build does in place of the login-shell environment read. OD-0008 C5 fixes only the interpreter; PA-0009 (porting/platform_adaptations.md:206-214) calls for an engineering decision that porting/engineering_decisions.md (ED-001 to ED-063) does not record. The candidate in windows_path is not decided."
     },
     {
       "id": "PR-TERM-102",
@@ -2662,7 +2680,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "Which Windows directories, if any, replace the twelve Unix PATH additions. The source gives only Unix paths and the intent; PA-0009 (porting/platform_adaptations.md:206-214) calls for a probe-based engineering decision, and none is recorded in porting/engineering_decisions.md (ED-001 to ED-063)."
     },
     {
       "id": "PR-TERM-104",
@@ -2737,7 +2756,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "The port's git fallback when which(\"git\") finds nothing: upstream's literal /usr/bin/git (Shell.swift:398-400, :405) has no Windows meaning and no ruling or engineering decision names a Windows fallback. ED-061 does not make this record NOT_APPLICABLE_WITH_EVIDENCE: porting/dead_code.md:111 entry 51 records developerGit as LIVE on macOS and unreachable only on Windows, and the which(\"git\") resolution with its one-time cache still runs."
     },
     {
       "id": "PR-TERM-107",
@@ -3327,7 +3347,7 @@
       "role": "row",
       "exact_text": "<session title>, which is \"Terminal N\" for a plain tab or the script's name for a script tab",
       "geometry": "HStack(spacing: 6); .padding(.horizontal, 10); .padding(.vertical, 5); capsule background and capsule content shape; 4 points from its neighbours.",
-      "typography": ".font(.callout) for the chip; the terminal glyph at .caption; the restart and close glyphs at .caption2.weight(.bold).",
+      "typography": ".font(.callout) for the chip; the terminal glyph at .caption; the restart and close glyphs at .caption2.weight(.bold). Sizes per ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52); .caption and .caption2 at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54); the text set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "colors": "Selected: foregroundStyle .primary over .primary.opacity(0.08) in a capsule. Unselected: foregroundStyle .secondary over Color.clear.",
       "states": [
         "selected: primary text on the 8 percent capsule, plus the close cross visible and clickable",
@@ -3340,7 +3360,9 @@
         "hover to reveal the close cross"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:258-311"
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:258-311",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "Tab names are not unique and are never renumbered: closing a middle tab and opening a new one can produce two tabs with the same name."
     },
@@ -3351,7 +3373,7 @@
       "role": "icon",
       "exact_text": null,
       "geometry": "Leading item of the tab HStack, 6 points before the title.",
-      "typography": ".font(.caption)",
+      "typography": ".font(.caption). Size per ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "colors": "Inherits the chip's foreground style (.primary when selected, .secondary otherwise), and the chip's 0.55 opacity when the shell has exited.",
       "states": [
         "no state of its own"
@@ -3360,7 +3382,8 @@
         "none; clicks fall through to the chip"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:269-270"
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:269-270",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "SF Symbol name \"terminal\"; in the port it draws as Lucide \"square-terminal\" (OD-0010, porting/icons/sf-symbols-to-lucide.json)."
     },
@@ -3371,7 +3394,7 @@
       "role": "label",
       "exact_text": "<session title>",
       "geometry": "Between the glyph and the buttons, 6 points from each.",
-      "typography": "Inherits .font(.callout) from the chip.",
+      "typography": "Inherits .font(.callout) from the chip. Size per ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "colors": "Inherits the chip's foreground style.",
       "states": [
         "long title: .lineLimit(1) truncates rather than wrapping or growing"
@@ -3380,7 +3403,8 @@
         "none; clicks fall through to the chip"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:271"
+        "DroppyCode/App/Views/Terminal/TerminalPanel.swift:271",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "The title never follows the shell's OSC title sequence: setTerminalTitle is an empty delegate body (TerminalStore.swift:93)."
     },
@@ -3391,7 +3415,7 @@
       "role": "button",
       "exact_text": null,
       "geometry": "Between the title and the close cross, 6 points from each. Present only when the shell has exited, so the chip is narrower while the shell runs.",
-      "typography": ".font(.caption2.weight(.bold))",
+      "typography": ".font(.caption2.weight(.bold)). Size per ED-059: .caption2 at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "colors": ".foregroundStyle(Chrome.secondaryText), the label colour at 0.7 opacity, under the chip's 0.55 exited opacity.",
       "states": [
         "only present when !session.isRunning"
@@ -3402,9 +3426,10 @@
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:273-283",
         "DroppyCode/App/Views/Terminal/TerminalStore.swift:139-155",
-        "DroppyCode/UI/Chrome/Chrome.swift:76-79"
+        "DroppyCode/UI/Chrome/Chrome.swift:76-79",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
-      "notes": "Tooltip is exactly \"Start a new shell in this tab\"; accessibility label is \"Restart \" followed by the session title. SF Symbol \"arrow.clockwise\". A restarted script tab does NOT re-run its script.",
+      "notes": "Tooltip is exactly \"Start a new shell in this tab\"; accessibility label is \"Restart \" followed by the session title. SF Symbol \"arrow.clockwise\". A restarted script tab does NOT re-run its script. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:280 `.foregroundStyle(.secondary)` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:280 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). Typography unchanged."
     },
     {
@@ -3414,7 +3439,7 @@
       "role": "button",
       "exact_text": null,
       "geometry": "Trailing item of the tab HStack, 6 points after the title or the restart button. Always occupies its slot, so the chip width does not change on hover.",
-      "typography": ".font(.caption2.weight(.bold))",
+      "typography": ".font(.caption2.weight(.bold)). Size per ED-059: .caption2 at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "colors": ".foregroundStyle(Chrome.secondaryText), the label colour at 0.7 opacity.",
       "states": [
         "hidden: opacity 0 and allowsHitTesting false when the tab is neither hovered nor selected, so a click there selects the tab instead",
@@ -3426,9 +3451,10 @@
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:284-295",
         "DroppyCode/App/Views/Terminal/TerminalStore.swift:157-163",
-        "DroppyCode/UI/Chrome/Chrome.swift:76-79"
+        "DroppyCode/UI/Chrome/Chrome.swift:76-79",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
-      "notes": "Tooltip is exactly \"Close terminal\"; accessibility label is \"Close \" followed by the session title. SF Symbol \"xmark\". There is no confirmation and settings.confirmBeforeDeleting is not consulted. Use opacity 0 with pointer-events none, not display none, or the chip will jump on hover.",
+      "notes": "Tooltip is exactly \"Close terminal\"; accessibility label is \"Close \" followed by the session title. SF Symbol \"xmark\". There is no confirmation and settings.confirmBeforeDeleting is not consulted. Use opacity 0 with pointer-events none, not display none, or the chip will jump on hover. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:289 `.foregroundStyle(.secondary)` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:289 `.foregroundStyle(Chrome.secondaryText)`; B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). Typography unchanged."
     },
     {
@@ -3438,7 +3464,7 @@
       "role": "button",
       "exact_text": null,
       "geometry": "After the tab strip, 6 points from it. Chip button style: .padding(.horizontal, 9), .padding(.vertical, 5), capsule background and content shape.",
-      "typography": "Glyph at Chrome.iconFont = .system(.callout, weight: .semibold), 12 points at the default size per B1's chatBaseSize table (B1 ChatZoom.swift:52, deleted at B2); the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003; the chip style itself sets .font(.callout) on the label.",
+      "typography": "Glyph at Chrome.iconFont = .system(.callout, weight: .semibold), 12 points at the default size per B1's chatBaseSize table (B1:DroppyCode/UI/Common/ChatZoom.swift:52, a file B2 deleted); ED-059 sets the port at that size, fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001; the chip style itself sets .font(.callout) on the label.",
       "colors": "Chip style, not active: foreground .secondary; fill .primary.opacity(0) at rest, .primary.opacity(0.07) on hover, .primary.opacity(0.12) while pressed, animated with .easeOut(duration: 0.12).",
       "states": [
         "rest: no fill",
@@ -3451,7 +3477,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:35-43",
         "DroppyCode/UI/Common/Components.swift:59-99",
-        "DroppyCode/UI/Chrome/Chrome.swift:28"
+        "DroppyCode/UI/Chrome/Chrome.swift:28",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "Tooltip and accessibility label are both exactly \"New terminal\". SF Symbol \"plus\".",
       "b2_change": "B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(.callout, weight: .semibold)`, 12 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003)."
@@ -3463,7 +3490,7 @@
       "role": "button",
       "exact_text": null,
       "geometry": "At the trailing edge of the row after a Spacer(minLength: 0). Chip button style, same metrics as the plus button.",
-      "typography": "Glyph at Chrome.iconFont = .system(.callout, weight: .semibold), 12 points at the default size per B1's chatBaseSize table (B1 ChatZoom.swift:52, deleted at B2); the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003.",
+      "typography": "Glyph at Chrome.iconFont = .system(.callout, weight: .semibold), 12 points at the default size per B1's chatBaseSize table (B1:DroppyCode/UI/Common/ChatZoom.swift:52, a file B2 deleted); ED-059 sets the port at that size, fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "colors": "Chip style, not active, same three fills as UI-TERM-008.",
       "states": [
         "rest, hover, pressed as the chip style defines"
@@ -3473,7 +3500,8 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:44-53",
-        "DroppyCode/UI/Chrome/Chrome.swift:28"
+        "DroppyCode/UI/Chrome/Chrome.swift:28",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "Tooltip is \"Hide terminal\" plus ShortcutStore.hint, which is a space then the chord in parentheses, \" (Ctrl+J)\" by default in the port's Windows notation (OD-0008 B7; upstream \" (⌘J)\"), or the empty string when the chord is cleared. Accessibility label is always exactly \"Hide terminal\" with no chord. SF Symbol \"chevron.down\". Note the chrome row's own button says \"Terminal\", not \"Hide terminal\".",
       "b2_change": "B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(.callout, weight: .semibold)`, 12 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003).",
@@ -3510,7 +3538,7 @@
         "DroppyCode/App/Views/Terminal/TerminalStore.swift:47-57",
         "DroppyCode/App/Views/Terminal/TerminalFont.swift:8-16"
       ],
-      "notes": "There is no Droppy setting anywhere for terminal font, size, cursor style or palette; the face and size can come from another terminal application's configuration (PR-TERM-124 to PR-TERM-134). The view is a single long-lived object reparented between containers, never rebuilt, so scrollback survives tab and thread switches, and its font is not re-read after creation.",
+      "notes": "There is no Droppy setting anywhere for terminal font, size, cursor style or palette; the face and size can come from another terminal application's configuration (PR-TERM-124 to PR-TERM-134). The view is a single long-lived object reparented between containers, never rebuilt, so scrollback survives tab and thread switches, and its font is not re-read after creation. OD-0013 (owner ruling): the main window chrome is not accepted until the one-frame live-resize edge strip probe P4 measured is gone (3-5 px of the window's own backdrop without the app layer at the growing edges, clipping for about a frame at the shrinking edges); it is not downgraded to a deviation. That ruling concerns the window edges; the 50 ms frame throttle in the live-resizing state is the source's own behaviour and is kept.",
       "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalStore.swift:22 `view.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)` -> B2 DroppyCode/App/Views/Terminal/TerminalStore.swift:22 `view.font = TerminalFont.preferred()` (DroppyCode/App/Views/Terminal/TerminalFont.swift:8-16). Colours and geometry unchanged."
     },
     {
@@ -3569,7 +3597,7 @@
       "role": "label",
       "exact_text": "No shell open in this thread",
       "geometry": "Centred in the area below the tab row, 10 points above the button, inside a VStack framed to maxWidth .infinity and maxHeight .infinity.",
-      "typography": ".font(.system(.body)) - the body text style, 13 points at the default size per B1's chatBaseSize table (B1 ChatZoom.swift:51, deleted at B2); the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003.",
+      "typography": ".font(.system(.body)) - the body text style, 13 points at the default size per B1's chatBaseSize table (B1:DroppyCode/UI/Common/ChatZoom.swift:51, a file B2 deleted); ED-059 sets the port at that size in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "colors": "Chrome.secondaryText = primaryText.opacity(0.7), where primaryText = Color(nsColor: .labelColor) (Chrome.swift:76, :79).",
       "states": [
         "shown only when the thread has zero sessions and the drawer is open"
@@ -3579,9 +3607,10 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:67-70",
-        "DroppyCode/UI/Chrome/Chrome.swift:76-79"
+        "DroppyCode/UI/Chrome/Chrome.swift:76-79",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 - `case .headline, .body: 13` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
-      "notes": "Reached by closing every tab; the drawer deliberately stays open rather than hiding itself.",
+      "notes": "Reached by closing every tab; the drawer deliberately stays open rather than hiding itself. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalPanel.swift:69 `.font(.system(size: 13))` -> B2 DroppyCode/App/Views/Terminal/TerminalPanel.swift:69 `.font(.system(.body))`, 13 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003). Colour: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (primaryText is Color(nsColor: .labelColor), :76). String unchanged."
     },
     {
@@ -3750,7 +3779,7 @@
       "role": "label",
       "exact_text": "Project scripts",
       "geometry": "First child, leading-aligned, 14 points above the description.",
-      "typography": ".font(.system(.title2, weight: .semibold)) - the title2 text style, 17 points at the default size per B1's chatBaseSize table (B1 ChatZoom.swift:49, deleted at B2); the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003.",
+      "typography": ".font(.system(.title2, weight: .semibold)) - the title2 text style, 17 points at the default size per B1's chatBaseSize table (B1:DroppyCode/UI/Common/ChatZoom.swift:49, a file B2 deleted); ED-059 sets the port at that size in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "colors": "Default primary label colour.",
       "states": [
         "static"
@@ -3759,7 +3788,8 @@
         "none"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1661-1662"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1661-1662",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:49 - `case .title2: 17` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": null,
       "b2_change": "B1 DroppyCode/App/Views/Chat/ChatView.swift:1666 `.font(.system(size: 17, weight: .semibold))` -> B2 DroppyCode/App/Views/Chat/ChatView.swift:1662 `.font(.system(.title2, weight: .semibold))`, 17 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003). String unchanged."
@@ -3769,10 +3799,10 @@
       "screen": "Project scripts sheet",
       "element": "Explanation text",
       "role": "label",
-      "exact_text": "Scripts run in a terminal at the project root. Droppy Code also picks up scripts from droppy-code.json.",
+      "exact_text": "Scripts run in a terminal at the project root. Marrow also picks up scripts from droppy-code.json.",
       "geometry": "Second child, leading-aligned, 14 points below the title and above the list.",
-      "typography": ".font(.system(.callout)) - the callout text style, 12 points at the default size per B1's chatBaseSize table (B1 ChatZoom.swift:52, deleted at B2); the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003.",
-      "colors": "Chrome.secondaryText.",
+      "typography": ".font(.system(.callout)) - the callout text style, 12 points at the default size per B1's chatBaseSize table (B1:DroppyCode/UI/Common/ChatZoom.swift:52, a file B2 deleted); ED-059 sets the port at that size in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
+      "colors": "Chrome.secondaryText, the label colour at 0.7 opacity (ED-062: Chrome.primaryText at opacity 0.7, as B2 defines it at DroppyCode/UI/Chrome/Chrome.swift:79; ED-051's secondaryLabelColor literal does not apply).",
       "states": [
         "static"
       ],
@@ -3780,10 +3810,16 @@
         "none"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1663-1665"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1663-1665",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
-      "notes": "Two sentences, both with full stops. Contains the product name, a rename point under OD-0002; no ruling in OD-0008 B1-B15 rewrites this sentence, so the source wording stands, and droppy-code.json itself is kept by OD-0008 B13. Note the claim is slightly inaccurate in the source: scripts are picked up from droppy-code.json only when the project is first added, never again.",
-      "b2_change": "B1 DroppyCode/App/Views/Chat/ChatView.swift:1668 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Chat/ChatView.swift:1664 `.font(.system(.callout))`, 12 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003). String and colour token unchanged."
+      "notes": "Two sentences, both with full stops. OD-0012 F1 rewrites the product name: upstream reads \"Droppy Code also picks up scripts from droppy-code.json.\"; droppy-code.json itself is kept by OD-0008 B13 and excepted by F1. Note the claim is slightly inaccurate in the source: scripts are picked up from droppy-code.json only when the project is first added, never again.",
+      "b2_change": "B1 DroppyCode/App/Views/Chat/ChatView.swift:1668 `.font(.system(size: 12))` -> B2 DroppyCode/App/Views/Chat/ChatView.swift:1664 `.font(.system(.callout))`, 12 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003). String and colour token unchanged.",
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/App/Views/Chat/ChatView.swift:1663 `Text(\"Scripts run in a terminal at the project root. Droppy Code also picks up scripts from droppy-code.json.\")`",
+        "port": "The explanation reads \"Scripts run in a terminal at the project root. Marrow also picks up scripts from droppy-code.json.\"; the file name droppy-code.json is kept (OD-0008 B13, excepted by F1)."
+      }
     },
     {
       "id": "UI-TERM-023",
@@ -3857,7 +3893,7 @@
       "role": "field",
       "exact_text": "Command (placeholder)",
       "geometry": "Second item of the card's VStack, 8 points below the name row and above the checkbox. .textFieldStyle(.roundedBorder). Incomplete overlay: RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(Chrome.danger.opacity(0.65), lineWidth: 1).",
-      "typography": ".font(.system(.callout, design: .monospaced)) - the monospaced callout text style, 12 points at the default size per B1's chatBaseSize table (B1 ChatZoom.swift:52, deleted at B2); the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003.",
+      "typography": ".font(.system(.callout, design: .monospaced)) - the monospaced callout text style, 12 points at the default size per B1's chatBaseSize table (B1:DroppyCode/UI/Common/ChatZoom.swift:52, a file B2 deleted); ED-059 sets the port at that size (the face is Cascadia Mono under OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "colors": "Rounded-border field default; the error outline is the theme danger hue at 0.65 opacity, 1 point wide.",
       "states": [
         "incomplete: the command is empty after trimming spaces, so the danger outline is drawn and Save is disabled",
@@ -3868,7 +3904,8 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1681-1691",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1726-1729"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1726-1729",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
       "notes": "The trim is trimmingCharacters(in: .whitespaces), not .whitespacesAndNewlines, so a tab-only command counts as complete. The comment at :1684-1685 records that such a script used to be dropped on save without a word.",
       "b2_change": "B1 DroppyCode/App/Views/Chat/ChatView.swift:1687 `.font(.system(size: 12, design: .monospaced))` -> B2 DroppyCode/App/Views/Chat/ChatView.swift:1683 `.font(.system(.callout, design: .monospaced))`, 12 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003). Placeholder, overlay and trim rule unchanged; lines moved."

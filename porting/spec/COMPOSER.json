@@ -38,7 +38,7 @@
         "Empty approvals: no cards and no extra spacing."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Vertical stack with 12 point gaps inside the glass container. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "windows_path": "Vertical stack with 12 point gaps inside the glass container. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "verification_method": "interaction test with two scripted approval requests",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -272,7 +272,7 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same shape and radius; the flat panel branch ports exactly. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "windows_path": "Same shape and radius; the flat panel branch ports exactly. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "verification_method": "capture comparison in the chat and in a head panel, both themes",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -358,7 +358,7 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Needs a live-resize signal equivalent to WindowLiveResize; on Windows that is the modal resize loop (WM_ENTERSIZEMOVE/WM_EXITSIZEMOVE).",
+      "windows_path": "Needs a live-resize signal equivalent to WindowLiveResize; on Windows that is the modal resize loop (WM_ENTERSIZEMOVE/WM_EXITSIZEMOVE). OD-0013 governs the same live-resize loop: the main window is not accepted while a growing edge shows the 3-5 px strip of its own backdrop without the app layer (probe P4); suppressing this animation does not change that.",
       "verification_method": "interaction test resizing the window with a wrapped draft",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -828,7 +828,7 @@
         "Archived thread: skipped."
       ],
       "cancellation": "not cancellable by the user",
-      "windows_path": "Same guards. Process launch per porting/extracts/provider-argv-and-handshakes.md, with the Windows executable resolution of UNK-0006 for the cmd provider. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "Same guards. Process launch per porting/extracts/provider-argv-and-handshakes.md, with the Windows executable resolution of UNK-0006 for the cmd provider. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "integration test with the offline agent counting process launches",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -1098,7 +1098,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(.subheadline, weight: .semibold))`: a fixed 11 point became the .subheadline text style, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2). Strings unchanged. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`)."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(.subheadline, weight: .semibold))`: a fixed 11 point became the .subheadline text style, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059). Strings unchanged. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
     },
     {
       "id": "PR-COMPOSER-049",
@@ -1768,13 +1768,13 @@
         "Size unreadable: the size text is omitted."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The first label is the OD-0008 B1 wording \"Show in File Explorer\", a named deviation; its action is explorer.exe /select on the file. \"Open\" is verbatim. Size formatting follows the Windows file byte-count conventions of the same style (KB, MB with a decimal, as ByteCountFormatter's .file style produces).",
+      "windows_path": "The first label is the OD-0008 B1 wording \"Show in File Explorer\", a named deviation; its action is explorer.exe /select on the file. \"Open\" is verbatim. Size formatting follows the Windows file byte-count conventions of the same style (KB, MB with a decimal, as ByteCountFormatter's .file style produces). Text style per ED-059: .caption is 10 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2), set in Inter (OD-0009) and scaled only by the app zoom; visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "interaction test of both links",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "The footer moved from B1 DroppyCode/UI/Common/AttachmentPreview.swift:338-360 to B2 :348-370 with its strings and actions unchanged. Colours changed: the name B1 :341 `.foregroundStyle(.secondary)` -> B2 :351 `.foregroundStyle(Chrome.secondaryText)`; the size B1 :347 `.foregroundStyle(.tertiary)` -> B2 :357 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`).",
+      "b2_change": "The footer moved from B1 DroppyCode/UI/Common/AttachmentPreview.swift:338-360 to B2 :348-370 with its strings and actions unchanged. Colours changed: the name B1 :341 `.foregroundStyle(.secondary)` -> B2 :351 `.foregroundStyle(Chrome.secondaryText)`; the size B1 :347 `.foregroundStyle(.tertiary)` -> B2 :357 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal.",
       "deviation": {
         "decision": "OD-0008 B1",
         "upstream": "Button(\"Show in Finder\") at DroppyCode/UI/Common/AttachmentPreview.swift:360, revealing the file with NSWorkspace.shared.activateFileViewerSelecting([attachment.url]) at :361",
@@ -1995,12 +1995,13 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Omit the parameter, or keep it unused; either way nothing may depend on it.",
+      "windows_path": "Not ported: dead code per porting/dead_code.md entry 32, so under ED-061 this record is NOT_APPLICABLE_WITH_EVIDENCE. Omit the parameter; nothing may depend on a landing callback.",
       "verification_method": "code review against the single call site",
-      "status": "SPECIFIED",
+      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "not_applicable": "ED-061, evidence porting/dead_code.md:73 entry 32: DroppyCode/App/Views/Composer/AttachmentFlight.swift:53 `onLanded: @escaping () -> Void = {}` is never supplied; a whole-checkout grep for `.fly(` at B2 returns exactly one call site, AttachmentFlight.swift:197, which omits the argument, so the completion always runs the empty default closure."
     },
     {
       "id": "PR-COMPOSER-086",
@@ -2015,13 +2016,13 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Verbatim strings; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table).",
+      "windows_path": "Verbatim strings; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison and an interaction test of the remove button",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:885 `.font(.system(size: 10, weight: .semibold))`, :888 `.font(.system(size: 11, weight: .medium))`, :896 `.font(.system(size: 9, weight: .bold))` -> B2 :885 `.font(.system(.footnote, weight: .semibold))`, :888 `.font(.system(.subheadline, weight: .medium))`, :896 `.font(.system(.caption2, weight: .bold))`. At the macOS default these are 10, 11 and 10 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, :54 `case .footnote, .caption, .caption2: 10` (file deleted at B2), so the symbol and name keep their size and the x grows from 9 to 10 point. Strings unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:885 `.font(.system(size: 10, weight: .semibold))`, :888 `.font(.system(size: 11, weight: .medium))`, :896 `.font(.system(size: 9, weight: .bold))` -> B2 :885 `.font(.system(.footnote, weight: .semibold))`, :888 `.font(.system(.subheadline, weight: .medium))`, :896 `.font(.system(.caption2, weight: .bold))`. At the macOS default these are 10, 11 and 10 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, :54 `case .footnote, .caption, .caption2: 10` (file deleted at B2; the port uses these sizes per ED-059), so the symbol and name keep their size and the x grows from 9 to 10 point. Strings unchanged."
     },
     {
       "id": "PR-COMPOSER-087",
@@ -2039,13 +2040,13 @@
         "A quote with no non-empty line yields an empty excerpt."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same excerpt algorithm, counting characters (not UTF-16 units) for the 72 cut, and the same 260 point cap.",
+      "windows_path": "Same excerpt algorithm, counting characters (not UTF-16 units) for the 72 cut, and the same 260 point cap. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "unit test of excerpt over multi-line and long quotes",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:911 `.font(.system(size: 10, weight: .semibold))`, :914 `.font(.system(size: 11))`, :925 `.font(.system(size: 9, weight: .bold))` -> B2 :911 `.font(.system(.footnote, weight: .semibold))`, :914 `.font(.system(.subheadline))`, :925 `.font(.system(.caption2, weight: .bold))`; 10, 11 and 10 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, :54 `case .footnote, .caption, .caption2: 10` (file deleted at B2), so the x grows from 9 to 10 point. Strings, the 260 point cap and the excerpt algorithm unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:911 `.font(.system(size: 10, weight: .semibold))`, :914 `.font(.system(size: 11))`, :925 `.font(.system(size: 9, weight: .bold))` -> B2 :911 `.font(.system(.footnote, weight: .semibold))`, :914 `.font(.system(.subheadline))`, :925 `.font(.system(.caption2, weight: .bold))`; 10, 11 and 10 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, :54 `case .footnote, .caption, .caption2: 10` (file deleted at B2; the port uses these sizes per ED-059), so the x grows from 9 to 10 point. Strings, the 260 point cap and the excerpt algorithm unchanged."
     },
     {
       "id": "PR-COMPOSER-088",
@@ -2190,13 +2191,13 @@
       "persistence": "showsUsagePanel (Bool) in settings.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Verbatim strings; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table).",
+      "windows_path": "Verbatim strings; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "interaction test opening the popover and popping it out, plus a restart test for the setting",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:745 `.font(.system(size: 12, weight: .semibold))` -> B2 :745 `.font(.system(.callout, weight: .semibold))`, 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2). Strings and behaviour unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:745 `.font(.system(size: 12, weight: .semibold))` -> B2 :745 `.font(.system(.callout, weight: .semibold))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Strings and behaviour unchanged."
     },
     {
       "id": "PR-COMPOSER-095",
@@ -2241,7 +2242,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "The token the glyph uses changed: B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` (quoted by porting/extracts/chrome-design-tokens.md:166) -> B2 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(.callout, weight: .semibold)`, 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2). The button itself (DroppyCode/App/Views/Composer/ComposerView.swift:828-841) is unchanged."
+      "b2_change": "The token the glyph uses changed: B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` (quoted by porting/extracts/chrome-design-tokens.md:166) -> B2 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(.callout, weight: .semibold)`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). The button itself (DroppyCode/App/Views/Composer/ComposerView.swift:828-841) is unchanged."
     },
     {
       "id": "PR-COMPOSER-097",
@@ -2576,13 +2577,13 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Verbatim tooltip; the numeric-text content transition becomes a cross-fade of the changed characters or a plain cross-fade.",
+      "windows_path": "Verbatim tooltip; the numeric-text content transition becomes a cross-fade of the changed characters or a plain cross-fade. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "interaction test opening the list from the title",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:573 `.font(.system(size: 17, weight: .medium))` and :577 `.font(.system(size: 12, weight: .semibold))` -> B2 :573 `.font(.system(.title2, weight: .medium))` and :577 `.font(.system(.callout, weight: .semibold))`, 17 and 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, :52 `case .callout: 12` (file deleted at B2). Tooltip, hover and disabled logic unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:573 `.font(.system(size: 17, weight: .medium))` and :577 `.font(.system(size: 12, weight: .semibold))` -> B2 :573 `.font(.system(.title2, weight: .medium))` and :577 `.font(.system(.callout, weight: .semibold))`, 17 and 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, :52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Tooltip, hover and disabled logic unchanged."
     },
     {
       "id": "PR-COMPOSER-112",
@@ -2651,7 +2652,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:610 `.font(.system(size: 13))` -> B2 :610 `.font(.system(.body))`, 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2). Icons at 12, the 0.7 opacity and the 44 point insets unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:610 `.font(.system(size: 13))` -> B2 :610 `.font(.system(.body))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). Icons at 12, the 0.7 opacity and the 44 point insets unchanged."
     },
     {
       "id": "PR-COMPOSER-115",
@@ -2692,13 +2693,13 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same negative top margin and the same minimum scale.",
+      "windows_path": "Same negative top margin and the same minimum scale. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison at the panel's 330 point width",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:644 `.font(.system(size: 11))` -> B2 :644 `.font(.system(.subheadline))`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2). Colour, line limit, 0.9 minimum scale, -6 padding and softAppear unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:644 `.font(.system(size: 11))` -> B2 :644 `.font(.system(.subheadline))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059). Colour, line limit, 0.9 minimum scale, -6 padding and softAppear unchanged."
     },
     {
       "id": "PR-COMPOSER-117",
@@ -2714,13 +2715,13 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Verbatim string, same reserved height.",
+      "windows_path": "Verbatim string, same reserved height. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison against a model with efforts",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:622 `.font(.system(size: 12))` -> B2 :622 `.font(.system(.callout))`, 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2). The string and the 42 point height unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:622 `.font(.system(size: 12))` -> B2 :622 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). The string and the 42 point height unchanged."
     },
     {
       "id": "PR-COMPOSER-118",
@@ -2757,13 +2758,13 @@
       "persistence": "thread.fastMode, and through remember() the model preference (PR-COMPOSER-124).",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Verbatim strings; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table); the bounce becomes a short scale pulse.",
+      "windows_path": "Verbatim strings; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table); the bounce becomes a short scale pulse. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "interaction test toggling fast mode and reopening the card",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:668 `.font(.system(size: 13, weight: .semibold))` -> B2 :668 `.font(.system(.body, weight: .semibold))`, 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2). Strings, spring, colours and the 30 by 30 circle unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:668 `.font(.system(size: 13, weight: .semibold))` -> B2 :668 `.font(.system(.body, weight: .semibold))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). Strings, spring, colours and the 30 by 30 circle unchanged."
     },
     {
       "id": "PR-COMPOSER-120",
@@ -2779,13 +2780,13 @@
       "persistence": "See PR-COMPOSER-121.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Verbatim string; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table).",
+      "windows_path": "Verbatim string; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison and an interaction test",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:695 `.font(.system(size: 13, weight: .medium))` -> B2 :695 `.font(.system(.body, weight: .medium))`, 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2). The string, 30 by 30 and hover unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:695 `.font(.system(size: 13, weight: .medium))` -> B2 :695 `.font(.system(.body, weight: .medium))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). The string, 30 by 30 and hover unchanged."
     },
     {
       "id": "PR-COMPOSER-121",
@@ -2847,7 +2848,7 @@
         "count <= 1: step is 0 and the knob rests at the inset."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same geometry; the glow, border and scale port exactly. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "windows_path": "Same geometry; the glow, border and scale port exactly. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "verification_method": "capture comparison at three and five stops",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3203,7 +3204,7 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "The 30 millisecond delay runs in a task keyed to the lead and heads pair; a change restarts it.",
-      "windows_path": "Same masking, gradient stop placement and spring. The provider icon artwork is first-party and ships (OD-0010 maps SF Symbols only and does not cover it).",
+      "windows_path": "Same masking, gradient stop placement and spring. The provider icon artwork is first-party and ships (OD-0010 maps SF Symbols only and does not cover it). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison of a same-provider and a cross-provider pair mark",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3246,13 +3247,13 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Verbatim strings.",
+      "windows_path": "Verbatim strings. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "interaction test",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:292 `.font(.system(size: 11, weight: .semibold))` and :300 `.font(.system(size: 13))` -> B2 :292 `.font(.system(.subheadline, weight: .semibold))` and :300 `.font(.system(.body))`, 11 and 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, :51 `case .headline, .body: 13` (file deleted at B2). Strings and paddings unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:292 `.font(.system(size: 11, weight: .semibold))` and :300 `.font(.system(size: 13))` -> B2 :292 `.font(.system(.subheadline, weight: .semibold))` and :300 `.font(.system(.body))`, 11 and 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, :51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). Strings and paddings unchanged."
     },
     {
       "id": "PR-COMPOSER-142",
@@ -3291,13 +3292,13 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same geometry; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table).",
+      "windows_path": "Same geometry; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison of selected, hovered and locked rows",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:447 `.font(.system(size: 12))`, :454 `.font(.system(size: 10))`, :458 `.font(.system(size: 13, weight: .semibold))` -> B2 :447 `.font(.system(.callout))`, :454 `.font(.system(.footnote))`, :458 `.font(.system(.body, weight: .semibold))`, 12, 10 and 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, :54 `case .footnote, .caption, .caption2: 10`, :51 `case .headline, .body: 13` (file deleted at B2). The name stays a fixed 14 (B2 EffortSlider.swift:443); icon 14, paddings and the 0.45 dimming unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:447 `.font(.system(size: 12))`, :454 `.font(.system(size: 10))`, :458 `.font(.system(size: 13, weight: .semibold))` -> B2 :447 `.font(.system(.callout))`, :454 `.font(.system(.footnote))`, :458 `.font(.system(.body, weight: .semibold))`, 12, 10 and 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, :54 `case .footnote, .caption, .caption2: 10`, :51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). The name stays a fixed 14 (B2 EffortSlider.swift:443); icon 14, paddings and the 0.45 dimming unchanged."
     },
     {
       "id": "PR-COMPOSER-144",
@@ -3340,13 +3341,13 @@
         "A catalogue that never loads leaves the line in place."
       ],
       "cancellation": "The load task is cancelled when the provider changes.",
-      "windows_path": "Verbatim string including the single ellipsis character.",
+      "windows_path": "Verbatim string including the single ellipsis character. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "interaction test with a delayed catalogue",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:342 `.font(.system(size: 13))` -> B2 :342 `.font(.system(.body))`, 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2). The string, padding 10 and the catalogue .task unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:342 `.font(.system(size: 13))` -> B2 :342 `.font(.system(.body))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). The string, padding 10 and the catalogue .task unchanged."
     },
     {
       "id": "PR-COMPOSER-146",
@@ -3389,13 +3390,13 @@
         "Neither side sets an effort: the efforts component is absent."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "All strings verbatim, U+00B7 separators included. Note \"Lead high, heads medium effort\" lowercases the effort names while the matching case capitalises the first letter.",
+      "windows_path": "All strings verbatim, U+00B7 separators included. Note \"Lead high, heads medium effort\" lowercases the effort names while the matching case capitalises the first letter. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "unit test of efforts() and detail() across the five cases",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:395 `.font(.system(size: 12))` and :401 `.font(.system(size: 13, weight: .semibold))` -> B2 :395 `.font(.system(.callout))` and :401 `.font(.system(.body, weight: .semibold))`, 12 and 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, :51 `case .headline, .body: 13` (file deleted at B2). The title stays a fixed 14 (B2 EffortSlider.swift:391); detail(for:) at B2 EffortSlider.swift:364-367 and the 46 point rows unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:395 `.font(.system(size: 12))` and :401 `.font(.system(size: 13, weight: .semibold))` -> B2 :395 `.font(.system(.callout))` and :401 `.font(.system(.body, weight: .semibold))`, 12 and 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, :51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). The title stays a fixed 14 (B2 EffortSlider.swift:391); detail(for:) at B2 EffortSlider.swift:364-367 and the 46 point rows unchanged."
     },
     {
       "id": "PR-COMPOSER-148",
@@ -3477,13 +3478,13 @@
       "persistence": "The queue is saved with the thread.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Both phrasings verbatim; monospaced digits from the port's text face, Inter (OD-0009).",
+      "windows_path": "Both phrasings verbatim; monospaced digits from the port's text face, Inter (OD-0009). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison at 1 and 12 follow-ups",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:70 `.font(.system(size: 12, weight: .medium).monospacedDigit())` -> B2 :70 `.font(.system(.callout, weight: .medium).monospacedDigit())`, 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2). Chrome.inlineIconFont also changed: B1 DroppyCode/UI/Chrome/Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 :29 `.system(.subheadline, weight: .semibold)` (11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2)). Strings and the accessibility label unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:70 `.font(.system(size: 12, weight: .medium).monospacedDigit())` -> B2 :70 `.font(.system(.callout, weight: .medium).monospacedDigit())`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Chrome.inlineIconFont also changed: B1 DroppyCode/UI/Chrome/Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 :29 `.system(.subheadline, weight: .semibold)` (11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)). Strings and the accessibility label unchanged."
     },
     {
       "id": "PR-COMPOSER-152",
@@ -3590,7 +3591,7 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same shape and paddings. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "windows_path": "Same shape and paddings. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "verification_method": "capture comparison",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3611,13 +3612,13 @@
       "persistence": "bundleID is persisted with the prompt.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same numbering walk, including the hadPrevious guard so the first prompt always starts at 1.",
+      "windows_path": "Same numbering walk, including the hadPrevious guard so the first prompt always starts at 1. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "unit test of numbers() over a bundled list",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:374 `.font(.system(size: 11, weight: .medium).monospacedDigit())` -> B2 :374 `.font(.system(.subheadline, weight: .medium).monospacedDigit())`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2). numbers(for:) and the colours unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:374 `.font(.system(size: 11, weight: .medium).monospacedDigit())` -> B2 :374 `.font(.system(.subheadline, weight: .medium).monospacedDigit())`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059). numbers(for:) and the colours unchanged."
     },
     {
       "id": "PR-COMPOSER-158",
@@ -3643,7 +3644,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:358 and :368 `.font(.system(size: 10, weight: .semibold))` -> B2 :358 and :368 `.font(.system(.footnote, weight: .semibold))`, 10 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2). Strings, the 0.3/0.8 spring and the haptic unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:358 and :368 `.font(.system(size: 10, weight: .semibold))` -> B2 :358 and :368 `.font(.system(.footnote, weight: .semibold))`, 10 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2; the port uses these sizes per ED-059). Strings, the 0.3/0.8 spring and the haptic unchanged."
     },
     {
       "id": "PR-COMPOSER-159",
@@ -3664,13 +3665,13 @@
         "A gesture cancelled from under the pointer reports no end; the @GestureState reset and the mouse-up monitor both end the drag (FollowUpQueueTab.swift:406-408, :165-178)."
       ],
       "cancellation": "A cancelled gesture is ended by the isGrabbing reset or the local mouse-up monitor.",
-      "windows_path": "An explicit LIFO cursor-owner stack mirroring each push and pop site (port_impacts X8(a)); the global coordinate space is screen coordinates.",
+      "windows_path": "An explicit LIFO cursor-owner stack mirroring each push and pop site (port_impacts X8(a)); the global coordinate space is screen coordinates. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "interaction test dragging and releasing outside the window",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:381 `.font(.system(size: 11, weight: .medium))` -> B2 :381 `.font(.system(.subheadline, weight: .medium))`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2). The 28 by 22 frame, cursors, gesture and strings unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:381 `.font(.system(size: 11, weight: .medium))` -> B2 :381 `.font(.system(.subheadline, weight: .medium))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059). The 28 by 22 frame, cursors, gesture and strings unchanged."
     },
     {
       "id": "PR-COMPOSER-160",
@@ -3817,7 +3818,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:435 `.font(.system(size: 12))` -> B2 :435 `.font(.system(.callout))`, 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2). proseLift still measures `NSFont.systemFont(ofSize: 12)` (B2 FollowUpQueueTab.swift:333-336, unchanged). Thumbnails 22, spacing 8 and padding 5 unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:435 `.font(.system(size: 12))` -> B2 :435 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). proseLift still measures `NSFont.systemFont(ofSize: 12)` (B2 FollowUpQueueTab.swift:333-336, unchanged). Thumbnails 22, spacing 8 and padding 5 unchanged."
     },
     {
       "id": "PR-COMPOSER-166",
@@ -3833,7 +3834,7 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Verbatim strings and the same ordering (images before files).",
+      "windows_path": "Verbatim strings and the same ordering (images before files). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "unit test over the four combinations",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -3854,13 +3855,13 @@
       "persistence": "Nothing persisted by rendering.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same sizes; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table).",
+      "windows_path": "Same sizes; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison and an interaction test of each button",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2). 22 by 22, the 0.35 disabled opacity and the strings unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059). 22 by 22, the 0.35 disabled opacity and the strings unchanged."
     },
     {
       "id": "PR-COMPOSER-168",
@@ -4063,7 +4064,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/PromptEditor.swift:61 `.font(.system(size: 17, weight: .semibold))` -> B2 :61 `.font(.system(.title2, weight: .semibold))`, 17 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17` (file deleted at B2). Width 520, padding 20 and spacing 14 unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/PromptEditor.swift:61 `.font(.system(size: 17, weight: .semibold))` -> B2 :61 `.font(.system(.title2, weight: .semibold))`, 17 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17` (file deleted at B2; the port uses these sizes per ED-059). Width 520, padding 20 and spacing 14 unchanged."
     },
     {
       "id": "PR-COMPOSER-177",
@@ -4125,7 +4126,7 @@
       "persistence": "Attachment files.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same behavior; note this popover's pick does NOT dismiss, unlike the composer's (ComposerView.swift:643). Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "windows_path": "Same behavior; note this popover's pick does NOT dismiss, unlike the composer's (ComposerView.swift:643). Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "verification_method": "interaction test attaching two files in a row",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -4211,7 +4212,7 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same radius, padding and tint fraction. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "windows_path": "Same radius, padding and tint fraction. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper. Text style per ED-059: .headline is 13 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), set in Inter (OD-0009) and scaled only by the app zoom; visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison in both themes",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -4231,7 +4232,7 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same limit and plate. The monospaced face is Cascadia Mono (OD-0009).",
+      "windows_path": "Same limit and plate. The monospaced face is Cascadia Mono (OD-0009). Text style per ED-059: the monospaced .callout is 12 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), set in Cascadia Mono (OD-0009) and scaled only by the app zoom; visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison with a twelve-line command",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -4252,13 +4253,13 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Verbatim string.",
+      "windows_path": "Verbatim string. Text style per ED-059: .callout is 12 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), set in Inter (OD-0009) and scaled only by the app zoom; visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison of a plan approval",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/RequestCards.swift:28 `.foregroundStyle(.secondary)` -> B2 :28 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`). The string and .callout unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/RequestCards.swift:28 `.foregroundStyle(.secondary)` -> B2 :28 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal. The string and .callout unchanged."
     },
     {
       "id": "PR-COMPOSER-186",
@@ -4273,13 +4274,13 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same line caps and the same empty-string guards.",
+      "windows_path": "Same line caps and the same empty-string guards. Text styles per ED-059: the detail's .caption is 10 point and the reason's .callout 12 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, :52 `case .callout: 12` (file deleted at B2), set in Inter (OD-0009) and scaled only by the app zoom; visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison with a long detail and reason",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/RequestCards.swift:37 and :43 `.foregroundStyle(.secondary)` -> B2 :37 and :43 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`). The 3-line caption cap and the unlimited callout unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/RequestCards.swift:37 and :43 `.foregroundStyle(.secondary)` -> B2 :37 and :43 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal. The 3-line caption cap and the unlimited callout unchanged."
     },
     {
       "id": "PR-COMPOSER-187",
@@ -4296,7 +4297,7 @@
       "persistence": "The resolution is recorded with the turn.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same reversal, styling and single-claimant chord rule. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "windows_path": "Same reversal, styling and single-claimant chord rule. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "verification_method": "interaction test with two stacked approvals",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -4388,7 +4389,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/QuestionTab.swift:278 `.font(.system(size: 13, weight: isSelected ? .semibold : .regular))` and :282 `.font(.system(size: 10, weight: .medium))` -> B2 :278 `.font(.system(.body, weight: isSelected ? .semibold : .regular))` and :282 `.font(.system(.footnote, weight: .medium))`, 13 and 10 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, :54 `case .footnote, .caption, .caption2: 10` (file deleted at B2). bareLabel and the string \"Recommended\" unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/QuestionTab.swift:278 `.font(.system(size: 13, weight: isSelected ? .semibold : .regular))` and :282 `.font(.system(size: 10, weight: .medium))` -> B2 :278 `.font(.system(.body, weight: isSelected ? .semibold : .regular))` and :282 `.font(.system(.footnote, weight: .medium))`, 13 and 10 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, :54 `case .footnote, .caption, .caption2: 10` (file deleted at B2; the port uses these sizes per ED-059). bareLabel and the string \"Recommended\" unchanged."
     },
     {
       "id": "PR-COMPOSER-192",
@@ -4426,13 +4427,13 @@
       "persistence": "Nothing persisted; a secret answer is sent, never stored.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Verbatim placeholders; the secret field must disable clipboard reveal and password-manager offers.",
+      "windows_path": "Verbatim placeholders; the secret field must disable clipboard reveal and password-manager offers. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison of the three field cases",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/QuestionTab.swift:212 `.font(.system(size: 11, weight: .medium))` and :217 `.font(.system(size: 13, weight: .semibold))` -> B2 :212 `.font(.system(.subheadline, weight: .medium))` and :217 `.font(.system(.body, weight: .semibold))`, 11 and 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, :51 `case .headline, .body: 13` (file deleted at B2). The field and its placeholders unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/QuestionTab.swift:212 `.font(.system(size: 11, weight: .medium))` and :217 `.font(.system(size: 13, weight: .semibold))` -> B2 :212 `.font(.system(.subheadline, weight: .medium))` and :217 `.font(.system(.body, weight: .semibold))`, 11 and 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, :51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). The field and its placeholders unchanged."
     },
     {
       "id": "PR-COMPOSER-194",
@@ -4469,13 +4470,13 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Verbatim counter format and tooltip.",
+      "windows_path": "Verbatim counter format and tooltip. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison at page 2 of 4",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/QuestionTab.swift:96 `.font(.system(size: 11)).monospacedDigit()` -> B2 :96 `.font(.system(.subheadline)).monospacedDigit()`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2). The dots and \"Previous question\" unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/QuestionTab.swift:96 `.font(.system(size: 11)).monospacedDigit()` -> B2 :96 `.font(.system(.subheadline)).monospacedDigit()`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059). The dots and \"Previous question\" unchanged."
     },
     {
       "id": "PR-COMPOSER-196",
@@ -4502,7 +4503,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/QuestionTab.swift:134 `.font(.system(size: 11))` and :135 `.foregroundStyle(.secondary)` -> B2 :134 `.font(.system(.subheadline))` and :135 `.foregroundStyle(Chrome.secondaryText)`; 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2). Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`). All six strings and the button logic unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/QuestionTab.swift:134 `.font(.system(size: 11))` and :135 `.foregroundStyle(.secondary)` -> B2 :134 `.font(.system(.subheadline))` and :135 `.foregroundStyle(Chrome.secondaryText)`; 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059). Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal. All six strings and the button logic unchanged."
     },
     {
       "id": "PR-COMPOSER-197",
@@ -4561,13 +4562,13 @@
       "persistence": "Nothing persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "U+2212 verbatim; the same hues as every other plus/minus in the app, so a theme recolours the tab with the diffs it stands for.",
+      "windows_path": "U+2212 verbatim; the same hues as every other plus/minus in the app, so a theme recolours the tab with the diffs it stands for. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison and a byte check of the minus character",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ThreadChangesTab.swift:30 `.font(.system(size: 12, weight: .medium).monospacedDigit())` -> B2 :30 `.font(.system(.callout, weight: .medium).monospacedDigit())`, 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2). Chrome.inlineIconFont also changed: B1 DroppyCode/UI/Chrome/Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 :29 `.system(.subheadline, weight: .semibold)` (11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2)). Strings, U+2212, hues and paddings unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ThreadChangesTab.swift:30 `.font(.system(size: 12, weight: .medium).monospacedDigit())` -> B2 :30 `.font(.system(.callout, weight: .medium).monospacedDigit())`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Chrome.inlineIconFont also changed: B1 DroppyCode/UI/Chrome/Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 :29 `.system(.subheadline, weight: .semibold)` (11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)). Strings, U+2212, hues and paddings unchanged."
     },
     {
       "id": "PR-COMPOSER-200",
@@ -4586,7 +4587,7 @@
         "No chord: the tooltip is the bare sentence with no parenthesis."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Verbatim strings; the chord label renders in Windows notation from the stored shortcut (OD-0008 B7). Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "windows_path": "Verbatim strings; the chord label renders in Windows notation from the stored shortcut (OD-0008 B7). Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "verification_method": "unit test of the help string with the chord set and cleared",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -4662,7 +4663,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/UI/Common/AttachmentPreview.swift:186 `.font(.system(size: 13, weight: .semibold))` -> B2 :186 `.font(.system(.body, weight: .semibold))`, 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2). The circle, the white glyph, the 1 point offset and accessibilityHidden unchanged (B2 AttachmentPreview.swift:178-191)."
+      "b2_change": "B1 DroppyCode/UI/Common/AttachmentPreview.swift:186 `.font(.system(size: 13, weight: .semibold))` -> B2 :186 `.font(.system(.body, weight: .semibold))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). The circle, the white glyph, the 1 point offset and accessibilityHidden unchanged (B2 AttachmentPreview.swift:178-191)."
     },
     {
       "id": "PR-COMPOSER-204",
@@ -4740,7 +4741,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:547-550 the doc comment on sync: 'Drives the popover from `runtime.isDiffVisible`. Call on change and on appear. Three cases: the composer moved to another thread (close what was open and never open on arrival), first appearance (adopt the runtime without opening unless asked), or the same thread (follow the flag as before).'",
         "DroppyCode/App/Views/Diff/DiffInspector.swift:552-559 `if let current = self.runtime, current !== runtime { close(); if current.isDiffVisible { current.isDiffVisible = false }; self.runtime = runtime; seenOpenRequest = runtime.diffOpenRequest; if runtime.isDiffVisible, !WebsiteCaptures.isEnabled { runtime.isDiffVisible = false }; return }`",
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:560-567 the first-appearance branch: `if self.runtime == nil { self.runtime = runtime; seenOpenRequest = runtime.diffOpenRequest; if isVisible, !WebsiteCaptures.isEnabled { runtime.isDiffVisible = false; return } }`"
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:560-567 the first-appearance branch: `if self.runtime == nil { self.runtime = runtime; seenOpenRequest = runtime.diffOpenRequest; if isVisible, !WebsiteCaptures.isEnabled { runtime.isDiffVisible = false; return } }`",
+        "porting/dead_code.md:77 entry 34 - DiffInspector.swift:557 and :563, the two `!WebsiteCaptures.isEnabled` conjuncts inside DiffPopoverCoordinator.sync, are always true outside a capture launch, so adopting or switching to a runtime always forces runtime.isDiffVisible = false"
       ],
       "preconditions": "The composer's changes popover coordinator already serves one thread's runtime and the composer moves to a different thread.",
       "action": "sync is called with the new runtime.",
@@ -4752,9 +4754,9 @@
       "persistence": "isDiffVisible lives on the runtime, not in user defaults.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Both clears must be reproduced. Omitting the outgoing one leaves a thread that reopens its panel when you come back, which is a different product; omitting the incoming one pops a panel on every thread switch. The capture guard is part of the capture subsystem whose porting is an unresolved port decision; if that subsystem is dropped, both clears become unconditional.",
+      "windows_path": "Both clears must be reproduced. Omitting the outgoing one leaves a thread that reopens its panel when you come back, which is a different product; omitting the incoming one pops a panel on every thread switch. The capture guard is dead code in every normal launch (porting/dead_code.md entry 34: the `!WebsiteCaptures.isEnabled` conjuncts at DroppyCode/App/Views/Diff/DiffInspector.swift:557 and :563) and the capture subsystem is not ported (ED-001), so under ED-061 the port omits the guard and both clears are unconditional.",
       "verification_method": "interaction test moving between two threads, both with the panel open, asserting isDiffVisible on each runtime after the move and after moving back",
-      "status": "DISCOVERED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4863,13 +4865,13 @@
         "The thumbnail does not load: image stays nil and the spinner remains; the file name and \"Open\" still show."
       ],
       "cancellation": "The load runs in .task(id: path), which SwiftUI cancels when the row collapses or the path changes.",
-      "windows_path": "Same box, radius, fill, 420 point cap, 6 point spacing and caption row. \"Open\" is verbatim and opens the file with its registered application. PR-CHAT-101 specifies the rest of the expanded tool row.",
+      "windows_path": "Same box, radius, fill, 420 point cap, 6 point spacing and caption row. \"Open\" is verbatim and opens the file with its registered application. PR-CHAT-101 specifies the rest of the expanded tool row. Text style per ED-059: the caption row's .caption is 10 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2), set in Inter (OD-0009) and scaled only by the app zoom; visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison of an expanded image-reading tool row and of an expanded command row whose text names a written screenshot, each while loading and after the image lands, plus an interaction test of \"Open\"",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/UI/Common/AttachmentPreview.swift:415 `.foregroundStyle(.secondary)` on the file name -> B2 :425 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`). No record covered this view before."
+      "b2_change": "B1 DroppyCode/UI/Common/AttachmentPreview.swift:415 `.foregroundStyle(.secondary)` on the file name -> B2 :425 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal. No record covered this view before."
     }
   ],
   "ui": [
@@ -4881,7 +4883,7 @@
       "exact_text": null,
       "geometry": "GlassEffectContainer(spacing: 8); VStack(spacing: 12); inner VStack(alignment: .center, spacing: -14); .frame(maxWidth: 820); .padding(.horizontal, 20); .padding(.bottom, 14); .frame(maxWidth: .infinity)",
       "typography": "n/a",
-      "colors": "No fill of its own; children carry the glass. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "colors": "No fill of its own; children carry the glass. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "states": [
         "approvals present: one card per request, 12 points apart",
         "no tab: the slot view does not exist, so the -14 spacing cannot pull the pill up"
@@ -4902,7 +4904,7 @@
       "exact_text": null,
       "geometry": "RoundedRectangle(cornerRadius: 22, style: .continuous); .padding(.leading, 14); .padding(.trailing, 8); .padding(.vertical, 8); HStack(alignment: .bottom, spacing: 8); text column adds .padding(.vertical, 4); an empty pill is 44 points high",
       "typography": "n/a",
-      "colors": "glassEffect(.regular) in the chat; inside a glass panel, Chrome.panelControlFill(isDark:) clipped to the same shape. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "colors": "glassEffect(.regular) in the chat; inside a glass panel, Chrome.panelControlFill(isDark:) clipped to the same shape. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "states": [
         "running: the working dot field fills its bottom 40 percent",
         "on a glass panel: flat fill instead of glass",
@@ -4949,7 +4951,7 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:275-288",
         "DroppyCode/App/Views/Composer/ComposerView.swift:552-565"
       ],
-      "notes": "Smart quotes, smart dashes, text replacement, spelling correction, completion, inline prediction and writing tools are all off, scoped to this field. The placeholder is painted by the view itself, not a sibling label."
+      "notes": "Smart quotes, smart dashes, text replacement, spelling correction, completion, inline prediction and writing tools are all off, scoped to this field. The placeholder is painted by the view itself, not a sibling label. OD-0013: during live resize the window must not show the 3-5 px edge strip of its own backdrop without the app layer (probe P4)."
     },
     {
       "id": "UI-COMPOSER-004",
@@ -4974,7 +4976,7 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:219-225"
       ],
       "notes": "The number 8 is interpolated from Storage.attachmentLimit; do not hard-code the digit. Two identical notices in a row do not restart the timer, because the dismissal task is keyed to the string.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:578 `.font(.system(size: 11))` -> B2 :578 `.font(.system(.subheadline))`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:578 `.font(.system(size: 11))` -> B2 :578 `.font(.system(.subheadline))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-005",
@@ -4984,7 +4986,7 @@
       "exact_text": "/<command name>",
       "geometry": "HStack(spacing: 5) inside ChipChrome: .padding(.leading, 9), .padding(.trailing, 7), .padding(.vertical, 5), continuous capsule; the chip row has .padding(.bottom, 8) and 6 points between chips",
       "typography": "Symbol .footnote semibold; label .subheadline medium (10 and 11 point at the macOS default)",
-      "colors": "Symbol and x in Chrome.secondaryText; label Chrome.primaryText at 0.9; capsule Chrome.overlay(0.12)",
+      "colors": "Symbol and x in Chrome.secondaryText; label Chrome.primaryText at 0.9; capsule Chrome.overlay(0.12). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "built-in: the \"command\" symbol",
         "provider command: the \"sparkles\" symbol",
@@ -5000,7 +5002,7 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:962-970"
       ],
       "notes": "The chip is one accessibility element; the x carries its own label \"Remove command\".",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:885 `.font(.system(size: 10, weight: .semibold))` and :888 `.font(.system(size: 11, weight: .medium))` -> B2 :885 `.font(.system(.footnote, weight: .semibold))` and :888 `.font(.system(.subheadline, weight: .medium))`, 10 and 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, :53 `case .subheadline: 11` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:885 `.font(.system(size: 10, weight: .semibold))` and :888 `.font(.system(size: 11, weight: .medium))` -> B2 :885 `.font(.system(.footnote, weight: .semibold))` and :888 `.font(.system(.subheadline, weight: .medium))`, 10 and 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, :53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-006",
@@ -5010,7 +5012,7 @@
       "exact_text": "Remove command",
       "geometry": "A bare symbol at the chip's trailing end, inside the chip's 7 point trailing padding",
       "typography": "Symbol .caption2 bold (10 point at the macOS default; a fixed 9 point at B1)",
-      "colors": "Chrome.secondaryText",
+      "colors": "Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "never focusable"
       ],
@@ -5021,7 +5023,7 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:890-902 `Button { withAnimation(Chrome.panelSlide) { runtime.draft.command = nil } } label: { Image(systemName: \"xmark\").font(.system(.caption2, weight: .bold)).foregroundStyle(Chrome.secondaryText) }.buttonStyle(.plain).focusable(false).help(\"Remove command\").accessibilityLabel(Text(\"Remove command\"))`"
       ],
       "notes": "Tooltip and accessibility label are the same string.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:896 `.font(.system(size: 9, weight: .bold))` -> B2 :896 `.font(.system(.caption2, weight: .bold))`, 10 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2), so the glyph grows one point."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:896 `.font(.system(size: 9, weight: .bold))` -> B2 :896 `.font(.system(.caption2, weight: .bold))`, 10 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2; the port uses these sizes per ED-059), so the glyph grows one point."
     },
     {
       "id": "UI-COMPOSER-007",
@@ -5031,7 +5033,7 @@
       "exact_text": "<first non-empty line of the quote, whitespace collapsed, cut to 72 characters plus …>",
       "geometry": "Same ChipChrome capsule; the excerpt is capped at 260 points wide, one line, tail truncated",
       "typography": "Symbol .footnote semibold; excerpt .subheadline regular (10 and 11 point at the macOS default)",
-      "colors": "Symbol and x Chrome.secondaryText; excerpt Chrome.primaryText at 0.9",
+      "colors": "Symbol and x Chrome.secondaryText; excerpt Chrome.primaryText at 0.9. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "several quotes scroll horizontally",
         "removal animates on Chrome.panelSlide"
@@ -5046,7 +5048,7 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:54-64"
       ],
       "notes": "The 72 character cut appends U+2026, and only then is the text truncated visually at 260 points.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:911 `.font(.system(size: 10, weight: .semibold))` and :914 `.font(.system(size: 11))` -> B2 :911 `.font(.system(.footnote, weight: .semibold))` and :914 `.font(.system(.subheadline))`, 10 and 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, :53 `case .subheadline: 11` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:911 `.font(.system(size: 10, weight: .semibold))` and :914 `.font(.system(size: 11))` -> B2 :911 `.font(.system(.footnote, weight: .semibold))` and :914 `.font(.system(.subheadline))`, 10 and 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, :53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-008",
@@ -5056,7 +5058,7 @@
       "exact_text": "Remove quote",
       "geometry": "Same as the command chip's x",
       "typography": "Symbol .caption2 bold (10 point at the macOS default; a fixed 9 point at B1)",
-      "colors": "Chrome.secondaryText",
+      "colors": "Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "never focusable"
       ],
@@ -5067,7 +5069,7 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:919-931 `Button { withAnimation(Chrome.panelSlide) { runtime.draft.quotes.removeAll { $0.id == quote.id } } } label: { Image(systemName: \"xmark\").font(.system(.caption2, weight: .bold)).foregroundStyle(Chrome.secondaryText) }.buttonStyle(.plain).focusable(false).help(\"Remove quote\").accessibilityLabel(Text(\"Remove quote\"))`"
       ],
       "notes": "Removes by id, not by position, so removing the middle quote of three is safe.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:925 `.font(.system(size: 9, weight: .bold))` -> B2 :925 `.font(.system(.caption2, weight: .bold))`, 10 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2), so the glyph grows one point."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:925 `.font(.system(size: 9, weight: .bold))` -> B2 :925 `.font(.system(.caption2, weight: .bold))`, 10 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2; the port uses these sizes per ED-059), so the glyph grows one point."
     },
     {
       "id": "UI-COMPOSER-009",
@@ -5134,7 +5136,7 @@
         "DroppyCode/UI/Common/Components.swift:59-99"
       ],
       "notes": "Tooltip and accessibility label are the same string. Which of the two behaviors runs is a persisted setting, not a modifier.",
-      "b2_change": "B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 :28 `static let iconFont: Font = .system(.callout, weight: .semibold)`, 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 :28 `static let iconFont: Font = .system(.callout, weight: .semibold)`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-012",
@@ -5143,8 +5145,8 @@
       "role": "button",
       "exact_text": "<model chip name> <Effort title>",
       "geometry": "HStack(spacing: 5) in the chip button style; icon 14 (or the fused pair mark at 15); width is locked to the measured natural width while its popover is open",
-      "typography": "Chip label .callout; the effort text in the same run; chevron Chrome.chevronFont = system 8 point bold",
-      "colors": "Name Chrome.primaryText; effort Chrome.primaryText at 0.72; chevron Chrome.secondaryText; the chip plate follows the chip button style",
+      "typography": "Chip label .callout; the effort text in the same run; chevron Chrome.chevronFont = system 8 point bold. The .callout label comes from the chip button style (DroppyCode/UI/Common/Components.swift:73 `.font(.callout)`) and is 12 point per ED-059, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), set in Inter (OD-0009); visual size parity stays UNVERIFIED under OD-0001.",
+      "colors": "Name Chrome.primaryText; effort Chrome.primaryText at 0.72; chevron Chrome.secondaryText; the chip plate follows the chip button style. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "fast mode on and supported: a yellow bolt.fill before the name",
         "in a pair: the fused mark and the pair's custom name",
@@ -5191,7 +5193,7 @@
       "exact_text": "Usage",
       "geometry": "HStack with a spacer of at least 8; .padding(.top, 10); .padding(.horizontal, 16)",
       "typography": "System .callout semibold (12 point at the macOS default)",
-      "colors": "Chrome.secondaryText",
+      "colors": "Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [],
       "interactions": [
         "none"
@@ -5200,7 +5202,7 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:743-747 `HStack { Text(\"Usage\").font(.system(.callout, weight: .semibold)).foregroundStyle(Chrome.secondaryText); Spacer(minLength: 8)`"
       ],
       "notes": "The usage panel below it is shared with the floating panel and is specified in the usage area.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:745 `.font(.system(size: 12, weight: .semibold))` -> B2 :745 `.font(.system(.callout, weight: .semibold))`, 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:745 `.font(.system(size: 12, weight: .semibold))` -> B2 :745 `.font(.system(.callout, weight: .semibold))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-015",
@@ -5243,7 +5245,7 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:817-866"
       ],
       "notes": "The click is a plain interrupt, never the take-back that Escape performs and never the interrupt-and-send that Return performs. The tooltip changes with four different states.",
-      "b2_change": "B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 :28 `static let iconFont: Font = .system(.callout, weight: .semibold)`, 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Chrome.swift:28 `static let iconFont: Font = .system(size: 12, weight: .semibold)` -> B2 :28 `static let iconFont: Font = .system(.callout, weight: .semibold)`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-017",
@@ -5311,7 +5313,7 @@
         "DroppyCode/UI/Chrome/Popovers.swift:117-133 `struct PopoverSectionHeader` - `Text(verbatim: title).font(.system(.subheadline, weight: .semibold)).foregroundStyle(Chrome.secondaryText).padding(.horizontal, 8).padding(.top, 6).padding(.bottom, 3).frame(maxWidth: .infinity, alignment: .leading)`"
       ],
       "notes": "The separator is U+00B7 with a single space either side.",
-      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`)."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
     },
     {
       "id": "UI-COMPOSER-020",
@@ -5321,7 +5323,7 @@
       "exact_text": "<title>  <detail>",
       "geometry": "HStack(spacing: 8); symbol in a 16 wide frame; a spacer of at least 16 before the detail; .padding(.horizontal, 8); .frame(height: 26); hover plate RoundedRectangle(cornerRadius: 6, style: .continuous)",
       "typography": "Symbol .callout; title .body, one line, middle truncated; detail .callout, one line (12, 13 and 12 point at the macOS default)",
-      "colors": "Foreground Chrome.primaryText; detail Chrome.secondaryText; plate Chrome.overlay(0.1) when selected or hovering, else clear",
+      "colors": "Foreground Chrome.primaryText; detail Chrome.secondaryText; plate Chrome.overlay(0.1) when selected or hovering, else clear. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "selected or hovered: the plate is filled",
         "hovering also makes it the selected row"
@@ -5335,7 +5337,7 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:1061-1101 `private struct SuggestionPopoverRow` - `HStack(spacing: 8) { Image(systemName: item.symbol).font(.system(.callout)).frame(width: 16); Text(verbatim: item.title).font(.system(.body)).lineLimit(1).truncationMode(.middle); Spacer(minLength: 16); Text(verbatim: item.detail).font(.system(.callout)).foregroundStyle(Chrome.secondaryText).lineLimit(1) }`, `.padding(.horizontal, 8)`, `.frame(height: 26)`, `RoundedRectangle(cornerRadius: 6, style: .continuous).fill(isSelected || isHovering ? Chrome.overlay(0.1) : Color.clear)`, `if hovering { select() }`"
       ],
       "notes": "File rows truncate in the middle, not at the end, so both the leading directory and the file name stay readable.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:1073 `.font(.system(size: 12))`, :1076 `.font(.system(size: 13))`, :1081 `.font(.system(size: 12))` -> B2 :1073 `.font(.system(.callout))`, :1076 `.font(.system(.body))`, :1081 `.font(.system(.callout))`, 12, 13 and 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, :51 `case .headline, .body: 13` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ComposerView.swift:1073 `.font(.system(size: 12))`, :1076 `.font(.system(size: 13))`, :1081 `.font(.system(size: 12))` -> B2 :1073 `.font(.system(.callout))`, :1076 `.font(.system(.body))`, :1081 `.font(.system(.callout))`, 12, 13 and 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, :51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-021",
@@ -5357,7 +5359,7 @@
         "DroppyCode/UI/Chrome/Popovers.swift:135-150 `struct PopoverNote` - `Text(verbatim: text).font(.system(.callout)).foregroundStyle(Chrome.secondaryText).padding(.horizontal, 8).padding(.vertical, 5).frame(maxWidth: .infinity, alignment: .leading)`"
       ],
       "notes": "The error map is flushed wholesale once it holds 32 entries, so an error can vanish without the load being retried.",
-      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:144 `.font(.system(size: 12))` -> B2 :144 `.font(.system(.callout))`, 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2). Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`)."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:144 `.font(.system(size: 12))` -> B2 :144 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
     },
     {
       "id": "UI-COMPOSER-022",
@@ -5418,7 +5420,7 @@
         "DroppyCode/App/Views/Composer/DownloadsPopover.swift:114"
       ],
       "notes": null,
-      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`)."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
     },
     {
       "id": "UI-COMPOSER-025",
@@ -5439,7 +5441,7 @@
         "DroppyCode/App/Views/Composer/DownloadsPopover.swift:123"
       ],
       "notes": "This is the one case where the popover sizes itself instead of using the row formula.",
-      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:144 `.font(.system(size: 12))` -> B2 :144 `.font(.system(.callout))`, 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2). Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`)."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:144 `.font(.system(size: 12))` -> B2 :144 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
     },
     {
       "id": "UI-COMPOSER-026",
@@ -5449,7 +5451,7 @@
       "exact_text": "<file name>  <formatted size>",
       "geometry": "HStack(spacing: 10); preview 28 by 28 (a photo clipped to radius 6, an icon aspect-fitted); a spacer of at least 16; .padding(.horizontal, 8); .frame(height: 38); hover plate RoundedRectangle(cornerRadius: 6, style: .continuous)",
       "typography": "Name .body, one line, middle truncated; size .callout, one line (13 and 12 point at the macOS default)",
-      "colors": "Foreground Chrome.primaryText; size Chrome.secondaryText; hover plate Chrome.overlay(0.1)",
+      "colors": "Foreground Chrome.primaryText; size Chrome.secondaryText; hover plate Chrome.overlay(0.1). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "thumbnail not yet loaded: the file icon is shown instead",
         "size zero or unreadable: the size text is omitted",
@@ -5462,7 +5464,7 @@
         "DroppyCode/App/Views/Composer/DownloadsPopover.swift:165-241 `private struct DownloadRow` - `static let height: CGFloat = 38`; `HStack(spacing: 10) { preview; Text(verbatim: item.name).font(.system(.body)).lineLimit(1).truncationMode(.middle); Spacer(minLength: 16); if let size = item.size { Text(verbatim: size).font(.system(.callout)).foregroundStyle(Chrome.secondaryText).lineLimit(1) } }`, `.padding(.horizontal, 8)`, `.frame(height: Self.height)`, `RoundedRectangle(cornerRadius: 6, style: .continuous).fill(isHovering ? Chrome.overlay(0.1) : Color.clear)`"
       ],
       "notes": "Both the photo and the icon branch report their screen frame, or the flight would start from the screen's own corner.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/DownloadsPopover.swift:197 `.font(.system(size: 13))` and :203 `.font(.system(size: 12))` -> B2 :197 `.font(.system(.body))` and :203 `.font(.system(.callout))`, 13 and 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, :52 `case .callout: 12` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/DownloadsPopover.swift:197 `.font(.system(size: 13))` and :203 `.font(.system(size: 12))` -> B2 :197 `.font(.system(.body))` and :203 `.font(.system(.callout))`, 13 and 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, :52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-027",
@@ -5559,7 +5561,7 @@
       "exact_text": "Low | Medium | High | Extra High | Default | Standard (the resolved effort's title) / tooltip: Choose a model",
       "geometry": "HStack(spacing: 4) with a chevron.right; .padding(.horizontal, 8), .padding(.vertical, 2); hover plate RoundedRectangle(cornerRadius: 7, style: .continuous); the title block is inset 44 points on each side",
       "typography": "System .title2 medium; chevron .callout semibold (17 and 12 point at the macOS default)",
-      "colors": "titleStyle: EffortPalette.title (accent mixed 22 percent with white) when neither max nor fast; the brand's title style at max; EffortPalette.fast in fast mode; a brand-to-gold gradient when both; a lead-to-heads gradient in a pair; chevron Chrome.secondaryText",
+      "colors": "titleStyle: EffortPalette.title (accent mixed 22 percent with white) when neither max nor fast; the brand's title style at max; EffortPalette.fast in fast mode; a brand-to-gold gradient when both; a lead-to-heads gradient in a pair; chevron Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "hover: Chrome.overlay(0.08) plate",
         "colour changes animate over 0.3 s smooth",
@@ -5573,7 +5575,7 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:543-597 `private var titleStyle: AnyShapeStyle` (543-555) and the title button: `Text(verbatim: title).font(.system(.title2, weight: .medium)).contentTransition(.numericText())`, `Image(systemName: \"chevron.right\").font(.system(.callout, weight: .semibold)).foregroundStyle(Chrome.secondaryText)`, `.foregroundStyle(titleStyle)`, `.animation(.smooth(duration: 0.3), value: isMaxEffort)`, `.help(onTitleTap == nil ? \"\" : \"Choose a model\")`"
       ],
       "notes": "\"Standard\" is the literal title when the model has no reasoning levels; the button still renders.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:573 `.font(.system(size: 17, weight: .medium))` and :577 `.font(.system(size: 12, weight: .semibold))` -> B2 :573 `.font(.system(.title2, weight: .medium))` and :577 `.font(.system(.callout, weight: .semibold))`, 17 and 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, :52 `case .callout: 12` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:573 `.font(.system(size: 17, weight: .medium))` and :577 `.font(.system(size: 12, weight: .semibold))` -> B2 :573 `.font(.system(.title2, weight: .medium))` and :577 `.font(.system(.callout, weight: .semibold))`, 17 and 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17`, :52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-032",
@@ -5595,7 +5597,7 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:599-617 `HStack(spacing: 5) { if pair != nil { HydraMarkImage().foregroundStyle(Chrome.primaryText.opacity(0.75)).frame(width: 12, height: 12) } else if let provider { ProviderIcon(provider: provider, size: 12) }; Text(verbatim: pair?.title ?? modelName).font(.system(.body)).foregroundStyle(Chrome.primaryText.opacity(0.7)).lineLimit(1).truncationMode(.tail).minimumScaleFactor(0.85) }`"
       ],
       "notes": "This uses shortName, not chipName; the chip above uses chipName.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:610 `.font(.system(size: 13))` -> B2 :610 `.font(.system(.body))`, 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:610 `.font(.system(size: 13))` -> B2 :610 `.font(.system(.body))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-033",
@@ -5605,7 +5607,7 @@
       "exact_text": "Fast mode (label) / tooltip: Fast mode is on | Fast mode",
       "geometry": "30 by 30 circle at the card header's leading end",
       "typography": "Symbol .body semibold (13 point at the macOS default)",
-      "colors": "On: yellow glyph on a yellow circle at 0.18. Off: Chrome.secondaryText glyph on Chrome.overlay(0.1) hovering or 0.06 at rest",
+      "colors": "On: yellow glyph on a yellow circle at 0.18. Off: Chrome.secondaryText glyph on Chrome.overlay(0.1) hovering or 0.06 at rest. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "on: bolt.fill, bounces on change",
         "off: bolt",
@@ -5619,7 +5621,7 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:659-683 `private struct FastModeButton` - `Image(systemName: isOn ? \"bolt.fill\" : \"bolt\").font(.system(.body, weight: .semibold)).foregroundStyle(isOn ? Color.yellow : Chrome.secondaryText).symbolEffect(.bounce, value: isOn).frame(width: 30, height: 30)`, `Circle().fill(isOn ? Color.yellow.opacity(0.18) : Chrome.overlay(isHovering ? 0.1 : 0.06))`, `.help(isOn ? \"Fast mode is on\" : \"Fast mode\")`"
       ],
       "notes": "Accessibility label is always \"Fast mode\" with the value \"On\" or \"Off\"; the tooltip differs from the label when on.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:668 `.font(.system(size: 13, weight: .semibold))` -> B2 :668 `.font(.system(.body, weight: .semibold))`, 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:668 `.font(.system(size: 13, weight: .semibold))` -> B2 :668 `.font(.system(.body, weight: .semibold))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-034",
@@ -5629,7 +5631,7 @@
       "exact_text": "Reset to default",
       "geometry": "30 by 30 circle at the card header's trailing end",
       "typography": "Symbol .body medium (13 point at the macOS default)",
-      "colors": "Chrome.secondaryText glyph; circle Chrome.overlay(0.1) while hovering, clear otherwise",
+      "colors": "Chrome.secondaryText glyph; circle Chrome.overlay(0.1) while hovering, clear otherwise. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "hover animates on Chrome.hover"
       ],
@@ -5641,7 +5643,7 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:685-708 `private struct RoundIconButton` - `Image(systemName: symbol).font(.system(.body, weight: .medium)).foregroundStyle(Chrome.secondaryText).frame(width: 30, height: 30).background { Circle().fill(isHovering ? Chrome.overlay(0.1) : Color.clear) }`, `.help(help)`, `.accessibilityLabel(Text(help))`"
       ],
       "notes": "Tooltip and accessibility label are the same string.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:695 `.font(.system(size: 13, weight: .medium))` -> B2 :695 `.font(.system(.body, weight: .medium))`, 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:695 `.font(.system(size: 13, weight: .medium))` -> B2 :695 `.font(.system(.body, weight: .medium))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-035",
@@ -5651,7 +5653,7 @@
       "exact_text": "Reasoning effort | The lead's reasoning effort (accessibility label)",
       "geometry": "Control height 42; track a 34 point capsule at full width; stop centres at 21 + index * ((width - 42) / (count - 1)); stops 5 points across; knob 42 points, scaled 1.06 while dragging",
       "typography": "n/a",
-      "colors": "Track Chrome.overlay(0.1); fill per TrackLook; passed stops look.stopColor (black at 0.35 on a light fill, else white at 0.6), unpassed Chrome.overlay(0.32); the knob is a glass lens tinted white at 0.55 on a light fill, else 0.32, with a black 0.14 edge only on a light fill; a blurred glow beneath it (radius 4 plain, 8 charged) offset 1 point down. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "colors": "Track Chrome.overlay(0.1); fill per TrackLook; passed stops look.stopColor (black at 0.35 on a light fill, else white at 0.6), unpassed Chrome.overlay(0.32); the knob is a glass lens tinted white at 0.55 on a light fill, else 0.32, with a black 0.14 edge only on a light fill; a blurred glow beneath it (radius 4 plain, 8 charged) offset 1 point down. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "states": [
         "plain",
         "supercharged (max effort)",
@@ -5678,7 +5680,7 @@
       "exact_text": "This model has one reasoning level.",
       "geometry": "Occupies exactly 42 points of height in place of the slider",
       "typography": "System .callout (12 point at the macOS default)",
-      "colors": "Chrome.secondaryText",
+      "colors": "Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [],
       "interactions": [
         "none"
@@ -5687,7 +5689,7 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:620-624 `if efforts.isEmpty { Text(\"This model has one reasoning level.\").font(.system(.callout)).foregroundStyle(Chrome.secondaryText).frame(height: EffortSlider.thumbSize) }`"
       ],
       "notes": "The reserved height matches the slider's, so the card does not change size between models. The trailing full stop is part of the string.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:622 `.font(.system(size: 12))` -> B2 :622 `.font(.system(.callout))`, 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:622 `.font(.system(size: 12))` -> B2 :622 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-037",
@@ -5697,7 +5699,7 @@
       "exact_text": "The lead's effort · heads run at <effort> effort | The lead's effort · heads keep their own",
       "geometry": ".padding(.top, -6); one line, tail truncated, shrinking to 0.9",
       "typography": "System .subheadline (11 point at the macOS default)",
-      "colors": "Chrome.secondaryText",
+      "colors": "Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "arrives and leaves on softAppear",
         "absent when the model has no efforts, even in a pair"
@@ -5710,7 +5712,7 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:642-651 `if let pair, !efforts.isEmpty { Text(verbatim: pair.caption).font(.system(.subheadline)).foregroundStyle(Chrome.secondaryText).lineLimit(1).truncationMode(.tail).minimumScaleFactor(0.9).padding(.top, -6).transition(.softAppear) }`"
       ],
       "notes": "The effort name is lowercased, so \"Extra High\" reads \"extra high\"; the separator is U+00B7. Which branch shows is decided by pair.workerEffort, falling back to the launch's resolved worker effort.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:644 `.font(.system(size: 11))` -> B2 :644 `.font(.system(.subheadline))`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:644 `.font(.system(size: 11))` -> B2 :644 `.font(.system(.subheadline))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-038",
@@ -5720,7 +5722,7 @@
       "exact_text": "Back",
       "geometry": "A chevron.left in a 20 by 20 frame; the header row is padded 8 horizontally, 8 top, 4 bottom",
       "typography": "System .subheadline semibold (11 point at the macOS default)",
-      "colors": "Chrome.secondaryText",
+      "colors": "Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [],
       "interactions": [
         "click returns to the effort slider"
@@ -5729,7 +5731,7 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:290-298 `Button(action: onBack) { Image(systemName: \"chevron.left\").font(.system(.subheadline, weight: .semibold)).frame(width: 20, height: 20).contentShape(.rect) }.buttonStyle(.plain).foregroundStyle(Chrome.secondaryText).help(\"Back\")`"
       ],
       "notes": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:292 `.font(.system(size: 11, weight: .semibold))` -> B2 :292 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:292 `.font(.system(size: 11, weight: .semibold))` -> B2 :292 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-039",
@@ -5739,7 +5741,7 @@
       "exact_text": "Select model",
       "geometry": "Beside the back button, followed by a spacer",
       "typography": "System .body (13 point at the macOS default)",
-      "colors": "Chrome.secondaryText",
+      "colors": "Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [],
       "interactions": [
         "none"
@@ -5748,7 +5750,7 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:299-301 `Text(\"Select model\").font(.system(.body)).foregroundStyle(Chrome.secondaryText)`"
       ],
       "notes": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:300 `.font(.system(size: 13))` -> B2 :300 `.font(.system(.body))`, 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:300 `.font(.system(size: 13))` -> B2 :300 `.font(.system(.body))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-040",
@@ -5769,7 +5771,7 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:310-311"
       ],
       "notes": null,
-      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`)."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
     },
     {
       "id": "UI-COMPOSER-041",
@@ -5790,7 +5792,7 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:325"
       ],
       "notes": "With no pairs the models stand alone with no header at all.",
-      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`)."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
     },
     {
       "id": "UI-COMPOSER-042",
@@ -5800,7 +5802,7 @@
       "exact_text": "<pair title> / <models · providers · efforts detail> | New chats only",
       "geometry": "HStack(spacing: 10); fused mark at 16 in an 18 wide frame; title and detail 1 point apart; a spacer of at least 12; a checkmark; .padding(.horizontal, 10); 46 points tall with 1 point of list spacing; hover plate RoundedRectangle(cornerRadius: 9, style: .continuous)",
       "typography": "Title a fixed 14 point; detail .callout; checkmark .body semibold (12 and 13 point at the macOS default)",
-      "colors": "Title Chrome.primaryText; detail Chrome.secondaryText; checkmark Chrome.primaryText; hover plate Chrome.overlay(0.1) only while enabled",
+      "colors": "Title Chrome.primaryText; detail Chrome.secondaryText; checkmark Chrome.primaryText; hover plate Chrome.overlay(0.1) only while enabled. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "selected: the checkmark at full opacity",
         "locked (cross-provider with history): dimmed to 0.45, no hover plate, not clickable, detail reads \"New chats only\"",
@@ -5814,7 +5816,7 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:364-420 detail(for:) joining with \" · \" (364-367) and `private struct HydraPairListRow` - title `.font(.system(size: 14))`, detail `.font(.system(.callout)).foregroundStyle(Chrome.secondaryText)`, checkmark `.font(.system(.body, weight: .semibold))`, `.padding(.horizontal, 10)`, `RoundedRectangle(cornerRadius: 9, style: .continuous).fill(isHovering && isEnabled ? Chrome.overlay(0.1) : Color.clear)`, `.opacity(isEnabled ? 1 : 0.45)`"
       ],
       "notes": "The detail names the models only when the user gave the pair a custom name, because otherwise the title already names them.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:395 `.font(.system(size: 12))` and :401 `.font(.system(size: 13, weight: .semibold))` -> B2 :395 `.font(.system(.callout))` and :401 `.font(.system(.body, weight: .semibold))`, 12 and 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, :51 `case .headline, .body: 13` (file deleted at B2). The title stays a fixed 14 (B2 EffortSlider.swift:391)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:395 `.font(.system(size: 12))` and :401 `.font(.system(size: 13, weight: .semibold))` -> B2 :395 `.font(.system(.callout))` and :401 `.font(.system(.body, weight: .semibold))`, 12 and 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, :51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). The title stays a fixed 14 (B2 EffortSlider.swift:391)."
     },
     {
       "id": "UI-COMPOSER-043",
@@ -5824,7 +5826,7 @@
       "exact_text": "<model short name> / <provider display name> | New chats only",
       "geometry": "HStack(spacing: 10); provider icon at 14 in an 18 wide frame when providers are shown; name and detail 1 point apart; a spacer of at least 12; an optional bolt; a checkmark; .padding(.horizontal, 10); 34 or 46 points tall with 1 point of list spacing; hover plate at radius 9",
       "typography": "Name a fixed 14 point; detail .callout; bolt .footnote; checkmark .body semibold (12, 10 and 13 point at the macOS default)",
-      "colors": "Name Chrome.primaryText; detail, icon and bolt Chrome.secondaryText; checkmark Chrome.primaryText; hover plate Chrome.overlay(0.1)",
+      "colors": "Name Chrome.primaryText; detail, icon and bolt Chrome.secondaryText; checkmark Chrome.primaryText; hover plate Chrome.overlay(0.1). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "selected: the checkmark at full opacity, but never while the chat leads a pair",
         "supports fast: a bolt before the checkmark",
@@ -5838,7 +5840,7 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:422-477 `private struct ModelListRow` - name `.font(.system(size: 14))`, detail `.font(.system(.callout))`, bolt `.font(.system(.footnote))`, checkmark `.font(.system(.body, weight: .semibold))`, `.padding(.horizontal, 10)`, `RoundedRectangle(cornerRadius: 9, style: .continuous)`, `.opacity(isEnabled ? 1 : 0.45)`"
       ],
       "notes": "The checkmark keeps its column whether or not it is shown, so names never shift.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:447 `.font(.system(size: 12))`, :454 `.font(.system(size: 10))`, :458 `.font(.system(size: 13, weight: .semibold))` -> B2 :447 `.font(.system(.callout))`, :454 `.font(.system(.footnote))`, :458 `.font(.system(.body, weight: .semibold))`, 12, 10 and 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, :54 `case .footnote, .caption, .caption2: 10`, :51 `case .headline, .body: 13` (file deleted at B2). The name stays a fixed 14 (B2 EffortSlider.swift:443)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:447 `.font(.system(size: 12))`, :454 `.font(.system(size: 10))`, :458 `.font(.system(size: 13, weight: .semibold))` -> B2 :447 `.font(.system(.callout))`, :454 `.font(.system(.footnote))`, :458 `.font(.system(.body, weight: .semibold))`, 12, 10 and 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, :54 `case .footnote, .caption, .caption2: 10`, :51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). The name stays a fixed 14 (B2 EffortSlider.swift:443)."
     },
     {
       "id": "UI-COMPOSER-044",
@@ -5848,7 +5850,7 @@
       "exact_text": "Loading models…",
       "geometry": ".padding(10)",
       "typography": "System .body (13 point at the macOS default)",
-      "colors": "Chrome.secondaryText",
+      "colors": "Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "shown only when no entries resolve"
       ],
@@ -5859,7 +5861,7 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:340-345 `if entries.isEmpty { Text(\"Loading models…\").font(.system(.body)).foregroundStyle(Chrome.secondaryText).padding(10) }`"
       ],
       "notes": "One ellipsis character, U+2026. The list still reserves one row's height.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:342 `.font(.system(size: 13))` -> B2 :342 `.font(.system(.body))`, 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:342 `.font(.system(size: 13))` -> B2 :342 `.font(.system(.body))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-045",
@@ -5890,7 +5892,7 @@
       "exact_text": "1 file | <N> files  +<A>  −<D> / tooltip: Show this thread's changes (<chord>)",
       "geometry": "UnevenRoundedRectangle(topLeadingRadius: 12, topTrailingRadius: 12, style: .continuous); HStack(spacing: 7); .padding(.horizontal, 12), .padding(.top, 7), .padding(.bottom, 21); fixed size",
       "typography": "System .callout medium with monospaced digits (12 point at the macOS default); the plusminus symbol in Chrome.inlineIconFont (.subheadline semibold, 11 point)",
-      "colors": "Symbol Chrome.secondaryText; file count Chrome.primaryText at 0.9; additions Chrome.success; deletions Chrome.danger; interactive glass surface; Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "colors": "Symbol Chrome.secondaryText; file count Chrome.primaryText at 0.9; additions Chrome.success; deletions Chrome.danger; interactive glass surface; Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "never focusable",
         "hidden entirely while any follow-up is queued",
@@ -5903,7 +5905,7 @@
         "DroppyCode/App/Views/Composer/ThreadChangesTab.swift:6-45 `struct ThreadChangesTab: View` - `static let overlap: CGFloat = 14` (7), `UnevenRoundedRectangle(topLeadingRadius: 12, topTrailingRadius: 12, style: .continuous)` (15), `.font(.system(.callout, weight: .medium).monospacedDigit())` (30), `.glassEffect(.regular.interactive(), in: shape)` (38), `.fixedSize()` (42), `.help(\"Show this thread's changes\\(ShortcutStore.hint(for: .toggleChanges))\")` (43)"
       ],
       "notes": "The tooltip's chord renders in the port's Windows notation, \" (Ctrl+D)\" by default (OD-0008 B7; upstream \" (⌘D)\"), and is absent when the chord is cleared. The deletions use U+2212, the mathematical minus sign, not a hyphen. The accessibility label spells out \"<N> files changed, <A> added, <D> removed\" instead.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/ThreadChangesTab.swift:30 `.font(.system(size: 12, weight: .medium).monospacedDigit())` -> B2 :30 `.font(.system(.callout, weight: .medium).monospacedDigit())`, 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2). Chrome.inlineIconFont also changed: B1 DroppyCode/UI/Chrome/Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 :29 `.system(.subheadline, weight: .semibold)` (11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2)).",
+      "b2_change": "B1 DroppyCode/App/Views/Composer/ThreadChangesTab.swift:30 `.font(.system(size: 12, weight: .medium).monospacedDigit())` -> B2 :30 `.font(.system(.callout, weight: .medium).monospacedDigit())`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Chrome.inlineIconFont also changed: B1 DroppyCode/UI/Chrome/Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 :29 `.system(.subheadline, weight: .semibold)` (11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)).",
       "deviation": {
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/App/Views/Composer/ThreadChangesTab.swift:43 `.help(\"Show this thread's changes\\(ShortcutStore.hint(for: .toggleChanges))\")`, \"Show this thread's changes (⌘D)\" by default; DroppyCode/Core/Models/Shortcuts.swift:32-34 description is KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode), and :43-50 modifierSymbols concatenates \"⌃\", \"⌥\", \"⇧\", \"⌘\" with no separator",
@@ -5918,7 +5920,7 @@
       "exact_text": null,
       "geometry": "UnevenRoundedRectangle(topLeadingRadius: 12, topTrailingRadius: 12, style: .continuous); .padding(.horizontal, 12), .padding(.top, 7), .padding(.bottom, 21); .frame(maxWidth: 560); glass surface",
       "typography": "n/a",
-      "colors": "Regular glass. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "colors": "Regular glass. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "states": [
         "collapsed: the rows clip to zero height and fade",
         "more than 7 rows: the list scrolls inside the tab",
@@ -5940,7 +5942,7 @@
       "exact_text": "1 follow-up queued | <N> follow-ups queued / tooltip: Collapse queued follow-ups | Expand queued follow-ups",
       "geometry": "HStack(spacing: 7) with a spacer of at least 8; the chevron in a 22 by 22 frame, rotated 180 degrees while collapsed",
       "typography": "System .callout medium with monospaced digits (12 point at the macOS default); symbols in Chrome.inlineIconFont (.subheadline semibold, 11 point)",
-      "colors": "Leading symbol and \"queued\" Chrome.secondaryText; the count phrase Chrome.primaryText at 0.9; chevron Chrome.secondaryText",
+      "colors": "Leading symbol and \"queued\" Chrome.secondaryText; the count phrase Chrome.primaryText at 0.9; chevron Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "collapsed: the chevron points up",
         "never focusable"
@@ -5952,7 +5954,7 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:52-82 `Button { withAnimation(Chrome.panelSlide) { runtime.followUpsCollapsed.toggle() } } label: { HStack(spacing: 7) { ... } .font(.system(.callout, weight: .medium).monospacedDigit()) }`, `.focusable(false)`, `.help(isCollapsed ? \"Expand queued follow-ups\" : \"Collapse queued follow-ups\")`, `.accessibilityValue(Text(isCollapsed ? \"Collapsed\" : \"Expanded\"))`"
       ],
       "notes": "The accessibility label uses different wording (\"N queued follow-ups\") and the value is \"Collapsed\" or \"Expanded\".",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:70 `.font(.system(size: 12, weight: .medium).monospacedDigit())` -> B2 :70 `.font(.system(.callout, weight: .medium).monospacedDigit())`, 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2). Chrome.inlineIconFont also changed: B1 DroppyCode/UI/Chrome/Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 :29 `.system(.subheadline, weight: .semibold)` (11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2))."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:70 `.font(.system(size: 12, weight: .medium).monospacedDigit())` -> B2 :70 `.font(.system(.callout, weight: .medium).monospacedDigit())`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Chrome.inlineIconFont also changed: B1 DroppyCode/UI/Chrome/Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 :29 `.system(.subheadline, weight: .semibold)` (11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059))."
     },
     {
       "id": "UI-COMPOSER-049",
@@ -5962,7 +5964,7 @@
       "exact_text": "<prompt text, two lines> | <attachment summary> | Empty follow-up",
       "geometry": "HStack(alignment: .center, spacing: 8); .padding(.vertical, 5), making a one-line row 32 tall; a 0.35 opacity divider along the bottom except on the last row, while dragged, or when the next row shares its bundle; rows are 4 points apart inside a stack whose top padding is 6, under a 0.5 opacity divider",
       "typography": "Prompt text and the attachment-only summary .callout (12 point at the macOS default), two lines, tail truncated",
-      "colors": "Text Chrome.primaryText at 0.9; an attachment-only summary in Chrome.secondaryText",
+      "colors": "Text Chrome.primaryText at 0.9; an attachment-only summary in Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "dragged: an opaque capsule at Chrome.overlay(0.12) with a black 0.28 shadow (radius 10, y 4), scaled 1.01",
         "pair target: an accent capsule at 0.18 with a 1.5 point accent border at 0.65, scaled 1.008",
@@ -5976,7 +5978,7 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:301-525 `private struct FollowUpRow: View {` - the row `HStack(alignment: .center, spacing: 8)` (345), the text `if prompt.text.trimmed.isEmpty { Text(verbatim: attachmentOnlyLabel).font(.system(.callout)) ... } else { ... Text(verbatim: prompt.text).font(.system(.callout)) ... }` (424-439), attachmentOnlyLabel ending `guard !parts.isEmpty else { return \"Empty follow-up\" }` (522)"
       ],
       "notes": "Row text is deliberately not selectable; the pencil is how the full text is reached for copying.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:426 and :435 `.font(.system(size: 12))` -> B2 :426 and :435 `.font(.system(.callout))`, 12 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2). The emptiness test B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:424 `prompt.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` -> B2 :424 `prompt.text.trimmed.isEmpty`, the same test (DroppyCode/Core/Support/Text.swift:132)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:426 and :435 `.font(.system(size: 12))` -> B2 :426 and :435 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). The emptiness test B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:424 `prompt.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` -> B2 :424 `prompt.text.trimmed.isEmpty`, the same test (DroppyCode/Core/Support/Text.swift:132)."
     },
     {
       "id": "UI-COMPOSER-050",
@@ -5986,7 +5988,7 @@
       "exact_text": "<position>",
       "geometry": "A 14 point wide trailing-aligned frame at the row's leading edge",
       "typography": "System .subheadline medium with monospaced digits (11 point at the macOS default)",
-      "colors": "Chrome.secondaryText, or Color.accentColor when the next row shares this row's bundle",
+      "colors": "Chrome.secondaryText, or Color.accentColor when the next row shares this row's bundle. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "hidden from assistive technology",
         "replaced by the link glyph for a bundled, pairing or targeted row"
@@ -5999,7 +6001,7 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:212-226"
       ],
       "notes": "A bundle shares one number, shown on its first row; the accent colour marks that row as the head of a pair.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:374 `.font(.system(size: 11, weight: .medium).monospacedDigit())` -> B2 :374 `.font(.system(.subheadline, weight: .medium).monospacedDigit())`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:374 `.font(.system(size: 11, weight: .medium).monospacedDigit())` -> B2 :374 `.font(.system(.subheadline, weight: .medium).monospacedDigit())`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-051",
@@ -6021,7 +6023,7 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:348-371 `Image(systemName: \"link\").font(.system(.footnote, weight: .semibold)).foregroundStyle(Color.accentColor)` in a button with `.help(\"Unlink from the follow-up above\")` and `.accessibilityLabel(Text(\"Unlink\"))`, or as a plain image with `.accessibilityHidden(true)`"
       ],
       "notes": "Tooltip and accessibility label differ: \"Unlink from the follow-up above\" versus \"Unlink\".",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:358 and :368 `.font(.system(size: 10, weight: .semibold))` -> B2 :358 and :368 `.font(.system(.footnote, weight: .semibold))`, 10 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:358 and :368 `.font(.system(size: 10, weight: .semibold))` -> B2 :358 and :368 `.font(.system(.footnote, weight: .semibold))`, 10 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-052",
@@ -6031,7 +6033,7 @@
       "exact_text": "Drag to reorder / tooltip: Drag above or below to reorder · drop onto the middle of another to send them together",
       "geometry": "A line.3.horizontal in a 28 by 22 rect hit area",
       "typography": "System .subheadline medium (11 point at the macOS default)",
-      "colors": "Chrome.secondaryText at 0.7 (1 while hovering), or Color.accentColor at 0.85 (1 hovering) when the next row shares the bundle",
+      "colors": "Chrome.secondaryText at 0.7 (1 while hovering), or Color.accentColor at 0.85 (1 hovering) when the next row shares the bundle. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "hover pushes the open-hand cursor",
         "dragging pushes the closed-hand cursor",
@@ -6044,7 +6046,7 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:380-410 `Image(systemName: \"line.3.horizontal\").font(.system(.subheadline, weight: .medium))` in `.frame(width: 28, height: 22)` with `NSCursor.openHand.push()` on hover, `DragGesture(minimumDistance: 1, coordinateSpace: .global)`, `.help(\"Drag above or below to reorder · drop onto the middle of another to send them together\")`, `.accessibilityLabel(Text(\"Drag to reorder\"))`"
       ],
       "notes": "The tooltip's separator is U+00B7. Sideways travel plays no part in the reorder.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:381 `.font(.system(size: 11, weight: .medium))` -> B2 :381 `.font(.system(.subheadline, weight: .medium))`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:381 `.font(.system(size: 11, weight: .medium))` -> B2 :381 `.font(.system(.subheadline, weight: .medium))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-053",
@@ -6074,7 +6076,7 @@
       "exact_text": "Send now | Send now (stops the running turn) | Send as soon as the heads report",
       "geometry": "22 by 22 rect hit area; the three buttons sit with no spacing in a fixed-size group",
       "typography": "System .subheadline semibold (11 point at the macOS default)",
-      "colors": "Chrome.secondaryText (0.35 when disabled)",
+      "colors": "Chrome.secondaryText (0.35 when disabled). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "never focusable"
       ],
@@ -6086,7 +6088,7 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:527-547 `private struct QueueIconButton` - `Image(systemName: symbol).font(.system(.subheadline, weight: .semibold)).foregroundStyle(Chrome.secondaryText.opacity(isEnabled ? 1 : 0.35)).frame(width: 22, height: 22)`, `.focusable(false)`, `.help(help)`, `.accessibilityLabel(Text(help))`"
       ],
       "notes": "Tooltip and accessibility label are the same string, and both change with the run state.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-055",
@@ -6096,7 +6098,7 @@
       "exact_text": "Edit follow-up",
       "geometry": "22 by 22 rect hit area",
       "typography": "System .subheadline semibold (11 point at the macOS default)",
-      "colors": "Chrome.secondaryText",
+      "colors": "Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "a second click while the editor is open closes it"
       ],
@@ -6108,7 +6110,7 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:527-547 `private struct QueueIconButton` - `Image(systemName: symbol).font(.system(.subheadline, weight: .semibold)).foregroundStyle(Chrome.secondaryText.opacity(isEnabled ? 1 : 0.35)).frame(width: 22, height: 22)`, `.focusable(false)`, `.help(help)`, `.accessibilityLabel(Text(help))`"
       ],
       "notes": "The button reports its window rect rather than mounting an anchor view.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-056",
@@ -6118,7 +6120,7 @@
       "exact_text": "Delete follow-up",
       "geometry": "22 by 22 rect hit area",
       "typography": "System .subheadline semibold (11 point at the macOS default)",
-      "colors": "Chrome.secondaryText",
+      "colors": "Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [],
       "interactions": [
         "click removes the prompt from the queue with no confirmation"
@@ -6129,7 +6131,7 @@
         "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:527-547 `private struct QueueIconButton` - `Image(systemName: symbol).font(.system(.subheadline, weight: .semibold)).foregroundStyle(Chrome.secondaryText.opacity(isEnabled ? 1 : 0.35)).frame(width: 22, height: 22)`, `.focusable(false)`, `.help(help)`, `.accessibilityLabel(Text(help))`"
       ],
       "notes": "Deletion is immediate and unconfirmed; the confirmBeforeDeleting setting is not consulted here. This is source behavior for a queued draft, not a stored record.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:536 `.font(.system(size: 11, weight: .semibold))` in QueueIconButton -> B2 :536 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-057",
@@ -6153,7 +6155,7 @@
         "DroppyCode/App/Views/Composer/FollowUpEditor.swift:6-25"
       ],
       "notes": "The edit lives on the thread, so leaving the thread closes the popover only and coming back reopens it on the edit as it was left.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/PromptEditor.swift:61 `.font(.system(size: 17, weight: .semibold))` -> B2 :61 `.font(.system(.title2, weight: .semibold))`, 17 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/PromptEditor.swift:61 `.font(.system(size: 17, weight: .semibold))` -> B2 :61 `.font(.system(.title2, weight: .semibold))`, 17 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-058",
@@ -6187,7 +6189,7 @@
       "exact_text": "Add files",
       "geometry": "A plus in the glass button style at the leading end of the button row, control size regular",
       "typography": "Per .buttonStyle(.glass)",
-      "colors": "Per .buttonStyle(.glass). Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "colors": "Per .buttonStyle(.glass). Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "states": [
         "disabled once the edit holds 8 attachments"
       ],
@@ -6228,7 +6230,7 @@
       "exact_text": "Cancel",
       "geometry": "In the button row's trailing group, control size regular",
       "typography": "Per .buttonStyle(.glass)",
-      "colors": "Per .buttonStyle(.glass). Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "colors": "Per .buttonStyle(.glass). Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "states": [
         "carries the cancel role"
       ],
@@ -6248,7 +6250,7 @@
       "exact_text": "Save",
       "geometry": "Last in the button row",
       "typography": "Per .buttonStyle(.glassProminent)",
-      "colors": "Per .buttonStyle(.glassProminent). Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "colors": "Per .buttonStyle(.glassProminent). Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "states": [
         "disabled while the edit holds no attachment and no non-whitespace text"
       ],
@@ -6267,8 +6269,8 @@
       "role": "container",
       "exact_text": "<request headline>",
       "geometry": "VStack(alignment: .leading, spacing: 10); .padding(16); .rect(cornerRadius: 20, style: .continuous)",
-      "typography": "Headline in .headline; body .callout; detail .caption",
-      "colors": "Symbol Chrome.warning; glass tinted Chrome.warning at 0.1; the plan sentence, detail and reason Chrome.secondaryText. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "typography": "Headline in .headline; body .callout; detail .caption. Sizes per ED-059: .headline 13, .callout 12 and .caption 10 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, :52 `case .callout: 12`, :54 `case .footnote, .caption, .caption2: 10` (file deleted at B2), set in Inter (OD-0009), the command kind's monospaced .callout in Cascadia Mono; visual size parity stays UNVERIFIED under OD-0001.",
+      "colors": "Symbol Chrome.warning; glass tinted Chrome.warning at 0.1; the plan sentence, detail and reason Chrome.secondaryText. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "states": [
         "command kind: a monospaced block, selectable, at most 8 lines, padded 10 on a .quaternary 0.5 plate at radius 10",
         "plan kind: the fixed sentence",
@@ -6281,7 +6283,7 @@
         "DroppyCode/App/Views/Composer/RequestCards.swift:3-65 `struct ApprovalCard: View` - `VStack(alignment: .leading, spacing: 10)` (8), the plan sentence, detail and reason in `.foregroundStyle(Chrome.secondaryText)` (28, 37, 43), `.padding(16)` (62), `.glassEffect(.regular.tint(Chrome.warning.opacity(0.1)), in: .rect(cornerRadius: 20, style: .continuous))` (64)"
       ],
       "notes": "The card's symbol and tint share one hue so a theme recolours the whole card together.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/RequestCards.swift:28, :37 and :43 `.foregroundStyle(.secondary)` -> B2 :28, :37 and :43 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`). Headline, symbol and glass tint unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/RequestCards.swift:28, :37 and :43 `.foregroundStyle(.secondary)` -> B2 :28, :37 and :43 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal. Headline, symbol and glass tint unchanged."
     },
     {
       "id": "UI-COMPOSER-064",
@@ -6290,7 +6292,7 @@
       "role": "label",
       "exact_text": "Approve the plan above to let the agent start building.",
       "geometry": "Full width, leading aligned",
-      "typography": ".callout",
+      "typography": ".callout; 12 point per ED-059, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2), set in Inter (OD-0009); visual size parity stays UNVERIFIED under OD-0001.",
       "colors": "Chrome.secondaryText",
       "states": [
         "shown only for the plan kind, in place of the request's title"
@@ -6302,7 +6304,7 @@
         "DroppyCode/App/Views/Composer/RequestCards.swift:25-28 `case .plan: Text(\"Approve the plan above to let the agent start building.\").font(.callout).foregroundStyle(Chrome.secondaryText)`"
       ],
       "notes": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/RequestCards.swift:28 `.foregroundStyle(.secondary)` -> B2 :28 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/RequestCards.swift:28 `.foregroundStyle(.secondary)` -> B2 :28 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
     },
     {
       "id": "UI-COMPOSER-065",
@@ -6312,7 +6314,7 @@
       "exact_text": "<option.title, supplied by the request>",
       "geometry": "Trailing HStack(spacing: 8) over the options reversed, after a leading spacer",
       "typography": "Per the glass button styles",
-      "colors": "Approve: .glassProminent; every other role: .glass. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity.",
+      "colors": "Approve: .glassProminent; every other role: .glass. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "states": [
         "only the top card's approve option claims Command-Return"
       ],
@@ -6373,7 +6375,7 @@
       "exact_text": "<page+1> of <count>",
       "geometry": "HStack(spacing: 5); the current page's capsule is 18 by 6, the others 6 by 6; the row is padded 16 horizontally, 12 top, 6 bottom",
       "typography": "Counter system .subheadline with monospaced digits (11 point at the macOS default)",
-      "colors": "Current Chrome.accent; answered Chrome.accent at 0.35; unanswered Chrome.overlay(0.18); counter Chrome.secondaryText",
+      "colors": "Current Chrome.accent; answered Chrome.accent at 0.35; unanswered Chrome.overlay(0.18); counter Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "shown only when there is more than one question"
       ],
@@ -6384,7 +6386,7 @@
         "DroppyCode/App/Views/Composer/QuestionTab.swift:82-103 `if count > 1 { HStack(spacing: 5) { ... Capsule().fill(index == page ? Chrome.accent : answered ? Chrome.accent.opacity(0.35) : Chrome.overlay(0.18)).frame(width: index == page ? 18 : 6, height: 6) ... Text(verbatim: \"\\(page + 1) of \\(count)\").font(.system(.subheadline)).monospacedDigit().foregroundStyle(Chrome.secondaryText) }`"
       ],
       "notes": "\"of\" is a literal word between the two numbers.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/QuestionTab.swift:96 `.font(.system(size: 11)).monospacedDigit()` -> B2 :96 `.font(.system(.subheadline)).monospacedDigit()`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/QuestionTab.swift:96 `.font(.system(size: 11)).monospacedDigit()` -> B2 :96 `.font(.system(.subheadline)).monospacedDigit()`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-069",
@@ -6394,7 +6396,7 @@
       "exact_text": "<header, uppercased> / <prompt> / <choice label without a trailing \" (Recommended)\">",
       "geometry": "Page padded 16 horizontally and 12 vertically, VStack(alignment: .leading, spacing: 10); a choice row is HStack(alignment: .top, spacing: 10) with the symbol in an 18 wide frame padded 1 from the top, padded 12 horizontally and 9 vertically on a RoundedRectangle(cornerRadius: 10, style: .continuous)",
       "typography": "Header .subheadline medium uppercased; prompt .body semibold; choice label .body (semibold when selected); choice detail .subheadline; symbol a fixed 14 point (11, 13, 13 and 11 point at the macOS default)",
-      "colors": "Header and choice detail Chrome.secondaryText; prompt and label Chrome.primaryText; symbol Chrome.accent when selected else Chrome.secondaryText; row plate Chrome.accent at 0.12 when selected else Chrome.overlay(0.06)",
+      "colors": "Header and choice detail Chrome.secondaryText; prompt and label Chrome.primaryText; symbol Chrome.accent when selected else Chrome.secondaryText; row plate Chrome.accent at 0.12 when selected else Chrome.overlay(0.06). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "single choice: checkmark.circle.fill or circle; multiple choice: checkmark.square.fill or square",
         "selection changes animate on Chrome.hover",
@@ -6407,7 +6409,7 @@
         "DroppyCode/App/Views/Composer/QuestionTab.swift:199-312 `private struct QuestionPage: View {` - header `.font(.system(.subheadline, weight: .medium))` (212), prompt `.font(.system(.body, weight: .semibold))` (217), symbol `.font(.system(size: 14))` (271), label `.font(.system(.body, weight: isSelected ? .semibold : .regular))` (278), detail `.font(.system(.subheadline))` (290), row `RoundedRectangle(cornerRadius: 10, style: .continuous)` (298)"
       ],
       "notes": "Rows are keyed by index, so two identically worded choices both work independently.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/QuestionTab.swift:212 `.font(.system(size: 11, weight: .medium))`, :217 `.font(.system(size: 13, weight: .semibold))`, :278 `.font(.system(size: 13, weight: isSelected ? .semibold : .regular))`, :290 `.font(.system(size: 11))` -> B2 :212 `.font(.system(.subheadline, weight: .medium))`, :217 `.font(.system(.body, weight: .semibold))`, :278 `.font(.system(.body, weight: isSelected ? .semibold : .regular))`, :290 `.font(.system(.subheadline))`, 11, 13, 13 and 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, :51 `case .headline, .body: 13` (file deleted at B2). The symbol stays a fixed 14 (B2 QuestionTab.swift:271)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/QuestionTab.swift:212 `.font(.system(size: 11, weight: .medium))`, :217 `.font(.system(size: 13, weight: .semibold))`, :278 `.font(.system(size: 13, weight: isSelected ? .semibold : .regular))`, :290 `.font(.system(size: 11))` -> B2 :212 `.font(.system(.subheadline, weight: .medium))`, :217 `.font(.system(.body, weight: .semibold))`, :278 `.font(.system(.body, weight: isSelected ? .semibold : .regular))`, :290 `.font(.system(.subheadline))`, 11, 13, 13 and 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, :51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). The symbol stays a fixed 14 (B2 QuestionTab.swift:271)."
     },
     {
       "id": "UI-COMPOSER-070",
@@ -6428,7 +6430,7 @@
         "DroppyCode/App/Views/Composer/QuestionTab.swift:280-286 `if bare.isRecommended { Text(\"Recommended\").font(.system(.footnote, weight: .medium)).foregroundStyle(Chrome.accent).padding(.horizontal, 6).padding(.vertical, 2).background(Capsule().fill(Chrome.accent.opacity(0.14))) }`"
       ],
       "notes": "The trailing \" (Recommended)\" is stripped from the visible label when present.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/QuestionTab.swift:282 `.font(.system(size: 10, weight: .medium))` -> B2 :282 `.font(.system(.footnote, weight: .medium))`, 10 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/QuestionTab.swift:282 `.font(.system(size: 10, weight: .medium))` -> B2 :282 `.font(.system(.footnote, weight: .medium))`, 10 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2; the port uses these sizes per ED-059)."
     },
     {
       "id": "UI-COMPOSER-071",
@@ -6471,7 +6473,7 @@
         "DroppyCode/App/Views/Composer/QuestionTab.swift:132-137 `if unanswered > 0 { Text(verbatim: unanswered == 1 ? \"1 question still to answer\" : \"\\(unanswered) questions still to answer\").font(.system(.subheadline)).foregroundStyle(Chrome.secondaryText).lineLimit(1) }`"
       ],
       "notes": null,
-      "b2_change": "B1 DroppyCode/App/Views/Composer/QuestionTab.swift:134 `.font(.system(size: 11))` and :135 `.foregroundStyle(.secondary)` -> B2 :134 `.font(.system(.subheadline))` and :135 `.foregroundStyle(Chrome.secondaryText)`, 11 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2). Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/QuestionTab.swift:134 `.font(.system(size: 11))` and :135 `.foregroundStyle(.secondary)` -> B2 :134 `.font(.system(.subheadline))` and :135 `.foregroundStyle(Chrome.secondaryText)`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059). Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
     },
     {
       "id": "UI-COMPOSER-073",
@@ -6564,7 +6566,7 @@
       "role": "popover",
       "exact_text": null,
       "geometry": "Content padded 12, capped at 504 wide; a photo slot is the header-derived display size fitted into 480 by 360; a movie slot is the size cached by the video thumbnail's prefetch (PR-COMPOSER-209) when there is one, otherwise the full 480 by 360; a text preview is 440 by min(320, max(120, characters / 4)) on a .quaternary 0.45 plate at radius 10; a plain file is a 320 wide row padded 8 vertically with a 32 point icon; the panel is sized once to imageBounds.width + 24 by ceil(height) + 60, or 464 by text height + 60, or 344 by 100",
-      "typography": "Text preview .caption monospaced; footer .caption",
+      "typography": "Text preview .caption monospaced; footer .caption. Per ED-059 .caption is 10 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2), the text preview in Cascadia Mono and the footer in Inter (OD-0009); visual size parity stays UNVERIFIED under OD-0001.",
       "colors": "Name and size both Chrome.secondaryText",
       "states": [
         "loading: a spinner in the pre-sized slot, then the image fades in over 0.15 s",
@@ -6581,7 +6583,7 @@
         "DroppyCode/UI/Common/AttachmentPreviewPanel.swift:78-235"
       ],
       "notes": "The panel never resizes once shown; content taller than measured is clipped at the bottom, never at the header.",
-      "b2_change": "Colours: B1 name :341 `.foregroundStyle(.secondary)` and size :347 `.foregroundStyle(.tertiary)` -> B2 DroppyCode/UI/Common/AttachmentPreview.swift:351 and :357 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`). Geometry: B1 :264-275 read the movie track synchronously when the panel opened; B2 :283-285 uses only the cached size, else 480 by 360. The range moves from B1 230-386 to B2 231-396. States, typography and the other geometry unchanged."
+      "b2_change": "Colours: B1 name :341 `.foregroundStyle(.secondary)` and size :347 `.foregroundStyle(.tertiary)` -> B2 DroppyCode/UI/Common/AttachmentPreview.swift:351 and :357 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal. Geometry: B1 :264-275 read the movie track synchronously when the panel opened; B2 :283-285 uses only the cached size, else 480 by 360. The range moves from B1 230-386 to B2 231-396. States, typography and the other geometry unchanged."
     },
     {
       "id": "UI-COMPOSER-078",
@@ -6590,7 +6592,7 @@
       "role": "button",
       "exact_text": "Show in File Explorer",
       "geometry": "In the footer HStack(spacing: 8) after a spacer of at least 12",
-      "typography": ".caption in the link button style",
+      "typography": ".caption in the link button style; 10 point per ED-059, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2), set in Inter (OD-0009); visual size parity stays UNVERIFIED under OD-0001.",
       "colors": "Link styling",
       "states": [],
       "interactions": [
@@ -6613,7 +6615,7 @@
       "role": "button",
       "exact_text": "Open",
       "geometry": "Last in the footer",
-      "typography": ".caption in the link button style",
+      "typography": ".caption in the link button style; 10 point per ED-059, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2), set in Inter (OD-0009); visual size parity stays UNVERIFIED under OD-0001.",
       "colors": "Link styling",
       "states": [],
       "interactions": [
@@ -6688,7 +6690,7 @@
         "DroppyCode/UI/Common/AttachmentPreview.swift:176-191 `struct AttachmentPlayBadge: View` - `Circle().fill(.black.opacity(0.45)).frame(width: 30, height: 30)`; `Image(systemName: \"play.fill\").foregroundStyle(.white).font(.system(.body, weight: .semibold)).offset(x: 1)`; `.accessibilityHidden(true)`"
       ],
       "notes": "The 1-point rightward offset optically centres the triangle in the circle; without it the glyph reads as sitting left.",
-      "b2_change": "B1 DroppyCode/UI/Common/AttachmentPreview.swift:186 `.font(.system(size: 13, weight: .semibold))` -> B2 :186 `.font(.system(.body, weight: .semibold))`, 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2). Geometry, colours and accessibilityHidden unchanged; the range is still 176-191."
+      "b2_change": "B1 DroppyCode/UI/Common/AttachmentPreview.swift:186 `.font(.system(size: 13, weight: .semibold))` -> B2 :186 `.font(.system(.body, weight: .semibold))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). Geometry, colours and accessibilityHidden unchanged; the range is still 176-191."
     },
     {
       "id": "UI-COMPOSER-083",
@@ -6697,8 +6699,8 @@
       "role": "image",
       "exact_text": "<file name> / Open",
       "geometry": "VStack(alignment: .leading, spacing: 6); the image box .frame(maxWidth: .infinity, maxHeight: 420) clipped to RoundedRectangle(cornerRadius: 10, style: .continuous); the caption row HStack(spacing: 8) with a spacer of at least 8 before \"Open\"",
-      "typography": "File name and \"Open\" both .caption; \"Open\" in the link button style",
-      "colors": "Box fill .quaternary at 0.45; file name Chrome.secondaryText",
+      "typography": "File name and \"Open\" both .caption; \"Open\" in the link button style. Per ED-059 .caption is 10 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2), set in Inter (OD-0009); visual size parity stays UNVERIFIED under OD-0001.",
+      "colors": "Box fill .quaternary at 0.45; file name Chrome.secondaryText. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "states": [
         "loading, or a thumbnail that never loads: a small spinner in the box",
         "loaded: the image aspect-fitted in the box"

@@ -861,14 +861,14 @@
     },
     {
       "id": "PR-GIT-035",
-      "title": "commitTree writes a commit of a tree on top of HEAD in the Droppy Code identity, parentless in an empty repository",
+      "title": "commitTree writes a commit of a tree on top of HEAD in the app's own git identity (Marrow, OD-0012 F1), parentless in an empty repository",
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:665-674 commitTree(_:message:) - arguments [\"commit-tree\", tree, \"-m\", message] plus [\"-p\", \"HEAD\"] only when await hasCommits(), environment: Self.identity",
         "DroppyCode/Services/Git/Git.swift:660-663 identity - the four keys"
       ],
       "preconditions": "The tree exists.",
       "action": "A worktree copy needs a starting commit that carries the checkout as it stands.",
-      "expected_result": "One hasCommits() probe, then argv [\"commit-tree\", <tree>, \"-m\", <message>] at 120 s, with [\"-p\", \"HEAD\"] appended only when the repository has commits, carrying the four identity variables GIT_AUTHOR_NAME=\"Droppy Code\", GIT_AUTHOR_EMAIL=\"droppy-code@localhost\", GIT_COMMITTER_NAME=\"Droppy Code\", GIT_COMMITTER_EMAIL=\"droppy-code@localhost\". The trimmed stdout is the commit id. No ref points at it.",
+      "expected_result": "One hasCommits() probe, then argv [\"commit-tree\", <tree>, \"-m\", <message>] at 120 s, with [\"-p\", \"HEAD\"] appended only when the repository has commits, carrying the four identity variables GIT_AUTHOR_NAME=\"Marrow\", GIT_AUTHOR_EMAIL=\"marrow@localhost\", GIT_COMMITTER_NAME=\"Marrow\", GIT_COMMITTER_EMAIL=\"marrow@localhost\". The trimmed stdout is the commit id. No ref points at it.",
       "side_effects": [
         "A commit object in the user's repository, unreferenced until a worktree checks it out"
       ],
@@ -877,12 +877,17 @@
         "Non-zero exit throws ShellError(failureMessage)"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Direct port including the four literal environment values; they are what lets a user with no configured identity still be checkpointed.",
+      "windows_path": "Direct port with the four literal environment values as ruled by OD-0012 F1 (\"Marrow\" / \"marrow@localhost\"); they are what lets a user with no configured identity still be checkpointed.",
       "verification_method": "contract fixture asserting the four variables and the conditional -p",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Services/Git/Git.swift:660-663 identity: GIT_AUTHOR_NAME \"Droppy Code\", GIT_AUTHOR_EMAIL \"droppy-code@localhost\", GIT_COMMITTER_NAME \"Droppy Code\", GIT_COMMITTER_EMAIL \"droppy-code@localhost\"",
+        "port": "GIT_AUTHOR_NAME \"Marrow\", GIT_AUTHOR_EMAIL \"marrow@localhost\", GIT_COMMITTER_NAME \"Marrow\", GIT_COMMITTER_EMAIL \"marrow@localhost\" (the git checkpoint author \"Marrow\" <marrow@localhost>); the vector, the conditional -p HEAD and the 120 s budget are unchanged"
+      }
     },
     {
       "id": "PR-GIT-036",
@@ -903,10 +908,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "not_applicable": "ED-061: porting/dead_code.md entry 48 - the two-argument updateRef(_:to:) at DroppyCode/Services/Git/Git.swift:274-276 has no caller; the only updateRef call (DroppyCode/App/AppModel+HydraMerge.swift:293; dead_code.md gives its B1 line :248) resolves to the three-argument overload at Git.swift:281 (PR-GIT-037), and captureCheckpoint runs update-ref directly (Git.swift:428, PR-GIT-058). Upstream never executes it, so it is neither implemented nor counted as missing."
     },
     {
       "id": "PR-GIT-037",
@@ -1233,10 +1239,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the initializer; exclude it from the string inventory.",
       "verification_method": "unit asserting no merge failure path can surface this literal",
-      "status": "SPECIFIED",
+      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "not_applicable": "ED-061: porting/dead_code.md entry 49 - the initializer \"The request could not be merged.\" (DroppyCode/Services/Git/Git.swift:212) is never thrown: every exit of the six-attempt loop at Git.swift:213-226 first executes lastFailure = result.failureMessage (:221), so the thrown text is always a ShellResult.failureMessage (PR-GIT-048). The literal is excluded from the string inventory."
     },
     {
       "id": "PR-GIT-050",
@@ -1312,11 +1319,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port, including the asymmetry between the searched GitLab index and the fixed index 2 for the other two.",
       "verification_method": "unit table over a GitLab subgroup URL, a /diffs suffix, github.com, a GitHub Enterprise host, Codeberg and a non-matching URL",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-030"
+      "implemented_by_task": "T-M2-030",
+      "rework": true
     },
     {
       "id": "PR-GIT-053",
@@ -1337,11 +1345,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit for both forms",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-030"
+      "implemented_by_task": "T-M2-030",
+      "rework": true
     },
     {
       "id": "PR-GIT-054",
@@ -1362,21 +1371,22 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit for both forges",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-030"
+      "implemented_by_task": "T-M2-030",
+      "rework": true
     },
     {
       "id": "PR-GIT-055",
       "title": "The merge helper's prompt is a fixed three-part text with a per-forge landing paragraph",
       "source_evidence": [
-        "DroppyCode/Core/Models/MergeRequestLink.swift:46-61 prompt - the three land variants and the shared body"
+        "DroppyCode/Core/Models/MergeRequestLink.swift:47-61 prompt - `var prompt: String` (:47), the three land variants (:48-55) and the shared body whose first line is `Merge \\(label) now: \\(url.absoluteString)` (:57)"
       ],
       "preconditions": "A MergeRequestLink was parsed and the user asked to merge it.",
       "action": "The helper thread is given its prompt.",
-      "expected_result": "The prompt is, verbatim: \"Merge <label> now: <absolute url>\", a blank line, then the per-forge paragraph, then, in the same paragraph, \" Once it is merged, sync the checkout: if this directory is on main with a clean working tree, run `git pull --ff-only`; otherwise leave the working tree alone and say so. Do not rebuild, install or relaunch anything. Reply in a few lines with the merged commit and the request's link.\" The per-forge paragraphs are: GitLab \"Use glab from this directory: `glab mr merge <number> --yes`. If GitLab answers that the request is still being checked (a 405), wait a few seconds and try again; if it reports conflicts, stop and say so instead of resolving them.\"; GitHub \"Use gh from this directory: `gh pr merge <number> --merge`. If GitHub reports the pull request is not mergeable, stop and say so instead of resolving it.\"; Gitea \"Use tea from this directory: `tea pulls merge <number>`. If tea is not installed or signed in to this host, or the pull request is not mergeable, stop and say so instead of working around it.\"",
+      "expected_result": "The prompt is, verbatim: \"Merge <label> now: <url>\" (<url> is url.absoluteString, the parsed URL's own text exactly as MergeRequestLink stored it at MergeRequestLink.swift:38, interpolated at :57; not a canonicalized absolute URI), a blank line, then the per-forge paragraph, then, in the same paragraph, \" Once it is merged, sync the checkout: if this directory is on main with a clean working tree, run `git pull --ff-only`; otherwise leave the working tree alone and say so. Do not rebuild, install or relaunch anything. Reply in a few lines with the merged commit and the request's link.\" The per-forge paragraphs are: GitLab \"Use glab from this directory: `glab mr merge <number> --yes`. If GitLab answers that the request is still being checked (a 405), wait a few seconds and try again; if it reports conflicts, stop and say so instead of resolving them.\"; GitHub \"Use gh from this directory: `gh pr merge <number> --merge`. If GitHub reports the pull request is not mergeable, stop and say so instead of resolving it.\"; Gitea \"Use tea from this directory: `tea pulls merge <number>`. If tea is not installed or signed in to this host, or the pull request is not mergeable, stop and say so instead of working around it.\"",
       "side_effects": [
         "The prompt is sent to a provider session"
       ],
@@ -1387,11 +1397,13 @@
       "cancellation": "The helper thread can be stopped like any other.",
       "windows_path": "Reproduce every character including the backticks and the parenthetical \"(a 405)\". The prompt is deliberately self-contained because a native provider reads no AGENTS.md before it starts.",
       "verification_method": "unit asserting the three assembled strings byte for byte",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-030"
+      "implemented_by_task": "T-M2-030",
+      "spec_fix": "expected_result said the first line holds \"<absolute url>\" and the citation began at :46 inside the doc comment -> the source interpolates url.absoluteString, the URL's own text as stored at MergeRequestLink.swift:38 (MergeRequestLink.swift:57), and `var prompt` begins at :47 (verify finding, packet T-M2-030)",
+      "rework": true
     },
     {
       "id": "PR-GIT-056",
@@ -1446,14 +1458,14 @@
     },
     {
       "id": "PR-GIT-058",
-      "title": "captureCheckpoint writes a PARENTLESS commit of the working tree with the message \"Droppy Code checkpoint\" in the Droppy Code identity",
+      "title": "captureCheckpoint writes a PARENTLESS commit of the working tree with the message \"Marrow checkpoint\" in the app's own git identity (OD-0012 F1)",
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:416-429 captureCheckpoint(_:) - run([\"commit-tree\", tree, \"-m\", \"Droppy Code checkpoint\"], environment: Self.identity) with no -p anywhere, then run([\"update-ref\", ref, commit])",
         "porting/port_impacts.md entry 233 (CC2) - 'MUST NOT add -p HEAD to the checkpoint commit'"
       ],
       "preconditions": "The directory is a git checkout.",
       "action": "A turn starts or finishes and a checkpoint is taken.",
-      "expected_result": "currentTree() produces a tree id. If no cached commit exists for that tree, argv [\"commit-tree\", <tree>, \"-m\", \"Droppy Code checkpoint\"] at 120 s with the four identity variables, checked, and its trimmed stdout is the commit. The commit has zero parents: there is no -p and no conditional that could add one. The commit is then remembered against the tree in the watch. Finally argv [\"update-ref\", <ref>, <commit>] at 120 s, checked. The message literal is exactly \"Droppy Code checkpoint\" with no period and no trailing newline.",
+      "expected_result": "currentTree() produces a tree id. If no cached commit exists for that tree, argv [\"commit-tree\", <tree>, \"-m\", \"Marrow checkpoint\"] at 120 s with the four identity variables of PR-GIT-035 (\"Marrow\" / \"marrow@localhost\"), checked, and its trimmed stdout is the commit. The commit has zero parents: there is no -p and no conditional that could add one. The commit is then remembered against the tree in the watch. Finally argv [\"update-ref\", <ref>, <commit>] at 120 s, checked. The message literal is exactly \"Marrow checkpoint\" with no period and no trailing newline.",
       "side_effects": [
         "A commit object and a ref in the user's repository"
       ],
@@ -1467,7 +1479,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Services/Git/Git.swift:423 run([\"commit-tree\", tree, \"-m\", \"Droppy Code checkpoint\"], environment: Self.identity), with the identity \"Droppy Code\" <droppy-code@localhost> (Git.swift:660-663)",
+        "port": "The message literal is \"Marrow checkpoint\" and the identity is \"Marrow\" <marrow@localhost>; the commit stays parentless and the ref namespace refs/droppy-code/checkpoints/ (PR-GIT-056) is not part of this ruling's named items"
+      }
     },
     {
       "id": "PR-GIT-059",
@@ -1700,12 +1717,13 @@
       "status": "SPECIFIED",
       "upstream_defect": "79",
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0013",
+      "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 A3",
         "upstream": "DroppyCode/Services/Git/Git.swift:447-451 returns the fast-path tree whenever the pathspec add exits 0, and WorkingTreeWatch.swift:271 with :159-170 can delete the scratch index while that add writes through it, so a tree holding only the walked paths is committed as an ordinary checkpoint (ThreadRuntime.swift:1269) and a later revert deletes files at Git.swift:619 (upstream defect 81, BLK-0003)",
         "port": "Marrow records a checkpoint only from a capture that can prove it covered the whole tree; any other capture throws, the turn has no checkpoint, and revert shows the existing no-checkpoint message"
-      }
+      },
+      "resolved_unknown": "UNK-0013 resolved by OD-0008 (BLK-0003, A3)"
     },
     {
       "id": "PR-GIT-068",
@@ -2089,12 +2107,13 @@
       "status": "SPECIFIED",
       "upstream_defect": "81",
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0013",
+      "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 A3",
         "upstream": "WorkingTreeWatch.swift:159-170 deletes the scratch index with no guard against a capture writing through it, and Git.swift:447-451 can then return a tree built from an index holding only the walked paths, which ThreadRuntime.swift:1269 commits as the turn's checkpoint (upstream defect 81, BLK-0003)",
         "port": "The teardown is the same, but a capture that raced it throws and records no checkpoint"
-      }
+      },
+      "resolved_unknown": "UNK-0013 resolved by OD-0008 (BLK-0003, A3)"
     },
     {
       "id": "PR-GIT-078",
@@ -2123,7 +2142,8 @@
       "status": "SPECIFIED",
       "upstream_defect": "82",
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0013"
+      "depends_on_unknown": null,
+      "resolved_unknown": "UNK-0013 resolved by OD-0008 (BLK-0003, A3)"
     },
     {
       "id": "PR-GIT-079",
@@ -2599,12 +2619,13 @@
       "status": "SPECIFIED",
       "upstream_defect": "84",
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0014",
+      "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 A4",
         "upstream": "DroppyCode/Services/Git/Git.swift:586-590 passes directory-relative pathspecs to git diff --numstat and joins the returned paths onto the repository root for blobs, workingBlobs and restore; with diff.relative = true in a subfolder project the returned paths are directory-relative, so a revert acts on same-named files at the repository root (upstream defect 84, BLK-0004)",
         "port": "Every preview path is repository-root-relative regardless of diff.relative, so preview, restore and delete act only on the files the turn touched"
-      }
+      },
+      "resolved_unknown": "UNK-0014 resolved by OD-0008 (BLK-0004, A4)"
     },
     {
       "id": "PR-GIT-098",
@@ -2741,12 +2762,13 @@
       "status": "SPECIFIED",
       "upstream_defect": "78",
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0014",
+      "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 A4, A3",
         "upstream": "DroppyCode/Services/Git/Git.swift:613-620 deletes every path the ref lacks; fed by mis-derived paths (Git.swift:586-590, defect 84) or a partial checkpoint (BLK-0003) it deletes files the turn never touched and reports success",
         "port": "The same deletion, reached only with repository-root-relative paths the turn touched (A4) against a checkpoint proven whole (A3), so only files the turn created are deleted"
-      }
+      },
+      "resolved_unknown": "UNK-0014 resolved by OD-0008 (BLK-0004, A4)"
     },
     {
       "id": "PR-GIT-102",
@@ -2949,15 +2971,16 @@
     },
     {
       "id": "PR-GIT-110",
-      "title": "createWorktree names the folder <project slug>-<8 hex of the thread id> and the branch droppy-code/<same 8 hex>, based on the current branch",
+      "title": "createWorktree names the folder <project slug>-<8 hex of the thread id> and the branch marrow/<same 8 hex> (OD-0012 F1; upstream droppy-code/), based on the current branch",
       "source_evidence": [
         "DroppyCode/App/AppModel.swift:1116-1141 createWorktree(for:) - guards on no existing worktree path and a project; requires isRepository and hasCommits; suffix is the first 8 characters of the lowercased thread UUID string; folder is the project name with spaces replaced by \"-\" then lowercased; path is the worktrees directory plus \"<folder>-<suffix>\"; branch is \"droppy-code/\\(suffix)\"; base is await git.status()?.branch",
         "DroppyCode/Services/Store/Storage.swift:38 and :43-48 - worktreesDirectory is the home directory plus the state directory name plus \"/worktrees\"",
-        "DroppyCode/Core/Support/Text.swift:6 - stateDirectoryName is \".droppy-code\", or \".droppy-code-dev\" in development"
+        "DroppyCode/Core/Support/Text.swift:6 - stateDirectoryName is \".droppy-code\", or \".droppy-code-dev\" in development",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1357 - the branch menu title is `git.activity ?? git.status?.branch ?? \"Detached\"`, so the worktree branch name is shown; it is also the branch a push and a pull request send to the forge"
       ],
       "preconditions": "The thread has no worktree yet and belongs to a project.",
       "action": "The user chooses \"Use a new worktree for this thread\" from the branch menu.",
-      "expected_result": "The project must be a git repository with at least one commit, otherwise an alert titled \"Worktree unavailable\" with the body \"New worktrees need a git repository with at least one commit.\" is shown and nothing happens. Otherwise the suffix is the first 8 characters of the lowercased hyphenated thread UUID, which includes only hexadecimal characters since the first UUID group is 8 long. The folder slug is the project name with every space replaced by a hyphen and then lowercased; note only spaces are replaced, nothing else is sanitised. The worktree path is the worktrees directory plus \"<slug>-<suffix>\". The branch is the literal \"droppy-code/\" plus the same suffix. The base is the current branch from status, or nil when detached. addWorktree then runs.",
+      "expected_result": "The project must be a git repository with at least one commit, otherwise an alert titled \"Worktree unavailable\" with the body \"New worktrees need a git repository with at least one commit.\" is shown and nothing happens. Otherwise the suffix is the first 8 characters of the lowercased hyphenated thread UUID, which includes only hexadecimal characters since the first UUID group is 8 long. The folder slug is the project name with every space replaced by a hyphen and then lowercased; note only spaces are replaced, nothing else is sanitised. The worktree path is the worktrees directory plus \"<slug>-<suffix>\". The branch is the literal \"marrow/\" plus the same suffix (OD-0012 F1; upstream \"droppy-code/\"). The base is the current branch from status, or nil when detached. addWorktree then runs.",
       "side_effects": [
         "A worktree directory under the user's home state directory",
         "Project scripts marked to run on worktree creation are launched in a terminal at the new path, and the thread's terminal panel is shown"
@@ -2973,7 +2996,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/App/AppModel.swift:1126 `let branch = \"droppy-code/\\(suffix)\"`, shown as the branch menu title (DroppyCode/App/Views/Chat/ChatView.swift:1357) and sent to the forge when the user pushes or opens a pull request",
+        "port": "The branch is \"marrow/<suffix>\"; the suffix, the folder slug, the base branch, the alerts and the scripts run on worktree creation are unchanged. No source code matches on the branch prefix (AppModel.swift:1126 is its only occurrence), so nothing else changes"
+      }
     },
     {
       "id": "PR-GIT-111",
@@ -3488,7 +3516,7 @@
       ],
       "preconditions": "The directory is a repository with an origin remote.",
       "action": "The user chooses \"Create pull request\".",
-      "expected_result": "The current branch is pushed first with the usual push vector at 300 s. Then two reads: argv [\"log\", \"-1\", \"--pretty=%s\"] and argv [\"log\", \"-1\", \"--pretty=%b\"], each at 120 s, each trimmed of whitespace and newlines and each defaulting to the empty string when it fails. The request's title is that subject, or the literal \"Update\" when it is empty. The body is that commit body, or the literal \"Opened from Droppy Code.\" when it is empty. No source or target branch is passed, so the forge CLI's own defaults apply. On success the returned URL, if any, is opened in the user's browser. On failure an alert titled \"Could not open a pull request\" carries the message, which for a missing CLI is \"<name> was not found on your PATH.\"",
+      "expected_result": "The current branch is pushed first with the usual push vector at 300 s. Then two reads: argv [\"log\", \"-1\", \"--pretty=%s\"] and argv [\"log\", \"-1\", \"--pretty=%b\"], each at 120 s, each trimmed of whitespace and newlines and each defaulting to the empty string when it fails. The request's title is that subject, or the literal \"Update\" when it is empty. The body is that commit body, or the literal \"Opened from Marrow.\" when it is empty. No source or target branch is passed, so the forge CLI's own defaults apply. On success the returned URL, if any, is opened in the user's browser. On failure an alert titled \"Could not open a pull request\" carries the message, which for a missing CLI is \"<name> was not found on your PATH.\"",
       "side_effects": [
         "A push, then a network call creating the request",
         "The user's browser is opened"
@@ -3504,7 +3532,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/App/Views/Chat/ChatView.swift:1517 body: body.isEmpty ? \"Opened from Droppy Code.\" : body",
+        "port": "The empty-body fallback is \"Opened from Marrow.\"; the title fallback \"Update\", the push-first order and the alert are unchanged"
+      }
     },
     {
       "id": "PR-GIT-132",
@@ -4240,9 +4273,10 @@
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:46-49 - `if !files.isEmpty { Text(summary.files.count == 1 ? \"1 file\" : \"\\(summary.files.count) files\")` `.font(.system(.subheadline))` `.foregroundStyle(Chrome.secondaryText)`"
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:46-49 - `if !files.isEmpty { Text(summary.files.count == 1 ? \"1 file\" : \"\\(summary.files.count) files\")` `.font(.system(.subheadline))` `.foregroundStyle(Chrome.secondaryText)`",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:53 - `case .subheadline: 11` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "Exactly \"1 file\" at one file, otherwise the count followed by \" files\".",
+      "notes": "Exactly \"1 file\" at one file, otherwise the count followed by \" files\". ED-059: .subheadline at 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "typography `.font(.system(size: 11))` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:48) -> `.font(.system(.subheadline))` (B2 :48); B1 DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2, so the default size is unchanged."
     },
     {
@@ -4252,7 +4286,7 @@
       "role": "label",
       "exact_text": "+12",
       "geometry": "An HStack with spacing 4 holding two texts: \"+\" then the addition count, and U+2212 MINUS SIGN then the deletion count.",
-      "typography": "Caption with monospaced digits.",
+      "typography": "Caption with monospaced digits. Sizes per ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54).",
       "colors": "The addition text uses Chrome.success and the deletion text Chrome.danger, both resolved from the active theme specification, so a theme recolours them in light and dark alike.",
       "states": [
         "always rendered when shown; zero counts render as +0 and −0"
@@ -4260,9 +4294,10 @@
       "interactions": [],
       "source_evidence": [
         "DroppyCode/UI/Common/Components.swift:45-56",
-        "DroppyCode/UI/Chrome/Chrome.swift:91-93"
+        "DroppyCode/UI/Chrome/Chrome.swift:91-93",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "The deletion marker is the Unicode minus sign, not a hyphen. This one component is reused by the popover header, every file card, the turn file card and the message editor."
+      "notes": "The deletion marker is the Unicode minus sign, not a hyphen. This one component is reused by the popover header, every file card, the turn file card and the message editor. ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001."
     },
     {
       "id": "UI-GIT-008",
@@ -4432,7 +4467,7 @@
       "role": "button",
       "exact_text": null,
       "geometry": "An HStack with spacing 8, padding horizontal 12 and vertical 9, hit-tested over its whole rectangle. Left to right: a disclosure chevron, a change symbol, the path text, a spacer with a minimum of 8, the statistics label.",
-      "typography": "The chevron is caption 2 at semibold weight; the path text is callout, limited to one line and truncated at the head so the file name stays visible.",
+      "typography": "The chevron is caption 2 at semibold weight; the path text is callout, limited to one line and truncated at the head so the file name stays visible. Sizes per ED-059: .caption2 at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54); .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52).",
       "colors": "The chevron is Chrome.secondaryText. The path's directory portion is Chrome.secondaryText and the file name the primary foreground. The change symbol is green for added, red for deleted, blue for renamed and orange for modified.",
       "states": [
         "collapsed: the chevron is at 0 degrees",
@@ -4443,9 +4478,11 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:194-213 - `Button(action: toggle) { HStack(spacing: 8) { Image(systemName: \"chevron.right\").font(.caption2.weight(.semibold)).foregroundStyle(Chrome.secondaryText).rotationEffect(.degrees(isCollapsed ? 0 : 90))`; `Image(systemName: symbol).foregroundStyle(color)`; `Text(\"\\(Text(file.directory).foregroundStyle(Chrome.secondaryText))\\(file.name)\").font(.callout).lineLimit(1).truncationMode(.head)`; `Spacer(minLength: 8)`; `DiffStatLabel(...)`; `.padding(.horizontal, 12)` `.padding(.vertical, 9)` `.contentShape(.rect)`",
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:233-249"
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:233-249",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "The symbols are \"plus.circle.fill\" added, \"minus.circle.fill\" deleted, \"arrow.right.circle.fill\" renamed and \"pencil.circle.fill\" modified. Head truncation, not tail: a long directory is cut at the front.",
+      "notes": "The symbols are \"plus.circle.fill\" added, \"minus.circle.fill\" deleted, \"arrow.right.circle.fill\" renamed and \"pencil.circle.fill\" modified. Head truncation, not tail: a long directory is cut at the front. ED-059: .caption2 at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54); .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "chevron `.foregroundStyle(.tertiary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:198) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :198); directory `Text(file.directory).foregroundStyle(.secondary)` (B1 :202) -> `Text(file.directory).foregroundStyle(Chrome.secondaryText)` (B2 :202); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)."
     },
     {
@@ -4455,16 +4492,17 @@
       "role": "label",
       "exact_text": "Binary file",
       "geometry": "Padding horizontal 12, bottom 10.",
-      "typography": "Caption.",
+      "typography": "Caption. Sizes per ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54).",
       "colors": "Chrome.secondaryText (Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)).",
       "states": [
         "shown when the card is expanded and the file is binary"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:216-221 - `if file.isBinary || file.hunks.isEmpty { Text(file.isBinary ? \"Binary file\" : \"Diff details unavailable\")` `.font(.caption)` `.foregroundStyle(Chrome.secondaryText)` `.padding(.horizontal, 12)` `.padding(.bottom, 10)`"
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:216-221 - `if file.isBinary || file.hunks.isEmpty { Text(file.isBinary ? \"Binary file\" : \"Diff details unavailable\")` `.font(.caption)` `.foregroundStyle(Chrome.secondaryText)` `.padding(.horizontal, 12)` `.padding(.bottom, 10)`",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "Two characters, capital B, no period.",
+      "notes": "Two characters, capital B, no period. ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:219) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :219), shared by both captions."
     },
     {
@@ -4474,16 +4512,17 @@
       "role": "label",
       "exact_text": "Diff details unavailable",
       "geometry": "Padding horizontal 12, bottom 10.",
-      "typography": "Caption.",
+      "typography": "Caption. Sizes per ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54).",
       "colors": "Chrome.secondaryText (Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)).",
       "states": [
         "shown when the card is expanded, the file is not binary and it has no hunks"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:216-221 - `if file.isBinary || file.hunks.isEmpty { Text(file.isBinary ? \"Binary file\" : \"Diff details unavailable\")` `.font(.caption)` `.foregroundStyle(Chrome.secondaryText)` `.padding(.horizontal, 12)` `.padding(.bottom, 10)`"
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:216-221 - `if file.isBinary || file.hunks.isEmpty { Text(file.isBinary ? \"Binary file\" : \"Diff details unavailable\")` `.font(.caption)` `.foregroundStyle(Chrome.secondaryText)` `.padding(.horizontal, 12)` `.padding(.bottom, 10)`",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "This is what a file synthesised from an edit's reported counts alone shows, so the row still carries numbers while saying it cannot show the lines.",
+      "notes": "This is what a file synthesised from an edit's reported counts alone shows, so the row still carries numbers while saying it cannot show the lines. ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:219) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :219), shared by both captions."
     },
     {
@@ -4525,7 +4564,7 @@
         "DroppyCode/App/Views/Diff/DiffInspector.swift:348-355 - `case .header(let text, _): Text(text).foregroundStyle(Chrome.secondaryText).lineLimit(1).padding(.horizontal, 10).padding(.vertical, 3).frame(maxWidth: .infinity, alignment: .leading).background(Color.accentColor.opacity(0.06))`",
         "DroppyCode/App/Views/Diff/DiffInspector.swift:320-326"
       ],
-      "notes": "The text is the raw @@ header line from the patch, shown verbatim.",
+      "notes": "The text is the raw @@ header line from the patch, shown verbatim. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:350) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :350); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)."
     },
     {
@@ -4549,7 +4588,7 @@
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:436-513 DiffLineRow - `Text(line.oldNumber.map(String.init) ?? \"\").frame(width: Self.numberColumnWidth, alignment: .trailing).foregroundStyle(Chrome.secondaryText)` and the same for `line.newNumber` (:450-455); `Text(line.text.isEmpty ? \" \" : line.text).foregroundStyle(line.kind == .note ? .secondary : .primary)` (:460-461); `numberColumnWidth: CGFloat = 30`, `markerColumnWidth: CGFloat = 14` (:472-473); markers `\"+\"` and `\"−\"`, colours `.green`, `.red`, `.secondary`, backgrounds `.green.opacity(0.12)`, `.red.opacity(0.12)`, `.clear` (:490-512)"
       ],
-      "notes": "The addition marker is \"+\" and the deletion marker is U+2212 MINUS SIGN, not a hyphen. Empty line text is rendered as a single space so the row keeps its height. Fixed-width columns rather than one concatenated text, so numbers share a right edge and wrapped code stays out of the gutters.",
+      "notes": "The addition marker is \"+\" and the deletion marker is U+2212 MINUS SIGN, not a hyphen. Empty line text is rendered as a single space so the row keeps its height. Fixed-width columns rather than one concatenated text, so numbers share a right edge and wrapped code stays out of the gutters. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "line numbers `.foregroundStyle(Color.secondary.opacity(0.6))` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:452, :455) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :452, :455); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79). Marker colours and the note line's `.secondary` (:461) are unchanged."
     },
     {
@@ -4559,7 +4598,7 @@
       "role": "button",
       "exact_text": "Show all 512 lines",
       "geometry": "The label has padding horizontal 10 and vertical 6 inside a continuous capsule; the button itself has padding horizontal 10 and vertical 8.",
-      "typography": "Caption.",
+      "typography": "Caption. Sizes per ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54).",
       "colors": "Chrome.secondaryText on the quaternary fill at opacity 0.5.",
       "states": [
         "present only while the card is not fully expanded and the file's total line count exceeds 200"
@@ -4569,9 +4608,10 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:372-387 - `if !showsAll, totalLines > Self.collapsedLineLimit { Button { showsAll.toggle() } label: { Text(\"Show all \\(totalLines) lines\").font(.caption).foregroundStyle(Chrome.secondaryText).padding(.horizontal, 10).padding(.vertical, 6).background(.quaternary.opacity(0.5), in: Capsule(style: .continuous))` `.contentShape(.capsule)` `.buttonStyle(.plain)` `.padding(.horizontal, 10)` `.padding(.vertical, 8)`",
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:274 - `private nonisolated static let collapsedLineLimit = 200`"
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:274 - `private nonisolated static let collapsedLineLimit = 200`",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "The label is the literal \"Show all \", the total line count, then \" lines\", with no singular form: a 201-line file reads \"Show all 201 lines\".",
+      "notes": "The label is the literal \"Show all \", the total line count, then \" lines\", with no singular form: a 201-line file reads \"Show all 201 lines\". ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "label `.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:378) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :378); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79). The 0.5 quaternary capsule and the 200-line threshold are unchanged (:274 gained only `nonisolated`)."
     },
     {
@@ -4591,9 +4631,11 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Composer/ThreadChangesTab.swift:6-45 - `static let overlap: CGFloat = 14`; `UnevenRoundedRectangle(topLeadingRadius: 12, topTrailingRadius: 12, style: .continuous)`; `HStack(spacing: 7)`; `.font(.system(.callout, weight: .medium).monospacedDigit())` (:30); `.padding(.horizontal, 12)` `.padding(.top, 7)` `.padding(.bottom, 7 + Self.overlap)`; `.glassEffect(.regular.interactive(), in: shape)` (:38); `.help(\"Show this thread's changes\\(ShortcutStore.hint(for: .toggleChanges))\")`",
-        "DroppyCode/App/Views/Composer/ThreadChangesTab.swift:18-19 - `Image(systemName: \"plusminus\")` `.font(Chrome.inlineIconFont)`; DroppyCode/UI/Chrome/Chrome.swift:29 - `static let inlineIconFont: Font = .system(.subheadline, weight: .semibold)`"
+        "DroppyCode/App/Views/Composer/ThreadChangesTab.swift:18-19 - `Image(systemName: \"plusminus\")` `.font(Chrome.inlineIconFont)`; DroppyCode/UI/Chrome/Chrome.swift:29 - `static let inlineIconFont: Font = .system(.subheadline, weight: .semibold)`",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at)",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:53 - `case .subheadline: 11` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "Its tooltip is \"Show this thread's changes\" with the changes shortcut's label appended. Its accessibility label is the count, then \" files changed, \", the additions, then \" added, \", the deletions, then \" removed\". The deletion prefix is U+2212, written as an explicit escape in the source. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "notes": "Its tooltip is \"Show this thread's changes\" with the changes shortcut's label appended. Its accessibility label is the count, then \" files changed, \", the additions, then \" added, \", the deletions, then \" removed\". The deletion prefix is U+2212, written as an explicit escape in the source. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content). ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52); .subheadline at 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "typography `.font(.system(size: 12, weight: .medium).monospacedDigit())` (B1 DroppyCode/App/Views/Composer/ThreadChangesTab.swift:30) -> `.font(.system(.callout, weight: .medium).monospacedDigit())` (B2 :30); B1 DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2, so the default size is unchanged. Icon font: Chrome.inlineIconFont `.system(size: 11, weight: .semibold)` (B1 DroppyCode/UI/Chrome/Chrome.swift:29) -> `.system(.subheadline, weight: .semibold)` (B2 :29); B1 DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` is upstream's own table of the size macOS lays that style out at, so the icon's default size is unchanged.",
       "deviation": {
         "decision": "OD-0005",
@@ -4787,9 +4829,10 @@
         "Commit commits and, when checked, pushes"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1530-1610 CommitSheet - `VStack(alignment: .leading, spacing: 14) { Text(\"Commit changes\").font(.system(.title2, weight: .semibold))` ... `}` `.padding(20)` `.frame(width: 560)`"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1530-1610 CommitSheet - `VStack(alignment: .leading, spacing: 14) { Text(\"Commit changes\").font(.system(.title2, weight: .semibold))` ... `}` `.padding(20)` `.frame(width: 560)`",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:49 - `case .title2: 17` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "The title is \"Commit changes\", two words, sentence case.",
+      "notes": "The title is \"Commit changes\", two words, sentence case. ED-059: .title2 at 17 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:49), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "b2_change": "title `.font(.system(size: 17, weight: .semibold))` (B1 DroppyCode/App/Views/Chat/ChatView.swift:1550) -> `.font(.system(.title2, weight: .semibold))` (B2 :1546); B1 DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The sheet moved from B1 :1534-1614 to B2 :1530-1610 (four lines removed at B1 :120-123)."
     },
     {
@@ -4808,9 +4851,10 @@
         "scroll"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1547-1556 - `if !summary.isEmpty { ScrollView { Text(summary).font(.system(.subheadline, design: .monospaced)).frame(maxWidth: .infinity, alignment: .leading) }` `.frame(maxHeight: 110)` `.padding(10)` `.background(Chrome.overlay(0.05), in: .rect(cornerRadius: 12, style: .continuous))`"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1547-1556 - `if !summary.isEmpty { ScrollView { Text(summary).font(.system(.subheadline, design: .monospaced)).frame(maxWidth: .infinity, alignment: .leading) }` `.frame(maxHeight: 110)` `.padding(10)` `.background(Chrome.overlay(0.05), in: .rect(cornerRadius: 12, style: .continuous))`",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:53 - `case .subheadline: 11` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "The content is the raw output of git status --short, unparsed.",
+      "notes": "The content is the raw output of git status --short, unparsed. ED-059: .subheadline at 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "b2_change": "`.font(.system(size: 11, design: .monospaced))` (B1 DroppyCode/App/Views/Chat/ChatView.swift:1554) -> `.font(.system(.subheadline, design: .monospaced))` (B2 :1550); B1 DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. Lines moved from B1 :1551-1560 to B2 :1547-1556."
     },
     {
@@ -4832,9 +4876,10 @@
         "the editor's own scrolling background is hidden so the container's fill shows through"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1557-1571 - `ZStack(alignment: .topLeading) { TextEditor(text: $message).font(.system(.body)).scrollContentBackground(.hidden).padding(8)`; `if message.isEmpty { Text(isGenerating ? \"Writing a message…\" : \"Commit message\").foregroundStyle(Chrome.secondaryText).padding(.horizontal, 13).padding(.vertical, 8).allowsHitTesting(false) } }`; `.frame(minHeight: 130)`; `.background(Chrome.overlay(0.05), in: .rect(cornerRadius: 12, style: .continuous))`"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1557-1571 - `ZStack(alignment: .topLeading) { TextEditor(text: $message).font(.system(.body)).scrollContentBackground(.hidden).padding(8)`; `if message.isEmpty { Text(isGenerating ? \"Writing a message…\" : \"Commit message\").foregroundStyle(Chrome.secondaryText).padding(.horizontal, 13).padding(.vertical, 8).allowsHitTesting(false) } }`; `.frame(minHeight: 130)`; `.background(Chrome.overlay(0.05), in: .rect(cornerRadius: 12, style: .continuous))`",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 - `case .headline, .body: 13` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "The generating placeholder ends with the single ellipsis character U+2026.",
+      "notes": "The generating placeholder ends with the single ellipsis character U+2026. ED-059: .body at 13 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:51), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "editor `.font(.system(size: 13))` (B1 DroppyCode/App/Views/Chat/ChatView.swift:1563) -> `.font(.system(.body))` (B2 :1559); B1 DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The placeholder had no font modifier at B1 either (B1 :1567-1571) and still inherits the default body style, so its rendered size is unchanged. Lines moved from B1 :1561-1575 to B2 :1557-1571."
     },
     {
@@ -5048,7 +5093,7 @@
       "role": "row",
       "exact_text": "Edited 3 files",
       "geometry": "An HStack with spacing 8. Padding: leading the timeline's pill leading metric, trailing 6, vertical 6. Background is the quaternary fill at opacity 0.32 in a continuous rounded rectangle using the timeline's pill radius. The card hugs its content horizontally and is aligned leading in its column. A fixed 20 point clear gap, not a spacer, separates the title group from the round buttons.",
-      "typography": "The title is the chat callout at medium weight (`.font(.chat(.callout, weight: .medium))`); the chevron is the chat caption 2 at semibold. The chat zoom no longer scales them: Font.chat takes no zoom at B2 (DroppyCode/UI/Common/ChatFont.swift:6-10), and the app-wide zoom scales the whole window instead (DroppyCode/UI/Common/AppZoom.swift:18-26).",
+      "typography": "The title is the chat callout at medium weight (`.font(.chat(.callout, weight: .medium))`); the chevron is the chat caption 2 at semibold. The chat zoom no longer scales them: Font.chat takes no zoom at B2 (DroppyCode/UI/Common/ChatFont.swift:6-10), and the app-wide zoom scales the whole window instead (DroppyCode/UI/Common/AppZoom.swift:18-26). Sizes per ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52); .caption2 at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54).",
       "colors": "The edit badge image is Chrome.secondaryText; the title is Chrome.primaryText at opacity 0.9; the disclosure chevron after the statistics is Chrome.secondaryText.",
       "states": [
         "absent when the turn's change summary is empty",
@@ -5058,9 +5103,11 @@
         "click the title to show the file list popover below it"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2718-2827 TurnFileCard - `let title = files.count == 1 ? \"Edited 1 file\" : \"Edited \\(files.count) files\"`; `Image(\"badge-edit\").renderingMode(.template).resizable().frame(width: 18, height: 18).foregroundStyle(Chrome.secondaryText)`; `Text(verbatim: title).font(.chat(.callout, weight: .medium)).foregroundStyle(Chrome.primaryText.opacity(0.9))`; `Image(systemName: \"chevron.right\").font(.chat(.caption2, weight: .semibold)).foregroundStyle(Chrome.secondaryText)`; `.disabled(files.isEmpty)`; `.help(\"Show the files this turn changed\")`; `Color.clear.frame(width: 20, height: 1)`; `.padding(.leading, TimelineMetrics.pillLeading)` `.padding(.trailing, 6)` `.padding(.vertical, 6)` `.background(.quaternary.opacity(0.32), in: RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2718-2827 TurnFileCard - `let title = files.count == 1 ? \"Edited 1 file\" : \"Edited \\(files.count) files\"`; `Image(\"badge-edit\").renderingMode(.template).resizable().frame(width: 18, height: 18).foregroundStyle(Chrome.secondaryText)`; `Text(verbatim: title).font(.chat(.callout, weight: .medium)).foregroundStyle(Chrome.primaryText.opacity(0.9))`; `Image(systemName: \"chevron.right\").font(.chat(.caption2, weight: .semibold)).foregroundStyle(Chrome.secondaryText)`; `.disabled(files.isEmpty)`; `.help(\"Show the files this turn changed\")`; `Color.clear.frame(width: 20, height: 1)`; `.padding(.leading, TimelineMetrics.pillLeading)` `.padding(.trailing, 6)` `.padding(.vertical, 6)` `.background(.quaternary.opacity(0.32), in: RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at)",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "Title is exactly \"Edited 1 file\" at one file, otherwise \"Edited <n> files\". The leading image is the asset \"badge-edit\" rendered as a template at 18 by 18 points. Its tooltip is \"Show the files this turn changed\".",
+      "notes": "Title is exactly \"Edited 1 file\" at one file, otherwise \"Edited <n> files\". The leading image is the asset \"badge-edit\" rendered as a template at 18 by 18 points. Its tooltip is \"Show the files this turn changed\". ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52); .caption2 at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "B1 DroppyCode/App/Views/Chat/TimelineRows.swift:2737 `@Environment(\\.chatZoom) private var zoom` is gone; title `.font(.chat(.callout, weight: .medium, zoom: zoom))` (B1 :2769) -> `.font(.chat(.callout, weight: .medium))` (B2 :2750); chevron `.font(.chat(.caption2, weight: .semibold, zoom: zoom))` / `.foregroundStyle(.tertiary)` (B1 :2774-2775) -> `.font(.chat(.caption2, weight: .semibold))` / `.foregroundStyle(Chrome.secondaryText)` (B2 :2755-2756). \"Scaled by the chat zoom\" no longer holds. The card moved from B1 :2736-2846 to B2 :2718-2827."
     },
     {
@@ -5070,16 +5117,18 @@
       "role": "popover",
       "exact_text": null,
       "geometry": "A leading-aligned VStack with spacing 0, anchored below the card. Each row is an HStack with spacing 8, padding horizontal 12 and vertical 7, with a spacer of at least 8 between the path and the trailing value.",
-      "typography": "Paths use the chat callout (`.chat(.callout)`); the Binary marker and the overflow line use the chat caption and callout respectively. The chat zoom no longer scales them; the app-wide zoom scales the whole window instead (DroppyCode/UI/Common/AppZoom.swift:18-26).",
+      "typography": "Paths use the chat callout (`.chat(.callout)`); the Binary marker and the overflow line use the chat caption and callout respectively. The chat zoom no longer scales them; the app-wide zoom scales the whole window instead (DroppyCode/UI/Common/AppZoom.swift:18-26). Sizes per ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52); .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54).",
       "colors": "The Binary marker and the overflow line are Chrome.secondaryText; the statistics use the shared success and danger colours.",
       "states": [
         "more than twelve files: a final summary line"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2829-2858 filesPopover - `VStack(alignment: .leading, spacing: 0) { ForEach(files.prefix(12), id: \\.path) { file in HStack(spacing: 8) { Text(verbatim: file.path).font(.chat(.callout)).lineLimit(1).truncationMode(.middle)`; `Spacer(minLength: 8)`; `Text(\"Binary\").font(.chat(.caption)).foregroundStyle(Chrome.secondaryText)`; `.padding(.horizontal, 12)` `.padding(.vertical, 7)`; `Text(files.count == 13 ? \"and 1 more file\" : \"and \\(files.count - 12) more files\").font(.chat(.callout)).foregroundStyle(Chrome.secondaryText)`"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2829-2858 filesPopover - `VStack(alignment: .leading, spacing: 0) { ForEach(files.prefix(12), id: \\.path) { file in HStack(spacing: 8) { Text(verbatim: file.path).font(.chat(.callout)).lineLimit(1).truncationMode(.middle)`; `Spacer(minLength: 8)`; `Text(\"Binary\").font(.chat(.caption)).foregroundStyle(Chrome.secondaryText)`; `.padding(.horizontal, 12)` `.padding(.vertical, 7)`; `Text(files.count == 13 ? \"and 1 more file\" : \"and \\(files.count - 12) more files\").font(.chat(.callout)).foregroundStyle(Chrome.secondaryText)`",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at)",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "At most twelve rows. Paths are truncated in the middle, unlike the popover's file cards which truncate at the head. A binary file shows the literal \"Binary\"; the overflow line is exactly \"and 1 more file\" at thirteen files and \"and <n minus 12> more files\" beyond.",
+      "notes": "At most twelve rows. Paths are truncated in the middle, unlike the popover's file cards which truncate at the head. A binary file shows the literal \"Binary\"; the overflow line is exactly \"and 1 more file\" at thirteen files and \"and <n minus 12> more files\" beyond. ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52); .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "`.font(.chat(.callout, zoom: zoom))`, `.font(.chat(.caption, zoom: zoom))` (B1 DroppyCode/App/Views/Chat/TimelineRows.swift:2854, :2860, :2871) -> `.font(.chat(.callout))`, `.font(.chat(.caption))` (B2 :2835, :2841, :2852); Binary marker and overflow line `.foregroundStyle(.secondary)` (B1 :2861, :2872) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :2842, :2853); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79). The popover moved from B1 :2848-2877 to B2 :2829-2858."
     },
     {
@@ -5117,9 +5166,10 @@
         "Revert closes it and reverts with file restoration on; Revert is the default action, so Return triggers it"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2777-2798 - `.popover(isPresented: $isConfirmingRevert, arrowEdge: .bottom) { VStack(alignment: .leading, spacing: 10) { Text(\"Revert up to this point?\").font(.system(size: 14, weight: .semibold))`; `Text(\"Files go back to how they were before this turn, and the turn leaves the conversation.\").font(.system(.callout)).foregroundStyle(Chrome.secondaryText).fixedSize(horizontal: false, vertical: true)`; `HStack(spacing: 8) { Spacer()` `Button(\"Cancel\") { isConfirmingRevert = false }` `Button(\"Revert\") { isConfirmingRevert = false; onRevert() }` `.keyboardShortcut(.defaultAction)` `.controlSize(.small)`; `.padding(16)` `.frame(width: 300)`"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2777-2798 - `.popover(isPresented: $isConfirmingRevert, arrowEdge: .bottom) { VStack(alignment: .leading, spacing: 10) { Text(\"Revert up to this point?\").font(.system(size: 14, weight: .semibold))`; `Text(\"Files go back to how they were before this turn, and the turn leaves the conversation.\").font(.system(.callout)).foregroundStyle(Chrome.secondaryText).fixedSize(horizontal: false, vertical: true)`; `HStack(spacing: 8) { Spacer()` `Button(\"Cancel\") { isConfirmingRevert = false }` `Button(\"Revert\") { isConfirmingRevert = false; onRevert() }` `.keyboardShortcut(.defaultAction)` `.controlSize(.small)`; `.padding(16)` `.frame(width: 300)`",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "Title \"Revert up to this point?\" and body \"Files go back to how they were before this turn, and the turn leaves the conversation.\" This path always restores files; it never offers to keep them.",
+      "notes": "Title \"Revert up to this point?\" and body \"Files go back to how they were before this turn, and the turn leaves the conversation.\" This path always restores files; it never offers to keep them. ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "body `.font(.system(size: 12))` (B1 DroppyCode/App/Views/Chat/TimelineRows.swift:2801) -> `.font(.system(.callout))` (B2 :2782); B1 DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The popover moved from B1 :2796-2817 to B2 :2777-2798."
     },
     {
@@ -5213,7 +5263,7 @@
       "role": "popover",
       "exact_text": "Edit message",
       "geometry": "A prompt editor titled \"Edit message\" whose content area holds the file-changes box, a notice line and an optional error line, with Cancel and Send in its action row.",
-      "typography": "The notice line uses callout.",
+      "typography": "The notice line uses callout. Sizes per ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52).",
       "colors": "The notice line uses Chrome.secondaryText; the error line uses Chrome.danger.",
       "states": [
         "sending: the whole editor is disabled"
@@ -5223,9 +5273,10 @@
         "Send reverts and sends"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/MessageEditor.swift:39-70 - `PromptEditor(title: \"Edit message\",` ... `) {` `fileChanges` `Text(\"Sending replaces this message and everything after it.\").font(.callout).foregroundStyle(Chrome.secondaryText)` `if let error { Label(error, systemImage: \"exclamationmark.triangle\").font(.callout).foregroundStyle(Chrome.danger) }` `} actions: { Button(\"Cancel\", role: .cancel, action: cancel)` `Button(\"Send\", action: send)`; `.disabled(isSending)`"
+        "DroppyCode/App/Views/Chat/MessageEditor.swift:39-70 - `PromptEditor(title: \"Edit message\",` ... `) {` `fileChanges` `Text(\"Sending replaces this message and everything after it.\").font(.callout).foregroundStyle(Chrome.secondaryText)` `if let error { Label(error, systemImage: \"exclamationmark.triangle\").font(.callout).foregroundStyle(Chrome.danger) }` `} actions: { Button(\"Cancel\", role: .cancel, action: cancel)` `Button(\"Send\", action: send)`; `.disabled(isSending)`",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "The notice reads exactly \"Sending replaces this message and everything after it.\" The error line is a label with the symbol \"exclamationmark.triangle\" carrying the thrown error's description.",
+      "notes": "The notice reads exactly \"Sending replaces this message and everything after it.\" The error line is a label with the symbol \"exclamationmark.triangle\" carrying the thrown error's description. ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "colors: notice line `.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Chat/MessageEditor.swift:50) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :50)."
     },
     {
@@ -5235,7 +5286,7 @@
       "role": "list",
       "exact_text": null,
       "geometry": "A leading-aligned VStack with spacing 10, font callout, padding 12, filling the width, on a continuous rounded rectangle background of corner radius 12.",
-      "typography": "Callout throughout the box; the file rows use caption.",
+      "typography": "Callout throughout the box; the file rows use caption. Sizes per ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52); .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54).",
       "colors": "Background Chrome.overlay at opacity 0.05.",
       "states": [
         "checking: a small spinner beside \"Checking for file changes…\", both Chrome.secondaryText",
@@ -5246,9 +5297,11 @@
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/MessageEditor.swift:78-121 fileChanges - `VStack(alignment: .leading, spacing: 10) { switch changes {` `.checking`: `HStack(spacing: 8) { ProgressView().controlSize(.small)` `Text(\"Checking for file changes…\") }` `.foregroundStyle(Chrome.secondaryText)` (:82-86); `.unavailable`: `Label(reason, systemImage: \"exclamationmark.triangle\").foregroundStyle(Chrome.secondaryText)` (:88-89); no files: `Label(\"This thread changed no files since this message\", systemImage: \"checkmark.circle\").foregroundStyle(Chrome.secondaryText)` (:91-92); all kept: the `hand.raised` label `.foregroundStyle(Chrome.secondaryText)` then `fileList(preview.files)` (:95-99); otherwise the toggle then `fileList(preview.files)` `} }` `.font(.callout)` `.padding(12)` `.background(Chrome.overlay(0.05), in: .rect(cornerRadius: 12, style: .continuous))`"
+        "DroppyCode/App/Views/Chat/MessageEditor.swift:78-121 fileChanges - `VStack(alignment: .leading, spacing: 10) { switch changes {` `.checking`: `HStack(spacing: 8) { ProgressView().controlSize(.small)` `Text(\"Checking for file changes…\") }` `.foregroundStyle(Chrome.secondaryText)` (:82-86); `.unavailable`: `Label(reason, systemImage: \"exclamationmark.triangle\").foregroundStyle(Chrome.secondaryText)` (:88-89); no files: `Label(\"This thread changed no files since this message\", systemImage: \"checkmark.circle\").foregroundStyle(Chrome.secondaryText)` (:91-92); all kept: the `hand.raised` label `.foregroundStyle(Chrome.secondaryText)` then `fileList(preview.files)` (:95-99); otherwise the toggle then `fileList(preview.files)` `} }` `.font(.callout)` `.padding(12)` `.background(Chrome.overlay(0.05), in: .rect(cornerRadius: 12, style: .continuous))`",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at)",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "The all-kept wording is singular \"The file it changed has changed again since, so it stays as it is\" at one file and \"The <n> files it changed have changed again since, so they stay as they are\" otherwise. None of these five strings carries a trailing period.",
+      "notes": "The all-kept wording is singular \"The file it changed has changed again since, so it stays as it is\" at one file and \"The <n> files it changed have changed again since, so they stay as they are\" otherwise. None of these five strings carries a trailing period. ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52); .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Chat/MessageEditor.swift:86, :89, :92, :98) -> `.foregroundStyle(Chrome.secondaryText)` (B2 same lines); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)."
     },
     {
@@ -5258,7 +5311,7 @@
       "role": "toggle",
       "exact_text": "Undo the file changes this thread made",
       "geometry": "A switch-styled toggle at small control size whose label is an HStack with spacing 8: the wording, a spacer with a minimum of 8, the restorable file count and the statistics label, filling the available width.",
-      "typography": "Callout from the box.",
+      "typography": "Callout from the box. Sizes per ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52).",
       "colors": "The count is Chrome.secondaryText; the statistics use the shared success and danger colours.",
       "states": [
         "on by default",
@@ -5268,9 +5321,10 @@
         "click toggles whether Send restores the files"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/MessageEditor.swift:100-114 - `Toggle(isOn: $restoresFiles) { HStack(spacing: 8) { Text(\"Undo the file changes this thread made\")` `Spacer(minLength: 8)` `Text(restorable.count == 1 ? \"1 file\" : \"\\(restorable.count) files\").foregroundStyle(Chrome.secondaryText)` `DiffStatLabel(additions: preview.additions, deletions: preview.deletions) }.frame(maxWidth: .infinity) }` `.toggleStyle(.switch)` `.controlSize(.small)`"
+        "DroppyCode/App/Views/Chat/MessageEditor.swift:100-114 - `Toggle(isOn: $restoresFiles) { HStack(spacing: 8) { Text(\"Undo the file changes this thread made\")` `Spacer(minLength: 8)` `Text(restorable.count == 1 ? \"1 file\" : \"\\(restorable.count) files\").foregroundStyle(Chrome.secondaryText)` `DiffStatLabel(additions: preview.additions, deletions: preview.deletions) }.frame(maxWidth: .infinity) }` `.toggleStyle(.switch)` `.controlSize(.small)`",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "The count reads \"1 file\" at one and \"<n> files\" otherwise, and counts only the restorable files. The statistics also sum only the restorable files, so a preview whose files are all kept shows zeroes.",
+      "notes": "The count reads \"1 file\" at one and \"<n> files\" otherwise, and counts only the restorable files. The statistics also sum only the restorable files, so a preview whose files are all kept shows zeroes. ED-059: .callout at 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "count `.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Chat/MessageEditor.swift:107) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :107); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)."
     },
     {
@@ -5280,7 +5334,7 @@
       "role": "row",
       "exact_text": null,
       "geometry": "Rows in a leading-aligned lazy stack with spacing 6; each is an HStack with spacing 8 holding an icon, the path, a spacer with a minimum of 4, and a trailing value. More than five files puts the rows in a scroll view of fixed height 110.",
-      "typography": "Caption.",
+      "typography": "Caption. Sizes per ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54).",
       "colors": "The icon and the Kept and Binary markers are Chrome.secondaryText; the statistics use the shared colours.",
       "states": [
         "kept: the icon is \"hand.raised\" and the trailing value is the literal \"Kept\"",
@@ -5292,9 +5346,10 @@
         "hover shows a tooltip"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/MessageEditor.swift:125-154 fileList - `LazyVStack(alignment: .leading, spacing: 6)`; `HStack(spacing: 8) { Image(systemName: file.isKept ? \"hand.raised\" : \"doc\").foregroundStyle(Chrome.secondaryText)`; `Text(verbatim: file.path).lineLimit(1).truncationMode(.middle)`; `Spacer(minLength: 4)`; `Text(\"Kept\").foregroundStyle(Chrome.secondaryText)` / `Text(\"Binary\").foregroundStyle(Chrome.secondaryText)` / `DiffStatLabel(...)`; `.font(.caption)`; `.opacity(restoresFiles && !file.isKept ? 1 : 0.45)`; `.help(...)`; `if files.count > 5 { ScrollView { rows }.frame(height: 110) }`"
+        "DroppyCode/App/Views/Chat/MessageEditor.swift:125-154 fileList - `LazyVStack(alignment: .leading, spacing: 6)`; `HStack(spacing: 8) { Image(systemName: file.isKept ? \"hand.raised\" : \"doc\").foregroundStyle(Chrome.secondaryText)`; `Text(verbatim: file.path).lineLimit(1).truncationMode(.middle)`; `Spacer(minLength: 4)`; `Text(\"Kept\").foregroundStyle(Chrome.secondaryText)` / `Text(\"Binary\").foregroundStyle(Chrome.secondaryText)` / `DiffStatLabel(...)`; `.font(.caption)`; `.opacity(restoresFiles && !file.isKept ? 1 : 0.45)`; `.help(...)`; `if files.count > 5 { ScrollView { rows }.frame(height: 110) }`",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "Paths are truncated in the middle and rendered verbatim. A kept row's tooltip is the path, then a newline, then \"Changed again since this thread last touched it, so it is left alone.\"; any other row's tooltip is just the path. The row stays visible when dimmed, as a reminder of what is not going back.",
+      "notes": "Paths are truncated in the middle and rendered verbatim. A kept row's tooltip is the path, then a newline, then \"Changed again since this thread last touched it, so it is left alone.\"; any other row's tooltip is just the path. The row stays visible when dimmed, as a reminder of what is not going back. ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Chat/MessageEditor.swift:130, :136, :138) -> `.foregroundStyle(Chrome.secondaryText)` (B2 same lines); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)."
     },
     {
@@ -5364,9 +5419,10 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:841-857 - `ChromeSection(title: \"Commit message instructions\") { ChromeCard { ZStack(alignment: .topLeading) { TextEditor(text: $settings.commitInstructions).font(.system(.body)).scrollContentBackground(.hidden).frame(minHeight: 90)`; `if settings.commitInstructions.isEmpty { Text(\"For example: use conventional commit prefixes\").font(.system(.body)).foregroundStyle(Chrome.secondaryText).padding(.horizontal, 5).allowsHitTesting(false) } }` `.padding(12)`",
         "DroppyCode/App/AppSettings.swift:144",
-        "DroppyCode/App/AppSettings.swift:305-306"
+        "DroppyCode/App/AppSettings.swift:305-306",
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:51 - `case .headline, .body: 13` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "Section title \"Commit message instructions\"; placeholder exactly \"For example: use conventional commit prefixes\", with no trailing period. Stored under the defaults key \"commitInstructions\" and used by both the commit sheet and the Hydra landing path.",
+      "notes": "Section title \"Commit message instructions\"; placeholder exactly \"For example: use conventional commit prefixes\", with no trailing period. Stored under the defaults key \"commitInstructions\" and used by both the commit sheet and the Hydra landing path. ED-059: .body at 13 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:51), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
       "b2_change": "`.font(.system(size: 13))` (B1 DroppyCode/App/Views/Settings/SettingsView.swift:806, :811) -> `.font(.system(.body))` (B2 :845, :850); B1 DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The section moved from B1 :802-818 to B2 :841-857."
     },
     {

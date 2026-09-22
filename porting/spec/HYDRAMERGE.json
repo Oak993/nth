@@ -458,7 +458,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "The Windows scratch-root set is not written into this record. engineering_decisions.md ED-037 (Q99) decides it (Storage.worktreesDirectory, the process temp directory %TEMP%, %APPDATA%, %LOCALAPPDATA%, plus the unchanged dot-folder-directly-under-%USERPROFILE% rule; /tmp, /private/tmp, /var/folders, /private/var/folders and the /private double spelling dropped), but ED-037 is outside this maintenance pass's rulings (OD-0012 to OD-0014, ED-059 to ED-063), so the record is not promoted here. Missing: the ED-037 root set applied to windows_path."
     },
     {
       "id": "PR-HYDRAMERGE-020",
@@ -1359,7 +1360,8 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "No ruling or engineering decision fixes how the Windows build treats CRLF in glab's captured output before `https://\\S+` runs. Missing: that decision, or a recorded unit test on the port's regex engine showing where the match ends on CRLF output (in Swift Regex and in .NET, \\s matches U+000D, so \\S+ would stop before the \\r without any normalization; the record's windows_path states the opposite and is unconfirmed)."
     },
     {
       "id": "PR-HYDRAMERGE-055",
@@ -1723,7 +1725,8 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation re-anchored, behaviour unchanged. B1 AppModel+HydraMerge.swift:440-456 -> B2 :484-500; `path.trimmingCharacters(in: .whitespacesAndNewlines)` became the equivalent `path.trimmed` (Text.swift:132)."
+      "b2_change": "Citation re-anchored, behaviour unchanged. B1 AppModel+HydraMerge.swift:440-456 -> B2 :484-500; `path.trimmingCharacters(in: .whitespacesAndNewlines)` became the equivalent `path.trimmed` (Text.swift:132).",
+      "open_question": "The Windows absoluteness predicate is not written into this record. engineering_decisions.md ED-038 (Q100, shared with ED-036 and ED-039) decides it: \"contains \"://\" (unchanged, still rejected outright), OR begins \"~\", OR matches /^[A-Za-z]:[\\\\/]/, OR matches /^\\\\\\\\[^\\\\/]+[\\\\/][^\\\\/]+/, OR begins \\\\?\\\", and a bare leading \"\\\" is joined onto the root. ED-038 is outside this pass's rulings (OD-0012 to OD-0014, ED-059 to ED-063), so the record is not promoted here. Missing: the ED-038 predicate applied to windows_path."
     },
     {
       "id": "PR-HYDRAMERGE-070",
@@ -1812,7 +1815,8 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation re-anchored, behaviour unchanged. B1 AppModel+HydraMerge.swift:484-499 -> B2 :531-543; `edit.path.trimmingCharacters(in: .whitespacesAndNewlines)` became the equivalent `edit.path.trimmed` (Text.swift:132)."
+      "b2_change": "Citation re-anchored, behaviour unchanged. B1 AppModel+HydraMerge.swift:484-499 -> B2 :531-543; `edit.path.trimmingCharacters(in: .whitespacesAndNewlines)` became the equivalent `edit.path.trimmed` (Text.swift:132).",
+      "open_question": "Same gap as PR-HYDRAMERGE-069: engineering_decisions.md ED-038 (Q100) decides the one shared Windows absoluteness predicate used here and at PR-HYDRAMERGE-069, but it is outside this pass's rulings (OD-0012 to OD-0014, ED-059 to ED-063), so the record is not promoted here. Missing: the ED-038 predicate applied to windows_path."
     },
     {
       "id": "PR-HYDRAMERGE-074",
@@ -2235,7 +2239,10 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation re-anchored, behaviour unchanged. B1 TimelineRows.swift:610-643 -> B2 :607-640. The popover font went from `.font(.system(size: 12))` with `.environment(\\.chatZoom, 1)` to `.font(.system(.callout))` with no chatZoom environment; callout is 12 points. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Citation re-anchored, behaviour unchanged. B1 TimelineRows.swift:610-643 -> B2 :607-640. The popover font went from `.font(.system(size: 12))` with `.environment(\\.chatZoom, 1)` to `.font(.system(.callout))` with no chatZoom environment; callout is 12 points. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: callout 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001."
+      ]
     },
     {
       "id": "PR-HYDRAMERGE-091",
@@ -2331,7 +2338,10 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation re-anchored, behaviour unchanged. B1 HydraMergePopover.swift:198-219 -> B2 :186-207. The checkmark font went from `.system(size: 11, weight: .semibold)` to `.system(.subheadline, weight: .semibold)`, 11 points. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Citation re-anchored, behaviour unchanged. B1 HydraMergePopover.swift:198-219 -> B2 :186-207. The checkmark font went from `.system(size: 11, weight: .semibold)` to `.system(.subheadline, weight: .semibold)`, 11 points. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: subheadline 11 points (B1:DroppyCode/UI/Common/ChatZoom.swift:53). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001."
+      ]
     },
     {
       "id": "PR-HYDRAMERGE-095",
@@ -2404,7 +2414,11 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation re-anchored, behaviour unchanged. B1 HydraMergePopover.swift:147-173 -> B2 :135-161. The count font went from `.system(size: 11)` to `.system(.subheadline)`, 11 points. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Citation re-anchored, behaviour unchanged. B1 HydraMergePopover.swift:147-173 -> B2 :135-161. The count font went from `.system(size: 11)` to `.system(.subheadline)`, 11 points. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: subheadline 11 points (B1:DroppyCode/UI/Common/ChatZoom.swift:53). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
+        "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
+      ]
     },
     {
       "id": "PR-HYDRAMERGE-098",
@@ -2449,7 +2463,11 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation re-anchored, behaviour unchanged. B1 HydraMergePopover.swift:242-268 -> B2 :230-256. Fonts went from fixed sizes to text styles of the same size: `.system(size: 13, weight: .semibold)` -> `.system(.body, weight: .semibold)`, `.system(size: 12)` -> `.system(.callout)`, `.system(size: 11)` -> `.system(.subheadline)`, `.system(size: 11, design: .monospaced)` -> `.system(.subheadline, design: .monospaced)`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Citation re-anchored, behaviour unchanged. B1 HydraMergePopover.swift:242-268 -> B2 :230-256. Fonts went from fixed sizes to text styles of the same size: `.system(size: 13, weight: .semibold)` -> `.system(.body, weight: .semibold)`, `.system(size: 12)` -> `.system(.callout)`, `.system(size: 11)` -> `.system(.subheadline)`, `.system(size: 11, design: .monospaced)` -> `.system(.subheadline, design: .monospaced)`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: body 13 points (B1:DroppyCode/UI/Common/ChatZoom.swift:51), callout 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52), subheadline 11 points (B1:DroppyCode/UI/Common/ChatZoom.swift:53). Set in Inter (OD-0009), except the monospaced file lines (.subheadline, design: .monospaced), which are set in the monospace face, Cascadia Mono (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
+        "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
+      ]
     },
     {
       "id": "PR-HYDRAMERGE-100",
@@ -2493,7 +2511,10 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 TimelineRows.swift:1062-1085 used `.font(.chat(.callout, weight: .medium, zoom: zoom))` with `@Environment(\\.chatZoom) private var zoom`; B2 :1056-1079 uses `.font(.chat(.callout, weight: .medium))`, the zoom environment is gone from HydraMergeRow, and `chat` has no zoom parameter (ChatFont.swift:6-10). No-clock behaviour, shimmer and transitions are unchanged."
+      "b2_change": "B1 TimelineRows.swift:1062-1085 used `.font(.chat(.callout, weight: .medium, zoom: zoom))` with `@Environment(\\.chatZoom) private var zoom`; B2 :1056-1079 uses `.font(.chat(.callout, weight: .medium))`, the zoom environment is gone from HydraMergeRow, and `chat` has no zoom parameter (ChatFont.swift:6-10). No-clock behaviour, shimmer and transitions are unchanged.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: callout 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001."
+      ]
     },
     {
       "id": "PR-HYDRAMERGE-102",
@@ -2536,7 +2557,10 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "engineering_decisions": [
+        "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
+      ]
     },
     {
       "id": "PR-HYDRAMERGE-104",
@@ -2583,7 +2607,11 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 TimelineRows.swift:1148-1167: chevron `.font(.chat(.caption2, weight: .semibold, zoom: zoom)).foregroundStyle(.tertiary)`, title and Open fonts with `zoom: zoom`. B2 :1142-1161: chevron `.font(.chat(.caption2, weight: .semibold)).foregroundStyle(Chrome.secondaryText)` (:1150-1152), title and Open fonts without zoom (:1145, :1159). Tooltips, the disabled state and the Open link are unchanged."
+      "b2_change": "B1 TimelineRows.swift:1148-1167: chevron `.font(.chat(.caption2, weight: .semibold, zoom: zoom)).foregroundStyle(.tertiary)`, title and Open fonts with `zoom: zoom`. B2 :1142-1161: chevron `.font(.chat(.caption2, weight: .semibold)).foregroundStyle(Chrome.secondaryText)` (:1150-1152), title and Open fonts without zoom (:1145, :1159). Tooltips, the disabled state and the Open link are unchanged.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: callout 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52), caption 10 points (B1:DroppyCode/UI/Common/ChatZoom.swift:54), caption2 10 points (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
+        "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
+      ]
     },
     {
       "id": "PR-HYDRAMERGE-106",
@@ -2955,7 +2983,10 @@
         "DroppyCode/UI/Common/ChatFont.swift:6-10"
       ],
       "notes": "No elapsed-time label, despite hydraMergeStartedAt being kept. A count of seconds beside the stages read as a stall.",
-      "b2_change": "B1 TimelineRows.swift:1063,1068 `.font(.chat(.callout, weight: .medium, zoom: zoom))` -> B2 :1057,1062 `.font(.chat(.callout, weight: .medium))`; `chat` has no zoom parameter at B2 (ChatFont.swift:6-10). Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "B1 TimelineRows.swift:1063,1068 `.font(.chat(.callout, weight: .medium, zoom: zoom))` -> B2 :1057,1062 `.font(.chat(.callout, weight: .medium))`; `chat` has no zoom parameter at B2 (ChatFont.swift:6-10). Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: callout 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-003",
@@ -2979,7 +3010,10 @@
         "DroppyCode/UI/Common/ChatFont.swift:6-10"
       ],
       "notes": "The suffix is one U+2026 HORIZONTAL ELLIPSIS, not three periods. With several projects each stage reads \"<project name>: <stage>…\".",
-      "b2_change": "B1 TimelineRows.swift:1050-1086 (fonts at :1063, :1068, :1094 with `zoom: zoom`) -> B2 :1044-1080 (fonts at :1057, :1062, :1088 without zoom). Words, transitions and shimmer are unchanged. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "B1 TimelineRows.swift:1050-1086 (fonts at :1063, :1068, :1094 with `zoom: zoom`) -> B2 :1044-1080 (fonts at :1057, :1062, :1088 without zoom). Words, transitions and shimmer are unchanged. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: callout 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-004",
@@ -3005,7 +3039,10 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:844-915",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:963-971"
       ],
-      "notes": "It is one animatable drawing of three interpolated values (position, done, rest), not three separate animations. Step animates over 0.5 s, mode over 0.45 s. Once an outcome exists the step is pinned to count - 1 = 6, because the runtime clears hydraMergeStep as the note lands."
+      "notes": "It is one animatable drawing of three interpolated values (position, done, rest), not three separate animations. Step animates over 0.5 s, mode over 0.45 s. Once an outcome exists the step is pinned to count - 1 = 6, because the runtime clears hydraMergeStep as the note lands.",
+      "engineering_decisions": [
+        "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-005",
@@ -3032,7 +3069,11 @@
         "DroppyCode/App/AppModel+HydraMerge.swift:840"
       ],
       "notes": "The displayed title is the note's first line with exactly one trailing full stop removed, which is why the failure titles lose the stop they were written with. The tooltip is exactly \"Show the message\".",
-      "b2_change": "Fonts drop the zoom factor (B1 TimelineRows.swift:1151,1157 -> B2 :1145,1151) and the chevron colour went `.foregroundStyle(.tertiary)` -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1152). The title list loses \"Hydra merged <project>, but left a changed file no turn or head recorded\" (B1 AppModel+HydraMerge.swift:149, deleted) and gains \"Hydra is waiting for another chat's files\" (B2 :840) and \"Hydra has no files left to merge\" (B2 :832). Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Fonts drop the zoom factor (B1 TimelineRows.swift:1151,1157 -> B2 :1145,1151) and the chevron colour went `.foregroundStyle(.tertiary)` -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1152). The title list loses \"Hydra merged <project>, but left a changed file no turn or head recorded\" (B1 AppModel+HydraMerge.swift:149, deleted) and gains \"Hydra is waiting for another chat's files\" (B2 :840) and \"Hydra has no files left to merge\" (B2 :832). Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: callout 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52), caption2 10 points (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
+        "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-006",
@@ -3056,7 +3097,11 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:376-381"
       ],
       "notes": "It must stay a sibling of the title button, never nested inside its label: a link inside a button takes the button's clicks on macOS and the title stops opening the popover.",
-      "b2_change": "B1 TimelineRows.swift:1165 `.font(.chat(.caption, weight: .semibold, zoom: zoom))` -> B2 :1159 `.font(.chat(.caption, weight: .semibold))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "B1 TimelineRows.swift:1165 `.font(.chat(.caption, weight: .semibold, zoom: zoom))` -> B2 :1159 `.font(.chat(.caption, weight: .semibold))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: caption 10 points (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
+        "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-007",
@@ -3079,7 +3124,10 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1116-1118"
       ],
       "notes": "Used for every outcome that is not a parseable merge note, including \"Hydra opened !95 but could not merge it.\", whose body leads with a URL but has no files line. It is also the report for the hold note and the settlement note, whose bodies lead with no URL.",
-      "b2_change": "B1 TimelineRows.swift:632-636 `.font(.system(size: 12))` plus `.environment(\\.chatZoom, 1)` -> B2 :629-632 `.font(.system(.callout))` with no chatZoom environment; markdownPointSize 12 and markdownDimmed false are unchanged. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "B1 TimelineRows.swift:632-636 `.font(.system(size: 12))` plus `.environment(\\.chatZoom, 1)` -> B2 :629-632 `.font(.system(.callout))` with no chatZoom environment; markdownPointSize 12 and markdownDimmed false are unchanged. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: callout 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-008",
@@ -3145,7 +3193,10 @@
         "DroppyCode/App/Views/Chat/HydraMergePopover.swift:115-118"
       ],
       "notes": "Not localized-variable text: it is the literal \"Merged\", independent of the forge.",
-      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:127-130 `.font(.system(size: 15, weight: .semibold))` -> B2 :115-118 `.font(.system(.title3, weight: .semibold))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:127-130 `.font(.system(size: 15, weight: .semibold))` -> B2 :115-118 `.font(.system(.title3, weight: .semibold))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: title3 15 points (B1:DroppyCode/UI/Common/ChatZoom.swift:50). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-011",
@@ -3168,7 +3219,11 @@
         "DroppyCode/Core/Models/MergeRequestLink.swift:18"
       ],
       "notes": "The label is \"!<number>\" on GitLab and \"#<number>\" on GitHub and Gitea. The joining word is a lowercase \" on \".",
-      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:131-134 `.font(.system(size: 11))` -> B2 :119-122`.font(.system(.subheadline))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:131-134 `.font(.system(size: 11))` -> B2 :119-122`.font(.system(.subheadline))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: subheadline 11 points (B1:DroppyCode/UI/Common/ChatZoom.swift:53). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
+        "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-012",
@@ -3211,7 +3266,11 @@
         "DroppyCode/App/Views/Chat/HydraMergePopover.swift:258-271"
       ],
       "notes": "Monospaced digits so the three tiles do not jiggle between renders.",
-      "b2_change": "Citation re-anchored, sizes unchanged. B1 HydraMergePopover.swift:270-283 `.system(size: 17, weight: .semibold).monospacedDigit()` and `.system(size: 10, weight: .medium)` -> B2 :258-271 `.system(.title2, weight: .semibold).monospacedDigit()` and `.system(.footnote, weight: .medium)`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Citation re-anchored, sizes unchanged. B1 HydraMergePopover.swift:270-283 `.system(size: 17, weight: .semibold).monospacedDigit()` and `.system(size: 10, weight: .medium)` -> B2 :258-271 `.system(.title2, weight: .semibold).monospacedDigit()` and `.system(.footnote, weight: .medium)`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: title2 17 points (B1:DroppyCode/UI/Common/ChatZoom.swift:49), footnote 10 points (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
+        "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-014",
@@ -3233,7 +3292,11 @@
         "DroppyCode/App/Views/Chat/HydraMergePopover.swift:258-271"
       ],
       "notes": "The plus is an ASCII \"+\".",
-      "b2_change": "Typography restated, sizes unchanged. The shared stat() helper moved from B1 HydraMergePopover.swift:270-283 `.system(size: 17, weight: .semibold).monospacedDigit()` and `.system(size: 10, weight: .medium)` to B2 :258-271 `.system(.title2, weight: .semibold).monospacedDigit()` and `.system(.footnote, weight: .medium)`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Typography restated, sizes unchanged. The shared stat() helper moved from B1 HydraMergePopover.swift:270-283 `.system(size: 17, weight: .semibold).monospacedDigit()` and `.system(size: 10, weight: .medium)` to B2 :258-271 `.system(.title2, weight: .semibold).monospacedDigit()` and `.system(.footnote, weight: .medium)`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: title2 17 points (B1:DroppyCode/UI/Common/ChatZoom.swift:49), footnote 10 points (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
+        "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-015",
@@ -3255,7 +3318,11 @@
         "DroppyCode/App/Views/Chat/HydraMergePopover.swift:258-271"
       ],
       "notes": "The sign is U+2212 MINUS SIGN, matching the note's own files line, NOT an ASCII hyphen.",
-      "b2_change": "Typography restated, sizes unchanged. The shared stat() helper moved from B1 HydraMergePopover.swift:270-283 `.system(size: 17, weight: .semibold).monospacedDigit()` and `.system(size: 10, weight: .medium)` to B2 :258-271 `.system(.title2, weight: .semibold).monospacedDigit()` and `.system(.footnote, weight: .medium)`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Typography restated, sizes unchanged. The shared stat() helper moved from B1 HydraMergePopover.swift:270-283 `.system(size: 17, weight: .semibold).monospacedDigit()` and `.system(size: 10, weight: .medium)` to B2 :258-271 `.system(.title2, weight: .semibold).monospacedDigit()` and `.system(.footnote, weight: .medium)`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: title2 17 points (B1:DroppyCode/UI/Common/ChatZoom.swift:49), footnote 10 points (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
+        "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-016",
@@ -3301,7 +3368,11 @@
         "DroppyCode/App/Views/Chat/HydraMergePopover.swift:156-159"
       ],
       "notes": "Verbatim text; \"landed\" is past tense in both forms.",
-      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:168-171 `.font(.system(size: 11))` -> B2 :156-159 `.font(.system(.subheadline))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:168-171 `.font(.system(size: 11))` -> B2 :156-159 `.font(.system(.subheadline))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: subheadline 11 points (B1:DroppyCode/UI/Common/ChatZoom.swift:53). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
+        "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-018",
@@ -3343,7 +3414,10 @@
         "DroppyCode/Core/Models/Hydra.swift:259-265"
       ],
       "notes": "Parsed out of the note line, so it is whatever the writer put there; the writer uses HydraRoster.persona(at: index).name.",
-      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:244-245 `.font(.system(size: 13, weight: .semibold))` -> B2 :232-233 `.font(.system(.body, weight: .semibold))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:244-245 `.font(.system(size: 13, weight: .semibold))` -> B2 :232-233 `.font(.system(.body, weight: .semibold))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: body 13 points (B1:DroppyCode/UI/Common/ChatZoom.swift:51). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-020",
@@ -3365,7 +3439,11 @@
         "DroppyCode/App/AppModel+HydraMerge.swift:525"
       ],
       "notes": "The head-line regex is non-greedy on the task, so a task containing an em dash is cut at the first one.",
-      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:246-250 `.font(.system(size: 12))` -> B2 :234-238 `.font(.system(.callout))`; B1 AppModel+HydraMerge.swift:481 -> B2 :525 (the 120-character task limit is unchanged). Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:246-250 `.font(.system(size: 12))` -> B2 :234-238 `.font(.system(.callout))`; B1 AppModel+HydraMerge.swift:481 -> B2 :525 (the 120-character task limit is unchanged). Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: callout 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
+        "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-021",
@@ -3404,7 +3482,11 @@
         "DroppyCode/App/Views/Chat/HydraMergePopover.swift:240-243"
       ],
       "notes": "Verbatim, with no trailing full stop.",
-      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:252-255 `.font(.system(size: 11))` -> B2 :240-243 `.font(.system(.subheadline))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:252-255 `.font(.system(size: 11))` -> B2 :240-243 `.font(.system(.subheadline))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: subheadline 11 points (B1:DroppyCode/UI/Common/ChatZoom.swift:53). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
+        "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-023",
@@ -3425,7 +3507,11 @@
         "DroppyCode/App/Views/Chat/HydraMergePopover.swift:244-252"
       ],
       "notes": "Identified by the path string itself, so duplicate paths within one head would collide; the collector de-duplicates per head.",
-      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:256-264 `.font(.system(size: 11, design: .monospaced))` -> B2 :244-252`.font(.system(.subheadline, design: .monospaced))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:256-264 `.font(.system(size: 11, design: .monospaced))` -> B2 :244-252`.font(.system(.subheadline, design: .monospaced))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: subheadline 11 points (B1:DroppyCode/UI/Common/ChatZoom.swift:53). Set in the monospace face, Cascadia Mono (OD-0009), because the design is .monospaced; the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
+        "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-024",
@@ -3447,7 +3533,10 @@
         "DroppyCode/App/Views/Chat/HydraMergePopover.swift:275-285"
       ],
       "notes": "The filling chip spans whatever the arrow and the target chip leave, so the row runs the card's full width.",
-      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:287-297 `.font(.system(size: 11, design: .monospaced))` -> B2 :275-285 `.font(.system(.subheadline, design: .monospaced))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:287-297 `.font(.system(size: 11, design: .monospaced))` -> B2 :275-285 `.font(.system(.subheadline, design: .monospaced))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: subheadline 11 points (B1:DroppyCode/UI/Common/ChatZoom.swift:53). Set in the monospace face, Cascadia Mono (OD-0009), because the design is .monospaced; the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-025",
@@ -3466,7 +3555,11 @@
         "DroppyCode/App/Views/Chat/HydraMergePopover.swift:165-167"
       ],
       "notes": "SF symbol \"arrow.right\".",
-      "b2_change": "B1 HydraMergePopover.swift:178 `.font(.system(size: 9, weight: .semibold))` -> B2 :166 `.font(.system(.caption2, weight: .semibold))`: 9 points -> 10 points. Colour unchanged. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "B1 HydraMergePopover.swift:178 `.font(.system(size: 9, weight: .semibold))` -> B2 :166 `.font(.system(.caption2, weight: .semibold))`: 9 points -> 10 points. Colour unchanged. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: caption2 10 points (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
+        "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-026",
@@ -3488,7 +3581,10 @@
         "DroppyCode/App/Views/Chat/HydraMergePopover.swift:275-285"
       ],
       "notes": "The asymmetry is deliberate: only the source chip fills and only the source chip has a help tooltip.",
-      "b2_change": "Typography restated, size unchanged. The shared chip() helper moved from B1 HydraMergePopover.swift:287-297 `.font(.system(size: 11, design: .monospaced))` to B2 :275-285 `.font(.system(.subheadline, design: .monospaced))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Typography restated, size unchanged. The shared chip() helper moved from B1 HydraMergePopover.swift:287-297 `.font(.system(size: 11, design: .monospaced))` to B2 :275-285 `.font(.system(.subheadline, design: .monospaced))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: subheadline 11 points (B1:DroppyCode/UI/Common/ChatZoom.swift:53). Set in the monospace face, Cascadia Mono (OD-0009), because the design is .monospaced; the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-027",
@@ -3511,7 +3607,11 @@
         "DroppyCode/App/Views/Chat/HydraMergePopover.swift:66-69"
       ],
       "notes": "SF symbol \"info.circle\". A line ending \"is up to date.\" is dropped before it gets here, so a successful sync shows no remark; the \"was left as it was\" line does appear, with its backticks removed.",
-      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:183-193 `.font(.system(size: 12))` twice -> B2 :171-181 `.font(.system(.callout))` twice. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:183-193 `.font(.system(size: 12))` twice -> B2 :171-181 `.font(.system(.callout))` twice. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: callout 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001.",
+        "ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 states (DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, primaryText = labelColor at :76); ED-051's secondaryLabelColor literal is superseded for this token."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-028",
@@ -3534,7 +3634,10 @@
         "DroppyCode/App/Views/Chat/HydraMergePopover.swift:182-207"
       ],
       "notes": "Both animations are .snappy(duration: 0.22). The checkmark transitions with .scale(scale: 0.6) combined with opacity; the text uses .contentTransition(.numericText()). Both labels are verbatim: \"Copy link\" and \"Copied\".",
-      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:194-219 checkmark `.font(.system(size: 11, weight: .semibold))` -> B2 :182-207 `.font(.system(.subheadline, weight: .semibold))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table."
+      "b2_change": "Citation re-anchored, size unchanged. B1 HydraMergePopover.swift:194-219 checkmark `.font(.system(size: 11, weight: .semibold))` -> B2 :182-207 `.font(.system(.subheadline, weight: .semibold))`. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
+      "engineering_decisions": [
+        "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: subheadline 11 points (B1:DroppyCode/UI/Common/ChatZoom.swift:53). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001."
+      ]
     },
     {
       "id": "UI-HYDRAMERGE-029",

@@ -10,17 +10,17 @@
       ],
       "preconditions": "A Keychain item may or may not exist for the account string.",
       "action": "Any caller asks for a provider's stored API key.",
-      "expected_result": "In a capture run (CaptureRun.isEnabled true) the empty string is returned without reading the Keychain, whatever fallback was passed. Otherwise, if the Keychain read returns a non-empty string, that string is returned; if not, the caller's fallback string is returned unchanged.",
+      "expected_result": "In a capture run (CaptureRun.isEnabled true; upstream only, porting/dead_code.md entry 44, not ported per ED-061) the empty string is returned without reading the Keychain, whatever fallback was passed. Otherwise, if the Keychain read returns a non-empty string, that string is returned; if not, the caller's fallback string is returned unchanged.",
       "side_effects": [
         "One Keychain read per call (SecItemCopyMatching); none in a capture run"
       ],
       "persistence": "Reads only; nothing is written.",
       "failure_cases": [
         "Keychain read fails or returns no item: the fallback is returned, with no error surfaced",
-        "Capture run: the empty string is returned even when a key is stored and a non-empty fallback was passed"
+        "Capture run (upstream only; porting/dead_code.md entry 44, not ported per ED-061): the empty string is returned even when a key is stored and a non-empty fallback was passed"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Windows Credential Manager (OD-0008 B3): one generic credential per account string under the one service name the port uses in place of AppInfo.name. Same order: the capture-run guard, then the stored value, then the caller's fallback. The guard is capture-mode behaviour, and whether capture mode is ported is the open engineering decision recorded in PR-LAUNCH-005; if it is ported, a capture run returns the empty string without touching Credential Manager.",
+      "windows_path": "Windows Credential Manager (OD-0008 B3): one generic credential per account string under the one service name the port uses in place of AppInfo.name. Same order for the live path: the stored value, then the caller's fallback. The capture-run guard is not ported: it is reachable only from a capture launch argument and is dead-code register entry 44 (porting/dead_code.md), which ED-061 excludes from implementation.",
       "verification_method": "unit",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -212,30 +212,29 @@
       ],
       "preconditions": "Keys have been loaded (isReadingKeychain false) and the new value differs from the old one.",
       "action": "The user types or clears the DeepSeek API key in Settings, or setAPIKeyInput is called.",
-      "expected_result": "DeepSeekKeychain.setAPIKey runs against the protected store (Windows Credential Manager, OD-0008 B3) for the account 'DeepSeek API Key'. When it returns true the settings entry 'deepseekAPIKey' is removed. When it returns false the failure is shown to the user and nothing is stored: the key is not written to the settings store or anywhere else in plain text (OD-0008 A6, named deviation).",
+      "expected_result": "DeepSeekKeychain.setAPIKey runs against the protected store (Windows Credential Manager, OD-0008 B3) for the account 'DeepSeek API Key'. When it returns true the settings entry 'deepseekAPIKey' is removed. When it returns false the line 'Credential Manager did not accept this key, so it was not saved.' is shown under the key field (OD-0012 E5) and nothing is stored: the key is not written to the settings store or anywhere else in plain text (OD-0008 A6, named deviation).",
       "side_effects": [
         "Protected-store write",
         "Removal of the settings entry 'deepseekAPIKey' when the store accepted the key",
-        "When the store refused the key: the failure is surfaced to the user and nothing is written"
+        "When the store refused the key: the line 'Credential Manager did not accept this key, so it was not saved.' is shown under the key field and nothing is written"
       ],
       "persistence": "The key lives only in the protected store. The settings entry 'deepseekAPIKey' (String) is only ever removed by this path, never written.",
       "failure_cases": [
         "A change while isReadingKeychain is true is ignored, so loading stored keys never writes them back",
-        "The protected store refuses the key: the failure is shown and nothing is stored (deviation OD-0008 A6); upstream instead writes the trimmed key to UserDefaults 'deepseekAPIKey' in plain text with nothing shown"
+        "The protected store refuses the key: 'Credential Manager did not accept this key, so it was not saved.' is shown under the key field and nothing is stored (deviation OD-0008 A6, wording OD-0012 E5); upstream instead writes the trimmed key to UserDefaults 'deepseekAPIKey' in plain text with nothing shown"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Credential Manager write for the account 'DeepSeek API Key' (OD-0008 B3). The settings key name 'deepseekAPIKey' is kept verbatim only so the clearing half can remove a stale entry. A false return surfaces the failure and stores nothing. The wording and placement of that failure are this record's open_question and must not be invented.",
-      "verification_method": "unit with the protected store stubbed to refuse: assert the failure is surfaced (surface and text as ruled under open_question), no settings entry 'deepseekAPIKey' exists afterwards and no file under the data directory contains the key; unit with the store accepting: assert 'deepseekAPIKey' is removed; plus a restart test that the accepted key is read back",
-      "status": "DISCOVERED",
+      "windows_path": "Credential Manager write for the account 'DeepSeek API Key' (OD-0008 B3). The settings key name 'deepseekAPIKey' is kept verbatim only so the clearing half can remove a stale entry. A false return shows 'Credential Manager did not accept this key, so it was not saved.' under the key field (OD-0012 E5) and stores nothing.",
+      "verification_method": "unit with the protected store stubbed to refuse: assert the line 'Credential Manager did not accept this key, so it was not saved.' is shown under the key field (OD-0012 E5), no settings entry 'deepseekAPIKey' exists afterwards and no file under the data directory contains the key; unit with the store accepting: assert 'deepseekAPIKey' is removed; plus a restart test that the accepted key is read back",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null,
       "deviation": {
-        "decision": "OD-0008 A6, B3",
-        "upstream": "DroppyCode/App/AppSettings.swift:371 `storeAPIKeyFallback(kept ? \"\" : deepseekAPIKeyInput, forKey: Key.deepseekAPIKey)` with DroppyCode/App/AppSettings.swift:487-494 writing `defaults.set(trimmed, forKey: key)` for a non-empty value: a key the Keychain refused is kept in plain text in UserDefaults 'deepseekAPIKey', with nothing shown to the user. The store itself is the macOS Keychain: DroppyCode/Services/Providers/APIKeychain.swift:29-39 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56).",
-        "port": "A key the protected store refuses is reported to the user and nothing is stored; the key is never written in plain text. The removal of the settings entry after a successful store is kept. The protected store is Windows Credential Manager, one generic credential per account string under the one service name the port uses in place of AppInfo.name (OD-0008 B3)."
-      },
-      "open_question": "The text and placement of the message that shows a refused key. OD-0008 A6 (BLK-0006 ruling: \"FIX: when protected storage refuses an API key the failure is shown and nothing is stored; the key is never written in plain text. Named deviation.\") requires the failure to be shown, but neither the ruling nor the pinned source gives its wording or its surface: upstream shows nothing on this path (DroppyCode/App/AppSettings.swift:371 with :485-494). No UNK, BLK or OD-PENDING entry tracks it yet, and PR-PROVREG-239 carries the same gap for all four keys. Until it is registered and ruled the message must not be invented; everything else in this record is specified."
+        "decision": "OD-0008 A6, B3; OD-0012 E5",
+        "upstream": "DroppyCode/App/AppSettings.swift:371 `storeAPIKeyFallback(kept ? \"\" : deepseekAPIKeyInput, forKey: Key.deepseekAPIKey)` with DroppyCode/App/AppSettings.swift:487-494 writing `defaults.set(trimmed, forKey: key)` for a non-empty value: a key the Keychain refused is kept in plain text in UserDefaults 'deepseekAPIKey', with nothing shown to the user. The store itself is the macOS Keychain: DroppyCode/Services/Providers/APIKeychain.swift:29-39 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56). DroppyCode/App/AppSettings.swift:371 with :485-494 shows nothing when the Keychain refuses the key, so upstream has no wording or placement for a refusal message.",
+        "port": "A key the protected store refuses is reported to the user and nothing is stored; the key is never written in plain text. The removal of the settings entry after a successful store is kept. The protected store is Windows Credential Manager, one generic credential per account string under the one service name the port uses in place of AppInfo.name (OD-0008 B3). The refusal is shown under the key field as exactly: Credential Manager did not accept this key, so it was not saved. (OD-0012 E5)."
+      }
     },
     {
       "id": "PR-PROVAPI-009",
@@ -247,30 +246,29 @@
       ],
       "preconditions": "Keys loaded; value changed.",
       "action": "The user edits the Meta API key in Settings.",
-      "expected_result": "MetaKeychain.setAPIKey runs against the protected store (Windows Credential Manager, OD-0008 B3) for the account 'Meta API Key'. When it returns true the settings entry 'metaAPIKey' is removed. When it returns false the failure is shown to the user and nothing is stored: the key is not written to the settings store or anywhere else in plain text (OD-0008 A6, named deviation).",
+      "expected_result": "MetaKeychain.setAPIKey runs against the protected store (Windows Credential Manager, OD-0008 B3) for the account 'Meta API Key'. When it returns true the settings entry 'metaAPIKey' is removed. When it returns false the line 'Credential Manager did not accept this key, so it was not saved.' is shown under the key field (OD-0012 E5) and nothing is stored: the key is not written to the settings store or anywhere else in plain text (OD-0008 A6, named deviation).",
       "side_effects": [
         "Protected-store write",
         "Removal of the settings entry 'metaAPIKey' when the store accepted the key",
-        "When the store refused the key: the failure is surfaced to the user and nothing is written"
+        "When the store refused the key: the line 'Credential Manager did not accept this key, so it was not saved.' is shown under the key field and nothing is written"
       ],
       "persistence": "The key lives only in the protected store. The settings entry 'metaAPIKey' (String) is only ever removed by this path, never written.",
       "failure_cases": [
         "A change while isReadingKeychain is true is ignored, so loading stored keys never writes them back",
-        "The protected store refuses the key: the failure is shown and nothing is stored (deviation OD-0008 A6); upstream instead writes the trimmed key to UserDefaults 'metaAPIKey' in plain text with nothing shown"
+        "The protected store refuses the key: 'Credential Manager did not accept this key, so it was not saved.' is shown under the key field and nothing is stored (deviation OD-0008 A6, wording OD-0012 E5); upstream instead writes the trimmed key to UserDefaults 'metaAPIKey' in plain text with nothing shown"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Credential Manager write for the account 'Meta API Key' (OD-0008 B3). The settings key name 'metaAPIKey' is kept verbatim only so the clearing half can remove a stale entry. A false return surfaces the failure and stores nothing. The wording and placement of that failure are this record's open_question and must not be invented.",
-      "verification_method": "unit with the protected store stubbed to refuse: assert the failure is surfaced (surface and text as ruled under open_question), no settings entry 'metaAPIKey' exists afterwards and no file under the data directory contains the key; unit with the store accepting: assert 'metaAPIKey' is removed; plus a restart test that the accepted key is read back",
-      "status": "DISCOVERED",
+      "windows_path": "Credential Manager write for the account 'Meta API Key' (OD-0008 B3). The settings key name 'metaAPIKey' is kept verbatim only so the clearing half can remove a stale entry. A false return shows 'Credential Manager did not accept this key, so it was not saved.' under the key field (OD-0012 E5) and stores nothing.",
+      "verification_method": "unit with the protected store stubbed to refuse: assert the line 'Credential Manager did not accept this key, so it was not saved.' is shown under the key field (OD-0012 E5), no settings entry 'metaAPIKey' exists afterwards and no file under the data directory contains the key; unit with the store accepting: assert 'metaAPIKey' is removed; plus a restart test that the accepted key is read back",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null,
       "deviation": {
-        "decision": "OD-0008 A6, B3",
-        "upstream": "DroppyCode/App/AppSettings.swift:382 `storeAPIKeyFallback(kept ? \"\" : metaAPIKeyInput, forKey: Key.metaAPIKey)` with DroppyCode/App/AppSettings.swift:487-494 writing `defaults.set(trimmed, forKey: key)` for a non-empty value: a key the Keychain refused is kept in plain text in UserDefaults 'metaAPIKey', with nothing shown to the user. The store itself is the macOS Keychain: DroppyCode/Services/Providers/APIKeychain.swift:29-39 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56).",
-        "port": "A key the protected store refuses is reported to the user and nothing is stored; the key is never written in plain text. The removal of the settings entry after a successful store is kept. The protected store is Windows Credential Manager, one generic credential per account string under the one service name the port uses in place of AppInfo.name (OD-0008 B3)."
-      },
-      "open_question": "The text and placement of the message that shows a refused key. OD-0008 A6 (BLK-0006 ruling: \"FIX: when protected storage refuses an API key the failure is shown and nothing is stored; the key is never written in plain text. Named deviation.\") requires the failure to be shown, but neither the ruling nor the pinned source gives its wording or its surface: upstream shows nothing on this path (DroppyCode/App/AppSettings.swift:382 with :485-494). No UNK, BLK or OD-PENDING entry tracks it yet, and PR-PROVREG-239 carries the same gap for all four keys. Until it is registered and ruled the message must not be invented; everything else in this record is specified."
+        "decision": "OD-0008 A6, B3; OD-0012 E5",
+        "upstream": "DroppyCode/App/AppSettings.swift:382 `storeAPIKeyFallback(kept ? \"\" : metaAPIKeyInput, forKey: Key.metaAPIKey)` with DroppyCode/App/AppSettings.swift:487-494 writing `defaults.set(trimmed, forKey: key)` for a non-empty value: a key the Keychain refused is kept in plain text in UserDefaults 'metaAPIKey', with nothing shown to the user. The store itself is the macOS Keychain: DroppyCode/Services/Providers/APIKeychain.swift:29-39 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56). DroppyCode/App/AppSettings.swift:382 with :485-494 shows nothing when the Keychain refuses the key, so upstream has no wording or placement for a refusal message.",
+        "port": "A key the protected store refuses is reported to the user and nothing is stored; the key is never written in plain text. The removal of the settings entry after a successful store is kept. The protected store is Windows Credential Manager, one generic credential per account string under the one service name the port uses in place of AppInfo.name (OD-0008 B3). The refusal is shown under the key field as exactly: Credential Manager did not accept this key, so it was not saved. (OD-0012 E5)."
+      }
     },
     {
       "id": "PR-PROVAPI-010",
@@ -282,30 +280,29 @@
       ],
       "preconditions": "Keys loaded; value changed.",
       "action": "The user edits the Z.ai API key in Settings.",
-      "expected_result": "ZaiKeychain.setAPIKey runs against the protected store (Windows Credential Manager, OD-0008 B3) for the account 'Z.ai API Key'. When it returns true the settings entry 'zaiAPIKey' is removed. When it returns false the failure is shown to the user and nothing is stored: the key is not written to the settings store or anywhere else in plain text (OD-0008 A6, named deviation).",
+      "expected_result": "ZaiKeychain.setAPIKey runs against the protected store (Windows Credential Manager, OD-0008 B3) for the account 'Z.ai API Key'. When it returns true the settings entry 'zaiAPIKey' is removed. When it returns false the line 'Credential Manager did not accept this key, so it was not saved.' is shown under the key field (OD-0012 E5) and nothing is stored: the key is not written to the settings store or anywhere else in plain text (OD-0008 A6, named deviation).",
       "side_effects": [
         "Protected-store write",
         "Removal of the settings entry 'zaiAPIKey' when the store accepted the key",
-        "When the store refused the key: the failure is surfaced to the user and nothing is written"
+        "When the store refused the key: the line 'Credential Manager did not accept this key, so it was not saved.' is shown under the key field and nothing is written"
       ],
       "persistence": "The key lives only in the protected store. The settings entry 'zaiAPIKey' (String) is only ever removed by this path, never written.",
       "failure_cases": [
         "A change while isReadingKeychain is true is ignored, so loading stored keys never writes them back",
-        "The protected store refuses the key: the failure is shown and nothing is stored (deviation OD-0008 A6); upstream instead writes the trimmed key to UserDefaults 'zaiAPIKey' in plain text with nothing shown"
+        "The protected store refuses the key: 'Credential Manager did not accept this key, so it was not saved.' is shown under the key field and nothing is stored (deviation OD-0008 A6, wording OD-0012 E5); upstream instead writes the trimmed key to UserDefaults 'zaiAPIKey' in plain text with nothing shown"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Credential Manager write for the account 'Z.ai API Key' (OD-0008 B3). The settings key name 'zaiAPIKey' is kept verbatim only so the clearing half can remove a stale entry. A false return surfaces the failure and stores nothing. The wording and placement of that failure are this record's open_question and must not be invented.",
-      "verification_method": "unit with the protected store stubbed to refuse: assert the failure is surfaced (surface and text as ruled under open_question), no settings entry 'zaiAPIKey' exists afterwards and no file under the data directory contains the key; unit with the store accepting: assert 'zaiAPIKey' is removed; plus a restart test that the accepted key is read back",
-      "status": "DISCOVERED",
+      "windows_path": "Credential Manager write for the account 'Z.ai API Key' (OD-0008 B3). The settings key name 'zaiAPIKey' is kept verbatim only so the clearing half can remove a stale entry. A false return shows 'Credential Manager did not accept this key, so it was not saved.' under the key field (OD-0012 E5) and stores nothing.",
+      "verification_method": "unit with the protected store stubbed to refuse: assert the line 'Credential Manager did not accept this key, so it was not saved.' is shown under the key field (OD-0012 E5), no settings entry 'zaiAPIKey' exists afterwards and no file under the data directory contains the key; unit with the store accepting: assert 'zaiAPIKey' is removed; plus a restart test that the accepted key is read back",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null,
       "deviation": {
-        "decision": "OD-0008 A6, B3",
-        "upstream": "DroppyCode/App/AppSettings.swift:395 `storeAPIKeyFallback(kept ? \"\" : zaiAPIKeyInput, forKey: Key.zaiAPIKey)` with DroppyCode/App/AppSettings.swift:487-494 writing `defaults.set(trimmed, forKey: key)` for a non-empty value: a key the Keychain refused is kept in plain text in UserDefaults 'zaiAPIKey', with nothing shown to the user. The store itself is the macOS Keychain: DroppyCode/Services/Providers/APIKeychain.swift:29-39 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56).",
-        "port": "A key the protected store refuses is reported to the user and nothing is stored; the key is never written in plain text. The removal of the settings entry after a successful store is kept. The protected store is Windows Credential Manager, one generic credential per account string under the one service name the port uses in place of AppInfo.name (OD-0008 B3)."
-      },
-      "open_question": "The text and placement of the message that shows a refused key. OD-0008 A6 (BLK-0006 ruling: \"FIX: when protected storage refuses an API key the failure is shown and nothing is stored; the key is never written in plain text. Named deviation.\") requires the failure to be shown, but neither the ruling nor the pinned source gives its wording or its surface: upstream shows nothing on this path (DroppyCode/App/AppSettings.swift:395 with :485-494). No UNK, BLK or OD-PENDING entry tracks it yet, and PR-PROVREG-239 carries the same gap for all four keys. Until it is registered and ruled the message must not be invented; everything else in this record is specified."
+        "decision": "OD-0008 A6, B3; OD-0012 E5",
+        "upstream": "DroppyCode/App/AppSettings.swift:395 `storeAPIKeyFallback(kept ? \"\" : zaiAPIKeyInput, forKey: Key.zaiAPIKey)` with DroppyCode/App/AppSettings.swift:487-494 writing `defaults.set(trimmed, forKey: key)` for a non-empty value: a key the Keychain refused is kept in plain text in UserDefaults 'zaiAPIKey', with nothing shown to the user. The store itself is the macOS Keychain: DroppyCode/Services/Providers/APIKeychain.swift:29-39 stores each provider key in the macOS Keychain: `kSecClass as String: kSecClassGenericPassword,` / `kSecAttrService as String: AppInfo.name,` / `kSecAttrAccount as String: account,` then `SecItemAdd`, readable only through `SecItemCopyMatching` (:42-56). DroppyCode/App/AppSettings.swift:395 with :485-494 shows nothing when the Keychain refuses the key, so upstream has no wording or placement for a refusal message.",
+        "port": "A key the protected store refuses is reported to the user and nothing is stored; the key is never written in plain text. The removal of the settings entry after a successful store is kept. The protected store is Windows Credential Manager, one generic credential per account string under the one service name the port uses in place of AppInfo.name (OD-0008 B3). The refusal is shown under the key field as exactly: Credential Manager did not accept this key, so it was not saved. (OD-0012 E5)."
+      }
     },
     {
       "id": "PR-PROVAPI-011",
@@ -414,12 +411,13 @@
         "No stored key and no environment variable: an empty key, which makes the provider signed out (PR-PROVAPI-088) and any start throw notInstalled (PR-PROVAPI-089)"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Read the same three variable names from the captured user environment. Environment capture itself is the Windows shell boundary tracked by UNK-0005.",
+      "windows_path": "Read the same three variable names from the app's own process environment, which Windows populates at logon; no shell is spawned to harvest it (ED-028 (3); UNK-0005 resolved by OD-0008 C5).",
       "verification_method": "unit",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0005"
+      "depends_on_unknown": null,
+      "resolved_unknown": "UNK-0005 resolved by OD-0008 C5"
     },
     {
       "id": "PR-PROVAPI-015",
@@ -2288,7 +2286,7 @@
       ],
       "preconditions": "The turn is a final report, or the session is a Hydra head that has used 160 tools or run for 35 minutes.",
       "action": "The next round would start.",
-      "expected_result": "For a spent budget a user message is appended reading exactly: [Droppy Code] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left. Then exactly one round is sent with no tools array and no tool_choice, and the turn ends after it.",
+      "expected_result": "For a spent budget a user message is appended reading exactly: [Marrow] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left. Then exactly one round is sent with no tools array and no tool_choice, and the turn ends after it.",
       "side_effects": [
         "One request with no tools"
       ],
@@ -2297,12 +2295,17 @@
         "An error on that round throws the provider's friendly message and the turn fails"
       ],
       "cancellation": "The round is cancellable like any other.",
-      "windows_path": "Same thresholds, same note text, same no-tools round.",
+      "windows_path": "Same thresholds, same note text with the product name as [Marrow] (OD-0012 F1), same no-tools round.",
       "verification_method": "integration",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Core/Models/Hydra.swift:200 `static let finalNote = \"[Droppy Code] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.\"`",
+        "port": "[Marrow] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left."
+      }
     },
     {
       "id": "PR-PROVAPI-099",
@@ -2315,17 +2318,22 @@
       ],
       "preconditions": "The session is a Hydra head.",
       "action": "A round begins after 120 tools or 25 minutes.",
-      "expected_result": "Exactly once per turn, a user message is appended reading exactly: [Droppy Code] Your budget is nearly spent. Finish now: complete the smallest correct version of the task, then reply with your report.",
+      "expected_result": "Exactly once per turn, a user message is appended reading exactly: [Marrow] Your budget is nearly spent. Finish now: complete the smallest correct version of the task, then reply with your report.",
       "side_effects": [],
       "persistence": "The note enters history.",
       "failure_cases": [],
       "cancellation": "not applicable",
-      "windows_path": "Same thresholds and the same note, appended once per turn.",
+      "windows_path": "Same thresholds and the same note with the product name as [Marrow] (OD-0012 F1), appended once per turn.",
       "verification_method": "integration",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Core/Models/Hydra.swift:199 `static let wrapUpNote = \"[Droppy Code] Your budget is nearly spent. Finish now: complete the smallest correct version of the task, then reply with your report.\"`",
+        "port": "[Marrow] Your budget is nearly spent. Finish now: complete the smallest correct version of the task, then reply with your report."
+      }
     },
     {
       "id": "PR-PROVAPI-100",
@@ -2339,17 +2347,22 @@
       ],
       "preconditions": "The session is a Hydra head.",
       "action": "24 tools run without a write_file or edit_file.",
-      "expected_result": "A user message is appended reading exactly: [Droppy Code] You have run 24 tools without changing a file. If the task is research, reply with your findings now. Otherwise act on what you know: make the change, or reply with what blocks you. The counter then re-arms 24 further tools ahead. A write or edit resets both the counter and the threshold.",
+      "expected_result": "A user message is appended reading exactly: [Marrow] You have run 24 tools without changing a file. If the task is research, reply with your findings now. Otherwise act on what you know: make the change, or reply with what blocks you. The counter then re-arms 24 further tools ahead. A write or edit resets both the counter and the threshold.",
       "side_effects": [],
       "persistence": "The note enters history.",
       "failure_cases": [],
       "cancellation": "not applicable",
-      "windows_path": "Same counter, threshold, reset rule and note, with the number interpolated from the same constant.",
+      "windows_path": "Same counter, threshold, reset rule and note (product name as [Marrow], OD-0012 F1), with the number interpolated from the same constant.",
       "verification_method": "integration",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Core/Models/Hydra.swift:198 `static let pacingNote = \"[Droppy Code] You have run \\(pacingTools) tools without changing a file. If the task is research, reply with your findings now. Otherwise act on what you know: make the change, or reply with what blocks you.\"`",
+        "port": "[Marrow] You have run 24 tools without changing a file. If the task is research, reply with your findings now. Otherwise act on what you know: make the change, or reply with what blocks you."
+      }
     },
     {
       "id": "PR-PROVAPI-101",
@@ -3213,17 +3226,22 @@
       ],
       "preconditions": "A long turn with many tool results.",
       "action": "A round begins.",
-      "expected_result": "Once tool results total more than 160000 bytes, older ones are shortened to their first 400 characters plus a line reading exactly: …[Droppy Code condensed this output (<n> bytes); call the tool again if you need it] with <n> the original byte count, until the total drops to 100000 or the candidates run out. The ten most recent tool results are never condensed, nor is any result of 1200 bytes or fewer, nor one already condensed.",
+      "expected_result": "Once tool results total more than 160000 bytes, older ones are shortened to their first 400 characters plus a line reading exactly: …[Marrow condensed this output (<n> bytes); call the tool again if you need it] with <n> the original byte count, until the total drops to 100000 or the candidates run out. The ten most recent tool results are never condensed, nor is any result of 1200 bytes or fewer, nor one already condensed.",
       "side_effects": [],
       "persistence": "The in-memory history is rewritten; the transcript shown to the user is not.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same four constants, the same marker string (note the leading U+2026 and the unbalanced opening bracket, which are reproduced verbatim), and the same 400 character head.",
+      "windows_path": "Same four constants, the same marker string with the product name as Marrow, '…[Marrow condensed this output' (OD-0012 F1; note the leading U+2026 and the unbalanced opening bracket, which are reproduced verbatim), and the same 400 character head.",
       "verification_method": "unit",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:80 `private static let condensedMarker = \"…[Droppy Code condensed this output\"`",
+        "port": "…[Marrow condensed this output"
+      }
     },
     {
       "id": "PR-PROVAPI-139",
@@ -3284,12 +3302,17 @@
       "persistence": "none",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "The literal word 'macOS' in the identity line is a source string that names the host platform; the Windows build must say what it actually runs on, which is a recorded deviation rather than a verbatim copy. Every other line is copied verbatim, and the date stays a full ISO 8601 timestamp.",
+      "windows_path": "The identity line reads exactly: You are Marrow's <identity>, working inside <working directory> on Windows. (OD-0012 F1, which also fixes the host word ED-029 had decided). Every other line is copied verbatim, and the date stays a full ISO 8601 timestamp.",
       "verification_method": "contract fixture on the request body",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1202 `You are Droppy Code's \\(config.agentIdentity(currentModel)), working inside \\(workingDirectory) on macOS.`",
+        "port": "You are Marrow's <identity>, working inside <working directory> on Windows."
+      }
     },
     {
       "id": "PR-PROVAPI-142",
@@ -3319,17 +3342,22 @@
       ],
       "preconditions": "Interaction mode build, runtime mode supervised.",
       "action": "The system prompt is built.",
-      "expected_result": "The mode line reads exactly: You are in BUILD mode with supervised permissions: use tools freely but the user approves each one in Droppy Code.",
+      "expected_result": "The mode line reads exactly: You are in BUILD mode with supervised permissions: use tools freely but the user approves each one in Marrow.",
       "side_effects": [],
       "persistence": "none",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same line. The product name inside it follows the owner-approved rename to Marrow, which is the one permitted identity deviation.",
+      "windows_path": "Same line with the product name as Marrow (OD-0012 F1).",
       "verification_method": "unit",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1182 `\"You are in BUILD mode with supervised permissions: use tools freely but the user approves each one in Droppy Code.\"`",
+        "port": "You are in BUILD mode with supervised permissions: use tools freely but the user approves each one in Marrow."
+      }
     },
     {
       "id": "PR-PROVAPI-144",
@@ -3339,17 +3367,22 @@
       ],
       "preconditions": "Interaction mode build, runtime mode autoAcceptEdits or auto.",
       "action": "The system prompt is built.",
-      "expected_result": "The mode line reads exactly: You are in BUILD mode: read and edit files freely; the user approves shell commands in Droppy Code.",
+      "expected_result": "The mode line reads exactly: You are in BUILD mode: read and edit files freely; the user approves shell commands in Marrow.",
       "side_effects": [],
       "persistence": "none",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same line for both runtime modes.",
+      "windows_path": "Same line for both runtime modes, with the product name as Marrow (OD-0012 F1).",
       "verification_method": "unit",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1184 `\"You are in BUILD mode: read and edit files freely; the user approves shell commands in Droppy Code.\"`",
+        "port": "You are in BUILD mode: read and edit files freely; the user approves shell commands in Marrow."
+      }
     },
     {
       "id": "PR-PROVAPI-145",
@@ -3438,12 +3471,17 @@
         "An unreadable file produces the 'Could not load' sentence rather than being skipped"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same two file names, the same two limits and the same three sentence forms. Windows symlink and junction resolution must enforce the same containment check.",
+      "windows_path": "Same two file names, the same two limits and the same three sentence forms. The block heading reads exactly: Project guidelines from <directory>. They supplement the rules above; where they conflict, the Marrow rules take priority. (OD-0012 F1). Windows symlink and junction resolution must enforce the same containment check.",
       "verification_method": "unit",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Services/Providers/ProjectGuidance.swift:100 `Project guidelines from \\(directory). They supplement the rules above; where they conflict, the Droppy Code rules take priority.`",
+        "port": "Project guidelines from <directory>. They supplement the rules above; where they conflict, the Marrow rules take priority."
+      }
     },
     {
       "id": "PR-PROVAPI-149",
@@ -3678,12 +3716,13 @@
       "persistence": "none",
       "failure_cases": [],
       "cancellation": "not applicable",
-      "windows_path": "Verbatim description and schema. What the command text is actually executed by on Windows is UNK-0005.",
+      "windows_path": "Verbatim description and schema. The command text is run by PowerShell 7 when installed, otherwise Windows PowerShell (OD-0008 C5, resolving UNK-0005; see PR-PROVAPI-175).",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0005"
+      "depends_on_unknown": null,
+      "resolved_unknown": "UNK-0005 resolved by OD-0008 C5"
     },
     {
       "id": "PR-PROVAPI-160",
@@ -3965,12 +4004,13 @@
         "The process could not start: 'The command could not start.' with exit code 1"
       ],
       "cancellation": "Checked after the command returns; a stopped turn says no more about it.",
-      "windows_path": "The six unwrap prefixes are POSIX shell spellings and must still be recognized, because they are what a model writes. What the command is actually run by on Windows is UNK-0005.",
+      "windows_path": "The six unwrap prefixes are POSIX shell spellings and must still be recognized, because they are what a model writes. The command is run by PowerShell 7 when installed, otherwise Windows PowerShell (OD-0008 C5, resolving UNK-0005; see PR-PROVAPI-175).",
       "verification_method": "integration",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0005"
+      "depends_on_unknown": null,
+      "resolved_unknown": "UNK-0005 resolved by OD-0008 C5"
     },
     {
       "id": "PR-PROVAPI-172",
@@ -4013,12 +4053,13 @@
         "grep could not run: exactly 'Search failed.'"
       ],
       "cancellation": "The process is bounded by its timeout; the turn's own cancellation checks run after it returns.",
-      "windows_path": "There is no /usr/bin/grep on Windows. The search must be implemented so that the same four exclusions, the same fixed-string versus regex choice, the same -- operand safety, the same containment guard and the same output shape hold; the executable and its argument spelling are a platform boundary under UNK-0005. The containment guard is security-relevant and must not be relaxed.",
+      "windows_path": "There is no /usr/bin/grep on Windows. The search must be implemented so that the same four exclusions, the same fixed-string versus regex choice, the same -- operand safety, the same containment guard and the same output shape hold; ED-028 (2) implements it natively: a recursive walk honouring the same four exclusions, skipping binary files as -I does, emitting grep's path:line:text shape with -n line numbers and honouring the -E/-F switch, never through findstr. UNK-0005 (resolved by OD-0008 C5) chose only the shell; search_text launches none. The containment guard is security-relevant and must not be relaxed.",
       "verification_method": "integration plus a containment test using an absolute path and a parent-climbing path",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0005"
+      "depends_on_unknown": null,
+      "resolved_unknown": "UNK-0005 resolved by OD-0008 C5"
     },
     {
       "id": "PR-PROVAPI-174",
@@ -4048,7 +4089,7 @@
       ],
       "preconditions": "The model called run_command with a non-empty command.",
       "action": "The command runs.",
-      "expected_result": "The command text is passed as a single argument to a login shell. Output is the two streams concatenated with one newline between them, trimmed. An oversized output keeps its tail, prefixed with U+2026. The real exit status is returned.",
+      "expected_result": "The command text is passed as a single argument to the interpreter: upstream a login shell (/bin/zsh -lc), the port PowerShell 7 when installed, otherwise Windows PowerShell, as its -Command argument (deviation OD-0008 C5). Output is the two streams concatenated with one newline between them, trimmed. An oversized output keeps its tail, prefixed with U+2026. The real exit status is returned.",
       "side_effects": [
         "A process runs in the project root with the captured login environment",
         "Anything that process does to the filesystem or the network"
@@ -4060,12 +4101,18 @@
         "Timeout after 120 seconds is enforced by the shell runner"
       ],
       "cancellation": "The turn's cancellation reaches the launched process through the shell runner; the result is discarded either way.",
-      "windows_path": "/bin/zsh -lc has no Windows equivalent and the choice of interpreter changes what a model-written command actually does. This is exactly UNK-0005 and must not be resolved by preference. The 120 second timeout, the 24000 byte cap, the tail-keeping truncation and the two failure strings are portable and are reproduced.",
+      "windows_path": "/bin/zsh -lc has no Windows equivalent. The command runs in PowerShell 7 when installed, otherwise Windows PowerShell (OD-0008 C5, resolving UNK-0005), as <interpreter> -NoProfile -NonInteractive -Command <trimmed command> (ED-028 (1), whose choice of powershell.exe alone OD-0008 C5 supersedes). The 120 second timeout, the 24000 byte cap, the tail-keeping truncation and the two failure strings are portable and are reproduced.",
       "verification_method": "integration",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0005"
+      "depends_on_unknown": null,
+      "resolved_unknown": "UNK-0005 resolved by OD-0008 C5",
+      "deviation": {
+        "decision": "OD-0008 C5",
+        "upstream": "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1154-1165 `let shell = URL(fileURLWithPath: \"/bin/zsh\")` / `Shell.run(shell, [\"-lc\", trimmed], in: directory, environment: LoginEnvironment.current, timeout: 120, outputLimit: 24_000)`",
+        "port": "PowerShell 7 if installed, otherwise Windows PowerShell, with -NoProfile -NonInteractive -Command <trimmed command> (ED-028 (1)); timeout, output cap, truncation and both failure strings unchanged."
+      }
     },
     {
       "id": "PR-PROVAPI-176",
@@ -4430,12 +4477,17 @@
         "A non-zero exit, a missing file or an empty file yields nil"
       ],
       "cancellation": "not cancellable; the 180 second timeout bounds it",
-      "windows_path": "Same argument vector, including the embedded quotes in the config value, which must survive the Windows command-line quoting rules unchanged. The temporary file name keeps the 'droppy-code-' prefix as a persisted on-disk artifact name.",
+      "windows_path": "Same argument vector, including the embedded quotes in the config value, which must survive the Windows command-line quoting rules unchanged. The temporary file is named 'marrow-<UUID>.txt' (OD-0012 F1): its path is sent out to the Codex CLI as the --output-last-message argument, and it is neither of the two kept machine contracts (droppy-code.json, DROPPY_CODE_PROJECT_ROOT). It is removed after the run, as upstream.",
       "verification_method": "contract fixture plus a scripted CLI stand-in",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Services/Providers/TextGeneration.swift:88 `let output = FileManager.default.temporaryDirectory.appendingPathComponent(\"droppy-code-\\(UUID().uuidString).txt\")`",
+        "port": "The temporary output file is 'marrow-<UUID>.txt' in the system temporary directory."
+      }
     }
   ],
   "ui": [
@@ -4447,7 +4499,7 @@
       "exact_text": "Native API · api.deepseek.com (DeepSeek); Native API · api.meta.ai/v1 (Meta); Native API · api.z.ai/api/coding/paas/v4 (Z.ai)",
       "geometry": "Inside the header HStack with spacing 12; the header row has padding leading 16, trailing Chrome.rowControlTrailingPadding (10) and vertical 11; the text sits in a VStack with alignment leading and spacing 2 under the status summary.",
       "typography": ".font(.system(size: 11))",
-      "colors": "Chrome.secondaryText, which at B2 is `primaryText.opacity(0.7)` (DroppyCode/UI/Chrome/Chrome.swift:79), that is Color(nsColor: .labelColor) at 70% opacity; it resolves per appearance at draw time in both themes. The resolved RGBA depends on labelColor's own AppKit alpha and is UNVERIFIED under OD-0001.",
+      "colors": "Chrome.secondaryText, which at B2 is `primaryText.opacity(0.7)` (DroppyCode/UI/Chrome/Chrome.swift:79), that is Color(nsColor: .labelColor) at 70% opacity; it resolves per appearance at draw time in both themes. The resolved RGBA depends on labelColor's own AppKit alpha and is UNVERIFIED under OD-0001. Port: secondaryText is primaryText at 0.7, as B2 states (ED-062).",
       "states": [
         "Shown only when the provider is API-key based and a key is configured",
         "While a check is running the summary line above reads 'Checking…'",
@@ -4470,10 +4522,10 @@
       "screen": "Settings → Providers → DeepSeek",
       "element": "API key row",
       "role": "row",
-      "exact_text": "Title: API key. Detail: Stored in your Keychain. Get one at platform.deepseek.com.",
+      "exact_text": "Title: API key. Detail: Stored in your Credential Manager. Get one at platform.deepseek.com.",
       "geometry": "ChromeRow: an HStack with centre alignment and spacing 16; the title and detail sit in a leading VStack with spacing 2; Spacer(minLength: 12) before the control; padding leading 16, trailing 10, vertical 11. A ChromeRowDivider with leading padding 16 sits above it.",
-      "typography": "Title .font(.system(.body)); detail .font(.system(.subheadline)) with fixedSize vertical so it wraps rather than truncating. Both are SwiftUI text styles whose point size macOS resolves at draw time. The pinned source states no point value for them: B1's DroppyCode/UI/Common/ChatZoom.swift (dd2b86ef), whose chatBaseSize listed 13 for .body and 11 for .subheadline (:51, :53), is deleted at B2. The resolved sizes are therefore delegated to macOS rendering and UNVERIFIED under UNK-0003. At B2 the whole window is then scaled by the app zoom: DroppyCode/App/Window/WindowManager.swift:175 `.modifier(AppZoomModifier(percent: model.settings.appZoom))`, with DroppyCode/UI/Common/AppZoom.swift:6 `static let levels = [75, 90, 100, 110, 125, 150, 175, 200]`, :22 `let scale = CGFloat(AppZoom.normalized(percent)) / 100` and :24 `content.scaleEffect(scale, anchor: .topLeading)` (PR-WIN-219 to PR-WIN-221).",
-      "colors": "Title Chrome.primaryText (labelColor); detail Chrome.secondaryText, which at B2 is `primaryText.opacity(0.7)`, labelColor at 70% opacity. Both resolve per appearance; the resolved detail RGBA is UNVERIFIED under OD-0001.",
+      "typography": "Title .font(.system(.body)); detail .font(.system(.subheadline)) with fixedSize vertical so it wraps rather than truncating. Both are SwiftUI text styles whose point size macOS resolves at draw time. The pinned source states no point value for them: B1's DroppyCode/UI/Common/ChatZoom.swift (dd2b86ef), whose chatBaseSize listed 13 for .body and 11 for .subheadline (:51, :53), is deleted at B2. The port uses that table (ED-059): .body is 13 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:51) and .subheadline is 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53), set in Inter (OD-0009) and fixed per style; visual size parity stays UNVERIFIED under OD-0001. At B2 the whole window is then scaled by the app zoom: DroppyCode/App/Window/WindowManager.swift:175 `.modifier(AppZoomModifier(percent: model.settings.appZoom))`, with DroppyCode/UI/Common/AppZoom.swift:6 `static let levels = [75, 90, 100, 110, 125, 150, 175, 200]`, :22 `let scale = CGFloat(AppZoom.normalized(percent)) / 100` and :24 `content.scaleEffect(scale, anchor: .topLeading)` (PR-WIN-219 to PR-WIN-221).",
+      "colors": "Title Chrome.primaryText (labelColor); detail Chrome.secondaryText, which at B2 is `primaryText.opacity(0.7)`, labelColor at 70% opacity. Both resolve per appearance; the resolved detail RGBA is UNVERIFIED under OD-0001. Port: secondaryText is primaryText at 0.7, as B2 states (ED-062).",
       "states": [
         "Present for this provider whenever its section is expanded, because acceptsAPIKey is true",
         "The title is 'API key' without the '(optional)' suffix, because DeepSeek is API-key based",
@@ -4488,7 +4540,12 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:671 and :786-789 the collapsible section",
         "DroppyCode/App/Window/WindowManager.swift:175 and DroppyCode/UI/Common/AppZoom.swift:6-25 the app zoom"
       ],
-      "notes": "The detail sentence is built from a fixed prefix plus the provider's apiKeySource, so the trailing full stop follows the host name directly. On Windows the key is stored in Windows Credential Manager (OD-0008 B3, PR-PROVAPI-001 to PR-PROVAPI-005), so this verbatim detail names a store the port does not use. B3's rewording covers the five MCP strings listed under owner_decisions_pending.md Q109 (MCPSettingsPage.swift:103, :791 in two arms, :813 and :857), not this one, so the string stays verbatim; its Windows wording is an open owner item (a rename decision, as PROVREG's UI note on the same string says) that no UNK or OD-PENDING entry tracks yet.",
+      "notes": "The detail sentence is built from a fixed prefix plus the provider's apiKeySource, so the trailing full stop follows the host name directly. On Windows the key is stored in Windows Credential Manager (OD-0008 B3, PR-PROVAPI-001 to PR-PROVAPI-005), and the detail says so: 'Keychain' becomes 'Credential Manager' in this row (OD-0012 G2), the same substitution B3 made in the five MCP strings.",
+      "deviation": {
+        "decision": "OD-0012 G2",
+        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:717 `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`, which reads \"Stored in your Keychain. Get one at platform.deepseek.com.\"",
+        "port": "Stored in your Credential Manager. Get one at platform.deepseek.com."
+      },
       "b2_change": "ChromeRow title `.font(.system(size: 13))` -> `.font(.system(.body))` (B1 Chrome.swift:1025 -> B2 :1058) and detail `.font(.system(size: 11))` -> `.font(.system(.subheadline))` (B1 :1029 -> B2 :1062); B1's DroppyCode/UI/Common/ChatZoom.swift:44-55 (dd2b86ef) listed .body as 13 and .subheadline as 11, but that file is deleted at B2, so the pinned source no longer states a point size; the resolved sizes are delegated to macOS rendering and UNVERIFIED under UNK-0003. B2 also scales the whole window by the app zoom (DroppyCode/App/Window/WindowManager.swift:175, levels 75 to 200 percent at DroppyCode/UI/Common/AppZoom.swift:6). Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:680-687 to B2 :712-719 and now sits inside a collapsible section (B2 :671, :786-789), so 'Always present' became 'present whenever the section is expanded'."
     },
     {
@@ -4496,7 +4553,7 @@
       "screen": "Settings → Providers → Meta",
       "element": "API key row",
       "role": "row",
-      "exact_text": "Title: API key. Detail: Stored in your Keychain. Get one at dev.meta.ai.",
+      "exact_text": "Title: API key. Detail: Stored in your Credential Manager. Get one at dev.meta.ai.",
       "geometry": "As UI-PROVAPI-002.",
       "typography": "As UI-PROVAPI-002.",
       "colors": "As UI-PROVAPI-002.",
@@ -4509,7 +4566,12 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:714-719 (B1 :682-687) `ChromeRow(` / `title: provider.isAPIKeyBased ? \"API key\" : \"API key (optional)\",` / `detail: provider.isAPIKeyBased` / `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`",
         "DroppyCode/Core/Models/Provider.swift:125 apiKeySource for meta"
       ],
-      "notes": "The key Meta wants is the MODEL_API_KEY; that name appears only in the rejected-key error message, not in this row. On Windows the key is stored in Windows Credential Manager (OD-0008 B3, PR-PROVAPI-001 to PR-PROVAPI-005), so this verbatim detail names a store the port does not use. B3's rewording covers the five MCP strings listed under owner_decisions_pending.md Q109 (MCPSettingsPage.swift:103, :791 in two arms, :813 and :857), not this one, so the string stays verbatim; its Windows wording is an open owner item (a rename decision, as PROVREG's UI note on the same string says) that no UNK or OD-PENDING entry tracks yet.",
+      "notes": "The key Meta wants is the MODEL_API_KEY; that name appears only in the rejected-key error message, not in this row. On Windows the key is stored in Windows Credential Manager (OD-0008 B3, PR-PROVAPI-001 to PR-PROVAPI-005), and the detail says so: 'Keychain' becomes 'Credential Manager' in this row (OD-0012 G2), the same substitution B3 made in the five MCP strings.",
+      "deviation": {
+        "decision": "OD-0012 G2",
+        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:717 `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`, which reads \"Stored in your Keychain. Get one at dev.meta.ai.\"",
+        "port": "Stored in your Credential Manager. Get one at dev.meta.ai."
+      },
       "b2_change": "B1 state 'Always present for this provider' -> B2 present only while the provider's collapsible section is expanded (B2 DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789); row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:680-687 to B2 :712-719. Typography and colours follow UI-PROVAPI-002, which records the ChromeRow text-style and Chrome.secondaryText changes."
     },
     {
@@ -4517,7 +4579,7 @@
       "screen": "Settings → Providers → Z.ai",
       "element": "API key row",
       "role": "row",
-      "exact_text": "Title: API key. Detail: Stored in your Keychain. Get one at z.ai/manage-apikey/apikey-list.",
+      "exact_text": "Title: API key. Detail: Stored in your Credential Manager. Get one at z.ai/manage-apikey/apikey-list.",
       "geometry": "As UI-PROVAPI-002.",
       "typography": "As UI-PROVAPI-002.",
       "colors": "As UI-PROVAPI-002.",
@@ -4530,7 +4592,12 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:714-719 (B1 :682-687) `ChromeRow(` / `title: provider.isAPIKeyBased ? \"API key\" : \"API key (optional)\",` / `detail: provider.isAPIKeyBased` / `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`",
         "DroppyCode/Core/Models/Provider.swift:126 apiKeySource for zai"
       ],
-      "notes": "The source string here is a path, not a bare host, so the sentence ends with '...apikey-list.' On Windows the key is stored in Windows Credential Manager (OD-0008 B3, PR-PROVAPI-001 to PR-PROVAPI-005), so this verbatim detail names a store the port does not use. B3's rewording covers the five MCP strings listed under owner_decisions_pending.md Q109 (MCPSettingsPage.swift:103, :791 in two arms, :813 and :857), not this one, so the string stays verbatim; its Windows wording is an open owner item (a rename decision, as PROVREG's UI note on the same string says) that no UNK or OD-PENDING entry tracks yet.",
+      "notes": "The source string here is a path, not a bare host, so the sentence ends with '...apikey-list.' On Windows the key is stored in Windows Credential Manager (OD-0008 B3, PR-PROVAPI-001 to PR-PROVAPI-005), and the detail says so: 'Keychain' becomes 'Credential Manager' in this row (OD-0012 G2), the same substitution B3 made in the five MCP strings.",
+      "deviation": {
+        "decision": "OD-0012 G2",
+        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:717 `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`, which reads \"Stored in your Keychain. Get one at z.ai/manage-apikey/apikey-list.\"",
+        "port": "Stored in your Credential Manager. Get one at z.ai/manage-apikey/apikey-list."
+      },
       "b2_change": "B1 state 'Always present for this provider' -> B2 present only while the provider's collapsible section is expanded (B2 DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789); row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:680-687 to B2 :712-719. Typography and colours follow UI-PROVAPI-002, which records the ChromeRow text-style and Chrome.secondaryText changes."
     },
     {
@@ -4547,7 +4614,8 @@
         "Rendered as a plain TextField while the reveal toggle is on",
         "Filled from the stored key when the page appears, and re-filled if the stored value changes elsewhere",
         "Empty while the Keychain read has not completed",
-        "At B2 the whole provider card sits inside the provider's collapsible section: DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`; DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` makes a signed-in provider start expanded, so this field is on screen, enabled and hit-testable only while that section is expanded"
+        "At B2 the whole provider card sits inside the provider's collapsible section: DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {` and :786-789 `.clipped()` / `.disabled(!isExpanded)` / `.allowsHitTesting(isExpanded)` / `.accessibilityHidden(!isExpanded)`; DroppyCode/App/Views/Settings/SettingsView.swift:608 `get: { providerExpansion[provider] ?? configured(provider) },` makes a signed-in provider start expanded, so this field is on screen, enabled and hit-testable only while that section is expanded",
+        "When Credential Manager refused the key just entered: the line 'Credential Manager did not accept this key, so it was not saved.' shows under the field (OD-0012 E5; PR-PROVAPI-008 to PR-PROVAPI-010). Upstream shows nothing here."
       ],
       "interactions": [
         "Typing edits the key",
@@ -4559,7 +4627,12 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:671 and :786-789 the collapsible section",
         "DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`; :608 `get: { providerExpansion[provider] ?? configured(provider) },`"
       ],
-      "notes": "The placeholder is the literal 'sk-' followed by U+2026, and it is the same for all three providers even though only DeepSeek's keys actually begin with sk-. Loading the stored key into the field must not save or re-check it; only a value that differs from the stored one counts as an edit.",
+      "notes": "The placeholder is the literal 'sk-' followed by U+2026, and it is the same for all three providers even though only DeepSeek's keys actually begin with sk-. Loading the stored key into the field must not save or re-check it; only a value that differs from the stored one counts as an edit. The refusal line under the field is ruled by OD-0012 E5 (text and placement only); neither that ruling nor the pinned source gives its font, colour or when it is cleared.",
+      "deviation": {
+        "decision": "OD-0012 E5",
+        "upstream": "DroppyCode/App/AppSettings.swift:371, :382, :395 with :485-494: a key the Keychain refuses is kept in plain text in UserDefaults and nothing is shown under the field.",
+        "port": "A refused key is not stored and the line 'Credential Manager did not accept this key, so it was not saved.' shows under the field."
+      },
       "b2_change": "The field moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:688-698 to B2 :720-730 with its own code unchanged, and now sits inside the provider's collapsible section (B2 :671, :786-789): visible, editable and focusable only while that section is expanded, and a provider that is not signed in starts collapsed (:594-596, :608)."
     },
     {
@@ -4570,7 +4643,7 @@
       "exact_text": "Tooltip: Show the API key (when hidden); Hide the API key (when shown)",
       "geometry": "Immediately after the field in the same HStack with spacing 8; the glyph is an SF Symbol at .font(.system(size: 12)); .buttonStyle(.plain), so it has no chrome of its own.",
       "typography": ".font(.system(size: 12)) on the symbol",
-      "colors": "Chrome.secondaryText, which at B2 is `primaryText.opacity(0.7)`, labelColor at 70% opacity, resolving per appearance; the resolved RGBA is UNVERIFIED under OD-0001.",
+      "colors": "Chrome.secondaryText, which at B2 is `primaryText.opacity(0.7)`, labelColor at 70% opacity, resolving per appearance; the resolved RGBA is UNVERIFIED under OD-0001. Port: secondaryText is primaryText at 0.7, as B2 states (ED-062).",
       "states": [
         "Hidden state shows the 'eye' symbol and the tooltip 'Show the API key'",
         "Shown state shows the 'eye.slash' symbol and the tooltip 'Hide the API key'",
@@ -4585,7 +4658,7 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:671 and :786-789 the collapsible section",
         "DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`; :608 `get: { providerExpansion[provider] ?? configured(provider) },`"
       ],
-      "notes": "The symbol names are inverted relative to the state: 'eye.slash' is shown while the key is visible. The toggle is per card and is not persisted, so reopening Settings hides the key again. The two SF Symbols are Apple-licensed artwork and fall under UNK-0007 for the Windows build.",
+      "notes": "The symbol names are inverted relative to the state: 'eye.slash' is shown while the key is visible. The toggle is per card and is not persisted, so reopening Settings hides the key again. The two SF Symbols are Apple-licensed artwork and cannot ship; on Windows they map to Lucide per OD-0010 (UNK-0007 resolved by OD-0010) through porting/icons/sf-symbols-to-lucide.json: 'eye' to Lucide `eye`, 'eye.slash' to Lucide `eye-off`.",
       "b2_change": "Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The button moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:699-707 to B2 :731-739 with its own code unchanged. It now sits inside the provider's collapsible section (B2 :671, :786-789), so it is visible and clickable only while that section is expanded."
     },
     {
@@ -4595,8 +4668,8 @@
       "role": "row",
       "exact_text": "Title: Get a key. Detail: DeepSeek needs an API key. Nothing to install. Button: Get a DeepSeek key",
       "geometry": "A ChromeRowDivider then a ChromeRow with the same metrics as UI-PROVAPI-002; the button's label has .frame(height: Chrome.rowButtonLabelHeight) which is 16, and .buttonStyle(.glass).",
-      "typography": "Title .font(.system(.body)); detail .font(.system(.subheadline)), resolved and scaled as UI-PROVAPI-002 records (no point value in the pinned source, UNVERIFIED under UNK-0003; app zoom at DroppyCode/App/Window/WindowManager.swift:175); the button label inherits the glass button style's own type.",
-      "colors": "Title Chrome.primaryText, detail Chrome.secondaryText, which at B2 is labelColor at 70% opacity (Chrome.swift:79); the button uses the glass style, which has no Windows equivalent and is covered by UNK-0004.",
+      "typography": "Title .font(.system(.body)); detail .font(.system(.subheadline)), resolved and scaled as UI-PROVAPI-002 records (no point value in the pinned source; the port uses ED-059: .body 13 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:51, and .subheadline 11 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:53, in Inter per OD-0009, visual size parity UNVERIFIED under OD-0001; app zoom at DroppyCode/App/Window/WindowManager.swift:175); the button label inherits the glass button style's own type.",
+      "colors": "Title Chrome.primaryText, detail Chrome.secondaryText, which at B2 is labelColor at 70% opacity (Chrome.swift:79); the button uses the glass style (`.buttonStyle(.glass)`); on Windows the material is a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001). Port: secondaryText is primaryText at 0.7, as B2 states (ED-062).",
       "states": [
         "Present only while status.isInstalled is false. For these providers that means apiKeyConfigured is false: no check has finished yet, or the stored key is empty (DroppyCode/Services/Providers/ProviderRegistry.swift:17 `var isInstalled: Bool { executable != nil || apiKeyConfigured }`; :383-385 `guard !apiKey.isEmpty else {` / `statuses[provider] = ProviderStatus(auth: .signedOut)`)",
         "Absent for a rejected key: a key that fails validation still sets `apiKeyConfigured: true` with `auth: valid ? .signedIn(nil) : .signedOut` (ProviderRegistry.swift:389-393 DeepSeek, :404-408 Meta, :411-415 Z.ai), so the row disappears as soon as a non-empty key has been checked, valid or not",

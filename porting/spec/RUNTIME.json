@@ -276,12 +276,13 @@
         "A remainder shorter than two characters, or with mismatched first and last quote characters, is returned with its quotes intact."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Keep all six POSIX prefixes verbatim even on Windows: they appear in output produced by providers running through their own shells and in recorded fixtures. Whether a Windows interpreter prefix is added is UNK-0005 and is not this requirement's business.",
+      "windows_path": "Keep all six POSIX prefixes verbatim even on Windows: they appear in output produced by providers running through their own shells and in recorded fixtures. UNK-0005 is marked resolved by OD-0008 C5, which rules the shell of the app's own terminal tabs and project scripts (PowerShell 7 when installed, otherwise Windows PowerShell), not the shells providers run their commands in; that ruling adds no prefix to this table, so the six POSIX prefixes stay the whole list.",
       "verification_method": "unit - table test over all six prefixes, both quote characters and the escape sequence",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0005"
+      "depends_on_unknown": null,
+      "resolved_unknown": "UNK-0005 resolved by OD-0008 C5"
     },
     {
       "id": "PR-RUNTIME-014",
@@ -342,11 +343,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Same record. The id must stay a free-form string; provider ids are not UUIDs.",
       "verification_method": "unit",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-043"
+      "implemented_by_task": "T-M2-043",
+      "rework": true
     },
     {
       "id": "PR-RUNTIME-017",
@@ -364,11 +366,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five literals.",
       "verification_method": "unit - exact string comparison per kind",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-043"
+      "implemented_by_task": "T-M2-043",
+      "rework": true
     },
     {
       "id": "PR-RUNTIME-018",
@@ -386,12 +389,13 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: SF Symbols cannot ship on Windows. The port keeps the five-way mapping and, under OD-0010, shows for each identifier its Lucide icon (ISC licence) from the published symbol-by-symbol table, one for one, holding the same semantic per kind; the glyph artwork is an owner-approved deviation, not parity.",
       "verification_method": "unit for the mapping; capture comparison for the glyph is blocked by UNK-0003; the Lucide glyph for each identifier is checked against the published OD-0010 table",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-043",
-      "b2_change": "No source change: Requests.swift is the same at B1 and B2. Owner ruling applied in this refresh: OD-0010 (Lucide) closes the icon half of UNK-0007 (unknowns.md marks UNK-0007 RESOLVED), so depends_on_unknown is cleared and windows_path names the Lucide table."
+      "b2_change": "No source change: Requests.swift is the same at B1 and B2. Owner ruling applied in this refresh: OD-0010 (Lucide) closes the icon half of UNK-0007 (unknowns.md marks UNK-0007 RESOLVED), so depends_on_unknown is cleared and windows_path names the Lucide table.",
+      "rework": true
     },
     {
       "id": "PR-RUNTIME-019",
@@ -408,17 +412,19 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four roles. Note that approveAlways does NOT count as approve for the plan-state write; reproduce that.",
       "verification_method": "unit - one case per role",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-043"
+      "implemented_by_task": "T-M2-043",
+      "rework": true
     },
     {
       "id": "PR-RUNTIME-020",
       "title": "QuestionRequest holds an id and a list of questions, each with seven fields",
       "source_evidence": [
-        "DroppyCode/Core/Models/Requests.swift:56-77 - struct Question { id: String, header: String, prompt: String, choices: [Choice], allowsMultiple: Bool, allowsOther: Bool, isSecret: Bool }; struct Choice { label: String, detail: String? }; QuestionRequest { id: String, questions: [Question] }"
+        "DroppyCode/Core/Models/Requests.swift:55-74 - struct Question { id: String, header: String, prompt: String, choices: [Choice], allowsMultiple: Bool, allowsOther: Bool, isSecret: Bool }; struct Choice { label: String, detail: String? }; QuestionRequest { id: String, questions: [Question] }",
+        "DroppyCode/App/Views/Composer/QuestionTab.swift:231-232 - if question.isSecret { SecureField(\"Your answer\", text: binding)"
       ],
       "preconditions": "A provider asks the user to choose or type an answer.",
       "action": "The adapter emits .question(QuestionRequest) (PR-RUNTIME-091).",
@@ -427,13 +433,15 @@
       "persistence": "Not persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same records. isSecret must map to a masked input, and the value must not be written to any log.",
+      "windows_path": "Same records. isSecret maps to a masked input, as QuestionTab.swift:231-232 shows it in a SecureField(\"Your answer\"). The pinned source states no logging rule for the value, so none is part of this record.",
       "verification_method": "unit",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-043"
+      "implemented_by_task": "T-M2-043",
+      "spec_fix": "Evidence cited Requests.swift:56-77, but the pinned file has 74 lines -> the doc comment is :55 and QuestionRequest spans :56-74 (Requests.swift at 1fbf81e, wc -l 74); the Windows path said the isSecret value must not be written to any log -> the source only masks the input (QuestionTab.swift:231-232 SecureField(\"Your answer\", text: binding)) and states no logging rule, so that clause is removed as unsupported parity.",
+      "rework": true
     },
     {
       "id": "PR-RUNTIME-021",
@@ -2814,7 +2822,8 @@
       "title": "A head stopped for its budget starts one more turn carrying the final-report note",
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2436-2447 - if headBudgetSpent { headBudgetSpent = false; if status == .interrupted, thread?.hydra?.kind == .droppy { headReportsNext = true; autoStartedTurnToken &+= 1; Task { await ensureLoaded(); await startTurn(text: HydraBudget.finalNote, attachments: []) }; continues = true } }",
-        "porting/extracts/threadruntime-providerevent-dispatch.md section 6 step 24 - HydraBudget.finalNote at Hydra.swift:200 is verbatim: \"[Droppy Code] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.\""
+        "porting/extracts/threadruntime-providerevent-dispatch.md section 6 step 24 - HydraBudget.finalNote at Hydra.swift:200 is verbatim: \"[Droppy Code] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.\"",
+        "DroppyCode/Core/Models/Hydra.swift:200 static let finalNote = \"[Droppy Code] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.\""
       ],
       "preconditions": "The budget task fired and interrupted this turn, and this runtime is a Droppy-run head.",
       "action": "The budget block runs.",
@@ -2825,12 +2834,17 @@
       "persistence": "The note is stored as an ordinary user message.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "The note text is verbatim including the bracketed product name; it is a prompt the model reads.",
+      "windows_path": "The note text is verbatim except for the bracketed product name, which OD-0012 F1 turns into \"[Marrow]\": \"[Marrow] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.\" It is a prompt the model reads.",
       "verification_method": "integration test with an injected clock",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Core/Models/Hydra.swift:200 finalNote = \"[Droppy Code] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.\"",
+        "port": "\"[Marrow] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.\""
+      }
     },
     {
       "id": "PR-RUNTIME-127",
@@ -4302,7 +4316,8 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/ThreadRuntime.swift:3341-3349 watchCommand - guard commandTrees[id] == nil, ShellCommandKind.mayWriteFiles(call.title), repositoryGit != nil, let before = treeBeforeCommand() else { return }; commandTrees[id] = Task<String?, Never> { before }; settledTree = nil; treeEpoch += 1",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:3351-3362 treeBeforeCommand - the settled tree when its epoch still matches, else the latest tree any command of this turn finished capturing, else the current turn's baseCheckpoint",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:3328-3340 - the comment explaining that nothing is captured as the command starts because a snapshot started then raced the command and usually already held its write"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3328-3340 - the comment explaining that nothing is captured as the command starts because a snapshot started then raced the command and usually already held its write",
+        "DroppyCode/Core/Support/Shell.swift:154-162, :198-204 - gitReaders includes \"remote\", \"tag\" and \"config\"; searchActions = [\"-delete\", \"-exec\", \"-execdir\", \"-ok\", \"-okdir\", \"-x\", \"-X\"]; find and fd read unless an argument is in searchActions; sort reads unless an argument hasPrefix(\"-o\"); git reads when its first non-dash argument is in gitReaders"
       ],
       "preconditions": "A command tool started.",
       "action": "watchCommand runs.",
@@ -4311,11 +4326,17 @@
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "ShellCommandKind.mayWriteFiles decides writability from the command title; port_impacts.md entry 88 fixes its table at 52 readers, 25 and 15, with anything not in readers making the whole command a writer and a chain with one writing part writing.",
+      "windows_path": "ShellCommandKind.mayWriteFiles decides writability from the command title; port_impacts.md entry 88 fixes its table at 52 readers, 25 and 15, with anything not in readers making the whole command a writer and a chain with one writing part writing. OD-0008 A8, applied as ED-060, corrects the table narrowly and the watch uses the corrected table: find is a writer with -delete, -exec, -execdir, -ok, -okdir, -fprint, -fprint0, -fprintf or -fls; fd with -x / --exec or -X / --exec-batch (searchActions stays one set shared by find and fd, Shell.swift:198-199, so each addition applies to both); sort with -o in any spelling, including --output and --output=; git config unless every argument is a read form (--get, --get-all, --get-regexp, --get-urlmatch, --list / -l, --show-origin, --show-scope, --name-only, --null / -z, --file / -f with only read forms, --global/--system/--local/--worktree with only read forms); git tag unless it only lists (no arguments, -l / --list, -n, --contains, --points-at, --merged, --no-merged, --sort, --format); git remote for add, remove / rm, rename, set-url, set-head, set-branches, prune and update, while bare git remote, -v and show / get-url stay readers. Everything else in the table is reproduced verbatim.",
       "verification_method": "integration test against a real repository",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "depends_on_unknown": "UNK-0005"
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0008 A8 (ED-060)",
+        "upstream": "Shell.swift:162 searchActions lacks -fprint, -fprint0, -fprintf, -fls, --exec and --exec-batch; :200-201 sort counts as a reader unless an argument hasPrefix(\"-o\"), so --output= reads; :154-159 gitReaders holds config, tag and remote, so git config user.email x, git tag v1 and git remote add origin url read, and such commands are never watched.",
+        "port": "Those commands count as writing (the exact write actions are ED-060's), so watchCommand watches them; every other entry of the table is unchanged."
+      },
+      "resolved_unknown": "UNK-0005 resolved by OD-0008 C5"
     },
     {
       "id": "PR-RUNTIME-192",
@@ -6023,10 +6044,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not port LimitHandoff, AutoContinue.handOff or LimitResumeBadge (PR-CHAT-011, dead_code.md entries 21 and 22). If upstream ever instantiates LimitResumeBadge, the text described here is where to start.",
       "verification_method": "static check - no Windows code path produces the hand-off text, and a usage-limit notice renders as a plain NoticeRow (PR-CHAT-011)",
-      "status": "SPECIFIED",
+      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "not_applicable": "ED-061: porting/dead_code.md entries 21 (LimitResumeBadge.swift, never instantiated) and 22 (AutoContinue.cancel and handOff, called only from that view); LimitHandoff.text has no other caller, so the pinned build never produces the hand-off text."
     },
     {
       "id": "PR-RUNTIME-264",
@@ -6061,7 +6083,7 @@
       "role": "row",
       "exact_text": "The message is whatever the source appended. The info-level messages this area produces are exactly: \"Nothing to compact yet.\", \"Compacting context.\", and the usage-limit wait line \"Usage limit reached. Continuing automatically at <time>.\"",
       "geometry": "HStack alignment .firstTextBaseline, spacing 8. For .info all four paddings are 0: leading 0, trailing 0, vertical 0. frame maxWidth .infinity, alignment .leading. Background .clear, in a rounded rect of corner radius TimelineMetrics.pillRadius = 18 (drawn but invisible).",
-      "typography": "font .chat(.callout) on the whole HStack; no weight override. Font.chat(.callout) is Font.system(.callout) with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation.",
+      "typography": "font .chat(.callout) on the whole HStack; no weight override. Font.chat(.callout) is Font.system(.callout) with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
       "colors": "Icon foregroundStyle .secondary; text foregroundStyle .secondary for .info. Background .clear.",
       "states": [
         "No hover, pressed, disabled or selected states. Text is selectable (.textSelection(.enabled)). Empty and loading states do not apply: the row exists only once appended."
@@ -6085,7 +6107,7 @@
       "role": "row",
       "exact_text": "This record owns the ROW. The three warning messages this area produces each have their own record: UI-RUNTIME-031 (the provider lost the conversation), UI-RUNTIME-032 (a compact failed) and UI-RUNTIME-033 (a usage limit with no reset time).",
       "geometry": "HStack alignment .firstTextBaseline, spacing 8. padding leading 12, trailing 14, vertical 8. frame maxWidth .infinity, alignment .leading. Background in a continuous rounded rect of corner radius 18.",
-      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation.",
+      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
       "colors": "Icon foregroundStyle Chrome.warning; text foregroundStyle .primary; background Chrome.warning.opacity(0.1). Chrome.warning is the theme's own warning colour, deliberately not the system orange, and resolves per theme through the Chrome token set.",
       "states": [
         "No interactive states. Text selectable."
@@ -6108,7 +6130,7 @@
       "role": "row",
       "exact_text": "This record owns the ROW. The five error messages this area produces each have their own record: UI-RUNTIME-034 (a ProviderError), UI-RUNTIME-035 (a provider turn error), UI-RUNTIME-036 (the agent stopped unexpectedly), UI-RUNTIME-037 (the stopped message was kept) and UI-RUNTIME-038 (files could not be restored after a revert).",
       "geometry": "Identical to the warning row: spacing 8, padding leading 12, trailing 14, vertical 8, corner radius 18, frame maxWidth .infinity alignment .leading.",
-      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation.",
+      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
       "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1). Chrome.danger is the theme's own failure colour rather than the system red.",
       "states": [
         "No interactive states. Text selectable."
@@ -6131,8 +6153,8 @@
       "role": "label",
       "exact_text": "\"Worked for <duration>\" for a completed or still-running turn, \"Stopped after <duration>\" for an interrupted turn, \"Failed after <duration>\" for a failed turn. The duration is formatted by RelativeTime.duration(summary.duration).",
       "geometry": "Rendered only when the turn produced no reply; otherwise the duration lives on the reply's hover line instead. frame maxWidth .infinity, alignment .leading. No padding of its own.",
-      "typography": "font .chat(.caption), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation.",
-      "colors": "foregroundStyle Chrome.secondaryText, which is Chrome.primaryText.opacity(0.7) (UI/Chrome/Chrome.swift:79).",
+      "typography": "font .chat(.caption), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .caption is 10 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:54), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
+      "colors": "foregroundStyle Chrome.secondaryText, which is Chrome.primaryText.opacity(0.7) (UI/Chrome/Chrome.swift:79). ED-062: secondaryText is primaryText at 0.7, as B2 states; ED-051's 1.6.0 literal no longer applies to this token.",
       "states": [
         "Hidden entirely when hasReply is true."
       ],
@@ -6155,7 +6177,7 @@
       "role": "label",
       "exact_text": "One of exactly five: \"Run this command?\", \"Apply these changes?\", \"Allow this action?\", \"Grant extra access?\", \"Ready to build this plan?\"",
       "geometry": "HStack spacing 8 with a trailing Spacer, inside a VStack(alignment: .leading, spacing: 10) with padding 16 all round; the card is a glass effect in a continuous rounded rect of corner radius 20.",
-      "typography": "font .headline for the text (the system headline, not the .chat() font). The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation.",
+      "typography": "font .headline for the text (the system headline, not the .chat() font). The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .headline is 13 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:51), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
       "colors": "Icon foregroundStyle Chrome.warning; card glass tint Chrome.warning.opacity(0.1), so a theme recolours the symbol and the card together.",
       "states": [
         "The card exists only while the request is in runtime.approvals; it disappears on resolve, on .requestResolved, on .exited and on finishTurn."
@@ -6200,8 +6222,8 @@
       "role": "label",
       "exact_text": "Approve the plan above to let the agent start building.",
       "geometry": "Second child of the card's VStack(alignment: .leading, spacing: 10).",
-      "typography": "font .callout.",
-      "colors": "foregroundStyle Chrome.secondaryText, which is Chrome.primaryText.opacity(0.7) (UI/Chrome/Chrome.swift:79).",
+      "typography": "font .callout. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
+      "colors": "foregroundStyle Chrome.secondaryText, which is Chrome.primaryText.opacity(0.7) (UI/Chrome/Chrome.swift:79). ED-062: secondaryText is primaryText at 0.7, as B2 states; ED-051's 1.6.0 literal no longer applies to this token.",
       "states": [
         "Shown only when request.kind is .plan; the other kinds show request.title instead."
       ],
@@ -6222,7 +6244,7 @@
       "role": "label",
       "exact_text": "request.title, verbatim from the provider.",
       "geometry": "padding 10 all round; frame maxWidth .infinity, alignment .leading; background .quaternary.opacity(0.5) in a continuous rounded rect of corner radius 10; lineLimit 8.",
-      "typography": "font .system(.callout, design: .monospaced).",
+      "typography": "font .system(.callout, design: .monospaced). Size (ED-059): .callout is 12 pt in the monospaced face (Cascadia Mono, OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
       "colors": "Background .quaternary at 0.5 opacity; text inherits the card's primary colour.",
       "states": [
         "Truncated after 8 lines."
@@ -6713,7 +6735,7 @@
       "role": "row",
       "exact_text": "Exactly: \"<provider display name> no longer has this conversation. It starts a new one here, without the messages above.\" The substitution is thread.provider.displayName.",
       "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
-      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation.",
+      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
       "colors": "Icon foregroundStyle Chrome.warning; text foregroundStyle .primary; background Chrome.warning.opacity(0.1).",
       "states": [
         "No interactive states. Text selectable."
@@ -6734,7 +6756,7 @@
       "role": "row",
       "exact_text": "The localizedDescription of the thrown error, with no wrapper text of Droppy Code's own.",
       "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
-      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation.",
+      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
       "colors": "Icon foregroundStyle Chrome.warning; text foregroundStyle .primary; background Chrome.warning.opacity(0.1).",
       "states": [
         "No interactive states. Text selectable."
@@ -6755,7 +6777,7 @@
       "role": "row",
       "exact_text": "Exactly: \"Usage limit reached, and the provider did not say when it resets. Send a message to continue.\"",
       "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
-      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation.",
+      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
       "colors": "Icon foregroundStyle Chrome.warning; text foregroundStyle .primary; background Chrome.warning.opacity(0.1).",
       "states": [
         "No interactive states. Text selectable."
@@ -6776,7 +6798,7 @@
       "role": "row",
       "exact_text": "The description of the ProviderError, exactly as PR-RUNTIME-009 to PR-RUNTIME-012 record it.",
       "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
-      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation.",
+      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
       "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
       "states": [
         "No interactive states. Text selectable."
@@ -6797,7 +6819,7 @@
       "role": "row",
       "exact_text": "The provider's own error text, carried by .turnCompleted(status:error:) and shown with no wrapper of Droppy Code's own.",
       "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
-      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation.",
+      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
       "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
       "states": [
         "No interactive states. Text selectable."
@@ -6818,7 +6840,7 @@
       "role": "row",
       "exact_text": "Exactly: \"<provider display name> stopped unexpectedly.\" with the fallback name \"The agent\" when the thread does not resolve, giving \"The agent stopped unexpectedly.\" This text is used only when the exit carried no error of its own; an exit error is shown instead, unwrapped.",
       "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
-      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation.",
+      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
       "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
       "states": [
         "No interactive states. Text selectable."
@@ -6839,7 +6861,7 @@
       "role": "row",
       "exact_text": "Exactly: \"The stopped message was kept: \" followed by the error's localizedDescription.",
       "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
-      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation.",
+      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
       "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
       "states": [
         "No interactive states. Text selectable."
@@ -6860,7 +6882,7 @@
       "role": "row",
       "exact_text": "Exactly: \"Conversation reverted, but files could not be restored: \" followed by the error's localizedDescription.",
       "geometry": "The warning/error notice pill recorded in UI-RUNTIME-002 and UI-RUNTIME-003: HStack alignment .firstTextBaseline spacing 8, padding leading 12, trailing 14, vertical 8, frame maxWidth .infinity alignment .leading, continuous rounded rect of corner radius 18.",
-      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation.",
+      "typography": "font .chat(.callout), with no chat zoom. The port's text face is Inter (OD-0009) at the source's text style; where its wrap points differ from the macOS face's, that is the named OD-0009 deviation. Size (ED-059): .callout is 12 pt in Inter (OD-0009), from upstream's text-style table (B1:DroppyCode/UI/Common/ChatZoom.swift:52), fixed per style and scaled only by the app zoom (UI/Common/AppZoom.swift); visual size parity is UNVERIFIED under OD-0001.",
       "colors": "Icon foregroundStyle Chrome.danger; text foregroundStyle .primary; background Chrome.danger.opacity(0.1).",
       "states": [
         "No interactive states. Text selectable."

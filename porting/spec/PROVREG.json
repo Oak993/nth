@@ -382,7 +382,7 @@
         "Not found on PATH and there are no fallback candidates for codex, so executable(for:) returns nil and the provider reads as not installed."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATH is split on ';' and each candidate is tried against PATHEXT (codex.cmd, codex.exe) instead of the POSIX execute-bit test. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "PATH is split on ';' and each candidate is tried against PATHEXT (codex.cmd, codex.exe) instead of the POSIX execute-bit test. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture over a synthetic PATH",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -405,7 +405,7 @@
         "Not found: there are no fallback candidates for claude, executable(for:) returns nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATHEXT-aware lookup, PATH split on ';'. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "PATHEXT-aware lookup, PATH split on ';'. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -428,7 +428,7 @@
         "Not found: returns nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -451,7 +451,7 @@
         "Not found: returns nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -475,7 +475,7 @@
         "Not found: returns nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -568,7 +568,7 @@
         "Not found: returns nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -591,7 +591,7 @@
         "Not found: returns nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -614,7 +614,7 @@
         "Neither PATH nor the gh fallback yields an executable: returns nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -663,7 +663,7 @@
         "Nothing found: returns nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -959,7 +959,7 @@
       ],
       "preconditions": "Command Code is installed and not signed in. Its section is expanded: the Sign in row appears only when the provider is not signed in (SettingsView.swift:638-641), and with no header click such a section is collapsed, so the user first clicks the section header (UI-PROVREG-045).",
       "action": "The user clicks the Command Code section header to expand it (UI-PROVREG-045), then clicks Login in that section, or reads the API key row detail.",
-      "expected_result": "A terminal opens running exactly \"cmd login\". The API key row detail reads exactly: Instead of `cmd login`: a Studio key from commandcode.ai/studio, stored in your Keychain and handed to the CLI.",
+      "expected_result": "A terminal opens running exactly \"cmd login\". The API key row detail reads exactly (OD-0012 G2): Instead of `cmd login`: a Studio key from commandcode.ai/studio, stored in your Credential Manager and handed to the CLI.",
       "side_effects": [
         "Writes a login script file and opens it."
       ],
@@ -968,13 +968,17 @@
         "Script write failure opens nothing, silently."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The command string is kept verbatim including the backticks in the detail text. The launcher must resolve the Command Code CLI rather than the Windows interpreter (see PR-PROVREG-026). Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
-      "verification_method": "interaction test plus capture comparison of the detail string",
-      "status": "DISCOVERED",
+      "windows_path": "The command string is kept verbatim including the backticks in the detail text. The launcher must resolve the Command Code CLI rather than the Windows interpreter (see PR-PROVREG-026). Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed. The command string \"cmd login\" is not reworded: PR-PROVREG-026 is settled by PA-0016 (cmd stays a valid invocation name, with executable identity validated), and OD-0008 B6 keeps \"Run `cmd login` in Terminal\" verbatim. OD-0012 G2: the word Keychain in this detail becomes Credential Manager, the store the port uses (PR-PROVREG-088, 239). How a Windows Login button launches the command is PR-PROVREG-233.",
+      "verification_method": "interaction test plus capture comparison of the detail string against the OD-0012 G2 wording",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "open_question": "Whether the detail sentence that quotes `cmd login` verbatim is shown unchanged on Windows, where that command line means something else. The string is a source fact; whether it is shown as-is depends on the resolution of PR-PROVREG-026. Separately: Whether the provider API key row keeps the word Keychain on Windows. Its two detail strings (SettingsView.swift:717 \"Stored in your Keychain. Get one at ...\" and :718 \"... stored in your Keychain and handed to the CLI.\") are not among the five strings OD-0008 B3 rewords, which are the MCP strings of Q109 (B2 MCPSettingsPage.swift:103, :814 (two arms), :836, :880). No ruling covers them, so they stay verbatim, but the port stores these keys in Windows Credential Manager (PR-PROVREG-088, 089, 239), so on Windows the sentence names a store the app does not use. Needs an owner ruling on the wording.",
-      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded."
+      "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded.",
+      "deviation": {
+        "decision": "OD-0012 G2",
+        "upstream": "SettingsView.swift:718 \"Instead of `\\(provider.loginCommand)`: a Studio key from \\(provider.apiKeySource ?? \"the provider dashboard\"), stored in your Keychain and handed to the CLI.\"",
+        "port": "Instead of `cmd login`: a Studio key from commandcode.ai/studio, stored in your Credential Manager and handed to the CLI."
+      }
     },
     {
       "id": "PR-PROVREG-040",
@@ -1774,20 +1778,24 @@
       ],
       "preconditions": "The section belongs to a provider with acceptsAPIKey true.",
       "action": "The API key row renders its detail line.",
-      "expected_result": "The four values are used verbatim. When apiKeySource is nil the literal fallback string is exactly \"the provider dashboard\". In the shipped build all four acceptsAPIKey providers have a non-nil source, so the fallback is never reached at runtime; it is nevertheless part of the string template.",
+      "expected_result": "The four values are used verbatim. When apiKeySource is nil the literal fallback string is exactly \"the provider dashboard\". In the shipped build all four acceptsAPIKey providers have a non-nil source, so the fallback is never reached at runtime; it is nevertheless part of the string template. On Windows the two templates read exactly (OD-0012 G2): \"Stored in your Credential Manager. Get one at SOURCE.\" for DeepSeek, Meta and Z.ai, and \"Instead of `LOGIN`: a Studio key from SOURCE, stored in your Credential Manager and handed to the CLI.\" for Command Code, where SOURCE is apiKeySource or the fallback and LOGIN is loginCommand.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
         "None."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Pure table plus the same string template.",
+      "windows_path": "Pure table plus the same string template, with Keychain reworded to Credential Manager under OD-0012 G2.",
       "verification_method": "unit on the table plus capture comparison of each of the four detail lines",
-      "status": "DISCOVERED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "open_question": "Whether the provider API key row keeps the word Keychain on Windows. Its two detail strings (SettingsView.swift:717 \"Stored in your Keychain. Get one at ...\" and :718 \"... stored in your Keychain and handed to the CLI.\") are not among the five strings OD-0008 B3 rewords, which are the MCP strings of Q109 (B2 MCPSettingsPage.swift:103, :814 (two arms), :836, :880). No ruling covers them, so they stay verbatim, but the port stores these keys in Windows Credential Manager (PR-PROVREG-088, 089, 239), so on Windows the sentence names a store the app does not use. Needs an owner ruling on the wording."
+      "deviation": {
+        "decision": "OD-0012 G2",
+        "upstream": "SettingsView.swift:717 \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\" and :718 \"Instead of `\\(provider.loginCommand)`: a Studio key from \\(provider.apiKeySource ?? \"the provider dashboard\"), stored in your Keychain and handed to the CLI.\"",
+        "port": "\"Stored in your Credential Manager. Get one at SOURCE.\" and \"Instead of `LOGIN`: a Studio key from SOURCE, stored in your Credential Manager and handed to the CLI.\""
+      }
     },
     {
       "id": "PR-PROVREG-072",
@@ -1812,7 +1820,8 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0005"
+      "depends_on_unknown": null,
+      "resolved_unknown": "UNK-0005 resolved by OD-0008 C5"
     },
     {
       "id": "PR-PROVREG-073",
@@ -2218,12 +2227,13 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0005",
+      "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 A6 and B3",
         "upstream": "apiKey(for:) reads the macOS Keychain lazily and, when the Keychain holds nothing, uses the UserDefaults plaintext fallback before the environment variable (AppSettings.swift:904-916, with the fallbacks read by keyFallbacks at :432-439 and passed to readKeys at :442-449).",
         "port": "The stored key comes from Windows Credential Manager only; with nothing there the environment variable is used, then the empty string. The Credential Manager store is OD-0008 B3; dropping the plaintext fallback read is OD-0008 A6."
-      }
+      },
+      "resolved_unknown": "UNK-0005 resolved by OD-0008 C5"
     },
     {
       "id": "PR-PROVREG-090",
@@ -2337,7 +2347,7 @@
         "Custom path set but unresolvable: nil, so the section shows Not installed and the Install row, even though a bare-name copy exists on PATH."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PLATFORM BOUNDARY: the is-a-path test must also accept backslash and a drive prefix, PATH must split on semicolon, and the execute-bit test must become a PATHEXT-aware existence test. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "PLATFORM BOUNDARY: the is-a-path test must also accept backslash and a drive prefix, PATH must split on semicolon, and the execute-bit test must become a PATHEXT-aware existence test. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture over a synthetic filesystem and PATH",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2366,8 +2376,9 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0005",
-      "open_question": "Where the gh CLI stores its data on Windows. The source names three Unix locations and gives no Windows equivalent, so the directory must be established by probing a real installation. Not resolvable from source."
+      "depends_on_unknown": null,
+      "open_question": "Where the gh CLI stores its data on Windows. The source names three Unix locations and gives no Windows equivalent, so the directory must be established by probing a real installation. Not resolvable from source.",
+      "resolved_unknown": "UNK-0005 resolved by OD-0008 C5"
     },
     {
       "id": "PR-PROVREG-096",
@@ -2386,7 +2397,7 @@
         "Nothing found: nil."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PLATFORM BOUNDARY: all five directories are Unix locations with no Windows meaning, and the \"cmd\" name collides with the Windows interpreter. The alternate-name list and its order are source facts and should be preserved; the directory list needs a probed Windows equivalent and must not be transliterated. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "PLATFORM BOUNDARY: all five directories are Unix locations with no Windows meaning, and the \"cmd\" name collides with the Windows interpreter. The alternate-name list and its order are source facts and should be preserved; the directory list needs a probed Windows equivalent and must not be transliterated. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture asserting candidate ordering",
       "status": "DISCOVERED",
       "upstream_defect": null,
@@ -2415,8 +2426,9 @@
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0005",
-      "open_question": "The Windows equivalent of the six fixed absolute Unix paths in the Pi fallback list. The source gives none; a probed Windows list is needed."
+      "depends_on_unknown": null,
+      "open_question": "The Windows equivalent of the six fixed absolute Unix paths in the Pi fallback list. The source gives none; a probed Windows list is needed.",
+      "resolved_unknown": "UNK-0005 resolved by OD-0008 C5"
     },
     {
       "id": "PR-PROVREG-098",
@@ -2461,7 +2473,8 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0005"
+      "depends_on_unknown": null,
+      "resolved_unknown": "UNK-0005 resolved by OD-0008 C5"
     },
     {
       "id": "PR-PROVREG-100",
@@ -4150,7 +4163,8 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0005"
+      "depends_on_unknown": null,
+      "resolved_unknown": "UNK-0005 resolved by OD-0008 C5"
     },
     {
       "id": "PR-PROVREG-170",
@@ -4472,7 +4486,7 @@
       ],
       "preconditions": "The endpoint path returned nil.",
       "action": "The CLI fallback runs.",
-      "expected_result": "Exactly that six-token argument vector, in that order, in the system temporary directory. Exactly those two request_id literals, which the app matches on when routing responses, so they are a contract with the app's own reader and not just labels. The process is terminated twice, once by the watchdog path and once by the defer. A start failure returns nil.",
+      "expected_result": "Exactly that six-token argument vector, in that order, in the system temporary directory. Exactly two request_id literals, \"marrow-init\" for the initialize request and \"marrow-usage\" for the get_usage request (upstream \"droppy-code-init\" and \"droppy-code-usage\", renamed by OD-0012 F1), which the app matches on when routing responses, so they are a contract with the app's own reader and not just labels. The process is terminated twice, once by the watchdog path and once by the defer. A start failure returns nil.",
       "side_effects": [
         "One Claude CLI process for up to 20 seconds."
       ],
@@ -4482,12 +4496,17 @@
         "The stream ends without a usage response: nil."
       ],
       "cancellation": "Bounded by the 20 second watchdog which terminates the process; ending the process is what closes the message stream.",
-      "windows_path": "Same argv, ids, watchdog and double terminate. The working directory becomes the Windows temporary directory. TerminateProcess is the practical equivalent of the termination call.",
+      "windows_path": "Same argv, watchdog and double terminate. The two request ids are \"marrow-init\" and \"marrow-usage\" (OD-0012 F1), sent and matched as one pair. The working directory becomes the Windows temporary directory. TerminateProcess is the practical equivalent of the termination call.",
       "verification_method": "contract fixture with a scripted stream-json stand-in",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "PlanLimits.swift:274-281 sends request_id \"droppy-code-init\", then \"droppy-code-usage\" on its response, and routes responses on those two ids.",
+        "port": "The same exchange with request_id \"marrow-init\" and \"marrow-usage\"."
+      }
     },
     {
       "id": "PR-PROVREG-184",
@@ -5551,19 +5570,24 @@
       ],
       "preconditions": "At least one section was produced.",
       "action": "render runs.",
-      "expected_result": "The header line reads exactly: Project guidelines from DIRECTORY. They supplement the rules above; where they conflict, the Droppy Code rules take priority. Sections are joined by exactly two newlines. Each included file is introduced by three hyphens, a space, the name, a space and three hyphens.",
+      "expected_result": "The header line reads exactly: Project guidelines from DIRECTORY. They supplement the rules above; where they conflict, the Marrow rules take priority. Sections are joined by exactly two newlines. Each included file is introduced by three hyphens, a space, the name, a space and three hyphens.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
         "No sections at all: nil, so no guidance block is added to the prompt."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "DEVIATION NOTE: the sentence contains the product name \"Droppy Code\". The rename to Marrow is an owner-approved deviation limited to product identity, so this string is one of the places where the approved rename applies; the sentence is otherwise verbatim. The directory is a Windows path.",
+      "windows_path": "OD-0012 F1: the product name in the sentence is \"Marrow\" in place of \"Droppy Code\"; the sentence is otherwise verbatim. The directory is a Windows path.",
       "verification_method": "capture comparison of the produced prompt plus unit",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "ProjectGuidance.swift:100 \"Project guidelines from \\(directory). They supplement the rules above; where they conflict, the Droppy Code rules take priority.\"",
+        "port": "Project guidelines from DIRECTORY. They supplement the rules above; where they conflict, the Marrow rules take priority."
+      }
     },
     {
       "id": "PR-PROVREG-230",
@@ -5655,13 +5679,18 @@
         "Directory creation or file write fails: nothing opens and the user sees no feedback."
       ],
       "cancellation": "not cancellable once the terminal opens; the app does not track the shell.",
-      "windows_path": "PLATFORM BOUNDARY: the zsh shebang, the .command extension, the POSIX permission bits and the workspace open verb all have no Windows equivalent. The Windows build must launch the command in a Windows terminal, and the per-CLI file naming rule should be preserved if a script file is used at all. The token derivation rule is a source fact and must be kept if file names are kept.",
+      "windows_path": "PLATFORM BOUNDARY: the zsh shebang, the .command extension, the POSIX permission bits and the workspace open verb all have no Windows equivalent. The Windows build must launch the command in a Windows terminal, and the per-CLI file naming rule should be preserved if a script file is used at all. The token derivation rule is a source fact and must be kept if file names are kept. OD-0012 F1: the temporary folder is named \"marrow-login\" in place of \"droppy-code-login\".",
       "verification_method": "interaction test asserting the derived file name and the launched command",
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "open_question": "What a Windows Login button launches. The zsh shebang, the .command extension, the POSIX permission bits and the workspace open verb all have no Windows equivalent, and the source names no alternative. Needs an owner decision on the Windows terminal launch, after which the per-CLI file naming rule can be kept or dropped."
+      "open_question": "What a Windows Login button launches. The zsh shebang, the .command extension, the POSIX permission bits and the workspace open verb all have no Windows equivalent, and the source names no alternative. Needs an owner decision on the Windows terminal launch, after which the per-CLI file naming rule can be kept or dropped. Neither OD-0008 nor OD-0012 rules on it: OD-0012 G4 names Windows Terminal only for the \"Open in\" menu, and OD-0008 C5 only for terminal tabs and project scripts. Sibling records specify the Login launch differently without a ruling (PR-WIN-085: Windows Terminal, else the console host; PR-SETTINGS-231: the user's configured terminal or Windows Terminal), so the ruling must settle all three records.",
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "Components.swift:121 creates the folder \"droppy-code-login\" in the system temporary directory.",
+        "port": "When the Windows launch uses a temporary folder (see open_question), the folder is \"marrow-login\" in the Windows temporary directory."
+      }
     },
     {
       "id": "PR-PROVREG-234",
@@ -5760,10 +5789,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Omit the guard entirely.",
       "verification_method": "control-flow review of the ported function",
-      "status": "SPECIFIED",
+      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
       "upstream_defect": "7",
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "not_applicable": "ED-061: porting/dead_code.md item 3 proves the guard in refreshPlanLimits can never fail (control-flow trace); at B2 it is ProviderRegistry.swift:627, after exposesLimits and the loading flag are required at :607-608 and the only insertion into loadingLimits (:616) sits in the API-key branch that returns at :625. Upstream never executes its failure arm, so it is neither implemented nor counted as missing."
     },
     {
       "id": "PR-PROVREG-238",
@@ -5783,10 +5813,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Omit. If a capture mode is ever added to the Windows build, the split between redirected and non-redirected keys would have to be decided afresh.",
       "verification_method": "review against the dead-code register",
-      "status": "SPECIFIED",
+      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
       "upstream_defect": "45",
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "not_applicable": "ED-061: porting/dead_code.md item 44 records the capture-mode short circuits as user-unreachable and not to be ported. It cites B1 lines; at B2 they are ProviderRegistry.swift:165, :179, :213, :598, :729 and :763 (CaptureRun.isEnabled), :164 and :758 (CaptureRun.defaults), and APIKeychain.swift:14."
     },
     {
       "id": "PR-PROVREG-239",
@@ -5802,29 +5833,28 @@
       ],
       "preconditions": "The user has edited one of the four API key fields (DeepSeek, Meta, Z.ai, Command Code) and the protected-store write for it has returned.",
       "action": "The port persists the edited key.",
-      "expected_result": "Marrow (OD-0008 A6): the key is trimmed of whitespace and newlines and written only to Windows Credential Manager (OD-0008 B3). When that write fails, nothing is written anywhere else, the key never reaches disk in plain text, and the failure is shown to the user. When the write succeeds, or the field is emptied (an empty key deletes the credential and counts as stored, as upstream APIKeychain.swift:24-27 does), any value under the four legacy settings keys deepseekAPIKey, metaAPIKey, zaiAPIKey and commandcodeAPIKey is removed, as upstream does on success. The typed key stays in the in-memory input for the rest of the session, as upstream reads the in-memory input (AppSettings.swift:904-910), and is gone after relaunch when the store refused it.",
+      "expected_result": "Marrow (OD-0008 A6): the key is trimmed of whitespace and newlines and written only to Windows Credential Manager (OD-0008 B3). When that write fails, nothing is written anywhere else, the key never reaches disk in plain text, and the failure is shown under the key field (UI-PROVREG-038) as exactly: Credential Manager did not accept this key, so it was not saved. That wording is OD-0012 E5. When the write succeeds, or the field is emptied (an empty key deletes the credential and counts as stored, as upstream APIKeychain.swift:24-27 does), any value under the four legacy settings keys deepseekAPIKey, metaAPIKey, zaiAPIKey and commandcodeAPIKey is removed, as upstream does on success. The typed key stays in the in-memory input for the rest of the session, as upstream reads the in-memory input (AppSettings.swift:904-910), and is gone after relaunch when the store refused it.",
       "side_effects": [
         "One Credential Manager write, or a delete for an emptied key.",
-        "On a refused write: a user-visible failure; no settings, file or registry write carries the key."
+        "On a refused write: the line \"Credential Manager did not accept this key, so it was not saved.\" under the key field; no settings, file or registry write carries the key."
       ],
       "persistence": "Windows Credential Manager only. The legacy settings keys deepseekAPIKey, metaAPIKey, zaiAPIKey and commandcodeAPIKey are only ever removed, never written.",
       "failure_cases": [
-        "Credential Manager refuses the write: nothing is stored and the failure is shown. The text and placement of that message are defined by neither the source nor the ruling and must be specified before implementation.",
-        "Credential Manager is unavailable altogether: every key edit fails the same way; there is no fallback store."
+        "Credential Manager refuses the write: nothing is stored and \"Credential Manager did not accept this key, so it was not saved.\" is shown under the key field (OD-0012 E5).",
+        "Credential Manager is unavailable altogether: every key edit fails the same way, with the same line; there is no fallback store."
       ],
       "cancellation": "not cancellable",
       "windows_path": "The port's secret store over Windows Credential Manager (OD-0008 B3), with no fallback writer of any kind. The clearing half (remove the legacy settings value after a successful store) is kept.",
-      "verification_method": "unit with a refusing secret store asserting that no settings, file or registry write contains the key and that a user-visible failure is raised; plus a unit asserting the legacy settings value is removed after a successful write and after clearing",
-      "status": "DISCOVERED",
+      "verification_method": "unit with a refusing secret store asserting that no settings, file or registry write contains the key and that the line \"Credential Manager did not accept this key, so it was not saved.\" is shown under the key field; plus a unit asserting the legacy settings value is removed after a successful write and after clearing",
+      "status": "SPECIFIED",
       "upstream_defect": "NEW, not in upstream_defects.md: upstream writes a provider API key to UserDefaults in plain text whenever the Keychain refuses the write (AppSettings.swift:371, :382, :395, :406 through storeAPIKeyFallback at :485-494). Both copies are trimmed (APIKeychain.swift:23, AppSettings.swift:488), correcting an earlier claim in this record that the mirror was untrimmed.",
       "depends_on_unknown": null,
       "blocked_by": null,
       "deviation": {
-        "decision": "OD-0008 A6",
-        "upstream": "Each API key input's didSet stores the key with setAPIKey and, when the Keychain refuses it, storeAPIKeyFallback writes the trimmed key in plain text to UserDefaults under deepseekAPIKey, metaAPIKey, zaiAPIKey or commandcodeAPIKey, telling the user nothing (AppSettings.swift:367-408, :485-494; APIKeychain.swift:19-40).",
-        "port": "The key is written only to Windows Credential Manager; a refused write stores nothing anywhere and shows the failure; a successful write or a cleared key removes any legacy plaintext value."
-      },
-      "open_question": "The text and placement of the failure message OD-0008 A6 requires when Credential Manager refuses a key. The ruling (BLK-0006: \"when protected storage refuses an API key the failure is shown and nothing is stored\") gives neither, and upstream shows nothing on this path, so there is no source string to reproduce. The nearest upstream wording is the MCP editor's save failure (MCPSettingsPage.swift:880 \"The Keychain could not save a value. Keep this editor open and try again.\", reworded under OD-0008 B3), but no ruling extends it to provider keys. Needs an owner ruling before implementation."
+        "decision": "OD-0008 A6; OD-0012 E5",
+        "upstream": "Each API key input's didSet stores the key with setAPIKey and, when the Keychain refuses it, storeAPIKeyFallback writes the trimmed key in plain text to UserDefaults under deepseekAPIKey, metaAPIKey, zaiAPIKey or commandcodeAPIKey, telling the user nothing (AppSettings.swift:367-408, :485-494; APIKeychain.swift:19-40). Upstream has no text for this path.",
+        "port": "The key is written only to Windows Credential Manager; a refused write stores nothing anywhere and shows the failure; a successful write or a cleared key removes any legacy plaintext value. The failure reads exactly \"Credential Manager did not accept this key, so it was not saved.\", under the key field (OD-0012 E5)."
+      }
     },
     {
       "id": "PR-PROVREG-240",
@@ -6266,7 +6296,7 @@
       "exact_text": "Version VERSION",
       "geometry": "Second line of the same VStack, spacing 2 below the summary.",
       "typography": "font .system(size: 11), regular weight.",
-      "colors": "foregroundStyle Chrome.secondaryText, which is Chrome.primaryText (the AppKit labelColor) at opacity 0.7 (Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`).",
+      "colors": "foregroundStyle Chrome.secondaryText, which is Chrome.primaryText (the AppKit labelColor) at opacity 0.7 (Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), as ED-062 pins it at B2, superseding ED-051.",
       "states": [
         "shown only when status.version is non-nil AND the provider is not API-key based",
         "hidden for deepseek, meta and zai even though they carry the version string \"API\"",
@@ -6290,7 +6320,7 @@
       "exact_text": "Native API · HOST",
       "geometry": "Occupies the same slot as the Version sub-line; the two are mutually exclusive branches of one if-else.",
       "typography": "font .system(size: 11), regular weight.",
-      "colors": "foregroundStyle Chrome.secondaryText.",
+      "colors": "foregroundStyle Chrome.secondaryText. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "shown only when the provider is API-key based AND status.apiKeyConfigured is true AND apiHost is non-nil",
         "so it appears for DeepSeek, Meta and Z.ai once a key is stored, and never for Command Code because its apiHost is nil",
@@ -6388,8 +6418,8 @@
       "role": "label",
       "exact_text": "Plan usage limits | Plan usage limits · PLAN",
       "geometry": "First row of a VStack with spacing 0. The header is an HStack with spacing 8 holding the label, a Spacer with minLength 8, and optionally the spinner.",
-      "typography": "font .system(.body), regular weight: the body text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 13 points.",
-      "colors": "foregroundStyle Chrome.secondaryText.",
+      "typography": "font .system(.body), regular weight: the body text style, which the port sets at 13 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 13 points.",
+      "colors": "foregroundStyle Chrome.secondaryText. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "with a plan name the text is \"Plan usage limits\", a space, U+00B7, a space, then the plan name",
         "with no plan name it is exactly \"Plan usage limits\""
@@ -6434,7 +6464,7 @@
       "role": "label",
       "exact_text": "5-hour limit | Weekly · all models | Extra usage | Daily | Weekly | Monthly | Usage limit | N-day limit | N-hour limit | Premium requests | Chat messages | Code completions | Monthly · MCP tools | GROUP · MODEL",
       "geometry": "First line of the row, inside an HStack with spacing 12, followed by a Spacer with minLength 8. The row itself is a VStack with alignment leading and spacing 8, and each row carries padding top 14 from the container.",
-      "typography": "font .system(.body), regular weight, lineLimit 1: the body text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 13 points.",
+      "typography": "font .system(.body), regular weight, lineLimit 1: the body text style, which the port sets at 13 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 13 points.",
       "colors": "foregroundStyle Chrome.primaryText.",
       "states": [
         "truncates to one line",
@@ -6458,8 +6488,8 @@
       "role": "label",
       "exact_text": "Resets in H hr M min | Resets in M min | Resets WEEKDAY H:MM AM | Resets MMM D",
       "geometry": "Between the title Spacer and the percentage, inside the same HStack with spacing 12.",
-      "typography": "font .system(.callout), regular weight, lineLimit 1: the callout text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 12 points.",
-      "colors": "foregroundStyle Chrome.secondaryText.",
+      "typography": "font .system(.callout), regular weight, lineLimit 1: the callout text style, which the port sets at 12 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 12 points.",
+      "colors": "foregroundStyle Chrome.secondaryText. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "shown only when the window has a resetsAt date",
         "hidden entirely when the reader produced no reset time, for example for the Extra usage window"
@@ -6481,8 +6511,8 @@
       "role": "label",
       "exact_text": "N%",
       "geometry": "Trailing element of the row HStack with spacing 12.",
-      "typography": "font .system(.callout), regular weight, with monospacedDigit so the number does not jitter as it changes: the callout text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 12 points.",
-      "colors": "foregroundStyle Chrome.secondaryText.",
+      "typography": "font .system(.callout), regular weight, with monospacedDigit so the number does not jitter as it changes: the callout text style, which the port sets at 12 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 12 points.",
+      "colors": "foregroundStyle Chrome.secondaryText. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "always shown when the row is shown"
       ],
@@ -6502,8 +6532,8 @@
       "role": "label",
       "exact_text": "N of M credits | N of M calls",
       "geometry": "Between the header HStack and the bar, inside the row VStack with spacing 8.",
-      "typography": "font .system(.subheadline), regular weight, lineLimit 1: the subheadline text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 11 points.",
-      "colors": "foregroundStyle Chrome.secondaryText.",
+      "typography": "font .system(.subheadline), regular weight, lineLimit 1: the subheadline text style, which the port sets at 11 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 11 points.",
+      "colors": "foregroundStyle Chrome.secondaryText. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "shown only when the window carries a detail string",
         "in the shipped build only the Z.ai reader produces one"
@@ -6551,8 +6581,8 @@
       "role": "label",
       "exact_text": "PROVIDER did not report plan limits.",
       "geometry": "Directly under the header with padding top 8, which is smaller than the 14 used for limit rows.",
-      "typography": "font .system(.callout), regular weight: the callout text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 12 points.",
-      "colors": "foregroundStyle Chrome.secondaryText.",
+      "typography": "font .system(.callout), regular weight: the callout text style, which the port sets at 12 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 12 points.",
+      "colors": "foregroundStyle Chrome.secondaryText. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "shown only when there are no limits AND no load is running",
         "so it does not flash while a first read is in flight"
@@ -6573,8 +6603,8 @@
       "role": "label with icon",
       "exact_text": null,
       "geometry": "An HStack with alignment center and spacing 6, with padding top 14, holding the icon, the text, and a Spacer with minLength 8.",
-      "typography": "Icon at font .system(.footnote, weight: .semibold): the footnote text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 10 points. Text at font .system(.subheadline), regular weight, lineLimit 2, with fixedSize vertical so it wraps to the second line rather than truncating: the subheadline text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 11 points.",
-      "colors": "Icon is Chrome.warning. Text is Chrome.secondaryText.",
+      "typography": "Icon at font .system(.footnote, weight: .semibold): the footnote text style, which the port sets at 10 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:54), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 10 points. Text at font .system(.subheadline), regular weight, lineLimit 2, with fixedSize vertical so it wraps to the second line rather than truncating: the subheadline text style, which the port sets at 11 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 11 points.",
+      "colors": "Icon is Chrome.warning. Text is Chrome.secondaryText. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "shown only when the limits carry a problem string AND the provider is API-key based, which in practice means Z.ai"
       ],
@@ -6594,8 +6624,8 @@
       "role": "label with button",
       "exact_text": "Click here to login again",
       "geometry": "An HStack with spacing 8 and padding top 14, holding the label, a Spacer with minLength 8, and the button.",
-      "typography": "Label at font .system(.callout), regular weight: the callout text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 12 points.",
-      "colors": "Label is Chrome.secondaryText. The button uses the glass style.",
+      "typography": "Label at font .system(.callout), regular weight: the callout text style, which the port sets at 12 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 12 points.",
+      "colors": "Label is Chrome.secondaryText. The button uses the glass style. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "shown only when the limits carry a problem string AND the provider is NOT API-key based",
         "the provider's own problem text is NOT shown on this variant; only this fixed sentence is"
@@ -6658,8 +6688,8 @@
       "role": "label pair",
       "exact_text": "Banked resets",
       "geometry": "An HStack with spacing 6 at the top of a VStack with spacing 0, holding the title and the count. The whole block carries padding top 14 from its container.",
-      "typography": "Title at font .system(.body) regular: the body text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 13 points. Count at font .system(.callout) regular, with contentTransition .numericText so the number animates when it changes: the callout text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 12 points.",
-      "colors": "Title is Chrome.primaryText. Count is Chrome.secondaryText.",
+      "typography": "Title at font .system(.body) regular: the body text style, which the port sets at 13 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 13 points. Count at font .system(.callout) regular, with contentTransition .numericText so the number animates when it changes: the callout text style, which the port sets at 12 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 12 points.",
+      "colors": "Title is Chrome.primaryText. Count is Chrome.secondaryText. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "always shown when the limits carry a resetCredits value, including when the count is zero"
       ],
@@ -6679,8 +6709,8 @@
       "role": "label",
       "exact_text": "· None available yet | · 1 available | · N available",
       "geometry": "Second element of the header HStack, 6 points after the title.",
-      "typography": "font .system(.callout), regular weight, contentTransition .numericText: the callout text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 12 points.",
-      "colors": "foregroundStyle Chrome.secondaryText.",
+      "typography": "font .system(.callout), regular weight, contentTransition .numericText: the callout text style, which the port sets at 12 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 12 points.",
+      "colors": "foregroundStyle Chrome.secondaryText. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "zero: \"None available yet\"",
         "exactly one: \"1 available\", singular",
@@ -6703,8 +6733,8 @@
       "role": "label with icon",
       "exact_text": "Usage was reset. | There was no active usage to reset. | No banked resets are left. | That reset was already used.",
       "geometry": "An HStack with spacing 5 and padding top 4, directly under the header and above the rows.",
-      "typography": "Icon at font .system(.subheadline, weight: .semibold) with symbolEffect .bounce keyed on the phase. Text at font .system(.subheadline), regular weight. Both are the subheadline text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 11 points.",
-      "colors": "For the reset outcome both icon and text are Chrome.success; for the other three outcomes both are Chrome.secondaryText.",
+      "typography": "Icon at font .system(.subheadline, weight: .semibold) with symbolEffect .bounce keyed on the phase. Text at font .system(.subheadline), regular weight. Both are the subheadline text style, which the port sets at 11 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 11 points.",
+      "colors": "For the reset outcome both icon and text are Chrome.success; for the other three outcomes both are Chrome.secondaryText. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "hidden while idle, while confirming and while applying",
         "shown for about four seconds after a spend completes, then cleared back to idle",
@@ -6728,7 +6758,7 @@
       "role": "label",
       "exact_text": null,
       "geometry": "A single Text with padding top 4 in the same slot as the outcome line.",
-      "typography": "font .system(.subheadline), regular weight: the subheadline text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 11 points.",
+      "typography": "font .system(.subheadline), regular weight: the subheadline text style, which the port sets at 11 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 11 points.",
       "colors": "foregroundStyle Chrome.danger.",
       "states": [
         "shown for about four seconds after a failed spend, then cleared",
@@ -6751,8 +6781,8 @@
       "role": "row",
       "exact_text": "Reset | Reset N",
       "geometry": "An HStack with alignment center and spacing 12, carrying padding top 12, holding a VStack with alignment leading and spacing 2, a Spacer with minLength 12, and the control. Rows enter and leave with an opacity transition combined with a move from the top edge.",
-      "typography": "Title at font .system(.body) regular, lineLimit 1: the body text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 13 points. Detail at font .system(.subheadline) regular, lineLimit 1: the subheadline text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 11 points.",
-      "colors": "Title is Chrome.primaryText. Detail is Chrome.secondaryText.",
+      "typography": "Title at font .system(.body) regular, lineLimit 1: the body text style, which the port sets at 13 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 13 points. Detail at font .system(.subheadline) regular, lineLimit 1: the subheadline text style, which the port sets at 11 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 11 points.",
+      "colors": "Title is Chrome.primaryText. Detail is Chrome.secondaryText. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "a listed credit uses the app-server's own title when it gave one",
         "an unlisted placeholder, or a listed credit with no title, reads \"Reset\" when there is exactly one row and \"Reset \" followed by the one-based index when there are several"
@@ -6774,8 +6804,8 @@
       "role": "label",
       "exact_text": "No expiry reported | Expired | Expires in H hr M min | Expires in M min | Expires WEEKDAY H:MM AM | Expires MMM D",
       "geometry": "Second line of the row VStack, 2 points under the title.",
-      "typography": "font .system(.subheadline), regular weight, lineLimit 1: the subheadline text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 11 points.",
-      "colors": "foregroundStyle Chrome.secondaryText.",
+      "typography": "font .system(.subheadline), regular weight, lineLimit 1: the subheadline text style, which the port sets at 11 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 11 points.",
+      "colors": "foregroundStyle Chrome.secondaryText. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "a listed credit with its own detail string shows that instead, verbatim",
         "no expiry date: \"No expiry reported\"",
@@ -6867,8 +6897,8 @@
       "role": "progress indicator with label",
       "exact_text": "Resetting…",
       "geometry": "An HStack with spacing 6 holding a ProgressView at controlSize .mini and the label.",
-      "typography": "Label at font .system(.callout), regular weight: the callout text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 12 points.",
-      "colors": "Label is Chrome.secondaryText. The spinner follows the window tint.",
+      "typography": "Label at font .system(.callout), regular weight: the callout text style, which the port sets at 12 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 12 points.",
+      "colors": "Label is Chrome.secondaryText. The spinner follows the window tint. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "shown only on the row that is applying",
         "replaced by the outcome or failure line when the spend completes"
@@ -6889,7 +6919,7 @@
       "role": "row",
       "exact_text": "Remaining credits",
       "geometry": "An HStack with alignment center and spacing 16, holding a VStack with alignment leading and spacing 2, a Spacer with minLength 12, and a trailing HStack with spacing 10.",
-      "typography": "Title at font .system(.body), regular weight: the body text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 13 points.",
+      "typography": "Title at font .system(.body), regular weight: the body text style, which the port sets at 13 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 13 points.",
       "colors": "Title is Chrome.primaryText.",
       "states": [
         "shown for DeepSeek and Command Code only, and only inside a visible usage block",
@@ -6911,8 +6941,8 @@
       "role": "label",
       "exact_text": "PROVIDER did not report a balance. | PROVIDER declines turns until the balance is topped up. | Monthly $X · Topped up $Y · Granted $Z",
       "geometry": "Second line of the credits VStack, 2 points under the title, with fixedSize vertical so it wraps rather than truncating.",
-      "typography": "font .system(.subheadline), regular weight: the subheadline text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 11 points.",
-      "colors": "foregroundStyle Chrome.secondaryText, including in the depleted case; only the amount turns red, not the note.",
+      "typography": "font .system(.subheadline), regular weight: the subheadline text style, which the port sets at 11 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 11 points.",
+      "colors": "foregroundStyle Chrome.secondaryText, including in the depleted case; only the amount turns red, not the note. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "no balance and loading: no note at all",
         "no balance and not loading: the did-not-report sentence",
@@ -6937,7 +6967,7 @@
       "role": "label",
       "exact_text": null,
       "geometry": "Inside the trailing HStack with spacing 10, after the optional spinner and before the Top up link.",
-      "typography": "font .system(.body, weight: .semibold) with monospacedDigit, lineLimit 1: the body text style, whose point size is delegated to macOS rendering (UNVERIFIED per UNK-0003); B1 fixed it at 13 points.",
+      "typography": "font .system(.body, weight: .semibold) with monospacedDigit, lineLimit 1: the body text style, which the port sets at 13 points in Inter per ED-059 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003). B1 fixed it at 13 points.",
       "colors": "Chrome.danger when the balance is depleted, otherwise Chrome.primaryText.",
       "states": [
         "hidden entirely when there is no balance",
@@ -6983,8 +7013,8 @@
       "role": "row with text field",
       "exact_text": "API key | API key (optional)",
       "geometry": "A ChromeRow: HStack alignment center spacing 16, inner VStack spacing 2, Spacer minLength 12, padding leading 16, trailing 10, vertical 11.",
-      "typography": "Row title in the .body text style (`.font(.system(.body))`), regular, in Chrome.primaryText. Row detail in the .subheadline text style (`.font(.system(.subheadline))`) in Chrome.secondaryText, with fixedSize vertical so it wraps.",
-      "colors": "Standard ChromeRow colouring.",
+      "typography": "Row title in the .body text style (`.font(.system(.body))`), regular, in Chrome.primaryText. Row detail in the .subheadline text style (`.font(.system(.subheadline))`) in Chrome.secondaryText, with fixedSize vertical so it wraps. Per ED-059 the port sets the .body text style at 13 points (B1:DroppyCode/UI/Common/ChatZoom.swift:51) and the .subheadline text style at 11 points (B1:DroppyCode/UI/Common/ChatZoom.swift:53), in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003).",
+      "colors": "Standard ChromeRow colouring. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "title is \"API key\" for DeepSeek, Meta and Z.ai; \"API key (optional)\" for Command Code",
         "the row is absent for the other ten providers, OpenCode Go included",
@@ -6997,9 +7027,13 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:712-719 `if provider.acceptsAPIKey {` `ChromeRowDivider()` `ChromeRow(title: provider.isAPIKeyBased ? \"API key\" : \"API key (optional)\", detail: provider.isAPIKeyBased ? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\" : \"Instead of ...stored in your Keychain and handed to the CLI.\")`",
         "DroppyCode/UI/Chrome/Chrome.swift:1049-1073 ChromeRow - `Text(verbatim: title)` `.font(.system(.body))` `.foregroundStyle(Chrome.primaryText)`; `Text(verbatim: detail)` `.font(.system(.subheadline))` `.foregroundStyle(Chrome.secondaryText)` `.fixedSize(horizontal: false, vertical: true)`"
       ],
-      "notes": "The API-key detail reads exactly: Stored in your Keychain. Get one at SOURCE. The Command Code detail reads exactly: Instead of `cmd login`: a Studio key from commandcode.ai/studio, stored in your Keychain and handed to the CLI. The backticks around the login command are literal characters in the string, not Markdown; the row renders with Text(verbatim:) semantics through ChromeRow, so they appear as backticks. The word Keychain is kept verbatim: no ruling covers these two strings (OD-0008 B3 rewords only the five MCP strings), although on Windows the keys are stored in Credential Manager; see open_question.",
+      "notes": "The API-key detail reads exactly: Stored in your Credential Manager. Get one at SOURCE. The Command Code detail reads exactly: Instead of `cmd login`: a Studio key from commandcode.ai/studio, stored in your Credential Manager and handed to the CLI. The backticks around the login command are literal characters in the string, not Markdown; the row renders with Text(verbatim:) semantics through ChromeRow, so they appear as backticks. The word Keychain becomes Credential Manager in both strings (OD-0012 G2), naming the store the port uses.",
       "b2_change": "Row unchanged apart from its lines (B1 SettingsView.swift:680-687 -> B2 :712-719), but ProviderKind grew to 14 (B2 Provider.swift:8), so the row is absent for ten providers, not nine; opencodeGo has acceptsAPIKey false (B2 Provider.swift:109). B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`).",
-      "open_question": "Whether the provider API key row keeps the word Keychain on Windows. Its two detail strings (SettingsView.swift:717 \"Stored in your Keychain. Get one at ...\" and :718 \"... stored in your Keychain and handed to the CLI.\") are not among the five strings OD-0008 B3 rewords, which are the MCP strings of Q109 (B2 MCPSettingsPage.swift:103, :814 (two arms), :836, :880). No ruling covers them, so they stay verbatim, but the port stores these keys in Windows Credential Manager (PR-PROVREG-088, 089, 239), so on Windows the sentence names a store the app does not use. Needs an owner ruling on the wording."
+      "deviation": {
+        "decision": "OD-0012 G2",
+        "upstream": "SettingsView.swift:717 \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\" and :718 \"Instead of `\\(provider.loginCommand)`: a Studio key from \\(provider.apiKeySource ?? \"the provider dashboard\"), stored in your Keychain and handed to the CLI.\"",
+        "port": "\"Stored in your Credential Manager. Get one at SOURCE.\" and \"Instead of `LOGIN`: a Studio key from SOURCE, stored in your Credential Manager and handed to the CLI.\""
+      }
     },
     {
       "id": "UI-PROVREG-038",
@@ -7023,8 +7057,13 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:720-730 `HStack(spacing: 8) {` `if showsAPIKey { TextField(\"\", text: $apiKey, prompt: Text(\"sk-…\")) } else { SecureField(\"\", text: $apiKey, prompt: Text(\"sk-…\")) }` `.textFieldStyle(.roundedBorder)` `.font(.system(size: 12, design: .monospaced))` `.frame(width: 200)`",
         "DroppyCode/App/Views/Settings/SettingsView.swift:791-818"
       ],
-      "notes": "The placeholder is exactly \"sk-\" followed by U+2026, for all four providers, even though only DeepSeek keys begin sk-. Both the secure and the plain variant use the same placeholder. The width 200 is a fixed point value, not a proportion.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
+      "notes": "The placeholder is exactly \"sk-\" followed by U+2026, for all four providers, even though only DeepSeek keys begin sk-. Both the secure and the plain variant use the same placeholder. The width 200 is a fixed point value, not a proportion. OD-0012 E5 (for OD-0008 A6): when Credential Manager refuses the key, the line \"Credential Manager did not accept this key, so it was not saved.\" is shown under this field (PR-PROVREG-239). Upstream has no such line; the ruling gives its text and placement only, not its font or colour.",
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608).",
+      "deviation": {
+        "decision": "OD-0012 E5",
+        "upstream": "No message: a refused Keychain write falls back to a plaintext copy silently (AppSettings.swift:367-408, :485-494).",
+        "port": "Under the key field: \"Credential Manager did not accept this key, so it was not saved.\""
+      }
     },
     {
       "id": "UI-PROVREG-039",
@@ -7034,7 +7073,7 @@
       "exact_text": null,
       "geometry": "8 points after the field, inside the same HStack. buttonStyle .plain.",
       "typography": "Symbol at font .system(size: 12).",
-      "colors": "foregroundStyle Chrome.secondaryText.",
+      "colors": "foregroundStyle Chrome.secondaryText. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "hidden state: symbol eye, help text \"Show the API key\"",
         "revealed state: symbol eye.slash, help text \"Hide the API key\"",
@@ -7057,8 +7096,8 @@
       "role": "row with link button",
       "exact_text": "Get a key",
       "geometry": "A ChromeRow with the standard row metrics. The link label is held to a frame height of Chrome.rowButtonLabelHeight = 16 and uses buttonStyle .glass.",
-      "typography": "Row title in the .body text style, detail in the .subheadline text style in Chrome.secondaryText (ChromeRow). Link label at the default button typography, clamped to 16 points high.",
-      "colors": "Glass button style.",
+      "typography": "Row title in the .body text style, detail in the .subheadline text style in Chrome.secondaryText (ChromeRow). Link label at the default button typography, clamped to 16 points high. Per ED-059 the port sets the .body text style at 13 points (B1:DroppyCode/UI/Common/ChatZoom.swift:51) and the .subheadline text style at 11 points (B1:DroppyCode/UI/Common/ChatZoom.swift:53), in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003).",
+      "colors": "Glass button style. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "shown only when the provider is API-key based AND is not installed, which means no key is stored",
         "disappears as soon as a key is stored, because apiKeyConfigured then makes isInstalled true",
@@ -7083,8 +7122,8 @@
       "role": "row with text field",
       "exact_text": "Binary path",
       "geometry": "A ChromeRow with the standard row metrics. The field uses textFieldStyle .roundedBorder, font .system(size: 12, design: .monospaced) and frame width exactly 200, matching the API key field.",
-      "typography": "Row title in the .body text style in Chrome.primaryText. Row detail in the .subheadline text style in Chrome.secondaryText. Field at 12 monospaced.",
-      "colors": "Standard ChromeRow and rounded-border field colouring.",
+      "typography": "Row title in the .body text style in Chrome.primaryText. Row detail in the .subheadline text style in Chrome.secondaryText. Field at 12 monospaced. Per ED-059 the port sets the .body text style at 13 points (B1:DroppyCode/UI/Common/ChatZoom.swift:51) and the .subheadline text style at 11 points (B1:DroppyCode/UI/Common/ChatZoom.swift:53), in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003).",
+      "colors": "Standard ChromeRow and rounded-border field colouring. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "shown for every provider that is NOT API-key based, which is eleven of the fourteen, whether installed or not",
         "the row detail is the resolved executable path, or absent when nothing resolved, in which case ChromeRow draws no detail line at all",
@@ -7109,8 +7148,8 @@
       "role": "row with link button",
       "exact_text": "Install",
       "geometry": "A ChromeRow with the standard row metrics. The link label is held to a frame height of 16 and uses buttonStyle .glass.",
-      "typography": "Row title in the .body text style, detail in the .subheadline text style in Chrome.secondaryText (ChromeRow).",
-      "colors": "Glass button style.",
+      "typography": "Row title in the .body text style, detail in the .subheadline text style in Chrome.secondaryText (ChromeRow). Per ED-059 the port sets the .body text style at 13 points (B1:DroppyCode/UI/Common/ChatZoom.swift:51) and the .subheadline text style at 11 points (B1:DroppyCode/UI/Common/ChatZoom.swift:53), in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003).",
+      "colors": "Glass button style. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "shown only when the provider is NOT API-key based AND is not installed",
         "mutually exclusive with the Sign in row, which occupies the same slot",
@@ -7134,8 +7173,8 @@
       "role": "row with button",
       "exact_text": "Sign in",
       "geometry": "A ChromeRow with the standard row metrics. The button label is held to a frame height of 16 and uses buttonStyle .glass.",
-      "typography": "Row title in the .body text style, detail in the .subheadline text style in Chrome.secondaryText (ChromeRow).",
-      "colors": "Glass button style.",
+      "typography": "Row title in the .body text style, detail in the .subheadline text style in Chrome.secondaryText (ChromeRow). Per ED-059 the port sets the .body text style at 13 points (B1:DroppyCode/UI/Common/ChatZoom.swift:51) and the .subheadline text style at 11 points (B1:DroppyCode/UI/Common/ChatZoom.swift:53), in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001 (UNK-0003).",
+      "colors": "Glass button style. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "shown only when the provider is NOT API-key based AND IS installed AND the auth state is not signedIn AND no check is running",
         "the isChecking condition exists so the row never flashes in before the answer arrives",
@@ -7184,7 +7223,7 @@
       "exact_text": "Codex | Claude | Cursor | OpenCode Zen | OpenCode Go | Grok | DeepSeek | Meta | Z.ai | Devin | Antigravity | Copilot | Command Code | Pi",
       "geometry": "A Button whose label is an HStack with spacing 8: ProviderIcon at size 16 (a 16 by 16 resizable image, aspect fit), the provider name, a Spacer with minLength 0, and the chevron.right symbol. The label has a rectangular content shape, so the empty span between name and chevron is clickable. The button frame is 22 high and sits Chrome.sectionHeaderSpacing = 10 above the card.",
       "typography": "Name at font .system(size: 13, weight: .semibold). Chevron at font .system(size: 11, weight: .semibold).",
-      "colors": "Icon foregroundStyle Chrome.primaryText. Name foregroundStyle .secondary, SwiftUI's hierarchical style, not Chrome.secondaryText. Chevron foregroundStyle Chrome.secondaryText.",
+      "colors": "Icon foregroundStyle Chrome.primaryText. Name foregroundStyle .secondary, SwiftUI's hierarchical style, not Chrome.secondaryText. Chevron foregroundStyle Chrome.secondaryText. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79; ED-062, superseding ED-051).",
       "states": [
         "collapsed: chevron at 0 degrees, pointing right; tooltip \"Show the provider settings\"; accessibility value \"Collapsed\"",
         "expanded: chevron rotated 90 degrees; tooltip \"Hide the provider settings\"; accessibility value \"Expanded\"",

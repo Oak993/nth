@@ -429,15 +429,16 @@
     },
     {
       "id": "PR-PROVCLI-019",
-      "title": "Claude control requests are numbered droppy-code-<n> from 1 and resolved by exact id match",
+      "title": "Claude control requests are numbered marrow-<n> from 1 and resolved by exact id match",
       "source_evidence": [
         "DroppyCode/Services/Providers/ClaudeSession.swift:301-310 - control(_:) pre-increments controlCounter, builds requestID = \"droppy-code-\\(controlCounter)\", stores the continuation and sends {\"type\":\"control_request\",\"request_id\":<id>,\"request\":<request>}",
         "DroppyCode/Services/Providers/ClaudeSession.swift:36 - controlCounter = 0",
-        "DroppyCode/Services/Providers/ClaudeSession.swift:335-343 - control_response resolves pendingControl by response.request_id"
+        "DroppyCode/Services/Providers/ClaudeSession.swift:335-343 - control_response resolves pendingControl by response.request_id",
+        "porting/decision_batch_20260922b.md F1 - every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT (accepted by OD-0012)"
       ],
       "preconditions": "A live process.",
       "action": "Any control request is made (initialize, set_permission_mode, set_model, interrupt, stop_task).",
-      "expected_result": "controlCounter is incremented BEFORE use, so the first request id is exactly \"droppy-code-1\". The literal prefix is \"droppy-code-\". The wire object is {\"type\":\"control_request\",\"request_id\":\"droppy-code-<n>\",\"request\":<the request object>}. The reply is matched on message.response.request_id and resolves that continuation. control() throws ProviderError.notRunning when there is no process, and ProviderError.failed(launchError ?? \"Claude exited.\") when hasClosed is already true.",
+      "expected_result": "controlCounter is incremented BEFORE use, so the first request id is exactly \"marrow-1\". The literal prefix is \"marrow-\" (OD-0012 F1; upstream \"droppy-code-\"). The wire object is {\"type\":\"control_request\",\"request_id\":\"marrow-<n>\",\"request\":<the request object>}. The reply is matched on message.response.request_id and resolves that continuation. control() throws ProviderError.notRunning when there is no process, and ProviderError.failed(launchError ?? \"Claude exited.\") when hasClosed is already true.",
       "side_effects": [
         "One stdin line per request"
       ],
@@ -447,12 +448,17 @@
         "No process: ProviderError.notRunning, described as \"The agent session is not running.\""
       ],
       "cancellation": "didClose resumes every waiting continuation by throwing.",
-      "windows_path": "None. The id prefix is a contract with the app's own reader (port_impacts.md entry 20) and must not be renamed with the product.",
+      "windows_path": "None beyond the rename. The id prefix is read back only by the app's own matcher (port_impacts.md entry 20), so the sender and the matcher use the same prefix. OD-0012 F1 renames every remaining \"droppy-code\" the app sends out to \"marrow\"; this prefix is not one of its two exceptions (droppy-code.json and DROPPY_CODE_PROJECT_ROOT).",
       "verification_method": "unit test on the counter plus a contract fixture on the envelope",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "ClaudeSession.swift:305 builds requestID = \"droppy-code-\\(controlCounter)\", so the ids are \"droppy-code-1\", \"droppy-code-2\", and so on.",
+        "port": "The ids are \"marrow-1\", \"marrow-2\", and so on. The pre-increment counter, the control_request envelope and the exact-id match of control_response (ClaudeSession.swift:335-343) are unchanged."
+      }
     },
     {
       "id": "PR-PROVCLI-020",
@@ -562,7 +568,7 @@
       ],
       "preconditions": "Probe process started.",
       "action": "The probe writes its one request.",
-      "expected_result": "Exactly one line is written: {\"type\":\"control_request\",\"request_id\":\"handshake\",\"request\":{\"subtype\":\"initialize\",\"hooks\":null}}. The id is the literal string \"handshake\"; the droppy-code-<n> counter is NOT used here.",
+      "expected_result": "Exactly one line is written: {\"type\":\"control_request\",\"request_id\":\"handshake\",\"request\":{\"subtype\":\"initialize\",\"hooks\":null}}. The id is the literal string \"handshake\"; the marrow-<n> counter (PR-PROVCLI-019, OD-0012 F1) is NOT used here.",
       "side_effects": [
         "One stdin line"
       ],
@@ -1368,11 +1374,12 @@
       "title": "Claude refuses every inbound control request except can_use_tool with its own exact error string",
       "source_evidence": [
         "DroppyCode/Services/Providers/ClaudeSession.swift:611-619 - handleControlRequest guards",
-        "porting/port_impacts.md entry 19"
+        "porting/port_impacts.md entry 19",
+        "porting/decision_batch_20260922b.md F1 - every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT (accepted by OD-0012)"
       ],
       "preconditions": "An inbound control_request.",
       "action": "The CLI asks the app for something.",
-      "expected_result": "A request without a string request_id or without a request object is ignored entirely. Any subtype other than the literal \"can_use_tool\" is answered with {\"type\":\"control_response\",\"response\":{\"subtype\":\"error\",\"request_id\":\"<id>\",\"error\":\"Droppy Code does not support this request.\"}} - verbatim, and DIFFERENT from the JSON-RPC -32601 messages Codex and Copilot use. The four refusal strings must not be unified into one helper.",
+      "expected_result": "A request without a string request_id or without a request object is ignored entirely. Any subtype other than the literal \"can_use_tool\" is answered with {\"type\":\"control_response\",\"response\":{\"subtype\":\"error\",\"request_id\":\"<id>\",\"error\":\"Marrow does not support this request.\"}} - verbatim under OD-0012 F1 (upstream says \"Droppy Code does not support this request.\"), and DIFFERENT from the JSON-RPC -32601 messages Codex and Copilot use. The four refusal strings must not be unified into one helper.",
       "side_effects": [
         "One stdin line"
       ],
@@ -1381,12 +1388,17 @@
         "This IS the refusal path."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The literal product name is on the wire here. The owner-approved rename covers product identity; whether this protocol payload changes is a product-identity decision and is not changed silently.",
+      "windows_path": "The product name is on the wire here. OD-0012 F1 renames it: the string is \"Marrow does not support this request.\"",
       "verification_method": "contract fixture with an unsupported subtype",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "ClaudeSession.swift:616 answers with \"error\": \"Droppy Code does not support this request.\"",
+        "port": "The error string is \"Marrow does not support this request.\"; the envelope, the can_use_tool exception and the separate emission point are unchanged."
+      }
     },
     {
       "id": "PR-PROVCLI-058",
@@ -3065,11 +3077,12 @@
       "id": "PR-PROVCLI-128",
       "title": "Codex always declines an MCP elicitation and says so in a warning notice",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CodexSession.swift:982-985 - mcpServer/elicitation/request: respond result [\"action\": \"decline\"]; server = params[\"serverName\"]?.string ?? \"An MCP server\"; notice \"\\(server) asked for input, which Droppy Code cannot show yet.\""
+        "DroppyCode/Services/Providers/CodexSession.swift:982-985 - mcpServer/elicitation/request: respond result [\"action\": \"decline\"]; server = params[\"serverName\"]?.string ?? \"An MCP server\"; notice \"\\(server) asked for input, which Droppy Code cannot show yet.\"",
+        "porting/decision_batch_20260922b.md F1 - every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT (accepted by OD-0012)"
       ],
       "preconditions": "An inbound mcpServer/elicitation/request.",
       "action": "handleRequest runs.",
-      "expected_result": "The request is answered IMMEDIATELY with {\"action\":\"decline\"} - the user is never asked. A WARNING notice is emitted reading \"<server> asked for input, which Droppy Code cannot show yet.\" where server is params.serverName or the literal fallback \"An MCP server\". No pending entry is stored.",
+      "expected_result": "The request is answered IMMEDIATELY with {\"action\":\"decline\"} - the user is never asked. A WARNING notice is emitted reading \"<server> asked for input, which Marrow cannot show yet.\" (OD-0012 F1; upstream \"which Droppy Code cannot show yet.\") where server is params.serverName or the literal fallback \"An MCP server\". No pending entry is stored.",
       "side_effects": [
         "One RPC response; one notice"
       ],
@@ -3078,23 +3091,29 @@
         "This IS the only behaviour; there is no accept path."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The product name is inside a user-visible notice; a rename decision governs it and it is not changed silently.",
+      "windows_path": "The product name is inside a user-visible notice; OD-0012 F1 renames it to \"Marrow\".",
       "verification_method": "contract fixture asserting the decline and the notice",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "CodexSession.swift:985 emits the warning \"\\(server) asked for input, which Droppy Code cannot show yet.\"",
+        "port": "The warning reads \"<server> asked for input, which Marrow cannot show yet.\"; the decline, the \"An MCP server\" fallback and the warning level are unchanged."
+      }
     },
     {
       "id": "PR-PROVCLI-129",
       "title": "Codex refuses an unknown server request with JSON-RPC -32601 naming the method",
       "source_evidence": [
         "DroppyCode/Services/Providers/CodexSession.swift:986-988 - default: connection?.respond(to: id, errorCode: -32601, message: \"Droppy Code does not support \\(method).\")",
-        "porting/port_impacts.md entry 19"
+        "porting/port_impacts.md entry 19",
+        "porting/decision_batch_20260922b.md F1 - every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT (accepted by OD-0012)"
       ],
       "preconditions": "An inbound request whose method is none of the five handled ones.",
       "action": "handleRequest falls through.",
-      "expected_result": "The request is answered with JSON-RPC error code -32601 and the message \"Droppy Code does not support <method>.\" with the method name interpolated and a trailing period. This differs from Claude's plain control_response error string and from Copilot's otherwise identical message, and the emission points must stay separate.",
+      "expected_result": "The request is answered with JSON-RPC error code -32601 and the message \"Marrow does not support <method>.\" (OD-0012 F1; upstream \"Droppy Code does not support <method>.\") with the method name interpolated and a trailing period. This differs from Claude's plain control_response error string and from Copilot's otherwise identical message, and the emission points must stay separate.",
       "side_effects": [
         "One RPC error response"
       ],
@@ -3103,12 +3122,17 @@
         "This IS the refusal path."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The product name is on the wire; governed by the rename decision, not changed silently.",
+      "windows_path": "The product name is on the wire; OD-0012 F1 renames it to \"Marrow\".",
       "verification_method": "contract fixture with an unknown method",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "CodexSession.swift:987 responds with errorCode -32601 and message \"Droppy Code does not support \\(method).\"",
+        "port": "The message is \"Marrow does not support <method>.\"; the code -32601 and the separate emission point are unchanged."
+      }
     },
     {
       "id": "PR-PROVCLI-130",
@@ -3307,11 +3331,12 @@
       "title": "Copilot handshake is a ping whose reply need only carry an integer protocolVersion",
       "source_evidence": [
         "DroppyCode/Services/Providers/CopilotSession.swift:494-499 - let pong = try await connection.request(\"ping\", [\"message\": \"droppy-code\"]); guard pong[\"protocolVersion\"]?.int != nil else { connection.close(); throw ProviderError.failed(\"This `copilot` does not speak the SDK protocol. Update it with `copilot update`.\") }",
-        "DroppyCode/Services/Providers/CopilotSession.swift:22-26 - the header records verification against copilot 1.0.83, protocol version 3"
+        "DroppyCode/Services/Providers/CopilotSession.swift:22-26 - the header records verification against copilot 1.0.83, protocol version 3",
+        "porting/decision_batch_20260922b.md F1 - every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT (accepted by OD-0012)"
       ],
       "preconditions": "connection.start() succeeded.",
       "action": "connect performs the handshake.",
-      "expected_result": "One request with method \"ping\" and params {\"message\":\"droppy-code\"} - the literal value \"droppy-code\". The reply is accepted when its \"protocolVersion\" parses as an Int; the VALUE IS NEVER COMPARED, so version 3 is documentation only and any integer passes. On failure the connection is CLOSED and ProviderError.failed is thrown with the verbatim message \"This `copilot` does not speak the SDK protocol. Update it with `copilot update`.\" including both pairs of backticks. There is NO watchdog on this handshake, unlike Codex's 20 second one.",
+      "expected_result": "One request with method \"ping\" and params {\"message\":\"marrow\"} - the literal value \"marrow\" (OD-0012 F1; upstream \"droppy-code\"). The reply is accepted when its \"protocolVersion\" parses as an Int; the VALUE IS NEVER COMPARED, so version 3 is documentation only and any integer passes. On failure the connection is CLOSED and ProviderError.failed is thrown with the verbatim message \"This `copilot` does not speak the SDK protocol. Update it with `copilot update`.\" including both pairs of backticks. There is NO watchdog on this handshake, unlike Codex's 20 second one.",
       "side_effects": [
         "One RPC round trip"
       ],
@@ -3321,12 +3346,17 @@
         "A CLI that never answers ping hangs indefinitely, because there is no timeout here."
       ],
       "cancellation": "Nothing cancels this handshake.",
-      "windows_path": "The absence of a watchdog means a Windows CLI that opens but never speaks blocks the calling path. This is upstream behavior and is reproduced; the port must not silently add a timeout. OD-0008 B11 is not applied here. As resolved (owner_decisions_pending.md OD-PENDING-17: \"B11: clientInfo name \"marrow\", title \"Marrow\"\") it changes the clientInfo object (PR-PROVCLI-068, PR-PROVACP-019); the ping's \"message\" parameter is not clientInfo and stays the literal \"droppy-code\" unless the owner extends B11 to it.",
+      "windows_path": "The absence of a watchdog means a Windows CLI that opens but never speaks blocks the calling path. This is upstream behavior and is reproduced; the port must not silently add a timeout. OD-0008 B11 changes only the clientInfo object (PR-PROVCLI-068, PR-PROVACP-019); OD-0012 F1 extends the rename to the client name sent to Copilot, so the ping's \"message\" parameter is the literal \"marrow\".",
       "verification_method": "contract fixture on the ping frame plus a unit test on the failure message",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "CopilotSession.swift:494 sends connection.request(\"ping\", [\"message\": \"droppy-code\"]).",
+        "port": "The ping is sent with params {\"message\": \"marrow\"}; the protocolVersion check, the close on failure, its exact message and the absence of a watchdog are unchanged."
+      }
     },
     {
       "id": "PR-PROVCLI-139",
@@ -3357,23 +3387,29 @@
       "id": "PR-PROVCLI-140",
       "title": "Copilot session parameters carry eight base fields including two computed booleans",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CopilotSession.swift:121-131 - sessionParameters() base object"
+        "DroppyCode/Services/Providers/CopilotSession.swift:121-131 - sessionParameters() base object",
+        "porting/decision_batch_20260922b.md F1 - every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT (accepted by OD-0012)"
       ],
       "preconditions": "A session being created or resumed.",
       "action": "sessionParameters() runs.",
-      "expected_result": "The base object is exactly: \"clientName\" = the literal \"droppy-code\"; \"workingDirectory\" = the working directory path; \"streaming\" = true; \"requestPermission\" = true; \"requestUserInput\" = true; \"requestExitPlanMode\" = true; \"includeSubAgentStreamingEvents\" = (configuration.hydra?.runsNatively == true); \"isExperimentalMode\" = (configuration.runtimeMode == .auto).",
+      "expected_result": "The base object is exactly: \"clientName\" = the literal \"marrow\" (OD-0012 F1; upstream \"droppy-code\"); \"workingDirectory\" = the working directory path; \"streaming\" = true; \"requestPermission\" = true; \"requestUserInput\" = true; \"requestExitPlanMode\" = true; \"includeSubAgentStreamingEvents\" = (configuration.hydra?.runsNatively == true); \"isExperimentalMode\" = (configuration.runtimeMode == .auto).",
       "side_effects": [],
       "persistence": "none",
       "failure_cases": [
         "none"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "workingDirectory is a Windows path inside JSON, not an argv token. OD-0008 B11 is not applied here. As resolved (owner_decisions_pending.md OD-PENDING-17: \"B11: clientInfo name \"marrow\", title \"Marrow\"\") it changes the clientInfo object (PR-PROVCLI-068, PR-PROVACP-019); Copilot's session \"clientName\" field is not clientInfo and stays the literal \"droppy-code\" unless the owner extends B11 to it.",
+      "windows_path": "workingDirectory is a Windows path inside JSON, not an argv token. OD-0008 B11 changes only the clientInfo object (PR-PROVCLI-068, PR-PROVACP-019); OD-0012 F1 extends the rename to the client name sent to Copilot, so the session \"clientName\" field is the literal \"marrow\".",
       "verification_method": "contract fixture over a session.create payload",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "CopilotSession.swift:123 sets \"clientName\": \"droppy-code\" in the session parameters.",
+        "port": "The session parameters carry \"clientName\": \"marrow\"; the other seven base fields are unchanged."
+      }
     },
     {
       "id": "PR-PROVCLI-141",
@@ -4711,11 +4747,12 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/CopilotSession.swift:771-773 - default: connection?.respond(to: id, errorCode: -32601, message: \"Droppy Code does not support \\(method).\")",
         "porting/port_impacts.md entry 19",
-        "porting/dead_code.md entry 4 - the generic JSONRPC \"Method not found\" is reachable only on probe connections that install no onRequest handler"
+        "porting/dead_code.md entry 4 - the generic JSONRPC \"Method not found\" is reachable only on probe connections that install no onRequest handler",
+        "porting/decision_batch_20260922b.md F1 - every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT (accepted by OD-0012)"
       ],
       "preconditions": "An inbound request whose method is none of the three handled ones.",
       "action": "handleRequest falls through.",
-      "expected_result": "JSON-RPC error -32601 with the message \"Droppy Code does not support <method>.\" Note the probe connections used by listModels, authStatus and readPlanLimits install NO request handler, so a request arriving on one of those answers with the generic JSONRPC \"Method not found\" instead; only a full session emits this provider-specific message.",
+      "expected_result": "JSON-RPC error -32601 with the message \"Marrow does not support <method>.\" (OD-0012 F1; upstream \"Droppy Code does not support <method>.\") Note the probe connections used by listModels, authStatus and readPlanLimits install NO request handler, so a request arriving on one of those answers with the generic JSONRPC \"Method not found\" instead; only a full session emits this provider-specific message.",
       "side_effects": [
         "One RPC error response"
       ],
@@ -4724,12 +4761,17 @@
         "This IS the refusal path."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The product name is on the wire; governed by the rename decision, not changed silently.",
+      "windows_path": "The product name is on the wire; OD-0012 F1 renames it to \"Marrow\". The generic JSONRPC \"Method not found\" on probe connections carries no product name and is unchanged.",
       "verification_method": "contract fixture on a session connection and on a probe connection",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "CopilotSession.swift:772 responds with errorCode -32601 and message \"Droppy Code does not support \\(method).\"",
+        "port": "The message is \"Marrow does not support <method>.\"; the code -32601, the separate emission point and the probe connections' generic \"Method not found\" are unchanged."
+      }
     },
     {
       "id": "PR-PROVCLI-197",
@@ -4942,7 +4984,7 @@
         "The exact message above; the thread then starts a fresh conversation rather than failing every turn."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "See PR-PROVCLI-206 for the transcript lookup. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "See PR-PROVCLI-206 for the transcript lookup. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "interaction test with a missing transcript",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -5208,7 +5250,7 @@
         "The prefixed message above."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The localized description comes from the platform and will read differently on Windows; only the literal prefix is fixed. On Windows a resolution that found the command interpreter rather than the CLI would SUCCEED here and hang later, which is why identity validation belongs at resolution (PR-PROVCLI-203). Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "The localized description comes from the platform and will read differently on Windows; only the literal prefix is fixed. On Windows a resolution that found the command interpreter rather than the CLI would SUCCEED here and hang later, which is why identity validation belongs at resolution (PR-PROVCLI-203). Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "unit test with an unlaunchable executable",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -5787,7 +5829,7 @@
         "No match: the CLI's own wording survives."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The lowercasing must be invariant. On Windows the sentence still names `cmd login` in Terminal; whether that instruction is accurate for the Windows CLI is part of UNK-0006 and must not be reworded without evidence. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "The lowercasing must be invariant. On Windows the sentence still names `cmd login` in Terminal; whether that instruction is accurate for the Windows CLI is part of UNK-0006 and must not be reworded without evidence. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "unit test over both families and a plain error",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -5943,30 +5985,32 @@
         "DroppyCode/Core/Support/Shell.swift:198-201 - case \"find\", \"fd\": return !arguments.contains { searchActions.contains($0) }; case \"sort\": return !arguments.contains { $0.hasPrefix(\"-o\") }",
         "porting/blocked_requirements.json BLK-0008 owner_ruling (OD-0008, A8)",
         "porting/platform_adaptations.md PA-0011 - ShellCommandKind.mayWriteFiles",
-        "porting/unknowns.md UNK-0005 (RESOLVED by OD-0008 C5, decision_batch_20260922.md C5)"
+        "porting/unknowns.md UNK-0005 (RESOLVED by OD-0008 C5, decision_batch_20260922.md C5)",
+        "porting/engineering_decisions.md ED-060 - the exact write actions for OD-0008 A8; DroppyCode/Core/Support/Shell.swift:202-204 - case \"git\": the subcommand is the first argument without a leading \"-\", checked against gitReaders"
       ],
       "preconditions": "A request read from the gate.",
       "action": "decide runs.",
-      "expected_result": "The approval row is built first. The request is auto-allowed when autoApproves is true OR the session already holds a grant for that row's kind. autoApproves: isEdit is (name == \"write_file\" || name == \"edit_file\"). .fullAccess -> true, although the comment records it never reaches here because Full access loads no gate. .supervised -> false, always. .autoAcceptEdits -> isEdit. .auto -> true for an edit; otherwise, for the exactly three shell names \"shell_command\", \"powershell\" and \"monitor_command\", the negation of ShellCommandKind.mayWriteFiles(input.command ?? \"\"); otherwise true for the exactly four names \"kill_shell\", \"cron_create\", \"cron_delete\" and \"task_stop\"; otherwise false. DEVIATION (OD-0008 A8): in the port mayWriteFiles counts as file-writing, so .auto asks for them and they are checkpointed: sort with an --output= argument, find with -fprintf and the other file-writing find actions missing from searchActions, and git config, git tag and git remote add. An auto-allowed request is replied to at once; anything else is stored as pending and emitted as an .approval.",
+      "expected_result": "The approval row is built first. The request is auto-allowed when autoApproves is true OR the session already holds a grant for that row's kind. autoApproves: isEdit is (name == \"write_file\" || name == \"edit_file\"). .fullAccess -> true, although the comment records it never reaches here because Full access loads no gate. .supervised -> false, always. .autoAcceptEdits -> isEdit. .auto -> true for an edit; otherwise, for the exactly three shell names \"shell_command\", \"powershell\" and \"monitor_command\", the negation of ShellCommandKind.mayWriteFiles(input.command ?? \"\"); otherwise true for the exactly four names \"kill_shell\", \"cron_create\", \"cron_delete\" and \"task_stop\"; otherwise false. DEVIATION (OD-0008 A8, exact write actions per ED-060): in the port mayWriteFiles counts the following as file-writing, so .auto asks for them and they are checkpointed. Per ED-060, mayWriteFiles changes only where a command really writes: (1) find: an argument among -delete, -exec, -execdir, -ok, -okdir, -fprint, -fprint0, -fprintf and -fls makes the part a writer (B2 searchActions, Shell.swift:162, lacks -fprint, -fprint0, -fprintf and -fls); (2) fd: -x / --exec and -X / --exec-batch make it a writer (B2 searchActions has -x and -X, lacks --exec and --exec-batch; the B2 set applies to both find and fd at Shell.swift:198-199 and is otherwise kept); (3) sort: -o in any spelling, including --output and --output=, makes it a writer; (4) git config: a writer unless every argument is a read form (--get, --get-all, --get-regexp, --get-urlmatch, --list / -l, --show-origin, --show-scope, --name-only, --null / -z, --file / -f with only read forms, --global/--system/--local/--worktree with only read forms); (5) git tag: a writer unless it only lists (no arguments, -l / --list, -n, --contains, --points-at, --merged, --no-merged, --sort, --format); (6) git remote: a writer for add, remove / rm, rename, set-url, set-head, set-branches, prune and update, while bare git remote, -v and show / get-url stay readers. Everything else in the table is reproduced verbatim. An auto-allowed request is replied to at once; anything else is stored as pending and emitted as an .approval.",
       "side_effects": [
         "A reply file written, or a provider event"
       ],
       "persistence": "none",
       "failure_cases": [
         "An unclassifiable command counts as writing and is asked, which is the safe answer.",
-        "Under the ruling, sort --output=out.txt in.txt, find . -fprintf out.txt '%p', git config user.email x, git tag v1 and git remote add origin url are asked in .auto, not auto-run."
+        "Under the ruling, in .auto these are asked, not auto-run: sort --output=out.txt in.txt, sort --output out.txt in.txt, find . -fprintf out.txt '%p', find . -fls out.txt, fd -e txt --exec rm, git config user.email x, git tag v1, git remote add origin url, git remote set-url origin url.",
+        "Under ED-060 these stay readers and are auto-approved in .auto: find . -name x, git config --get user.email, git config --list, git tag, git tag -l, git remote, git remote -v, git remote show origin, git remote get-url origin."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "ShellCommandKind.mayWriteFiles classifies the command TEXT THE MODEL PRODUCED, so its reader lists are a product constant, not a platform constant, and are ported verbatim except for the three corrections ruled by OD-0008 A8 (PA-0011). UNK-0005 is marked RESOLVED by OD-0008 C5 (\"PowerShell 7 when installed, otherwise Windows PowerShell\"), but C5 rules only which shell the app's own terminal tabs and project scripts use; the commands classified here are executed by the Command Code CLI, not by the app's terminal or script runner, so C5 does not decide which shell runs them. No ruling adds Windows tool names to the reader lists, so none are added: a part whose tool is in no reader list counts as writing (Shell.swift:212-213, default: return readers.contains(tool)) and is asked in .auto, which is the safe answer.",
-      "verification_method": "unit test over all four runtime modes crossed with an edit, a read-only shell command, a writing shell command and each allow-list name; plus, in .auto, shell_command with sort --output=out.txt in.txt, find . -fprintf out.txt %p, git config user.email x, git tag v1 and git remote add origin url, each asserting an .approval is emitted and no reply is written",
+      "windows_path": "ShellCommandKind.mayWriteFiles classifies the command TEXT THE MODEL PRODUCED, so its reader lists are a product constant, not a platform constant, and are ported verbatim except for the corrections ruled by OD-0008 A8, in the exact forms of ED-060 (find, fd, sort, git config, git tag and git remote; PA-0011). UNK-0005 is marked RESOLVED by OD-0008 C5 (\"PowerShell 7 when installed, otherwise Windows PowerShell\"), but C5 rules only which shell the app's own terminal tabs and project scripts use; the commands classified here are executed by the Command Code CLI, not by the app's terminal or script runner, so C5 does not decide which shell runs them. No ruling adds Windows tool names to the reader lists, so none are added: a part whose tool is in no reader list counts as writing (Shell.swift:212-213, default: return readers.contains(tool)) and is asked in .auto, which is the safe answer.",
+      "verification_method": "unit test over all four runtime modes crossed with an edit, a read-only shell command, a writing shell command and each allow-list name; plus, in .auto, shell_command with each ED-060 writer form (find -fprint, -fprint0, -fprintf, -fls; fd --exec and --exec-batch; sort -o, --output and --output=; git config set forms; git tag create and delete; git remote add, remove, rm, rename, set-url, set-head, set-branches, prune and update), each asserting an .approval is emitted and no reply is written, and each ED-060 reader form (git config --get / --list, git tag -l, git remote -v / show / get-url, bare git tag and git remote) asserting it is auto-approved",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null,
       "deviation": {
-        "decision": "OD-0008 A8",
+        "decision": "OD-0008 A8; ED-060",
         "upstream": "Shell.swift:200-201 treats sort as read-only unless an argument has the prefix \"-o\", so --output= reads as read-only; Shell.swift:162 and :198-199 treat find and fd as read-only unless an argument is in searchActions, which omits -fprintf; Shell.swift:154-159 lists config, tag and remote in gitReaders. In .auto, CommandCodeSession.swift:695-717 therefore auto-approves these file-writing commands with no prompt and, because the same predicate gates the snapshot, no checkpoint (BLK-0008).",
-        "port": "mayWriteFiles classifies sort --output=, find -fprintf (and the other write actions missing from searchActions) and git config, git tag and git remote add as file-writing, so .auto mode prompts for them and they are checkpointed. Everything else in the table is unchanged."
+        "port": "Per ED-060, mayWriteFiles changes only where a command really writes: (1) find: an argument among -delete, -exec, -execdir, -ok, -okdir, -fprint, -fprint0, -fprintf and -fls makes the part a writer (B2 searchActions, Shell.swift:162, lacks -fprint, -fprint0, -fprintf and -fls); (2) fd: -x / --exec and -X / --exec-batch make it a writer (B2 searchActions has -x and -X, lacks --exec and --exec-batch; the B2 set applies to both find and fd at Shell.swift:198-199 and is otherwise kept); (3) sort: -o in any spelling, including --output and --output=, makes it a writer; (4) git config: a writer unless every argument is a read form (--get, --get-all, --get-regexp, --get-urlmatch, --list / -l, --show-origin, --show-scope, --name-only, --null / -z, --file / -f with only read forms, --global/--system/--local/--worktree with only read forms); (5) git tag: a writer unless it only lists (no arguments, -l / --list, -n, --contains, --points-at, --merged, --no-merged, --sort, --format); (6) git remote: a writer for add, remove / rm, rename, set-url, set-head, set-branches, prune and update, while bare git remote, -v and show / get-url stay readers. Everything else in the table is reproduced verbatim. The .auto prompt and the checkpoint both follow the corrected predicate."
       }
     },
     {
@@ -5996,11 +6040,12 @@
       "title": "Command Code resolves an approval by writing a reply file and records a session grant for always",
       "source_evidence": [
         "DroppyCode/Services/Providers/CommandCodeSession.swift:241-251 - resolveApproval",
-        "DroppyCode/Services/Providers/CommandCodeSession.swift:749-762 - reply(to:allow:)"
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:749-762 - reply(to:allow:)",
+        "porting/decision_batch_20260922b.md F1 - every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT (accepted by OD-0012)"
       ],
       "preconditions": "A pending approval keyed by requestID.",
       "action": "The user answers.",
-      "expected_result": "An unknown id does nothing. For \"allow\" or \"always\" the request is allowed; \"always\" ALSO inserts the row's grant key into the session grants, so every later request of that kind is auto-allowed for the rest of the session. Anything else denies. .requestResolved is emitted. The reply payload is verbatim: {\"decision\":\"allow\"} to allow, and {\"decision\":\"deny\",\"reason\":\"The user declined this in Droppy Code. Do not retry it; take another approach or explain what you would need.\"} to deny. It is written to \"<id>.reply.json\" by writing \"<id>.reply.json.tmp\" atomically and then replacing the target; if that fails, it falls back to writing the target directly and atomically, with any failure ignored.",
+      "expected_result": "An unknown id does nothing. For \"allow\" or \"always\" the request is allowed; \"always\" ALSO inserts the row's grant key into the session grants, so every later request of that kind is auto-allowed for the rest of the session. Anything else denies. .requestResolved is emitted. The reply payload is verbatim: {\"decision\":\"allow\"} to allow, and {\"decision\":\"deny\",\"reason\":\"The user declined this in Marrow. Do not retry it; take another approach or explain what you would need.\"} to deny (OD-0012 F1; upstream \"The user declined this in Droppy Code. ...\"). It is written to \"<id>.reply.json\" by writing \"<id>.reply.json.tmp\" atomically and then replacing the target; if that fails, it falls back to writing the target directly and atomically, with any failure ignored.",
       "side_effects": [
         "One or two files written; one provider event"
       ],
@@ -6014,7 +6059,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "CommandCodeSession.swift:753 writes the deny reason \"The user declined this in Droppy Code. Do not retry it; take another approach or explain what you would need.\"",
+        "port": "The deny reason is \"The user declined this in Marrow. Do not retry it; take another approach or explain what you would need.\"; the allow payload, the file names and the atomic write are unchanged."
+      }
     },
     {
       "id": "PR-PROVCLI-250",
@@ -6022,11 +6072,12 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/CommandCodeAPI.swift:446-457 - installMod with its doc comment",
         "DroppyCode/Services/Providers/CommandCodeAPI.swift:372-437 - the approvalMod source text",
-        "porting/port_impacts.md entry 22"
+        "porting/port_impacts.md entry 22",
+        "porting/decision_batch_20260922b.md F1 - every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT (accepted by OD-0012)"
       ],
       "preconditions": "A session starting.",
       "action": "installMod runs.",
-      "expected_result": "The support directory is created with intermediate directories. The file is named exactly \"droppy-code-approvals.ts\". The mod text is encoded as UTF-8 and compared BYTE FOR BYTE against whatever is on disk; it is written atomically ONLY when they differ, so a new build's mod replaces the old one and an unchanged one is left alone. The file URL is returned. A write failure propagates.",
+      "expected_result": "The support directory is created with intermediate directories. The file is named exactly \"marrow-approvals.ts\" (OD-0012 F1; upstream \"droppy-code-approvals.ts\"). The mod text is encoded as UTF-8 and compared BYTE FOR BYTE against whatever is on disk; it is written atomically ONLY when they differ, so a new build's mod replaces the old one and an unchanged one is left alone. The file URL is returned. A write failure propagates.",
       "side_effects": [
         "A directory created; possibly one file written"
       ],
@@ -6035,11 +6086,16 @@
         "A failed write throws out of start()."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Keep the byte-compare-before-write and the atomic write, because the CLI may be reading the file concurrently (port_impacts.md entry 22). The support tree moves to the Windows data directory.",
+      "windows_path": "Keep the byte-compare-before-write and the atomic write, because the CLI may be reading the file concurrently (port_impacts.md entry 22). The support tree moves to the Windows data directory (%LOCALAPPDATA%\\Marrow Code\\CommandCode, PR-PROVCLI-207). The file name is handed to the CLI with --mod, so OD-0012 F1 renames it, as it renames the temp folder droppy-code-catalog to marrow-catalog.",
       "verification_method": "restart test asserting the file is not rewritten when unchanged",
       "status": "SPECIFIED",
       "upstream_defect": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "CommandCodeAPI.swift:451 names the mod file \"droppy-code-approvals.ts\".",
+        "port": "The mod file is \"marrow-approvals.ts\"; the byte compare before writing, the atomic write and the returned URL are unchanged."
+      }
     },
     {
       "id": "PR-PROVCLI-251",
@@ -6090,11 +6146,12 @@
       "id": "PR-PROVCLI-253",
       "title": "The Command Code mod sanitizes the call id, writes a request file atomically and polls for a reply every 40 ms",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CommandCodeAPI.swift:402-433 - the beforeToolCall hook body"
+        "DroppyCode/Services/Providers/CommandCodeAPI.swift:402-433 - the beforeToolCall hook body",
+        "porting/decision_batch_20260922b.md F1 - every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT (accepted by OD-0012)"
       ],
       "preconditions": "A non-read-only tool call with DROPPY_CODE_APPROVALS set.",
       "action": "The hook runs.",
-      "expected_result": "With no approvals directory the hook registers NOTHING at all and every tool passes. Otherwise: the id is the toolCallId, or, when absent, `${Date.now()}-${Math.random().toString(36).slice(2)}`, with every character outside A-Z, a-z, 0-9, underscore, period and hyphen replaced by an underscore. Any stale reply file is unlinked. The request is written to \"<id>.request.json.tmp\" and RENAMED onto \"<id>.request.json\", carrying {toolCallId: <the sanitized id>, toolName, input}. Then the hook polls: it reads the reply file; when present it unlinks it, parses it (a parse failure yields an empty object), and returns nothing when answer.decision is exactly 'allow', otherwise {block: true, additionalContext: answer.reason || 'The user declined this in Droppy Code.'}. Between polls it sleeps 40 milliseconds.",
+      "expected_result": "With no approvals directory the hook registers NOTHING at all and every tool passes. Otherwise: the id is the toolCallId, or, when absent, `${Date.now()}-${Math.random().toString(36).slice(2)}`, with every character outside A-Z, a-z, 0-9, underscore, period and hyphen replaced by an underscore. Any stale reply file is unlinked. The request is written to \"<id>.request.json.tmp\" and RENAMED onto \"<id>.request.json\", carrying {toolCallId: <the sanitized id>, toolName, input}. Then the hook polls: it reads the reply file; when present it unlinks it, parses it (a parse failure yields an empty object), and returns nothing when answer.decision is exactly 'allow', otherwise {block: true, additionalContext: answer.reason || 'The user declined this in Marrow.'} (OD-0012 F1; upstream 'The user declined this in Droppy Code.'). Between polls it sleeps 40 milliseconds.",
       "side_effects": [
         "Files written, renamed and deleted; a busy-ish poll loop for the life of the prompt"
       ],
@@ -6108,17 +6165,24 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "CommandCodeAPI.swift:422 returns {block: true, additionalContext: answer.reason || 'The user declined this in Droppy Code.'}",
+        "port": "The mod text returns {block: true, additionalContext: answer.reason || 'The user declined this in Marrow.'}; the rest of the hook body is unchanged."
+      }
     },
     {
       "id": "PR-PROVCLI-254",
       "title": "The Command Code mod gives up on an abort signal, an orphaned parent or a six-hour deadline",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CommandCodeAPI.swift:424-431 - the abort, ppid and deadline checks"
+        "DroppyCode/Services/Providers/CommandCodeAPI.swift:424-431 - the abort, ppid and deadline checks",
+        "porting/decision_batch_20260922b.md F1 - every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT (accepted by OD-0012)",
+        "porting/engineering_decisions.md:91 Q57 - replace only the predicate process.ppid === 1 with a signal-0 liveness test of the parent"
       ],
       "preconditions": "The hook is polling for a reply.",
       "action": "One of the three exit conditions is met.",
-      "expected_result": "When ctx.signal.aborted becomes true, the request file is unlinked and the hook returns {block: true, additionalContext: 'The turn was stopped.'} When process.ppid is exactly 1, OR more than 6 * 60 * 60 * 1000 milliseconds have passed since the request was written, the request file is unlinked and the hook returns {block: true, additionalContext: 'Droppy Code did not answer.'} All three messages are verbatim.",
+      "expected_result": "When ctx.signal.aborted becomes true, the request file is unlinked and the hook returns {block: true, additionalContext: 'The turn was stopped.'} When process.ppid is exactly 1, OR more than 6 * 60 * 60 * 1000 milliseconds have passed since the request was written, the request file is unlinked and the hook returns {block: true, additionalContext: 'Marrow did not answer.'} All three messages are verbatim; the last is the OD-0012 F1 wording (upstream 'Droppy Code did not answer.').",
       "side_effects": [
         "The request file deleted"
       ],
@@ -6130,10 +6194,15 @@
       "windows_path": "process.ppid === 1 is the POSIX orphan test and is MEANINGLESS on Windows, where an orphaned process keeps its original parent id or reports a reused one. That check therefore never fires on Windows and the six-hour deadline becomes the only backstop. This is an observable behavioural difference that must be recorded rather than silently replaced, because changing the shipped mod text changes the gate for every run.",
       "verification_method": "a probe recording what process.ppid reports on Windows after the app exits, then a decision recorded as an engineering decision with that evidence",
       "status": "DISCOVERED",
-      "open_question": "Whether the Windows build ships the mod text unchanged, accepting that the orphan check never fires and a stranded gate waits six hours, or adds a Windows-valid orphan test. Changing the shipped TypeScript is a product change to a security-relevant gate and is not made without a decision.",
+      "open_question": "The wording is settled (OD-0012 F1); the orphan test is not. engineering_decisions.md Q57 (line 91) decides to replace only the predicate process.ppid === 1 with (() => { try { process.kill(process.ppid, 0); return false } catch (e) { return e.code === 'ESRCH' } })(), but its premise has no evidence on disk: missing is the probe this record's verification_method names, recording on Windows what process.ppid reports inside the Command Code CLI after the app exits and what process.kill(process.ppid, 0) throws then. Until that probe result is recorded, whether the port ships the literal ppid test or Q57's replacement is not specified.",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "CommandCodeAPI.swift:430 returns {block: true, additionalContext: 'Droppy Code did not answer.'}",
+        "port": "The mod text returns {block: true, additionalContext: 'Marrow did not answer.'}; 'The turn was stopped.', the unlink and the six-hour deadline are unchanged."
+      }
     },
     {
       "id": "PR-PROVCLI-255",
@@ -6180,7 +6249,7 @@
         "An unreachable CLI: .unknown, never .signedOut."
       ],
       "cancellation": "The 25 second timeout.",
-      "windows_path": "ANSI stripping is load-bearing on Windows. The argv is [\"status\", \"--no-auto-update\"] on the SAME executable that PR-PROVCLI-203 must validate; running it against the Windows command interpreter would open a console rather than answer. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "ANSI stripping is load-bearing on Windows. The argv is [\"status\", \"--no-auto-update\"] on the SAME executable that PR-PROVCLI-203 must validate; running it against the Windows command interpreter would open a console rather than answer. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "unit test over each of the four output shapes",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -6277,7 +6346,7 @@
         "The exact fallback message above."
       ],
       "cancellation": "The 30 second timeout.",
-      "windows_path": "ANSI stripping is load-bearing. The two-or-more-space column split is applied to text the CLI printed; a Windows console that pads differently would change which rows parse, so the real output must be captured on Windows before this is called verified. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%System32cmd.exe or %SystemRoot%SysWOW64cmd.exe, is rejected and the provider reports not installed.",
+      "windows_path": "ANSI stripping is load-bearing. The two-or-more-space column split is applied to text the CLI printed; a Windows console that pads differently would change which rows parse, so the real output must be captured on Windows before this is called verified. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "unit test against a captured --list-models output, plus a Windows capture comparison",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -6654,7 +6723,7 @@
       ],
       "preconditions": "A live process.",
       "action": "Any request is made.",
-      "expected_result": "With no process the call returns JSON null at once. Otherwise requestCounter is incremented BEFORE use, so the first id is exactly \"droppy-1\"; the literal prefix is \"droppy-\", NOT \"droppy-code-\" as Claude uses. The id is added to the request object and the line written. The continuation resolves when a line arrives whose type is \"response\" and whose id matches. A detached Task sleeps exactly 30 seconds and, if the continuation is still pending, resolves it with JSON NULL. The timeout NEVER THROWS. The consequence, recorded as an upstream oddity: a hung get_state leaves start() returning an EMPTY session id rather than reporting an error, and the thread then believes it has a session it cannot resume.",
+      "expected_result": "With no process the call returns JSON null at once. Otherwise requestCounter is incremented BEFORE use, so the first id is exactly \"droppy-1\"; the literal prefix is \"droppy-\", NOT \"marrow-\" as Claude uses (PR-PROVCLI-019, OD-0012 F1). The id is added to the request object and the line written. The continuation resolves when a line arrives whose type is \"response\" and whose id matches. A detached Task sleeps exactly 30 seconds and, if the continuation is still pending, resolves it with JSON NULL. The timeout NEVER THROWS. The consequence, recorded as an upstream oddity: a hung get_state leaves start() returning an EMPTY session id rather than reporting an error, and the thread then believes it has a session it cannot resume.",
       "side_effects": [
         "One stdin line per request"
       ],
@@ -6663,7 +6732,7 @@
         "A hung CLI silently produces an empty session id and an empty command list."
       ],
       "cancellation": "The 30 second timer is the only bound.",
-      "windows_path": "None. The id prefix is a contract with the app's own reader and is not renamed with the product.",
+      "windows_path": "None. The id prefix is a contract with the app's own reader. It is \"droppy-\", which is neither \"Droppy Code\" nor \"droppy-code\", the two spellings OD-0012 F1 renames, so it is kept.",
       "verification_method": "interaction test with a stand-in that never answers get_state, asserting start() returns an empty id after 30 seconds",
       "status": "SPECIFIED",
       "upstream_defect": "provider-argv-and-handshakes.md section 10 item 8 (Pi's 30 second timeout resolves null silently, so start() can return an empty session id)",
@@ -6703,7 +6772,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/PiSession.swift:285 - \"systemPrompt\": \"\"",
         "DroppyCode/Services/Providers/PiCLI.swift:192 - if (typeof gate.systemPrompt === \"string\" && gate.systemPrompt.length > 0) extra.push(gate.systemPrompt);",
-        "porting/dead_code.md entry 1"
+        "porting/dead_code.md entry 1",
+        "porting/engineering_decisions.md ED-061 - dead-code records use NOT_APPLICABLE_WITH_EVIDENCE"
       ],
       "preconditions": "Any turn.",
       "action": "The extension reads the gate.",
@@ -6716,10 +6786,11 @@
       "cancellation": "not cancellable",
       "windows_path": "None. The port must not remove the key, and must not implement a path that populates it.",
       "verification_method": "a source-level check that the Windows implementation writes the key with an empty value and has no other writer",
-      "status": "SPECIFIED",
+      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
       "upstream_defect": "provider-argv-and-handshakes.md section 10 item 7 (the gate's systemPrompt is always empty, making one extension branch unreachable)",
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "not_applicable": "ED-061: porting/dead_code.md entry 1 - PiSession.swift:285 writes \"systemPrompt\": \"\" as a constant and is the only writer of that key, so the extension branch at PiCLI.swift:192 (if (typeof gate.systemPrompt === \"string\" && gate.systemPrompt.length > 0) extra.push(gate.systemPrompt);) never executes. The branch is neither implemented as behaviour nor counted as missing. The live half of this record, writing the key with the empty string on every gate write, stays SPECIFIED in PR-PROVCLI-277, and the shipped extension text keeps the branch verbatim (PR-PROVCLI-303)."
     },
     {
       "id": "PR-PROVCLI-279",
@@ -11012,7 +11083,7 @@
         "Claude usage limit: \"Claude hit a usage limit.\" plus, when a reset time is known, \" It resets at <formatted time>.\"",
         "Codex MCP refusal: \"Codex refused the MCP server configuration, so this session runs without MCP servers. Check MCP in Settings.\"",
         "Codex retry: the error message, a space, then \"Retrying.\"",
-        "Codex elicitation: \"<server> asked for input, which Droppy Code cannot show yet.\" with the server defaulting to \"An MCP server\"",
+        "Codex elicitation: \"<server> asked for input, which Marrow cannot show yet.\" with the server defaulting to \"An MCP server\" (OD-0012 F1)",
         "Copilot unsupported command: \"/<name> opens a dialog that only Copilot's own terminal UI can show.\"",
         "Command Code turn cap: \"Command Code stopped at its cap of 400 round trips for one message. Send another to carry on.\"",
         "Antigravity denied actions: \"Antigravity held back <names> without prompting. Use Full access or add an allow rule in the CLI's settings.\"",
@@ -11029,9 +11100,15 @@
         "DroppyCode/Services/Providers/CopilotSession.swift:224",
         "DroppyCode/Services/Providers/CommandCodeSession.swift:494",
         "DroppyCode/Services/Providers/AntigravitySession.swift:333-336",
-        "DroppyCode/Services/Providers/PiSession.swift:336-338,:576"
+        "DroppyCode/Services/Providers/PiSession.swift:336-338,:576",
+        "porting/decision_batch_20260922b.md F1 - every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT (accepted by OD-0012)"
       ],
-      "notes": "Two of these embed the product name on a user-visible surface; the rename decision governs them and they are not changed silently."
+      "notes": "The Codex elicitation notice embeds the product name on a user-visible surface; OD-0012 F1 renames it to \"Marrow\" (upstream \"which Droppy Code cannot show yet.\").",
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "CodexSession.swift:985: \"\\(server) asked for input, which Droppy Code cannot show yet.\"",
+        "port": "\"<server> asked for input, which Marrow cannot show yet.\"; every other notice in this record is unchanged."
+      }
     },
     {
       "id": "UI-PROVCLI-030",
@@ -11129,9 +11206,9 @@
       "typography": "Not defined in this area.",
       "colors": "Not defined in this area; the status .declined is what the row uses to pick its treatment.",
       "states": [
-        "Command Code decline, written into the reply file and echoed back by the CLI: \"The user declined this in Droppy Code. Do not retry it; take another approach or explain what you would need.\"",
-        "Command Code mod default, when the reply carries no reason: \"The user declined this in Droppy Code.\"",
-        "Command Code mod on an abort: \"The turn was stopped.\"; on an orphan or the six-hour deadline: \"Droppy Code did not answer.\"",
+        "Command Code decline, written into the reply file and echoed back by the CLI: \"The user declined this in Marrow. Do not retry it; take another approach or explain what you would need.\" (OD-0012 F1)",
+        "Command Code mod default, when the reply carries no reason: \"The user declined this in Marrow.\" (OD-0012 F1)",
+        "Command Code mod on an abort: \"The turn was stopped.\"; on an orphan or the six-hour deadline: \"Marrow did not answer.\" (OD-0012 F1)",
         "Pi extension block reasons: \"Final report: no tools\", \"Plan mode is read-only\", and \"The user declined this command\" / \"The user declined this file change\" / \"The user declined this tool call\"",
         "Command Code blocked-hook fallback: \"Declined.\"; failed-tool fallback: \"The tool failed.\"",
         "Antigravity failed-tool fallback: \"The tool failed.\""
@@ -11143,9 +11220,15 @@
         "DroppyCode/Services/Providers/CommandCodeSession.swift:753,:390,:386",
         "DroppyCode/Services/Providers/CommandCodeAPI.swift:422,:426,:430",
         "DroppyCode/Services/Providers/PiCLI.swift:199,:201,:213",
-        "DroppyCode/Services/Providers/AntigravitySession.swift:240"
+        "DroppyCode/Services/Providers/AntigravitySession.swift:240",
+        "porting/decision_batch_20260922b.md F1 - every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT (accepted by OD-0012)"
       ],
-      "notes": "Pi's three decline reasons are not merely display text: the app matches the shared prefix \"The user declined this\" to decide that a row reads declined rather than failed, so the extension's wording and the app's comparison must change together. Four of these strings embed the product name."
+      "notes": "Pi's three decline reasons are not merely display text: the app matches the shared prefix \"The user declined this\" to decide that a row reads declined rather than failed, so the extension's wording and the app's comparison must change together. Three of these strings embedded the product name upstream; OD-0012 F1 renames it to \"Marrow\" in all three.",
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "CommandCodeSession.swift:753 \"The user declined this in Droppy Code. Do not retry it; take another approach or explain what you would need.\"; CommandCodeAPI.swift:422 \"The user declined this in Droppy Code.\"; CommandCodeAPI.swift:430 \"Droppy Code did not answer.\"",
+        "port": "\"The user declined this in Marrow. Do not retry it; take another approach or explain what you would need.\"; \"The user declined this in Marrow.\"; \"Marrow did not answer.\"; the Pi, Antigravity and other fallbacks are unchanged."
+      }
     },
     {
       "id": "UI-PROVCLI-034",
