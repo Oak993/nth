@@ -18,11 +18,9 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { REF, PINNED_SHA, PINNED_TREE } from './baseline.mjs';
 
 const ROOT = process.cwd();
-const REF = 'E:/Droppy/reference/droppy-code';
-const PINNED_SHA = 'dd2b86efef9e77168f304a86e8a8411877578bbe';
-const PINNED_TREE = 'f761e5ef3745c4f68958ffa4014ab0b618c9d419';
 
 const args = process.argv.slice(2);
 const asJson = args.includes('--json');

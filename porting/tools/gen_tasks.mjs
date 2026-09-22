@@ -12,6 +12,7 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'node:fs';
+import { REF } from './baseline.mjs';
 
 const MAX_REQ = 10;          // requirements per packet: sized so the packet plus its source fit a free model
 const MAX_SRC_LINES = 1400;  // source lines a worker must read per packet
@@ -252,7 +253,7 @@ for (const p of packets) {
   md.push(`| --- | --- |`);
   md.push(`| Milestone | ${p.milestone}: ${MILESTONES[p.milestone]} |`);
   md.push(`| Risk | **${p.risk}**${p.risk_why ? ` - ${p.risk_why}` : ''} |`);
-  md.push(`| Read (pinned source) | \`E:/Droppy/reference/droppy-code/${p.source}\` (${p.source_lines} lines, read it ALL) |`);
+  md.push(`| Read (pinned source) | \`${REF}/${p.source}\` (${p.source_lines} lines, read it ALL) |`);
   md.push(`| Write (Windows) | \`${p.target || 'decide with the orchestrator'}\` plus tests under \`tests/\` |`);
   md.push(`| Requirements | ${p.requirements.length}${p.blocked.length ? ` (${p.blocked.length} quarantined, skip them)` : ''} |`);
   md.push(`| UI records | ${p.ui.length} |`);

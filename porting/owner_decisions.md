@@ -131,3 +131,30 @@ instruction may change one.
 - **Still open under this ruling:** whether the app should always draw a backdrop so that the
   richer material applies more often, which would change an upstream default (upstream ships a
   clear window over the desktop with the wallpaper unset). Raised as UNK-0023.
+
+## OD-0006 Target upstream: live 1.6.2, not the 1.6.0 pin
+
+- **Asked:** 2026-09-22, when the owner handed the whole port to a new orchestrator and linked
+  https://gitlab.com/droppyformac1/droppy-code asking for "a complete 100% port". Upstream `main`
+  had moved from the pinned `dd2b86ef` (1.6.0 build 19) to `1fbf81e6` (1.6.2 build 20): 120 files,
+  +2,645 / -1,621 lines, 195 Swift files instead of 192. An intermediate snapshot `417ab7d3` (a
+  design refresh) had already been reverted upstream by `1fbf81e6`.
+- **Options put to the owner:** switch to live 1.6.2 now (recommended); keep 1.6.0; port 1.6.0
+  first and catch up at the end.
+- **Answer, verbatim (selected option):** "Switch to live 1.6.2 (Recommended)"
+- **What is now settled:**
+  - The pinned baseline is `1fbf81e61e28a079508a074c01ee1830a9cc23dc`, tree
+    `a583cec47ea4e97dbdb81349fa0cb45499b88fe6`, cloned fresh from GitLab into
+    `E:\Droppy\reference\droppy-code-v1.6.2`. `porting/baseline.json` records it as B2 and keeps B1.
+  - It is frozen again. If upstream moves before the end, one catch-up pass at the end, put to the
+    owner as its own decision; nothing drifts in silently.
+  - Reading evidence carries over only for the 317 byte-identical files. The 115 changed and 4 added
+    files are UNREAD until re-read with evidence; Gate A and Gate B are re-earned for the delta.
+  - The 1.6.0 checkout `E:\Droppy\reference\droppy-code` stays pristine as B1 history.
+
+## OD-0007 Desktop probes may run without asking
+
+- **Asked:** 2026-09-22. Probes P2, P3, P4 and P7 must open real windows on the owner's unlocked
+  screen for a few minutes each.
+- **Answer, verbatim (selected option):** "Anytime, no need to ask"
+- **Effect:** they run when the plan reaches them. The owner leaves the mouse alone while they run.

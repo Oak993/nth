@@ -21,6 +21,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
+import { REF, HISTORY } from './baseline.mjs';
 
 const ref = process.argv[2] || 'HEAD';
 
@@ -36,6 +37,7 @@ const PROTECTED = [
   'porting/port_impacts.md', 'porting/engineering_decisions.md', 'porting/adr/',
   // the reading evidence
   'porting/source_inventory.json', 'porting/read_ledger.jsonl', 'porting/reports/',
+  'porting/baseline.json', 'porting/baselines/',
   'porting/critiques/', 'porting/extracts/', 'porting/reference_captures/',
   // the gates and the tools that feed them
   'porting/tools/',
@@ -68,12 +70,16 @@ const untracked = git('ls-files', '--others', '--exclude-standard', '--', ...PRO
 const staged = git('diff', '--name-only', '--cached', '--', ...PROTECTED);
 const hits = [...new Set([...changed, ...untracked, ...staged])].sort();
 
-// The pinned macOS reference must never be written to either.
+// The pinned macOS reference must never be written to either, nor any earlier baseline's checkout
+// (porting/baseline.json history), whose evidence the archived ledgers still point at.
 let refDirty = '';
-try {
-  refDirty = execFileSync('git', ['-C', 'E:/Droppy/reference/droppy-code', 'status', '--porcelain'],
-    { encoding: 'utf8' }).trim();
-} catch { /* reference absent on this machine: reported by verify.mjs Gate A instead */ }
+for (const refPath of [REF, ...HISTORY.map((h) => h.reference_path)]) {
+  try {
+    const st = execFileSync('git', ['-C', refPath, 'status', '--porcelain'], { encoding: 'utf8' }).trim();
+    if (st) refDirty += `${refPath}:\n${st}\n`;
+  } catch { /* reference absent on this machine: reported by verify.mjs Gate A instead */ }
+}
+refDirty = refDirty.trim();
 
 if (!hits.length && !refDirty) {
   console.log(`protected paths unchanged against ${ref}; reference checkout clean`);

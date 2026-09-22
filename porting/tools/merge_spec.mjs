@@ -15,6 +15,7 @@
 
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { PINNED_SHA } from './baseline.mjs';
 
 const SPEC_DIR = 'porting/spec';
 const OUT_MATRIX = 'porting/parity_matrix.json';
@@ -105,7 +106,7 @@ const byArea = requirements.reduce((a, r) => { a[r.area] = (a[r.area] || 0) + 1;
 mkdirSync('porting', { recursive: true });
 writeFileSync(OUT_MATRIX, JSON.stringify({
   schema: 'droppy-windows-port/parity_matrix/1',
-  baseline: { commit_sha: 'dd2b86efef9e77168f304a86e8a8411877578bbe' },
+  baseline: { commit_sha: PINNED_SHA },
   note: 'Every requirement carries file:line evidence from the pinned source and a verification method. Status SPECIFIED means specified, not implemented and not verified.',
   counts: { total: requirements.length, by_status: byStatus, by_area: byArea, areas: areas.length },
   requirements,
@@ -113,7 +114,7 @@ writeFileSync(OUT_MATRIX, JSON.stringify({
 
 writeFileSync(OUT_UI, JSON.stringify({
   schema: 'droppy-windows-port/ui_contract/1',
-  baseline: { commit_sha: 'dd2b86efef9e77168f304a86e8a8411877578bbe' },
+  baseline: { commit_sha: PINNED_SHA },
   note: 'Source-defined geometry, typography, colors and interactions. Values delegated to macOS rendering are marked and remain UNVERIFIED per UNK-0003.',
   counts: {
     total: uiRecords.length,

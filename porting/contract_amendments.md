@@ -77,3 +77,22 @@ and UNK-0010 remain owner decisions that block only what they actually block.
 Progress reports must state plainly which part is specification and which part is Windows
 functionality actually implemented and tested, and must never let the former imply the latter.
 A requirement that is SPECIFIED is not IMPLEMENTED; IMPLEMENTED is not VERIFIED.
+
+---
+
+## AM-0002, 2026-09-22 - The pinned baseline moves to live 1.6.2
+
+**Owner instruction:** "I want a complete 100% port" of https://gitlab.com/droppyformac1/droppy-code,
+then, asked which version, the selected option "Switch to live 1.6.2 (Recommended)" (OD-0006).
+
+### Effect
+
+- Contract section 4's frozen baseline is now `1fbf81e61e28a079508a074c01ee1830a9cc23dc` (B2). The
+  contract text is unchanged; "the pinned source" in every section means B2 from this date.
+- Gate A and Gate B are re-earned for the delta between B1 and B2, by the same rules as the original
+  reading: every changed or added file fully read with an evidence-bearing report accepted by
+  `ledger_apply.mjs`; every requirement and UI record citing a changed file re-classified against
+  B2; every new behaviour specified before it is implemented.
+- Work already marked DONE is re-verified against B2 before it counts.
+- The verification tools read the baseline from `porting/baseline.json` instead of constants, so
+  this change is one auditable record (`porting/tools/baseline.mjs`, `porting/tools/rebaseline.py`).
