@@ -7,8 +7,9 @@
   "counts": {
     "total": 3827,
     "by_status": {
-      "SPECIFIED": 3742,
-      "DISCOVERED": 85
+      "SPECIFIED": 3739,
+      "DISCOVERED": 85,
+      "IMPLEMENTED": 3
     },
     "by_area": {
       "CHAT": 188,
@@ -14791,10 +14792,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce byte for byte. The porting repository's own lint rules about apostrophes and spelling do not apply to model-visible source strings; add an exemption rather than editing the text.",
       "verification_method": "contract fixture comparing bytes, including the U+2019 codepoint",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 11",
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-001"
     },
     {
       "area": "HYDRA",
@@ -74413,14 +74415,15 @@
       "cancellation": "not cancellable",
       "windows_path": "Store as an exact string resource, byte for byte, including U+2019 and the American spellings. Do not reflow, re-wrap, spell-check or localise it.",
       "verification_method": "contract fixture: byte-compare the assembled prompt against the source literal",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "The anti-slop guidance block is injected verbatim when the setting is on",
       "source_evidence": [
         "DroppyCode/Core/Models/AntiSlopPolicy.swift:2-8 - static let enabledInstructions, a multi-line string literal"
-      ]
+      ],
+      "implemented_by_task": "T-M2-001"
     },
     {
       "area": "STORE",
@@ -74438,7 +74441,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte-exact string, and the same always-inject-one-of-two selector. The selector takes a Bool and returns one of the two constants; there is no third state.",
       "verification_method": "contract fixture over both branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -74446,7 +74449,8 @@
       "source_evidence": [
         "DroppyCode/Core/Models/AntiSlopPolicy.swift:10-14 - comment \"Resumed conversations may still contain the enabled guidance.\" then static let disabledInstructions",
         "DroppyCode/Core/Models/AntiSlopPolicy.swift:16-18 - static func instructions(enabled: Bool) -> String { enabled ? enabledInstructions : disabledInstructions }"
-      ]
+      ],
+      "implemented_by_task": "T-M2-001"
     },
     {
       "area": "STORE",

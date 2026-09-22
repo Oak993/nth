@@ -1252,10 +1252,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce byte for byte. The porting repository's own lint rules about apostrophes and spelling do not apply to model-visible source strings; add an exemption rather than editing the text.",
       "verification_method": "contract fixture comparing bytes, including the U+2019 codepoint",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 11",
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-001"
     },
     {
       "id": "PR-HYDRA-056",

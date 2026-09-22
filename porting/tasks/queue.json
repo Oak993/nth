@@ -167,9 +167,9 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "IMPLEMENTING",
+      "status": "DONE",
       "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: Owner requested direct Codex execution for 20 minutes. Previously approved DeepSeek byte fixtures reviewed again; AntiSlopPolicy.swift identical at dd2b86e and 417ab7d3. Three requirement mappings in tests. Runtime wiring remains later."
+      "notes": "2026-09-22 TESTS_REVIEW: Owner requested direct Codex execution for 20 minutes. Previously approved DeepSeek byte fixtures reviewed again; AntiSlopPolicy.swift identical at dd2b86e and 417ab7d3. Three requirement mappings in tests. Runtime wiring remains later. | 2026-09-22 DONE: Director final diff reviewed; production matches accepted DeepSeek implementation and unchanged Swift at both snapshots. A12 B8 quarantine pass; clean build and17 tests none skipped. Full acceptance remains unfinished."
     },
     {
       "id": "T-M2-002",
