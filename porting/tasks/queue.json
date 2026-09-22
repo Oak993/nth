@@ -167,9 +167,9 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": null,
-      "notes": ""
+      "status": "IMPLEMENTING",
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: Owner requested direct Codex execution for 20 minutes. Previously approved DeepSeek byte fixtures reviewed again; AntiSlopPolicy.swift identical at dd2b86e and 417ab7d3. Three requirement mappings in tests. Runtime wiring remains later."
     },
     {
       "id": "T-M2-002",
