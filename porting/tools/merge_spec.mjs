@@ -29,6 +29,9 @@ if (!existsSync(SPEC_DIR)) {
 const VALID_STATUS = new Set([
   'DISCOVERED', 'SPECIFIED', 'IMPLEMENTED', 'VERIFIED', 'FAILED', 'BLOCKED',
   'NOT_APPLICABLE_WITH_EVIDENCE',
+  // A behaviour the pinned source no longer has after a rebaseline. Kept, never deleted, so its id
+  // is never reused; it must say why and cite the new baseline (porting/tools/rebaseline.py, AM-0002).
+  'RETIRED',
 ]);
 
 const blocked = existsSync('porting/blocked_requirements.json')
@@ -74,6 +77,9 @@ for (const f of files) {
     }
     const status = r.status || 'DISCOVERED';
     if (!VALID_STATUS.has(status)) { bad(`invalid status "${status}"`); continue; }
+    if (status === 'RETIRED' && !(r.retired && r.retired.reason && r.retired.evidence)) {
+      bad('RETIRED needs retired.reason and retired.evidence citing the new baseline'); continue;
+    }
     if (r.blocked_by) {
       if (!openBlocks.has(r.blocked_by) && !blocked.entries.some((e) => e.id === r.blocked_by)) {
         bad(`blocked_by "${r.blocked_by}" is not in blocked_requirements.json`); continue;
@@ -95,6 +101,10 @@ for (const f of files) {
       bad('no source_evidence'); continue;
     }
     if (!u.screen || !u.element) { bad('ui record needs screen and element'); continue; }
+    if (u.status && !VALID_STATUS.has(u.status)) { bad(`invalid ui status "${u.status}"`); continue; }
+    if (u.status === 'RETIRED' && !(u.retired && u.retired.reason && u.retired.evidence)) {
+      bad('RETIRED needs retired.reason and retired.evidence citing the new baseline'); continue;
+    }
     seenUiIds.add(u.id);
     uiRecords.push({ area, ...u });
   }

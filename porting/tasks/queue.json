@@ -612,9 +612,7 @@
         "PR-STORE-156"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-STORE-156"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -852,9 +850,7 @@
         "PR-MCP-094"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-MCP-089"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -2154,9 +2150,7 @@
         "PR-GIT-081"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-GIT-067"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -2182,9 +2176,7 @@
         "PR-GIT-108"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-GIT-097"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -2202,9 +2194,7 @@
         "PR-GIT-158"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-GIT-158"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -2287,10 +2277,7 @@
         "PR-GIT-153"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-GIT-077",
-        "PR-GIT-078"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -2362,9 +2349,7 @@
         "PR-STORE-026"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-STORE-013"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -2668,9 +2653,7 @@
         "PR-MCP-228"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-MCP-228"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -4131,9 +4114,7 @@
         "PR-PROVCLI-259"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-PROVCLI-255"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -4303,9 +4284,7 @@
         "PR-PROVCLI-397"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-PROVCLI-247"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -5208,9 +5187,7 @@
         "PR-PROVCLI-310"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-PROVCLI-309"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -5265,11 +5242,7 @@
         "PR-PROVCLI-316"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-PROVCLI-313",
-        "PR-PROVCLI-314",
-        "PR-PROVCLI-315"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -5412,9 +5385,7 @@
         "PR-PROVREG-179"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-PROVREG-177"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -5635,9 +5606,7 @@
         "PR-PROVREG-130"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-PROVREG-121"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -8113,9 +8082,7 @@
         "PR-LAUNCH-045"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-LAUNCH-034"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -8193,9 +8160,7 @@
         "PR-STORE-051"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-SIDEBAR-131"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -8282,12 +8247,7 @@
         "PR-PROVREG-084"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-PROVAPI-008",
-        "PR-PROVAPI-009",
-        "PR-PROVAPI-010",
-        "PR-PROVAPI-011"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -8313,9 +8273,7 @@
         "PR-SETTINGS-032"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-PROVREG-239"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -8471,9 +8429,7 @@
         "PR-SETTINGS-092"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-SETTINGS-088"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -12909,9 +12865,7 @@
         "PR-MCP-207"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-MCP-073"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",
@@ -13492,9 +13446,7 @@
         "PR-THEME-051"
       ],
       "ui": [],
-      "quarantined": [
-        "PR-SETTINGS-252"
-      ],
+      "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
       "status": "TODO",

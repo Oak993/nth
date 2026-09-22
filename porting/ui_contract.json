@@ -1,7 +1,7 @@
 {
   "schema": "droppy-windows-port/ui_contract/1",
   "baseline": {
-    "commit_sha": "dd2b86efef9e77168f304a86e8a8411877578bbe"
+    "commit_sha": "1fbf81e61e28a079508a074c01ee1830a9cc23dc"
   },
   "note": "Source-defined geometry, typography, colors and interactions. Values delegated to macOS rendering are marked and remain UNVERIFIED per UNK-0003.",
   "counts": {

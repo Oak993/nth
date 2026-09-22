@@ -82,15 +82,18 @@ const primarySource = (r) => {
 };
 
 // ---- group requirements by primary source file, then chunk ------------------------------
+// Retired and not-applicable records are kept in the spec for the record but are not work.
+const OUT_OF_SCOPE = new Set(['RETIRED', 'NOT_APPLICABLE_WITH_EVIDENCE']);
+const DONE_STATUS = new Set(['IMPLEMENTED', 'VERIFIED']);
 const byFile = new Map();
-for (const r of matrix.requirements) {
+for (const r of matrix.requirements.filter((x) => !OUT_OF_SCOPE.has(x.status))) {
   const p = primarySource(r);
   if (!byFile.has(p)) byFile.set(p, []);
   byFile.get(p).push(r);
 }
 
 const uiByFile = new Map();
-for (const u of ui.records) {
+for (const u of ui.records.filter((x) => !OUT_OF_SCOPE.has(x.status))) {
   for (const e of u.source_evidence || []) {
     const m = String(e).match(/DroppyCode\/[A-Za-z0-9_+/.-]+\.swift/);
     if (!m) continue;
@@ -299,7 +302,13 @@ const queue = {
       requirements: p.requirements.map((q) => q.id), ui: p.ui.map((u) => u.id),
       quarantined: p.blocked.map((q) => q.id),
       needs_desktop: Boolean(p.needs_desktop), kind: p.kind,
-      status: was?.status || 'TODO', assignee: was?.assignee || null, notes: was?.notes || '',
+      // Status is DERIVED from the records, never carried by packet id alone: packet ids are
+      // sequential and shift when a rebaseline adds or retires requirements, so a carried status
+      // could land on a different packet. DONE means every record in it is IMPLEMENTED or VERIFIED.
+      status: [...p.requirements, ...p.ui].length && [...p.requirements, ...p.ui].every((x) => DONE_STATUS.has(x.status))
+        ? 'DONE'
+        : (was && was.status !== 'DONE' && JSON.stringify(was.requirements) === JSON.stringify(p.requirements.map((q) => q.id)) ? was.status : 'TODO'),
+      assignee: was?.assignee || null, notes: was?.notes || '',
     };
   }),
 };
