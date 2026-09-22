@@ -1549,9 +1549,9 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": null,
-      "notes": ""
+      "status": "IMPLEMENTING",
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: All34 Swift lines read at both identical snapshots. Tests reviewed for recursive sorted compact JSON, escaped slashes, UTC date seconds, strict invalid dates, lazy missing/null/type fallback and shared immutable options. macOS-produced byte oracle unavailable; full parity remains unverified."
     },
     {
       "id": "T-M2-060",
