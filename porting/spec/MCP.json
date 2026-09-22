@@ -886,7 +886,7 @@
       ],
       "preconditions": "none",
       "action": "A tool call or transcript names a server and the app looks up its catalog entry (for the glyph and the brand tint).",
-      "expected_result": "normalize(value) lowercases, replaces every \"_\" with \"-\" and every \" \" with \"-\". The function first returns the entry whose normalized id equals the normalized argument; failing that, the entry whose normalized name equals it; otherwise nil. So \"Chrome DevTools\", \"chrome_devtools\" and \"chrome-devtools\" all resolve to the chrome-devtools entry, and \"Hugging Face\" resolves to huggingface only if its normalized name \"hugging-face\" matches - it does not, so \"Hugging Face\" returns nil while \"huggingface\" matches by id.",
+      "expected_result": "normalize(value) lowercases, replaces every \"_\" with \"-\" and every \" \" with \"-\". The function first returns the entry whose normalized id equals the normalized argument; failing that, the entry whose normalized name equals it; otherwise nil. So \"Chrome DevTools\", \"chrome_devtools\" and \"chrome-devtools\" all resolve to the chrome-devtools entry. \"Hugging Face\" normalizes to \"hugging-face\" and matches the entry's normalized name through the second pass, returning huggingface; \"huggingface\" matches through the id pass. Leading/trailing spaces and repeated spaces are not trimmed or collapsed.",
       "side_effects": [
         "none"
       ],
@@ -896,7 +896,7 @@
       ],
       "cancellation": "not cancellable",
       "windows_path": "Same two-pass lookup and the same three-rule normalizer. Do not add extra normalization (stripping spaces, removing hyphens): it would change which names resolve.",
-      "verification_method": "unit with the id-before-name precedence and the \"Hugging Face\" negative case",
+      "verification_method": "unit with id and normalized-name lookup, the positive \"Hugging Face\" name fallback, and negative whitespace/punctuation cases; review id-before-name precedence against source",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
