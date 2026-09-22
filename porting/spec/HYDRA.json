@@ -30,11 +30,12 @@
       "title": "HydraHeadProfile.briefLabel joins model and provider display name with \" on \" and wraps them in parentheses after the name",
       "source_evidence": [
         "DroppyCode/Core/Models/Hydra.swift:32-35 var briefLabel - let on = [model, provider?.displayName].compactMap { $0 }.joined(separator: \" on \"); return on.isEmpty ? name : \"\\(name) (\\(on))\"",
-        "porting/extracts/hydra-prompt-corpus.md:481-487 briefLabel worked examples"
+        "porting/extracts/hydra-prompt-corpus.md:481-487 briefLabel worked examples",
+        "DroppyCode/Core/Models/Provider.swift:20-35 ProviderKind.displayName returns Claude for claude; the Anthropic example in Hydra.swift:31 is an outdated comment, not executable output"
       ],
       "preconditions": "A head profile exists on the pair whose lead is a Droppy-run lead.",
       "action": "The fallback policy's profileRule lists the pair's profiles.",
-      "expected_result": "With both model and provider set the label is \"deep (claude-opus-5 on Anthropic)\"; with only a provider set it is \"quick (Anthropic)\"; with only a model set it is \"quick (claude-opus-5)\"; with neither set it is the bare name \"quick\". The order inside the parentheses is always model first, then provider display name, joined by the literal \" on \".",
+      "expected_result": "With model set to claude-opus-5 and provider set to claude the label is \"deep (claude-opus-5 on Claude)\"; with only that provider set it is \"quick (Claude)\"; with only a model set it is \"quick (claude-opus-5)\"; with neither set it is the bare name \"quick\". The order inside the parentheses is always model first, then provider display name, joined by the literal \" on \".",
       "side_effects": [],
       "persistence": "Not persisted; computed for prompt text.",
       "failure_cases": [

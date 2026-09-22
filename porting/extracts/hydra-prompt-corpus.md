@@ -483,8 +483,8 @@ leading space:
 let on = [model, provider?.displayName].compactMap { $0 }.joined(separator: " on ")
 return on.isEmpty ? name : "\(name) (\(on))"
 ```
-so e.g. `deep (claude-opus-5 on Anthropic)`, or `quick (Anthropic)` when only a provider is set, or
-bare `quick` when neither model nor provider is set.
+so e.g. `deep (claude-opus-5 on Claude)`, or `quick (Claude)` when only provider `.claude` is set, or
+bare `quick` when neither is set. Provider.swift:20-35 returns `Claude`; Hydra.swift:31's `Anthropic` comment is stale.
 
 **Note (SOURCE FACT):** unlike the native path, `fallbackPolicy` passes `launch.headProfiles`
 **unfiltered** — `nativeRoutableProfiles` is not applied — so a Droppy-run lead is told about
