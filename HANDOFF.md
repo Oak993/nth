@@ -50,13 +50,25 @@ the work this handoff assigns.
 
 ## 4a. Budget and model routing (owner's cap: $10)
 
+**The owner's Cast, as configured in Marrow on 2026-09-22.** Route to these exact entries:
+
+| Cast entry | Endpoint | Model id | Role |
+| --- | --- | --- | --- |
+| Codex (Director) | Codex | GPT-6-Astra, effort High | orchestrator; reviews and commits |
+| OpenRouter | OpenRouter | `nvidia/nemotron-3-super-120b-a12b:free` | STANDARD packets |
+| OpenRouter | OpenRouter | `deepseek/deepseek-v4.1-flash` | HIGH packets |
+| Z.ai (GLM) | Z.ai (native) | `glm-5.3-flash` | review of every HIGH packet |
+
+Both OpenRouter entries share one account. **Never** assign a STANDARD packet to the DeepSeek entry by
+mistake: the only thing separating the free route from the paid one is the model id.
+
 **Owner's decision, 2026-09-22: total paid spend on workers is capped at $10.** Route every packet by
 its `risk` field in `porting/tasks/queue.json`:
 
 | Packets | Head provider | Why |
 | --- | --- | --- |
 | `risk: STANDARD` (558) | **Nemotron 3 Super, free** (OpenRouter) | Mistakes here are cheap to catch in review |
-| `risk: HIGH` (104) | **DeepSeek v4.1 Flash, paid** (native DeepSeek preset) | A plausible but wrong translation here costs data |
+| `risk: HIGH` (104) | **DeepSeek v4.1 Flash, paid** (via OpenRouter: `deepseek/deepseek-v4.1-flash`) | A plausible but wrong translation here costs data |
 | M0 probes | the owner, or DeepSeek for P5 and P6 | P2, P3, P4, P7 need an unlocked desktop |
 | **Review of every HIGH packet** | **GLM 5.3 Flash, paid** (native Z.ai preset, $4.95 balance) | A second model catches a translation that compiles, passes its own tests and still differs from the Swift |
 
@@ -80,12 +92,14 @@ Rules the orchestrator must follow:
 1. **Never send a STANDARD packet to the paid model.** When the free model's daily ceiling runs out,
    STOP assigning STANDARD packets until it resets. Work on reviews, or on HIGH packets, in the
    meantime. Overflowing easy work onto the paid model is exactly how the $10 would disappear.
-2. **The $10 is a hard cap by construction:** it is loaded as a prepaid balance, so requests fail
+2. **The $10 is a hard cap by construction:** it is OpenRouter credit, and the OpenRouter API key
+   Marrow uses carries a **$10 credit limit**, so requests fail
    rather than overspend. Before each HIGH packet, check the remaining balance. If it would not cover
    the packet at the measured per-packet cost, stop and report to the owner rather than starting work
    that cannot finish.
 3. **Measure, then plan.** After the bake-off (section 5), read the real spend per HIGH packet from the
-   DeepSeek console, multiply by the HIGH packets remaining, and report the projection to the owner.
+   OpenRouter activity page (or `GET https://openrouter.ai/api/v1/key`, field `limit_remaining`),
+   multiply by the HIGH packets remaining, and report the projection to the owner.
    **Calibration from real usage (owner's report, 2026-09-22):** $10 on DeepSeek v4.1 bought about
    550M tokens, an effective **$0.018 per million**, which implies the large majority of tokens were
    served from cache. At that rate the planning estimate is about **$0.05 per packet** (assuming ~2.85M
@@ -108,10 +122,14 @@ requests each is on the order of 45,000 free requests; divide by the ceiling for
 
 Each step below was checked against the running 0.2.1 build on 2026-09-22.
 
-1. **Add the worker model.** *Settings > API endpoints*, choose the **DeepSeek** preset, paste your
-   DeepSeek API key, save. The endpoint list is empty today, so this is a fresh add.
-   (If you prefer OpenRouter, the **OpenRouter** preset works too; its model list is empty in 0.2.1, so
-   type the model id yourself.)
+1. **Add the worker models.** *Settings > API endpoints*:
+   - **OpenRouter** preset with your OpenRouter key. It serves both
+     `nvidia/nemotron-3-super-120b-a12b:free` and `deepseek/deepseek-v4.1-flash`. The preset's model
+     list is empty in 0.2.1, so type the ids.
+   - **Z.ai (GLM)** preset with your Z.ai key, model `glm-5.3-flash`.
+   - Put the **$10 on OpenRouter** (not on DeepSeek's own platform, which this setup never calls), and
+     give the OpenRouter key Marrow uses a **$10 credit limit** in OpenRouter's key settings. That
+     makes the cap hold even if more credit is added to the account later.
 2. **Add the project.** In the sidebar, *Projects*, the `+` button, choose the folder `E:\Droppy\port`.
    Marrow reads `marrow.json` and adds six one-click scripts: Build, Test, Verify all gates, Check
    protected files, Negative gate test, Regenerate task packets.
