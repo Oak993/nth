@@ -338,10 +338,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same record. The id must stay a free-form string; provider ids are not UUIDs.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-043"
     },
     {
       "id": "PR-RUNTIME-017",
@@ -359,10 +360,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five literals.",
       "verification_method": "unit - exact string comparison per kind",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-043"
     },
     {
       "id": "PR-RUNTIME-018",
@@ -380,10 +382,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: SF Symbols cannot ship on Windows (UNK-0007). The port keeps the five-way mapping and substitutes a licensed icon set one-for-one, holding the same semantic per kind.",
       "verification_method": "unit for the mapping; capture comparison for the glyph is blocked by UNK-0003 and UNK-0007",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0007"
+      "depends_on_unknown": "UNK-0007",
+      "implemented_by_task": "T-M2-043"
     },
     {
       "id": "PR-RUNTIME-019",
@@ -400,10 +403,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four roles. Note that approveAlways does NOT count as approve for the plan-state write; reproduce that.",
       "verification_method": "unit - one case per role",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-043"
     },
     {
       "id": "PR-RUNTIME-020",
@@ -420,10 +424,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same records. isSecret must map to a masked input, and the value must not be written to any log.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-043"
     },
     {
       "id": "PR-RUNTIME-021",
