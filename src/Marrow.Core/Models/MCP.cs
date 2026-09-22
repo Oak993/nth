@@ -112,6 +112,8 @@ public sealed record MCPToolSummary(
 
 internal sealed class MCPToolSummaryConverter : JsonConverter<MCPToolSummary>
 {
+    public override bool HandleNull => true;
+
     public override MCPToolSummary Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         using var document = JsonDocument.ParseValue(ref reader);
@@ -183,6 +185,8 @@ internal static class MCPValues
 
 internal sealed class MCPConnectionConverter : JsonConverter<MCPConnection>
 {
+    public override bool HandleNull => true;
+
     public override MCPConnection Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         using var document = JsonDocument.ParseValue(ref reader);
