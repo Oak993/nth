@@ -806,9 +806,9 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": null,
-      "notes": ""
+      "status": "IMPLEMENTING",
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: Independent complete Expected table for PR-MCP-021..030 and argument/env fixtures reviewed against Swift; two expected failures before entries exist."
     },
     {
       "id": "T-M2-028",
