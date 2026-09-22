@@ -1812,9 +1812,9 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": null,
-      "notes": ""
+      "status": "IMPLEMENTING",
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: Director reviewed fixtures against all 81 Swift lines and PR-PROVACP-149..153; initial run failed CS0246/CS0103 because implementation is absent. Swift split and whitespace semantics cross-checked in primary library source."
     },
     {
       "id": "T-M2-072",
