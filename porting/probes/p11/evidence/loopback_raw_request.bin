@@ -1,0 +1,5 @@
+GET /api/v4/projects/86415974/releases?per_page=20 HTTP/1.1
+Host: 127.0.0.1:48711
+User-Agent: Droppy Code/1.6.0
+Accept: application/json
+

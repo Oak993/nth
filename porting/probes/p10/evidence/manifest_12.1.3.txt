@@ -1,0 +1,9 @@
+avalonia        12.1.3+8eeda4f6f546165b3f72e63c9f42247abb306905
+avalonia.skia   12.1.3+8eeda4f6f546165b3f72e63c9f42247abb306905
+avalonia.headl. 12.1.3+8eeda4f6f546165b3f72e63c9f42247abb306905
+skiasharp       3.119.4+release-3.119.4.f568ac94dd768ef9a2f593537cfde2dd0d348ef5.f568ac94dd768ef9a2f593537cfde2dd0d348ef5  native 119.0
+perturb         none
+p10_no_glass   png=edcd19cc4a764995c2152bc8075196a625da77e8478ebae3de1d2073361fdb93 pixels=9dbb396650bcab9b1b4cdb9b52e64e6293358528392768a5548f6926c1b19879 bytes=260221 repeatIdentical=True lease=True surface=False effect=False grContextNull=True
+p10_tint_only  png=12feff068952d7b9b560a6d02bc8ac008b86be43f83dfe3229eec50aa2a7b75e pixels=9536f7c4baf4f41c6f88be4f7d1fbb57105f58d01498a7b2bb729e27bc264795 bytes=258146 repeatIdentical=True lease=True surface=True effect=True grContextNull=True
+p10_glass      png=ec68a64d81177332e9a0812e489f5478596675b7c4766cb18059ce19606fa2cb pixels=d6dd527c61dc9424c7a5a9d403f2296e9652f2b1c97ab5ac0f80f53e4c0c244c bytes=261263 repeatIdentical=True lease=True surface=True effect=True grContextNull=True
+RENDER: OK

@@ -80,6 +80,8 @@ carries that dependency in `porting/parity_matrix.json`.
 
 ## UNK-0005 What shell, if any, the Windows build runs model-issued commands in
 
+- **2026-09-22:** RESOLVED by OD-0008 C5: PowerShell 7 when installed, otherwise Windows PowerShell.
+
 - **Status:** OPEN, INVESTIGATING. Blocks PA-0009 and PA-0011 decisions and any requirement that
   depends on running a command the model produced.
 - **What source establishes (SOURCE FACT):** the macOS build captures the user login shell
@@ -119,6 +121,8 @@ carries that dependency in `porting/parity_matrix.json`.
 
 ## UNK-0007 Apple-licensed iconography and typography cannot ship on Windows
 
+- **2026-09-22:** RESOLVED by OD-0009 (text face: Inter if it measures closer than Segoe UI Variable; mono Cascadia Mono) and OD-0010 (icons: Lucide).
+
 - **Status:** BLOCKED_ON_OWNER for the substitution decision. Does not block reading or
   specification. Blocks any claim of visual parity for icons and text metrics.
 - **Evidence:** `porting/platform_adaptations.md` PA-0012 and PA-0013;
@@ -145,6 +149,8 @@ carries that dependency in `porting/parity_matrix.json`.
   subject only to the trademark question in UNK-0002.
 
 ## UNK-0009 No Windows release asset exists on the update feed
+
+- **2026-09-22:** RESOLVED by OD-0008 C6: "Check failed" until the owner has a Windows feed; named deviation.
 
 - **Status:** BLOCKED_ON_OWNER / BLOCKED_ON_ACCESS. Blocks live end-to-end update verification only.
 - **Evidence:** `porting/platform_adaptations.md` PA-0014. `App/UpdateChecker.swift` selects the newest
@@ -176,6 +182,8 @@ carries that dependency in `porting/parity_matrix.json`.
   that is an attribution obligation, not a mark usage.
 
 ## UNK-0010 ESCALATION: deleting a custom MCP server destroys Keychain secrets with no confirmation
+
+- **2026-09-22:** RESOLVED by OD-0008 (see the matching BLK entry in porting/blocked_requirements.json).
 
 - **Status:** BLOCKED_ON_OWNER. Raised under contract section 8, which requires escalation rather
   than silent reproduction when faithfully copying a behavior would destroy data.
@@ -228,6 +236,8 @@ Both remain open options for the owner alone.
 
 ## UNK-0011 Thirteen findings the repair pass could not settle from source alone
 
+- **2026-09-22:** RESOLVED by OD-0008 (see the matching BLK entry in porting/blocked_requirements.json).
+
 - **Status:** OPEN. None blocks the specification; each names the exact missing evidence.
 - **Source:** the repair pass returned 13 `still_unresolved` items across the nine families, held
   in `porting/critiques/repair_summary.json`. They fall into four kinds:
@@ -256,6 +266,8 @@ Both remain open options for the owner alone.
 
 ## UNK-0012 ESCALATION: Malformed custom-MCP variable silently discards every custom server, then the next save overwrites the file
 
+- **2026-09-22:** RESOLVED by OD-0008 (see the matching BLK entry in porting/blocked_requirements.json).
+
 - **Status:** BLOCKED_ON_OWNER. Raised 2026-09-20 by the defect re-triage required by
   amendment AM-0001. Quarantined as BLK-0002 in `porting/blocked_requirements.json`.
 - **Consequence criteria met:** C4.
@@ -272,6 +284,8 @@ Both remain open options for the owner alone.
   is blocked.
 
 ## UNK-0013 ESCALATION: Cookie-timeout tearDown can truncate a checkpoint silently; a later revert then deletes unrecoverable work
+
+- **2026-09-22:** RESOLVED by OD-0008 (see the matching BLK entry in porting/blocked_requirements.json).
 
 - **Status:** BLOCKED_ON_OWNER. Raised 2026-09-20 by the defect re-triage required by
   amendment AM-0001. Quarantined as BLK-0003 in `porting/blocked_requirements.json`.
@@ -291,6 +305,8 @@ Both remain open options for the owner alone.
 
 ## UNK-0014 ESCALATION: previewRestore mixes CWD-relative and repo-root-relative paths; a revert can delete the wrong files and report success
 
+- **2026-09-22:** RESOLVED by OD-0008 (see the matching BLK entry in porting/blocked_requirements.json).
+
 - **Status:** BLOCKED_ON_OWNER. Raised 2026-09-20 by the defect re-triage required by
   amendment AM-0001. Quarantined as BLK-0004 in `porting/blocked_requirements.json`.
 - **Consequence criteria met:** C1, C4.
@@ -309,6 +325,8 @@ Both remain open options for the owner alone.
 
 
 ## UNK-0015 ESCALATION: Legacy migration hardcodes "Droppy Code" while the store reads AppInfo.name; the approved rename makes them diverge
+
+- **2026-09-22:** RESOLVED by OD-0008 (see the matching BLK entry in porting/blocked_requirements.json).
 
 - **Status:** BLOCKED_ON_OWNER. Raised 2026-09-20 during Gate B specification. Quarantined as
   BLK-0005.
@@ -346,6 +364,8 @@ Both remain open options for the owner alone.
   material is the normal case and record that as a second named deviation.
 
 ## UNK-0024 The port and the owner's existing Marrow app would share one data folder
+
+- **2026-09-22:** RESOLVED by OD-0008 C7: the port installs and stores data as "Marrow Code" (%LOCALAPPDATA%\Marrow Code).
 
 - **Status:** OPEN for the shipping default. **Mitigated immediately for development** by the isolation
   rule below, so it blocks nothing today.

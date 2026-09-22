@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    P10, the regression harness for the [Unstable] ISkiaSharpApiLeaseFeature glass path.
+    A throwaway probe, never production code.
+
+    This folder sits under the repo root, so E:\Droppy\port\Directory.Build.props (TreatWarningsAsErrors,
+    Nullable, Deterministic, ManagePackageVersionsCentrally) and Directory.Packages.props (Avalonia 12.1.2)
+    both apply. p1-glass predates central package management and no longer restores (NU1008), so this
+    csproj carries no Version attributes: the pinned 12.1.2 comes from Directory.Packages.props.
+
+    The upgrade candidate is selected per build with -p:P10AvaloniaVersion=<x.y.z>, which applies a
+    VersionOverride to the three Avalonia packages of THIS project only. Nothing else in the repo moves.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>P10</RootNamespace>
+    <AssemblyName>p10</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(P10AvaloniaVersion)' == ''">
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="Avalonia.Skia" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(P10AvaloniaVersion)' != ''">
+    <PackageReference Include="Avalonia" VersionOverride="$(P10AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Headless" VersionOverride="$(P10AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Skia" VersionOverride="$(P10AvaloniaVersion)" />
+  </ItemGroup>
+
+</Project>

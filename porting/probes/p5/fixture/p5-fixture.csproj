@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    P5 fixture (task packet T-M0-004). A throwaway stand-in for an agent CLI, never production code.
+    The owner's safety rules forbid launching claude.exe or any real AI CLI on this PC, so the probe
+    launches this instead. No PackageReference: Directory.Packages.props has nothing to resolve, and
+    Directory.Build.props (TreatWarningsAsErrors, Nullable, ImplicitUsings) applies unchanged.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>P5Fixture</RootNamespace>
+    <AssemblyName>p5-fixture</AssemblyName>
+  </PropertyGroup>
+
+</Project>

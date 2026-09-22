@@ -1,0 +1,9 @@
+avalonia        12.1.2+d3c867a9e2de379249b03dbeb3495bd7f076a81a
+avalonia.skia   12.1.2+d3c867a9e2de379249b03dbeb3495bd7f076a81a
+avalonia.headl. 12.1.2+d3c867a9e2de379249b03dbeb3495bd7f076a81a
+skiasharp       3.119.4+release-3.119.4.f568ac94dd768ef9a2f593537cfde2dd0d348ef5.f568ac94dd768ef9a2f593537cfde2dd0d348ef5  native 119.0
+perturb         nolease
+p10_no_glass   png=6e0a642b9106e9173462de526120987d3ab6f12681d1982f4f7e41499e829f27 pixels=95a32f69c0a0b9629f4c58e5d945d36caf7c0d64fd35cf01bf1dd7a626b8ad52 bytes=4509 repeatIdentical=True lease=False surface=False effect=False grContextNull=False
+p10_tint_only  png=6e0a642b9106e9173462de526120987d3ab6f12681d1982f4f7e41499e829f27 pixels=95a32f69c0a0b9629f4c58e5d945d36caf7c0d64fd35cf01bf1dd7a626b8ad52 bytes=4509 repeatIdentical=True lease=False surface=False effect=False grContextNull=False
+p10_glass      png=6e0a642b9106e9173462de526120987d3ab6f12681d1982f4f7e41499e829f27 pixels=95a32f69c0a0b9629f4c58e5d945d36caf7c0d64fd35cf01bf1dd7a626b8ad52 bytes=4509 repeatIdentical=True lease=False surface=False effect=False grContextNull=False
+RENDER: FAIL (mechanism flag false or in-process repeat differed)

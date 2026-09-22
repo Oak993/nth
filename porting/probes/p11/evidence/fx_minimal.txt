@@ -1,0 +1,21 @@
+probe=MarrowPortP11Probe
+started_utc=2026-09-22T18:37:09.8397740+00:00
+process_path=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current\MarrowPortP11Probe.exe
+args=--fixture E:\Droppy\port\porting\probes\p11\fixtures\minimal.json --label fx_minimal
+app_dir=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current
+corelib_dir=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current
+self_contained=true
+framework=.NET 10.0.12
+rid=win-x64
+mode=fixture
+url=(none) fixture E:\Droppy\port\porting\probes\p11\fixtures\minimal.json
+http_status=(fixture) 200
+body_bytes=24
+body_sha256=D876E680F3B85F17F65228CF6FA6D9C0CC0200FE009D9AEE677BDD4B4401ABCB
+releases_decoded=1
+release=tag_name=v9.9.9; name=<nil>; description_chars=<nil>; released_at=<nil>; upcoming_release=false; links=0; dmg=no
+exception=P11.UpdateError: No release with a disk image was found.
+requests_sent=0
+lastError=No release with a disk image was found.
+lastError_utf8_hex=4E6F2072656C6561736520776974682061206469736B20696D6167652077617320666F756E642E
+finished_utc=2026-09-22T18:37:09.8468650+00:00

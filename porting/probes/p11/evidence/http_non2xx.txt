@@ -1,0 +1,18 @@
+probe=MarrowPortP11Probe
+started_utc=2026-09-22T18:36:54.2580212+00:00
+process_path=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current\MarrowPortP11Probe.exe
+args=--url https://gitlab.com/api/v4/projects/0/releases?per_page=20 --label http_non2xx
+app_dir=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current
+corelib_dir=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current
+self_contained=true
+framework=.NET 10.0.12
+rid=win-x64
+mode=network
+url=https://gitlab.com/api/v4/projects/0/releases?per_page=20
+http_status=404
+exception=P11.UpdateError: GitLab answered with HTTP 404.
+requests_sent=1
+request=GET https://gitlab.com/api/v4/projects/0/releases?per_page=20 headers[User-Agent: Droppy,Code/1.6.0 | Accept: application/json]
+lastError=GitLab answered with HTTP 404.
+lastError_utf8_hex=4769744C616220616E73776572656420776974682048545450203430342E
+finished_utc=2026-09-22T18:36:54.7333217+00:00

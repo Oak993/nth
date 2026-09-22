@@ -1,0 +1,18 @@
+probe=MarrowPortP11Probe
+started_utc=2026-09-22T18:36:53.2279876+00:00
+process_path=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current\MarrowPortP11Probe.exe
+args=--url https://gitlab.invalid/api/v4/projects/86415974/releases?per_page=20 --label unreachable
+app_dir=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current
+corelib_dir=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current
+self_contained=true
+framework=.NET 10.0.12
+rid=win-x64
+mode=network
+url=https://gitlab.invalid/api/v4/projects/86415974/releases?per_page=20
+exception=System.Net.Http.HttpRequestException: No such host is known. (gitlab.invalid:443)
+inner_exception=System.Net.Sockets.SocketException: No such host is known.
+requests_sent=1
+request=GET https://gitlab.invalid/api/v4/projects/86415974/releases?per_page=20 headers[User-Agent: Droppy,Code/1.6.0 | Accept: application/json]
+lastError=Couldn't reach GitLab.
+lastError_utf8_hex=436F756C646E2774207265616368204769744C61622E
+finished_utc=2026-09-22T18:36:53.2792498+00:00

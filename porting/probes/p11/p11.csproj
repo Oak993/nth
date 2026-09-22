@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    P11 (task packet T-M0-010): packaging and update smoke test. A throwaway probe, never production code.
+    The repository root Directory.Build.props (TreatWarningsAsErrors, Nullable, ImplicitUsings) and
+    Directory.Packages.props (central package management) both apply here. Central management rejects
+    a Version attribute on PackageReference (NU1008), so the one package this probe needs is pinned with
+    a PackageVersion item in this file instead of editing the orchestrator-owned Directory.Packages.props.
+    Unique identity so it can never collide with the owner's installed Electron "Marrow":
+    package id MarrowPortP11Probe, title "Marrow Port P11 Probe".
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <AssemblyName>MarrowPortP11Probe</AssemblyName>
+    <RootNamespace>P11</RootNamespace>
+    <Product>Marrow Port P11 Probe</Product>
+    <AssemblyTitle>Marrow Port P11 Probe</AssemblyTitle>
+    <Version>0.0.1</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Same version as the local vpk tool in dotnet-tools.json. -->
+    <PackageVersion Include="Velopack" Version="1.2.158" />
+    <PackageReference Include="Velopack" />
+  </ItemGroup>
+
+</Project>

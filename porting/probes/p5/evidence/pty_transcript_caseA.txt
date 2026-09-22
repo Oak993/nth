@@ -1,0 +1,77 @@
+\e[?9001h\e[?1004h\e[?25l\e[2J\e[m\e[HFIXTURE-READY pid=25480 outRedirected=False inRedirected=False END\r
+\e]0;E:\Droppy\port\porting\probes\p5\fixture\bin\Release\net10.0\p5-fixture.exe\e[?25hOUT-CHANNEL-MARK via-stdout\r
+ERR-CHANNEL-MARK via-stderr\r
+cols 1\r
+R1 COLS=120 BUF=120 ROWS=30 END\r
+cols 2\r
+R2 COLS=120 BUF=120 ROWS=30 END\r
+\e[?25l\e[8;25;73t\e[HFIXTURE-READY pid=25480 outRedirected=False inRedirected=False END       \r
+OUT-CHANNEL-MARK via-stdout\e[K\r
+ERR-CHANNEL-MARK via-stderr\e[K\r
+cols 1\e[K\r
+R1 COLS=120 BUF=120 ROWS=30 END\e[K\r
+cols 2\e[K\r
+R2 COLS=120 BUF=120 ROWS=30 END\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\e[8;1H\e[?25hcols 3\r
+R3 COLS=73 BUF=73 ROWS=25 END\r
+\e[?25l\e[HFIXTURE-READY pid=25480 outRedirected=False inRedirected=False END\e[K\r
+OUT-CHANNEL-MARK via-stdout\e[K\r
+ERR-CHANNEL-MARK via-stderr\e[K\r
+cols 1\e[K\r
+R1 COLS=120 BUF=120 ROWS=30 END\e[K\r
+cols 2\e[K\r
+R2 COLS=120 BUF=120 ROWS=30 END\e[K\r
+cols 3\e[K\r
+R3 COLS=73 BUF=73 ROWS=25 END\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\r
+\e[K\e[10;1H\e[?25hcols 4\r
+R4 COLS=150 BUF=150 ROWS=40 END\r
+spawn\r
+GRANDCHILD pid=53508 END\r
+\e[?9001l\e[?1004l

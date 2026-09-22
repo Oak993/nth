@@ -1,0 +1,27 @@
+probe=MarrowPortP11Probe
+started_utc=2026-09-22T18:37:08.8255144+00:00
+process_path=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current\MarrowPortP11Probe.exe
+args=--fixture E:\Droppy\port\porting\probes\p11\fixtures\nulls.json --label fx_nulls
+app_dir=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current
+corelib_dir=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current
+self_contained=true
+framework=.NET 10.0.12
+rid=win-x64
+mode=fixture
+url=(none) fixture E:\Droppy\port\porting\probes\p11\fixtures\nulls.json
+http_status=(fixture) 200
+body_bytes=236
+body_sha256=310970015A8208895491ADE51AFE40054AA3E7619E60074836ACD64D1834449F
+releases_decoded=2
+release=tag_name=v2.0.0; name=<nil>; description_chars=<nil>; released_at=<nil>; upcoming_release=false; links=0; dmg=no
+release=tag_name=v1.9.0; name=<nil>; description_chars=<nil>; released_at=<nil>; upcoming_release=false; links=1; dmg=yes
+requests_sent=0
+update.version=1.9.0
+update.tag=v1.9.0
+update.downloadURL=https://example.invalid/y.dmg
+update.pageURL=https://gitlab.com/droppyformac1/droppy-code/-/releases/v1.9.0
+update.releasedAt=<nil>
+updateAvailable_vs_1.6.0=true
+lastError=<nil>
+lastError_utf8_hex=<nil>
+finished_utc=2026-09-22T18:37:08.8337094+00:00

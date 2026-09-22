@@ -12,9 +12,13 @@
     {
       "id": "BLK-0001",
       "unknown": "UNK-0010",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "raised": "2026-09-19",
-      "owner_ruling": null,
+      "owner_ruling": {
+        "decision": "OD-0008",
+        "date": "2026-09-22",
+        "ruling": "FIX: deleting a custom MCP server asks for confirmation when confirmBeforeDeleting is on, as the six sibling delete paths do. Named deviation."
+      },
       "title": "Custom MCP server delete is unconfirmed and destroys Keychain secrets",
       "criteria": [
         "C1",
@@ -52,9 +56,13 @@
     {
       "id": "BLK-0002",
       "unknown": "UNK-0012",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "raised": "2026-09-20",
-      "owner_ruling": null,
+      "owner_ruling": {
+        "decision": "OD-0008",
+        "date": "2026-09-22",
+        "ruling": "FIX: a failed load of mcp-customs.json is surfaced to the user and the file is never overwritten after a failed load. Named deviation."
+      },
       "title": "Malformed custom-MCP variable silently discards every custom server, then the next save overwrites the file",
       "defect_entry": 17,
       "area": "mcp",
@@ -93,9 +101,13 @@
     {
       "id": "BLK-0003",
       "unknown": "UNK-0013",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "raised": "2026-09-20",
-      "owner_ruling": null,
+      "owner_ruling": {
+        "decision": "OD-0008",
+        "date": "2026-09-22",
+        "ruling": "FIX: a capture that cannot prove it covered the whole tree records no checkpoint (the existing \"No file checkpoint is available for this message.\" path) instead of a partial one. Named deviation."
+      },
       "title": "Checkpoint can be silently truncated (cookie timeout OR cookie forgery); a later revert then deletes unrecoverable work",
       "defect_entry": 81,
       "area": "git-and-checkpoints",
@@ -141,9 +153,13 @@
     {
       "id": "BLK-0004",
       "unknown": "UNK-0014",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "raised": "2026-09-20",
-      "owner_ruling": null,
+      "owner_ruling": {
+        "decision": "OD-0008",
+        "date": "2026-09-22",
+        "ruling": "FIX: previewRestore derives every path relative to the repository root, so a revert only ever acts on the files the turn touched. Named deviation."
+      },
       "title": "previewRestore mixes CWD-relative and repo-root-relative paths; a revert can delete the wrong files and report success",
       "defect_entry": 84,
       "area": "git-and-checkpoints",
@@ -182,9 +198,13 @@
     {
       "id": "BLK-0005",
       "unknown": "UNK-0015",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "raised": "2026-09-20",
-      "owner_ruling": null,
+      "owner_ruling": {
+        "decision": "OD-0008",
+        "date": "2026-09-22",
+        "ruling": "NOT_APPLICABLE_WITH_EVIDENCE: Droppy Code never shipped on Windows, so no Cody or Droppy Code support folder can exist to migrate; the owner confirmed no migration from the separate Electron Marrow app is wanted."
+      },
       "title": "Legacy migration hardcodes \"Droppy Code\" while the store reads AppInfo.name; the approved rename makes them diverge",
       "defect_entry": 46,
       "area": "launch",
@@ -225,9 +245,13 @@
     {
       "id": "BLK-0006",
       "unknown": "UNK-0016",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "raised": "2026-09-20",
-      "owner_ruling": null,
+      "owner_ruling": {
+        "decision": "OD-0008",
+        "date": "2026-09-22",
+        "ruling": "FIX: when protected storage refuses an API key the failure is shown and nothing is stored; the key is never written in plain text. Named deviation."
+      },
       "title": "A provider API key is written to UserDefaults in plain text whenever protected storage refuses it",
       "area": "providers",
       "criteria": [
@@ -267,9 +291,13 @@
     {
       "id": "BLK-0007",
       "unknown": "UNK-0017",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "raised": "2026-09-20",
-      "owner_ruling": null,
+      "owner_ruling": {
+        "decision": "OD-0008",
+        "date": "2026-09-22",
+        "ruling": "REPRODUCE UPSTREAM: plan limits read each CLI's own credential file and query that provider's usage endpoint exactly as the source does. Parity, owner-approved."
+      },
       "title": "Plan limits are obtained by reading other applications' credential files and transmitting their tokens",
       "area": "providers",
       "criteria": [
@@ -313,9 +341,13 @@
     {
       "id": "BLK-0008",
       "unknown": "UNK-0018",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "raised": "2026-09-20",
-      "owner_ruling": null,
+      "owner_ruling": {
+        "decision": "OD-0008",
+        "date": "2026-09-22",
+        "ruling": "FIX: sort --output=, find -fprintf (and the other write actions missing from searchActions) and git config/tag/remote add classify as file-writing, so .auto mode prompts and checkpoints them. Named deviation."
+      },
       "title": "The read-only command classifier is also the auto-approval gate, and three misclassifications auto-run file-writing commands with no prompt and no checkpoint",
       "area": "providers-and-shell",
       "criteria": [
@@ -359,9 +391,13 @@
     {
       "id": "BLK-0009",
       "unknown": "UNK-0019",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "raised": "2026-09-20",
-      "owner_ruling": null,
+      "owner_ruling": {
+        "decision": "OD-0008",
+        "date": "2026-09-22",
+        "ruling": "FIX: Remove project asks for confirmation when confirmBeforeDeleting is on, as thread deletion does. Named deviation."
+      },
       "title": "Removing a project is destructive, unconfirmed, and ignores confirmBeforeDeleting",
       "area": "sidebar",
       "criteria": [
@@ -395,9 +431,13 @@
     {
       "id": "BLK-0010",
       "unknown": "UNK-0020",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "raised": "2026-09-20",
-      "owner_ruling": null,
+      "owner_ruling": {
+        "decision": "OD-0008",
+        "date": "2026-09-22",
+        "ruling": "FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. Named deviation."
+      },
       "title": "An undecodable library.json starts the app empty and the first mutation overwrites it",
       "area": "store",
       "criteria": [
@@ -435,9 +475,13 @@
     {
       "id": "BLK-0011",
       "unknown": "UNK-0021",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "raised": "2026-09-20",
-      "owner_ruling": null,
+      "owner_ruling": {
+        "decision": "OD-0008",
+        "date": "2026-09-22",
+        "ruling": "FIX: an unreadable hasCustomTitle decodes as true, so a typed name is never overwritten by the auto-titler. Named deviation."
+      },
       "title": "An unreadable hasCustomTitle flag silently lets the auto-titler overwrite a name the user typed",
       "area": "store",
       "criteria": [
@@ -471,9 +515,13 @@
     {
       "id": "BLK-0012",
       "unknown": "UNK-0022",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "raised": "2026-09-20",
-      "owner_ruling": null,
+      "owner_ruling": {
+        "decision": "OD-0008",
+        "date": "2026-09-22",
+        "ruling": "FIX: a failed credential deletion on disconnect is reported to the user instead of success. Named deviation."
+      },
       "title": "Credential deletion on disconnect discards its result, so a failed revoke reports success",
       "area": "mcp",
       "criteria": [

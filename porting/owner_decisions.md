@@ -158,3 +158,38 @@ instruction may change one.
   screen for a few minutes each.
 - **Answer, verbatim (selected option):** "Anytime, no need to ask"
 - **Effect:** they run when the plan reaches them. The owner leaves the mouse alone while they run.
+
+
+## OD-0008 Decision batch: every recommendation accepted
+
+- **Asked:** 2026-09-22, as one sheet (`porting/decision_batch_20260922.md`) covering the 12 quarantined
+  behaviours (A1-A12), the platform and product-name strings (B1-B15) and the Windows-only behaviours
+  (C1-C7), each with a recommendation.
+- **Answer, verbatim (selected option):** "Accept all (Recommended)"
+- **Effect:** every BLK entry in `porting/blocked_requirements.json` is RESOLVED with its ruling (11
+  fixes as named deviations, BLK-0007 reproduced as upstream, BLK-0005 not applicable); all 27
+  OD-PENDING items are resolved; C7 gives the port the install and data identity "Marrow Code"
+  (`%LOCALAPPDATA%\Marrow Code`, Start menu "Marrow Code") so it never touches the owner's Electron
+  Marrow, closing UNK-0024. Every fix is a named deviation in the final report, never parity.
+
+## OD-0009 Text face: Inter if it measures closer than Segoe UI Variable
+
+- **Asked:** 2026-09-22, after probe P9 measured Segoe UI Variable 3-5% narrower than SF Pro.
+- **Answer, verbatim (selected option):** "Inter, if it measures closer"
+- **Effect:** Inter (OFL) is downloaded from its official GitHub release and measured with the P9
+  harness against the tour oracle; the face that matches more wrap points becomes the port's text
+  face. Either way wrap points are a named deviation. Monospace: Cascadia Mono, as recommended in
+  the sheet (D3). Closes the typography half of UNK-0007.
+
+## OD-0010 Icons: Lucide
+
+- **Answer, verbatim (selected option):** "Lucide"
+- **Effect:** SF Symbols map to Lucide icons (ISC licence) through a published symbol-by-symbol table.
+  Closes the icon half of UNK-0007.
+
+## OD-0011 Live checks through the owner's signed-in CLIs
+
+- **Answer, verbatim (selected option):** "Yes, minimal prompts (Recommended)"
+- **Effect:** provider verification may send minimal prompts ("reply with OK") through the installed,
+  signed-in CLIs in a throwaway repository, using a little plan quota. The test harness itself never
+  reads a credential file. This authorizes the chargeable calls contract section 12 requires.

@@ -1,0 +1,95 @@
+﻿[18:33:15.770Z] MARROW_PORT_DATA_DIR=C:\Users\omera\AppData\Local\Temp\marrow-p8-data-801151989
+[18:33:15.780Z] Runtime .NET 10.0.12, OS Microsoft Windows NT 10.0.26200.0, logical CPUs 16
+[18:33:15.780Z] InternalBufferSize default=8192, after setting 1 it reads back 4096
+[18:33:15.780Z] Trials 5, burst writer threads 8
+[18:33:15.780Z] Temp parent C:\Users\omera\AppData\Local\Temp\marrow-p8-f49a70658a644ad99e86395c91758f12
+[18:33:15.782Z] 
+[18:33:15.782Z] === CASE control-5: burst 5 files, requested InternalBufferSize 4096, writer threads 1
+[18:33:15.854Z] Seeded C:\Users\omera\AppData\Local\Temp\marrow-p8-f49a70658a644ad99e86395c91758f12\control-5: 202 working files, 200 package dirs, plus .git
+[18:33:15.855Z] Watcher InternalBufferSize reads back 4096
+[18:33:16.167Z] Burst started 2026-09-22T18:33:16.1632370+00:00, wrote 5 files in 4 ms (1250 files/s)
+[18:33:18.227Z] Quiescent after 2059 ms; watcher stopped 2026-09-22T18:33:18.2272542+00:00
+[18:33:18.227Z] Events: Created=5 Changed=10 Deleted=0 Renamed=0; Errors: overflow=0 other=0; generation=16; everything=False
+[18:33:18.230Z] Incremental path: changed dirs 6 (first: src\mod00, src\mod00\pkg0, src\mod00\pkg1, src\mod00\pkg2, src\mod00\pkg3, src\mod00\pkg4), written dirs 5, covers all=True, outside written dirs and ancestors=0, correct=True
+[18:33:18.241Z] Oracle walk (not the decision path): found 207, missing 0, extra 0
+[18:33:18.275Z] Case tree deleted: True
+[18:33:18.275Z] 
+[18:33:18.275Z] === CASE burst-10000-trial1: burst 10000 files, requested InternalBufferSize 4096, writer threads 8
+[18:33:18.348Z] Seeded C:\Users\omera\AppData\Local\Temp\marrow-p8-f49a70658a644ad99e86395c91758f12\burst-10000-trial1: 202 working files, 200 package dirs, plus .git
+[18:33:18.348Z] Watcher InternalBufferSize reads back 4096
+[18:33:19.503Z] Burst started 2026-09-22T18:33:18.6796471+00:00, wrote 10000 files in 823 ms (12151 files/s)
+[18:33:21.562Z] Quiescent after 2058 ms; watcher stopped 2026-09-22T18:33:21.5623445+00:00
+[18:33:21.562Z] Events: Created=9932 Changed=19850 Deleted=0 Renamed=0; Errors: overflow=2 other=0; generation=29785; everything=True
+[18:33:21.562Z]   Error event: System.IO.InternalBufferOverflowException: Too many changes at once in directory:C:\Users\omera\AppData\Local\Temp\marrow-p8-f49a70658a644ad99e86395c91758f12\burst-10000-trial1.
+[18:33:21.562Z]   Error event: System.IO.InternalBufferOverflowException: Too many changes at once in directory:C:\Users\omera\AppData\Local\Temp\marrow-p8-f49a70658a644ad99e86395c91758f12\burst-10000-trial1.
+[18:33:21.591Z] Full rescan completed in 27 ms: found 10202, expected 10202, missing 0, extra 0
+[18:33:22.200Z] Case tree deleted: True
+[18:33:22.200Z] 
+[18:33:22.200Z] === CASE burst-10000-trial2: burst 10000 files, requested InternalBufferSize 4096, writer threads 8
+[18:33:22.262Z] Seeded C:\Users\omera\AppData\Local\Temp\marrow-p8-f49a70658a644ad99e86395c91758f12\burst-10000-trial2: 202 working files, 200 package dirs, plus .git
+[18:33:22.262Z] Watcher InternalBufferSize reads back 4096
+[18:33:23.376Z] Burst started 2026-09-22T18:33:22.5707047+00:00, wrote 10000 files in 805 ms (12422 files/s)
+[18:33:25.439Z] Quiescent after 2063 ms; watcher stopped 2026-09-22T18:33:25.4396040+00:00
+[18:33:25.439Z] Events: Created=10000 Changed=19989 Deleted=0 Renamed=0; Errors: overflow=0 other=0; generation=29990; everything=False
+[18:33:25.439Z] Incremental path: changed dirs 220 (first: src\mod00, src\mod00\pkg0, src\mod00\pkg1, src\mod00\pkg2, src\mod00\pkg3, src\mod00\pkg4, src\mod00\pkg5, src\mod00\pkg6), written dirs 200, covers all=True, outside written dirs and ancestors=0, correct=True
+[18:33:25.462Z] Oracle walk (not the decision path): found 10202, missing 0, extra 0
+[18:33:26.145Z] Case tree deleted: True
+[18:33:26.145Z] 
+[18:33:26.145Z] === CASE burst-10000-trial3: burst 10000 files, requested InternalBufferSize 4096, writer threads 8
+[18:33:26.215Z] Seeded C:\Users\omera\AppData\Local\Temp\marrow-p8-f49a70658a644ad99e86395c91758f12\burst-10000-trial3: 202 working files, 200 package dirs, plus .git
+[18:33:26.215Z] Watcher InternalBufferSize reads back 4096
+[18:33:27.348Z] Burst started 2026-09-22T18:33:26.5267092+00:00, wrote 10000 files in 821 ms (12180 files/s)
+[18:33:29.410Z] Quiescent after 2061 ms; watcher stopped 2026-09-22T18:33:29.4104301+00:00
+[18:33:29.410Z] Events: Created=9824 Changed=19626 Deleted=0 Renamed=0; Errors: overflow=3 other=0; generation=29454; everything=True
+[18:33:29.410Z]   Error event: System.IO.InternalBufferOverflowException: Too many changes at once in directory:C:\Users\omera\AppData\Local\Temp\marrow-p8-f49a70658a644ad99e86395c91758f12\burst-10000-trial3.
+[18:33:29.410Z]   Error event: System.IO.InternalBufferOverflowException: Too many changes at once in directory:C:\Users\omera\AppData\Local\Temp\marrow-p8-f49a70658a644ad99e86395c91758f12\burst-10000-trial3.
+[18:33:29.410Z]   Error event: System.IO.InternalBufferOverflowException: Too many changes at once in directory:C:\Users\omera\AppData\Local\Temp\marrow-p8-f49a70658a644ad99e86395c91758f12\burst-10000-trial3.
+[18:33:29.437Z] Full rescan completed in 25 ms: found 10202, expected 10202, missing 0, extra 0
+[18:33:30.122Z] Case tree deleted: True
+[18:33:30.122Z] 
+[18:33:30.122Z] === CASE burst-10000-trial4: burst 10000 files, requested InternalBufferSize 4096, writer threads 8
+[18:33:30.182Z] Seeded C:\Users\omera\AppData\Local\Temp\marrow-p8-f49a70658a644ad99e86395c91758f12\burst-10000-trial4: 202 working files, 200 package dirs, plus .git
+[18:33:30.182Z] Watcher InternalBufferSize reads back 4096
+[18:33:31.381Z] Burst started 2026-09-22T18:33:30.4973589+00:00, wrote 10000 files in 883 ms (11325 files/s)
+[18:33:33.444Z] Quiescent after 2062 ms; watcher stopped 2026-09-22T18:33:33.4441314+00:00
+[18:33:33.444Z] Events: Created=9977 Changed=19932 Deleted=0 Renamed=0; Errors: overflow=1 other=0; generation=29911; everything=True
+[18:33:33.444Z]   Error event: System.IO.InternalBufferOverflowException: Too many changes at once in directory:C:\Users\omera\AppData\Local\Temp\marrow-p8-f49a70658a644ad99e86395c91758f12\burst-10000-trial4.
+[18:33:33.460Z] Full rescan completed in 15 ms: found 10202, expected 10202, missing 0, extra 0
+[18:33:34.037Z] Case tree deleted: True
+[18:33:34.037Z] 
+[18:33:34.037Z] === CASE burst-10000-trial5: burst 10000 files, requested InternalBufferSize 4096, writer threads 8
+[18:33:34.127Z] Seeded C:\Users\omera\AppData\Local\Temp\marrow-p8-f49a70658a644ad99e86395c91758f12\burst-10000-trial5: 202 working files, 200 package dirs, plus .git
+[18:33:34.127Z] Watcher InternalBufferSize reads back 4096
+[18:33:35.287Z] Burst started 2026-09-22T18:33:34.4371707+00:00, wrote 10000 files in 849 ms (11779 files/s)
+[18:33:37.351Z] Quiescent after 2064 ms; watcher stopped 2026-09-22T18:33:37.3518747+00:00
+[18:33:37.351Z] Events: Created=10000 Changed=19993 Deleted=0 Renamed=0; Errors: overflow=0 other=0; generation=29994; everything=False
+[18:33:37.352Z] Incremental path: changed dirs 220 (first: src\mod00, src\mod00\pkg0, src\mod00\pkg1, src\mod00\pkg2, src\mod00\pkg3, src\mod00\pkg4, src\mod00\pkg5, src\mod00\pkg6), written dirs 200, covers all=True, outside written dirs and ancestors=0, correct=True
+[18:33:37.371Z] Oracle walk (not the decision path): found 10202, missing 0, extra 0
+[18:33:38.095Z] Case tree deleted: True
+[18:33:38.095Z] 
+[18:33:38.095Z] === CASE info-burst-10000-buffer65536: burst 10000 files, requested InternalBufferSize 65536, writer threads 8
+[18:33:38.165Z] Seeded C:\Users\omera\AppData\Local\Temp\marrow-p8-f49a70658a644ad99e86395c91758f12\info-burst-10000-buffer65536: 202 working files, 200 package dirs, plus .git
+[18:33:38.165Z] Watcher InternalBufferSize reads back 65536
+[18:33:39.431Z] Burst started 2026-09-22T18:33:38.4697855+00:00, wrote 10000 files in 961 ms (10406 files/s)
+[18:33:41.494Z] Quiescent after 2063 ms; watcher stopped 2026-09-22T18:33:41.4947988+00:00
+[18:33:41.494Z] Events: Created=10000 Changed=19956 Deleted=0 Renamed=0; Errors: overflow=0 other=0; generation=29957; everything=False
+[18:33:41.494Z] Incremental path: changed dirs 220 (first: src\mod00, src\mod00\pkg0, src\mod00\pkg1, src\mod00\pkg2, src\mod00\pkg3, src\mod00\pkg4, src\mod00\pkg5, src\mod00\pkg6), written dirs 200, covers all=True, outside written dirs and ancestors=0, correct=True
+[18:33:41.510Z] Oracle walk (not the decision path): found 10202, missing 0, extra 0
+[18:33:42.095Z] Case tree deleted: True
+[18:33:42.095Z] Temp parent deleted: True
+[18:33:42.095Z] 
+[18:33:42.095Z] SUMMARY
+[18:33:42.095Z] case | buffer | written | created events | overflow errors | other errors | path | rescan ms | on disk | missing | extra
+[18:33:42.096Z] control-5 | 4096 | 5 | 5 | 0 | 0 | incremental | 0 | 207 | 0 | 0
+[18:33:42.096Z] burst-10000-trial1 | 4096 | 10000 | 9932 | 2 | 0 | full-rescan | 27 | 10202 | 0 | 0
+[18:33:42.096Z] burst-10000-trial2 | 4096 | 10000 | 10000 | 0 | 0 | incremental | 0 | 10202 | 0 | 0
+[18:33:42.096Z] burst-10000-trial3 | 4096 | 10000 | 9824 | 3 | 0 | full-rescan | 25 | 10202 | 0 | 0
+[18:33:42.096Z] burst-10000-trial4 | 4096 | 10000 | 9977 | 1 | 0 | full-rescan | 15 | 10202 | 0 | 0
+[18:33:42.096Z] burst-10000-trial5 | 4096 | 10000 | 10000 | 0 | 0 | incremental | 0 | 10202 | 0 | 0
+[18:33:42.096Z] info-burst-10000-buffer65536 | 65536 | 10000 | 10000 | 0 | 0 | incremental | 0 | 10202 | 0 | 0
+[18:33:42.097Z] Overflowed trials: 3 of 5; trials that lost Created events: 3
+[18:33:42.097Z] C1 overflow Error at least once across 4 KB burst trials: True
+[18:33:42.097Z] C2 every full rescan completed and found every file (and one ran): True
+[18:33:42.097Z] C3 control: no Error, all events, correct incremental set: True
+[18:33:42.097Z] C4 loss implies signal in every trial, and real loss occurred: True
+[18:33:42.097Z] P8 RESULT: PASS

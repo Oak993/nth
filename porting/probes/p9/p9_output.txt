@@ -1,0 +1,695 @@
+P9 text metrics probe
+utc start          : 2026-09-22T18:45:00.8273351Z
+runtime            : .NET 10.0.12
+os                 : Microsoft Windows 10.0.26200
+Avalonia.Base      : 12.1.2.0
+MARROW_PORT_DATA_DIR set: C:\Users\omera\AppData\Local\Temp\marrow-p9-1342101762
+TextFormatter impl : Avalonia.Media.TextFormatting.TextFormatterImpl
+TextShaper impl    : Avalonia.Media.TextFormatting.TextShaper
+FontManager impl   : Avalonia.Media.FontManager, default family 'Segoe UI'
+
+==== TYPE SCALE (ChatZoom.swift:10-70, implemented above) ====
+style            80%    90%    95%   100%   110%   125%   135%
+LargeTitle        21     23     25     26     29     33     35   weight@default=Normal
+Title             18     20     21     22     24     28     30   weight@default=Normal
+Title2            14     15     16     17     19     21     23   weight@default=Normal
+Title3            12     14     14     15     17     19     20   weight@default=Normal
+Headline          10     12     12     13     14     16     18   weight@default=DemiBold
+Body              10     12     12     13     14     16     18   weight@default=Normal
+Callout           10     11     11     12     13     15     16   weight@default=Normal
+Subheadline        9     10     10     11     12     14     15   weight@default=Normal
+Footnote           8      9     10     10     11     13     14   weight@default=Normal
+Caption            8      9     10     10     11     13     14   weight@default=Normal
+Caption2           8      9     10     10     11     13     14   weight@default=Normal
+default index 3 -> 100%; clamped(-4)=0 clamped(99)=6
+markdown 13pt at zoom 1.25 -> 16.5; inline code at 13 -> 12; at 9.5 -> 9
+
+==== FONT RESOLUTION (what Avalonia actually hands back) ====
+request 'SF Pro',                     TryGetGlyphTypeface=True  -> family='Segoe UI' typo='' weight=400 sim=None fixedPitch=False glyphs=5394 | TextLayout used: Segoe UI[w400,None]@13
+request 'SF Pro Text',                TryGetGlyphTypeface=True  -> family='Segoe UI' typo='' weight=400 sim=None fixedPitch=False glyphs=5394 | TextLayout used: Segoe UI[w400,None]@13
+request '.AppleSystemUIFont',         TryGetGlyphTypeface=True  -> family='Segoe UI' typo='' weight=400 sim=None fixedPitch=False glyphs=5394 | TextLayout used: Segoe UI[w400,None]@13
+request 'SF Mono',                    TryGetGlyphTypeface=True  -> family='Segoe UI' typo='' weight=400 sim=None fixedPitch=False glyphs=5394 | TextLayout used: Segoe UI[w400,None]@13
+request 'Segoe UI Variable',          TryGetGlyphTypeface=True  -> family='Segoe UI' typo='' weight=400 sim=None fixedPitch=False glyphs=5394 | TextLayout used: Segoe UI[w400,None]@13
+request 'Segoe UI Variable Text',     TryGetGlyphTypeface=True  -> family='Segoe UI Variable' typo='Segoe UI Variable' weight=400 sim=None fixedPitch=False glyphs=2530 | TextLayout used: Segoe UI Variable[w400,None]@13
+request 'Segoe UI Variable Small',    TryGetGlyphTypeface=True  -> family='Segoe UI Variable' typo='Segoe UI Variable' weight=400 sim=None fixedPitch=False glyphs=2530 | TextLayout used: Segoe UI Variable[w400,None]@13
+request 'Segoe UI Variable Display',  TryGetGlyphTypeface=True  -> family='Segoe UI Variable' typo='Segoe UI Variable' weight=400 sim=None fixedPitch=False glyphs=2530 | TextLayout used: Segoe UI Variable[w400,None]@13
+request 'Segoe UI',                   TryGetGlyphTypeface=True  -> family='Segoe UI' typo='' weight=400 sim=None fixedPitch=False glyphs=5394 | TextLayout used: Segoe UI[w400,None]@13
+request 'Inter',                      TryGetGlyphTypeface=True  -> family='Inter' typo='' weight=400 sim=None fixedPitch=False glyphs=2926 | TextLayout used: Inter[w400,None]@13
+request 'Cascadia Mono',              TryGetGlyphTypeface=True  -> family='Cascadia Mono' typo='' weight=400 sim=None fixedPitch=True glyphs=4319 | TextLayout used: Cascadia Mono[w400,None]@13
+request 'Cascadia Code',              TryGetGlyphTypeface=True  -> family='Cascadia Code' typo='' weight=400 sim=None fixedPitch=True glyphs=4319 | TextLayout used: Cascadia Code[w400,None]@13
+request 'Consolas',                   TryGetGlyphTypeface=True  -> family='Consolas' typo='' weight=400 sim=None fixedPitch=True glyphs=3031 | TextLayout used: Consolas[w400,None]@13
+
+weight request 'Segoe UI Variable Text' Medium   (500): True -> family='Segoe UI Variable' typo='Segoe UI Variable' weight=400 sim=None fixedPitch=False glyphs=2530
+weight request 'Segoe UI Variable Text' DemiBold (600): True -> family='Segoe UI Variable' typo='Segoe UI Variable' weight=400 sim=None fixedPitch=False glyphs=2530
+weight request 'Segoe UI Variable Text' Bold     (700): True -> family='Segoe UI Variable' typo='Segoe UI Variable' weight=400 sim=None fixedPitch=False glyphs=2530
+weight request 'Segoe UI' Medium   (500): True -> family='Segoe UI' typo='' weight=400 sim=None fixedPitch=False glyphs=5394
+weight request 'Segoe UI' DemiBold (600): True -> family='Segoe UI Semibold' typo='Segoe UI' weight=600 sim=None fixedPitch=False glyphs=5321
+weight request 'Segoe UI' Bold     (700): True -> family='Segoe UI' typo='' weight=700 sim=None fixedPitch=False glyphs=5320
+weight request 'Inter' Medium   (500): True -> family='Inter' typo='' weight=400 sim=None fixedPitch=False glyphs=2926
+weight request 'Inter' DemiBold (600): True -> family='Inter' typo='' weight=400 sim=None fixedPitch=False glyphs=2926
+weight request 'Inter' Bold     (700): True -> family='Inter' typo='' weight=400 sim=None fixedPitch=False glyphs=2926
+
+Cascadia Mono is not in C:\Windows\Fonts nor the per-user font folder (checked before the run).
+private font file  : C:\Program Files\WindowsApps\Microsoft.WindowsTerminal_1.24.11911.0_x64__8wekyb3d8bbwe\CascadiaMono.ttf
+  bytes 714804, sha256 08026f617eea315caca59898784e999f6cdb2d0c34d2040deeb042bcdc359fa2
+  loaded (not installed): family='Cascadia Mono' typo='' weight=400 sim=None fixedPitch=True glyphs=4319
+  'fonts:P9Cascadia#Cascadia Mono' weight Normal  : True -> family='Cascadia Mono' typo='' weight=400 sim=None fixedPitch=True glyphs=4319
+  'fonts:P9Cascadia#Cascadia Mono' weight Medium  : True -> family='Cascadia Mono' typo='' weight=400 sim=None fixedPitch=True glyphs=4319
+  'fonts:P9Cascadia#Cascadia Mono' weight DemiBold: True -> family='Cascadia Mono' typo='' weight=700 sim=Bold fixedPitch=True glyphs=4319
+  'fonts:P9Cascadia#Cascadia Mono' weight Bold    : True -> family='Cascadia Mono' typo='' weight=700 sim=Bold fixedPitch=True glyphs=4319
+  TextLayout used  : Cascadia Mono[w400,None]@13
+
+==== (A) WRAP POINTS: PRIMARY face 'Segoe UI Variable Text' (PA-0013 candidate) ====
+F1  tour-welcome  size   13 W      820 (ThreadTimeline.swift:395 maxWidth 820)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [724.375, 747.5]
+      faces used: Cascadia Mono[w400,None]@12 + Segoe UI Variable[w400,None]@13
+      L1 measured: "...chmentInset (14pt) but leaves the top on the" [w=788.249 wTrail=791.81 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...e with attachmentInset (14pt) but leaves the"
+      L2 measured: "...h is why the photo hugs the top of the pill." [w=405.038 wTrail=405.038 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...h is why the photo hugs the top of the pill."
+      oracle L1 words: oracle ink    797.3 pt   this face's advance    724.4 DIP   ratio 0.9085
+      oracle L2 words: oracle ink    492.9 pt   this face's advance    468.9 DIP   ratio 0.9514
+      L1 check: fits=True runs' advance sum 791.81 vs wTrail 791.81; with next word 'stack's' = 829.318 > W: True
+      L2 check: fits=True runs' advance sum 405.038 vs wTrail 405.038
+F2  tour-welcome  size   13 W      820 (ThreadTimeline.swift:395)  oracle 1 line(s), measured 1  -> MATCH
+      oracle breaks reproduced for W in [670, 970]
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "...Want me to give the top the same 14pt?" [w=229.068 wTrail=229.068 h=17.291 base=14.028 brk=null/split=]
+      oracle L1 words: oracle ink    238.8 pt   this face's advance    229.1 DIP   ratio 0.9592
+      L1 check: fits=True runs' advance sum 229.068 vs wTrail 229.068; TextShaper.ShapeText sum 229.068
+F3  tour-welcome  size   13 W      820 (ThreadTimeline.swift:395)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [765.875, 798.25]
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "... from the top as from the left. The build is" [w=810.551 wTrail=814.112 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...ts as far from the top as from the left. The"
+      L2 measured: "...running to confirm nothing else moved." [w=227.963 wTrail=227.963 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...ld is running to confirm nothing else moved."
+      oracle L1 words: oracle ink    810.6 pt   this face's advance    765.8 DIP   ratio 0.9447
+      oracle L2 words: oracle ink    281.6 pt   this face's advance    272.7 DIP   ratio 0.9683
+      L1 check: fits=True runs' advance sum 814.112 vs wTrail 814.112; TextShaper.ShapeText sum 814.112; with next word 'running' = 858.863 > W: True
+      L2 check: fits=True runs' advance sum 227.963 vs wTrail 227.963; TextShaper.ShapeText sum 227.963
+F4  tour-welcome  size   13 W      692 (820 - 96 - 14 - (14+4))  oracle 1 line(s), measured 1  -> MATCH
+      oracle breaks reproduced for W in [542, 842]
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "...how far the draft photo sits from the edges?" [w=449.865 wTrail=449.865 h=17.291 base=14.028 brk=null/split=]
+      oracle L1 words: oracle ink    472.9 pt   this face's advance    449.9 DIP   ratio 0.9513
+      L1 check: fits=True runs' advance sum 449.865 vs wTrail 449.865; TextShaper.ShapeText sum 449.865
+F5  tour-welcome  size   13 W      692 (820 - 96 - 14 - (14+4))  oracle 1 line(s), measured 1  -> MATCH
+      oracle breaks reproduced for W in [542, 842]
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "...s far from the top as it does from the left." [w=492.102 wTrail=492.102 h=17.291 base=14.028 brk=null/split=]
+      oracle L1 words: oracle ink    515.7 pt   this face's advance    492.1 DIP   ratio 0.9543
+      L1 check: fits=True runs' advance sum 492.102 vs wTrail 492.102; TextShaper.ShapeText sum 492.102
+F7  tour-hydra    size   13 W  508.874 (APPROX, oracle divider / source scale)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [478.999, 483.749]; recorded W band [507.81, 509.94] NOT wholly inside
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "...r window, one writes the pages and wires the" [w=483.761 wTrail=487.322 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "... tour window, one writes the pages and wires"
+      L2 measured: "...page. I keep the design and the integration." [w=456.841 wTrail=456.841 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...page. I keep the design and the integration."
+      oracle L1 words: oracle ink    484.8 pt   this face's advance    461.6 DIP   ratio 0.9523
+      oracle L2 words: oracle ink    500.4 pt   this face's advance    479.0 DIP   ratio 0.9572
+      L1 check: fits=True runs' advance sum 487.322 vs wTrail 487.322; TextShaper.ShapeText sum 487.322; with next word 'Help' = 514.141 > W: True
+      L2 check: fits=True runs' advance sum 456.841 vs wTrail 456.841; TextShaper.ShapeText sum 456.841
+F8  tour-panels   size   13 W  416.738 (APPROX, oracle divider / source scale)  oracle 3 line(s), measured 3  -> MISMATCH
+      oracle breaks reproduced for W in [394.363, 403.488]; recorded W band [415.31, 418.17] NOT wholly inside
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "...builds the tour window, one writes the pages" [w=403.514 wTrail=407.075 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...: one builds the tour window, one writes the"
+      L2 measured: "...menu, one photographs every page. I keep the" [w=378.682 wTrail=382.243 h=17.291 base=14.028 brk=null/split=True]
+      L2 oracle  : "...elp menu, one photographs every page. I keep"
+      L3 measured: "...design and the integration." [w=154.845 wTrail=154.845 h=17.291 base=14.028 brk=null/split=]
+      L3 oracle  : "...the design and the integration."
+      oracle L1 words: oracle ink    382.5 pt   this face's advance    365.7 DIP   ratio 0.9562
+      oracle L2 words: oracle ink    413.9 pt   this face's advance    394.3 DIP   ratio 0.9528
+      oracle L3 words: oracle ink    183.6 pt   this face's advance    177.0 DIP   ratio 0.9637
+      L1 check: fits=True runs' advance sum 407.075 vs wTrail 407.075; TextShaper.ShapeText sum 407.075; with next word 'and' = 428.702 > W: True
+      L2 check: fits=True runs' advance sum 382.243 vs wTrail 382.243; TextShaper.ShapeText sum 382.243; with next word 'design' = 420.374 > W: True
+      L3 check: fits=True runs' advance sum 154.845 vs wTrail 154.845; TextShaper.ShapeText sum 154.845
+F9  tour-panels   size   13 W  288.738 (APPROX, oracle column - 128)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [267.113, 281.113]; recorded W band [287.31, 290.17] NOT wholly inside
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "... the same pictures on the website, zoomed in" [w=281.138 wTrail=284.699 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...Use the same pictures on the website, zoomed"
+      L2 measured: "...on the action." [w=78.622 wTrail=78.622 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...in on the action."
+      oracle L1 words: oracle ink    280.7 pt   this face's advance    267.1 DIP   ratio 0.9515
+      oracle L2 words: oracle ink     94.2 pt   this face's advance     92.7 DIP   ratio 0.9840
+      L1 check: fits=True runs' advance sum 284.699 vs wTrail 284.699; TextShaper.ShapeText sum 284.699; with next word 'on' = 299.673 > W: True
+      L2 check: fits=True runs' advance sum 78.622 vs wTrail 78.622; TextShaper.ShapeText sum 78.622
+F10 tour-panels   size   13 W  416.738 (APPROX, oracle divider / source scale)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [383.113, 395.238]; recorded W band [415.31, 418.17] NOT wholly inside
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "...the new pictures, each cropped on what it is" [w=395.25 wTrail=398.811 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...ly the new pictures, each cropped on what it"
+      L2 measured: "...about. Uploading the set and deploying next." [w=259.156 wTrail=259.156 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...about. Uploading the set and deploying next."
+      oracle L1 words: oracle ink    404.4 pt   this face's advance    383.0 DIP   ratio 0.9472
+      oracle L2 words: oracle ink    281.6 pt   this face's advance    271.4 DIP   ratio 0.9636
+      L1 check: fits=True runs' advance sum 398.811 vs wTrail 398.811; TextShaper.ShapeText sum 398.811; with next word 'about.' = 435.265 > W: True
+      L2 check: fits=True runs' advance sum 259.156 vs wTrail 259.156; TextShaper.ShapeText sum 259.156
+F11 tour-recipes  size   11 W      428 (HydraCookbookPanel.swift:27,60 (460 - 2x16))  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [378.625, 409.625]
+      faces used: Segoe UI Variable[w400,None]@11
+      L1 measured: "...: which one leads, at what effort, and which" [w=409.707 wTrail=412.72 h=14.631 base=11.87 brk=null/split=True]
+      L1 oracle  : "...ibrary: which one leads, at what effort, and"
+      L2 measured: "...uild. Add one and it is in the model picker." [w=237.649 wTrail=237.649 h=14.631 base=11.87 brk=null/split=]
+      L2 oracle  : "...uild. Add one and it is in the model picker."
+      (no oracle line widths: the page's scale is not source-derived)
+      L1 check: fits=True runs' advance sum 412.72 vs wTrail 412.72; TextShaper.ShapeText sum 412.72; with next word 'ones' = 435.811 > W: True
+      L2 check: fits=True runs' advance sum 237.649 vs wTrail 237.649; TextShaper.ShapeText sum 237.649
+-> 3/10 fixtures match the oracle (PRIMARY face 'Segoe UI Variable Text' (PA-0013 candidate))
+
+==== (A) WRAP POINTS: SENSITIVITY face 'Segoe UI Variable Small' ====
+F1  tour-welcome  size   13 W      820 (ThreadTimeline.swift:395 maxWidth 820)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [724.375, 747.5]
+      faces used: Cascadia Mono[w400,None]@12 + Segoe UI Variable[w400,None]@13
+      L1 measured: "...chmentInset (14pt) but leaves the top on the" [w=788.249 wTrail=791.81 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...e with attachmentInset (14pt) but leaves the"
+      L2 measured: "...h is why the photo hugs the top of the pill." [w=405.038 wTrail=405.038 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...h is why the photo hugs the top of the pill."
+F2  tour-welcome  size   13 W      820 (ThreadTimeline.swift:395)  oracle 1 line(s), measured 1  -> MATCH
+      oracle breaks reproduced for W in [670, 970]
+F3  tour-welcome  size   13 W      820 (ThreadTimeline.swift:395)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [765.875, 798.25]
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "... from the top as from the left. The build is" [w=810.551 wTrail=814.112 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...ts as far from the top as from the left. The"
+      L2 measured: "...running to confirm nothing else moved." [w=227.963 wTrail=227.963 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...ld is running to confirm nothing else moved."
+F4  tour-welcome  size   13 W      692 (820 - 96 - 14 - (14+4))  oracle 1 line(s), measured 1  -> MATCH
+      oracle breaks reproduced for W in [542, 842]
+F5  tour-welcome  size   13 W      692 (820 - 96 - 14 - (14+4))  oracle 1 line(s), measured 1  -> MATCH
+      oracle breaks reproduced for W in [542, 842]
+F7  tour-hydra    size   13 W  508.874 (APPROX, oracle divider / source scale)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [478.999, 483.749]; recorded W band [507.81, 509.94] NOT wholly inside
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "...r window, one writes the pages and wires the" [w=483.761 wTrail=487.322 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "... tour window, one writes the pages and wires"
+      L2 measured: "...page. I keep the design and the integration." [w=456.841 wTrail=456.841 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...page. I keep the design and the integration."
+F8  tour-panels   size   13 W  416.738 (APPROX, oracle divider / source scale)  oracle 3 line(s), measured 3  -> MISMATCH
+      oracle breaks reproduced for W in [394.363, 403.488]; recorded W band [415.31, 418.17] NOT wholly inside
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "...builds the tour window, one writes the pages" [w=403.514 wTrail=407.075 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...: one builds the tour window, one writes the"
+      L2 measured: "...menu, one photographs every page. I keep the" [w=378.682 wTrail=382.243 h=17.291 base=14.028 brk=null/split=True]
+      L2 oracle  : "...elp menu, one photographs every page. I keep"
+      L3 measured: "...design and the integration." [w=154.845 wTrail=154.845 h=17.291 base=14.028 brk=null/split=]
+      L3 oracle  : "...the design and the integration."
+F9  tour-panels   size   13 W  288.738 (APPROX, oracle column - 128)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [267.113, 281.113]; recorded W band [287.31, 290.17] NOT wholly inside
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "... the same pictures on the website, zoomed in" [w=281.138 wTrail=284.699 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...Use the same pictures on the website, zoomed"
+      L2 measured: "...on the action." [w=78.622 wTrail=78.622 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...in on the action."
+F10 tour-panels   size   13 W  416.738 (APPROX, oracle divider / source scale)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [383.113, 395.238]; recorded W band [415.31, 418.17] NOT wholly inside
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "...the new pictures, each cropped on what it is" [w=395.25 wTrail=398.811 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...ly the new pictures, each cropped on what it"
+      L2 measured: "...about. Uploading the set and deploying next." [w=259.156 wTrail=259.156 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...about. Uploading the set and deploying next."
+F11 tour-recipes  size   11 W      428 (HydraCookbookPanel.swift:27,60 (460 - 2x16))  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [378.625, 409.625]
+      faces used: Segoe UI Variable[w400,None]@11
+      L1 measured: "...: which one leads, at what effort, and which" [w=409.707 wTrail=412.72 h=14.631 base=11.87 brk=null/split=True]
+      L1 oracle  : "...ibrary: which one leads, at what effort, and"
+      L2 measured: "...uild. Add one and it is in the model picker." [w=237.649 wTrail=237.649 h=14.631 base=11.87 brk=null/split=]
+      L2 oracle  : "...uild. Add one and it is in the model picker."
+-> 3/10 fixtures match the oracle (SENSITIVITY face 'Segoe UI Variable Small')
+
+==== (A) WRAP POINTS: SENSITIVITY face 'Segoe UI Variable Display' ====
+F1  tour-welcome  size   13 W      820 (ThreadTimeline.swift:395 maxWidth 820)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [724.375, 747.5]
+      faces used: Cascadia Mono[w400,None]@12 + Segoe UI Variable[w400,None]@13
+      L1 measured: "...chmentInset (14pt) but leaves the top on the" [w=788.249 wTrail=791.81 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...e with attachmentInset (14pt) but leaves the"
+      L2 measured: "...h is why the photo hugs the top of the pill." [w=405.038 wTrail=405.038 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...h is why the photo hugs the top of the pill."
+F2  tour-welcome  size   13 W      820 (ThreadTimeline.swift:395)  oracle 1 line(s), measured 1  -> MATCH
+      oracle breaks reproduced for W in [670, 970]
+F3  tour-welcome  size   13 W      820 (ThreadTimeline.swift:395)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [765.875, 798.25]
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "... from the top as from the left. The build is" [w=810.551 wTrail=814.112 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...ts as far from the top as from the left. The"
+      L2 measured: "...running to confirm nothing else moved." [w=227.963 wTrail=227.963 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...ld is running to confirm nothing else moved."
+F4  tour-welcome  size   13 W      692 (820 - 96 - 14 - (14+4))  oracle 1 line(s), measured 1  -> MATCH
+      oracle breaks reproduced for W in [542, 842]
+F5  tour-welcome  size   13 W      692 (820 - 96 - 14 - (14+4))  oracle 1 line(s), measured 1  -> MATCH
+      oracle breaks reproduced for W in [542, 842]
+F7  tour-hydra    size   13 W  508.874 (APPROX, oracle divider / source scale)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [478.999, 483.749]; recorded W band [507.81, 509.94] NOT wholly inside
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "...r window, one writes the pages and wires the" [w=483.761 wTrail=487.322 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "... tour window, one writes the pages and wires"
+      L2 measured: "...page. I keep the design and the integration." [w=456.841 wTrail=456.841 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...page. I keep the design and the integration."
+F8  tour-panels   size   13 W  416.738 (APPROX, oracle divider / source scale)  oracle 3 line(s), measured 3  -> MISMATCH
+      oracle breaks reproduced for W in [394.363, 403.488]; recorded W band [415.31, 418.17] NOT wholly inside
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "...builds the tour window, one writes the pages" [w=403.514 wTrail=407.075 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...: one builds the tour window, one writes the"
+      L2 measured: "...menu, one photographs every page. I keep the" [w=378.682 wTrail=382.243 h=17.291 base=14.028 brk=null/split=True]
+      L2 oracle  : "...elp menu, one photographs every page. I keep"
+      L3 measured: "...design and the integration." [w=154.845 wTrail=154.845 h=17.291 base=14.028 brk=null/split=]
+      L3 oracle  : "...the design and the integration."
+F9  tour-panels   size   13 W  288.738 (APPROX, oracle column - 128)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [267.113, 281.113]; recorded W band [287.31, 290.17] NOT wholly inside
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "... the same pictures on the website, zoomed in" [w=281.138 wTrail=284.699 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...Use the same pictures on the website, zoomed"
+      L2 measured: "...on the action." [w=78.622 wTrail=78.622 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...in on the action."
+F10 tour-panels   size   13 W  416.738 (APPROX, oracle divider / source scale)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [383.113, 395.238]; recorded W band [415.31, 418.17] NOT wholly inside
+      faces used: Segoe UI Variable[w400,None]@13
+      L1 measured: "...the new pictures, each cropped on what it is" [w=395.25 wTrail=398.811 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...ly the new pictures, each cropped on what it"
+      L2 measured: "...about. Uploading the set and deploying next." [w=259.156 wTrail=259.156 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...about. Uploading the set and deploying next."
+F11 tour-recipes  size   11 W      428 (HydraCookbookPanel.swift:27,60 (460 - 2x16))  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [378.625, 409.625]
+      faces used: Segoe UI Variable[w400,None]@11
+      L1 measured: "...: which one leads, at what effort, and which" [w=409.707 wTrail=412.72 h=14.631 base=11.87 brk=null/split=True]
+      L1 oracle  : "...ibrary: which one leads, at what effort, and"
+      L2 measured: "...uild. Add one and it is in the model picker." [w=237.649 wTrail=237.649 h=14.631 base=11.87 brk=null/split=]
+      L2 oracle  : "...uild. Add one and it is in the model picker."
+-> 3/10 fixtures match the oracle (SENSITIVITY face 'Segoe UI Variable Display')
+
+==== (A) WRAP POINTS: SENSITIVITY face 'Segoe UI' ====
+F1  tour-welcome  size   13 W      820 (ThreadTimeline.swift:395 maxWidth 820)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [735.5, 758.625]
+      faces used: Cascadia Mono[w400,None]@12 + Segoe UI[w400,None]@13 + Segoe UI[w700,None]@13
+      L1 measured: "...chmentInset (14pt) but leaves the top on the" [w=799.344 wTrail=802.905 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...e with attachmentInset (14pt) but leaves the"
+      L2 measured: "...h is why the photo hugs the top of the pill." [w=405.038 wTrail=405.038 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...h is why the photo hugs the top of the pill."
+F2  tour-welcome  size   13 W      820 (ThreadTimeline.swift:395)  oracle 1 line(s), measured 1  -> MATCH
+      oracle breaks reproduced for W in [670, 970]
+F3  tour-welcome  size   13 W      820 (ThreadTimeline.swift:395)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [768, 800.375]
+      faces used: Segoe UI[w400,None]@13
+      L1 measured: "... from the top as from the left. The build is" [w=812.633 wTrail=816.194 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...ts as far from the top as from the left. The"
+      L2 measured: "...running to confirm nothing else moved." [w=227.963 wTrail=227.963 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...ld is running to confirm nothing else moved."
+F4  tour-welcome  size   13 W      692 (820 - 96 - 14 - (14+4))  oracle 1 line(s), measured 1  -> MATCH
+      oracle breaks reproduced for W in [542, 842]
+F5  tour-welcome  size   13 W      692 (820 - 96 - 14 - (14+4))  oracle 1 line(s), measured 1  -> MATCH
+      oracle breaks reproduced for W in [542, 842]
+F7  tour-hydra    size   13 W  508.874 (APPROX, oracle divider / source scale)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [478.999, 483.749]; recorded W band [507.81, 509.94] NOT wholly inside
+      faces used: Segoe UI[w400,None]@13
+      L1 measured: "...r window, one writes the pages and wires the" [w=483.761 wTrail=487.322 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "... tour window, one writes the pages and wires"
+      L2 measured: "...page. I keep the design and the integration." [w=456.841 wTrail=456.841 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...page. I keep the design and the integration."
+F8  tour-panels   size   13 W  416.738 (APPROX, oracle divider / source scale)  oracle 3 line(s), measured 3  -> MISMATCH
+      oracle breaks reproduced for W in [394.363, 403.488]; recorded W band [415.31, 418.17] NOT wholly inside
+      faces used: Segoe UI[w400,None]@13
+      L1 measured: "...builds the tour window, one writes the pages" [w=403.514 wTrail=407.075 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...: one builds the tour window, one writes the"
+      L2 measured: "...menu, one photographs every page. I keep the" [w=378.682 wTrail=382.243 h=17.291 base=14.028 brk=null/split=True]
+      L2 oracle  : "...elp menu, one photographs every page. I keep"
+      L3 measured: "...design and the integration." [w=154.845 wTrail=154.845 h=17.291 base=14.028 brk=null/split=]
+      L3 oracle  : "...the design and the integration."
+F9  tour-panels   size   13 W  288.738 (APPROX, oracle column - 128)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [267.113, 281.113]; recorded W band [287.31, 290.17] NOT wholly inside
+      faces used: Segoe UI[w400,None]@13
+      L1 measured: "... the same pictures on the website, zoomed in" [w=281.138 wTrail=284.699 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...Use the same pictures on the website, zoomed"
+      L2 measured: "...on the action." [w=78.622 wTrail=78.622 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...in on the action."
+F10 tour-panels   size   13 W  416.738 (APPROX, oracle divider / source scale)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [383.113, 395.238]; recorded W band [415.31, 418.17] NOT wholly inside
+      faces used: Segoe UI[w400,None]@13
+      L1 measured: "...the new pictures, each cropped on what it is" [w=395.25 wTrail=398.811 h=17.291 base=14.028 brk=null/split=True]
+      L1 oracle  : "...ly the new pictures, each cropped on what it"
+      L2 measured: "...about. Uploading the set and deploying next." [w=259.156 wTrail=259.156 h=17.291 base=14.028 brk=null/split=]
+      L2 oracle  : "...about. Uploading the set and deploying next."
+F11 tour-recipes  size   11 W      428 (HydraCookbookPanel.swift:27,60 (460 - 2x16))  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [378.625, 409.625]
+      faces used: Segoe UI[w400,None]@11
+      L1 measured: "...: which one leads, at what effort, and which" [w=409.707 wTrail=412.72 h=14.631 base=11.87 brk=null/split=True]
+      L1 oracle  : "...ibrary: which one leads, at what effort, and"
+      L2 measured: "...uild. Add one and it is in the model picker." [w=237.649 wTrail=237.649 h=14.631 base=11.87 brk=null/split=]
+      L2 oracle  : "...uild. Add one and it is in the model picker."
+-> 3/10 fixtures match the oracle (SENSITIVITY face 'Segoe UI')
+
+==== (A) WRAP POINTS: SENSITIVITY face 'Inter' ====
+F1  tour-welcome  size   13 W      820 (ThreadTimeline.swift:395 maxWidth 820)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [765.125, 788.5]
+      faces used: Cascadia Mono[w400,None]@12 + Inter[w400,None]@13
+      L1 measured: "...attachmentInset (14pt) but leaves the top on" [w=807.685 wTrail=811.341 h=15.729 base=12.594 brk=null/split=True]
+      L1 oracle  : "...e with attachmentInset (14pt) but leaves the"
+      L2 measured: "...h is why the photo hugs the top of the pill." [w=459.259 wTrail=459.259 h=15.729 base=12.594 brk=null/split=]
+      L2 oracle  : "...h is why the photo hugs the top of the pill."
+      oracle L1 words: oracle ink    797.3 pt   this face's advance    765.0 DIP   ratio 0.9595
+      oracle L2 words: oracle ink    492.9 pt   this face's advance    501.9 DIP   ratio 1.0184
+      L1 check: fits=True runs' advance sum 811.341 vs wTrail 811.341; with next word 'the' = 830.86 > W: True
+      L2 check: fits=True runs' advance sum 459.259 vs wTrail 459.259
+F2  tour-welcome  size   13 W      820 (ThreadTimeline.swift:395)  oracle 1 line(s), measured 1  -> MATCH
+      oracle breaks reproduced for W in [670, 970]
+      faces used: Inter[w400,None]@13
+      L1 measured: "...Want me to give the top the same 14pt?" [w=241.865 wTrail=241.865 h=15.729 base=12.594 brk=null/split=]
+      oracle L1 words: oracle ink    238.8 pt   this face's advance    241.9 DIP   ratio 1.0128
+      L1 check: fits=True runs' advance sum 241.865 vs wTrail 241.865; TextShaper.ShapeText sum 241.865
+F3  tour-welcome  size   13 W      820 (ThreadTimeline.swift:395)  oracle 2 line(s), measured 2  -> MISMATCH
+      oracle breaks reproduced for W in [820.875, 854.375]
+      faces used: Inter[w400,None]@13
+      L1 measured: "...o sits as far from the top as from the left." [w=793.521 wTrail=797.177 h=15.729 base=12.594 brk=null/split=True]
+      L1 oracle  : "...ts as far from the top as from the left. The"
+      L2 measured: "...ld is running to confirm nothing else moved." [w=315.485 wTrail=315.485 h=15.729 base=12.594 brk=null/split=]
+      L2 oracle  : "...ld is running to confirm nothing else moved."
+      oracle L1 words: oracle ink    810.6 pt   this face's advance    820.8 DIP   ratio 1.0126
+      oracle L2 words: oracle ink    281.6 pt   this face's advance    288.2 DIP   ratio 1.0232
+      L1 check: fits=True runs' advance sum 797.177 vs wTrail 797.177; TextShaper.ShapeText sum 797.177; with next word 'The' = 820.834 > W: True
+      L2 check: fits=True runs' advance sum 315.485 vs wTrail 315.485; TextShaper.ShapeText sum 315.485
+F4  tour-welcome  size   13 W      692 (820 - 96 - 14 - (14+4))  oracle 1 line(s), measured 1  -> MATCH
+      oracle breaks reproduced for W in [542, 842]
+      faces used: Inter[w400,None]@13
+      L1 measured: "...how far the draft photo sits from the edges?" [w=481.063 wTrail=481.063 h=15.729 base=12.594 brk=null/split=]
+      oracle L1 words: oracle ink    472.9 pt   this face's advance    481.1 DIP   ratio 1.0173
+      L1 check: fits=True runs' advance sum 481.063 vs wTrail 481.063; TextShaper.ShapeText sum 481.063
+F5  tour-welcome  size   13 W      692 (820 - 96 - 14 - (14+4))  oracle 1 line(s), measured 1  -> MATCH
+      oracle breaks reproduced for W in [542, 842]
+      faces used: Inter[w400,None]@13
+      L1 measured: "...s far from the top as it does from the left." [w=523.136 wTrail=523.136 h=15.729 base=12.594 brk=null/split=]
+      oracle L1 words: oracle ink    515.7 pt   this face's advance    523.1 DIP   ratio 1.0144
+      L1 check: fits=True runs' advance sum 523.136 vs wTrail 523.136; TextShaper.ShapeText sum 523.136
+F7  tour-hydra    size   13 W  508.874 (APPROX, oracle divider / source scale)  oracle 2 line(s), measured 3  -> MISMATCH
+      oracle breaks reproduced for W in [509.624, 518.624]; recorded W band [507.81, 509.94] NOT wholly inside
+      faces used: Inter[w400,None]@13
+      L1 measured: "... tour window, one writes the pages and wires" [w=495.504 wTrail=499.161 h=15.729 base=12.594 brk=null/split=True]
+      L2 measured: "...graphs every page. I keep the design and the" [w=436.592 wTrail=440.248 h=15.729 base=12.594 brk=null/split=True]
+      L2 oracle  : "...page. I keep the design and the integration."
+      L3 measured: "...integration." [w=69.323 wTrail=69.323 h=15.729 base=12.594 brk=null/split=]
+      L3 oracle  : "...(none)"
+      oracle L1 words: oracle ink    484.8 pt   this face's advance    495.5 DIP   ratio 1.0221
+      oracle L2 words: oracle ink    500.4 pt   this face's advance    509.6 DIP   ratio 1.0184
+      L1 check: fits=True runs' advance sum 499.161 vs wTrail 499.161; TextShaper.ShapeText sum 499.161; with next word 'the' = 518.68 > W: True
+      L2 check: fits=True runs' advance sum 440.248 vs wTrail 440.248; TextShaper.ShapeText sum 440.248; with next word 'integration.' = 509.571 > W: True
+      L3 check: fits=True runs' advance sum 69.323 vs wTrail 69.323; TextShaper.ShapeText sum 69.323
+F8  tour-panels   size   13 W  416.738 (APPROX, oracle divider / source scale)  oracle 3 line(s), measured 3  -> MISMATCH
+      oracle breaks reproduced for W in [423.488, 432.238]; recorded W band [415.31, 418.17] NOT wholly inside
+      faces used: Inter[w400,None]@13
+      L1 measured: "...: one builds the tour window, one writes the" [w=390.889 wTrail=394.545 h=15.729 base=12.594 brk=null/split=True]
+      L2 measured: "...the Help menu, one photographs every page. I" [w=389.784 wTrail=393.44 h=15.729 base=12.594 brk=null/split=True]
+      L2 oracle  : "...elp menu, one photographs every page. I keep"
+      L3 measured: "...keep the design and the integration." [w=220.746 wTrail=220.746 h=15.729 base=12.594 brk=null/split=]
+      L3 oracle  : "...the design and the integration."
+      oracle L1 words: oracle ink    382.5 pt   this face's advance    390.9 DIP   ratio 1.0220
+      oracle L2 words: oracle ink    413.9 pt   this face's advance    423.4 DIP   ratio 1.0230
+      oracle L3 words: oracle ink    183.6 pt   this face's advance    187.1 DIP   ratio 1.0190
+      L1 check: fits=True runs' advance sum 394.545 vs wTrail 394.545; TextShaper.ShapeText sum 394.545; with next word 'pages' = 432.345 > W: True
+      L2 check: fits=True runs' advance sum 393.44 vs wTrail 393.44; TextShaper.ShapeText sum 393.44; with next word 'keep' = 423.401 > W: True
+      L3 check: fits=True runs' advance sum 220.746 vs wTrail 220.746; TextShaper.ShapeText sum 220.746
+F9  tour-panels   size   13 W  288.738 (APPROX, oracle column - 128)  oracle 2 line(s), measured 2  -> MATCH
+      oracle breaks reproduced for W in [287.863, 302.238]; recorded W band [287.31, 290.17] NOT wholly inside
+      faces used: Inter[w400,None]@13
+      L1 measured: "...Use the same pictures on the website, zoomed" [w=287.854 wTrail=291.51 h=15.729 base=12.594 brk=null/split=True]
+      L2 measured: "...in on the action." [w=98.141 wTrail=98.141 h=15.729 base=12.594 brk=null/split=]
+      oracle L1 words: oracle ink    280.7 pt   this face's advance    287.9 DIP   ratio 1.0256
+      oracle L2 words: oracle ink     94.2 pt   this face's advance     98.1 DIP   ratio 1.0419
+      L1 check: fits=True runs' advance sum 291.51 vs wTrail 291.51; TextShaper.ShapeText sum 291.51; with next word 'in' = 302.339 > W: True
+      L2 check: fits=True runs' advance sum 98.141 vs wTrail 98.141; TextShaper.ShapeText sum 98.141
+F10 tour-panels   size   13 W  416.738 (APPROX, oracle divider / source scale)  oracle 2 line(s), measured 2  -> MATCH
+      oracle breaks reproduced for W in [413.488, 427.113]; recorded W band [415.31, 418.17] inside
+      faces used: Inter[w400,None]@13
+      L1 measured: "...ly the new pictures, each cropped on what it" [w=413.486 wTrail=417.143 h=15.729 base=12.594 brk=null/split=True]
+      L2 measured: "...about. Uploading the set and deploying next." [w=288.875 wTrail=288.875 h=15.729 base=12.594 brk=null/split=]
+      oracle L1 words: oracle ink    404.4 pt   this face's advance    413.5 DIP   ratio 1.0225
+      oracle L2 words: oracle ink    281.6 pt   this face's advance    288.9 DIP   ratio 1.0257
+      L1 check: fits=True runs' advance sum 417.143 vs wTrail 417.143; TextShaper.ShapeText sum 417.143; with next word 'is' = 427.153 > W: True
+      L2 check: fits=True runs' advance sum 288.875 vs wTrail 288.875; TextShaper.ShapeText sum 288.875
+F11 tour-recipes  size   11 W      428 (HydraCookbookPanel.swift:27,60 (460 - 2x16))  oracle 2 line(s), measured 2  -> MATCH
+      oracle breaks reproduced for W in [406, 440]
+      faces used: Inter[w400,None]@11
+      L1 measured: "...ibrary: which one leads, at what effort, and" [w=405.985 wTrail=409.079 h=13.31 base=10.656 brk=null/split=True]
+      L2 measured: "...uild. Add one and it is in the model picker." [w=285.721 wTrail=285.721 h=13.31 base=10.656 brk=null/split=]
+      (no oracle line widths: the page's scale is not source-derived)
+      L1 check: fits=True runs' advance sum 409.079 vs wTrail 409.079; TextShaper.ShapeText sum 409.079; with next word 'which' = 440.038 > W: True
+      L2 check: fits=True runs' advance sum 285.721 vs wTrail 285.721; TextShaper.ShapeText sum 285.721
+-> 6/10 fixtures match the oracle (SENSITIVITY face 'Inter')
+
+==== CA1 CONTROL: same corpus, one step up the type scale (13->15, 11->12) ====
+F1   size   15: measured 2 line(s) vs oracle 2 -> MISMATCH
+F2   size   15: measured 1 line(s) vs oracle 1 -> match
+F3   size   15: measured 2 line(s) vs oracle 2 -> MISMATCH
+F4   size   15: measured 1 line(s) vs oracle 1 -> match
+F5   size   15: measured 1 line(s) vs oracle 1 -> match
+F7   size   15: measured 3 line(s) vs oracle 2 -> MISMATCH
+F8   size   15: measured 3 line(s) vs oracle 3 -> MISMATCH
+F9   size   15: measured 2 line(s) vs oracle 2 -> MISMATCH
+F10  size   15: measured 2 line(s) vs oracle 2 -> MISMATCH
+F11  size   12: measured 2 line(s) vs oracle 2 -> match
+-> CA1 4/10 match; control FAILS as required
+
+==== CA2 CONTROL: no shaping, fixed advance 0.5 em per character, greedy word wrap ====
+F1  : naive 2 line(s) vs oracle 2 -> MISMATCH
+F2  : naive 1 line(s) vs oracle 1 -> match
+F3  : naive 2 line(s) vs oracle 2 -> MISMATCH
+F4  : naive 1 line(s) vs oracle 1 -> match
+F5  : naive 1 line(s) vs oracle 1 -> match
+F7  : naive 3 line(s) vs oracle 2 -> MISMATCH
+F8  : naive 3 line(s) vs oracle 3 -> MISMATCH
+F9  : naive 2 line(s) vs oracle 2 -> match
+F10 : naive 2 line(s) vs oracle 2 -> MISMATCH
+F11 : naive 2 line(s) vs oracle 2 -> MISMATCH
+-> CA2 4/10 match; control FAILS as required
+
+==== TextFormatter.FormatLine cross-check (own ITextSource, previousLineBreak chained) ====
+F1  : FormatLine 2 line(s), identical to TextLayout: True; line breaks: null(bounds 1, x0=0 w=791.81), TextEndOfParagraph(bounds 1, x0=0 w=405.038)
+F2  : FormatLine 1 line(s), identical to TextLayout: True; line breaks: TextEndOfParagraph(bounds 1, x0=0 w=229.068)
+F3  : FormatLine 2 line(s), identical to TextLayout: True; line breaks: null(bounds 1, x0=0 w=814.112), TextEndOfParagraph(bounds 1, x0=0 w=227.963)
+F4  : FormatLine 1 line(s), identical to TextLayout: True; line breaks: TextEndOfParagraph(bounds 1, x0=0 w=449.865)
+F5  : FormatLine 1 line(s), identical to TextLayout: True; line breaks: TextEndOfParagraph(bounds 1, x0=0 w=492.102)
+F7  : FormatLine 2 line(s), identical to TextLayout: True; line breaks: null(bounds 1, x0=0 w=487.322), TextEndOfParagraph(bounds 1, x0=0 w=456.841)
+F8  : FormatLine 3 line(s), identical to TextLayout: True; line breaks: null(bounds 1, x0=0 w=407.075), null(bounds 1, x0=0 w=382.243), TextEndOfParagraph(bounds 1, x0=0 w=154.845)
+F9  : FormatLine 2 line(s), identical to TextLayout: True; line breaks: null(bounds 1, x0=0 w=284.699), TextEndOfParagraph(bounds 1, x0=0 w=78.622)
+F10 : FormatLine 2 line(s), identical to TextLayout: True; line breaks: null(bounds 1, x0=0 w=398.811), TextEndOfParagraph(bounds 1, x0=0 w=259.156)
+F11 : FormatLine 2 line(s), identical to TextLayout: True; line breaks: null(bounds 1, x0=0 w=412.72), TextEndOfParagraph(bounds 1, x0=0 w=237.649)
+
+==== (B) 50 MONOSPACED SITES: .monospaced in Cascadia Mono, .monospacedDigit in 'Segoe UI Variable Text' +tnum ====
+tolerance 0.01 DIP; mono rows length 46; digit skeleton "## of ## done · #m ##s · +### −## · ###.#K / ##K (##%)"
+MONO  App/Views/Chat/ChatView.swift:1554                11 w400 [own]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 6.4453..6.4453; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+      CB1 proportional Segoe UI Variable[w400,None]@11: spread 133.891 -> misaligned (control fails as required)
+MONO  App/Views/Chat/ChatView.swift:1687                12 w400 [own]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 7.0313..7.0313; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@12
+      CB1 proportional Segoe UI Variable[w400,None]@12: spread 146.063 -> misaligned (control fails as required)
+MONO  App/Views/Chat/HydraMergePopover.swift:259        11 w400 [own]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 6.4453..6.4453; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+      CB1 proportional Segoe UI Variable[w400,None]@11: spread 133.891 -> misaligned (control fails as required)
+MONO  App/Views/Chat/HydraMergePopover.swift:289        11 w400 [own]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 6.4453..6.4453; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+      CB1 proportional Segoe UI Variable[w400,None]@11: spread 133.891 -> misaligned (control fails as required)
+MONO  App/Views/Chat/HydraReportsPopover.swift:584      11 w400 [own]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 6.4453..6.4453; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+      CB1 proportional Segoe UI Variable[w400,None]@11: spread 133.891 -> misaligned (control fails as required)
+MONO  App/Views/Chat/HydraReportsPopover.swift:615      11 w400 [own]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 6.4453..6.4453; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+      CB1 proportional Segoe UI Variable[w400,None]@11: spread 133.891 -> misaligned (control fails as required)
+MONO  App/Views/Chat/TimelineRows.swift:2135            10 w400 [.chat(.caption) at zoom 1]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 5.8594..5.8594; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@10
+      CB1 proportional Segoe UI Variable[w400,None]@10: spread 121.719 -> misaligned (control fails as required)
+MONO  App/Views/Chat/TimelineRows.swift:2164            10 w400 [.chat(.caption) at zoom 1]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 5.8594..5.8594; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@10
+      CB1 proportional Segoe UI Variable[w400,None]@10: spread 121.719 -> misaligned (control fails as required)
+MONO  App/Views/Composer/RequestCards.swift:19          12 w400 [.callout (ChatZoom table)]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 7.0313..7.0313; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@12
+      CB1 proportional Segoe UI Variable[w400,None]@12: spread 146.063 -> misaligned (control fails as required)
+MONO  App/Views/Diff/DiffInspector.swift:406          11.5 w400 [own]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 6.7383..6.7383; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11.5
+      CB1 proportional Segoe UI Variable[w400,None]@11.5: spread 139.977 -> misaligned (control fails as required)
+MONO  App/Views/RootView.swift:444                      11 w400 [own]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 6.4453..6.4453; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+      CB1 proportional Segoe UI Variable[w400,None]@11: spread 133.891 -> misaligned (control fails as required)
+MONO  App/Views/Settings/MCPKeyPanel.swift:199          12 w400 [own]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 7.0313..7.0313; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@12
+      CB1 proportional Segoe UI Variable[w400,None]@12: spread 146.063 -> misaligned (control fails as required)
+MONO  App/Views/Settings/MCPSettingsPage.swift:215      11 w400 [own]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 6.4453..6.4453; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+      CB1 proportional Segoe UI Variable[w400,None]@11: spread 133.891 -> misaligned (control fails as required)
+MONO  App/Views/Settings/MCPSettingsPage.swift:263    10.5 w400 [own]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 6.1523..6.1523; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@10.5
+      CB1 proportional Segoe UI Variable[w400,None]@10.5: spread 127.805 -> misaligned (control fails as required)
+MONO  App/Views/Settings/MCPSettingsPage.swift:730      12 w400 [own]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 7.0313..7.0313; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@12
+      CB1 proportional Segoe UI Variable[w400,None]@12: spread 146.063 -> misaligned (control fails as required)
+MONO  App/Views/Settings/MCPSettingsPage.swift:744      12 w400 [own]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 7.0313..7.0313; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@12
+      CB1 proportional Segoe UI Variable[w400,None]@12: spread 146.063 -> misaligned (control fails as required)
+MONO  App/Views/Settings/MCPSettingsPage.swift:756      12 w400 [own]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 7.0313..7.0313; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@12
+      CB1 proportional Segoe UI Variable[w400,None]@12: spread 146.063 -> misaligned (control fails as required)
+MONO  App/Views/Settings/MCPSettingsPage.swift:1046   10.5 w400 [own]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 6.1523..6.1523; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@10.5
+      CB1 proportional Segoe UI Variable[w400,None]@10.5: spread 127.805 -> misaligned (control fails as required)
+MONO  App/Views/Settings/SettingsView.swift:697         12 w400 [own]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 7.0313..7.0313; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@12
+      CB1 proportional Segoe UI Variable[w400,None]@12: spread 146.063 -> misaligned (control fails as required)
+MONO  App/Views/Settings/SettingsView.swift:726         12 w400 [own]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 7.0313..7.0313; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@12
+      CB1 proportional Segoe UI Variable[w400,None]@12: spread 146.063 -> misaligned (control fails as required)
+MONO  UI/Common/AttachmentPreview.swift:317             10 w400 [.caption (ChatZoom table)]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 5.8594..5.8594; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@10
+      CB1 proportional Segoe UI Variable[w400,None]@10: spread 121.719 -> misaligned (control fails as required)
+MONO  UI/Markdown/MarkdownView.swift:1301               12 w400 [.chat(.callout) at zoom 1]
+      Cascadia Mono[w400,None]: 99 chars, missing 0, advance 7.0313..7.0313; row column spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@12
+      CB1 proportional Segoe UI Variable[w400,None]@12: spread 146.063 -> misaligned (control fails as required)
+DIGIT App/Views/Chat/HydraButton.swift:630               9 w700 [own]
+      Segoe UI Variable[w400,None] +tnum: digit advance 4.8516..4.8516, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@9; weight honoured: False; face lists [tnum]
+      no feature: digit advance 3.4102..4.8516, spread 28.8281;  CB2 +pnum (digit advance 3.4102..4.8516): spread 28.828 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w700,Bold]@9
+DIGIT App/Views/Chat/HydraHeadPopovers.swift:25         11 w500 [enclosing .font :23]
+      Segoe UI Variable[w400,None] +tnum: digit advance 5.9297..5.9297, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@11; weight honoured: False; face lists [tnum]
+      no feature: digit advance 4.168..5.9297, spread 35.2344;  CB2 +pnum (digit advance 4.168..5.9297): spread 35.234 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+DIGIT App/Views/Chat/HydraMergePopover.swift:273        17 w600 [own]
+      Segoe UI Variable[w400,None] +tnum: digit advance 9.1641..9.1641, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@17; weight honoured: False; face lists [tnum]
+      no feature: digit advance 6.4414..9.1641, spread 54.4531;  CB2 +pnum (digit advance 6.4414..9.1641): spread 54.453 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w700,Bold]@17
+DIGIT App/Views/Chat/HydraPanel.swift:235             12.5 w600 [own]
+      Segoe UI Variable[w400,None] +tnum: digit advance 6.7383..6.7383, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@12.5; weight honoured: False; face lists [tnum]
+      no feature: digit advance 4.7363..6.7383, spread 40.0391;  CB2 +pnum (digit advance 4.7363..6.7383): spread 40.039 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w700,Bold]@12.5
+DIGIT App/Views/Chat/HydraPanel.swift:462               11 w400 [own]
+      Segoe UI Variable[w400,None] +tnum: digit advance 5.9297..5.9297, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@11; weight honoured: True; face lists [tnum]
+      no feature: digit advance 4.168..5.9297, spread 35.2344;  CB2 +pnum (digit advance 4.168..5.9297): spread 35.234 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+DIGIT App/Views/Chat/HydraProgressBar.swift:559         11 w400 [enclosing .font :558]
+      Segoe UI Variable[w400,None] +tnum: digit advance 5.9297..5.9297, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@11; weight honoured: True; face lists [tnum]
+      no feature: digit advance 4.168..5.9297, spread 35.2344;  CB2 +pnum (digit advance 4.168..5.9297): spread 35.234 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+DIGIT App/Views/Chat/HydraReportsPopover.swift:309      11 w400 [enclosing .font :307]
+      Segoe UI Variable[w400,None] +tnum: digit advance 5.9297..5.9297, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@11; weight honoured: True; face lists [tnum]
+      no feature: digit advance 4.168..5.9297, spread 35.2344;  CB2 +pnum (digit advance 4.168..5.9297): spread 35.234 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+DIGIT App/Views/Chat/HydraReportsPopover.swift:336      11 w400 [enclosing .font :334]
+      Segoe UI Variable[w400,None] +tnum: digit advance 5.9297..5.9297, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@11; weight honoured: True; face lists [tnum]
+      no feature: digit advance 4.168..5.9297, spread 35.2344;  CB2 +pnum (digit advance 4.168..5.9297): spread 35.234 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+DIGIT App/Views/Chat/HydraReportsPopover.swift:341      11 w400 [enclosing .font :339]
+      Segoe UI Variable[w400,None] +tnum: digit advance 5.9297..5.9297, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@11; weight honoured: True; face lists [tnum]
+      no feature: digit advance 4.168..5.9297, spread 35.2344;  CB2 +pnum (digit advance 4.168..5.9297): spread 35.234 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+DIGIT App/Views/Chat/HydraReportsPopover.swift:549      11 w400 [enclosing .font :547]
+      Segoe UI Variable[w400,None] +tnum: digit advance 5.9297..5.9297, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@11; weight honoured: True; face lists [tnum]
+      no feature: digit advance 4.168..5.9297, spread 35.2344;  CB2 +pnum (digit advance 4.168..5.9297): spread 35.234 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+DIGIT App/Views/Chat/HydraReportsPopover.swift:612      11 w400 [enclosing .font :615 is .monospaced design]
+      Cascadia Mono[w400,None] +tnum: digit advance 6.4453..6.4453, row spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11; weight honoured: True; face lists []
+      no feature: digit advance 6.4453..6.4453, spread 0;  CB1 proportional Segoe UI Variable[w400,None]@11 +pnum: spread 35.234 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+DIGIT App/Views/Chat/HydraRunMetricsView.swift:249      12 w500 [own]
+      Segoe UI Variable[w400,None] +tnum: digit advance 6.4688..6.4688, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@12; weight honoured: False; face lists [tnum]
+      no feature: digit advance 4.5469..6.4688, spread 38.4375;  CB2 +pnum (digit advance 4.5469..6.4688): spread 38.438 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@12
+DIGIT App/Views/Chat/HydraRunMetricsView.swift:305      12 w400 [own]
+      Segoe UI Variable[w400,None] +tnum: digit advance 6.4688..6.4688, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@12; weight honoured: True; face lists [tnum]
+      no feature: digit advance 4.5469..6.4688, spread 38.4375;  CB2 +pnum (digit advance 4.5469..6.4688): spread 38.438 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@12
+DIGIT App/Views/Chat/HydraRunMetricsView.swift:331      11 w400 [own]
+      Segoe UI Variable[w400,None] +tnum: digit advance 5.9297..5.9297, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@11; weight honoured: True; face lists [tnum]
+      no feature: digit advance 4.168..5.9297, spread 35.2344;  CB2 +pnum (digit advance 4.168..5.9297): spread 35.234 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+DIGIT App/Views/Chat/HydraRunMetricsView.swift:357      11 w400 [own]
+      Segoe UI Variable[w400,None] +tnum: digit advance 5.9297..5.9297, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@11; weight honoured: True; face lists [tnum]
+      no feature: digit advance 4.168..5.9297, spread 35.2344;  CB2 +pnum (digit advance 4.168..5.9297): spread 35.234 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+DIGIT App/Views/Chat/TimelineRows.swift:1845            10 w400 [.chat(.caption) at zoom 1]
+      Segoe UI Variable[w400,None] +tnum: digit advance 5.3906..5.3906, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@10; weight honoured: True; face lists [tnum]
+      no feature: digit advance 3.7891..5.3906, spread 32.0313;  CB2 +pnum (digit advance 3.7891..5.3906): spread 32.031 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@10
+DIGIT App/Views/Composer/FollowUpQueueTab.swift:70      12 w500 [own]
+      Segoe UI Variable[w400,None] +tnum: digit advance 6.4688..6.4688, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@12; weight honoured: False; face lists [tnum]
+      no feature: digit advance 4.5469..6.4688, spread 38.4375;  CB2 +pnum (digit advance 4.5469..6.4688): spread 38.438 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@12
+DIGIT App/Views/Composer/FollowUpQueueTab.swift:374     11 w500 [own]
+      Segoe UI Variable[w400,None] +tnum: digit advance 5.9297..5.9297, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@11; weight honoured: False; face lists [tnum]
+      no feature: digit advance 4.168..5.9297, spread 35.2344;  CB2 +pnum (digit advance 4.168..5.9297): spread 35.234 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+DIGIT App/Views/Composer/QuestionTab.swift:96           11 w400 [own]
+      Segoe UI Variable[w400,None] +tnum: digit advance 5.9297..5.9297, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@11; weight honoured: True; face lists [tnum]
+      no feature: digit advance 4.168..5.9297, spread 35.2344;  CB2 +pnum (digit advance 4.168..5.9297): spread 35.234 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+DIGIT App/Views/Composer/ThreadChangesTab.swift:30      12 w500 [own]
+      Segoe UI Variable[w400,None] +tnum: digit advance 6.4688..6.4688, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@12; weight honoured: False; face lists [tnum]
+      no feature: digit advance 4.5469..6.4688, spread 38.4375;  CB2 +pnum (digit advance 4.5469..6.4688): spread 38.438 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@12
+DIGIT App/Views/Sidebar/SidebarView.swift:1130          11 w400 [own]
+      Segoe UI Variable[w400,None] +tnum: digit advance 5.9297..5.9297, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@11; weight honoured: True; face lists [tnum]
+      no feature: digit advance 4.168..5.9297, spread 35.2344;  CB2 +pnum (digit advance 4.168..5.9297): spread 35.234 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+DIGIT App/Views/Sidebar/SidebarView.swift:2387          12 w400 [enclosing .font :2386]
+      Segoe UI Variable[w400,None] +tnum: digit advance 6.4688..6.4688, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@12; weight honoured: True; face lists [tnum]
+      no feature: digit advance 4.5469..6.4688, spread 38.4375;  CB2 +pnum (digit advance 4.5469..6.4688): spread 38.438 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@12
+DIGIT App/Views/Sidebar/SidebarView.swift:2692          11 w400 [own]
+      Segoe UI Variable[w400,None] +tnum: digit advance 5.9297..5.9297, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@11; weight honoured: True; face lists [tnum]
+      no feature: digit advance 4.168..5.9297, spread 35.2344;  CB2 +pnum (digit advance 4.168..5.9297): spread 35.234 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@11
+DIGIT App/Views/Usage/UsagePanel.swift:41               13 w400 [enclosing .font :43]
+      Segoe UI Variable[w400,None] +tnum: digit advance 7.0078..7.0078, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@13; weight honoured: True; face lists [tnum]
+      no feature: digit advance 4.9258..7.0078, spread 41.6406;  CB2 +pnum (digit advance 4.9258..7.0078): spread 41.641 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@13
+DIGIT App/Views/Usage/UsageViews.swift:114              13 w600 [enclosing .font :113]
+      Segoe UI Variable[w400,None] +tnum: digit advance 7.0078..7.0078, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@13; weight honoured: False; face lists [tnum]
+      no feature: digit advance 4.9258..7.0078, spread 41.6406;  CB2 +pnum (digit advance 4.9258..7.0078): spread 41.641 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w700,Bold]@13
+DIGIT App/Views/Usage/UsageViews.swift:161              12 w400 [enclosing .font :159]
+      Segoe UI Variable[w400,None] +tnum: digit advance 6.4688..6.4688, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@12; weight honoured: True; face lists [tnum]
+      no feature: digit advance 4.5469..6.4688, spread 38.4375;  CB2 +pnum (digit advance 4.5469..6.4688): spread 38.438 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@12
+DIGIT UI/Common/Components.swift:54                     10 w400 [.caption (ChatZoom table)]
+      Segoe UI Variable[w400,None] +tnum: digit advance 5.3906..5.3906, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@10; weight honoured: True; face lists [tnum]
+      no feature: digit advance 3.7891..5.3906, spread 32.0313;  CB2 +pnum (digit advance 3.7891..5.3906): spread 32.031 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@10
+DIGIT UI/Markdown/MarkdownView.swift:515                13 w500 [inherited markdown size, default 13 (MarkdownView.swift:839); .fontWeight(.medium) :516]
+      Segoe UI Variable[w400,None] +tnum: digit advance 7.0078..7.0078, row spread 0 -> ALIGNED  used: Segoe UI Variable[w400,None]@13; weight honoured: False; face lists [tnum]
+      no feature: digit advance 4.9258..7.0078, spread 41.6406;  CB2 +pnum (digit advance 4.9258..7.0078): spread 41.641 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w400,None]@13
+-> face 'Segoe UI Variable Text': 50/50 sites hold alignment (22 .monospaced + 28 .monospacedDigit); requested weight not honoured by a real face at 10 digit site(s)
+   CB1 fails at every site it covers: True; CB2 fails at every site it covers: True; all 50 under Cascadia Mono +tnum: True
+by-name request 'Cascadia Mono' (system lookup, 12pt): used Cascadia Mono[w400,None]@12; row spread 0
+
+==== (B) 50 MONOSPACED SITES: .monospaced in Cascadia Mono, .monospacedDigit in 'Segoe UI' +tnum ====
+tolerance 0.01 DIP; mono rows length 46; digit skeleton "## of ## done · #m ##s · +### −## · ###.#K / ##K (##%)"
+DIGIT App/Views/Chat/HydraMergePopover.swift:273        17 w600 [own]
+      Segoe UI Semibold[w600,None] +tnum: digit advance 9.1143..9.438, row spread 0.6475 -> NOT ALIGNED  used: Segoe UI Semibold[w600,None]@17; weight honoured: True; face lists [lnum,onum,pnum,tnum]
+      per digit +tnum: 0:9.438 1:9.438 2:9.438 3:9.438 4:9.438 5:9.438 6:9.438 7:9.114 8:9.438 9:9.438
+      no feature: digit advance 6.8398..9.7949, spread 51.9629;  CB2 +pnum (digit advance 6.8398..9.7949): spread 51.963 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w700,Bold]@17
+DIGIT App/Views/Chat/HydraPanel.swift:235             12.5 w600 [own]
+      Segoe UI Semibold[w600,None] +tnum: digit advance 6.7017..6.9397, row spread 0.4761 -> NOT ALIGNED  used: Segoe UI Semibold[w600,None]@12.5; weight honoured: True; face lists [lnum,onum,pnum,tnum]
+      per digit +tnum: 0:6.94 1:6.94 2:6.94 3:6.94 4:6.94 5:6.94 6:6.94 7:6.702 8:6.94 9:6.94
+      no feature: digit advance 5.0293..7.2021, spread 38.208;  CB2 +pnum (digit advance 5.0293..7.2021): spread 38.208 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w700,Bold]@12.5
+DIGIT App/Views/Usage/UsageViews.swift:114              13 w600 [enclosing .font :113]
+      Segoe UI Semibold[w600,None] +tnum: digit advance 6.9697..7.2173, row spread 0.4951 -> NOT ALIGNED  used: Segoe UI Semibold[w600,None]@13; weight honoured: True; face lists [lnum,onum,pnum,tnum]
+      per digit +tnum: 0:7.217 1:7.217 2:7.217 3:7.217 4:7.217 5:7.217 6:7.217 7:6.97 8:7.217 9:7.217
+      no feature: digit advance 5.2305..7.4902, spread 39.7363;  CB2 +pnum (digit advance 5.2305..7.4902): spread 39.736 -> misaligned (control fails as required)
+      alt reading, Cascadia Mono +tnum: spread 0 -> ALIGNED  used: Cascadia Mono[w700,Bold]@13
+-> face 'Segoe UI': 47/50 sites hold alignment (22 .monospaced + 28 .monospacedDigit); requested weight not honoured by a real face at 6 digit site(s)
+   not aligned: App/Views/Chat/HydraMergePopover.swift:273, App/Views/Chat/HydraPanel.swift:235, App/Views/Usage/UsageViews.swift:114
+   CB1 fails at every site it covers: True; CB2 fails at every site it covers: True; all 50 under Cascadia Mono +tnum: True
+
+==== SUMMARY ====
+(A) wrap points, primary face Segoe UI Variable Text: 3/10 -> MISMATCH
+    sensitivity face Segoe UI Variable Small   : 3/10 fixtures match
+    sensitivity face Segoe UI Variable Display : 3/10 fixtures match
+    sensitivity face Segoe UI                  : 3/10 fixtures match
+    sensitivity face Inter                     : 6/10 fixtures match
+CA1 control (one type-scale step up) fails        : True
+CA2 control (naive fixed advance) fails           : True
+(B) 50 sites hold alignment, digits in Segoe UI Variable Text: YES
+(B) 50 sites hold alignment, digits in Segoe UI   : NO
+    all 50 under Cascadia Mono + tnum (alt read)  : YES
+CB1 control (proportional face) fails everywhere  : True
+CB2 control (pnum forced) fails everywhere        : True (Segoe UI run: True)
+utc end            : 2026-09-22T18:45:05.9250647Z

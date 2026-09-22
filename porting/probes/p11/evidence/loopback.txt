@@ -1,0 +1,21 @@
+probe=MarrowPortP11Probe
+started_utc=2026-09-22T18:36:56.0953999+00:00
+process_path=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current\MarrowPortP11Probe.exe
+args=--url http://127.0.0.1:48711/api/v4/projects/86415974/releases?per_page=20 --label loopback
+app_dir=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current
+corelib_dir=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current
+self_contained=true
+framework=.NET 10.0.12
+rid=win-x64
+mode=network
+url=http://127.0.0.1:48711/api/v4/projects/86415974/releases?per_page=20
+http_status=200
+body_bytes=2
+body_sha256=4F53CDA18C2BAA0C0354BB5F9A3ECBE5ED12AB4D8E11BA873C2F11161202B945
+releases_decoded=0
+exception=P11.UpdateError: No release with a disk image was found.
+requests_sent=1
+request=GET http://127.0.0.1:48711/api/v4/projects/86415974/releases?per_page=20 headers[User-Agent: Droppy,Code/1.6.0 | Accept: application/json]
+lastError=No release with a disk image was found.
+lastError_utf8_hex=4E6F2072656C6561736520776974682061206469736B20696D6167652077617320666F756E642E
+finished_utc=2026-09-22T18:36:56.1331430+00:00

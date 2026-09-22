@@ -1,0 +1,27 @@
+probe=MarrowPortP11Probe
+started_utc=2026-09-22T18:37:07.7950583+00:00
+process_path=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current\MarrowPortP11Probe.exe
+args=--fixture E:\Droppy\port\porting\probes\p11\fixtures\valid.json --label fx_valid
+app_dir=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current
+corelib_dir=C:\Users\omera\AppData\Local\MarrowPortP11Probe\current
+self_contained=true
+framework=.NET 10.0.12
+rid=win-x64
+mode=fixture
+url=(none) fixture E:\Droppy\port\porting\probes\p11\fixtures\valid.json
+http_status=(fixture) 200
+body_bytes=432
+body_sha256=A05B48514DC7EB3BFB52D9EEA08B794785CE5AD705FA87372BE505BBE7C0C2D5
+releases_decoded=2
+release=tag_name=v1.6.2; name=Droppy Code 1.6.2; description_chars=5; released_at=2026-09-13T18:28:42.0570000+00:00; upcoming_release=false; links=1; dmg=yes
+release=tag_name=v1.6.0; name=<nil>; description_chars=<nil>; released_at=2026-09-01T00:00:00.0000000+00:00; upcoming_release=false; links=1; dmg=yes
+requests_sent=0
+update.version=1.6.2
+update.tag=v1.6.2
+update.downloadURL=https://example.invalid/d.dmg
+update.pageURL=https://gitlab.com/droppyformac1/droppy-code/-/releases/v1.6.2
+update.releasedAt=2026-09-13T18:28:42.0570000+00:00
+updateAvailable_vs_1.6.0=true
+lastError=<nil>
+lastError_utf8_hex=<nil>
+finished_utc=2026-09-22T18:37:07.8082530+00:00

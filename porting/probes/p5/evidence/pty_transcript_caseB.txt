@@ -1,0 +1,6 @@
+\e[?9001h\e[?1004h\e[?25l\e[2J\e[m\e[HFIXTURE-READY pid=38164 outRedirected=False inRedirected=False END\r
+\e]0;E:\Droppy\port\porting\probes\p5\fixture\bin\Release\net10.0\p5-fixture.exe\e[?25hOUT-CHANNEL-MARK via-stdout\r
+ERR-CHANNEL-MARK via-stderr\r
+spawn\r
+GRANDCHILD pid=33476 END\r
+\e[?9001l\e[?1004l

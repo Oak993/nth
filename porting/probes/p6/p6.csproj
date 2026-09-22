@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Probe P6 (task packet T-M0-005). Throwaway probe, never production code.
+    No PackageReference: the repo-root Directory.Packages.props (central package versions) has
+    nothing to resolve here (p1-glass's Version= attributes predate central management and would
+    now fail with NU1008). Directory.Build.props (TreatWarningsAsErrors, Nullable, ImplicitUsings)
+    applies unchanged.
+    One executable plays every role: the runner, the scripted fixture stand-ins, and the
+    AttachConsole / GenerateConsoleCtrlEvent / FreeConsole helper.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>P6</RootNamespace>
+    <AssemblyName>p6</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+</Project>

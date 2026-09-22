@@ -1,0 +1,159 @@
+P6 run 2026-09-22T21:39:43.8789385+03:00
+OS Microsoft Windows NT 10.0.26200.0  .NET 10.0.12  X64  CPUs 16
+Stopwatch.Frequency 10000000  IsHighResolution True
+Timer resolution (100 ns units): coarsest 156250  finest 5000  current 5000  (= 0.500 ms)
+MARROW_PORT_DATA_DIR=C:\Users\omera\AppData\Local\Temp\marrow-p6-1706920493
+runner pid 46520  console window 0  node C:\Program Files\nodejs\node.exe
+
+=== write to a closed pipe ===
+pipe  CONTROL write while the child is alive : write OK (no exception)
+pipe  child exited: True code=137
+pipe  write after exit, FileStream.Write         : System.IO.IOException HResult=0x800700E8 win32=232 (ERROR_NO_DATA) "The pipe is being closed."
+pipe  write after exit, StreamWriter(AutoFlush)  : System.IO.IOException HResult=0x800700E8 win32=232 (ERROR_NO_DATA) "The pipe is being closed."
+pipe  write after exit, from a background task   : System.IO.IOException HResult=0x800700E8 win32=232 (ERROR_NO_DATA) "The pipe is being closed."
+pty   write after child exit, console still open : write OK (no exception)   (informational)
+pty   write after ClosePseudoConsole             : System.IO.IOException HResult=0x800700E8 win32=232 (ERROR_NO_DATA) "The pipe is being closed."  first failure at +59.5 ms
+runner still running after the exceptions: True (pid 46520); every trial below runs after them
+BROKEN PIPE CHECK: PASS
+
+=== M1-pty-coop [main] Pty fixture=coop graceful=CtrlC gap=1000 force=True expect=GracefulExit
+    0x03 into ConPTY; cooperating fixture must exit before t+1000
+  # 1 pass=True  inJob=True signal@0.5 helperDone@ helperExit=- deadline@1004.4 aliveAtDeadline=False kill@ exit@3.8 code=130 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 2 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1009.1 aliveAtDeadline=False kill@ exit@2.7 code=130 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 3 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1009.4 aliveAtDeadline=False kill@ exit@3.0 code=130 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 4 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1009.0 aliveAtDeadline=False kill@ exit@3.3 code=130 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 5 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1008.0 aliveAtDeadline=False kill@ exit@3.5 code=130 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 6 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1007.8 aliveAtDeadline=False kill@ exit@3.6 code=130 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 7 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1008.1 aliveAtDeadline=False kill@ exit@3.6 code=130 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 8 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1008.5 aliveAtDeadline=False kill@ exit@3.6 code=130 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 9 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1007.7 aliveAtDeadline=False kill@ exit@3.7 code=130 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  #10 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1008.5 aliveAtDeadline=False kill@ exit@4.0 code=130 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+
+=== M2-pty-stubborn [main] Pty fixture=stubborn graceful=CtrlC gap=1000 force=True expect=ForcedAtDeadline
+    0x03 ignored; TerminateJobObject at t+1000 +/-50; grandchild dies
+  # 1 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1008.0 aliveAtDeadline=True kill@1008.1 exit@1010.7 code=137 ignoredSeen=True gc=39264 gcDead@1010.7 aliveAtObserve=False 
+  # 2 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1007.6 aliveAtDeadline=True kill@1007.7 exit@1010.4 code=137 ignoredSeen=True gc=17500 gcDead@1010.5 aliveAtObserve=False 
+  # 3 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1007.6 aliveAtDeadline=True kill@1007.6 exit@1010.8 code=137 ignoredSeen=True gc=49260 gcDead@1010.8 aliveAtObserve=False 
+  # 4 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1008.0 aliveAtDeadline=True kill@1008.0 exit@1011.1 code=137 ignoredSeen=True gc=27604 gcDead@1011.1 aliveAtObserve=False 
+  # 5 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1007.8 aliveAtDeadline=True kill@1007.9 exit@1011.1 code=137 ignoredSeen=True gc=42796 gcDead@1011.2 aliveAtObserve=False 
+  # 6 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1006.9 aliveAtDeadline=True kill@1007.3 exit@1009.9 code=137 ignoredSeen=True gc=32556 gcDead@1009.9 aliveAtObserve=False 
+  # 7 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1008.2 aliveAtDeadline=True kill@1008.2 exit@1011.7 code=137 ignoredSeen=True gc=34744 gcDead@1011.8 aliveAtObserve=False 
+  # 8 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1007.5 aliveAtDeadline=True kill@1007.6 exit@1010.5 code=137 ignoredSeen=True gc=63316 gcDead@1010.5 aliveAtObserve=False 
+  # 9 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1007.4 aliveAtDeadline=True kill@1007.5 exit@1010.9 code=137 ignoredSeen=True gc=59576 gcDead@1011.0 aliveAtObserve=False 
+  #10 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1007.9 aliveAtDeadline=True kill@1008.0 exit@1011.7 code=137 ignoredSeen=True gc=52904 gcDead@1011.7 aliveAtObserve=False 
+
+=== M3-pipe-coop [main] Pipe fixture=coop graceful=StdinCloseHelper gap=1000 force=True expect=GracefulExit
+    stdin close + CTRL_BREAK helper; exit before t+1000
+  # 1 pass=True  inJob=True signal@4.1 helperDone@112.3 helperExit=0x0 deadline@1008.1 aliveAtDeadline=False kill@ exit@52.7 code=131 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 2 pass=True  inJob=True signal@3.5 helperDone@112.3 helperExit=0x0 deadline@1007.3 aliveAtDeadline=False kill@ exit@46.9 code=131 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 3 pass=True  inJob=True signal@4.1 helperDone@111.7 helperExit=0x0 deadline@1008.6 aliveAtDeadline=False kill@ exit@47.1 code=131 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 4 pass=True  inJob=True signal@3.7 helperDone@111.7 helperExit=0x0 deadline@1008.2 aliveAtDeadline=False kill@ exit@46.5 code=131 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 5 pass=True  inJob=True signal@3.1 helperDone@112.4 helperExit=0x0 deadline@1007.7 aliveAtDeadline=False kill@ exit@47.8 code=131 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 6 pass=True  inJob=True signal@3.3 helperDone@98.5 helperExit=0x0 deadline@1007.5 aliveAtDeadline=False kill@ exit@45.7 code=131 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 7 pass=True  inJob=True signal@3.8 helperDone@96.9 helperExit=0x0 deadline@1007.0 aliveAtDeadline=False kill@ exit@42.7 code=131 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 8 pass=True  inJob=True signal@11.2 helperDone@111.5 helperExit=0x0 deadline@1008.1 aliveAtDeadline=False kill@ exit@55.9 code=131 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 9 pass=True  inJob=True signal@2.9 helperDone@112.0 helperExit=0x0 deadline@1007.2 aliveAtDeadline=False kill@ exit@49.2 code=131 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  #10 pass=True  inJob=True signal@3.5 helperDone@96.3 helperExit=0x0 deadline@1008.2 aliveAtDeadline=False kill@ exit@40.6 code=131 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+
+=== M4-pipe-stubborn [main] Pipe fixture=stubborn graceful=StdinCloseHelper gap=1000 force=True expect=ForcedAtDeadline
+    CTRL_BREAK ignored; TerminateJobObject at t+1000 +/-50; grandchild dies
+  # 1 pass=True  inJob=True signal@12.9 helperDone@112.6 helperExit=0x0 deadline@1007.5 aliveAtDeadline=True kill@1007.6 exit@1010.6 code=137 ignoredSeen=True gc=55972 gcDead@1010.6 aliveAtObserve=False 
+  # 2 pass=True  inJob=True signal@3.0 helperDone@97.3 helperExit=0x0 deadline@1009.1 aliveAtDeadline=True kill@1009.1 exit@1012.7 code=137 ignoredSeen=True gc=29192 gcDead@1012.7 aliveAtObserve=False 
+  # 3 pass=True  inJob=True signal@3.4 helperDone@112.3 helperExit=0x0 deadline@1007.5 aliveAtDeadline=True kill@1007.7 exit@1011.3 code=137 ignoredSeen=True gc=19088 gcDead@1011.3 aliveAtObserve=False 
+  # 4 pass=True  inJob=True signal@3.4 helperDone@113.3 helperExit=0x0 deadline@1008.7 aliveAtDeadline=True kill@1009.0 exit@1012.6 code=137 ignoredSeen=True gc=47380 gcDead@1013.4 aliveAtObserve=False 
+  # 5 pass=True  inJob=True signal@3.2 helperDone@96.5 helperExit=0x0 deadline@1007.7 aliveAtDeadline=True kill@1007.8 exit@1011.1 code=137 ignoredSeen=True gc=59048 gcDead@1011.1 aliveAtObserve=False 
+  # 6 pass=True  inJob=True signal@2.9 helperDone@97.0 helperExit=0x0 deadline@1007.6 aliveAtDeadline=True kill@1007.7 exit@1010.5 code=137 ignoredSeen=True gc=37356 gcDead@1011.4 aliveAtObserve=False 
+  # 7 pass=True  inJob=True signal@3.3 helperDone@111.7 helperExit=0x0 deadline@1007.7 aliveAtDeadline=True kill@1007.8 exit@1011.3 code=137 ignoredSeen=True gc=53076 gcDead@1011.3 aliveAtObserve=False 
+  # 8 pass=True  inJob=True signal@2.8 helperDone@96.7 helperExit=0x0 deadline@1007.6 aliveAtDeadline=True kill@1007.7 exit@1010.7 code=137 ignoredSeen=True gc=20264 gcDead@1011.1 aliveAtObserve=False 
+  # 9 pass=True  inJob=True signal@3.3 helperDone@112.1 helperExit=0x0 deadline@1007.5 aliveAtDeadline=True kill@1007.6 exit@1011.0 code=137 ignoredSeen=True gc=23932 gcDead@1011.0 aliveAtObserve=False 
+  #10 pass=True  inJob=True signal@3.3 helperDone@111.7 helperExit=0x0 deadline@1007.9 aliveAtDeadline=True kill@1008.0 exit@1011.7 code=137 ignoredSeen=True gc=60408 gcDead@1011.7 aliveAtObserve=False 
+
+=== C1-pty-no-0x03 [control] Pty fixture=coop graceful=None gap=1000 force=True expect=AliveAtDeadline
+    no 0x03: cooperating fixture must still be alive at t+1000
+  # 1 pass=True  inJob=True signal@ helperDone@ helperExit=- deadline@1007.9 aliveAtDeadline=True kill@1008.0 exit@1011.7 code=137 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 2 pass=True  inJob=True signal@ helperDone@ helperExit=- deadline@1006.8 aliveAtDeadline=True kill@1006.9 exit@1009.5 code=137 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 3 pass=True  inJob=True signal@ helperDone@ helperExit=- deadline@1008.9 aliveAtDeadline=True kill@1008.9 exit@1011.3 code=137 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+
+=== C2-pipe-stdin-only [control] Pipe fixture=coop graceful=StdinCloseOnly gap=1000 force=True expect=AliveAtDeadline
+    stdin close without CTRL_BREAK: must still be alive at t+1000
+  # 1 pass=True  inJob=True signal@ helperDone@ helperExit=- deadline@1007.9 aliveAtDeadline=True kill@1008.0 exit@1011.3 code=137 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 2 pass=True  inJob=True signal@ helperDone@ helperExit=- deadline@1007.7 aliveAtDeadline=True kill@1007.7 exit@1011.8 code=137 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 3 pass=True  inJob=True signal@ helperDone@ helperExit=- deadline@1008.2 aliveAtDeadline=True kill@1008.2 exit@1012.2 code=137 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+
+=== C3-pipe-no-attach [control] Pipe fixture=coop graceful=StdinCloseNoAttach gap=1000 force=True expect=AliveAtDeadline
+    GenerateConsoleCtrlEvent without AttachConsole (helper absent): must still be alive
+  # 1 pass=True  inJob=True signal@3.5 helperDone@112.6 helperExit=0x20057 deadline@1008.3 aliveAtDeadline=True kill@1008.5 exit@1011.2 code=137 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 2 pass=True  inJob=True signal@4.3 helperDone@128.0 helperExit=0x20057 deadline@1008.6 aliveAtDeadline=True kill@1008.7 exit@1011.4 code=137 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 3 pass=True  inJob=True signal@2.9 helperDone@111.7 helperExit=0x20057 deadline@1008.8 aliveAtDeadline=True kill@1008.8 exit@1012.0 code=137 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+
+=== C4-pty-no-force [control] Pty fixture=stubborn graceful=CtrlC gap=1000 force=False expect=AliveWithoutForce
+    forceful step disabled: non-cooperating fixture must still be alive at t+2000
+  # 1 pass=True  inJob=True signal@0.1 helperDone@ helperExit=- deadline@1008.7 aliveAtDeadline=True kill@ exit@ code=0 ignoredSeen=True gc=48164 gcDead@ aliveAtObserve=True  [grandchild gone 5.5 ms after cleanup began]
+  # 2 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1007.5 aliveAtDeadline=True kill@ exit@ code=0 ignoredSeen=True gc=31208 gcDead@ aliveAtObserve=True  [grandchild gone 4.9 ms after cleanup began]
+  # 3 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1007.9 aliveAtDeadline=True kill@ exit@ code=0 ignoredSeen=True gc=27228 gcDead@ aliveAtObserve=True  [grandchild gone 5.3 ms after cleanup began]
+
+=== C5-pipe-no-force [control] Pipe fixture=stubborn graceful=StdinCloseHelper gap=1000 force=False expect=AliveWithoutForce
+    forceful step disabled: non-cooperating fixture must still be alive at t+2000
+  # 1 pass=True  inJob=True signal@4.1 helperDone@112.0 helperExit=0x0 deadline@1008.2 aliveAtDeadline=True kill@ exit@ code=0 ignoredSeen=True gc=12464 gcDead@ aliveAtObserve=True  [grandchild gone 3.4 ms after cleanup began]
+  # 2 pass=True  inJob=True signal@3.0 helperDone@97.4 helperExit=0x0 deadline@1008.5 aliveAtDeadline=True kill@ exit@ code=0 ignoredSeen=True gc=27040 gcDead@ aliveAtObserve=True  [grandchild gone 4.4 ms after cleanup began]
+  # 3 pass=True  inJob=True signal@3.0 helperDone@97.1 helperExit=0x0 deadline@1008.3 aliveAtDeadline=True kill@ exit@ code=0 ignoredSeen=True gc=49948 gcDead@ aliveAtObserve=True  [grandchild gone 3.4 ms after cleanup began]
+
+=== S1-pipe-coop-3000 [source] Pipe fixture=coop graceful=StdinCloseHelper gap=3000 force=True expect=GracefulExit
+    StdioProcess.swift:120 gap is 3 s
+  # 1 pass=True  inJob=True signal@3.1 helperDone@96.4 helperExit=0x0 deadline@3009.8 aliveAtDeadline=False kill@ exit@43.4 code=131 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 2 pass=True  inJob=True signal@3.1 helperDone@111.2 helperExit=0x0 deadline@3006.0 aliveAtDeadline=False kill@ exit@46.9 code=131 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 3 pass=True  inJob=True signal@2.7 helperDone@96.5 helperExit=0x0 deadline@3008.4 aliveAtDeadline=False kill@ exit@41.5 code=131 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+
+=== S2-pipe-stub-3000 [source] Pipe fixture=stubborn graceful=StdinCloseHelper gap=3000 force=True expect=ForcedAtDeadline
+    StdioProcess.swift:120 gap is 3 s
+  # 1 pass=True  inJob=True signal@3.7 helperDone@96.4 helperExit=0x0 deadline@3008.5 aliveAtDeadline=True kill@3008.6 exit@3012.2 code=137 ignoredSeen=True gc=25636 gcDead@3012.2 aliveAtObserve=False 
+  # 2 pass=True  inJob=True signal@4.0 helperDone@112.4 helperExit=0x0 deadline@3009.2 aliveAtDeadline=True kill@3009.3 exit@3013.2 code=137 ignoredSeen=True gc=46448 gcDead@3013.2 aliveAtObserve=False 
+  # 3 pass=True  inJob=True signal@3.4 helperDone@112.0 helperExit=0x0 deadline@3007.2 aliveAtDeadline=True kill@3007.3 exit@3010.7 code=137 ignoredSeen=True gc=51852 gcDead@3010.7 aliveAtObserve=False 
+
+=== N1-pty-node-coop [extra] Pty fixture=node-coop-pty graceful=CtrlC gap=1000 force=True expect=GracefulExit
+    node runtime, SIGINT handler
+  # 1 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1007.5 aliveAtDeadline=False kill@ exit@9.6 code=130 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 2 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1008.5 aliveAtDeadline=False kill@ exit@6.2 code=130 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 3 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1007.0 aliveAtDeadline=False kill@ exit@5.0 code=130 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+
+=== N2-pty-node-stub [extra] Pty fixture=node-stubborn graceful=CtrlC gap=1000 force=True expect=ForcedAtDeadline
+    node runtime, SIGINT ignored
+  # 1 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1008.3 aliveAtDeadline=True kill@1008.4 exit@1011.9 code=137 ignoredSeen=True gc=0 gcDead@ aliveAtObserve=False 
+  # 2 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1007.7 aliveAtDeadline=True kill@1007.8 exit@1012.2 code=137 ignoredSeen=True gc=0 gcDead@ aliveAtObserve=False 
+  # 3 pass=True  inJob=True signal@0.0 helperDone@ helperExit=- deadline@1007.5 aliveAtDeadline=True kill@1007.5 exit@1011.3 code=137 ignoredSeen=True gc=0 gcDead@ aliveAtObserve=False 
+
+=== N3-pipe-node-coop [extra] Pipe fixture=node-coop-pipe graceful=StdinCloseHelper gap=1000 force=True expect=GracefulExit
+    node runtime, SIGBREAK handler
+  # 1 pass=True  inJob=True signal@3.3 helperDone@97.1 helperExit=0x0 deadline@1008.4 aliveAtDeadline=False kill@ exit@47.4 code=131 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 2 pass=True  inJob=True signal@3.4 helperDone@111.8 helperExit=0x0 deadline@1008.8 aliveAtDeadline=False kill@ exit@50.2 code=131 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+  # 3 pass=True  inJob=True signal@3.3 helperDone@112.1 helperExit=0x0 deadline@1008.4 aliveAtDeadline=False kill@ exit@48.3 code=131 ignoredSeen=False gc=0 gcDead@ aliveAtObserve=False 
+
+=== N4-pipe-node-stub [extra] Pipe fixture=node-stubborn graceful=StdinCloseHelper gap=1000 force=True expect=ForcedAtDeadline
+    node runtime, SIGBREAK ignored
+  # 1 pass=True  inJob=True signal@3.1 helperDone@96.8 helperExit=0x0 deadline@1007.6 aliveAtDeadline=True kill@1007.7 exit@1011.1 code=137 ignoredSeen=True gc=0 gcDead@ aliveAtObserve=False 
+  # 2 pass=True  inJob=True signal@3.0 helperDone@96.5 helperExit=0x0 deadline@1007.4 aliveAtDeadline=True kill@1007.5 exit@1011.8 code=137 ignoredSeen=True gc=0 gcDead@ aliveAtObserve=False 
+  # 3 pass=True  inJob=True signal@3.3 helperDone@97.2 helperExit=0x0 deadline@1008.5 aliveAtDeadline=True kill@1008.6 exit@1012.9 code=137 ignoredSeen=True gc=0 gcDead@ aliveAtObserve=False 
+
+=== summary (ms from t0 = start of terminate()) ===
+M1-pty-coop          main     10/10 as expected | exit min 2.7 median 3.6 max 4.0 | deadline fired 1004.4..1009.4 | kill->exit n/a
+M2-pty-stubborn      main     10/10 as expected | exit min 1009.9 median 1010.9 max 1011.7 | deadline fired 1006.9..1008.2 | kill->exit max 3.7
+M3-pipe-coop         main     10/10 as expected | exit min 40.6 median 47.1 max 55.9 | deadline fired 1007.0..1008.6 | kill->exit n/a
+M4-pipe-stubborn     main     10/10 as expected | exit min 1010.5 median 1011.3 max 1012.7 | deadline fired 1007.5..1009.1 | kill->exit max 3.7
+C1-pty-no-0x03       control  3/3 as expected | exit min 1009.5 median 1011.3 max 1011.7 | deadline fired 1006.8..1008.9 | kill->exit max 3.7
+C2-pipe-stdin-only   control  3/3 as expected | exit min 1011.3 median 1011.8 max 1012.2 | deadline fired 1007.7..1008.2 | kill->exit max 4.0
+C3-pipe-no-attach    control  3/3 as expected | exit min 1011.2 median 1011.4 max 1012.0 | deadline fired 1008.3..1008.8 | kill->exit max 3.2
+C4-pty-no-force      control  3/3 as expected | exit n/a | deadline fired 1007.5..1008.7 | kill->exit n/a
+C5-pipe-no-force     control  3/3 as expected | exit n/a | deadline fired 1008.2..1008.5 | kill->exit n/a
+S1-pipe-coop-3000    source   3/3 as expected | exit min 41.5 median 43.4 max 46.9 | deadline fired 3006.0..3009.8 | kill->exit n/a
+S2-pipe-stub-3000    source   3/3 as expected | exit min 3010.7 median 3012.2 max 3013.2 | deadline fired 3007.2..3009.2 | kill->exit max 3.9
+N1-pty-node-coop     extra    3/3 as expected | exit min 5.0 median 6.2 max 9.6 | deadline fired 1007.0..1008.5 | kill->exit n/a
+N2-pty-node-stub     extra    3/3 as expected | exit min 1011.3 median 1011.9 max 1012.2 | deadline fired 1007.5..1008.3 | kill->exit max 4.4
+N3-pipe-node-coop    extra    3/3 as expected | exit min 47.4 median 48.3 max 50.2 | deadline fired 1008.4..1008.8 | kill->exit n/a
+N4-pipe-node-stub    extra    3/3 as expected | exit min 1011.1 median 1011.8 max 1012.9 | deadline fired 1007.4..1008.5 | kill->exit max 4.4
+
+main cases        : all as expected
+controls          : all behaved as the absent capability predicts
+broken pipe       : PASS
+3000 ms (source)  : all as expected   (not part of the P6 verdict)
+node fixtures     : all as expected   (not part of the P6 verdict)
+P6 VERDICT: PASS
