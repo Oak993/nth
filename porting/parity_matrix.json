@@ -7,9 +7,9 @@
   "counts": {
     "total": 3827,
     "by_status": {
-      "SPECIFIED": 3721,
+      "SPECIFIED": 3711,
       "DISCOVERED": 85,
-      "IMPLEMENTED": 21
+      "IMPLEMENTED": 31
     },
     "by_area": {
       "CHAT": 188,
@@ -25004,10 +25004,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed English strings; no localization layer exists in the source.",
       "verification_method": "unit plus an interaction test reading the seven headers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -25029,10 +25030,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Literal string replacement in field order. Do not use a regular expression that would also match tokens for non-fields.",
       "verification_method": "unit with an empty value, a missing value, a repeated token and an unknown token",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -25054,10 +25056,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same conditional normalization, and only for tokens directly after \"://\".",
       "verification_method": "unit with whitespace, both schemes, multiple trailing slashes, and a token not preceded by \"://\" (which must be left alone)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -25079,10 +25082,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The command string is not path-resolved here; resolution to an executable happens in the probe and the hub.",
       "verification_method": "unit with an optional field left blank",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -25104,10 +25108,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the \"Bearer \" edge case for context7 and huggingface with no key.",
       "verification_method": "unit asserting \"Bearer \" survives the filter",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -25131,10 +25136,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape. The proxy is a loopback HTTP listener in the main process; the route URL string must be byte-identical because it is written into files providers read.",
       "verification_method": "contract fixture comparing a resolved OAuth server against the expected provider-config JSON",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -25156,10 +25162,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -25181,10 +25188,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Note the asymmetry: an optional-field server never gets the key panel from the card, only from the info popover's \"Change the …\" button.",
       "verification_method": "unit plus interaction tests on gitlab (no panel) and brave-search (panel)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -25207,10 +25215,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same derivations; do not persist either flag.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -25232,10 +25241,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field names and JSON shape: the file is user-visible and is the migration surface.",
       "verification_method": "restart test plus a JSON schema fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
