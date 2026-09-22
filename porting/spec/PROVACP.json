@@ -3301,10 +3301,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same: split on 0x0A only, per port_impacts #18. A CRLF-writing Windows CLI therefore yields messages ending in 0x0D, which the delivery step strips (PR-PROVACP-155) - note that port_impacts #18 says the source does not strip CR, which is true of the framer but NOT of StdioProcess.deliver.",
       "verification_method": "unit (CRLF and LF fixtures, plus a message split across two chunks)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-071"
     },
     {
       "id": "PR-PROVACP-150",
@@ -3321,10 +3322,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same incremental behavior is required, not just the same result: an agent streaming a multi-megabyte tool output in small chunks must not cost quadratic time.",
       "verification_method": "unit (byte-at-a-time feed of a 1 MB message) plus a performance guard",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-071"
     },
     {
       "id": "PR-PROVACP-151",
@@ -3343,10 +3345,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. ACP never uses this mode - ACPSession takes the .lines default - but the framer is shared with the Copilot connection, so the mode must exist and behave identically.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-071"
     },
     {
       "id": "PR-PROVACP-152",
@@ -3363,10 +3366,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (header table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-071"
     },
     {
       "id": "PR-PROVACP-153",
@@ -3383,10 +3387,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same asymmetry.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-071"
     },
     {
       "id": "PR-PROVACP-154",
