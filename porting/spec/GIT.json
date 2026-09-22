@@ -139,7 +139,7 @@
       "id": "PR-GIT-006",
       "title": "failureMessage prefers trimmed stderr, then trimmed stdout, then the exact literal \"The command failed with exit code <n>.\"",
       "source_evidence": [
-        "porting/extracts/git-command-vectors.md section 1 quoting Shell.swift:14-19 - ShellResult.failureMessage",
+        "DroppyCode/Core/Support/Shell.swift:14-19 ShellResult.failureMessage - `let error = errorOutput.trimmed`; `let message = error.isEmpty ? trimmedOutput : error`; `return message.isEmpty ? \"The command failed with exit code \\(status).\" : message`; `trimmedOutput` is `output.trimmed` (:12) and `trimmed` is `trimmingCharacters(in: .whitespacesAndNewlines)` (DroppyCode/Core/Support/Text.swift:132)",
         "porting/port_impacts.md entry 218 - 'Real merge-failure text is the forge CLI's stderr or `The command failed with exit code <n>.`'"
       ],
       "preconditions": "A git or forge process exited non-zero.",
@@ -188,7 +188,7 @@
       "id": "PR-GIT-008",
       "title": "repositoryRoot deletes one path component per slash-separated segment of rev-parse --show-prefix and never asks git for the toplevel",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:67-74 repositoryRoot() - output([\"rev-parse\", \"--show-prefix\"]) then one deleteLastPathComponent per '/'-separated segment of the trimmed prefix",
+        "DroppyCode/Services/Git/Git.swift:67-74 repositoryRoot() - `let prefix = try await output([\"rev-parse\", \"--show-prefix\"])`; `for _ in prefix.trimmed.split(separator: \"/\") { root.deleteLastPathComponent() }`; `trimmed` is `trimmingCharacters(in: .whitespacesAndNewlines)` (DroppyCode/Core/Support/Text.swift:132)",
         "porting/upstream_defects.md entry 86 - 'it never asks git directly (--show-toplevel exists) ... Reproduce the component-counting algorithm rather than substituting --show-toplevel'"
       ],
       "preconditions": "The directory is inside a git checkout.",
@@ -289,7 +289,7 @@
       "title": "switchBranch runs git switch <name> and throws the git message on failure",
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:113-115 switchBranch(_:) - try Self.check(await run([\"switch\", name]))",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1392-1400 BranchMenu.switchBranch - wraps it in git.perform(\"Switching\", …) and raises AppAlert(title: \"Could not switch branch\", …) on error, then refreshes"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1388-1396 BranchMenu.switchBranch - wraps it in git.perform(\"Switching\", …) and raises AppAlert(title: \"Could not switch branch\", …) on error, then refreshes"
       ],
       "preconditions": "The named branch exists and is not the current one; the thread is not running (the row is disabled otherwise).",
       "action": "The user picks a branch row in the branch menu.",
@@ -314,7 +314,7 @@
       "title": "createBranch runs git switch -c <name> after the typed name is trimmed and its spaces turned into hyphens",
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:117-119 createBranch(_:) - run([\"switch\", \"-c\", name])",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1402-1412 createBranch() - trims whitespace and newlines, replaces \" \" with \"-\", returns early when empty, alerts \"Could not create branch\" on error"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1398-1408 createBranch() - `let name = branchName.trimmed.replacingOccurrences(of: \" \", with: \"-\")`; `guard !name.isEmpty else { return }`; `git.perform(\"Creating\", { try await repository.createBranch(name) })`; on error `model.alert = AppAlert(title: \"Could not create branch\", message: error.localizedDescription)`; then `await git.refresh(directory)`"
       ],
       "preconditions": "The user opened the \"New branch\" alert from the branch menu.",
       "action": "The user types a name and presses \"Create\".",
@@ -339,7 +339,7 @@
       "id": "PR-GIT-014",
       "title": "remoteURL returns the trimmed origin URL, or nil when it is empty or unreadable",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:131-134 remoteURL() - output([\"remote\", \"get-url\", \"origin\"]), trimmed, nilIfEmpty"
+        "DroppyCode/Services/Git/Git.swift:131-134 remoteURL() - `guard let text = try? await output([\"remote\", \"get-url\", \"origin\"]) else { return nil }`; `return text.trimmed.nilIfEmpty`"
       ],
       "preconditions": "None.",
       "action": "forge() or remoteWebURL() needs the origin address.",
@@ -412,7 +412,7 @@
       "id": "PR-GIT-017",
       "title": "defaultBranch prefers origin/HEAD, then origin/main, then origin/master, and finally the literal \"main\"",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:233-242 defaultBranch() - symbolic-ref --short refs/remotes/origin/HEAD with an \"origin/\" prefix stripped, then rev-parse --verify --quiet refs/remotes/origin/<candidate> for \"main\" then \"master\", else \"main\""
+        "DroppyCode/Services/Git/Git.swift:233-242 defaultBranch() - `if let head = try? await output([\"symbolic-ref\", \"--short\", \"refs/remotes/origin/HEAD\"]).trimmed, !head.isEmpty { return head.hasPrefix(\"origin/\") ? String(head.dropFirst(\"origin/\".count)) : head }`; `for candidate in [\"main\", \"master\"] where (try? await run([\"rev-parse\", \"--verify\", \"--quiet\", \"refs/remotes/origin/\\(candidate)\"]))?.succeeded == true { return candidate }`; `return \"main\"`"
       ],
       "preconditions": "None.",
       "action": "A landing path needs the remote's default branch.",
@@ -560,7 +560,7 @@
       "id": "PR-GIT-023",
       "title": "hasOperationInProgress resolves the git directory once and tests exactly six marker files, treating an unreadable directory as busy",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:372-379 hasOperationInProgress() - output([\"rev-parse\", \"--path-format=absolute\", \"--git-dir\"]) trimmed; an error or empty answer returns true; then six fileExists checks on gitDirectory + \"/\" + marker",
+        "DroppyCode/Services/Git/Git.swift:372-379 hasOperationInProgress() - `guard let gitDirectory = try? await output([\"rev-parse\", \"--path-format=absolute\", \"--git-dir\"]).trimmed, !gitDirectory.isEmpty else { return true }`; `for marker in [\"rebase-merge\", \"rebase-apply\", \"MERGE_HEAD\", \"CHERRY_PICK_HEAD\", \"REVERT_HEAD\", \"BISECT_LOG\"] { if FileManager.default.fileExists(atPath: gitDirectory + \"/\" + marker) { return true } }`; `return false`",
         "porting/extracts/git-command-vectors.md section 7.5 - the six markers in order"
       ],
       "preconditions": "None.",
@@ -585,7 +585,7 @@
       "id": "PR-GIT-024",
       "title": "treeHash resolves a ref's tree with the ^{tree} peel syntax",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:259-261 treeHash(of:) - output([\"rev-parse\", \"\\(ref)^{tree}\"]) trimmed"
+        "DroppyCode/Services/Git/Git.swift:259-261 treeHash(of:) - `try await output([\"rev-parse\", \"\\(ref)^{tree}\"]).trimmed`"
       ],
       "preconditions": "The ref resolves.",
       "action": "A caller needs a ref's tree object id.",
@@ -609,7 +609,7 @@
       "id": "PR-GIT-025",
       "title": "commitHash resolves a ref, defaulting to HEAD",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:263-265 commitHash(of:) - ref defaults to \"HEAD\"; output([\"rev-parse\", \"--verify\", ref]) trimmed"
+        "DroppyCode/Services/Git/Git.swift:263-265 commitHash(of:) - `func commitHash(of ref: String = \"HEAD\") async throws -> String { try await output([\"rev-parse\", \"--verify\", ref]).trimmed }`"
       ],
       "preconditions": "The ref resolves.",
       "action": "A caller needs a commit id.",
@@ -659,7 +659,7 @@
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:489-505 GitFileStamp - identifier (systemFileNumber), modified, size, and overrides = (GIT_DIR ?? \"\") + \"\\u{0}\" + (GIT_INDEX_FILE ?? \"\")",
         "DroppyCode/Services/Git/Git.swift:507-509 worktreeIndexPaths - Mutex<[String: (stamp: GitFileStamp, path: String?)]>",
-        "DroppyCode/Services/Git/Git.swift:525-537 - stamp lookup, argv [\"rev-parse\", \"--path-format=absolute\", \"--git-path\", \"index\"], and removeAll once the map reaches 64 entries"
+        "DroppyCode/Services/Git/Git.swift:525-537 indexPath() - `let stamp = exists ? GitFileStamp(gitFile: dotGit, environment: environment) : nil`; `if let stamp, let cached = Self.worktreeIndexPaths.withLock({ $0[directory.path] }), cached.stamp == stamp { return cached.path }`; `let path = try? await output([\"rev-parse\", \"--path-format=absolute\", \"--git-path\", \"index\"]).trimmed`; `if paths.count >= 64 { paths.removeAll() }`; `paths[directory.path] = (stamp, path)`"
       ],
       "preconditions": "The directory's .git is a file, or an environment override is present, or there is no .git at all.",
       "action": "A snapshot resolves the index path.",
@@ -736,8 +736,8 @@
       "title": "push publishes HEAD to origin with upstream tracking at 300 s",
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:168-170 push() - run([\"push\", \"-u\", \"origin\", \"HEAD\"], timeout: 300)",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1486 - PopoverItem(\"Push\", symbol: \"arrow.up.circle\") { push() }",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1499-1507 - git.perform(\"Pushing\", …) and AppAlert(title: \"Push failed\", …)"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1482 - PopoverItem(\"Push\", symbol: \"arrow.up.circle\") { push() }",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1495-1503 - git.perform(\"Pushing\", …) and AppAlert(title: \"Push failed\", …)"
       ],
       "preconditions": "The directory is a git checkout with an origin remote. The user chose \"Push\" from the git actions menu.",
       "action": "The push runs.",
@@ -764,7 +764,7 @@
       "title": "pushBranch publishes one named branch by explicit refspec at 300 s",
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:285-287 pushBranch(_:) - run([\"push\", \"-u\", \"origin\", \"refs/heads/\\(name):refs/heads/\\(name)\"], timeout: 300)",
-        "DroppyCode/App/AppModel+HydraMerge.swift:255 - try await git.pushBranch(branch)"
+        "DroppyCode/App/AppModel+HydraMerge.swift:300 - try await git.pushBranch(branch)"
       ],
       "preconditions": "The named local branch exists.",
       "action": "A landing path publishes a branch without moving HEAD.",
@@ -814,7 +814,7 @@
       "title": "pullFastForward refuses to create a merge commit",
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:403-405 pullFastForward() - run([\"pull\", \"--ff-only\", \"--quiet\"], timeout: 300)",
-        "DroppyCode/App/AppModel+HydraMerge.swift:307 - on success appends the line \"The project checkout is up to date.\""
+        "DroppyCode/App/AppModel+HydraMerge.swift:352 - on success appends the line \"The project checkout is up to date.\""
       ],
       "preconditions": "The checkout can fast-forward.",
       "action": "A landing path syncs the project checkout after a merge.",
@@ -1158,34 +1158,39 @@
     },
     {
       "id": "PR-GIT-047",
-      "title": "mergePullRequest drives the forge's own CLI with a per-forge merge vector",
+      "title": "mergePullRequest drives the forge's own CLI with a per-forge merge vector; the GitLab vector squash-merges and removes the source branch",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:214-219 - gitlab: glab [\"mr\", \"merge\", <number>, \"--yes\"]; github: gh [\"pr\", \"merge\", <number>, \"--merge\"]; gitea: tea [\"pulls\", \"merge\", <number>], each at timeout 300",
-        "DroppyCode/Services/Git/Git.swift:211 - let number = String(link.number)"
+        "DroppyCode/Services/Git/Git.swift:216 - `case .gitlab: result = try await Shell.run(tool: \"glab\", [\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"], in: directory, timeout: 300)`",
+        "DroppyCode/Services/Git/Git.swift:217-218 - `case .github: result = try await Shell.run(tool: \"gh\", [\"pr\", \"merge\", number, \"--merge\"], in: directory, timeout: 300)`; `case .gitea: result = try await Shell.run(tool: \"tea\", [\"pulls\", \"merge\", number], in: directory, timeout: 300)`",
+        "DroppyCode/Services/Git/Git.swift:211 - `let number = String(link.number)`",
+        "DroppyCode/App/AppModel+HydraMerge.swift:312-320 - the only caller: `guard let url = requestURL, let link = MergeRequestLink(url: url) else { ... }`, `advance(.merging)`, `try await git.mergePullRequest(link)`",
+        "DroppyCode/App/AppModel+HydraMerge.swift:372-373 - `/// retried once with `--recover` so its saved options are picked up. Squash and` / `/// source-branch removal are explicit for GitLab team merges.`"
       ],
-      "preconditions": "A MergeRequestLink was parsed from a link in the chat.",
-      "action": "The merge helper lands the request.",
-      "expected_result": "The request number is rendered as a decimal string and placed as the third argv element in every case. GitLab merges with --yes, GitHub with --merge (a merge commit, never squash or rebase), Gitea with no extra flag. Each runs at 300 s with stdin at the null device and no git -c prefix.",
+      "preconditions": "The Hydra team merge has opened a merge request and parsed its MergeRequestLink; this is the function's only caller.",
+      "action": "The team merge lands the request.",
+      "expected_result": "The request number is rendered as a decimal string and placed as the third argv element in every case. GitLab runs glab with [\"mr\", \"merge\", <number>, \"--yes\", \"--squash\", \"--remove-source-branch\"], so the request is squash-merged and GitLab is asked to remove its source branch. GitHub runs gh with [\"pr\", \"merge\", <number>, \"--merge\"] (a merge commit, never squash or rebase), and Gitea runs tea with [\"pulls\", \"merge\", <number>] and no extra flag. Each runs at 300 s with stdin at the null device and no git -c prefix. The agent-facing merge prompt (PR-GIT-055, DroppyCode/Core/Models/MergeRequestLink.swift:50) still names `glab mr merge <number> --yes` without the two new flags, so the in-app and agent GitLab merge paths differ at B2.",
       "side_effects": [
-        "Network: the request is merged on the remote"
+        "Network: the request is merged on the remote",
+        "GitLab only: the merge squashes the request's commits and asks GitLab to remove the source branch on the remote"
       ],
       "persistence": "None locally.",
       "failure_cases": [
         "A missing CLI throws \"<name> was not found on your PATH.\" before the first attempt, so no retry delay is incurred"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Direct port of all three vectors.",
-      "verification_method": "contract fixture per forge",
+      "windows_path": "Direct port of all three vectors, including both GitLab flags in this order after \"--yes\".",
+      "verification_method": "contract fixture per forge with a scripted CLI shim recording its argv; the GitLab vector must be exactly [\"mr\", \"merge\", \"<n>\", \"--yes\", \"--squash\", \"--remove-source-branch\"]",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b2_change": "GitLab vector [\"mr\", \"merge\", number, \"--yes\"] (B1 DroppyCode/Services/Git/Git.swift:216) -> [\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"] (B2 Git.swift:216). B1 DroppyCode/App/AppModel+HydraMerge.swift:327-328 said squash and remove-source-branch \"are left to the project's defaults, as before\"; B2 AppModel+HydraMerge.swift:372-373 says they \"are explicit for GitLab team merges\". The GitHub and Gitea vectors, the number's argv position and the 300 s timeout are unchanged. The precondition and action now name the one caller, AppModel+HydraMerge.swift:320 (B1 :275), instead of a chat link."
     },
     {
       "id": "PR-GIT-048",
       "title": "mergePullRequest makes at most six attempts, so at most five retries, only for GitLab, only on a substring match, with 3, 5, 7, 9, 11 and a wasted 13 second backoff",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:213-226 - for attempt in 0..<6; on success return; lastFailure = result.failureMessage; guard link.forge == .gitlab, text.contains(\"405\") || text.contains(\"not allowed\") || text.contains(\"checking\") else break; try? await Task.sleep(for: .seconds(3 + attempt * 2)); throw ShellError(lastFailure)",
+        "DroppyCode/Services/Git/Git.swift:213-226 - `for attempt in 0..<6`; `if result.succeeded { return }`; `lastFailure = result.failureMessage`; `let text = (result.output + result.errorOutput).lowercased()`; `guard link.forge == .gitlab, text.contains(\"405\") || text.contains(\"not allowed\") || text.contains(\"checking\") else { break }`; `try? await Task.sleep(for: .seconds(3 + attempt * 2))`; after the loop `throw ShellError(lastFailure)`",
         "porting/upstream_defects.md entry 76 - the final 13 s sleep is burned before the loop ends",
         "porting/upstream_defects.md entry 77 - \"405\" matches those digits anywhere"
       ],
@@ -1417,8 +1422,8 @@
       "id": "PR-GIT-057",
       "title": "There are exactly two phase literals, \"start\" and \"end\"",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1226 - Git.checkpointRef(thread: threadID, turn: turnIndex, phase: \"start\")",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2281 - Git.checkpointRef(thread: threadID, turn: turn.index, phase: \"end\")",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1256 - Git.checkpointRef(thread: threadID, turn: turnIndex, phase: \"start\")",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2351 - Git.checkpointRef(thread: threadID, turn: turn.index, phase: \"end\")",
         "porting/extracts/git-command-vectors.md section 4.4 - 'That is the complete set: 2 literals, \"start\" and \"end\".'"
       ],
       "preconditions": "None.",
@@ -1493,9 +1498,9 @@
       "id": "PR-GIT-060",
       "title": "The start checkpoint runs concurrently with session start-up and sets baseCheckpoint only when it succeeds",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1224-1240 - directory is worktreePath ?? project.path; the detached Task at .userInitiated guards on await git.isRepository() then returns (try? await git.captureCheckpoint(checkpointRef)) != nil",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1231-1233 - settledTree = nil, latestTree = nil, treeEpoch += 1 before the capture",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1249-1251 - if await checkpoint.value { updateTurn(turn.id) { $0.baseCheckpoint = checkpointRef } }"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1254-1270 - directory is worktreePath ?? project.path; the detached Task at .userInitiated guards on await git.isRepository() then returns (try? await git.captureCheckpoint(checkpointRef)) != nil",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1261-1263 - settledTree = nil, latestTree = nil, treeEpoch += 1 before the capture",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1279-1281 - if await checkpoint.value { updateTurn(turn.id) { $0.baseCheckpoint = checkpointRef } }"
       ],
       "preconditions": "A turn is being opened for a thread.",
       "action": "The user sends a message.",
@@ -1521,7 +1526,7 @@
       "id": "PR-GIT-061",
       "title": "The end checkpoint is attempted only when the turn has a base checkpoint, and endCheckpoint is set only on success",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2276-2283 - root is worktreePath ?? project.path; var endCheckpoint: String?; if turn.baseCheckpoint != nil { let ref = Git.checkpointRef(…, phase: \"end\"); if (try? await git.captureCheckpoint(ref)) != nil { endCheckpoint = ref } }"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2346-2353 - root is worktreePath ?? project.path; var endCheckpoint: String?; if turn.baseCheckpoint != nil { let ref = Git.checkpointRef(…, phase: \"end\"); if (try? await git.captureCheckpoint(ref)) != nil { endCheckpoint = ref } }"
       ],
       "preconditions": "A turn is finishing.",
       "action": "The turn is completed, interrupted or failed.",
@@ -1668,29 +1673,39 @@
     },
     {
       "id": "PR-GIT-067",
-      "title": "The incremental capture walks only the directories the watch saw change, and rebuilds the scratch index whole when that fails - QUARANTINED under BLK-0003",
+      "title": "The incremental capture walks only the directories the watch saw change and rebuilds the scratch index whole when that fails; a capture that cannot prove it covered the whole tree records no checkpoint",
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:441-463 captureTree(scratch:paths:) - GIT_INDEX_FILE is the shared scratch; when paths is non-empty and the scratch file exists and add -A --pathspec-from-file=- --pathspec-file-nul at 300 s succeeds, write-tree and return; otherwise remove the scratch, copy the real index in or read-tree HEAD, add -A -- . at 300 s, write-tree",
-        "porting/port_impacts.md entry 219 (C3) - the two distinct fallbacks"
+        "porting/port_impacts.md entry 219 (C3) - the two distinct fallbacks",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:159-170 tearDown() - `try? FileManager.default.removeItem(at: self.scratch)` on the watch's queue, reached from :271 `guard arrived else { tearDown(); return nil }`",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:191-192 - `if path.hasPrefix(cookiePrefix) { cookie = max(cookie, UInt64(path.dropFirst(cookiePrefixCharacters)) ?? 0)`: any file of that name advances cookieSeen",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1267-1281 - `return (try? await git.captureCheckpoint(checkpointRef)) != nil` and only `if await checkpoint.value { updateTurn(turn.id) { $0.baseCheckpoint = checkpointRef } }`, so a capture that throws leaves the turn with no base checkpoint; :1805-1807 then throws `ProviderError.failed(\"No file checkpoint is available for this message. You can still keep the file changes.\")`",
+        "porting/blocked_requirements.json BLK-0003 owner_ruling (OD-0008 A3) - FIX: \"a capture that cannot prove it covered the whole tree records no checkpoint (the existing \\\"No file checkpoint is available for this message.\\\" path) instead of a partial one. Named deviation.\""
       ],
       "preconditions": "A watch exists and handed over its scratch index.",
       "action": "A snapshot is taken.",
-      "expected_result": "UPSTREAM BEHAVIOR, DESCRIBED FOR THE RECORD ONLY. The fast path runs only when all three hold: the caller supplied a non-empty changed-path list, the scratch index file exists on disk, and argv [\"add\", \"-A\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"] at 300 s with those paths NUL-separated on stdin exits zero. Note this add does NOT carry --ignore-errors. Then write-tree at 120 s, checked. If any of the three fails, the scratch file is deleted, the real index is copied in when it exists, else read-tree HEAD when the repository has commits, then add -A -- . at 300 s and write-tree, both checked. This is precisely the capture BLK-0003 names as 'any checkpoint capture that can exit successfully on a partial tree': when the watch's changed set was truncated or wrong, the fast path writes a tree that records only a few directories yet exits 0 and is cached and committed as an ordinary checkpoint. Neither reproducing that nor guarding it is approved, so no Windows scratch-index-backed incremental capture may be implemented until the owner rules. Gate C fails on a hit for scratchIndex, scratch_index, cookieTimeout, cookie_timeout or watchTearDown while BLK-0003 is OPEN.",
+      "expected_result": "The fast path runs only when all three hold: the caller supplied a non-empty changed-path list, the scratch index file exists on disk, and argv [\"add\", \"-A\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"] at 300 s with those paths NUL-separated on stdin exits zero. Note this add does NOT carry --ignore-errors. Then write-tree at 120 s, checked. If any of the three fails, the scratch file is deleted, the real index is copied in when it exists, else read-tree HEAD when the repository has commits, then add -A -- . at 300 s and write-tree, both checked. RULED (OD-0008 A3, deviation): a tree from the fast path is returned for a checkpoint only when the capture can prove it covered the whole tree. The proof must rule out both routes BLK-0003 names: the scratch index being torn down or replaced while the capture wrote through it (WorkingTreeWatch.swift:271 with :159-170), and the changed-path list having been released by a cookie file some other writer created (WorkingTreeWatch.swift:191-192). A capture that cannot prove this throws instead of returning a tree, so captureCheckpoint records no checkpoint and a later revert of that turn reports \"No file checkpoint is available for this message. You can still keep the file changes.\" A partial tree is never recorded as a checkpoint.",
       "side_effects": [
         "The shared scratch index is written or rebuilt",
         "Objects written"
       ],
       "persistence": "The scratch index survives between captures; it is removed only in the watch's teardown.",
       "failure_cases": [
-        "An unreadable path takes the incremental add down and forces the delete-and-reseed path (upstream defect 79)"
+        "An unreadable path takes the incremental add down and forces the delete-and-reseed path (upstream defect 79)",
+        "A capture that cannot prove whole-tree coverage throws; the turn has no checkpoint (ruled, OD-0008 A3)"
       ],
       "cancellation": "The capture runs in a detached task; a caller that goes away does not cancel it.",
-      "windows_path": "NO IMPLEMENTATION of the scratch-index fast path while BLK-0003 is OPEN. The sibling full capture, captureTree(paths:) reached through PR-GIT-068's else branch, is NOT blocked and proceeds normally, so checkpoints still work, they are simply always fresh.",
-      "verification_method": "Gate C scan for the five quarantined identifiers; no functional test of the fast path until the owner rules",
-      "status": "DISCOVERED",
+      "windows_path": "Implement the fast path and the whole rebuild as upstream, plus the A3 proof check before a fast-path tree is handed back; on any doubt throw, so no checkpoint is recorded. How the proof is made is an engineering decision recorded with the implementation. The fresh capture used when no watch can vouch (PR-GIT-068) is unchanged.",
+      "verification_method": "unit: (1) with the watch settled and the scratch intact, a fast-path capture yields the same tree as a fresh captureTree(); (2) deleting the scratch index while the fast-path add runs makes captureCheckpoint throw and writes no checkpoint ref; (3) a droppy-code-sync-<n> file created in the git directory by another writer before the watch's own cookie makes the capture unprovable and no checkpoint is recorded; (4) reverting such a turn shows \"No file checkpoint is available for this message. You can still keep the file changes.\"",
+      "status": "SPECIFIED",
       "upstream_defect": "79",
-      "blocked_by": "BLK-0003",
-      "depends_on_unknown": "UNK-0013"
+      "blocked_by": null,
+      "depends_on_unknown": "UNK-0013",
+      "deviation": {
+        "decision": "OD-0008 A3",
+        "upstream": "DroppyCode/Services/Git/Git.swift:447-451 returns the fast-path tree whenever the pathspec add exits 0, and WorkingTreeWatch.swift:271 with :159-170 can delete the scratch index while that add writes through it, so a tree holding only the walked paths is committed as an ordinary checkpoint (ThreadRuntime.swift:1269) and a later revert deletes files at Git.swift:619 (upstream defect 81, BLK-0003)",
+        "port": "Marrow records a checkpoint only from a capture that can prove it covered the whole tree; any other capture throws, the turn has no checkpoint, and revert shows the existing no-checkpoint message"
+      }
     },
     {
       "id": "PR-GIT-068",
@@ -2048,42 +2063,53 @@
     },
     {
       "id": "PR-GIT-077",
-      "title": "A cookie timeout tears the watch down and deletes the shared scratch index even while another capture may be writing through it - QUARANTINED under BLK-0003",
+      "title": "A cookie timeout tears the watch down and deletes the shared scratch index; a capture writing through it at that moment records no checkpoint",
       "source_evidence": [
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:271 - guard arrived else { tearDown(); return nil }",
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:159-170 tearDown() - stops, invalidates and releases the stream on its own queue, then removes the scratch file",
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:96-107 - the registry-eviction path documents and avoids exactly this hazard",
-        "porting/upstream_defects.md entry 81 - the observable effect is a lost checkpoint and, later, the no-checkpoint message"
+        "porting/upstream_defects.md entry 81 - the observable effect is a lost checkpoint and, later, the no-checkpoint message",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1267-1281 - `return (try? await git.captureCheckpoint(checkpointRef)) != nil` and only `if await checkpoint.value { updateTurn(turn.id) { $0.baseCheckpoint = checkpointRef } }`, so a capture that throws leaves the turn with no base checkpoint; :1805-1807 then throws `ProviderError.failed(\"No file checkpoint is available for this message. You can still keep the file changes.\")`",
+        "porting/blocked_requirements.json BLK-0003 owner_ruling (OD-0008 A3) - FIX: \"a capture that cannot prove it covered the whole tree records no checkpoint (the existing \\\"No file checkpoint is available for this message.\\\" path) instead of a partial one. Named deviation.\""
       ],
       "preconditions": "A cookie event never arrived within one second.",
       "action": "The watch tears itself down.",
-      "expected_result": "UPSTREAM BEHAVIOR, DESCRIBED FOR THE RECORD ONLY: the stream is stopped, invalidated and released on its own queue, and the shared scratch index file is deleted, without any guard against a detached capture writing through that same file. The observable consequence is a lost checkpoint for that turn and, later, the revert path reporting \"No file checkpoint is available for this message. You can still keep the file changes.\" The worse consequence BLK-0003 names is a checkpoint that silently records only part of the tree, against which a later revert DELETES untracked, uncommitted work at Git.swift:619 and reports success. This requirement is quarantined by BLK-0003: neither reproducing the unguarded teardown nor adding the guard is approved, so no Windows working-tree-watch scratch-index teardown may be implemented until the owner rules. Gate C fails on a hit for scratchIndex, scratch_index, cookieTimeout, cookie_timeout or watchTearDown while BLK-0003 is OPEN.",
+      "expected_result": "The stream is stopped, invalidated and released on its own queue, and the shared scratch index file is deleted, as upstream does (WorkingTreeWatch.swift:159-170, reached from :271 `guard arrived else { tearDown(); return nil }`). Upstream has no guard against a detached capture writing through that same file at that moment. RULED (OD-0008 A3, deviation): such a capture cannot prove it covered the whole tree, so it throws instead of returning a tree; no checkpoint is recorded for that turn and a later revert reports \"No file checkpoint is available for this message. You can still keep the file changes.\" A partial tree is never committed as a checkpoint, so no revert can delete untracked work at Git.swift:619 on the strength of one.",
       "side_effects": [
-        "QUARANTINED - none to be implemented; upstream deletes the scratch index file mid-write in the racing case"
+        "The scratch index file is deleted on the watch's queue",
+        "A capture racing the teardown fails, so that turn has no checkpoint"
       ],
       "persistence": "None.",
       "failure_cases": [
         "A second teardown is a no-op because the stream handle was already cleared under the lock"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "NO IMPLEMENTATION while BLK-0003 is OPEN. Recorded for the ruling: this fires more often on Windows because network shares, mapped drives and VM-shared folders miss the cookie more often, so whichever way the owner rules, the Windows blast radius is larger than the source's.",
-      "verification_method": "Gate C scan for the five quarantined identifiers; no functional test until the owner rules",
-      "status": "DISCOVERED",
+      "windows_path": "Implement the teardown as upstream, together with the A3 proof check of PR-GIT-067, so a capture that raced the teardown throws instead of returning a tree.",
+      "verification_method": "unit: a watch whose cookie does not arrive within one second is torn down and its scratch file removed; a fast-path capture racing that teardown throws and writes no checkpoint ref; reverting that turn shows \"No file checkpoint is available for this message. You can still keep the file changes.\"",
+      "status": "SPECIFIED",
       "upstream_defect": "81",
-      "blocked_by": "BLK-0003",
-      "depends_on_unknown": "UNK-0013"
+      "blocked_by": null,
+      "depends_on_unknown": "UNK-0013",
+      "deviation": {
+        "decision": "OD-0008 A3",
+        "upstream": "WorkingTreeWatch.swift:159-170 deletes the scratch index with no guard against a capture writing through it, and Git.swift:447-451 can then return a tree built from an index holding only the walked paths, which ThreadRuntime.swift:1269 commits as the turn's checkpoint (upstream defect 81, BLK-0003)",
+        "port": "The teardown is the same, but a capture that raced it throws and records no checkpoint"
+      }
     },
     {
       "id": "PR-GIT-078",
-      "title": "A watch torn down by a cookie timeout is never rebuilt and stays registered, permanently demoting that directory to fresh captures - QUARANTINED under BLK-0003",
+      "title": "A watch torn down by a cookie timeout is never rebuilt and stays registered, permanently demoting that directory to fresh captures",
       "source_evidence": [
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:148 - FSEventStreamStart is called only in init",
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:92-93 - shared's fast path returns the registered watch without inspecting its stream",
-        "porting/upstream_defects.md entry 82"
+        "porting/upstream_defects.md entry 82",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:247 - `guard state.withLock({ $0.stream }) != nil else { return nil }`",
+        "DroppyCode/Services/Git/WorkingTreeWatch.swift:296 - `guard let generation = await settledGeneration() else { return try await capture(nil, nil) }`, and Git.swift:436 `guard let scratch else { return try await captureTree() }`",
+        "porting/blocked_requirements.json BLK-0003 owner_ruling (OD-0008 A3) - FIX: \"a capture that cannot prove it covered the whole tree records no checkpoint (the existing \\\"No file checkpoint is available for this message.\\\" path) instead of a partial one. Named deviation.\""
       ],
       "preconditions": "A watch was torn down by a cookie timeout.",
       "action": "A later snapshot asks for that directory's watch.",
-      "expected_result": "UPSTREAM BEHAVIOR, DESCRIBED FOR THE RECORD ONLY: the same, now streamless, watch is handed back. settledGeneration returns nil immediately, so every snapshot for that directory is a full fresh capture, and the scratch index is never used again. This persists until the registry's insertion-order eviction at 32 directories happens to reach it. There is no restart and no health check. The state this row describes exists only if the cookie-timeout teardown of PR-GIT-077 exists, which BLK-0003 quarantines, so this row cannot be implemented or tested until the owner rules on that entry. Note that if the owner rules for hardening, this row is void rather than merely changed.",
+      "expected_result": "The same, now streamless, watch is handed back. settledGeneration returns nil immediately, so every snapshot for that directory is a full fresh capture into an index of its own, and the scratch index is never used again. This persists until the registry's insertion-order eviction at 32 directories happens to reach it. There is no restart and no health check. OD-0008 A3 leaves this as upstream: a fresh capture walks the whole tree, so it always proves coverage and records its checkpoint as upstream does.",
       "side_effects": [
         "Every later checkpoint for that directory costs a full add -A"
       ],
@@ -2092,11 +2118,11 @@
         "Not applicable; this is the failure mode itself"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "NO IMPLEMENTATION while BLK-0003 is OPEN. Do NOT add a restart or a health check on your own initiative either; both options are the owner's to pick.",
-      "verification_method": "Gate C scan for the five quarantined identifiers; the post-timeout shared() assertion is written but not run until the owner rules",
-      "status": "DISCOVERED",
+      "windows_path": "Direct port. Do not add a restart or a health check; OD-0008 A3 rules only on captures that cannot prove whole-tree coverage.",
+      "verification_method": "unit: after a cookie timeout, shared(for:gitDirectory:) returns the same watch, and each following snapshot runs a full add -A -- . on a private index and records its checkpoint",
+      "status": "SPECIFIED",
       "upstream_defect": "82",
-      "blocked_by": "BLK-0003",
+      "blocked_by": null,
       "depends_on_unknown": "UNK-0013"
     },
     {
@@ -2352,7 +2378,7 @@
       "title": "TurnDiff.merge filters a whole-checkout snapshot down to the paths the chat's turns actually reported",
       "source_evidence": [
         "DroppyCode/Services/Git/TurnDiff.swift:4-37 merge(...) - repositoryRoot defaults to root; reportedPath resolves against root then normalizes against repositoryRoot; touched is mapped through reportedPath; the known set is grown with every reported file's path and oldPath and every non-empty edit path; snapshot files not in the known set are skipped; snapshot paths use normalize directly while non-snapshot paths use reportedPath; with a snapshot present, reported files are added only when the path starts \"/\" and no entry exists yet",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1991-1995 - 'Only the files this chat's turns reported count.'"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2031-2035 - 'Only the files this chat's turns reported count.'"
       ],
       "preconditions": "A snapshot diff between two checkpoints, the provider's patch, the turns' reported edits and their touched paths.",
       "action": "A turn's or a thread's diff is assembled.",
@@ -2474,7 +2500,7 @@
       "id": "PR-GIT-094",
       "title": "TouchedPaths.relative rejects a URL, a climb out of the root and anything outside the checkout",
       "source_evidence": [
-        "DroppyCode/Services/Git/TouchedPaths.swift:19-29 relative(_:root:) - trims whitespace and newlines; rejects an empty path and any path containing \"://\"; expands a leading \"~\"; standardizes the root; builds the absolute path by appending when it is not already absolute; standardizes it; requires the root plus a trailing slash as a prefix; returns the remainder or nil when that remainder is empty",
+        "DroppyCode/Services/Git/TouchedPaths.swift:19-29 relative(_:root:) - `var path = path.trimmed`; `guard !path.isEmpty, !path.contains(\"://\") else { return nil }`; `if path.hasPrefix(\"~\") { path = (path as NSString).expandingTildeInPath }`; `let root = (root as NSString).standardizingPath`; `let absolute = path.hasPrefix(\"/\") ? path : (root as NSString).appendingPathComponent(path)`; `let full = (absolute as NSString).standardizingPath`; `let prefix = root.hasSuffix(\"/\") ? root : root + \"/\"`; `guard full.hasPrefix(prefix) else { return nil }`; `return String(full.dropFirst(prefix.count)).nilIfEmpty`",
         "DroppyCode/Services/Git/TouchedPaths.swift:15-18 - 'A file written outside the checkout is not the thread's work, and git refuses to stage it, which used to take the whole merge down with it.'"
       ],
       "preconditions": "An agent reported editing a path.",
@@ -2548,13 +2574,17 @@
     },
     {
       "id": "PR-GIT-097",
-      "title": "previewRestore computes what undoing a thread's changes would touch and marks files changed again since as kept - QUARANTINED under BLK-0004",
+      "title": "previewRestore computes what undoing a thread's changes would touch, with every path relative to the repository root, and marks files changed again since as kept",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:575-597 previewRestore(base:end:paths:) - an empty path list returns an empty preview with no process; end is the caller's tree or a fresh captureTree(paths:); then output([\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", base, end, \"--\"] + paths) at 120 s; an empty file list returns early; then repositoryRoot(), blobs(in: end, …) and workingBlobs(…); isKept is left[path] != now[path]"
+        "DroppyCode/Services/Git/Git.swift:575-597 previewRestore(base:end:paths:) - an empty path list returns an empty preview with no process; end is the caller's tree or a fresh captureTree(paths:); then output([\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", base, end, \"--\"] + paths) at 120 s; an empty file list returns early; then repositoryRoot(), blobs(in: end, …) and workingBlobs(…); isKept is left[path] != now[path]",
+        "DroppyCode/Services/Git/Git.swift:586-590 - `var preview = try RevertPreview(numstat: await output([\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", base, end, \"--\"] + paths))`; `let root = try await repositoryRoot()`; `let left = try await blobs(in: end, at: preview.files.map(\\.path), root: root)`; `let now = try await workingBlobs(at: preview.files.map(\\.path), root: root)`",
+        "DroppyCode/Services/Git/Git.swift:599-600 - `/// Puts `paths` (repository-relative) back as they are in `ref`, deleting the ones it` / `/// lacks.`",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1810-1812 - `let paths = Set(removed.flatMap { $0.touchedPaths ?? [] }).sorted()`; `previewRestore(base: base, end: end, paths: paths)` on `Git(thread.worktreePath ?? project.path)`",
+        "porting/blocked_requirements.json BLK-0004 owner_ruling (OD-0008 A4) - FIX: \"previewRestore derives every path relative to the repository root, so a revert only ever acts on the files the turn touched. Named deviation.\""
       ],
       "preconditions": "A turn with a base checkpoint and a set of touched paths.",
       "action": "The app previews a revert.",
-      "expected_result": "UPSTREAM BEHAVIOR, DESCRIBED FOR THE RECORD ONLY. An empty path list returns an empty preview without running anything. The end tree is the turn's end checkpoint when one exists, otherwise a fresh capture of those paths, which then counts as what the thread left. argv [\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", <base>, <end>, \"--\"] plus the paths at 120 s; rename detection is off here, unlike the app's other diffs. An empty result returns at once. Otherwise each file's blob in the end tree is compared with the blob the file on disk would hash to now; a difference marks the file kept, meaning something else changed it since and it will be left alone. Other threads' files never appear, because only the given paths are looked at. The path derivation across Git.swift:586-590 is exactly what BLK-0004 quarantines: the pathspecs go in CWD-relative (the Git value's own directory, Git.swift:44) while numstat's output and the blob lookups are repository-root-relative, so under diff.relative = true with a project that is a subfolder of a larger repository the app acts on same-named paths at the repository ROOT. Neither reproducing that nor correcting it is approved, so NO Windows previewRestore path derivation may be implemented until the owner rules. Gate C fails on a hit for previewRestore or numstat while BLK-0004 is OPEN.",
+      "expected_result": "An empty path list returns an empty preview without running anything. The end tree is the turn's end checkpoint when one exists, otherwise a fresh capture of those paths, which then counts as what the thread left. argv [\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", <base>, <end>, \"--\"] plus the paths at 120 s; rename detection is off here, unlike the app's other diffs. An empty result returns at once. Otherwise each file's blob in the end tree is compared with the blob the file on disk would hash to now; a difference marks the file kept, meaning something else changed it since and it will be left alone. Other threads' files never appear, because only the given paths are looked at. RULED (OD-0008 A4, deviation): every path the preview carries, and so every path the blob lookups and restore act on, is relative to the repository root whatever the user's diff.relative setting, so the preview names exactly the files the turn touched and a revert acts only on them. Upstream mixes the two bases: the pathspecs go in relative to the Git value's own directory while the blob lookups join each numstat path onto the repository root (Git.swift:588-590), and under diff.relative = true numstat answers relative to that directory (BLK-0004).",
       "side_effects": [
         "Up to four git processes, one of which may be a full path-scoped capture"
       ],
@@ -2564,38 +2594,51 @@
         "A hash-object reply count mismatch throws the explicit count message"
       ],
       "cancellation": "The preview task is cached and shared; a caller going away does not cancel it.",
-      "windows_path": "NO IMPLEMENTATION while BLK-0004 is OPEN. Recorded for the ruling, because it changes the blast radius: the two stdin payloads carry drive letters and backslashes while the numstat halves stay forward-slashed, so on Windows the mixed path spaces differ in separator as well as in root. UNK-0011 item 4 (the minimum supported git version, and with it whether git diff --numstat -z always emits repository-root-relative paths) also bears on this row and is recorded there; UNK-0014 is the entry that blocks it.",
-      "verification_method": "Gate C scan for previewRestore and numstat; the one-file-changed-by-the-thread and one-changed-again interaction test is written but not run until the owner rules",
-      "status": "DISCOVERED",
-      "upstream_defect": "84",
-      "blocked_by": "BLK-0004",
-      "depends_on_unknown": "UNK-0014"
-    },
-    {
-      "id": "PR-GIT-098",
-      "title": "previewRestore's path spaces disagree when the Git directory is a repository subdirectory, and every file is then reported restorable",
-      "source_evidence": [
-        "porting/extracts/git-command-vectors.md section 7.2 - 'When Git.directory is a subdirectory of the repository, the two path spaces differ and left[path] / now[path] both miss, making isKept compare nil != nil = false, i.e. every file is reported restorable.'",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1776 - the call site binds Git to thread.worktreePath ?? project.path, normally a repository root, so it does not bite in practice",
-        "porting/upstream_defects.md entry 84"
-      ],
-      "preconditions": "A project opened at a subdirectory of its repository.",
-      "action": "A revert preview runs.",
-      "expected_result": "The numstat pathspecs are resolved against the process working directory while the paths git prints back are repository-root-relative, and the blob lookups rebuild absolute paths from the repository root. The two spaces disagree, both lookups miss, and isKept compares nothing with nothing and comes out false, so every file is reported restorable. Reproduce as-is; do not normalise to one space and do not add a diff.relative override.",
-      "side_effects": [
-        "A revert then restores files a stricter check would have kept"
-      ],
-      "persistence": "None.",
-      "failure_cases": [
-        "A user with diff.relative set to true breaks the same assumption even at a repository root"
-      ],
-      "cancellation": "not cancellable",
-      "windows_path": "Reproduce. Normalising would change which files a revert touches.",
-      "verification_method": "interaction test opening a project at a repository subdirectory and asserting every file is restorable",
+      "windows_path": "Derive the preview's paths against the repository root in every case; the mechanism (for example, git diff's --no-relative, which countermands diff.relative) is an engineering decision recorded with the implementation. The two stdin payloads carry drive letters and backslashes while numstat's paths stay forward-slashed, so the root join must agree on separators. UNK-0011 item 4 (the minimum supported git version) bears on which mechanism is available.",
+      "verification_method": "interaction test: a project that is a subfolder of a larger repository, with diff.relative = true and a same-named file at the repository root; the turn edits a file in the subfolder, the preview lists only that file, restore acts only on it, and the root file is untouched; plus the one-file-changed-by-the-thread and one-changed-again case asserting isKept",
       "status": "SPECIFIED",
       "upstream_defect": "84",
       "blocked_by": null,
-      "depends_on_unknown": "UNK-0011"
+      "depends_on_unknown": "UNK-0014",
+      "deviation": {
+        "decision": "OD-0008 A4",
+        "upstream": "DroppyCode/Services/Git/Git.swift:586-590 passes directory-relative pathspecs to git diff --numstat and joins the returned paths onto the repository root for blobs, workingBlobs and restore; with diff.relative = true in a subfolder project the returned paths are directory-relative, so a revert acts on same-named files at the repository root (upstream defect 84, BLK-0004)",
+        "port": "Every preview path is repository-root-relative regardless of diff.relative, so preview, restore and delete act only on the files the turn touched"
+      }
+    },
+    {
+      "id": "PR-GIT-098",
+      "title": "In a project that is a repository subdirectory, previewRestore's directory-relative pathspecs and repository-root-relative results agree only under git's default diff output",
+      "source_evidence": [
+        "DroppyCode/Services/Git/Git.swift:575-576 - `/// What undoing a thread's file changes would touch: of `paths` (the files its agent` / `/// changed, relative to this directory), the ones that differ between `base` and `end`,`",
+        "DroppyCode/Services/Git/Git.swift:586-590 - `var preview = try RevertPreview(numstat: await output([\"diff\", \"--numstat\", \"-z\", \"--no-renames\", \"--no-ext-diff\", base, end, \"--\"] + paths))`; `let root = try await repositoryRoot()`; `let left = try await blobs(in: end, at: preview.files.map(\\.path), root: root)`; `let now = try await workingBlobs(at: preview.files.map(\\.path), root: root)`",
+        "DroppyCode/Services/Git/Git.swift:625 - in blobs, `let listing = try await output([\"ls-tree\", \"-r\", \"-z\", \"--full-name\", ref, \"--\"] + paths.map { root.appendingPathComponent($0).path })`, which keys each blob by the full name git prints",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1810-1812 - `let paths = Set(removed.flatMap { $0.touchedPaths ?? [] }).sorted()`; `previewRestore(base: base, end: end, paths: paths)` on `Git(thread.worktreePath ?? project.path)`, so a project added at a repository subdirectory runs the preview from that subdirectory",
+        "porting/upstream_defects.md entry 84 - \"previewRestore feeds CWD-relative pathspecs to `git diff --numstat` but consumes the REPO-ROOT-relative paths it returns, joining them onto repositoryRoot(). Self-consistent only because git's default diff output is repo-root-relative; a user with `diff.relative = true` breaks it\"",
+        "porting/blocked_requirements.json BLK-0004 owner_ruling (OD-0008 A4) - FIX: \"previewRestore derives every path relative to the repository root, so a revert only ever acts on the files the turn touched. Named deviation.\""
+      ],
+      "preconditions": "A project opened at a subdirectory of its repository.",
+      "action": "A revert preview runs.",
+      "expected_result": "The numstat pathspecs go in relative to the Git value's own directory, the process working directory, while the paths git prints back are repository-root-relative under git's default diff output; blobs and workingBlobs join those printed paths onto the repository root, and ls-tree --full-name keys its answer by the same repository-root-relative names. The two spaces therefore agree in the default configuration: both lookups find the file, isKept is a real comparison, and the preview carries repository-root-relative paths. Upstream is self-consistent only because of that default: with diff.relative = true numstat answers relative to the subdirectory, and the root join then lands on other files (upstream defect 84, BLK-0004). RULED (OD-0008 A4, deviation): the port derives every preview path relative to the repository root whatever the diff.relative setting (PR-GIT-097), which in the default configuration gives exactly upstream's result.",
+      "side_effects": [
+        "None of its own; the git processes are PR-GIT-097's"
+      ],
+      "persistence": "None.",
+      "failure_cases": [
+        "Upstream, with diff.relative = true in a subdirectory project, the preview names subdirectory-relative paths that the root join resolves to other files, and restore then acts on those (BLK-0004); the port's A4 derivation removes this"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Derive the preview's paths against the repository root in every case, as PR-GIT-097 rules; in the default configuration the result equals upstream's, including for a subdirectory project.",
+      "verification_method": "interaction test opening a project at a repository subdirectory, once with default configuration and once with diff.relative = true: the preview lists the repository-root-relative path of the file the turn changed, isKept is false for it and true for a file changed again since, and restore acts only on it",
+      "status": "SPECIFIED",
+      "upstream_defect": "84",
+      "blocked_by": null,
+      "depends_on_unknown": "UNK-0011",
+      "deviation": {
+        "decision": "OD-0008 A4",
+        "upstream": "DroppyCode/Services/Git/Git.swift:586-590 joins numstat's printed paths onto the repository root, which agrees with the directory-relative pathspecs only while git prints repository-root-relative paths; with diff.relative = true in a subdirectory project it acts on other files (upstream defect 84, BLK-0004)",
+        "port": "Every preview path is repository-root-relative regardless of diff.relative; in the default configuration this matches upstream"
+      }
     },
     {
       "id": "PR-GIT-099",
@@ -2654,7 +2697,7 @@
       ],
       "preconditions": "A ref and a list of repository-relative paths.",
       "action": "A revert restores the files.",
-      "expected_result": "An empty path list does nothing and runs no process. The repository root is resolved. The ref's tree is listed to learn which of the given paths it holds. The paths it HOLDS are restored into both the working tree and the index in ONE invocation at 120 s, checked, with argv [\"restore\", \"--source\", <ref>, \"--worktree\", \"--staged\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"] and the paths made ABSOLUTE by joining each onto the repository root, joined by NUL with no trailing NUL on stdin. The restored list is skipped entirely when empty. Nothing outside the given paths is touched. The second half of the function, which deletes the paths the ref does not hold, is PR-GIT-158 and is quarantined.",
+      "expected_result": "An empty path list does nothing and runs no process. The repository root is resolved. The ref's tree is listed to learn which of the given paths it holds. The paths it HOLDS are restored into both the working tree and the index in ONE invocation at 120 s, checked, with argv [\"restore\", \"--source\", <ref>, \"--worktree\", \"--staged\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"] and the paths made ABSOLUTE by joining each onto the repository root, joined by NUL with no trailing NUL on stdin. The restored list is skipped entirely when empty. Nothing outside the given paths is touched. The second half of the function, which deletes the paths the ref does not hold, is PR-GIT-158.",
       "side_effects": [
         "Working files the ref holds are overwritten",
         "The index is rewritten for those paths"
@@ -2673,30 +2716,37 @@
     },
     {
       "id": "PR-GIT-158",
-      "title": "restore deletes the paths the ref does not hold, quietly from the index and then one by one from disk - QUARANTINED under BLK-0004",
+      "title": "restore deletes the paths the ref does not hold, quietly from the index and then one by one from disk; only files the turn created reach it",
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:613-620 - let created = paths.filter { present[$0] == nil }; if !created.isEmpty { _ = try? await run([\"rm\", \"-q\", \"--cached\", \"--ignore-unmatch\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"], input: Data(created.map { root.appendingPathComponent($0).path }.joined(separator: \"\\0\").utf8)); for path in created { try? FileManager.default.removeItem(at: root.appendingPathComponent(path)) } }",
-        "DroppyCode/Services/Git/Git.swift:619 - the FileManager.removeItem that BLK-0004 and BLK-0003 both name as the unrecoverable step",
-        "porting/blocked_requirements.json BLK-0004 - quarantined path 'any revert path that deletes files not present in the base checkpoint'",
+        "DroppyCode/Services/Git/Git.swift:619 - `for path in created { try? FileManager.default.removeItem(at: root.appendingPathComponent(path)) }`",
+        "porting/blocked_requirements.json BLK-0004 owner_ruling (OD-0008 A4) - FIX: \"previewRestore derives every path relative to the repository root, so a revert only ever acts on the files the turn touched. Named deviation.\"",
+        "porting/blocked_requirements.json BLK-0003 owner_ruling (OD-0008 A3) - FIX: \"a capture that cannot prove it covered the whole tree records no checkpoint (the existing \\\"No file checkpoint is available for this message.\\\" path) instead of a partial one. Named deviation.\"",
         "porting/upstream_defects.md entry 78"
       ],
       "preconditions": "restore's put-back half (PR-GIT-101) has completed without throwing, and at least one of the given paths is absent from the ref's tree.",
       "action": "The revert deletes the files the thread created.",
-      "expected_result": "UPSTREAM BEHAVIOR, DESCRIBED FOR THE RECORD ONLY: the paths the ref does not hold are taken to be files the thread created. Their index entries are removed with argv [\"rm\", \"-q\", \"--cached\", \"--ignore-unmatch\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"] and the same NUL-joined absolute payload, run with try? so the result is DISCARDED and a failure is invisible. Each path is then deleted from disk individually with FileManager.removeItem wrapped in try?, so each failure is swallowed and the file stays. This is the step BLK-0004 quarantines as 'any revert path that deletes files not present in the base checkpoint': when the base checkpoint is partial (BLK-0003) or the paths were mis-derived (BLK-0004), the files deleted here were never touched by the turn, their uncommitted content exists nowhere in the repository, and the revert still reports success. Neither reproducing the deletion nor guarding it is approved. NO Windows implementation of this half may ship until the owner rules; Gate C fails on a hit for previewRestore or numstat while BLK-0004 is OPEN, and the delete is reached only through that preview.",
+      "expected_result": "The paths the ref does not hold are taken to be files the thread created. Their index entries are removed with argv [\"rm\", \"-q\", \"--cached\", \"--ignore-unmatch\", \"--pathspec-from-file=-\", \"--pathspec-file-nul\"] and the same NUL-joined absolute payload, run with try? so the result is discarded and a failure is invisible. Each path is then deleted from disk individually with FileManager.removeItem wrapped in try?, so each failure is swallowed and the file stays. RULED (OD-0008 A4 with A3, deviation): the paths reaching this step are always repository-root-relative paths the turn touched (PR-GIT-097), and the ref is always a checkpoint proven to cover the whole tree (PR-GIT-067), so a path the ref lacks is one the turn created and deleting it is the intended undo. The deletion and its swallowed results are otherwise as upstream.",
       "side_effects": [
-        "QUARANTINED - none to be implemented; upstream removes index entries and deletes files from disk permanently"
+        "Index entries of the created files are removed",
+        "Files the reverted turn created are deleted from disk"
       ],
-      "persistence": "QUARANTINED - the upstream path deletes working files whose content is not in the repository, unrecoverably.",
+      "persistence": "Deleted files are removed from disk permanently; only files absent from a whole-tree base checkpoint, among the paths the turn touched, reach this step.",
       "failure_cases": [
-        "QUARANTINED - upstream swallows both the git rm result and every per-file removal error, so a locked or missing file leaves the revert looking complete"
+        "As upstream, both the git rm result and every per-file removal error are swallowed, so a locked or missing file leaves the revert looking complete"
       ],
-      "cancellation": "QUARANTINED - upstream offers none once started",
-      "windows_path": "NO IMPLEMENTATION while BLK-0004 is OPEN. Recorded for the ruling: on Windows a file held open by an editor or an indexer makes removeItem fail far more often than on the source platform, so the swallowed-error path is the common case rather than the rare one, and a revert would routinely report success with files still on disk.",
-      "verification_method": "Gate C scan for previewRestore and numstat; the created-file deletion test is written but not run until the owner rules",
-      "status": "DISCOVERED",
+      "cancellation": "not cancellable once started",
+      "windows_path": "Direct port of the deletion and of its swallowed errors, fed only by the A4 path derivation and A3-proven checkpoints. On Windows a file held open by an editor or an indexer makes removeItem fail more often than on the source platform; the swallowed error then leaves the file on disk while the revert reports success.",
+      "verification_method": "interaction test: a turn that creates one file and edits another; the revert restores the edited file and deletes the created one; in a subfolder project with diff.relative = true no file at the repository root is deleted",
+      "status": "SPECIFIED",
       "upstream_defect": "78",
-      "blocked_by": "BLK-0004",
-      "depends_on_unknown": "UNK-0014"
+      "blocked_by": null,
+      "depends_on_unknown": "UNK-0014",
+      "deviation": {
+        "decision": "OD-0008 A4, A3",
+        "upstream": "DroppyCode/Services/Git/Git.swift:613-620 deletes every path the ref lacks; fed by mis-derived paths (Git.swift:586-590, defect 84) or a partial checkpoint (BLK-0003) it deletes files the turn never touched and reports success",
+        "port": "The same deletion, reached only with repository-root-relative paths the turn touched (A4) against a checkpoint proven whole (A3), so only files the turn created are deleted"
+      }
     },
     {
       "id": "PR-GIT-102",
@@ -2852,7 +2902,7 @@
       "title": "addDetachedWorktree creates a branchless copy of the checkout at a commit, at 300 s",
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:676-680 addDetachedWorktree(at:commit:) - run([\"worktree\", \"add\", \"--detach\", path, commit], timeout: 300), checked",
-        "DroppyCode/App/AppModel+Hydra.swift:501 - try await git.addDetachedWorktree(at: path, commit: capture.commit)"
+        "DroppyCode/App/AppModel+Hydra.swift:551 - try await git.addDetachedWorktree(at: path, commit: capture.commit)"
       ],
       "preconditions": "A commit exists that carries the checkout as it stands.",
       "action": "A head is given its own copy of the checkout to work in.",
@@ -2877,7 +2927,7 @@
       "title": "pruneWorktrees forgets worktrees whose folders are gone, best-effort and silently",
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:682-685 pruneWorktrees() - _ = try? await run([\"worktree\", \"prune\"]) at 120 s, result discarded",
-        "DroppyCode/App/AppModel+Hydra.swift:1008 - for project in projects where projectsWithCopies.contains(project.id) { await Git(project.path).pruneWorktrees() }"
+        "DroppyCode/App/AppModel+Hydra.swift:1070 - for project in projects where projectsWithCopies.contains(project.id) { await Git(project.path).pruneWorktrees() }"
       ],
       "preconditions": "At least one project had copies.",
       "action": "The orphan sweep runs.",
@@ -2929,7 +2979,7 @@
       "id": "PR-GIT-111",
       "title": "The worktree offer appears only for a thread with no worktree and no turns yet",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1379-1383 - if runtime.thread?.worktreePath == nil, runtime.turns.isEmpty { PopoverItem(\"Use a new worktree for this thread\", symbol: \"square.stack.3d.up\") { Task { await model.createWorktree(for: runtime.threadID) } } }"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1375-1379 - if runtime.thread?.worktreePath == nil, runtime.turns.isEmpty { PopoverItem(\"Use a new worktree for this thread\", symbol: \"square.stack.3d.up\") { Task { await model.createWorktree(for: runtime.threadID) } } }"
       ],
       "preconditions": "The branch menu is open.",
       "action": "The menu is built.",
@@ -2953,9 +3003,9 @@
       "id": "PR-GIT-112",
       "title": "Every git command runs in the thread's worktree when it has one, else the project path",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1224 - let directory = initialThread.worktreePath ?? project.path",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1776 - Git(thread.worktreePath ?? project.path)",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1976-1977 and :2277-2278 - the same expression",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1254 - let directory = initialThread.worktreePath ?? project.path",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1812 - Git(thread.worktreePath ?? project.path)",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2016-2017 and :2347-2348 - the same expression",
         "DroppyCode/App/AppModel.swift:947 and :1118 - Git(project.path) for checkpoint deletion and worktree creation"
       ],
       "preconditions": "A thread belongs to a project.",
@@ -2980,8 +3030,8 @@
       "id": "PR-GIT-113",
       "title": "A revert preview is cached per turn for ten seconds and only while the thread's diff revision is unchanged",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1729-1745 revertPreview(for:) - an entry is reused when its revision equals diffRevision and it started less than ten seconds ago; a new task is started otherwise; entries of other revisions are dropped before the new one is stored",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1749-1753 cachedRevertPreview(for:) - the same two conditions, returning the stored result or nil",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1765-1781 revertPreview(for:) - an entry is reused when its revision equals diffRevision and it started less than ten seconds ago; a new task is started otherwise; entries of other revisions are dropped before the new one is stored",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1785-1789 cachedRevertPreview(for:) - the same two conditions, returning the stored result or nil",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:145-147 - the pencil's hover starts the preview"
       ],
       "preconditions": "A turn exists.",
@@ -3006,7 +3056,7 @@
       "id": "PR-GIT-114",
       "title": "previewRevert spans the selected turn and every turn after it, over their touched paths, against the last end checkpoint",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1768-1777 previewRevert(to:) - throws when there is no app, thread, project, turn index or base checkpoint; the removed slice is turns[index...]; paths are the union of their touchedPaths, sorted; end is the last non-nil endCheckpoint among them; then previewRestore(base:end:paths:)"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1804-1813 previewRevert(to:) - throws when there is no app, thread, project, turn index or base checkpoint; the removed slice is turns[index...]; paths are the union of their touchedPaths, sorted; end is the last non-nil endCheckpoint among them; then previewRestore(base:end:paths:)"
       ],
       "preconditions": "A turn with a base checkpoint.",
       "action": "The app previews what reverting to that message would touch.",
@@ -3030,7 +3080,7 @@
       "id": "PR-GIT-115",
       "title": "revert refuses while a turn is running, while another revert is under way, or while Droppy-run heads are running",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1801-1809 revert(to:restoreFiles:) - guard phase == .idle, !isReverting else throws \"Wait for the running turn to finish first.\"; a missing thread, project or turn index throws \"This message is no longer in the thread.\"; running Droppy heads throw \"Stop the running agents before reverting this conversation.\""
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1837-1845 revert(to:restoreFiles:) - guard phase == .idle, !isReverting else throws \"Wait for the running turn to finish first.\"; a missing thread, project or turn index throws \"This message is no longer in the thread.\"; running Droppy heads throw \"Stop the running agents before reverting this conversation.\""
       ],
       "preconditions": "The user asked to revert.",
       "action": "The guards are evaluated.",
@@ -3054,7 +3104,7 @@
       "id": "PR-GIT-116",
       "title": "A revert that restores files verifies the base checkpoint ref before touching the conversation",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1815-1820 - when restoreFiles is set, a missing base checkpoint throws \"This turn has no file checkpoint. Choose to keep the file changes instead.\"; otherwise _ = try await Git(directory).output([\"rev-parse\", \"--verify\", base]) which throws before any provider rewind runs"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1851-1856 - when restoreFiles is set, a missing base checkpoint throws \"This turn has no file checkpoint. Choose to keep the file changes instead.\"; otherwise _ = try await Git(directory).output([\"rev-parse\", \"--verify\", base]) which throws before any provider rewind runs"
       ],
       "preconditions": "The user chose to revert files too.",
       "action": "The revert begins.",
@@ -3078,8 +3128,8 @@
       "id": "PR-GIT-117",
       "title": "Each provider rewinds its own conversation differently, and a provider that cannot rewind starts a new session",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1821-1866 - codex rolls back from the first provider turn id or throws \"The original Codex conversation is unavailable.\" or \"The selected message has no Codex turn ID, so its history cannot be safely reverted.\"; copilot rolls back by the number of removed turns or throws \"The original Copilot conversation is unavailable.\"; claude either clears the session at index 0 or sets the resume point to the previous turn's anchor, throwing \"Claude has no resume point before this message. The conversation was kept.\"; every other provider releases the session and clears both the session id and the resume point",
-        "DroppyCode/Core/Models/Provider.swift:138 - supportsRewind is codex, claude or copilot"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1857-1902 - codex rolls back from the first provider turn id or throws \"The original Codex conversation is unavailable.\" or \"The selected message has no Codex turn ID, so its history cannot be safely reverted.\"; copilot rolls back by the number of removed turns or throws \"The original Copilot conversation is unavailable.\"; claude either clears the session at index 0 or sets the resume point to the previous turn's anchor, throwing \"Claude has no resume point before this message. The conversation was kept.\"; every other provider releases the session and clears both the session id and the resume point",
+        "DroppyCode/Core/Models/Provider.swift:144 - supportsRewind is codex, claude or copilot"
       ],
       "preconditions": "The guards passed.",
       "action": "The conversation is rewound.",
@@ -3103,9 +3153,9 @@
       "id": "PR-GIT-118",
       "title": "The file restore runs after the conversation rewind and a failure becomes a thread notice rather than an error",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1868-1877 - when restoring, previewRevert runs again and only preview.restorable paths are restored from the base; any error becomes fileError = \"Conversation reverted, but files could not be restored: \\(error.localizedDescription)\"",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1891 - if let fileError { appendNotice(.error, fileError) }",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1895 - return fileError == nil"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1904-1913 - when restoring, previewRevert runs again and only preview.restorable paths are restored from the base; any error becomes fileError = \"Conversation reverted, but files could not be restored: \\(error.localizedDescription)\"",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1931 - if let fileError { appendNotice(.error, fileError) }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1935 - return fileError == nil"
       ],
       "preconditions": "The conversation rewind succeeded and files are to be restored.",
       "action": "The files are put back.",
@@ -3128,15 +3178,17 @@
     },
     {
       "id": "PR-GIT-119",
-      "title": "A revert removes the turn and everything after it from the timeline, resets the thread's status, clears usage and bumps the diff revision",
+      "title": "A revert removes the turn and everything after it from the timeline, empties the native heads' pending touched paths, resets the thread's status, clears usage and bumps the diff revision",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1879-1895 - entries whose turn id is among the removed are dropped and the entry index rebuilt; turns.removeSubrange(index...); the thread's lastStatus becomes the last remaining turn's status or nil; saveRevision is incremented; usage is cleared; the notice is appended; diffSelection is cleared and diffRevision incremented; a save is scheduled"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1915-1935 - `entries.removeAll { entry in ... return removedIDs.contains(turn) }`; `entryIndex = Dictionary(uniqueKeysWithValues: entries.map { ($0.id, $0) })`; `turns.removeSubrange(index...)`; `hydraTouched.removeAll()`; `hydraCurrentTurnTouchedPaths = []`; `app.updateThread(threadID) { $0.lastStatus = turns.last?.status }`; `saveRevision += 1`; `usage = nil`; `if let fileError { appendNotice(.error, fileError) }`; `diffSelection = nil`; `diffRevision += 1`; `scheduleSave()`",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1922-1925 - `// A head's paths list is what the turn in flight has changed; the turn they` / `// belonged to is gone.` / `hydraTouched.removeAll()` / `hydraCurrentTurnTouchedPaths = []`"
       ],
       "preconditions": "The rewind and restore steps finished.",
       "action": "The timeline is trimmed.",
-      "expected_result": "Every timeline entry belonging to a removed turn is dropped and the entry lookup rebuilt. The turns from the selected index onward are removed. The thread's stored last status becomes the status of the last remaining turn, or nil when every turn is gone, so an emptied thread is unused again and can be reused or closed. The save revision is incremented, the context usage is cleared, any file error notice is appended, the diff selection is cleared and the diff revision is incremented, which invalidates every cached diff and revert preview. A save is scheduled.",
+      "expected_result": "Every timeline entry belonging to a removed turn is dropped and the entry lookup rebuilt. The turns from the selected index onward are removed. Then the paths the lead's native heads reported since the last finished turn (hydraTouched) are emptied and the in-flight turn's touched-path set (hydraCurrentTurnTouchedPaths) is reset to empty, so no head path from a reverted turn is folded into a later turn's record. The thread's stored last status becomes the status of the last remaining turn, or nil when every turn is gone, so an emptied thread is unused again and can be reused or closed. The save revision is incremented, the context usage is cleared, any file error notice is appended, the diff selection is cleared and the diff revision is incremented, which invalidates every cached diff and revert preview. A save is scheduled.",
       "side_effects": [
-        "The thread document changes"
+        "The thread document changes",
+        "The in-memory head touched-path sets hydraTouched and hydraCurrentTurnTouchedPaths are emptied"
       ],
       "persistence": "ChatThread.lastStatus and the thread's turns and entries are persisted on the scheduled save.",
       "failure_cases": [
@@ -3144,17 +3196,18 @@
       ],
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the ordering, since the notice must be appended after the trim to survive it.",
-      "verification_method": "restart test asserting the trimmed thread reloads with the expected turns and status",
+      "verification_method": "restart test asserting the trimmed thread reloads with the expected turns and status; unit test that a head-reported path pending before a revert is absent from the next finished turn's touchedPaths",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b2_change": "B1 DroppyCode/App/Runtime/ThreadRuntime.swift:1885 `turns.removeSubrange(index...)` was followed directly by the lastStatus update (:1886-1888); B2 :1921-1925 inserts `hydraTouched.removeAll()` and `hydraCurrentTurnTouchedPaths = []` after the trim (hunk @@ -1883,6 +1919,10 @@). The other steps and their order are unchanged."
     },
     {
       "id": "PR-GIT-120",
       "title": "Sending an edited message reverts first and only sends when the files were restored as asked",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1784-1795 resend(_:text:attachments:restoreFiles:) - revert returns whether the files were restored; when it returns false the edited draft is left in the composer and nothing is sent; otherwise the current draft is set aside, the edit is sent, and the previous draft is put back"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1820-1831 resend(_:text:attachments:restoreFiles:) - revert returns whether the files were restored; when it returns false the edited draft is left in the composer and nothing is sent; otherwise the current draft is set aside, the edit is sent, and the previous draft is put back"
       ],
       "preconditions": "The message editor's Send was pressed.",
       "action": "The edit is sent.",
@@ -3178,8 +3231,8 @@
       "id": "PR-GIT-121",
       "title": "The revert affordances appear only for providers that support rewinding and only while the thread is idle",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:164-169 - rewindable is every turn id when supportsRewind and the thread is not running, else empty",
-        "DroppyCode/Core/Models/Provider.swift:138 - supportsRewind is codex, claude or copilot",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:167-172 - rewindable is every turn id when supportsRewind and the thread is not running, else empty",
+        "DroppyCode/Core/Models/Provider.swift:144 - supportsRewind is codex, claude or copilot",
         "DroppyCode/App/Views/Chat/HydraPanel.swift:406 and DroppyCode/App/Views/Chat/SubagentPanel.swift:283 - both pass supportsRewind: false"
       ],
       "preconditions": "A timeline is on screen.",
@@ -3204,8 +3257,8 @@
       "id": "PR-GIT-122",
       "title": "The turn file card's revert restores files without asking a second question, after its own confirmation popover",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2713 - onRevert: { Task { _ = try? await runtime.revert(to: turnID, restoreFiles: true) } }",
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2789-2818 - the glyph opens a popover titled \"Revert up to this point?\" whose Revert button dismisses and runs onRevert"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2695 - onRevert: { Task { _ = try? await runtime.revert(to: turnID, restoreFiles: true) } }",
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2770-2799 - `if canUndo {` the glyph `MutedRoundGlyph(symbol: \"arrow.uturn.backward\")` sets `isConfirmingRevert = true`, which opens `.popover(isPresented: $isConfirmingRevert, arrowEdge: .bottom)` holding `Text(\"Revert up to this point?\")`, `Button(\"Cancel\") { isConfirmingRevert = false }` and `Button(\"Revert\") { isConfirmingRevert = false; onRevert() }`"
       ],
       "preconditions": "The turn is rewindable and changed at least one file.",
       "action": "The user presses the card's revert glyph and confirms.",
@@ -3304,8 +3357,8 @@
       "id": "PR-GIT-126",
       "title": "The git status model shares one snapshot per directory across every chat and refreshes only when forced or stale by thirty seconds",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1280-1311 - the per-directory snapshot holds isRepository, status, branches, remoteURL and a fetch timestamp; freshness is 30 seconds; refresh applies the cached snapshot at once and returns early when not forced and the cache is fresher than that; otherwise isRepository is read first and, only when true, status, branches and the web URL are read concurrently",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1274-1278 - the four published properties plus activity"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1276-1307 - the per-directory snapshot holds isRepository, status, branches, remoteURL and a fetch timestamp; freshness is 30 seconds; refresh applies the cached snapshot at once and returns early when not forced and the cache is fresher than that; otherwise isRepository is read first and, only when true, status, branches and the web URL are read concurrently",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1270-1274 - the four published properties plus activity"
       ],
       "preconditions": "A chat is shown for a directory.",
       "action": "The chrome refreshes its git state.",
@@ -3329,9 +3382,9 @@
       "id": "PR-GIT-127",
       "title": "A git action shows its verb in the branch menu's title while it runs",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1320-1329 perform(_:_:) - the activity string is set, cleared in a defer, and the error returned rather than thrown",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1361 - the branch menu title is git.activity ?? git.status?.branch ?? \"Detached\"",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1407,1502,1513,1643 - the four activity verbs \"Creating\", \"Pushing\", \"Opening pull request\" and \"Committing\", plus \"Switching\" at :1395"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1316-1325 perform(_:_:) - the activity string is set, cleared in a defer, and the error returned rather than thrown",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1357 - the branch menu title is git.activity ?? git.status?.branch ?? \"Detached\"",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1403,1502,1513,1643 - the four activity verbs \"Creating\", \"Pushing\", \"Opening pull request\" and \"Committing\", plus \"Switching\" at :1391"
       ],
       "preconditions": "The chat chrome is on screen for a repository.",
       "action": "The user runs a git action.",
@@ -3355,8 +3408,8 @@
       "id": "PR-GIT-128",
       "title": "The git actions menu is present only for a repository and its help text changes with the changed-file count",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1163-1166 - the menu is added only when git.isRepository",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1481-1492 - changed is status?.changedFiles ?? 0; the button's help is \"Commit, push and open pull requests\" when changed is zero and \"<n> changed files\" otherwise; the note reads \"1 changed file\" or \"<n> changed files\"; \"Commit…\" is enabled only when changed > 0; the \"Open repository\" row appears only when a web URL resolved"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1159-1162 - the menu is added only when git.isRepository",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1477-1488 - changed is status?.changedFiles ?? 0; the button's help is \"Commit, push and open pull requests\" when changed is zero and \"<n> changed files\" otherwise; the note reads \"1 changed file\" or \"<n> changed files\"; \"Commit…\" is enabled only when changed > 0; the \"Open repository\" row appears only when a web URL resolved"
       ],
       "preconditions": "A chat is shown.",
       "action": "The user opens the git actions menu.",
@@ -3380,8 +3433,8 @@
       "id": "PR-GIT-129",
       "title": "The commit sheet loads the working summary and writes a first message draft automatically",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1609-1613 - on appearance, workingChanges() is read, its summary shown, and when the message is empty a generation is started with those changes",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1616-1635 generate(changes:) - returns at once when no text engine is available; otherwise sets isGenerating, reuses the supplied changes or reads them again, and calls TextGeneration.commitMessage with the summary, the patch, the user's commit instructions, the engine and the directory; a non-nil result replaces the message"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1605-1609 - on appearance, workingChanges() is read, its summary shown, and when the message is empty a generation is started with those changes",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1612-1631 generate(changes:) - returns at once when no text engine is available; otherwise sets isGenerating, reuses the supplied changes or reads them again, and calls TextGeneration.commitMessage with the summary, the patch, the user's commit instructions, the engine and the directory; a non-nil result replaces the message"
       ],
       "preconditions": "The user chose \"Commit…\" and the sheet opened.",
       "action": "The sheet appears.",
@@ -3406,8 +3459,8 @@
       "id": "PR-GIT-130",
       "title": "Committing trims the message, optionally pushes, and closes the sheet only on success",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1637-1653 commit() - isCommitting is set and cleared in a defer; the message is trimmed of whitespace and newlines; the work is commitAll followed by push when the checkbox is on; the status refreshes; on error an alert titled \"Commit failed\" is raised, otherwise the sheet is dismissed",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1602-1604 - the Commit button is disabled while the trimmed message is empty or a commit is in flight"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1633-1649 commit() - `isCommitting = true`; `defer { isCommitting = false }`; `let text = message.trimmed`; `let error = await git.perform(\"Committing\") {` `try await repository.commitAll(message: text)` `if pushes { try await repository.push() }` `}`; `await git.refresh(directory)`; `if let error { model.alert = AppAlert(title: \"Commit failed\", message: error.localizedDescription) } else { dismiss() }`",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1598-1600 - `Button(\"Commit\") { Task { await commit() } }` `.buttonStyle(.glassProminent)` `.disabled(message.trimmed.isEmpty || isCommitting)`"
       ],
       "preconditions": "The message is non-empty after trimming.",
       "action": "The user presses \"Commit\".",
@@ -3431,7 +3484,7 @@
       "id": "PR-GIT-131",
       "title": "Create pull request pushes first, then titles the request from the last commit's subject and body, with fixed fallbacks",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1509-1531 openPullRequest() - inside git.perform(\"Opening pull request\"): push(), then output([\"log\", \"-1\", \"--pretty=%s\"]) trimmed or \"\", then output([\"log\", \"-1\", \"--pretty=%b\"]) trimmed or \"\", then createPullRequest(title: subject.isEmpty ? \"Update\" : subject, body: body.isEmpty ? \"Opened from Droppy Code.\" : body); an error raises AppAlert(title: \"Could not open a pull request\", …), otherwise a returned URL is opened in the browser; the status refreshes"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1505-1527 openPullRequest() - inside `git.perform(\"Opening pull request\")`: `try await repository.push()`; `let subject = (try? await repository.output([\"log\", \"-1\", \"--pretty=%s\"]))?.trimmed ?? \"\"`; `let body = (try? await repository.output([\"log\", \"-1\", \"--pretty=%b\"]))?.trimmed ?? \"\"`; `url = try await repository.createPullRequest(title: subject.isEmpty ? \"Update\" : subject, body: body.isEmpty ? \"Opened from Droppy Code.\" : body)`; `if let error { model.alert = AppAlert(title: \"Could not open a pull request\", message: error.localizedDescription) } else if let url { NSWorkspace.shared.open(url) }`; `await git.refresh(directory)`"
       ],
       "preconditions": "The directory is a repository with an origin remote.",
       "action": "The user chooses \"Create pull request\".",
@@ -3532,9 +3585,9 @@
       "id": "PR-GIT-135",
       "title": "A file card renders at most 200 diff lines until the reader asks for the rest",
       "source_evidence": [
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:274 collapsedLineLimit = 200 and :275 tintedChunk = 40",
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:274 `private nonisolated static let collapsedLineLimit = 200` and :275 `private nonisolated static let tintedChunk = 40`",
         "DroppyCode/App/Views/Diff/DiffInspector.swift:390-411 - the budget is the limit unless showsAll; sections are rebuilt whenever the sections key or showsAll changes; a showsAll view over a long diff uses a lazy stack, everything else a plain stack sized to fit",
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:372-387 - the \"Show all <n> lines\" button appears only while not showing all and the total exceeds 200"
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:372-387 - `if !showsAll, totalLines > Self.collapsedLineLimit { Button { showsAll.toggle() } label: { Text(\"Show all \\(totalLines) lines\") ... } }`"
       ],
       "preconditions": "An expanded file card with hunks.",
       "action": "The rows are built.",
@@ -3639,8 +3692,8 @@
       "title": "The popover opens on the control that asked for it: below a tool row, above a review button, and above the tab or composer otherwise",
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:614-625 resolvedAnchor() - the runtime's own anchor and edge when that view is in a window, else the tab's anchor, else the composer fallback, always with the maximum-Y edge",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:361-365 - the anchor is held weakly and the default edge is maxY; 'minY is below (a tool row, as its chevron promises) and maxY is above (a Review button, at the foot of its turn)'",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:382-389 showDiff(on:edge:turn:focusEdits:) - sets the anchor, the edge, the selection, the focus edits, makes the popover visible and bumps the open request"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:362-366 - the anchor is held weakly and the default edge is maxY; 'minY is below (a tool row, as its chevron promises) and maxY is above (a Review button, at the foot of its turn)'",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:383-390 showDiff(on:edge:turn:focusEdits:) - sets the anchor, the edge, the selection, the focus edits, makes the popover visible and bumps the open request"
       ],
       "preconditions": "An opener asked for the popover.",
       "action": "The anchor is resolved.",
@@ -3664,8 +3717,8 @@
       "id": "PR-GIT-140",
       "title": "The tab, the toolbar button, the shortcut and the palette all open the whole selection and drop any focused file first",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:404-411 toggleDiff() - clears the focus, clears the anchor when the popover is not already visible, then toggles visibility",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:391-402 clearDiffFocus() and setDiffFocus(_:) - edits with an empty path are filtered out; the focus revision is bumped only when the set actually changed",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:405-412 toggleDiff() - clears the focus, clears the anchor when the popover is not already visible, then toggles visibility",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:392-403 clearDiffFocus() and setDiffFocus(_:) - edits with an empty path are filtered out; the focus revision is bumped only when the set actually changed",
         "DroppyCode/App/Views/Diff/DiffInspector.swift:34-43 - both selection rows call clearDiffFocus before changing the selection"
       ],
       "preconditions": "The popover may or may not be open.",
@@ -3719,9 +3772,9 @@
       "id": "PR-GIT-142",
       "title": "The changes tab is shown only when the thread has change statistics, and its counts come from one summary",
       "source_evidence": [
-        "DroppyCode/App/Views/Composer/ThreadChangesTab.swift:9-44 - the tab takes one FileChangeSummary and renders the file count, the additions and the deletions from it",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1905-1913 refreshChangeStats() - runs once per diff revision, parses the whole thread's diff and sets changeStats to nil when there are no files",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1898-1899 - changeStats is nil when the thread changed no files"
+        "DroppyCode/App/Views/Composer/ThreadChangesTab.swift:9-44 - `let stats: FileChangeSummary`; the file count `Text(verbatim: stats.files.count == 1 ? \"1 file\" : \"\\(stats.files.count) files\")`, the additions `Text(verbatim: \"+\\(stats.additions)\")`, the deletions `Text(verbatim: \"\\u{2212}\\(stats.deletions)\")` and the accessibility label all read the one summary",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1945-1953 refreshChangeStats() - runs once per diff revision, parses the whole thread's diff and sets changeStats to nil when there are no files",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1938-1939 - changeStats is nil when the thread changed no files"
       ],
       "preconditions": "A thread is shown.",
       "action": "The composer lays out its tab row.",
@@ -3745,7 +3798,7 @@
       "id": "PR-GIT-143",
       "title": "The popover's turn picker lists only turns that have changes, by their one-based index",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1964-1971 turnsWithChanges() - a turn qualifies when it has an end checkpoint, or a provider diff, or a non-empty touched-path list, or any tool call in its entries reported edits",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2004-2011 turnsWithChanges() - a turn qualifies when it has an end checkpoint, or a provider diff, or a non-empty touched-path list, or any tool call in its entries reported edits",
         "DroppyCode/App/Views/Diff/DiffInspector.swift:29-43 - the menu title is \"Turn <index + 1>\" for a selected turn and \"All changes\" otherwise; the rows are \"All changes\" then one \"Turn <index + 1>\" per qualifying turn, each checked when it is the selection"
       ],
       "preconditions": "The popover is open.",
@@ -3770,9 +3823,9 @@
       "id": "PR-GIT-144",
       "title": "A finished turn's diff is cached for the runtime's life while the thread's and a running turn's move with the revision",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1920-1921 - turnDiffs is a recent cache bounded at 64 keyed by turn id; revisionDiffs is bounded at 4 keyed by the selection's identifier or \"all\"",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1942-1958 - a selection is treated as fixed only when its turn exists and is not running; otherwise it is keyed by the revision cache",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1973-2009 parsedDiff(selection:providerFiles:) - a cached task is awaited and shared; otherwise one task is started and cached, so concurrent callers share one run"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1960-1961 - turnDiffs is a recent cache bounded at 64 keyed by turn id; revisionDiffs is bounded at 4 keyed by the selection's identifier or \"all\"",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1982-1998 - a selection is treated as fixed only when its turn exists and is not running; otherwise it is keyed by the revision cache",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2013-2049 parsedDiff(selection:providerFiles:) - a cached task is awaited and shared; otherwise one task is started and cached, so concurrent callers share one run"
       ],
       "preconditions": "A diff is requested.",
       "action": "The cache is consulted.",
@@ -3796,8 +3849,8 @@
       "id": "PR-GIT-145",
       "title": "A selection's snapshot diff spans from the first base checkpoint up to the last end checkpoint among the selected turns",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1996-2004 - the span is found by taking the last selected turn that has an end checkpoint, then the first turn at or before it that has a base checkpoint, and pairing that base with that end; the snapshot is git.diff(from:to:) over that pair, best-effort",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2005-2006 - the provider patch is the selected turns' provider diffs joined by \"\\n\", but only when no provider file list was supplied"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2036-2044 - the span is found by taking the last selected turn that has an end checkpoint, then the first turn at or before it that has a base checkpoint, and pairing that base with that end; the snapshot is git.diff(from:to:) over that pair, best-effort",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2045-2046 - the provider patch is the selected turns' provider diffs joined by \"\\n\", but only when no provider file list was supplied"
       ],
       "preconditions": "The selected turns have checkpoints.",
       "action": "The diff is produced.",
@@ -3821,9 +3874,9 @@
       "id": "PR-GIT-146",
       "title": "Only edits to files inside the chat's checkout or another sidebar project count toward a turn's diff",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1986-1990 - the edits are filtered by isProjectFile against the chat's root and every project path",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2012-2016 isProjectFile(_:root:projects:) - true when the path is relative to the root, or to any project path",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1982-1985 - 'a memory note it saved showed on the turn's card as \"Edited 1 file\" in a chat that had changed nothing'"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2026-2030 - the edits are filtered by isProjectFile against the chat's root and every project path",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2052-2056 isProjectFile(_:root:projects:) - true when the path is relative to the root, or to any project path",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2022-2025 - 'a memory note it saved showed on the turn's card as \"Edited 1 file\" in a chat that had changed nothing'"
       ],
       "preconditions": "A turn reported tool edits.",
       "action": "The diff's edit list is assembled.",
@@ -3847,15 +3900,18 @@
       "id": "PR-GIT-147",
       "title": "A turn's touched paths are the agent's own reported edits inside the checkout, plus what the lead's native heads changed",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2284-2291 - each reported edit's path is put through TouchedPaths.relative against the turn's root and only a non-nil result is inserted",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2292-2300 - the provider's own repository diff is deliberately not part of the record, because it spans every file that changed in the checkout while the turn ran, another chat's work included; the heads' touched paths are then unioned in and cleared",
-        "DroppyCode/Core/Models/Timeline.swift:263-265 - touchedPaths is repository-relative and nil on turns recorded before the field existed"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2354-2361 - each reported edit's path is put through TouchedPaths.relative against the turn's root and only a non-nil result is inserted",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2362-2370 - the provider's own repository diff is deliberately not part of the record, because it spans every file that changed in the checkout while the turn ran, another chat's work included; the heads' touched paths are then unioned in and cleared",
+        "DroppyCode/Core/Models/Timeline.swift:297-299 - touchedPaths is repository-relative and nil on turns recorded before the field existed",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1924 - `hydraTouched.removeAll()` in revert, so paths pending before a revert never reach the next record",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2377-2381 - `// (see `hydraCurrentTurnTouchedPaths`). It is cleared in `startTurn`,` / `// `install` and `revert`, not here.` / `hydraCurrentTurnTouchedPaths.formUnion(touched)`",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:622-624 install - `if currentTurnID == nil {` `endDelegationStream()` `hydraCurrentTurnTouchedPaths = []`; :1205 startTurn and :1925 revert - `hydraCurrentTurnTouchedPaths = []`; :3716 rehearseTurn - `hydraCurrentTurnTouchedPaths = Set(touchedPaths)`"
       ],
       "preconditions": "A turn is finishing.",
       "action": "The touched-path record is written.",
-      "expected_result": "Every reported edit path is resolved against the turn's working root and kept only when it lies inside the checkout, since a path outside it is no part of the turn and git cannot stage a file it does not hold. The provider's own repository-wide diff is deliberately excluded, because it once caused another chat's file to be merged out under a chat that had changed nothing. The lead's native heads' touched paths are then unioned in, whether they arrived during the turn or between the last turn and this one, and the pending set is cleared.",
+      "expected_result": "Every reported edit path is resolved against the turn's working root and kept only when it lies inside the checkout, since a path outside it is no part of the turn and git cannot stage a file it does not hold. The provider's own repository-wide diff is deliberately excluded, because it once caused another chat's file to be merged out under a chat that had changed nothing. The lead's native heads' touched paths are then unioned in, whether they arrived during the turn or between the last finished turn and this one, unless a revert came in between: a revert empties the pending set (PR-GIT-119), so paths reported before it are dropped. The pending set is then cleared. After the record is written, the turn's touched paths are also folded into the in-flight set hydraCurrentTurnTouchedPaths. That set is emptied by startTurn (ThreadRuntime.swift:1205) and by revert (:1925), by install only when no turn is in flight (:622-624, `if currentTurnID == nil { endDelegationStream(); hydraCurrentTurnTouchedPaths = [] }`), and replaced with the rehearsed turn's paths by rehearseTurn (:3716, `hydraCurrentTurnTouchedPaths = Set(touchedPaths)`); the source comment at :2379-2380 names only startTurn, install and revert.",
       "side_effects": [
-        "None"
+        "The in-memory set hydraCurrentTurnTouchedPaths gains the turn's touched paths"
       ],
       "persistence": "TurnRecord.touchedPaths, an optional array of strings persisted with the thread document; nil on turns recorded before the field existed, which contributes nothing rather than lifting the filter.",
       "failure_cases": [
@@ -3863,18 +3919,19 @@
       ],
       "cancellation": "not cancellable",
       "windows_path": "Direct port; the field name touchedPaths is fixed by existing thread documents.",
-      "verification_method": "restart test reading a thread document written with and without the field",
+      "verification_method": "restart test reading a thread document written with and without the field; unit test that head paths pending before a revert are not in the next finished turn's touchedPaths",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b2_change": "B1 DroppyCode/App/Runtime/ThreadRuntime.swift:2299-2300 (`touched.formUnion(hydraTouched)`, `hydraTouched.removeAll()`) unioned every head path pending since the last finished turn; the same lines run at B2 :2369-2370, but revert now empties hydraTouched first (B2 :1924), so paths pending before a revert no longer reach the next turn. B2 also adds `hydraCurrentTurnTouchedPaths.formUnion(touched)` (:2381) after the record is written; B1 had no such set. Side effects changed from none to that in-memory fold."
     },
     {
       "id": "PR-GIT-148",
       "title": "The turn record's git fields are decoded field by field with defaults so an older thread still reads",
       "source_evidence": [
-        "DroppyCode/Core/Models/Timeline.swift:249-273 TurnRecord - baseCheckpoint, endCheckpoint, providerDiff, providerAnchor, touchedPaths and hydraMerged",
-        "DroppyCode/Core/Models/Timeline.swift:275-295 - every field is read with an explicit default, 'so a turn stored by an earlier build, which knew nothing of the newest of them, still reads as the turn it was rather than being dropped'"
+        "DroppyCode/Core/Models/Timeline.swift:283-307 TurnRecord - baseCheckpoint, endCheckpoint, providerDiff, providerAnchor, touchedPaths and hydraMerged",
+        "DroppyCode/Core/Models/Timeline.swift:309-329 - every field is read with an explicit default, 'so a turn stored by an earlier build, which knew nothing of the newest of them, still reads as the turn it was rather than being dropped'"
       ],
       "preconditions": "A thread document is being read.",
       "action": "Turn records are decoded.",
@@ -3899,9 +3956,9 @@
       "title": "A thread stores its worktree path and branch, and the commit instructions are a single persisted setting",
       "source_evidence": [
         "DroppyCode/Core/Models/Library.swift:135-136 - worktreePath and branch on the thread",
-        "DroppyCode/App/AppSettings.swift:143 - the key literal \"commitInstructions\"",
-        "DroppyCode/App/AppSettings.swift:297-298 and :721 - the property writes through to the defaults on change and loads with an empty-string default",
-        "DroppyCode/App/Views/Settings/SettingsView.swift:802-818 - the section \"Commit message instructions\" whose editor placeholder is \"For example: use conventional commit prefixes\""
+        "DroppyCode/App/AppSettings.swift:144 - the key literal \"commitInstructions\"",
+        "DroppyCode/App/AppSettings.swift:305-306 and :730 - the property writes through to the defaults on change and loads with an empty-string default",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:841-857 - `ChromeSection(title: \"Commit message instructions\")` holding `TextEditor(text: $settings.commitInstructions)` and, while it is empty, `Text(\"For example: use conventional commit prefixes\")`"
       ],
       "preconditions": "None.",
       "action": "A worktree is created, or commit instructions are typed.",
@@ -3925,7 +3982,7 @@
       "id": "PR-GIT-150",
       "title": "The source control settings page states where worktrees live and which CLIs open pull requests, and reveals the folder",
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:820-830 - the section \"Worktrees and pull requests\"; a row titled \"Worktrees\" whose detail is the worktrees directory path with a \"Reveal\" button; a row titled \"Pull requests\" whose detail is \"Opened with the GitHub CLI (gh) or GitLab CLI (glab) from your PATH.\" and no control"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:859-869 - the section \"Worktrees and pull requests\"; a row titled \"Worktrees\" whose detail is the worktrees directory path with a \"Reveal\" button; a row titled \"Pull requests\" whose detail is \"Opened with the GitHub CLI (gh) or GitLab CLI (glab) from your PATH.\" and no control"
       ],
       "preconditions": "The settings window is open on the source control page.",
       "action": "The user reads or presses Reveal.",
@@ -3949,9 +4006,9 @@
       "id": "PR-GIT-151",
       "title": "A turn's file card is shown only when the turn's summary has files, and its title is singular at one file",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2706-2718 - the card is built only when changes exist and its file list is non-empty",
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2758-2759 - the title is \"Edited 1 file\" for exactly one file and \"Edited <n> files\" otherwise",
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2725-2732 - when the summary carries no changes but the turn changed files or reported edits, the diff is parsed for that turn and stored as the turn's legacy changes"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2688-2700 - the card is built only when changes exist and its file list is non-empty",
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2739-2740 - the title is \"Edited 1 file\" for exactly one file and \"Edited <n> files\" otherwise",
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2707-2714 - when the summary carries no changes but the turn changed files or reported edits, the diff is parsed for that turn and stored as the turn's legacy changes"
       ],
       "preconditions": "A turn finished.",
       "action": "The timeline row is built.",
@@ -3975,7 +4032,7 @@
       "id": "PR-GIT-152",
       "title": "The turn file card's popover lists at most twelve files and summarises the rest",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2848-2876 - the first twelve files are listed with their path and either \"Binary\" or their statistics; past twelve a final line reads \"and 1 more file\" at exactly thirteen files and \"and <n - 12> more files\" otherwise"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2829-2857 filesPopover - `ForEach(files.prefix(12), id: \\.path)` rows of `Text(verbatim: file.path)` `.truncationMode(.middle)` and either `Text(\"Binary\")` or `DiffStatLabel(additions: file.additions, deletions: file.deletions)`; `if files.count > 12 {` `Text(files.count == 13 ? \"and 1 more file\" : \"and \\(files.count - 12) more files\")`"
       ],
       "preconditions": "The turn changed files.",
       "action": "The user presses the card's title to show the file list.",
@@ -3990,6 +4047,61 @@
       "cancellation": "not applicable",
       "windows_path": "Direct port of the twelve-file cut and both overflow forms.",
       "verification_method": "interaction test at twelve, thirteen and twenty files",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-GIT-159",
+      "title": "The in-app GitLab merge passes --squash to glab",
+      "source_evidence": [
+        "DroppyCode/Services/Git/Git.swift:216 - `case .gitlab: result = try await Shell.run(tool: \"glab\", [\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"], in: directory, timeout: 300)`",
+        "DroppyCode/App/AppModel+HydraMerge.swift:372-373 - `/// retried once with `--recover` so its saved options are picked up. Squash and` / `/// source-branch removal are explicit for GitLab team merges.`",
+        "DroppyCode/App/AppModel+HydraMerge.swift:382 - `var arguments = [\"mr\", \"create\", \"--title\", title, \"--description\", body, \"--yes\", \"--squash-before-merge\"]`",
+        "DroppyCode/App/AppModel+HydraMerge.swift:320 - `try await git.mergePullRequest(link)`",
+        "B1 DroppyCode/Services/Git/Git.swift:216 - `case .gitlab: result = try await Shell.run(tool: \"glab\", [\"mr\", \"merge\", number, \"--yes\"], in: directory, timeout: 300)`"
+      ],
+      "preconditions": "The project's origin is a GitLab forge and the Hydra team merge has opened a merge request and parsed its link.",
+      "action": "The team merge lands the request through glab.",
+      "expected_result": "glab receives \"--squash\" as the fifth argv element, after \"mr\", \"merge\", <number> and \"--yes\" and before \"--remove-source-branch\", on every attempt of the retry loop. The source's own comment calls this explicit: \"Squash and source-branch removal are explicit for GitLab team merges.\" (AppModel+HydraMerge.swift:372-373); the request the team merge created also carries \"--squash-before-merge\". The source only passes the flag; how GitLab answers it, for example under a project's squash setting, is not established by the source. At B1 the argv was [\"mr\", \"merge\", number, \"--yes\"], with neither \"--squash\" nor \"--remove-source-branch\".",
+      "side_effects": [
+        "Network: glab asks GitLab to merge the request, passing --squash and --remove-source-branch"
+      ],
+      "persistence": "None locally; the remote history changes.",
+      "failure_cases": [
+        "A glab failure is retried or thrown as ShellError(failureMessage) by the loop of PR-GIT-048"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port: pass \"--squash\" to glab.exe in this position, with no shell.",
+      "verification_method": "contract fixture with a scripted glab shim recording its argv, asserting [\"mr\", \"merge\", \"<n>\", \"--yes\", \"--squash\", \"--remove-source-branch\"] on each attempt",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-GIT-160",
+      "title": "The in-app GitLab merge asks GitLab to remove the source branch, while the agent-facing merge prompt still does not",
+      "source_evidence": [
+        "DroppyCode/Services/Git/Git.swift:216 - `case .gitlab: result = try await Shell.run(tool: \"glab\", [\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"], in: directory, timeout: 300)`",
+        "DroppyCode/App/AppModel+HydraMerge.swift:372-373 - `/// retried once with `--recover` so its saved options are picked up. Squash and` / `/// source-branch removal are explicit for GitLab team merges.`",
+        "DroppyCode/App/AppModel+HydraMerge.swift:391 - `arguments += [\"--source-branch\", source, \"--target-branch\", target]`: the source branch is the branch the team merge pushed (:300 `try await git.pushBranch(branch)`)",
+        "DroppyCode/Core/Models/MergeRequestLink.swift:50 - `\"Use glab from this directory: `glab mr merge \\(number) --yes`. If GitLab answers that the request is still being checked (a 405), wait a few seconds and try again; if it reports conflicts, stop and say so instead of resolving them.\"`"
+      ],
+      "preconditions": "The project's origin is a GitLab forge and the Hydra team merge has opened a merge request and parsed its link.",
+      "action": "The team merge lands the request through glab.",
+      "expected_result": "glab receives \"--remove-source-branch\" as the last argv element, so when the merge succeeds GitLab is asked to remove the request's source branch, the branch the team merge pushed, on the remote. The agent-facing merge prompt (PR-GIT-055) still tells the agent to run `glab mr merge <number> --yes`, with neither --squash nor --remove-source-branch, so the helper path and the team merge path land GitLab requests differently at B2; the port reproduces both as they are.",
+      "side_effects": [
+        "Network: the request's source branch is removed on the remote after the merge"
+      ],
+      "persistence": "None locally.",
+      "failure_cases": [
+        "A glab failure is retried or thrown as ShellError(failureMessage) by the loop of PR-GIT-048"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port. Do not add the flags to the agent prompt of PR-GIT-055, which is unchanged at B2.",
+      "verification_method": "contract fixture as PR-GIT-159, plus a unit asserting the PR-GIT-055 GitLab paragraph still contains `glab mr merge <number> --yes` byte for byte",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -4017,7 +4129,7 @@
         "the changes shortcut, the tab and the X button close it"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:22-121",
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:22-121 - body: `VStack(spacing: 0) {` holding the `GlassEffectContainer(spacing: 2)` chrome row, then `ProgressView(\"Reading the diff…\")` while loading, `ContentUnavailableView(\"No changes yet\", ...)` when empty, or `ScrollView { LazyVStack(alignment: .leading, spacing: 10) { ForEach(files) { file in DiffFileCard(...) } } }`",
         "DroppyCode/App/Views/Diff/DiffInspector.swift:515-539",
         "DroppyCode/App/Views/Diff/DiffInspector.swift:660-672"
       ],
@@ -4037,10 +4149,15 @@
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:25-69",
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:25-69 - `GlassEffectContainer(spacing: 2) { HStack(spacing: 10) {` menu, `Spacer(minLength: 8)`, `if !files.isEmpty {` count label and DiffStatLabel `}`, ChromeCapsule `} }`; `.padding(.horizontal, Chrome.chromeHorizontalPadding)`, `.padding(.top, Chrome.chromeTopPadding)`, `.padding(.bottom, 10)`",
         "DroppyCode/UI/Chrome/Chrome.swift:31-32"
       ],
-      "notes": "The counts disappear entirely when the file list is empty, so the empty state shows only the menu and the close capsule."
+      "notes": "The counts disappear entirely when the file list is empty, so the empty state shows only the menu and the close capsule. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "deviation": {
+        "decision": "OD-0005",
+        "upstream": "`GlassEffectContainer(spacing: 2) {` (DroppyCode/App/Views/Diff/DiffInspector.swift:25) holds a ChromeTextMenu and a ChromeCapsule, drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:504, :317), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
+        "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
+      }
     },
     {
       "id": "UI-GIT-003",
@@ -4061,7 +4178,12 @@
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:27-44"
       ],
-      "notes": "Its tooltip is the literal \"Choose which changes to show\". The turn label uses the stored zero-based index plus one."
+      "notes": "Its tooltip is the literal \"Choose which changes to show\". The turn label uses the stored zero-based index plus one. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "deviation": {
+        "decision": "OD-0005",
+        "upstream": "ChromeTextMenu (DroppyCode/App/Views/Diff/DiffInspector.swift:27) is drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:504), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
+        "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
+      }
     },
     {
       "id": "UI-GIT-004",
@@ -4100,7 +4222,7 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:38-43",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1964-1971"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2004-2011"
       ],
       "notes": "The label is the literal \"Turn \" followed by the stored index plus one. Only turns with an end checkpoint, a provider diff, non-empty touched paths or tool edits appear."
     },
@@ -4111,16 +4233,17 @@
       "role": "label",
       "exact_text": "1 file",
       "geometry": "Plain text between the spacer and the statistics.",
-      "typography": "System font at size 11.",
-      "colors": "Chrome.secondaryText.",
+      "typography": "System font in the subheadline text style (`.font(.system(.subheadline))`), which macOS lays out at 11 pt, the size B1 fixed.",
+      "colors": "Chrome.secondaryText (Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)).",
       "states": [
         "hidden when the file list is empty"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:46-49"
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:46-49 - `if !files.isEmpty { Text(summary.files.count == 1 ? \"1 file\" : \"\\(summary.files.count) files\")` `.font(.system(.subheadline))` `.foregroundStyle(Chrome.secondaryText)`"
       ],
-      "notes": "Exactly \"1 file\" at one file, otherwise the count followed by \" files\"."
+      "notes": "Exactly \"1 file\" at one file, otherwise the count followed by \" files\".",
+      "b2_change": "typography `.font(.system(size: 11))` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:48) -> `.font(.system(.subheadline))` (B2 :48); B1 DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2, so the default size is unchanged."
     },
     {
       "id": "UI-GIT-007",
@@ -4137,7 +4260,7 @@
       "interactions": [],
       "source_evidence": [
         "DroppyCode/UI/Common/Components.swift:45-56",
-        "DroppyCode/UI/Chrome/Chrome.swift:89-91"
+        "DroppyCode/UI/Chrome/Chrome.swift:91-93"
       ],
       "notes": "The deletion marker is the Unicode minus sign, not a hyphen. This one component is reused by the popover header, every file card, the turn file card and the message editor."
     },
@@ -4157,7 +4280,12 @@
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:55-59"
       ],
-      "notes": "Its tooltip is the single word \"More\"."
+      "notes": "Its tooltip is the single word \"More\". OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "deviation": {
+        "decision": "OD-0005",
+        "upstream": "`ChromeCapsule {` (DroppyCode/App/Views/Diff/DiffInspector.swift:55) is drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:317), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
+        "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
+      }
     },
     {
       "id": "UI-GIT-009",
@@ -4211,7 +4339,12 @@
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:60-63"
       ],
-      "notes": "Its tooltip is the literal \"Hide changes\" with the changes shortcut's rendered label appended."
+      "notes": "Its tooltip is the literal \"Hide changes\" with the changes shortcut's rendered label appended. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "deviation": {
+        "decision": "OD-0005",
+        "upstream": "`ChromeCapsule {` (DroppyCode/App/Views/Diff/DiffInspector.swift:55) is drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:317), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
+        "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
+      }
     },
     {
       "id": "UI-GIT-012",
@@ -4288,7 +4421,7 @@
         "clicking anywhere in the header toggles collapse"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:192-231"
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:192-231 - `VStack(alignment: .leading, spacing: 0) {` header button, then `if !isCollapsed {` the caption or `DiffLinesView(file: file)` `}`; `.background(.quaternary.opacity(0.3), in: .rect(cornerRadius: 12, style: .continuous))`; `.clipShape(.rect(cornerRadius: 12, style: .continuous))`"
       ],
       "notes": "The card compares itself cheaply on path, counts, hunk count, change kind, binary flag and collapse state, so a sibling's collapse never re-renders it."
     },
@@ -4300,7 +4433,7 @@
       "exact_text": null,
       "geometry": "An HStack with spacing 8, padding horizontal 12 and vertical 9, hit-tested over its whole rectangle. Left to right: a disclosure chevron, a change symbol, the path text, a spacer with a minimum of 8, the statistics label.",
       "typography": "The chevron is caption 2 at semibold weight; the path text is callout, limited to one line and truncated at the head so the file name stays visible.",
-      "colors": "The chevron is the tertiary foreground. The path's directory portion is the secondary foreground and the file name the primary. The change symbol is green for added, red for deleted, blue for renamed and orange for modified.",
+      "colors": "The chevron is Chrome.secondaryText. The path's directory portion is Chrome.secondaryText and the file name the primary foreground. The change symbol is green for added, red for deleted, blue for renamed and orange for modified.",
       "states": [
         "collapsed: the chevron is at 0 degrees",
         "expanded: the chevron is rotated 90 degrees"
@@ -4309,10 +4442,11 @@
         "click toggles this card's collapse state"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:194-213",
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:194-213 - `Button(action: toggle) { HStack(spacing: 8) { Image(systemName: \"chevron.right\").font(.caption2.weight(.semibold)).foregroundStyle(Chrome.secondaryText).rotationEffect(.degrees(isCollapsed ? 0 : 90))`; `Image(systemName: symbol).foregroundStyle(color)`; `Text(\"\\(Text(file.directory).foregroundStyle(Chrome.secondaryText))\\(file.name)\").font(.callout).lineLimit(1).truncationMode(.head)`; `Spacer(minLength: 8)`; `DiffStatLabel(...)`; `.padding(.horizontal, 12)` `.padding(.vertical, 9)` `.contentShape(.rect)`",
         "DroppyCode/App/Views/Diff/DiffInspector.swift:233-249"
       ],
-      "notes": "The symbols are \"plus.circle.fill\" added, \"minus.circle.fill\" deleted, \"arrow.right.circle.fill\" renamed and \"pencil.circle.fill\" modified. Head truncation, not tail: a long directory is cut at the front."
+      "notes": "The symbols are \"plus.circle.fill\" added, \"minus.circle.fill\" deleted, \"arrow.right.circle.fill\" renamed and \"pencil.circle.fill\" modified. Head truncation, not tail: a long directory is cut at the front.",
+      "b2_change": "chevron `.foregroundStyle(.tertiary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:198) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :198); directory `Text(file.directory).foregroundStyle(.secondary)` (B1 :202) -> `Text(file.directory).foregroundStyle(Chrome.secondaryText)` (B2 :202); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)."
     },
     {
       "id": "UI-GIT-017",
@@ -4322,15 +4456,16 @@
       "exact_text": "Binary file",
       "geometry": "Padding horizontal 12, bottom 10.",
       "typography": "Caption.",
-      "colors": "Secondary foreground.",
+      "colors": "Chrome.secondaryText (Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)).",
       "states": [
         "shown when the card is expanded and the file is binary"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:216-221"
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:216-221 - `if file.isBinary || file.hunks.isEmpty { Text(file.isBinary ? \"Binary file\" : \"Diff details unavailable\")` `.font(.caption)` `.foregroundStyle(Chrome.secondaryText)` `.padding(.horizontal, 12)` `.padding(.bottom, 10)`"
       ],
-      "notes": "Two characters, capital B, no period."
+      "notes": "Two characters, capital B, no period.",
+      "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:219) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :219), shared by both captions."
     },
     {
       "id": "UI-GIT-018",
@@ -4340,15 +4475,16 @@
       "exact_text": "Diff details unavailable",
       "geometry": "Padding horizontal 12, bottom 10.",
       "typography": "Caption.",
-      "colors": "Secondary foreground.",
+      "colors": "Chrome.secondaryText (Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)).",
       "states": [
         "shown when the card is expanded, the file is not binary and it has no hunks"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:216-221"
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:216-221 - `if file.isBinary || file.hunks.isEmpty { Text(file.isBinary ? \"Binary file\" : \"Diff details unavailable\")` `.font(.caption)` `.foregroundStyle(Chrome.secondaryText)` `.padding(.horizontal, 12)` `.padding(.bottom, 10)`"
       ],
-      "notes": "This is what a file synthesised from an edit's reported counts alone shows, so the row still carries numbers while saying it cannot show the lines."
+      "notes": "This is what a file synthesised from an edit's reported counts alone shows, so the row still carries numbers while saying it cannot show the lines.",
+      "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:219) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :219), shared by both captions."
     },
     {
       "id": "UI-GIT-019",
@@ -4379,17 +4515,18 @@
       "exact_text": null,
       "geometry": "Padding horizontal 10, vertical 3, filling the available width and aligned leading, one line only.",
       "typography": "The list's monospaced font at 11.5.",
-      "colors": "Secondary foreground on a background of the accent colour at opacity 0.06.",
+      "colors": "Chrome.secondaryText on a background of the accent colour at opacity 0.06.",
       "states": [
         "dropped entirely when the hunk continues a tinted run from the previous hunk",
         "never emitted when line numbers are hidden"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:348-355",
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:348-355 - `case .header(let text, _): Text(text).foregroundStyle(Chrome.secondaryText).lineLimit(1).padding(.horizontal, 10).padding(.vertical, 3).frame(maxWidth: .infinity, alignment: .leading).background(Color.accentColor.opacity(0.06))`",
         "DroppyCode/App/Views/Diff/DiffInspector.swift:320-326"
       ],
-      "notes": "The text is the raw @@ header line from the patch, shown verbatim."
+      "notes": "The text is the raw @@ header line from the patch, shown verbatim.",
+      "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:350) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :350); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)."
     },
     {
       "id": "UI-GIT-021",
@@ -4399,7 +4536,7 @@
       "exact_text": null,
       "geometry": "An HStack aligned to the top with spacing 0: when line numbers are shown, two trailing-aligned columns of width 30 each, then a centre-aligned marker column of width 14, then the text filling the rest and aligned leading. Padding vertical 1, leading 6, trailing 8. The background shape carries a corner radius of 8 only on the first and last rows of a tinted run.",
       "typography": "The list's monospaced font at 11.5.",
-      "colors": "Line numbers are the secondary colour at opacity 0.6. The marker is green for an addition, red for a deletion and secondary otherwise. Body text is the primary foreground, or secondary for a note line. The row background is green at opacity 0.12 for an addition, red at opacity 0.12 for a deletion and clear otherwise.",
+      "colors": "Line numbers are Chrome.secondaryText. The marker is green for an addition, red for a deletion and secondary otherwise. Body text is the primary foreground, or secondary for a note line. The row background is green at opacity 0.12 for an addition, red at opacity 0.12 for a deletion and clear otherwise.",
       "states": [
         "addition",
         "deletion",
@@ -4410,9 +4547,10 @@
         "text selection"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:436-513"
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:436-513 DiffLineRow - `Text(line.oldNumber.map(String.init) ?? \"\").frame(width: Self.numberColumnWidth, alignment: .trailing).foregroundStyle(Chrome.secondaryText)` and the same for `line.newNumber` (:450-455); `Text(line.text.isEmpty ? \" \" : line.text).foregroundStyle(line.kind == .note ? .secondary : .primary)` (:460-461); `numberColumnWidth: CGFloat = 30`, `markerColumnWidth: CGFloat = 14` (:472-473); markers `\"+\"` and `\"−\"`, colours `.green`, `.red`, `.secondary`, backgrounds `.green.opacity(0.12)`, `.red.opacity(0.12)`, `.clear` (:490-512)"
       ],
-      "notes": "The addition marker is \"+\" and the deletion marker is U+2212 MINUS SIGN, not a hyphen. Empty line text is rendered as a single space so the row keeps its height. Fixed-width columns rather than one concatenated text, so numbers share a right edge and wrapped code stays out of the gutters."
+      "notes": "The addition marker is \"+\" and the deletion marker is U+2212 MINUS SIGN, not a hyphen. Empty line text is rendered as a single space so the row keeps its height. Fixed-width columns rather than one concatenated text, so numbers share a right edge and wrapped code stays out of the gutters.",
+      "b2_change": "line numbers `.foregroundStyle(Color.secondary.opacity(0.6))` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:452, :455) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :452, :455); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79). Marker colours and the note line's `.secondary` (:461) are unchanged."
     },
     {
       "id": "UI-GIT-022",
@@ -4422,7 +4560,7 @@
       "exact_text": "Show all 512 lines",
       "geometry": "The label has padding horizontal 10 and vertical 6 inside a continuous capsule; the button itself has padding horizontal 10 and vertical 8.",
       "typography": "Caption.",
-      "colors": "Secondary foreground on the quaternary fill at opacity 0.5.",
+      "colors": "Chrome.secondaryText on the quaternary fill at opacity 0.5.",
       "states": [
         "present only while the card is not fully expanded and the file's total line count exceeds 200"
       ],
@@ -4430,10 +4568,11 @@
         "click renders every line of this file"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:372-387",
-        "DroppyCode/App/Views/Diff/DiffInspector.swift:274"
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:372-387 - `if !showsAll, totalLines > Self.collapsedLineLimit { Button { showsAll.toggle() } label: { Text(\"Show all \\(totalLines) lines\").font(.caption).foregroundStyle(Chrome.secondaryText).padding(.horizontal, 10).padding(.vertical, 6).background(.quaternary.opacity(0.5), in: Capsule(style: .continuous))` `.contentShape(.capsule)` `.buttonStyle(.plain)` `.padding(.horizontal, 10)` `.padding(.vertical, 8)`",
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:274 - `private nonisolated static let collapsedLineLimit = 200`"
       ],
-      "notes": "The label is the literal \"Show all \", the total line count, then \" lines\", with no singular form: a 201-line file reads \"Show all 201 lines\"."
+      "notes": "The label is the literal \"Show all \", the total line count, then \" lines\", with no singular form: a 201-line file reads \"Show all 201 lines\".",
+      "b2_change": "label `.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Diff/DiffInspector.swift:378) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :378); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79). The 0.5 quaternary capsule and the 200-line threshold are unchanged (:274 gained only `nonisolated`)."
     },
     {
       "id": "UI-GIT-023",
@@ -4442,7 +4581,7 @@
       "role": "button",
       "exact_text": "3 files",
       "geometry": "A continuous shape whose top leading and top trailing radii are 12 and whose bottom corners are square. HStack with spacing 7. Padding horizontal 12, top 7, bottom 7 plus the overlap constant 14, so 21 in total; the composer draws over that lower edge so the tab reads as part of the chat box. The tab sizes to its content.",
-      "typography": "System font at size 12, medium weight, with monospaced digits.",
+      "typography": "System font in the callout text style at medium weight with monospaced digits (`.font(.system(.callout, weight: .medium).monospacedDigit())`), which macOS lays out at 12 pt, the size B1 fixed. The plusminus icon sets its own font, Chrome.inlineIconFont, the system font in the subheadline text style at semibold weight (`.system(.subheadline, weight: .semibold)`, DroppyCode/UI/Chrome/Chrome.swift:29), which macOS lays out at 11 pt, the size B1 fixed.",
       "colors": "The plusminus icon uses Chrome.secondaryText, the file count Chrome.primaryText at opacity 0.9, the additions Chrome.success and the deletions Chrome.danger. The tab itself carries the interactive regular glass material.",
       "states": [
         "absent entirely when the thread has no change statistics"
@@ -4451,9 +4590,16 @@
         "click opens the changes popover anchored to this tab, above it"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Composer/ThreadChangesTab.swift:6-45"
+        "DroppyCode/App/Views/Composer/ThreadChangesTab.swift:6-45 - `static let overlap: CGFloat = 14`; `UnevenRoundedRectangle(topLeadingRadius: 12, topTrailingRadius: 12, style: .continuous)`; `HStack(spacing: 7)`; `.font(.system(.callout, weight: .medium).monospacedDigit())` (:30); `.padding(.horizontal, 12)` `.padding(.top, 7)` `.padding(.bottom, 7 + Self.overlap)`; `.glassEffect(.regular.interactive(), in: shape)` (:38); `.help(\"Show this thread's changes\\(ShortcutStore.hint(for: .toggleChanges))\")`",
+        "DroppyCode/App/Views/Composer/ThreadChangesTab.swift:18-19 - `Image(systemName: \"plusminus\")` `.font(Chrome.inlineIconFont)`; DroppyCode/UI/Chrome/Chrome.swift:29 - `static let inlineIconFont: Font = .system(.subheadline, weight: .semibold)`"
       ],
-      "notes": "Its tooltip is \"Show this thread's changes\" with the changes shortcut's label appended. Its accessibility label is the count, then \" files changed, \", the additions, then \" added, \", the deletions, then \" removed\". The deletion prefix is U+2212, written as an explicit escape in the source."
+      "notes": "Its tooltip is \"Show this thread's changes\" with the changes shortcut's label appended. Its accessibility label is the count, then \" files changed, \", the additions, then \" added, \", the deletions, then \" removed\". The deletion prefix is U+2212, written as an explicit escape in the source. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "b2_change": "typography `.font(.system(size: 12, weight: .medium).monospacedDigit())` (B1 DroppyCode/App/Views/Composer/ThreadChangesTab.swift:30) -> `.font(.system(.callout, weight: .medium).monospacedDigit())` (B2 :30); B1 DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2, so the default size is unchanged. Icon font: Chrome.inlineIconFont `.system(size: 11, weight: .semibold)` (B1 DroppyCode/UI/Chrome/Chrome.swift:29) -> `.system(.subheadline, weight: .semibold)` (B2 :29); B1 DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` is upstream's own table of the size macOS lays that style out at, so the icon's default size is unchanged.",
+      "deviation": {
+        "decision": "OD-0005",
+        "upstream": "`.glassEffect(.regular.interactive(), in: shape)` (DroppyCode/App/Views/Composer/ThreadChangesTab.swift:38), macOS Liquid Glass",
+        "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
+      }
     },
     {
       "id": "UI-GIT-024",
@@ -4471,9 +4617,14 @@
         "click toggles the diff, clearing any focused file first"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1168-1176"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1164-1172"
       ],
-      "notes": "Its tooltip is the single word \"Changes\" with the shortcut label appended."
+      "notes": "Its tooltip is the single word \"Changes\" with the shortcut label appended. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "deviation": {
+        "decision": "OD-0005",
+        "upstream": "`ChromeCapsule {` (DroppyCode/App/Views/Chat/ChatView.swift:1164) is drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:317), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
+        "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
+      }
     },
     {
       "id": "UI-GIT-025",
@@ -4510,10 +4661,15 @@
         "click opens the git actions menu"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1163-1166",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1480-1492"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1159-1162",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1476-1488"
       ],
-      "notes": "Its tooltip is \"Commit, push and open pull requests\" when nothing has changed and the count followed by \" changed files\" otherwise; the second form is never singularised, so one changed file yields the tooltip \"1 changed files\"."
+      "notes": "Its tooltip is \"Commit, push and open pull requests\" when nothing has changed and the count followed by \" changed files\" otherwise; the second form is never singularised, so one changed file yields the tooltip \"1 changed files\". OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "deviation": {
+        "decision": "OD-0005",
+        "upstream": "`ChromeCapsule {` (DroppyCode/App/Views/Chat/ChatView.swift:1153) is drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:317), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
+        "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
+      }
     },
     {
       "id": "UI-GIT-027",
@@ -4527,7 +4683,7 @@
       "states": [],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1483-1484"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1479-1480"
       ],
       "notes": "Exactly \"1 changed file\" at one, otherwise the count followed by \" changed files\". This note is correctly singularised even though the button's tooltip is not."
     },
@@ -4547,7 +4703,7 @@
         "click opens the commit sheet"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1485"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1481"
       ],
       "notes": "The trailing character is the single ellipsis character U+2026, not three periods."
     },
@@ -4567,8 +4723,8 @@
         "click pushes HEAD to origin with upstream tracking"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1486",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1499-1507"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1482",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1495-1503"
       ],
       "notes": "There is no confirmation step. A failure raises an alert titled \"Push failed\"."
     },
@@ -4588,8 +4744,8 @@
         "click pushes, then opens a request with the forge's CLI, then opens the returned page in the browser"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1487",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1509-1531"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1483",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1505-1527 openPullRequest() - `try await repository.push()`, the reads `repository.output([\"log\", \"-1\", \"--pretty=%s\"])` and `repository.output([\"log\", \"-1\", \"--pretty=%b\"])`, `repository.createPullRequest(...)`, then `NSWorkspace.shared.open(url)` on success"
       ],
       "notes": "The label says pull request even on GitLab, where the object created is a merge request."
     },
@@ -4609,7 +4765,7 @@
         "click opens the repository's web page in the default browser"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1488-1491"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1484-1487"
       ],
       "notes": "The symbol names a specific browser but the action uses the user's default one."
     },
@@ -4620,7 +4776,7 @@
       "role": "popover",
       "exact_text": "Commit changes",
       "geometry": "A leading-aligned VStack with spacing 14, padding 20 on every side, fixed width 560, height driven by content.",
-      "typography": "The title is the system font at size 17, semibold.",
+      "typography": "The title is the system font in the title2 text style at semibold weight (`.font(.system(.title2, weight: .semibold))`), which macOS lays out at 17 pt, the size B1 fixed.",
       "colors": "The app's presented chrome.",
       "states": [
         "generating: the placeholder and the Write for me button change",
@@ -4631,9 +4787,10 @@
         "Commit commits and, when checked, pushes"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1534-1614"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1530-1610 CommitSheet - `VStack(alignment: .leading, spacing: 14) { Text(\"Commit changes\").font(.system(.title2, weight: .semibold))` ... `}` `.padding(20)` `.frame(width: 560)`"
       ],
-      "notes": "The title is \"Commit changes\", two words, sentence case."
+      "notes": "The title is \"Commit changes\", two words, sentence case.",
+      "b2_change": "title `.font(.system(size: 17, weight: .semibold))` (B1 DroppyCode/App/Views/Chat/ChatView.swift:1550) -> `.font(.system(.title2, weight: .semibold))` (B2 :1546); B1 DroppyCode/UI/Common/ChatZoom.swift:49 `case .title2: 17` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The sheet moved from B1 :1534-1614 to B2 :1530-1610 (four lines removed at B1 :120-123)."
     },
     {
       "id": "UI-GIT-033",
@@ -4642,7 +4799,7 @@
       "role": "label",
       "exact_text": null,
       "geometry": "A scroll view capped at height 110, with padding 10 and a continuous rounded rectangle background of corner radius 12. Text fills the width and is aligned leading.",
-      "typography": "Monospaced system font at size 11.",
+      "typography": "Monospaced system font in the subheadline text style (`.font(.system(.subheadline, design: .monospaced))`), which macOS lays out at 11 pt, the size B1 fixed.",
       "colors": "Chrome.overlay at opacity 0.05.",
       "states": [
         "absent entirely when the summary is empty"
@@ -4651,9 +4808,10 @@
         "scroll"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1551-1560"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1547-1556 - `if !summary.isEmpty { ScrollView { Text(summary).font(.system(.subheadline, design: .monospaced)).frame(maxWidth: .infinity, alignment: .leading) }` `.frame(maxHeight: 110)` `.padding(10)` `.background(Chrome.overlay(0.05), in: .rect(cornerRadius: 12, style: .continuous))`"
       ],
-      "notes": "The content is the raw output of git status --short, unparsed."
+      "notes": "The content is the raw output of git status --short, unparsed.",
+      "b2_change": "`.font(.system(size: 11, design: .monospaced))` (B1 DroppyCode/App/Views/Chat/ChatView.swift:1554) -> `.font(.system(.subheadline, design: .monospaced))` (B2 :1550); B1 DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. Lines moved from B1 :1551-1560 to B2 :1547-1556."
     },
     {
       "id": "UI-GIT-034",
@@ -4662,7 +4820,7 @@
       "role": "field",
       "exact_text": "Commit message",
       "geometry": "A text editor with padding 8 over a container of minimum height 130 with a continuous rounded rectangle background of corner radius 12. The placeholder sits at the top leading corner with padding horizontal 13 and vertical 8 and does not take hits.",
-      "typography": "System font at size 13 for both the editor and the placeholder.",
+      "typography": "The editor is the system font in the body text style (`.font(.system(.body))`), which macOS lays out at 13 pt, the size B1 fixed. The placeholder text carries no font modifier of its own and neither the ZStack nor the enclosing VStack sets one, so it renders in the default body style, the same 13 pt as the editor.",
       "colors": "Background Chrome.overlay at opacity 0.05; the placeholder uses Chrome.secondaryText.",
       "states": [
         "empty and idle: placeholder \"Commit message\"",
@@ -4674,9 +4832,10 @@
         "the editor's own scrolling background is hidden so the container's fill shows through"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1561-1575"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1557-1571 - `ZStack(alignment: .topLeading) { TextEditor(text: $message).font(.system(.body)).scrollContentBackground(.hidden).padding(8)`; `if message.isEmpty { Text(isGenerating ? \"Writing a message…\" : \"Commit message\").foregroundStyle(Chrome.secondaryText).padding(.horizontal, 13).padding(.vertical, 8).allowsHitTesting(false) } }`; `.frame(minHeight: 130)`; `.background(Chrome.overlay(0.05), in: .rect(cornerRadius: 12, style: .continuous))`"
       ],
-      "notes": "The generating placeholder ends with the single ellipsis character U+2026."
+      "notes": "The generating placeholder ends with the single ellipsis character U+2026.",
+      "b2_change": "editor `.font(.system(size: 13))` (B1 DroppyCode/App/Views/Chat/ChatView.swift:1563) -> `.font(.system(.body))` (B2 :1559); B1 DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The placeholder had no font modifier at B1 either (B1 :1567-1571) and still inherits the default body style, so its rendered size is unchanged. Lines moved from B1 :1561-1575 to B2 :1557-1571."
     },
     {
       "id": "UI-GIT-035",
@@ -4695,9 +4854,14 @@
         "click regenerates the commit message from the current changes"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1576-1596"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1572-1592"
       ],
-      "notes": "Its tooltip is \"Write a commit message from these changes\" when an engine is available and \"Turn on text generation in Settings > Source control\" when not. The second string names the settings page with a spaced greater-than sign."
+      "notes": "Its tooltip is \"Write a commit message from these changes\" when an engine is available and \"Turn on text generation in Settings > Source control\" when not. The second string names the settings page with a spaced greater-than sign. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "deviation": {
+        "decision": "OD-0005",
+        "upstream": "`.buttonStyle(.glass)` (DroppyCode/App/Views/Chat/ChatView.swift:1590), macOS Liquid Glass",
+        "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
+      }
     },
     {
       "id": "UI-GIT-036",
@@ -4715,8 +4879,8 @@
         "click toggles"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1545",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1597-1598"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1541",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1593-1594"
       ],
       "notes": "It is not persisted: the default is off every time the sheet opens. A push that fails is reported under the title \"Commit failed\"."
     },
@@ -4734,9 +4898,14 @@
         "click dismisses the sheet, discarding the typed message"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1600-1601"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1596-1597"
       ],
-      "notes": "Carries the cancel role, so Escape also dismisses."
+      "notes": "Carries the cancel role, so Escape also dismisses. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "deviation": {
+        "decision": "OD-0005",
+        "upstream": "`.buttonStyle(.glass)` (DroppyCode/App/Views/Chat/ChatView.swift:1597), macOS Liquid Glass",
+        "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
+      }
     },
     {
       "id": "UI-GIT-038",
@@ -4754,10 +4923,15 @@
         "click stages everything, commits with the trimmed message and, when checked, pushes"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1602-1604",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1637-1653"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1598-1600 - `Button(\"Commit\") { Task { await commit() } }` `.buttonStyle(.glassProminent)` `.disabled(message.trimmed.isEmpty || isCommitting)`",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1633-1649 commit() - `let text = message.trimmed`; `try await repository.commitAll(message: text)`; `if pushes { try await repository.push() }`"
       ],
-      "notes": "This is the confirmation step: the commit runs on this click and nothing asks again."
+      "notes": "This is the confirmation step: the commit runs on this click and nothing asks again. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "deviation": {
+        "decision": "OD-0005",
+        "upstream": "`.buttonStyle(.glassProminent)` (DroppyCode/App/Views/Chat/ChatView.swift:1599), macOS Liquid Glass",
+        "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
+      }
     },
     {
       "id": "UI-GIT-039",
@@ -4776,10 +4950,15 @@
         "click opens the branch menu"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1358-1363",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1320-1329"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1354-1359",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1316-1325"
       ],
-      "notes": "Its tooltip is the single word \"Branch\"."
+      "notes": "Its tooltip is the single word \"Branch\". OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "deviation": {
+        "decision": "OD-0005",
+        "upstream": "ChromeTextMenu (DroppyCode/App/Views/Chat/ChatView.swift:1355) is drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/Chrome.swift:504), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
+        "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
+      }
     },
     {
       "id": "UI-GIT-040",
@@ -4798,7 +4977,7 @@
         "click switches to that branch"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1364-1373"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1360-1369"
       ],
       "notes": "The list is capped at 25 with no overflow affordance, so a repository with more branches simply cannot reach the rest from here."
     },
@@ -4816,7 +4995,7 @@
         "click clears the name field and opens the New branch alert"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1374-1378"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1370-1374"
       ],
       "notes": "Trailing character is the single ellipsis U+2026."
     },
@@ -4836,7 +5015,7 @@
         "click creates a worktree and branch for this thread and runs any scripts marked to run on worktree creation"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1379-1383",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1375-1379",
         "DroppyCode/App/AppModel.swift:1116-1141"
       ],
       "notes": "Once the thread has a single turn the row disappears, so a thread's working directory never changes mid-conversation."
@@ -4857,8 +5036,8 @@
         "Cancel dismisses"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1385-1389",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1402-1412"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1381-1385",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1398-1408 createBranch() - `let name = branchName.trimmed.replacingOccurrences(of: \" \", with: \"-\")`; `guard !name.isEmpty else { return }`"
       ],
       "notes": "Alert title \"New branch\"; the field's placeholder is \"Branch name\"; the buttons are \"Create\" and \"Cancel\", the latter carrying the cancel role. An empty name after normalisation does nothing at all, with no message."
     },
@@ -4869,8 +5048,8 @@
       "role": "row",
       "exact_text": "Edited 3 files",
       "geometry": "An HStack with spacing 8. Padding: leading the timeline's pill leading metric, trailing 6, vertical 6. Background is the quaternary fill at opacity 0.32 in a continuous rounded rectangle using the timeline's pill radius. The card hugs its content horizontally and is aligned leading in its column. A fixed 20 point clear gap, not a spacer, separates the title group from the round buttons.",
-      "typography": "The title is the chat callout at medium weight, scaled by the chat zoom.",
-      "colors": "The edit badge image is Chrome.secondaryText; the title is Chrome.primaryText at opacity 0.9.",
+      "typography": "The title is the chat callout at medium weight (`.font(.chat(.callout, weight: .medium))`); the chevron is the chat caption 2 at semibold. The chat zoom no longer scales them: Font.chat takes no zoom at B2 (DroppyCode/UI/Common/ChatFont.swift:6-10), and the app-wide zoom scales the whole window instead (DroppyCode/UI/Common/AppZoom.swift:18-26).",
+      "colors": "The edit badge image is Chrome.secondaryText; the title is Chrome.primaryText at opacity 0.9; the disclosure chevron after the statistics is Chrome.secondaryText.",
       "states": [
         "absent when the turn's change summary is empty",
         "the title button is disabled when the file list is empty"
@@ -4879,9 +5058,10 @@
         "click the title to show the file list popover below it"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2736-2846"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2718-2827 TurnFileCard - `let title = files.count == 1 ? \"Edited 1 file\" : \"Edited \\(files.count) files\"`; `Image(\"badge-edit\").renderingMode(.template).resizable().frame(width: 18, height: 18).foregroundStyle(Chrome.secondaryText)`; `Text(verbatim: title).font(.chat(.callout, weight: .medium)).foregroundStyle(Chrome.primaryText.opacity(0.9))`; `Image(systemName: \"chevron.right\").font(.chat(.caption2, weight: .semibold)).foregroundStyle(Chrome.secondaryText)`; `.disabled(files.isEmpty)`; `.help(\"Show the files this turn changed\")`; `Color.clear.frame(width: 20, height: 1)`; `.padding(.leading, TimelineMetrics.pillLeading)` `.padding(.trailing, 6)` `.padding(.vertical, 6)` `.background(.quaternary.opacity(0.32), in: RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))`"
       ],
-      "notes": "Title is exactly \"Edited 1 file\" at one file, otherwise \"Edited <n> files\". The leading image is the asset \"badge-edit\" rendered as a template at 18 by 18 points. Its tooltip is \"Show the files this turn changed\"."
+      "notes": "Title is exactly \"Edited 1 file\" at one file, otherwise \"Edited <n> files\". The leading image is the asset \"badge-edit\" rendered as a template at 18 by 18 points. Its tooltip is \"Show the files this turn changed\".",
+      "b2_change": "B1 DroppyCode/App/Views/Chat/TimelineRows.swift:2737 `@Environment(\\.chatZoom) private var zoom` is gone; title `.font(.chat(.callout, weight: .medium, zoom: zoom))` (B1 :2769) -> `.font(.chat(.callout, weight: .medium))` (B2 :2750); chevron `.font(.chat(.caption2, weight: .semibold, zoom: zoom))` / `.foregroundStyle(.tertiary)` (B1 :2774-2775) -> `.font(.chat(.caption2, weight: .semibold))` / `.foregroundStyle(Chrome.secondaryText)` (B2 :2755-2756). \"Scaled by the chat zoom\" no longer holds. The card moved from B1 :2736-2846 to B2 :2718-2827."
     },
     {
       "id": "UI-GIT-045",
@@ -4890,16 +5070,17 @@
       "role": "popover",
       "exact_text": null,
       "geometry": "A leading-aligned VStack with spacing 0, anchored below the card. Each row is an HStack with spacing 8, padding horizontal 12 and vertical 7, with a spacer of at least 8 between the path and the trailing value.",
-      "typography": "Paths use the chat callout; the Binary marker and the overflow line use the chat caption and callout respectively, all scaled by the chat zoom.",
-      "colors": "The Binary marker and the overflow line are the secondary foreground; the statistics use the shared success and danger colours.",
+      "typography": "Paths use the chat callout (`.chat(.callout)`); the Binary marker and the overflow line use the chat caption and callout respectively. The chat zoom no longer scales them; the app-wide zoom scales the whole window instead (DroppyCode/UI/Common/AppZoom.swift:18-26).",
+      "colors": "The Binary marker and the overflow line are Chrome.secondaryText; the statistics use the shared success and danger colours.",
       "states": [
         "more than twelve files: a final summary line"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2848-2877"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2829-2858 filesPopover - `VStack(alignment: .leading, spacing: 0) { ForEach(files.prefix(12), id: \\.path) { file in HStack(spacing: 8) { Text(verbatim: file.path).font(.chat(.callout)).lineLimit(1).truncationMode(.middle)`; `Spacer(minLength: 8)`; `Text(\"Binary\").font(.chat(.caption)).foregroundStyle(Chrome.secondaryText)`; `.padding(.horizontal, 12)` `.padding(.vertical, 7)`; `Text(files.count == 13 ? \"and 1 more file\" : \"and \\(files.count - 12) more files\").font(.chat(.callout)).foregroundStyle(Chrome.secondaryText)`"
       ],
-      "notes": "At most twelve rows. Paths are truncated in the middle, unlike the popover's file cards which truncate at the head. A binary file shows the literal \"Binary\"; the overflow line is exactly \"and 1 more file\" at thirteen files and \"and <n minus 12> more files\" beyond."
+      "notes": "At most twelve rows. Paths are truncated in the middle, unlike the popover's file cards which truncate at the head. A binary file shows the literal \"Binary\"; the overflow line is exactly \"and 1 more file\" at thirteen files and \"and <n minus 12> more files\" beyond.",
+      "b2_change": "`.font(.chat(.callout, zoom: zoom))`, `.font(.chat(.caption, zoom: zoom))` (B1 DroppyCode/App/Views/Chat/TimelineRows.swift:2854, :2860, :2871) -> `.font(.chat(.callout))`, `.font(.chat(.caption))` (B2 :2835, :2841, :2852); Binary marker and overflow line `.foregroundStyle(.secondary)` (B1 :2861, :2872) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :2842, :2853); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79). The popover moved from B1 :2848-2877 to B2 :2829-2858."
     },
     {
       "id": "UI-GIT-046",
@@ -4917,7 +5098,7 @@
         "click opens the revert confirmation popover below the button"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2789-2795"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2770-2776"
       ],
       "notes": "Its tooltip is \"Revert this turn's files and conversation\". It is not focusable."
     },
@@ -4928,7 +5109,7 @@
       "role": "popover",
       "exact_text": "Revert up to this point?",
       "geometry": "A leading-aligned VStack with spacing 10, padding 16, fixed width 300. The button row is an HStack with spacing 8 at small control size, pushed trailing by a spacer.",
-      "typography": "The title is the system font at size 14, semibold; the body is size 12 and wraps.",
+      "typography": "The title is the system font at size 14, semibold; the body is the system font in the callout text style (`.font(.system(.callout))`), which macOS lays out at 12 pt, the size B1 fixed, and wraps.",
       "colors": "The body uses Chrome.secondaryText.",
       "states": [],
       "interactions": [
@@ -4936,9 +5117,10 @@
         "Revert closes it and reverts with file restoration on; Revert is the default action, so Return triggers it"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2796-2817"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2777-2798 - `.popover(isPresented: $isConfirmingRevert, arrowEdge: .bottom) { VStack(alignment: .leading, spacing: 10) { Text(\"Revert up to this point?\").font(.system(size: 14, weight: .semibold))`; `Text(\"Files go back to how they were before this turn, and the turn leaves the conversation.\").font(.system(.callout)).foregroundStyle(Chrome.secondaryText).fixedSize(horizontal: false, vertical: true)`; `HStack(spacing: 8) { Spacer()` `Button(\"Cancel\") { isConfirmingRevert = false }` `Button(\"Revert\") { isConfirmingRevert = false; onRevert() }` `.keyboardShortcut(.defaultAction)` `.controlSize(.small)`; `.padding(16)` `.frame(width: 300)`"
       ],
-      "notes": "Title \"Revert up to this point?\" and body \"Files go back to how they were before this turn, and the turn leaves the conversation.\" This path always restores files; it never offers to keep them."
+      "notes": "Title \"Revert up to this point?\" and body \"Files go back to how they were before this turn, and the turn leaves the conversation.\" This path always restores files; it never offers to keep them.",
+      "b2_change": "body `.font(.system(size: 12))` (B1 DroppyCode/App/Views/Chat/TimelineRows.swift:2801) -> `.font(.system(.callout))` (B2 :2782); B1 DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The popover moved from B1 :2796-2817 to B2 :2777-2798."
     },
     {
       "id": "UI-GIT-048",
@@ -4957,7 +5139,7 @@
         "click opens the changes popover on this button, above it, showing this turn's changes"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/TimelineRows.swift:2819-2835"
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2800-2816"
       ],
       "notes": "Its tooltip is \"Show this turn's changes\". The anchor is only created on hover because a folded turn is one block of a lazy stack and a click must hover first."
     },
@@ -5032,7 +5214,7 @@
       "exact_text": "Edit message",
       "geometry": "A prompt editor titled \"Edit message\" whose content area holds the file-changes box, a notice line and an optional error line, with Cancel and Send in its action row.",
       "typography": "The notice line uses callout.",
-      "colors": "The error line uses Chrome.danger.",
+      "colors": "The notice line uses Chrome.secondaryText; the error line uses Chrome.danger.",
       "states": [
         "sending: the whole editor is disabled"
       ],
@@ -5041,9 +5223,10 @@
         "Send reverts and sends"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/MessageEditor.swift:39-70"
+        "DroppyCode/App/Views/Chat/MessageEditor.swift:39-70 - `PromptEditor(title: \"Edit message\",` ... `) {` `fileChanges` `Text(\"Sending replaces this message and everything after it.\").font(.callout).foregroundStyle(Chrome.secondaryText)` `if let error { Label(error, systemImage: \"exclamationmark.triangle\").font(.callout).foregroundStyle(Chrome.danger) }` `} actions: { Button(\"Cancel\", role: .cancel, action: cancel)` `Button(\"Send\", action: send)`; `.disabled(isSending)`"
       ],
-      "notes": "The notice reads exactly \"Sending replaces this message and everything after it.\" The error line is a label with the symbol \"exclamationmark.triangle\" carrying the thrown error's description."
+      "notes": "The notice reads exactly \"Sending replaces this message and everything after it.\" The error line is a label with the symbol \"exclamationmark.triangle\" carrying the thrown error's description.",
+      "b2_change": "colors: notice line `.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Chat/MessageEditor.swift:50) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :50)."
     },
     {
       "id": "UI-GIT-053",
@@ -5055,17 +5238,18 @@
       "typography": "Callout throughout the box; the file rows use caption.",
       "colors": "Background Chrome.overlay at opacity 0.05.",
       "states": [
-        "checking: a small spinner beside \"Checking for file changes…\", both secondary",
-        "unavailable: a label with the symbol \"exclamationmark.triangle\" carrying the reason, secondary",
-        "no files: a label with the symbol \"checkmark.circle\" reading \"This thread changed no files since this message\", secondary",
-        "all kept: a label with the symbol \"hand.raised\" and the kept wording, then the file list",
+        "checking: a small spinner beside \"Checking for file changes…\", both Chrome.secondaryText",
+        "unavailable: a label with the symbol \"exclamationmark.triangle\" carrying the reason, Chrome.secondaryText",
+        "no files: a label with the symbol \"checkmark.circle\" reading \"This thread changed no files since this message\", Chrome.secondaryText",
+        "all kept: a label with the symbol \"hand.raised\" and the kept wording in Chrome.secondaryText, then the file list",
         "restorable files: the undo toggle, then the file list"
       ],
       "interactions": [],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/MessageEditor.swift:78-121"
+        "DroppyCode/App/Views/Chat/MessageEditor.swift:78-121 fileChanges - `VStack(alignment: .leading, spacing: 10) { switch changes {` `.checking`: `HStack(spacing: 8) { ProgressView().controlSize(.small)` `Text(\"Checking for file changes…\") }` `.foregroundStyle(Chrome.secondaryText)` (:82-86); `.unavailable`: `Label(reason, systemImage: \"exclamationmark.triangle\").foregroundStyle(Chrome.secondaryText)` (:88-89); no files: `Label(\"This thread changed no files since this message\", systemImage: \"checkmark.circle\").foregroundStyle(Chrome.secondaryText)` (:91-92); all kept: the `hand.raised` label `.foregroundStyle(Chrome.secondaryText)` then `fileList(preview.files)` (:95-99); otherwise the toggle then `fileList(preview.files)` `} }` `.font(.callout)` `.padding(12)` `.background(Chrome.overlay(0.05), in: .rect(cornerRadius: 12, style: .continuous))`"
       ],
-      "notes": "The all-kept wording is singular \"The file it changed has changed again since, so it stays as it is\" at one file and \"The <n> files it changed have changed again since, so they stay as they are\" otherwise. None of these five strings carries a trailing period."
+      "notes": "The all-kept wording is singular \"The file it changed has changed again since, so it stays as it is\" at one file and \"The <n> files it changed have changed again since, so they stay as they are\" otherwise. None of these five strings carries a trailing period.",
+      "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Chat/MessageEditor.swift:86, :89, :92, :98) -> `.foregroundStyle(Chrome.secondaryText)` (B2 same lines); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)."
     },
     {
       "id": "UI-GIT-054",
@@ -5075,7 +5259,7 @@
       "exact_text": "Undo the file changes this thread made",
       "geometry": "A switch-styled toggle at small control size whose label is an HStack with spacing 8: the wording, a spacer with a minimum of 8, the restorable file count and the statistics label, filling the available width.",
       "typography": "Callout from the box.",
-      "colors": "The count is the secondary foreground; the statistics use the shared success and danger colours.",
+      "colors": "The count is Chrome.secondaryText; the statistics use the shared success and danger colours.",
       "states": [
         "on by default",
         "rendered only when the preview found restorable files"
@@ -5084,9 +5268,10 @@
         "click toggles whether Send restores the files"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/MessageEditor.swift:100-114"
+        "DroppyCode/App/Views/Chat/MessageEditor.swift:100-114 - `Toggle(isOn: $restoresFiles) { HStack(spacing: 8) { Text(\"Undo the file changes this thread made\")` `Spacer(minLength: 8)` `Text(restorable.count == 1 ? \"1 file\" : \"\\(restorable.count) files\").foregroundStyle(Chrome.secondaryText)` `DiffStatLabel(additions: preview.additions, deletions: preview.deletions) }.frame(maxWidth: .infinity) }` `.toggleStyle(.switch)` `.controlSize(.small)`"
       ],
-      "notes": "The count reads \"1 file\" at one and \"<n> files\" otherwise, and counts only the restorable files. The statistics also sum only the restorable files, so a preview whose files are all kept shows zeroes."
+      "notes": "The count reads \"1 file\" at one and \"<n> files\" otherwise, and counts only the restorable files. The statistics also sum only the restorable files, so a preview whose files are all kept shows zeroes.",
+      "b2_change": "count `.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Chat/MessageEditor.swift:107) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :107); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)."
     },
     {
       "id": "UI-GIT-055",
@@ -5096,7 +5281,7 @@
       "exact_text": null,
       "geometry": "Rows in a leading-aligned lazy stack with spacing 6; each is an HStack with spacing 8 holding an icon, the path, a spacer with a minimum of 4, and a trailing value. More than five files puts the rows in a scroll view of fixed height 110.",
       "typography": "Caption.",
-      "colors": "The icon and the Kept and Binary markers are the secondary foreground; the statistics use the shared colours.",
+      "colors": "The icon and the Kept and Binary markers are Chrome.secondaryText; the statistics use the shared colours.",
       "states": [
         "kept: the icon is \"hand.raised\" and the trailing value is the literal \"Kept\"",
         "binary: the icon is \"doc\" and the trailing value is the literal \"Binary\"",
@@ -5107,9 +5292,10 @@
         "hover shows a tooltip"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/MessageEditor.swift:125-154"
+        "DroppyCode/App/Views/Chat/MessageEditor.swift:125-154 fileList - `LazyVStack(alignment: .leading, spacing: 6)`; `HStack(spacing: 8) { Image(systemName: file.isKept ? \"hand.raised\" : \"doc\").foregroundStyle(Chrome.secondaryText)`; `Text(verbatim: file.path).lineLimit(1).truncationMode(.middle)`; `Spacer(minLength: 4)`; `Text(\"Kept\").foregroundStyle(Chrome.secondaryText)` / `Text(\"Binary\").foregroundStyle(Chrome.secondaryText)` / `DiffStatLabel(...)`; `.font(.caption)`; `.opacity(restoresFiles && !file.isKept ? 1 : 0.45)`; `.help(...)`; `if files.count > 5 { ScrollView { rows }.frame(height: 110) }`"
       ],
-      "notes": "Paths are truncated in the middle and rendered verbatim. A kept row's tooltip is the path, then a newline, then \"Changed again since this thread last touched it, so it is left alone.\"; any other row's tooltip is just the path. The row stays visible when dimmed, as a reminder of what is not going back."
+      "notes": "Paths are truncated in the middle and rendered verbatim. A kept row's tooltip is the path, then a newline, then \"Changed again since this thread last touched it, so it is left alone.\"; any other row's tooltip is just the path. The row stays visible when dimmed, as a reminder of what is not going back.",
+      "b2_change": "`.foregroundStyle(.secondary)` (B1 DroppyCode/App/Views/Chat/MessageEditor.swift:130, :136, :138) -> `.foregroundStyle(Chrome.secondaryText)` (B2 same lines); Chrome.secondaryText is `primaryText.opacity(0.7)` at B2 (DroppyCode/UI/Chrome/Chrome.swift:79)."
     },
     {
       "id": "UI-GIT-056",
@@ -5131,7 +5317,12 @@
         "DroppyCode/App/Views/Chat/MessageEditor.swift:56-62",
         "DroppyCode/App/Views/Chat/MessageEditor.swift:72-76"
       ],
-      "notes": "Cancel carries the cancel role. Send is blocked until the file check is in, because sending before it would silently keep the files."
+      "notes": "Cancel carries the cancel role. Send is blocked until the file check is in, because sending before it would silently keep the files. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "deviation": {
+        "decision": "OD-0005",
+        "upstream": "Cancel `.buttonStyle(.glass)` (DroppyCode/App/Views/Chat/MessageEditor.swift:58) and Send `.buttonStyle(.glassProminent)` (:60), macOS Liquid Glass",
+        "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
+      }
     },
     {
       "id": "UI-GIT-057",
@@ -5162,7 +5353,7 @@
       "role": "field",
       "exact_text": "Commit message instructions",
       "geometry": "A chrome section whose card holds a text editor of minimum height 90 with padding 12; the placeholder sits at the top leading corner with horizontal padding 5 and does not take hits.",
-      "typography": "System font at size 13 for both the editor and the placeholder.",
+      "typography": "System font in the body text style (`.font(.system(.body))`) for both the editor and the placeholder, which macOS lays out at 13 pt, the size B1 fixed.",
       "colors": "The placeholder uses Chrome.secondaryText.",
       "states": [
         "empty: the placeholder shows"
@@ -5171,11 +5362,12 @@
         "type; every change writes through to the stored setting immediately"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:802-818",
-        "DroppyCode/App/AppSettings.swift:143",
-        "DroppyCode/App/AppSettings.swift:297-298"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:841-857 - `ChromeSection(title: \"Commit message instructions\") { ChromeCard { ZStack(alignment: .topLeading) { TextEditor(text: $settings.commitInstructions).font(.system(.body)).scrollContentBackground(.hidden).frame(minHeight: 90)`; `if settings.commitInstructions.isEmpty { Text(\"For example: use conventional commit prefixes\").font(.system(.body)).foregroundStyle(Chrome.secondaryText).padding(.horizontal, 5).allowsHitTesting(false) } }` `.padding(12)`",
+        "DroppyCode/App/AppSettings.swift:144",
+        "DroppyCode/App/AppSettings.swift:305-306"
       ],
-      "notes": "Section title \"Commit message instructions\"; placeholder exactly \"For example: use conventional commit prefixes\", with no trailing period. Stored under the defaults key \"commitInstructions\" and used by both the commit sheet and the Hydra landing path."
+      "notes": "Section title \"Commit message instructions\"; placeholder exactly \"For example: use conventional commit prefixes\", with no trailing period. Stored under the defaults key \"commitInstructions\" and used by both the commit sheet and the Hydra landing path.",
+      "b2_change": "`.font(.system(size: 13))` (B1 DroppyCode/App/Views/Settings/SettingsView.swift:806, :811) -> `.font(.system(.body))` (B2 :845, :850); B1 DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The section moved from B1 :802-818 to B2 :841-857."
     },
     {
       "id": "UI-GIT-059",
@@ -5191,10 +5383,15 @@
         "\"Reveal\" opens the worktrees folder in the file browser"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:820-830",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:859-869",
         "DroppyCode/Services/Store/Storage.swift:38"
       ],
-      "notes": "First row title \"Worktrees\", detail the resolved worktrees folder path, button \"Reveal\". Second row title \"Pull requests\", detail exactly \"Opened with the GitHub CLI (gh) or GitLab CLI (glab) from your PATH.\" Note the detail omits tea even though the Gitea family is supported by the code."
+      "notes": "First row title \"Worktrees\", detail the resolved worktrees folder path, button \"Reveal\". Second row title \"Pull requests\", detail exactly \"Opened with the GitHub CLI (gh) or GitLab CLI (glab) from your PATH.\" Note the detail omits tea even though the Gitea family is supported by the code. OD-0005: on Windows this glass material follows the owner's glass ruling (Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content).",
+      "deviation": {
+        "decision": "OD-0005",
+        "upstream": "Reveal `.buttonStyle(.glass)` (DroppyCode/App/Views/Settings/SettingsView.swift:863), macOS Liquid Glass",
+        "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
+      }
     },
     {
       "id": "UI-GIT-060",
@@ -5210,11 +5407,11 @@
         "dismiss"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ChatView.swift:1396",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1408",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1503",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1525",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1649",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1392",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1404",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1499",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1521",
+        "DroppyCode/App/Views/Chat/ChatView.swift:1645",
         "DroppyCode/App/AppModel.swift:1120",
         "DroppyCode/App/AppModel.swift:1139"
       ],

@@ -331,11 +331,20 @@ check('B', 'every cited source path exists in the pinned inventory', () => {
   const SRC_ROOTS = ['DroppyCode/', 'DroppyCode.xcodeproj/', 'scripts/', 'website/', 'docs/', 'release/', '.commandcode/'];
   const re = new RegExp(`([A-Za-z0-9_./+-]+\\.(?:${EXT}))(:\\d+)?(?![A-Za-z0-9])`, 'g');
   const missingArtifacts = new Map();
+  // A citation written "B1:<path>:<line>" is historical evidence from the previous pin (for example
+  // a file the rebaseline deleted, AM-0002). It is not a claim about the pinned tree, so it is
+  // checked against the archived B1 inventory instead, never waved through.
+  const b1Path = rel('porting/baselines/B1/source_inventory.json');
+  const b1Known = existsSync(b1Path) ? new Set(JSON.parse(readFileSync(b1Path, 'utf8')).items.map((i) => i.path)) : new Set();
   const scan = (records, field) => {
     for (const r of records) {
       for (const e of r[field] || []) {
         for (const match of String(e).matchAll(re)) {
           const p = match[1];
+          if (String(e).slice(Math.max(0, match.index - 3), match.index) === 'B1:') {
+            if (!b1Known.has(p)) bogus.set(r.id, `B1:${p}${match[2] || ''} (not in the B1 inventory)`);
+            continue;
+          }
           // A porting/... citation is this port's own derived artifact, not a claim about the
           // pinned tree. It still has to exist, so it is checked against disk rather than waved
           // through: a citation to a file that is not there is exactly as bad either way.
@@ -351,6 +360,10 @@ check('B', 'every cited source path exists in the pinned inventory', () => {
           const hasLine = Boolean(match[2]);
           const rooted = SRC_ROOTS.some((root) => p.startsWith(root));
           if (!hasLine && !rooted) continue; // a runtime path, not a source citation
+          // A path with no line number that opens a quoted string literal in quoted code, such as
+          // appendingPathComponent(".commandcode/auth.json"), is a runtime path the app builds, not a
+          // citation. Added 2026-09-22 after PR-PROVCLI-255 tripped on its own code quote.
+          if (!hasLine && /["'`]/.test(String(e).charAt(match.index - 1))) continue;
           if (known.has(p)) continue;
           if ([...known].some((k) => k.endsWith('/' + p) || k === p)) continue;
           bogus.set(r.id, `${p}${match[2] || ''}`);

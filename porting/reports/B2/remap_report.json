@@ -1,0 +1,3148 @@
+{
+ "old": "dd2b86efef9e77168f304a86e8a8411877578bbe",
+ "new": "1fbf81e61e28a079508a074c01ee1830a9cc23dc",
+ "counts": {
+  "rewritten": 3292,
+  "unchanged_file": 1626,
+  "flagged": 1125
+ },
+ "flagged": {
+  "CHAT": {
+   "PR-CHAT-002": [
+    "DroppyCode/Core/Models/Timeline.swift:27-31 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-005": [
+    "DroppyCode/Core/Models/Timeline.swift:99-105 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-011": [
+    "DroppyCode/App/Views/Chat/LimitResumeBadge.swift:1-61 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2400-2447 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-018": [
+    "DroppyCode/Core/Models/Timeline.swift:237-247 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-045": [
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift:80 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift:574-587 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift:254-261 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-046": [
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift:159-160 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift:330-346 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-047": [
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift:254-261 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-049": [
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift:221-249 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-061": [
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift:350-355 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-062": [
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift:352 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-063": [
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift:361-368 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-074": [
+    "DroppyCode/App/Views/Chat/TimelineMinimap.swift:306-344 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineMinimap.swift:318-333 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-078": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:92-117 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-088": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1359-1397 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-090": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1471-1517 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-092": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1531-1553 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1554-1566 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-096": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2255-2263 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-098": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1811-1820 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-099": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2078-2104 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-100": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1842-1851 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-101": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2106-2180 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2169-2175 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-103": [
+    "DroppyCode/UI/Common/AttachmentPreview.swift:49-68 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-104": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2607-2733 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-108": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2754-2846 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-109": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2848-2877 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-110": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2796-2817 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-112": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2293-2327 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-114": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2358-2388 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-115": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2404-2419 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-116": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2456-2462 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-119": [
+    "DroppyCode/App/Views/Chat/HydraProgressBar.swift:486-540 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-120": [
+    "DroppyCode/App/Views/Chat/HydraProgressBar.swift:543-566 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-125": [
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift:353 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-135": [
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift:687-694 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-138": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:123 touches lines changed at the new baseline",
+    "DroppyCode/UI/Common/ChatZoom.swift:6-27 names a file deleted at the new baseline",
+    "DroppyCode/UI/Common/ChatZoom.swift:43-70 names a file deleted at the new baseline"
+   ],
+   "PR-CHAT-140": [
+    "DroppyCode/App/Views/Chat/ChatBadge.swift:23-53 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-143": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:242-330 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-144": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:376-382 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:384-388 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:305-312 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-146": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:610-643 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-147": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:540-598 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-149": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:657-712 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:716-746 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:767-771 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-152": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:439-478 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-153": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1798-1803 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1733-1765 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-154": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1887-1942 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1945-1963 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2038-2059 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1966-2017 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-170": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1-2878 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1-2298 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2255-2267 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-176": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:1207-1213 touches lines changed at the new baseline"
+   ],
+   "PR-CHAT-188": [
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2098-2107 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-001": [
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift:323-408 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-002": [
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift:328-347 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-005": [
+    "DroppyCode/App/Views/Chat/TimelineMinimap.swift:303-356 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-007": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:88-129 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-008": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:92-117 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-019": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1359-1397 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-022": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1471-1517 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-023": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1531-1553 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-024": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1667-1863 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-025": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2154-2177 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-026": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2169-2175 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-027": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2133-2139 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-028": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2140-2153 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-029": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2277-2351 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/ChatBadge.swift:23-81 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-030": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2293-2327 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-033": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2358-2397 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-034": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2400-2447 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-035": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2449-2473 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-036": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2616-2719 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-037": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2754-2846 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-038": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2789-2818 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-039": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2796-2817 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-041": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2848-2877 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-042": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2869-2875 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-043": [
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2046-2169 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-048": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:242-330 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:341-388 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-049": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:305-312 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-050": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:610-643 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-051": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:540-598 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-052": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:439-478 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-053": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:931-1168 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-054": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:657-788 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-055": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1887-2075 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-056": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1776-1803 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1733-1765 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-057": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2255-2267 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1782-1803 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-061": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1555-1562 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-063": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1847-1850 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-064": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1843-1846 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-070": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1917-1920 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-071": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:685-692 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-072": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2858-2861 touches lines changed at the new baseline"
+   ],
+   "UI-CHAT-076": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:1193-1241 touches lines changed at the new baseline"
+   ]
+  },
+  "COMPOSER": {
+   "PR-COMPOSER-014": [
+    "DroppyCode/App/Views/Composer/ComposerView.swift:573-605 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-034": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:1146-1149 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-041": [
+    "DroppyCode/App/Views/Composer/ComposerView.swift:478-480 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-048": [
+    "DroppyCode/UI/Chrome/Popovers.swift:117-133 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-072": [
+    "DroppyCode/UI/Common/AttachmentPreview.swift:274 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-076": [
+    "DroppyCode/UI/Common/AttachmentPreview.swift:338-360 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-086": [
+    "DroppyCode/App/Views/Composer/ComposerView.swift:882-907 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-087": [
+    "DroppyCode/App/Views/Composer/ComposerView.swift:908-936 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-088": [
+    "DroppyCode/App/Views/Composer/ComposerView.swift:880-941 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-094": [
+    "DroppyCode/App/Views/Composer/ComposerView.swift:737-760 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-111": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:568-597 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-114": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:599-617 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-116": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:642-651 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-117": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:620-624 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-119": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:659-682 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-120": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:685-708 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-129": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:862-871 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-141": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:289-306 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-143": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:422-477 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-145": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:340-345 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-147": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:373-420 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-151": [
+    "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:55-70 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-153": [
+    "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:431-439 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-157": [
+    "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:372-377 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-158": [
+    "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:348-371 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-159": [
+    "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:380-410 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-165": [
+    "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:423-444 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-166": [
+    "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:424-429 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-167": [
+    "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:527-547 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-176": [
+    "DroppyCode/App/Views/Composer/PromptEditor.swift:58-61 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-185": [
+    "DroppyCode/App/Views/Composer/RequestCards.swift:25-28 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-186": [
+    "DroppyCode/App/Views/Composer/RequestCards.swift:34-44 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-191": [
+    "DroppyCode/App/Views/Composer/QuestionTab.swift:277-287 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-192": [
+    "DroppyCode/App/Views/Composer/QuestionTab.swift:256-303 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-193": [
+    "DroppyCode/App/Views/Composer/QuestionTab.swift:209-220 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-195": [
+    "DroppyCode/App/Views/Composer/QuestionTab.swift:82-103 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-196": [
+    "DroppyCode/App/Views/Composer/QuestionTab.swift:132-137 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-197": [
+    "DroppyCode/App/Views/Composer/QuestionTab.swift:316-331 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-199": [
+    "DroppyCode/App/Views/Composer/ThreadChangesTab.swift:17-30 touches lines changed at the new baseline"
+   ],
+   "PR-COMPOSER-203": [
+    "DroppyCode/UI/Common/AttachmentPreview.swift:178-191 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-004": [
+    "DroppyCode/App/Views/Composer/ComposerView.swift:576-583 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-005": [
+    "DroppyCode/App/Views/Composer/ComposerView.swift:882-907 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-006": [
+    "DroppyCode/App/Views/Composer/ComposerView.swift:890-902 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-007": [
+    "DroppyCode/App/Views/Composer/ComposerView.swift:908-936 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-008": [
+    "DroppyCode/App/Views/Composer/ComposerView.swift:919-931 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-013": [
+    "DroppyCode/App/Views/Composer/ComposerView.swift:696-773 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-014": [
+    "DroppyCode/App/Views/Composer/ComposerView.swift:743-747 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-019": [
+    "DroppyCode/UI/Chrome/Popovers.swift:117-133 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-020": [
+    "DroppyCode/App/Views/Composer/ComposerView.swift:1061-1101 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-021": [
+    "DroppyCode/UI/Chrome/Popovers.swift:135-150 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-026": [
+    "DroppyCode/App/Views/Composer/DownloadsPopover.swift:165-241 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-030": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:557-656 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-031": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:543-597 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-032": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:599-617 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-033": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:659-683 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-034": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:685-708 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-036": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:620-624 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-037": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:642-651 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-038": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:290-298 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-039": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:299-301 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-042": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:364-420 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-043": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:422-477 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-044": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift:340-345 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-046": [
+    "DroppyCode/App/Views/Composer/ThreadChangesTab.swift:6-45 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-047": [
+    "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:46-155 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-048": [
+    "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:52-82 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-049": [
+    "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:301-525 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-050": [
+    "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:372-379 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-051": [
+    "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:348-371 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-052": [
+    "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:380-410 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-054": [
+    "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift:527-547 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-057": [
+    "DroppyCode/App/Views/Composer/PromptEditor.swift:8-101 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-058": [
+    "DroppyCode/App/Views/Composer/PromptEditor.swift:37-73 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-063": [
+    "DroppyCode/App/Views/Composer/RequestCards.swift:3-65 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-064": [
+    "DroppyCode/App/Views/Composer/RequestCards.swift:25-28 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-067": [
+    "DroppyCode/App/Views/Composer/QuestionTab.swift:30-170 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-068": [
+    "DroppyCode/App/Views/Composer/QuestionTab.swift:82-103 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-069": [
+    "DroppyCode/App/Views/Composer/QuestionTab.swift:199-312 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-070": [
+    "DroppyCode/App/Views/Composer/QuestionTab.swift:280-286 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-072": [
+    "DroppyCode/App/Views/Composer/QuestionTab.swift:132-137 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-077": [
+    "DroppyCode/UI/Common/AttachmentPreview.swift:230-386 touches lines changed at the new baseline"
+   ],
+   "UI-COMPOSER-082": [
+    "DroppyCode/UI/Common/AttachmentPreview.swift:176-191 touches lines changed at the new baseline"
+   ]
+  },
+  "GIT": {
+   "PR-GIT-006": [
+    "DroppyCode/Core/Support/Shell.swift:14-19 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-008": [
+    "DroppyCode/Services/Git/Git.swift:67-74 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-013": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:1402-1412 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-014": [
+    "DroppyCode/Services/Git/Git.swift:131-134 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-017": [
+    "DroppyCode/Services/Git/Git.swift:233-242 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-023": [
+    "DroppyCode/Services/Git/Git.swift:372-379 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-024": [
+    "DroppyCode/Services/Git/Git.swift:259-261 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-025": [
+    "DroppyCode/Services/Git/Git.swift:263-265 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-027": [
+    "DroppyCode/Services/Git/Git.swift:525-537 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-047": [
+    "DroppyCode/Services/Git/Git.swift:214-219 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-048": [
+    "DroppyCode/Services/Git/Git.swift:213-226 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-094": [
+    "DroppyCode/Services/Git/TouchedPaths.swift:19-29 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-122": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2789-2818 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-130": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:1637-1653 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/ChatView.swift:1602-1604 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-131": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:1509-1531 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-135": [
+    "DroppyCode/App/Views/Diff/DiffInspector.swift:274 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Diff/DiffInspector.swift:275 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Diff/DiffInspector.swift:372-387 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-142": [
+    "DroppyCode/App/Views/Composer/ThreadChangesTab.swift:9-44 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-149": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:802-818 touches lines changed at the new baseline"
+   ],
+   "PR-GIT-152": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2848-2876 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-001": [
+    "DroppyCode/App/Views/Diff/DiffInspector.swift:22-121 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-002": [
+    "DroppyCode/App/Views/Diff/DiffInspector.swift:25-69 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-006": [
+    "DroppyCode/App/Views/Diff/DiffInspector.swift:46-49 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-015": [
+    "DroppyCode/App/Views/Diff/DiffInspector.swift:192-231 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-016": [
+    "DroppyCode/App/Views/Diff/DiffInspector.swift:194-213 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-017": [
+    "DroppyCode/App/Views/Diff/DiffInspector.swift:216-221 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-018": [
+    "DroppyCode/App/Views/Diff/DiffInspector.swift:216-221 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-020": [
+    "DroppyCode/App/Views/Diff/DiffInspector.swift:348-355 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-021": [
+    "DroppyCode/App/Views/Diff/DiffInspector.swift:436-513 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-022": [
+    "DroppyCode/App/Views/Diff/DiffInspector.swift:372-387 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Diff/DiffInspector.swift:274 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-023": [
+    "DroppyCode/App/Views/Composer/ThreadChangesTab.swift:6-45 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-030": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:1509-1531 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-032": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:1534-1614 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-033": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:1551-1560 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-034": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:1561-1575 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-038": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:1602-1604 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/ChatView.swift:1637-1653 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-043": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:1402-1412 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-044": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2736-2846 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-045": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2848-2877 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-047": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2796-2817 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-052": [
+    "DroppyCode/App/Views/Chat/MessageEditor.swift:39-70 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-053": [
+    "DroppyCode/App/Views/Chat/MessageEditor.swift:78-121 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-054": [
+    "DroppyCode/App/Views/Chat/MessageEditor.swift:100-114 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-055": [
+    "DroppyCode/App/Views/Chat/MessageEditor.swift:125-154 touches lines changed at the new baseline"
+   ],
+   "UI-GIT-058": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:802-818 touches lines changed at the new baseline"
+   ]
+  },
+  "HYDRA": {
+   "PR-HYDRA-002": [
+    "DroppyCode/Core/Models/Provider.swift:20-35 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-004": [
+    "DroppyCode/Core/Models/Hydra.swift:46-50 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-007": [
+    "DroppyCode/Core/Models/Hydra.swift:103-106 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-019": [
+    "DroppyCode/Core/Models/Hydra.swift:273-280 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-020": [
+    "DroppyCode/Core/Models/Hydra.swift:284-292 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-058": [
+    "DroppyCode/Core/Models/Hydra.swift:273-280 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-063": [
+    "DroppyCode/Core/Models/Hydra.swift:1340-1344 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-073": [
+    "DroppyCode/Core/Models/Hydra.swift:1118-1124 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-074": [
+    "DroppyCode/Core/Models/Hydra.swift:1221-1304 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-076": [
+    "DroppyCode/Core/Models/Hydra.swift:1229-1246 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-086": [
+    "DroppyCode/Core/Models/HydraDelegationStream.swift:110-120 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-087": [
+    "DroppyCode/Core/Models/HydraDelegationStream.swift:113-117 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-088": [
+    "DroppyCode/Core/Models/Hydra.swift:1076-1080 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-107": [
+    "DroppyCode/App/AppModel+Hydra.swift:242-253 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-108": [
+    "DroppyCode/App/AppModel+Hydra.swift:278-300 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-110": [
+    "DroppyCode/App/AppModel+Hydra.swift:397-400 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-115": [
+    "DroppyCode/App/AppModel+Hydra.swift:454-478 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-116": [
+    "DroppyCode/App/AppModel+Hydra.swift:454-478 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-238": [
+    "DroppyCode/App/AppModel+Hydra.swift:273-298 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-118": [
+    "DroppyCode/App/AppModel+Hydra.swift:26-66 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-121": [
+    "DroppyCode/App/AppModel+Hydra.swift:584-663 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-122": [
+    "DroppyCode/App/AppModel+Hydra.swift:668-673 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-127": [
+    "DroppyCode/App/AppModel+Hydra.swift:763-777 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-128": [
+    "DroppyCode/App/AppModel+Hydra.swift:779-810 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-161": [
+    "DroppyCode/App/Views/Chat/HydraButton.swift:620-645 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-162": [
+    "DroppyCode/App/Views/Chat/HydraButton.swift:240-294 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-170": [
+    "DroppyCode/App/Views/Chat/HydraPanel.swift:126-200 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-171": [
+    "DroppyCode/App/Views/Chat/HydraPanel.swift:136-165 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-175": [
+    "DroppyCode/App/Views/Chat/HydraPanel.swift:302-362 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-178": [
+    "DroppyCode/App/Views/Chat/HydraPanel.swift:441-473 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-186": [
+    "DroppyCode/App/Views/Chat/HydraProgressBar.swift:213-243 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-187": [
+    "DroppyCode/App/Views/Chat/HydraProgressBar.swift:178-183 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-190": [
+    "DroppyCode/App/Views/Chat/HydraProgressBar.swift:452-481 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-191": [
+    "DroppyCode/App/Views/Chat/HydraProgressBar.swift:486-539 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-192": [
+    "DroppyCode/App/Views/Chat/HydraProgressBar.swift:543-562 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-197": [
+    "DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift:53-90 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-198": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:44-76 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-200": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:131-155 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-201": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:157-160 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:162-174 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:176-186 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-202": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:196-201 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-204": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:284-322 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-205": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:325-363 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-208": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:442-452 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-209": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:472-523 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:526-553 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-210": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:560-593 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:598-623 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-211": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:636-661 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-213": [
+    "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:51-104 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-215": [
+    "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:134-175 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-216": [
+    "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:4-48 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-217": [
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift:6-76 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift:78-89 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-218": [
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift:91-158 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift:104-108 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift:149-154 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRA-231": [
+    "DroppyCode/App/Views/Chat/SubagentPanel.swift:365-413 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-002": [
+    "DroppyCode/App/Views/Chat/HydraButton.swift:620-645 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-015": [
+    "DroppyCode/App/Views/Chat/HydraPanel.swift:302-362 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-019": [
+    "DroppyCode/App/Views/Chat/HydraPanel.swift:136-165 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-024": [
+    "DroppyCode/App/Views/Chat/HydraPanel.swift:441-473 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-027": [
+    "DroppyCode/App/Views/Chat/HydraProgressBar.swift:122-209 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-028": [
+    "DroppyCode/App/Views/Chat/HydraProgressBar.swift:213-243 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-029": [
+    "DroppyCode/App/Views/Chat/HydraProgressBar.swift:178-183 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-030": [
+    "DroppyCode/App/Views/Chat/HydraProgressBar.swift:486-539 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-031": [
+    "DroppyCode/App/Views/Chat/HydraProgressBar.swift:543-562 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-035": [
+    "DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift:53-90 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-036": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:284-300 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-037": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:306-309 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-038": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:310-315 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:442-452 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-039": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:325-396 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-040": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:472-557 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-041": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:501-511 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-042": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:573-576 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-043": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:565-572 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-044": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:577-589 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-045": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:598-633 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-046": [
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:636-661 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-047": [
+    "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:4-48 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-050": [
+    "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:80-83 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-052": [
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift:11-25 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-053": [
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift:21-23 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-054": [
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift:78-89 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-057": [
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift:46-53 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-058": [
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift:54-60 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-061": [
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift:96-110 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-062": [
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift:149-154 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-066": [
+    "DroppyCode/App/Views/Chat/SubagentPanel.swift:365-413 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRA-074": [
+    "DroppyCode/App/Views/Chat/HydraProgressBar.swift:452-481 touches lines changed at the new baseline"
+   ]
+  },
+  "HYDRAMERGE": {
+   "PR-HYDRAMERGE-005": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:38 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-006": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:41-43 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-007": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:44-45 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-008": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:46-51 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-010": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:59-60 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-015": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:87 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-017": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:96-99 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-026": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:133-137 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-027": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:138-150 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-037": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:617-622 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-046": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:626-650 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-048": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:337-346 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-049": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:336-345 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-057": [
+    "DroppyCode/Services/Git/Git.swift:210-227 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-068": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:429-438 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-069": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:440-456 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-072": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:481 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-073": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:484-499 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-075": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:549-567 touches lines changed at the new baseline",
+    "DroppyCode/App/AppModel+HydraMerge.swift:515 touches lines changed at the new baseline",
+    "DroppyCode/App/AppModel+HydraMerge.swift:529 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-076": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:516-524 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-077": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:529-538 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-078": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:539-542 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-081": [
+    "DroppyCode/Core/Models/Timeline.swift:237-247 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-088": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:798-813 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:333-335 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:377-382 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:385-388 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-090": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:610-643 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-091": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:27-29 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:68-76 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:159 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-092": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:31 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:38-66 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:57-61 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-094": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:198-219 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-097": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:147-173 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-098": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:242-268 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-099": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:242-268 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-101": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1062-1085 touches lines changed at the new baseline"
+   ],
+   "PR-HYDRAMERGE-105": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1148-1167 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-003": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1050-1086 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-005": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1148-1161 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:798-813 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-006": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:1163-1167 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:377-382 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-007": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:610-643 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-010": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:127-130 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-011": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:131-134 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-013": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:270-283 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-016": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:147-173 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-017": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:168-171 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-018": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:242-268 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-019": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:244-245 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-020": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:246-250 touches lines changed at the new baseline",
+    "DroppyCode/App/AppModel+HydraMerge.swift:481 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-022": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:252-255 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-023": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:256-264 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-024": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:287-297 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-025": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:177-179 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-027": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:183-193 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-028": [
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift:194-219 touches lines changed at the new baseline"
+   ],
+   "UI-HYDRAMERGE-034": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:626-650 touches lines changed at the new baseline"
+   ]
+  },
+  "LAUNCH": {
+   "PR-LAUNCH-018": [
+    "DroppyCode/Core/Support/HangWatchdog.swift:86-89 touches lines changed at the new baseline"
+   ],
+   "PR-LAUNCH-021": [
+    "DroppyCode/Core/Support/HangWatchdog.swift:17-131 touches lines changed at the new baseline"
+   ],
+   "PR-LAUNCH-043": [
+    "DroppyCode/App/AppModel+HydraMerge.swift:36-52 touches lines changed at the new baseline"
+   ],
+   "PR-LAUNCH-058": [
+    "DroppyCode/Services/MCP/MCPHub.swift:544-553 touches lines changed at the new baseline"
+   ],
+   "UI-LAUNCH-008": [
+    "DroppyCode/Core/Support/HangWatchdog.swift:85-116 touches lines changed at the new baseline"
+   ]
+  },
+  "MCP": {
+   "PR-MCP-039": [
+    "DroppyCode/Core/Models/MCP.swift:135-150 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-040": [
+    "DroppyCode/Core/Models/MCP.swift:140-146 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-059": [
+    "DroppyCode/Services/MCP/MCPKeychain.swift:30-50 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-070": [
+    "DroppyCode/Services/MCP/MCPStore.swift:156-166 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-091": [
+    "DroppyCode/Core/Models/MCPCustom.swift:150-168 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-094": [
+    "DroppyCode/Core/Models/MCPCustom.swift:172-182 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-096": [
+    "DroppyCode/Services/MCP/MCPKeychain.swift:11-26 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-097": [
+    "DroppyCode/Services/MCP/MCPKeychain.swift:29-35 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-104": [
+    "DroppyCode/Services/MCP/MCPProbe.swift:93-106 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-112": [
+    "DroppyCode/Services/MCP/MCPProbe.swift:383-425 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-116": [
+    "DroppyCode/Services/MCP/MCPProbe.swift:302-333 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-120": [
+    "DroppyCode/Services/MCP/MCPProbe.swift:3-48 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-122": [
+    "DroppyCode/Services/MCP/MCPProxy.swift:12-25 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-124": [
+    "DroppyCode/Services/MCP/MCPProxy.swift:114-135 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-125": [
+    "DroppyCode/Services/MCP/MCPProxy.swift:82-91 touches lines changed at the new baseline",
+    "DroppyCode/Services/MCP/MCPProxy.swift:98-140 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-126": [
+    "DroppyCode/Services/MCP/MCPProxy.swift:62-80 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-130": [
+    "DroppyCode/Services/MCP/MCPProxy.swift:284-303 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-138": [
+    "DroppyCode/Services/MCP/MCPProxy.swift:177-189 touches lines changed at the new baseline",
+    "DroppyCode/Services/MCP/MCPProxy.swift:142-154 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-191": [
+    "DroppyCode/Services/MCP/MCPHub.swift:531-553 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-199": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:35-63 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-202": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:77-85 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-206": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:387-415 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-207": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:822-839 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-210": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:771-817 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-211": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:883-932 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-213": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:971-989 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-217": [
+    "DroppyCode/App/Views/Settings/MCPKeyPanel.swift:145-161 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-218": [
+    "DroppyCode/App/Views/Settings/MCPKeyPanel.swift:182-224 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-222": [
+    "DroppyCode/App/Views/Settings/MCPSetupPanel.swift:117-194 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-223": [
+    "DroppyCode/App/Views/Settings/MCPSetupPanel.swift:239-261 touches lines changed at the new baseline"
+   ],
+   "PR-MCP-224": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:360-375 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:249-303 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-001": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:35-63 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-002": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:88-122 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-003": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:91-93 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-004": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:883-932 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-005": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:124-133 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-006": [
+    "DroppyCode/UI/Chrome/Chrome.swift:990-1014 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-008": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:152-203 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-010": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:169-180 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-017": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:212-227 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-018": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:249-303 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-019": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:305-319 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-020": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:257-261 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-022": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:269-274 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-023": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:275-280 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-026": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:331-338 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-032": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:360-375 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-034": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:396-403 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-035": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:417-441 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-036": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:463-499 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-038": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:508-515 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-042": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:542-554 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-047": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:624-683 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-048": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:685-706 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-049": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:697-705 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-050": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:708-714 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:717-724 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-052": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:726-737 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-053": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:753-769 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-055": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:771-817 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-057": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:739-751 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-058": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:781-791 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-059": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:792-802 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-060": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:805-812 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-062": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:651-657 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-063": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:658-662 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-064": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:936-993 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-065": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:944-954 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-066": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:995-1006 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-067": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:963-970 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-068": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:971-978 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-069": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:979-989 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-071": [
+    "DroppyCode/App/Views/Settings/MCPKeyPanel.swift:122-143 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-072": [
+    "DroppyCode/App/Views/Settings/MCPKeyPanel.swift:134-141 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-073": [
+    "DroppyCode/App/Views/Settings/MCPKeyPanel.swift:145-180 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-074": [
+    "DroppyCode/App/Views/Settings/MCPKeyPanel.swift:149-151 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-075": [
+    "DroppyCode/App/Views/Settings/MCPKeyPanel.swift:182-224 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-076": [
+    "DroppyCode/App/Views/Settings/MCPKeyPanel.swift:201-210 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-079": [
+    "DroppyCode/App/Views/Settings/MCPSetupPanel.swift:196-217 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-080": [
+    "DroppyCode/App/Views/Settings/MCPSetupPanel.swift:208-215 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-081": [
+    "DroppyCode/App/Views/Settings/MCPSetupPanel.swift:123-126 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-082": [
+    "DroppyCode/App/Views/Settings/MCPSetupPanel.swift:219-237 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-085": [
+    "DroppyCode/App/Views/Settings/MCPSetupPanel.swift:140-146 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-086": [
+    "DroppyCode/App/Views/Settings/MCPSetupPanel.swift:155-160 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-087": [
+    "DroppyCode/App/Views/Settings/MCPSetupPanel.swift:161-166 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-088": [
+    "DroppyCode/App/Views/Settings/MCPSetupPanel.swift:239-261 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-089": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:60-62 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-093": [
+    "DroppyCode/UI/Chrome/Chrome.swift:990-1014 touches lines changed at the new baseline"
+   ],
+   "UI-MCP-094": [
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:96-98 touches lines changed at the new baseline"
+   ]
+  },
+  "PROVACP": {
+   "PR-PROVACP-001": [
+    "DroppyCode/Core/Models/Provider.swift:98 touches lines changed at the new baseline",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:1520 touches lines changed at the new baseline",
+    "DroppyCode/Services/Providers/ProviderRegistry.swift:481 touches lines changed at the new baseline",
+    "DroppyCode/Core/Models/Provider.swift:24-30 touches lines changed at the new baseline"
+   ],
+   "PR-PROVACP-004": [
+    "DroppyCode/Core/Support/StdioProcess.swift:27-40 touches lines changed at the new baseline"
+   ],
+   "PR-PROVACP-048": [
+    "DroppyCode/Services/Providers/ProviderRegistry.swift:169-173 touches lines changed at the new baseline"
+   ],
+   "PR-PROVACP-065": [
+    "DroppyCode/Core/Models/Timeline.swift:100-105 touches lines changed at the new baseline"
+   ],
+   "PR-PROVACP-085": [
+    "DroppyCode/Services/Providers/ACPSession.swift:644-659 touches lines changed at the new baseline"
+   ],
+   "PR-PROVACP-087": [
+    "DroppyCode/Services/Providers/ACPSession.swift:688-699 touches lines changed at the new baseline"
+   ],
+   "PR-PROVACP-117": [
+    "DroppyCode/Services/Providers/ACPSession.swift:819-825 touches lines changed at the new baseline"
+   ],
+   "PR-PROVACP-119": [
+    "DroppyCode/Services/Providers/ACPSession.swift:775-780 touches lines changed at the new baseline"
+   ],
+   "PR-PROVACP-136": [
+    "DroppyCode/Services/Providers/ProviderRegistry.swift:481 touches lines changed at the new baseline"
+   ],
+   "PR-PROVACP-148": [
+    "DroppyCode/Core/Support/JSONRPC.swift:141-150 touches lines changed at the new baseline"
+   ],
+   "PR-PROVACP-156": [
+    "DroppyCode/Core/Support/StdioProcess.swift:44-47 touches lines changed at the new baseline",
+    "DroppyCode/Core/Support/StdioProcess.swift:155-162 touches lines changed at the new baseline"
+   ],
+   "PR-PROVACP-159": [
+    "DroppyCode/Core/Support/StdioProcess.swift:164-179 touches lines changed at the new baseline"
+   ],
+   "PR-PROVACP-161": [
+    "DroppyCode/Core/Support/StdioProcess.swift:125-136 touches lines changed at the new baseline"
+   ],
+   "UI-PROVACP-001": [
+    "DroppyCode/Services/Providers/ACPSession.swift:801-826 touches lines changed at the new baseline"
+   ],
+   "UI-PROVACP-023": [
+    "DroppyCode/Services/Providers/ACPSession.swift:685-699 touches lines changed at the new baseline"
+   ],
+   "UI-PROVACP-029": [
+    "DroppyCode/Core/Models/Provider.swift:24-30 touches lines changed at the new baseline"
+   ]
+  },
+  "PROVAPI": {
+   "PR-PROVAPI-002": [
+    "DroppyCode/Services/Providers/APIKeychain.swift:22-27 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-004": [
+    "DroppyCode/Services/Providers/APIKeychain.swift:42-56 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-016": [
+    "DroppyCode/Services/Providers/DeepSeekAPI.swift:13-22 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-017": [
+    "DroppyCode/Services/Providers/DeepSeekAPI.swift:24-38 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-024": [
+    "DroppyCode/Services/Providers/DeepSeekAPI.swift:43-53 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-035": [
+    "DroppyCode/Services/Providers/MetaAPI.swift:25-34 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-036": [
+    "DroppyCode/Services/Providers/MetaAPI.swift:36-50 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-057": [
+    "DroppyCode/Services/Providers/ZaiAPI.swift:20-29 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-058": [
+    "DroppyCode/Services/Providers/ZaiAPI.swift:31-45 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-064": [
+    "DroppyCode/Services/Providers/ZaiAPI.swift:74-87 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-089": [
+    "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:243 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-111": [
+    "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:431-433 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-126": [
+    "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:792-800 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-127": [
+    "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:742-748 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-140": [
+    "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1268-1324 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-141": [
+    "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1201-1214 touches lines changed at the new baseline",
+    "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1212 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-148": [
+    "DroppyCode/Services/Providers/ProjectGuidance.swift:77-103 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-151": [
+    "DroppyCode/Core/Models/Timeline.swift:100-105 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-173": [
+    "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1118-1146 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-174": [
+    "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1147-1151 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-175": [
+    "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1154-1165 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-176": [
+    "DroppyCode/Services/Providers/NativeFileTools.swift:19-31 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-177": [
+    "DroppyCode/Services/Providers/NativeFileTools.swift:33-38 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-184": [
+    "DroppyCode/Services/Providers/NativeFileTools.swift:122-130 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-188": [
+    "DroppyCode/Services/Providers/TextGeneration.swift:40-54 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-189": [
+    "DroppyCode/Services/Providers/TextGeneration.swift:56-74 touches lines changed at the new baseline"
+   ],
+   "PR-PROVAPI-191": [
+    "DroppyCode/Services/Providers/TextGeneration.swift:87-99 touches lines changed at the new baseline"
+   ],
+   "UI-PROVAPI-001": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:652-656 touches lines changed at the new baseline",
+    "DroppyCode/UI/Chrome/Chrome.swift:1022-1039 touches lines changed at the new baseline"
+   ],
+   "UI-PROVAPI-002": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:680-687 touches lines changed at the new baseline",
+    "DroppyCode/UI/Chrome/Chrome.swift:1016-1048 touches lines changed at the new baseline"
+   ],
+   "UI-PROVAPI-003": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:680-687 touches lines changed at the new baseline"
+   ],
+   "UI-PROVAPI-004": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:680-687 touches lines changed at the new baseline"
+   ],
+   "UI-PROVAPI-005": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:688-698 touches lines changed at the new baseline"
+   ],
+   "UI-PROVAPI-006": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:699-707 touches lines changed at the new baseline"
+   ],
+   "UI-PROVAPI-007": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:710-719 touches lines changed at the new baseline"
+   ],
+   "UI-PROVAPI-008": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:710-719 touches lines changed at the new baseline"
+   ],
+   "UI-PROVAPI-009": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:710-719 touches lines changed at the new baseline"
+   ],
+   "UI-PROVAPI-010": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:658-663 touches lines changed at the new baseline"
+   ],
+   "UI-PROVAPI-029": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:667-679 touches lines changed at the new baseline"
+   ],
+   "UI-PROVAPI-030": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:667-679 touches lines changed at the new baseline",
+    "DroppyCode/Services/Providers/DeepSeekAPI.swift:40-68 touches lines changed at the new baseline"
+   ]
+  },
+  "PROVCLI": {
+   "PR-PROVCLI-051": [
+    "DroppyCode/Services/Providers/ClaudeSession.swift:501-515 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-055": [
+    "DroppyCode/Services/Providers/ClaudeSession.swift:570-597 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-105": [
+    "DroppyCode/Services/Providers/CodexSession.swift:461-472 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-108": [
+    "DroppyCode/Services/Providers/CodexSession.swift:546-657 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-110": [
+    "DroppyCode/Services/Providers/CodexSession.swift:593-611 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-111": [
+    "DroppyCode/Services/Providers/CodexSession.swift:612-624 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-116": [
+    "DroppyCode/Services/Providers/CodexSession.swift:660-683 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-119": [
+    "DroppyCode/Services/Providers/CodexSession.swift:737-756 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-133": [
+    "DroppyCode/Services/Providers/CodexSession.swift:785-792 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-150": [
+    "DroppyCode/Services/Providers/CopilotSession.swift:229-236 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-153": [
+    "DroppyCode/Services/Providers/CopilotSession.swift:202-227 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-173": [
+    "DroppyCode/Services/Providers/CopilotSession.swift:470-475 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-178": [
+    "DroppyCode/Services/Providers/CopilotSession.swift:1067-1069 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-184": [
+    "DroppyCode/Services/Providers/CopilotSession.swift:720-735 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-224": [
+    "DroppyCode/Services/Providers/CommandCodeSession.swift:286-431 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-227": [
+    "DroppyCode/Services/Providers/CommandCodeSession.swift:307-337 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-234": [
+    "DroppyCode/Services/Providers/CommandCodeSession.swift:420-425 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-255": [
+    "DroppyCode/Services/Providers/CommandCodeAPI.swift:18-24 touches lines changed at the new baseline",
+    "DroppyCode/Services/Providers/CommandCodeAPI.swift:31-39 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-290": [
+    "DroppyCode/Services/Providers/PiSession.swift:383-405 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-294": [
+    "DroppyCode/Services/Providers/PiSession.swift:513-531 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-319": [
+    "DroppyCode/Services/Providers/AntigravitySession.swift:82-84 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-320": [
+    "DroppyCode/Services/Providers/AntigravitySession.swift:84-87 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-335": [
+    "DroppyCode/Services/Providers/AntigravitySession.swift:320-338 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-338": [
+    "DroppyCode/Services/Providers/AntigravitySession.swift:443-514 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-341": [
+    "DroppyCode/Services/Providers/AntigravitySession.swift:561-580 touches lines changed at the new baseline",
+    "DroppyCode/Services/Providers/AntigravitySession.swift:582-600 touches lines changed at the new baseline"
+   ],
+   "PR-PROVCLI-428": [
+    "DroppyCode/Services/Providers/AntigravitySession.swift:465-468 touches lines changed at the new baseline"
+   ],
+   "UI-PROVCLI-021": [
+    "DroppyCode/Services/Providers/AntigravitySession.swift:462-513 touches lines changed at the new baseline"
+   ],
+   "UI-PROVCLI-025": [
+    "DroppyCode/Services/Providers/AntigravitySession.swift:564-580 touches lines changed at the new baseline"
+   ],
+   "UI-PROVCLI-034": [
+    "DroppyCode/Services/Providers/ClaudeSession.swift:495-515 touches lines changed at the new baseline"
+   ]
+  },
+  "PROVREG": {
+   "PR-PROVREG-001": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:606 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-002": [
+    "DroppyCode/Core/Models/Provider.swift:56 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-003": [
+    "DroppyCode/Core/Models/Provider.swift:56 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-004": [
+    "DroppyCode/Core/Models/Provider.swift:56 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-005": [
+    "DroppyCode/Core/Models/Provider.swift:25 touches lines changed at the new baseline",
+    "DroppyCode/Core/Models/Provider.swift:56 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-006": [
+    "DroppyCode/Core/Models/Provider.swift:56 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-007": [
+    "DroppyCode/Core/Models/Provider.swift:56 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-008": [
+    "DroppyCode/Core/Models/Provider.swift:56 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-009": [
+    "DroppyCode/Core/Models/Provider.swift:56 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-010": [
+    "DroppyCode/Core/Models/Provider.swift:56 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-011": [
+    "DroppyCode/Core/Models/Provider.swift:56 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-012": [
+    "DroppyCode/Core/Models/Provider.swift:56 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-013": [
+    "DroppyCode/Core/Models/Provider.swift:56 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-014": [
+    "DroppyCode/Core/Models/Provider.swift:56 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-028": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:742 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-033": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:721 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Usage/UsageViews.swift:45-57 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-034": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:721 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-035": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:721 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-039": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:686 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-041": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:732-733 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-046": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:710-718 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-054": [
+    "DroppyCode/Core/Models/Provider.swift:98 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-055": [
+    "DroppyCode/Core/Models/Provider.swift:98 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-056": [
+    "DroppyCode/Core/Models/Provider.swift:98 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-057": [
+    "DroppyCode/Core/Models/Provider.swift:98 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-058": [
+    "DroppyCode/Core/Models/Provider.swift:98 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-062": [
+    "DroppyCode/Core/Models/Provider.swift:98 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-063": [
+    "DroppyCode/Core/Models/Provider.swift:98 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-064": [
+    "DroppyCode/Core/Models/Provider.swift:98 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-066": [
+    "DroppyCode/Core/Models/Provider.swift:98 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-068": [
+    "DroppyCode/Core/Models/Provider.swift:97-98 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-071": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:685-686 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-101": [
+    "DroppyCode/Services/Providers/ProviderRegistry.swift:270-272 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-117": [
+    "DroppyCode/Services/Providers/ProviderRegistry.swift:807-816 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-118": [
+    "DroppyCode/Services/Providers/ProviderRegistry.swift:773-789 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-119": [
+    "DroppyCode/Services/Providers/ProviderRegistry.swift:782-788 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-126": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:648 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-133": [
+    "DroppyCode/Services/Providers/ProviderRegistry.swift:162-175 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-134": [
+    "DroppyCode/Services/Providers/ProviderRegistry.swift:168-174 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-148": [
+    "DroppyCode/Services/Providers/ProviderRegistry.swift:430-439 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-151": [
+    "DroppyCode/Services/Providers/ProviderRegistry.swift:456-466 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-153": [
+    "DroppyCode/Services/Providers/ProviderRegistry.swift:474-483 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-171": [
+    "DroppyCode/Services/Providers/PlanLimits.swift:72-82 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-175": [
+    "DroppyCode/Services/Providers/PlanLimits.swift:109-128 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-177": [
+    "DroppyCode/Services/Providers/PlanLimits.swift:181-211 touches lines changed at the new baseline",
+    "DroppyCode/Services/Providers/PlanLimits.swift:204-205 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-189": [
+    "DroppyCode/Services/Providers/PlanLimits.swift:331-335 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-224": [
+    "DroppyCode/Services/Providers/ProjectGuidance.swift:79-95 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-231": [
+    "DroppyCode/Services/Providers/ProjectGuidance.swift:93-95 touches lines changed at the new baseline"
+   ],
+   "PR-PROVREG-239": [
+    "DroppyCode/Services/Providers/APIKeychain.swift:22-39 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-001": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:67 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-003": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:601-611 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/SettingsView.swift:637-639 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-004": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:641-644 touches lines changed at the new baseline",
+    "DroppyCode/Core/Models/Provider.swift:56 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-005": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:640-647 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-006": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:648-651 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-007": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:652-656 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-008": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:658-663 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-009": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:668 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/SettingsView.swift:681 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/SettingsView.swift:722 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/SettingsView.swift:730 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-010": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:667-679 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-011": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:15-20 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-013": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:144-151 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-014": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:152-157 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-015": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:158-161 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-016": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:163-168 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-018": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:71-76 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-019": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:44-57 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-020": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:58-69 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-023": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:228-238 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-024": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:232-235 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-025": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:260-273 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-026": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:274-279 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-027": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:313-337 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-028": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:329-332 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-032": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:353-360 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-033": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:90-126 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-034": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:99-104 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-035": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:107-117 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-037": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:680-687 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-038": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:688-698 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-039": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:699-708 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-040": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:710-719 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-041": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:721-728 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-042": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:729-737 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-043": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:738-748 touches lines changed at the new baseline"
+   ],
+   "UI-PROVREG-044": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:741-746 touches lines changed at the new baseline"
+   ]
+  },
+  "RUNTIME": {
+   "PR-RUNTIME-034": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:1513-1524 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-056": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:1186-1190 touches lines changed at the new baseline",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:2656-2664 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-069": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:1271-1285 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-082": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:3096-3114 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-145": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:3073-3094 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-177": [
+    "DroppyCode/Core/Models/ThreadContinuation.swift:40-116 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-188": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:1146-1149 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-193": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:3336-3349 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-202": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:286 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-208": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:2678-2691 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-210": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:2692 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-215": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:2720-2722 touches lines changed at the new baseline",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:2854-2876 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-217": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:2732-2744 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-222": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:2776-2784 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-223": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:2785-2795 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-226": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:2850-2862 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-227": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:2863-2876 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-230": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:2834-2844 touches lines changed at the new baseline",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:2660-2664 touches lines changed at the new baseline"
+   ],
+   "PR-RUNTIME-231": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:2845-2847 touches lines changed at the new baseline",
+    "DroppyCode/Core/Models/Hydra.swift:1118-1128 touches lines changed at the new baseline"
+   ],
+   "UI-RUNTIME-001": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2400-2421 touches lines changed at the new baseline"
+   ],
+   "UI-RUNTIME-002": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2400-2446 touches lines changed at the new baseline"
+   ],
+   "UI-RUNTIME-003": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2400-2446 touches lines changed at the new baseline"
+   ],
+   "UI-RUNTIME-004": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift:2449-2472 touches lines changed at the new baseline"
+   ],
+   "UI-RUNTIME-005": [
+    "DroppyCode/App/Views/Composer/RequestCards.swift:3-65 touches lines changed at the new baseline"
+   ],
+   "UI-RUNTIME-007": [
+    "DroppyCode/App/Views/Composer/RequestCards.swift:25-28 touches lines changed at the new baseline"
+   ],
+   "UI-RUNTIME-009": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:3096-3114 touches lines changed at the new baseline"
+   ],
+   "UI-RUNTIME-014": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:2678-2701 touches lines changed at the new baseline"
+   ],
+   "UI-RUNTIME-018": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:1146-1149 touches lines changed at the new baseline"
+   ],
+   "UI-RUNTIME-019": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift:2678-2691 touches lines changed at the new baseline"
+   ]
+  },
+  "SETTINGS": {
+   "PR-SETTINGS-008": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:62-74 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-009": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:95-102 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-014": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:161-172 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-016": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:141-177 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-041": [
+    "DroppyCode/App/AppSettings.swift:130 touches lines changed at the new baseline",
+    "DroppyCode/App/AppSettings.swift:245-247 touches lines changed at the new baseline",
+    "DroppyCode/App/AppSettings.swift:709 touches lines changed at the new baseline",
+    "DroppyCode/UI/Common/ChatZoom.swift:16-18 names a file deleted at the new baseline"
+   ],
+   "PR-SETTINGS-085": [
+    "DroppyCode/App/AppSettings.swift:245-247 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-097": [
+    "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:116-124 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-107": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:301-441 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-125": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:535-580 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-128": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:439 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/SettingsView.swift:444-481 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/SettingsView.swift:458-469 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/SettingsView.swift:461-465 touches lines changed at the new baseline",
+    "DroppyCode/UI/Common/ChatZoom.swift:10-13 names a file deleted at the new baseline"
+   ],
+   "PR-SETTINGS-129": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:483-533 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/SettingsView.swift:529-531 touches lines changed at the new baseline",
+    "DroppyCode/UI/Common/ChatZoom.swift:10-27 names a file deleted at the new baseline"
+   ],
+   "PR-SETTINGS-130": [
+    "DroppyCode/App/Views/Settings/TokenActivitySection.swift:52-92 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-131": [
+    "DroppyCode/App/Views/Settings/TokenActivitySection.swift:54-87 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/TokenActivitySection.swift:76-77 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-137": [
+    "DroppyCode/App/Views/Settings/TokenActivitySection.swift:112-136 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-138": [
+    "DroppyCode/App/Views/Settings/TokenActivitySection.swift:144-176 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/TokenActivitySection.swift:171-175 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-139": [
+    "DroppyCode/App/Views/Settings/TokenActivitySection.swift:139-143 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/TokenActivitySection.swift:164-169 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/TokenActivitySection.swift:173-175 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-141": [
+    "DroppyCode/App/Views/Settings/WallpaperCard.swift:25-102 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/WallpaperCard.swift:64-73 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-145": [
+    "DroppyCode/App/Views/Settings/WallpaperCard.swift:126-166 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/WallpaperCard.swift:145-162 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-146": [
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:10-37 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-147": [
+    "DroppyCode/UI/Chrome/InfoHoverButton.swift:5-56 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift:91-156 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-148": [
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift:91-156 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift:104-107 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift:149-155 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-149": [
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:38-45 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:47-166 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-151": [
+    "DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift:54-72 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-160": [
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:108-162 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:111-139 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:158-161 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-163": [
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:239-297 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-164": [
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:277-288 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-165": [
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:249-276 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-166": [
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:360-379 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-167": [
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:544-558 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:520-542 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-174": [
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:499-507 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-176": [
+    "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift:17-30 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-177": [
+    "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift:31-57 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift:33-38 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-178": [
+    "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift:72-133 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift:89-95 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift:96-106 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift:107-111 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift:114-129 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-179": [
+    "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:27-82 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:20 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-186": [
+    "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:102-125 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-190": [
+    "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:303-372 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:311-314 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-191": [
+    "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:325-332 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-192": [
+    "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:334-366 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:347-350 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:358-363 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-213": [
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:18-37 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:269-279 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-215": [
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:160-185 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-217": [
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:428-468 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-220": [
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:447-460 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-221": [
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:326-417 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:374-399 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-222": [
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:66-102 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:87-97 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-224": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:601-611 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-225": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:639-666 touches lines changed at the new baseline",
+    "DroppyCode/Core/Models/Provider.swift:20-35 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-226": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:667-679 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-227": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:680-709 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/SettingsView.swift:688-708 touches lines changed at the new baseline",
+    "DroppyCode/Core/Models/Provider.swift:94-101 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-229": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:710-719 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-230": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:721-728 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-231": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:729-737 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/SettingsView.swift:738-748 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-233": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:802-819 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-238": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:952-988 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-241": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:558-578 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-242": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:630-691 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-244": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:753-786 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:197-259 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-245": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:179-192 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-246": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:262-308 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-248": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:1043-1086 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/SettingsView.swift:1088-1105 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-249": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:991-1041 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-250": [
+    "DroppyCode/App/AppSettings.swift:188-693 touches lines changed at the new baseline"
+   ],
+   "PR-SETTINGS-251": [
+    "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:358-361 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-006": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:161-172 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-014": [
+    "DroppyCode/UI/Chrome/ChromeVisualPicker.swift:10-105 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-018": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:535-580 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-019": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:444-481 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-020": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:483-533 touches lines changed at the new baseline",
+    "DroppyCode/UI/Common/ChatZoom.swift:10-27 names a file deleted at the new baseline"
+   ],
+   "UI-SETTINGS-021": [
+    "DroppyCode/App/Views/Settings/TokenActivitySection.swift:55-59 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-022": [
+    "DroppyCode/App/Views/Settings/TokenActivitySection.swift:61-87 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-024": [
+    "DroppyCode/App/Views/Settings/TokenActivitySection.swift:112-136 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-025": [
+    "DroppyCode/App/Views/Settings/TokenActivitySection.swift:144-181 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-026": [
+    "DroppyCode/App/Views/Settings/WallpaperCard.swift:25-102 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-028": [
+    "DroppyCode/App/Views/Settings/WallpaperCard.swift:126-166 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-029": [
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:10-45 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-030": [
+    "DroppyCode/UI/Chrome/InfoHoverButton.swift:5-56 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-031": [
+    "DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift:8-82 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-034": [
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:239-317 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-035": [
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:360-379 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-036": [
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:382-507 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift:520-565 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-037": [
+    "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift:72-133 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-039": [
+    "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:334-365 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-040": [
+    "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:341-346 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-043": [
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:18-63 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:269-279 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-044": [
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:151-201 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-045": [
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:283-417 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-046": [
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:440-446 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-047": [
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:447-481 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-048": [
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:66-102 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-049": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:639-666 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-050": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:680-709 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-051": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:710-748 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-052": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:802-819 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-055": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:558-578 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-056": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:580-711 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-057": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:197-259 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-059": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:1043-1086 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-060": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:991-1041 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-065": [
+    "DroppyCode/UI/Chrome/ChromeVisualPicker.swift:10-105 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-066": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:659-662 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-067": [
+    "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift:325-332 touches lines changed at the new baseline"
+   ],
+   "UI-SETTINGS-072": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:1088-1105 touches lines changed at the new baseline"
+   ]
+  },
+  "SIDEBAR": {
+   "PR-SIDEBAR-003": [
+    "DroppyCode/UI/Chrome/Chrome.swift:742-755 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-004": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:61-63 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-007": [
+    "DroppyCode/UI/Chrome/Chrome.swift:754-765 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-017": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:67 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-045": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:691-701 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-067": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:2054-2064 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-070": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:2054-2064 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-071": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:2059 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-073": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:2409-2428 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-074": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:2687-2696 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-088": [
+    "DroppyCode/UI/Chrome/Popovers.swift:116-131 touches lines changed at the new baseline",
+    "DroppyCode/UI/Chrome/Popovers.swift:133-148 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-091": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:987-1024 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-092": [
+    "DroppyCode/App/AppModel.swift:747-755 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-095": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:915-953 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-106": [
+    "DroppyCode/UI/Chrome/Popovers.swift:274-334 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-107": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:1345-1385 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-113": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:1565-1621 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-115": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:1576-1607 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-119": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:1517-1530 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-123": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:2364-2407 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-125": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:2346-2362 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-126": [
+    "DroppyCode/UI/Chrome/Chrome.swift:676-706 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-133": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:1242-1271 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-150": [
+    "DroppyCode/UI/Chrome/ProjectIconPicker.swift:139-176 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-152": [
+    "DroppyCode/UI/Chrome/ProjectIconPicker.swift:186-201 touches lines changed at the new baseline"
+   ],
+   "PR-SIDEBAR-153": [
+    "DroppyCode/UI/Chrome/ProjectIconPicker.swift:178-185 touches lines changed at the new baseline",
+    "DroppyCode/UI/Chrome/ProjectIconPicker.swift:203-215 touches lines changed at the new baseline",
+    "DroppyCode/UI/Chrome/ProjectIconPicker.swift:217-229 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-002": [
+    "DroppyCode/UI/Chrome/Chrome.swift:742-792 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-003": [
+    "DroppyCode/UI/Chrome/Chrome.swift:754-765 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-008": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:1079-1167 touches lines changed at the new baseline",
+    "DroppyCode/UI/Chrome/Chrome.swift:648-714 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-013": [
+    "DroppyCode/UI/Chrome/Popovers.swift:186-334 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-016": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:1242-1271 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-017": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:2007-2081 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-019": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:2054-2064 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-023": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:2687-2696 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-024": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:2409-2428 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-026": [
+    "DroppyCode/UI/Chrome/Popovers.swift:116-156 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-028": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:987-1024 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-029": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:1004-1008 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-031": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:905-965 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-033": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:1318-1426 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-035": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:1553-1621 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-036": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:1428-1551 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-038": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:1517-1530 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-039": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:2346-2362 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-040": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:2364-2407 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-041": [
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift:691-701 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-053": [
+    "DroppyCode/UI/Chrome/ProjectIconPicker.swift:139-176 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-054": [
+    "DroppyCode/UI/Chrome/ProjectIconPicker.swift:186-201 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-055": [
+    "DroppyCode/UI/Chrome/ProjectIconPicker.swift:231-238 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-056": [
+    "DroppyCode/UI/Chrome/ProjectIconPicker.swift:178-229 touches lines changed at the new baseline"
+   ],
+   "UI-SIDEBAR-057": [
+    "DroppyCode/UI/Chrome/ProjectIconPicker.swift:163-175 touches lines changed at the new baseline"
+   ]
+  },
+  "STORE": {
+   "PR-STORE-024": [
+    "DroppyCode/Core/Models/Timeline.swift:27-31 touches lines changed at the new baseline"
+   ]
+  },
+  "TERM": {
+   "PR-TERM-010": [
+    "DroppyCode/App/Views/Terminal/TerminalPanel.swift:64-78 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-022": [
+    "DroppyCode/App/Views/Terminal/TerminalPanel.swift:273-283 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-023": [
+    "DroppyCode/App/Views/Terminal/TerminalPanel.swift:284-295 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-033": [
+    "DroppyCode/App/Views/Terminal/TerminalPanel.swift:402-406 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-034": [
+    "DroppyCode/App/Views/Terminal/TerminalPanel.swift:407-411 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-036": [
+    "DroppyCode/App/Views/Terminal/TerminalPanel.swift:396-412 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-038": [
+    "DroppyCode/App/Views/Terminal/TerminalStore.swift:21-23 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-074": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:1663-1669 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-076": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:1670-1703 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-081": [
+    "DroppyCode/Core/Support/Shell.swift:4-12 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-082": [
+    "DroppyCode/Core/Support/Shell.swift:14-19 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-083": [
+    "DroppyCode/Core/Support/Shell.swift:261-284 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-087": [
+    "DroppyCode/Core/Support/Shell.swift:286-310 touches lines changed at the new baseline",
+    "DroppyCode/Core/Support/Shell.swift:312-320 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-089": [
+    "DroppyCode/Core/Support/Shell.swift:218-242 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-092": [
+    "DroppyCode/Core/Support/Shell.swift:164-172 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-107": [
+    "DroppyCode/Core/Support/StdioProcess.swift:12-40 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-112": [
+    "DroppyCode/Core/Support/StdioProcess.swift:125-136 touches lines changed at the new baseline",
+    "DroppyCode/Core/Support/StdioProcess.swift:164-172 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-113": [
+    "DroppyCode/Core/Support/StdioProcess.swift:138-148 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-114": [
+    "DroppyCode/Core/Support/StdioProcess.swift:150-153 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-115": [
+    "DroppyCode/Core/Support/StdioProcess.swift:44-47 touches lines changed at the new baseline",
+    "DroppyCode/Core/Support/StdioProcess.swift:155-162 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-116": [
+    "DroppyCode/App/Views/Terminal/TerminalPanel.swift:1-443 touches lines changed at the new baseline",
+    "DroppyCode/App/Views/Terminal/TerminalStore.swift:1-176 touches lines changed at the new baseline"
+   ],
+   "PR-TERM-117": [
+    "DroppyCode/App/Views/Terminal/TerminalStore.swift:1-176 touches lines changed at the new baseline"
+   ],
+   "UI-TERM-001": [
+    "DroppyCode/App/Views/Terminal/TerminalPanel.swift:15-110 touches lines changed at the new baseline"
+   ],
+   "UI-TERM-003": [
+    "DroppyCode/App/Views/Terminal/TerminalPanel.swift:258-311 touches lines changed at the new baseline"
+   ],
+   "UI-TERM-006": [
+    "DroppyCode/App/Views/Terminal/TerminalPanel.swift:273-283 touches lines changed at the new baseline"
+   ],
+   "UI-TERM-007": [
+    "DroppyCode/App/Views/Terminal/TerminalPanel.swift:284-295 touches lines changed at the new baseline"
+   ],
+   "UI-TERM-010": [
+    "DroppyCode/App/Views/Terminal/TerminalStore.swift:21-23 touches lines changed at the new baseline"
+   ],
+   "UI-TERM-013": [
+    "DroppyCode/App/Views/Terminal/TerminalPanel.swift:67-70 touches lines changed at the new baseline"
+   ],
+   "UI-TERM-020": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:1656-1726 touches lines changed at the new baseline"
+   ],
+   "UI-TERM-022": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:1666-1668 touches lines changed at the new baseline"
+   ],
+   "UI-TERM-023": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:1670-1703 touches lines changed at the new baseline"
+   ],
+   "UI-TERM-026": [
+    "DroppyCode/App/Views/Chat/ChatView.swift:1687-1698 touches lines changed at the new baseline"
+   ]
+  },
+  "THEME": {
+   "PR-THEME-032": [
+    "DroppyCode/UI/Theme/AppTheme.swift:236-247 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-050": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:542-555 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-051": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:559-575 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-069": [
+    "DroppyCode/App/Views/Settings/WallpaperCard.swift:60-74 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-075": [
+    "DroppyCode/App/Views/Settings/WallpaperCard.swift:126-144 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-076": [
+    "DroppyCode/App/Views/Settings/WallpaperCard.swift:145-161 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-103": [
+    "DroppyCode/UI/Markdown/MarkdownParser.swift:86-93 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-106": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:278-299 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-109": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:377-384 touches lines changed at the new baseline",
+    "DroppyCode/UI/Common/ChatZoom.swift:45-57 names a file deleted at the new baseline",
+    "DroppyCode/UI/Common/ChatZoom.swift:62-70 names a file deleted at the new baseline"
+   ],
+   "PR-THEME-115": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:355-366 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-117": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:1287-1307 touches lines changed at the new baseline",
+    "DroppyCode/UI/Common/ChatZoom.swift:52-54 names a file deleted at the new baseline"
+   ],
+   "PR-THEME-118": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:1308-1317 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-119": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:1385-1394 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-120": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:1472-1499 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-131": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:737-748 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-135": [
+    "DroppyCode/UI/Markdown/LinkTitles.swift:39-55 touches lines changed at the new baseline",
+    "DroppyCode/UI/Markdown/LinkTitles.swift:94-110 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-136": [
+    "DroppyCode/UI/Markdown/LinkTitles.swift:102-110 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-137": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:939-951 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-151": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:1129 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-158": [
+    "DroppyCode/UI/Markdown/StreamVeil.swift:291-307 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-160": [
+    "DroppyCode/UI/Markdown/StreamVeil.swift:309-338 touches lines changed at the new baseline"
+   ],
+   "PR-THEME-177": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:490-494 touches lines changed at the new baseline"
+   ],
+   "UI-THEME-010": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:544-547 touches lines changed at the new baseline"
+   ],
+   "UI-THEME-011": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:551-554 touches lines changed at the new baseline"
+   ],
+   "UI-THEME-012": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:559-576 touches lines changed at the new baseline"
+   ],
+   "UI-THEME-013": [
+    "DroppyCode/App/Views/Settings/WallpaperCard.swift:25-102 touches lines changed at the new baseline"
+   ],
+   "UI-THEME-015": [
+    "DroppyCode/App/Views/Settings/WallpaperCard.swift:60-75 touches lines changed at the new baseline"
+   ],
+   "UI-THEME-023": [
+    "DroppyCode/App/Views/Settings/WallpaperCard.swift:129-132 touches lines changed at the new baseline"
+   ],
+   "UI-THEME-024": [
+    "DroppyCode/App/Views/Settings/WallpaperCard.swift:140-143 touches lines changed at the new baseline"
+   ],
+   "UI-THEME-025": [
+    "DroppyCode/App/Views/Settings/WallpaperCard.swift:145-162 touches lines changed at the new baseline"
+   ],
+   "UI-THEME-028": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:377-384 touches lines changed at the new baseline",
+    "DroppyCode/UI/Common/ChatZoom.swift:45-70 names a file deleted at the new baseline"
+   ],
+   "UI-THEME-032": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:355-366 touches lines changed at the new baseline"
+   ],
+   "UI-THEME-034": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:1287-1321 touches lines changed at the new baseline"
+   ],
+   "UI-THEME-035": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:1289-1291 touches lines changed at the new baseline"
+   ],
+   "UI-THEME-036": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:1472-1499 touches lines changed at the new baseline"
+   ],
+   "UI-THEME-037": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:1308-1317 touches lines changed at the new baseline"
+   ],
+   "UI-THEME-038": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:1358-1397 touches lines changed at the new baseline"
+   ],
+   "UI-THEME-039": [
+    "DroppyCode/UI/Markdown/MarkdownView.swift:1385-1394 touches lines changed at the new baseline"
+   ]
+  },
+  "UPDATE": {
+   "PR-UPDATE-001": [
+    "DroppyCode/App/UpdateChecker.swift:7-22 touches lines changed at the new baseline"
+   ],
+   "PR-UPDATE-003": [
+    "DroppyCode/App/UpdateChecker.swift:28-33 touches lines changed at the new baseline"
+   ],
+   "PR-UPDATE-028": [
+    "DroppyCode/App/UpdateChecker.swift:323-331 touches lines changed at the new baseline"
+   ],
+   "PR-UPDATE-044": [
+    "DroppyCode/App/AppUpdater.swift:465-479 touches lines changed at the new baseline"
+   ],
+   "PR-UPDATE-046": [
+    "DroppyCode/App/AppUpdater.swift:497-514 touches lines changed at the new baseline"
+   ],
+   "PR-UPDATE-048": [
+    "DroppyCode/Core/Support/Shell.swift:4-20 touches lines changed at the new baseline"
+   ],
+   "PR-UPDATE-067": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:179-192 touches lines changed at the new baseline"
+   ],
+   "PR-UPDATE-073": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:645-682 touches lines changed at the new baseline"
+   ],
+   "PR-UPDATE-077": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:770-784 touches lines changed at the new baseline"
+   ],
+   "PR-UPDATE-078": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:213-247 touches lines changed at the new baseline"
+   ],
+   "PR-UPDATE-079": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:262-308 touches lines changed at the new baseline"
+   ],
+   "PR-UPDATE-081": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:952-967 touches lines changed at the new baseline"
+   ],
+   "PR-UPDATE-082": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:952-988 touches lines changed at the new baseline"
+   ],
+   "PR-UPDATE-084": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:975-986 touches lines changed at the new baseline"
+   ],
+   "PR-UPDATE-086": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:1044-1085 touches lines changed at the new baseline"
+   ],
+   "PR-UPDATE-087": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:1002-1026 touches lines changed at the new baseline"
+   ],
+   "PR-UPDATE-099": [
+    "DroppyCode/App/Views/Tour/TourView.swift:204-212 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-001": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:558-578 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-002": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:657-689 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-005": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:645-689 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-012": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:197-259 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-013": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:213-247 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-014": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:213-247 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-015": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:262-308 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-017": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:770-798 touches lines changed at the new baseline",
+    "DroppyCode/UI/Chrome/Chrome.swift:1016-1041 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-018": [
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:772-783 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-019": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:952-967 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-023": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:975-979 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-024": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:981-986 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-025": [
+    "DroppyCode/UI/Chrome/Chrome.swift:990-1014 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-026": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:1044-1085 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-027": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:1065-1072 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-028": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:1088-1105 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-032": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:996-1040 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-040": [
+    "DroppyCode/App/Views/Tour/TourView.swift:214-223 touches lines changed at the new baseline"
+   ],
+   "UI-UPDATE-044": [
+    "DroppyCode/App/Views/Tour/TourView.swift:204-212 touches lines changed at the new baseline"
+   ]
+  },
+  "USAGE": {
+   "PR-USAGE-007": [
+    "DroppyCode/App/Views/Composer/ComposerView.swift:738-756 touches lines changed at the new baseline",
+    "DroppyCode/UI/Chrome/Chrome.swift:28 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-012": [
+    "DroppyCode/App/Views/Usage/UsagePanel.swift:35-43 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-018": [
+    "DroppyCode/App/Views/Usage/UsagePanel.swift:83-108 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-020": [
+    "DroppyCode/App/Views/Usage/UsagePanel.swift:91-97 touches lines changed at the new baseline",
+    "DroppyCode/Core/Models/Provider.swift:56 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-023": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:16-19 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-026": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:145-162 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-030": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:163-168 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-035": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:228-238 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-037": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:325-328 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-038": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:329-332 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-041": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:353-360 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-043": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:260-273 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-045": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:322-336 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-046": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:274-279 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-049": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:44-57 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-050": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:58-69 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-051": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:71-76 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-052": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:94-124 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-053": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:99-104 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-054": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:111-117 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-061": [
+    "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:38-45 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-077": [
+    "DroppyCode/App/Views/Settings/SettingsView.swift:671-674 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-079": [
+    "DroppyCode/Services/Providers/PlanLimits.swift:331-335 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-105": [
+    "DroppyCode/Services/Store/TokenLedger.swift:583-595 touches lines changed at the new baseline",
+    "DroppyCode/Services/Store/TokenLedger.swift:583-587 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-106": [
+    "DroppyCode/Services/Providers/CodexSession.swift:608 touches lines changed at the new baseline",
+    "DroppyCode/Services/Providers/CodexSession.swift:610 touches lines changed at the new baseline",
+    "DroppyCode/Services/Providers/CodexSession.swift:619 touches lines changed at the new baseline",
+    "DroppyCode/Services/Providers/CodexSession.swift:621 touches lines changed at the new baseline",
+    "DroppyCode/Services/Providers/ClaudeSession.swift:574 touches lines changed at the new baseline",
+    "DroppyCode/Services/Providers/CodexSession.swift:608 touches lines changed at the new baseline"
+   ],
+   "PR-USAGE-107": [
+    "DroppyCode/App/Views/Settings/TokenActivitySection.swift:61-85 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-003": [
+    "DroppyCode/App/Views/Composer/ComposerView.swift:743-746 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-005": [
+    "DroppyCode/App/Views/Usage/UsagePanel.swift:35-43 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-008": [
+    "DroppyCode/App/Views/Usage/UsagePanel.swift:91-97 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-009": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:16-24 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-011": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:145-151 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-012": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:152-157 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-013": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:158-161 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-014": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:163-168 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-016": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:44-57 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-017": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:58-69 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-019": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:71-76 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-020": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:228-238 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-021": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:232-235 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-022": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:260-273 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-023": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:274-279 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-024": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:323-328 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-025": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:329-332 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-029": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:353-360 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-030": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:94-98 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-031": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:99-104 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-032": [
+    "DroppyCode/App/Views/Usage/UsageViews.swift:111-117 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-036": [
+    "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:24-74 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-040": [
+    "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:38-45 touches lines changed at the new baseline"
+   ],
+   "UI-USAGE-045": [
+    "DroppyCode/App/Views/Settings/TokenActivitySection.swift:61-87 touches lines changed at the new baseline"
+   ]
+  },
+  "WIN": {
+   "PR-WIN-079": [
+    "DroppyCode/App/Views/RootView.swift:304-315 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-080": [
+    "DroppyCode/App/Views/RootView.swift:316-328 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-083": [
+    "DroppyCode/App/Views/RootView.swift:369-384 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-087": [
+    "DroppyCode/App/Views/RootView.swift:424-451 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-088": [
+    "DroppyCode/App/Views/RootView.swift:453-478 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-161": [
+    "DroppyCode/App/Views/Palette/CommandPalette.swift:43-49 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-166": [
+    "DroppyCode/App/Views/Palette/CommandPalette.swift:66-76 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-168": [
+    "DroppyCode/App/Views/Palette/CommandPalette.swift:110-141 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-179": [
+    "DroppyCode/App/Views/Palette/CommandPalette.swift:133-137 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-183": [
+    "DroppyCode/UI/Chrome/Chrome.swift:25-28 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-188": [
+    "DroppyCode/UI/Chrome/Chrome.swift:29-30 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-190": [
+    "DroppyCode/UI/Chrome/Chrome.swift:792-836 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-191": [
+    "DroppyCode/UI/Chrome/Chrome.swift:742-790 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-192": [
+    "DroppyCode/UI/Chrome/Chrome.swift:838-899 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-197": [
+    "DroppyCode/UI/Chrome/Chrome.swift:597-614 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-200": [
+    "DroppyCode/UI/Chrome/Chrome.swift:648-713 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-203": [
+    "DroppyCode/UI/Chrome/Chrome.swift:990-1014 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-204": [
+    "DroppyCode/UI/Chrome/Chrome.swift:1016-1041 touches lines changed at the new baseline"
+   ],
+   "PR-WIN-209": [
+    "DroppyCode/UI/Chrome/Chrome.swift:71-94 touches lines changed at the new baseline"
+   ],
+   "UI-WIN-030": [
+    "DroppyCode/App/Views/Palette/CommandPalette.swift:43-62 touches lines changed at the new baseline"
+   ],
+   "UI-WIN-031": [
+    "DroppyCode/App/Views/Palette/CommandPalette.swift:66-76 touches lines changed at the new baseline"
+   ],
+   "UI-WIN-032": [
+    "DroppyCode/App/Views/Palette/CommandPalette.swift:110-147 touches lines changed at the new baseline"
+   ],
+   "UI-WIN-033": [
+    "DroppyCode/App/Views/Palette/CommandPalette.swift:133-137 touches lines changed at the new baseline"
+   ],
+   "UI-WIN-044": [
+    "DroppyCode/UI/Chrome/Chrome.swift:792-836 touches lines changed at the new baseline"
+   ],
+   "UI-WIN-045": [
+    "DroppyCode/UI/Chrome/Chrome.swift:742-790 touches lines changed at the new baseline"
+   ],
+   "UI-WIN-046": [
+    "DroppyCode/UI/Chrome/Chrome.swift:838-899 touches lines changed at the new baseline"
+   ],
+   "UI-WIN-048": [
+    "DroppyCode/UI/Chrome/Chrome.swift:597-614 touches lines changed at the new baseline"
+   ],
+   "UI-WIN-049": [
+    "DroppyCode/UI/Chrome/Chrome.swift:648-724 touches lines changed at the new baseline"
+   ],
+   "UI-WIN-053": [
+    "DroppyCode/UI/Chrome/Chrome.swift:990-1014 touches lines changed at the new baseline"
+   ],
+   "UI-WIN-054": [
+    "DroppyCode/UI/Chrome/Chrome.swift:1016-1041 touches lines changed at the new baseline"
+   ],
+   "UI-WIN-058": [
+    "DroppyCode/App/Views/RootView.swift:312-314 touches lines changed at the new baseline"
+   ],
+   "UI-WIN-060": [
+    "DroppyCode/App/Views/RootView.swift:325-327 touches lines changed at the new baseline"
+   ],
+   "UI-WIN-064": [
+    "DroppyCode/App/Views/RootView.swift:365-410 touches lines changed at the new baseline"
+   ],
+   "UI-WIN-069": [
+    "DroppyCode/App/Views/RootView.swift:424-451 touches lines changed at the new baseline"
+   ],
+   "UI-WIN-070": [
+    "DroppyCode/App/Views/RootView.swift:453-462 touches lines changed at the new baseline"
+   ],
+   "UI-WIN-072": [
+    "DroppyCode/App/Views/RootView.swift:470-475 touches lines changed at the new baseline"
+   ]
+  }
+ }
+}

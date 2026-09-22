@@ -352,6 +352,8 @@ for (const ms of order) {
 const total = packets.reduce((n, p) => n + p.requirements.length, 0);
 const uiTotal = packets.reduce((n, p) => n + p.ui.length, 0);
 const uiWithFile = [...uiByFile.values()].reduce((n, a) => n + a.length, 0);
-console.log(`requirements covered: ${total} of ${matrix.requirements.length}`);
-console.log(`ui records covered:   ${uiTotal} of ${ui.records.length} (${ui.records.length - uiWithFile} cite no .swift file)`);
-if (total !== matrix.requirements.length) { console.error('COVERAGE MISMATCH'); process.exit(1); }
+const inScope = matrix.requirements.filter((x) => !OUT_OF_SCOPE.has(x.status)).length;
+const uiInScope = ui.records.filter((x) => !OUT_OF_SCOPE.has(x.status)).length;
+console.log(`requirements covered: ${total} of ${inScope} in scope (${matrix.requirements.length - inScope} retired or not applicable)`);
+console.log(`ui records covered:   ${uiTotal} of ${uiInScope} in scope (${ui.records.length - uiWithFile} cite no .swift file)`);
+if (total !== inScope) { console.error('COVERAGE MISMATCH'); process.exit(1); }

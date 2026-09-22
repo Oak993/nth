@@ -5,26 +5,33 @@
       "id": "PR-STORE-001",
       "preconditions": "App process started; no store folder need exist.",
       "action": "Any first read of Storage.root (library load, thread save, MCP store, token ledger).",
-      "expected_result": "The user-domain Application Support directory is taken at index [0], the app display name is appended as a directory component, the directory is created with intermediates, and the resulting URL is cached in a lazily initialised static for the life of the process. The folder name is exactly the value of CFBundleDisplayName, falling back to the literal \"Droppy Code\" when the key is absent.",
+      "expected_result": "In a capture run (launched with --website-captures or --tour-captures, so CaptureRun.storageRoot is not nil) the root is <output folder>/storage, returned as is with no directory created here (Storage.swift:20; the capture run itself is PR-LAUNCH-007). Otherwise: the user-domain Application Support directory is taken at index [0], the app display name is appended as a directory component, the directory is created with intermediates, and the resulting URL is cached in a lazily initialised static for the life of the process. The folder name is exactly the value of CFBundleDisplayName, falling back to the literal \"Droppy Code\" when the key is absent. Deviation, OD-0008 C7: on Windows the store root is %LOCALAPPDATA%\\Marrow Code, created recursively and cached the same way, so the port never shares a folder with the owner's separate Electron Marrow app (%LOCALAPPDATA%\\Marrow).",
       "side_effects": [
         "Creates the store directory on disk if it does not exist"
       ],
-      "persistence": "Directory <Application Support>/<AppInfo.name>. Everything else in this area is relative to it.",
+      "persistence": "Directory <Application Support>/<AppInfo.name> upstream; %LOCALAPPDATA%\\Marrow Code in the port (OD-0008 C7). Everything else in this area is relative to it.",
       "failure_cases": [
         "createDirectory is called with try? so a failure is swallowed and the URL is still returned and cached; every later write against it then fails individually."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Roaming app data root: %APPDATA%\\<display name>, created recursively. The display name is the one product-identity value the owner approved changing; the layout under it is unchanged. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
-      "verification_method": "restart test: delete the folder, launch, assert it exists and holds library.json after the first save",
+      "windows_path": "Local app data root: %LOCALAPPDATA%\\Marrow Code, created recursively (OD-0008 C7). The folder name is the data identity fixed by the ruling, not a value read at run time; the layout under it is unchanged. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
+      "verification_method": "restart test: delete %LOCALAPPDATA%\\Marrow Code, launch, assert it exists and holds library.json after the first save, and assert %LOCALAPPDATA%\\Marrow is not created or touched",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "The store root is <Application Support>/<AppInfo.name>, created once at first touch",
       "source_evidence": [
-        "DroppyCode/Services/Store/Storage.swift:19-25 - static let root: URL = { ... FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent(AppInfo.name, isDirectory: true); try? createDirectory(at: url, withIntermediateDirectories: true) }()",
-        "DroppyCode/Core/Support/Text.swift:4 - AppInfo.name = Bundle.main.object(forInfoDictionaryKey: \"CFBundleDisplayName\") as? String ?? \"Droppy Code\""
-      ]
+        "DroppyCode/Services/Store/Storage.swift:19-25 - static let root: URL = { if let captures = CaptureRun.storageRoot { return captures }; let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]; let url = base.appendingPathComponent(AppInfo.name, isDirectory: true); try? createDirectory(at: url, withIntermediateDirectories: true) }()",
+        "DroppyCode/Core/Support/CaptureRun.swift:30-32 - nonisolated static var storageRoot: URL? { outputDirectory?.appendingPathComponent(\"storage\", isDirectory: true) }",
+        "DroppyCode/Core/Support/Text.swift:4 - AppInfo.name = Bundle.main.object(forInfoDictionaryKey: \"CFBundleDisplayName\") as? String ?? \"Droppy Code\"",
+        "porting/owner_decisions.md OD-0008 - \"C7 gives the port the install and data identity \\\"Marrow Code\\\" (`%LOCALAPPDATA%\\Marrow Code`, Start menu \\\"Marrow Code\\\")\""
+      ],
+      "deviation": {
+        "decision": "OD-0008 C7",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:19-25 - 'let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]' then 'base.appendingPathComponent(AppInfo.name, isDirectory: true)', with AppInfo.name falling back to \"Droppy Code\" (Text.swift:4)",
+        "port": "The port installs and stores data under \"Marrow Code\" (folder %LOCALAPPDATA%\\Marrow Code, Start menu \"Marrow Code\"), so the two apps never touch each other"
+      }
     },
     {
       "id": "PR-STORE-002",
@@ -35,7 +42,7 @@
       "persistence": "<root>/library.json",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "%APPDATA%\\<display name>\\library.json Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
+      "windows_path": "%LOCALAPPDATA%\\Marrow Code\\library.json (OD-0008 C7). Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
       "verification_method": "contract fixture: byte-compare a written library.json against a macOS-shaped fixture",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -44,7 +51,12 @@
       "title": "The library file is exactly library.json at the store root",
       "source_evidence": [
         "DroppyCode/Services/Store/Storage.swift:27 - static let libraryURL: URL = root.appendingPathComponent(\"library.json\")"
-      ]
+      ],
+      "deviation": {
+        "decision": "OD-0008 C7",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:27 - 'static let libraryURL: URL = root.appendingPathComponent(\"library.json\")' under the Application Support root named by AppInfo.name (Storage.swift:19-25)",
+        "port": "The port installs and stores data under \"Marrow Code\" (folder %LOCALAPPDATA%\\Marrow Code, Start menu \"Marrow Code\"), so the two apps never touch each other"
+      }
     },
     {
       "id": "PR-STORE-003",
@@ -59,7 +71,7 @@
         "Creation failure is swallowed by try?; the URL is still cached."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "%APPDATA%\\<display name>\\threads, created once at first access and cached for the process lifetime. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
+      "windows_path": "%LOCALAPPDATA%\\Marrow Code\\threads (OD-0008 C7), created once at first access and cached for the process lifetime. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
       "verification_method": "unit plus an interaction test that asserts exactly one directory-create call across many saves",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -68,7 +80,12 @@
       "source_evidence": [
         "DroppyCode/Services/Store/Storage.swift:29-31 - comment \"Each directory is created on first use and its URL kept: the thread URL is taken on every save, prefetch and delete, and a stat plus mkdir per call was pure waste.\" followed by static let threadsDirectory: URL = directory(\"threads\")",
         "DroppyCode/Services/Store/Storage.swift:54-58 - private static func directory(_ name:) appends the name as a directory to root, calls try? createDirectory(withIntermediateDirectories: true) and returns the URL"
-      ]
+      ],
+      "deviation": {
+        "decision": "OD-0008 C7",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:31 - 'static let threadsDirectory: URL = directory(\"threads\")', where directory(_:) (Storage.swift:54-58) appends the name to the Application Support root named by AppInfo.name (Storage.swift:19-25)",
+        "port": "The port installs and stores data under \"Marrow Code\" (folder %LOCALAPPDATA%\\Marrow Code, Start menu \"Marrow Code\"), so the two apps never touch each other"
+      }
     },
     {
       "id": "PR-STORE-004",
@@ -83,7 +100,7 @@
         "Creation failure swallowed by try?."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "%APPDATA%\\<display name>\\attachments Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
+      "windows_path": "%LOCALAPPDATA%\\Marrow Code\\attachments (OD-0008 C7), created once at first access. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
       "verification_method": "unit",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -92,7 +109,12 @@
       "source_evidence": [
         "DroppyCode/Services/Store/Storage.swift:33 - static let attachmentsDirectory: URL = directory(\"attachments\")",
         "DroppyCode/Services/Store/Storage.swift:54-58 - directory(_:)"
-      ]
+      ],
+      "deviation": {
+        "decision": "OD-0008 C7",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:33 - 'static let attachmentsDirectory: URL = directory(\"attachments\")', where directory(_:) (Storage.swift:54-58) appends the name to the Application Support root named by AppInfo.name (Storage.swift:19-25)",
+        "port": "The port installs and stores data under \"Marrow Code\" (folder %LOCALAPPDATA%\\Marrow Code, Start menu \"Marrow Code\"), so the two apps never touch each other"
+      }
     },
     {
       "id": "PR-STORE-005",
@@ -107,7 +129,7 @@
         "Creation failure swallowed by try?. Wallpaper.swift:130 re-creates the directory before copying, so the swallowed failure is retried there."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "%APPDATA%\\<display name>\\wallpaper Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
+      "windows_path": "%LOCALAPPDATA%\\Marrow Code\\wallpaper (OD-0008 C7), created once at first access. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
       "verification_method": "unit; the install flow itself is verified in the chrome/theme area",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -118,7 +140,12 @@
         "DroppyCode/Services/Store/Storage.swift:35-36 - doc comment \"The user’s window wallpaper, one file at a time.\" and static let wallpaperDirectory: URL = directory(\"wallpaper\")",
         "DroppyCode/UI/Theme/Wallpaper.swift:128 - the installed copy is named \"wallpaper-\\(UUID().uuidString).\\(ext)\" inside that directory",
         "DroppyCode/UI/Theme/Wallpaper.swift:89 - at launch the stored bare file name is resolved against Storage.wallpaperDirectory and used only when the file exists"
-      ]
+      ],
+      "deviation": {
+        "decision": "OD-0008 C7",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:36 - 'static let wallpaperDirectory: URL = directory(\"wallpaper\")', where directory(_:) (Storage.swift:54-58) appends the name to the Application Support root named by AppInfo.name (Storage.swift:19-25)",
+        "port": "The port installs and stores data under \"Marrow Code\" (folder %LOCALAPPDATA%\\Marrow Code, Start menu \"Marrow Code\"), so the two apps never touch each other"
+      }
     },
     {
       "id": "PR-STORE-006",
@@ -143,7 +170,7 @@
       "source_evidence": [
         "DroppyCode/Services/Store/Storage.swift:38 - static let worktreesDirectory: URL = stateDirectory(\"worktrees\")",
         "DroppyCode/Services/Store/Storage.swift:43-48 - stateDirectory builds URL(fileURLWithPath: LoginEnvironment.homeDirectory).appendingPathComponent(AppInfo.stateDirectoryName + \"/\" + name, isDirectory: true) and creates it with intermediates",
-        "DroppyCode/Core/Support/Shell.swift:349-351 - LoginEnvironment.homeDirectory = FileManager.default.homeDirectoryForCurrentUser.path",
+        "DroppyCode/Core/Support/Shell.swift:353-355 - LoginEnvironment.homeDirectory = FileManager.default.homeDirectoryForCurrentUser.path",
         "DroppyCode/Core/Support/Text.swift:6 - AppInfo.stateDirectoryName = isDevelopment ? \".droppy-code-dev\" : \".droppy-code\""
       ]
     },
@@ -170,7 +197,7 @@
       "source_evidence": [
         "DroppyCode/Services/Store/Storage.swift:40-41 - doc comment \"Where a head’s work is kept as a patch when it would not land in the checkout.\" and static let patchesDirectory: URL = stateDirectory(\"patches\")",
         "DroppyCode/Services/Store/Storage.swift:43-48 - stateDirectory(_:)",
-        "DroppyCode/App/AppModel+Hydra.swift:816 and :939 - patch file names \"<slug>-<first 8 of lowercased head uuid>.patch\" and \"<slug>-<first 8 of lowercased uuid>-unlanded.patch\""
+        "DroppyCode/App/AppModel+Hydra.swift:878 and :1001 - patch file names \"<slug>-<first 8 of lowercased head uuid>.patch\" and \"<slug>-<first 8 of lowercased uuid>-unlanded.patch\""
       ]
     },
     {
@@ -203,12 +230,12 @@
       "action": "Any read of AppInfo.name, AppInfo.version or AppInfo.build.",
       "expected_result": "Each value is read once from the bundle Info dictionary and cached in a static. When the key is missing or not a String the literal fallback is used: \"Droppy Code\", \"1.0.0\", \"1\".",
       "side_effects": [],
-      "persistence": "AppInfo.name is the store root folder name, so this fallback also decides the on-disk path.",
+      "persistence": "Upstream, AppInfo.name is the store root folder name, so this fallback also decides the on-disk path. In the port it does not: the store folder is %LOCALAPPDATA%\\Marrow Code by OD-0008 C7.",
       "failure_cases": [
         "Missing or wrongly typed Info keys fall back to the three literals above rather than trapping."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Read from the packaged application metadata with the same three literal fallbacks. Because AppInfo.name is the store folder name, the fallback must stay a constant, not a computed product name.",
+      "windows_path": "Read from the packaged application metadata with the same three literal fallbacks. This record's own behaviour is parity. On Windows the store folder does not follow AppInfo.name: OD-0008 C7 fixes it as %LOCALAPPDATA%\\Marrow Code, a deviation recorded on PR-STORE-001, so the display name and its fallback no longer move the user's data.",
       "verification_method": "unit on both the present and absent branches",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
@@ -278,10 +305,10 @@
       "side_effects": [],
       "persistence": "Nothing is written by the read itself.",
       "failure_cases": [
-        "A read error of any kind, including permission denial, is indistinguishable from a missing file here: both return the empty Library."
+        "Upstream, a read error of any kind, including permission denial, is indistinguishable from a missing file here: both return the empty Library. In the port only a library.json that does not exist takes this path; one that exists but cannot be read or decoded is a failed load, handled by PR-STORE-013 (OD-0008 A10)."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same: missing file yields the empty library, no dialog.",
+      "windows_path": "Same for a missing file: it yields the empty library, no dialog, and ordinary saves then create library.json. A library.json that exists but cannot be read or decoded does not take this path: PR-STORE-013 (OD-0008 A10) applies.",
       "verification_method": "unit plus a first-launch restart test",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -290,36 +317,54 @@
       "source_evidence": [
         "DroppyCode/Services/Store/Storage.swift:60-63 - guard let data = try? Data(contentsOf: libraryURL) else { return Library() }",
         "DroppyCode/Core/Models/Library.swift:267-271 - struct Library with projects: [Project] = [] and threads: [ChatThread] = [] and an empty init()"
-      ]
+      ],
+      "deviation": {
+        "decision": "OD-0008 A10",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:60-63 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next write of library.json puts the empty library over it: saveLibrary (AppModel.swift:1299-1306), reached through the 400 ms debounce (:1289-1297) or called directly on settle (:806), reopen (:825) and thread delete (:956), or the synchronous write in saveBeforeQuit (:1317)",
+        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save."
+      }
     },
     {
       "id": "PR-STORE-013",
-      "preconditions": "library.json exists but is not decodable as a Library (truncated write, not valid JSON, or a non-object at the top level).",
-      "action": "App launch.",
-      "expected_result": "UNRESOLVED. As written, the decode failure is swallowed, the app starts with no projects and no threads, nothing is reported, and the first change of any kind schedules a save 400 ms later that overwrites library.json with the empty library. The thread JSON files under threads/ are not deleted, so history survives on disk but is unreachable from the UI.",
+      "preconditions": "library.json exists but cannot be read or is not decodable as a Library (truncated write, not valid JSON, or a non-object at the top level).",
+      "action": "App launch, and every write of library.json that follows in the same run: the debounced save, the immediate saves on settle, reopen and thread delete, and the quit-time save.",
+      "expected_result": "Deviation, OD-0008 A10 (BLK-0010 FIX): the failed load is not swallowed. It is surfaced to the user, and library.json is not overwritten after the failed load: no writer of library.json writes over it in that run. That covers the 400 ms debounced save after a mutation (AppModel.swift:1289-1297), the immediate saveLibrary() calls on settle (AppModel.swift:805-806), reopen (:825) and thread delete (:956), and the synchronous quit-time save (:1317). The thread JSON files under threads/ are not touched by the failed load. Consequence of the ruling: every project or thread change made in that run is never written to library.json, while thread histories are still written to threads/ as usual, so those library changes are gone at the next launch. Upstream instead starts with no projects and no threads, reports nothing, and the first save of any kind writes the empty library over library.json. How and where the failure is shown and its wording are given by neither the source nor the ruling; they are UNRESOLVED (UNK-0020) and must come from the owner before this ships.",
       "side_effects": [
-        "library.json is overwritten with an empty library on the first subsequent mutation"
+        "The load failure is surfaced to the user",
+        "library.json keeps its bytes on disk; no write in that run replaces it, so project and thread changes made in that run are not persisted to it"
       ],
-      "persistence": "library.json",
+      "persistence": "library.json is left exactly as it was found on disk. Thread files under threads/ are written as usual.",
       "failure_cases": [
         "Per-element leniency (Library.init(from:) decoding [Lenient<Project>] and [Lenient<ChatThread>]) means a single bad record is dropped without reaching this path; only a whole-file failure does.",
-        "No message, no backup and no undo. Recovery requires restoring library.json by hand before the next mutation."
+        "A library.json that does not exist is not a failed load: PR-STORE-012 applies, the app starts empty and ordinary saves create the file."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "NOT TO BE IMPLEMENTED EITHER WAY UNTIL RULED ON. This is the same shape as BLK-0002 (malformed custom-MCP variable discards every custom server, then the next save overwrites the file) and meets AM-0001 criterion C4: silent data loss the user cannot detect or undo. It is escalated rather than reproduced or repaired. No BLK id has been assigned to it yet; see open_questions.",
-      "verification_method": "contract fixture with a deliberately corrupted library.json, once the owner has ruled",
-      "status": "DISCOVERED",
+      "windows_path": "Storage.LoadLibrary tells a missing file (empty library, ordinary saves, PR-STORE-012) apart from one that exists but cannot be read or decoded. The latter reports the failure to the user and stops every write of library.json for that run: the debounced save, the immediate saves from settle, reopen and delete, and the quit-time synchronous save. Thread file saves are not affected. Named deviation. The surface and wording of the report wait on UNK-0020.",
+      "verification_method": "contract fixture: launch against a deliberately corrupted library.json (truncated, not JSON, a top-level array) and assert the failure is surfaced; then create a thread, wait past the 400 ms debounce, settle it, reopen it, delete it, and quit, asserting after each step that library.json is byte-identical to the corrupted input, and at the end that every threads/ file present before launch is unchanged",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "depends_on_unknown": null,
-      "title": "An undecodable library.json is silently replaced by an empty library, and the next save overwrites it",
+      "title": "An undecodable library.json is surfaced to the user and never overwritten by the next save",
       "source_evidence": [
-        "DroppyCode/Services/Store/Storage.swift:62 - return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()",
+        "DroppyCode/Services/Store/Storage.swift:60-63 - static func loadLibrary() -> Library { guard let data = try? Data(contentsOf: libraryURL) else { return Library() }; return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library() }",
         "DroppyCode/App/AppModel.swift:126-128 - the returned library’s projects and threads become the app’s state directly",
         "DroppyCode/App/AppModel.swift:1299-1306 - saveLibrary builds a fresh Library from the in-memory projects and threads and calls DiskWriter.shared.encodeAndWrite(library, to: Storage.libraryURL)",
         "DroppyCode/App/AppModel.swift:1289-1297 - scheduleSave debounces that save by 400 ms after any mutation",
-        "DroppyCode/Core/Models/Library.swift:273-277 - per-element leniency means only a top-level structural failure reaches this path"
+        "DroppyCode/App/AppModel.swift:805-806 - settle: \"// A settled thread stays settled across relaunch: write now, not on the debounce.\" then saveLibrary()",
+        "DroppyCode/App/AppModel.swift:825 - reopen ends with saveLibrary(), no debounce",
+        "DroppyCode/App/AppModel.swift:956 - thread delete ends with saveLibrary(), no debounce",
+        "DroppyCode/App/AppModel.swift:1317 - saveBeforeQuit: DiskWriter.shared.writeSynchronously(library, to: Storage.libraryURL)",
+        "DroppyCode/Core/Models/Library.swift:273-277 - per-element leniency means only a top-level structural failure reaches this path",
+        "porting/blocked_requirements.json BLK-0010 owner_ruling - \"FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. Named deviation.\"",
+        "porting/decision_batch_20260922.md A10 (BLK-0010), accepted by OD-0008 - \"Do not overwrite after a failed load; show the error\""
       ],
-      "blocked_by": "BLK-0010"
+      "blocked_by": null,
+      "deviation": {
+        "decision": "OD-0008 A10",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:60-63 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next write of library.json puts the empty library over it: saveLibrary (AppModel.swift:1299-1306), reached through the 400 ms debounce (:1289-1297) or called directly on settle (:806), reopen (:825) and thread delete (:956), or the synchronous write in saveBeforeQuit (:1317)",
+        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save."
+      },
+      "resolved_unknown": "UNK-0020 resolved by OD-0008 A10 (BLK-0010): an undecodable library.json is surfaced and never overwritten."
     },
     {
       "id": "PR-STORE-014",
@@ -356,10 +401,11 @@
       ],
       "persistence": "library.json, written by the background writer after the debounce.",
       "failure_cases": [
-        "persistenceEnabled false (set by saveBeforeQuit) makes both scheduleSave and saveLibrary return without writing."
+        "persistenceEnabled false (set by saveBeforeQuit) makes both scheduleSave and saveLibrary return without writing.",
+        "After a failed load of library.json in the same run (PR-STORE-013, OD-0008 A10), the save writes nothing to library.json; upstream writes the empty library over it."
       ],
       "cancellation": "The scheduled task is cancelled by the next mutation and by saveBeforeQuit; a cancelled task writes nothing.",
-      "windows_path": "Same 400 ms debounce and the same per-file coalescing. The literal must stay 400 ms. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
+      "windows_path": "Same 400 ms debounce and the same per-file coalescing. The literal must stay 400 ms. After a failed load of library.json (PR-STORE-013, OD-0008 A10) no save writes library.json in that run. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
       "verification_method": "interaction test counting writes under a burst of mutations",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -370,7 +416,12 @@
         "DroppyCode/App/AppModel.swift:1289-1297 - scheduleSave cancels the previous saveTask, sleeps for .milliseconds(400), checks Task.isCancelled and calls saveLibrary()",
         "DroppyCode/App/AppModel.swift:1299-1306 - saveLibrary guards on persistenceEnabled, builds a Library from projects and threads and calls DiskWriter.shared.encodeAndWrite",
         "DroppyCode/Services/Store/Storage.swift:345-356 - encodeAndWrite replaces the pending snapshot for that URL rather than queueing a second write"
-      ]
+      ],
+      "deviation": {
+        "decision": "OD-0008 A10",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:60-63 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next write of library.json puts the empty library over it: saveLibrary (AppModel.swift:1299-1306), reached through the 400 ms debounce (:1289-1297) or called directly on settle (:806), reopen (:825) and thread delete (:956), or the synchronous write in saveBeforeQuit (:1317)",
+        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save."
+      }
     },
     {
       "id": "PR-STORE-016",
@@ -385,10 +436,11 @@
       "persistence": "library.json and <root>/threads/<UUID>.json for changed threads.",
       "failure_cases": [
         "A second call returns immediately because persistenceEnabled is already false.",
-        "An encode failure inside the writer silently writes nothing (see the writer requirement); quit still proceeds."
+        "An encode failure inside the writer silently writes nothing (see the writer requirement); quit still proceeds.",
+        "After a failed load of library.json in the same run (PR-STORE-013, OD-0008 A10), the synchronous library.json write is skipped; the changed thread files are still written and the queue is still drained. Upstream writes the in-memory library over the file."
       ],
       "cancellation": "not cancellable; it is the terminate path",
-      "windows_path": "Same ordering, driven from the Windows application quit handler, with the same blocking drain before processes are terminated. The drain must be a real barrier, not a fire-and-forget flush. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
+      "windows_path": "Same ordering, driven from the Windows application quit handler, with the same blocking drain before processes are terminated. The drain must be a real barrier, not a fire-and-forget flush. After a failed load of library.json (PR-STORE-013, OD-0008 A10) the library.json write is skipped and the rest of the sequence runs unchanged. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
       "verification_method": "restart test: mutate, quit, relaunch and assert the mutation is present",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -397,8 +449,13 @@
       "title": "Quit writes the library and every changed thread synchronously, then waits for the queue to drain",
       "source_evidence": [
         "DroppyCode/App/AppModel.swift:1308-1326 - saveBeforeQuit: guard persistenceEnabled; persistenceEnabled = false; saveTask?.cancel(); saveTask = nil; build Library; DiskWriter.shared.writeSynchronously(library, to: Storage.libraryURL); for each runtime cancelPersistence() and stopSession(); guard let snapshot = runtime.unsavedSnapshot() else { continue }; writeSynchronously(snapshot, to: Storage.threadURL(runtime.threadID)); DiskWriter.shared.waitForQueuedWrites(); terminals.terminateAll()",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:3502-3507 - unsavedSnapshot returns nil when isLoadingHistory or when saveRevision == lastSavedRevision"
-      ]
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3622-3627 - unsavedSnapshot returns nil when isLoadingHistory or when saveRevision == lastSavedRevision"
+      ],
+      "deviation": {
+        "decision": "OD-0008 A10",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:60-63 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next write of library.json puts the empty library over it: saveLibrary (AppModel.swift:1299-1306), reached through the 400 ms debounce (:1289-1297) or called directly on settle (:806), reopen (:825) and thread delete (:956), or the synchronous write in saveBeforeQuit (:1317)",
+        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save."
+      }
     },
     {
       "id": "PR-STORE-017",
@@ -499,7 +556,7 @@
       ],
       "persistence": "",
       "failure_cases": [
-        "If the writer queue is busy with a large document the read blocks for that long. This is on a background prefetch worker or a detached history load, never on the main actor, because both call sites are detached (DroppyCode/App/Runtime/ThreadRuntime.swift:544-548 and DroppyCode/App/AppModel.swift:444)."
+        "If the writer queue is busy with a large document the read blocks for that long. This is on a background prefetch worker or a detached history load, never on the main actor, because both call sites are detached (DroppyCode/App/Runtime/ThreadRuntime.swift:550-554 and DroppyCode/App/AppModel.swift:444)."
       ],
       "cancellation": "The barrier itself is not cancellable; a cancelled prefetch request is discarded after the load returns.",
       "windows_path": "Same barrier against the single serial write queue. It must be a real drain of the whole queue, not a per-file wait, because that is what the source does.",
@@ -519,7 +576,7 @@
       "id": "PR-STORE-022",
       "preconditions": "A thread record exists in the library but its file does not.",
       "action": "Storage.readDocument(id).",
-      "expected_result": "nil is returned. The caller in DroppyCode/App/Runtime/ThreadRuntime.swift:545 substitutes ThreadDocument(threadID: threadID), so the thread opens with an empty history rather than an error.",
+      "expected_result": "nil is returned. The caller in DroppyCode/App/Runtime/ThreadRuntime.swift:551 substitutes ThreadDocument(threadID: threadID), so the thread opens with an empty history rather than an error.",
       "side_effects": [],
       "persistence": "",
       "failure_cases": [
@@ -547,7 +604,7 @@
       ],
       "persistence": "",
       "failure_cases": [
-        "Only a whole-document failure reaches this; ThreadDocument.init(from:) decodes items, turns, followUps and hydraMerges through Lenient, so individual bad entries are dropped instead (DroppyCode/Core/Models/Timeline.swift:322-330)."
+        "Only a whole-document failure reaches this; ThreadDocument.init(from:) decodes items, turns, followUps and hydraMerges through Lenient, so individual bad entries are dropped instead (DroppyCode/Core/Models/Timeline.swift:356-364)."
       ],
       "cancellation": "not cancellable",
       "windows_path": "Reproduce. Unlike the library case, the blast radius is one thread and the user sees it immediately as an empty chat, so this is an ordinary quirk under AM-0001, not an escalation.",
@@ -581,8 +638,9 @@
       "title": "A thread read drops blank thinking blocks",
       "source_evidence": [
         "DroppyCode/Services/Store/Storage.swift:79 - document.items = document.items.filter { !$0.isEmptyReasoning }.map(\\.cleanedOfEmDashes)",
-        "DroppyCode/Core/Models/Timeline.swift:27-31 - isEmptyReasoning is true only for a .reasoning item whose text is empty after trimmingCharacters(in: .whitespacesAndNewlines)",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:555-562 - the same filter is applied again when the document is installed, with the comment naming redacted Claude Code reasoning as the source"
+        "DroppyCode/Core/Models/Timeline.swift:28-32 - /// A thinking block with nothing to read, as a redacted stream leaves behind. var isEmptyReasoning: Bool { guard case .reasoning(let block) = content else { return false }; return block.text.trimmed.isEmpty }",
+        "DroppyCode/Core/Support/Text.swift:132 - var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }, so the predicate is unchanged from B1 (Timeline.swift:30 at dd2b86 returned block.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:566-571 - the same filter is applied again when the document is installed, with the comment naming redacted Claude Code reasoning as the source"
       ]
     },
     {
@@ -605,8 +663,8 @@
       "title": "A thread read flattens em dashes in stored model prose",
       "source_evidence": [
         "DroppyCode/Services/Store/Storage.swift:79 - .map(\\.cleanedOfEmDashes)",
-        "DroppyCode/Core/Models/Timeline.swift:36-54 - cleanedOfEmDashes rewrites only .assistant(message.text), .reasoning(block.text) and .plan(plan.markdown) through TextCleanup.withoutEmDashes and leaves every other case untouched",
-        "DroppyCode/Core/Models/Timeline.swift:33-35 - doc comment: \"The user’s own words, tool output and notices are not the model’s writing and are left exactly as they were.\""
+        "DroppyCode/Core/Models/Timeline.swift:39-55 - cleanedOfEmDashes rewrites only .assistant(message.text), .reasoning(block.text) and .plan(plan.markdown) through TextCleanup.withoutEmDashes and leaves every other case untouched",
+        "DroppyCode/Core/Models/Timeline.swift:36-38 - doc comment: \"The user’s own words, tool output and notices are not the model’s writing and are left exactly as they were.\""
       ]
     },
     {
@@ -635,7 +693,7 @@
     {
       "id": "PR-STORE-027",
       "preconditions": "None.",
-      "action": "ThreadRuntime history load (DroppyCode/App/Runtime/ThreadRuntime.swift:545) or a Hydra head’s items being read (DroppyCode/App/AppModel+HydraMerge.swift:474).",
+      "action": "ThreadRuntime history load (DroppyCode/App/Runtime/ThreadRuntime.swift:551) or a Hydra head’s items being read (DroppyCode/App/AppModel+HydraMerge.swift:518).",
       "expected_result": "The same read, the same barrier, the same filtering and cleaning; only the byte count is dropped.",
       "side_effects": [
         "Inherits the writer-queue barrier"
@@ -676,8 +734,8 @@
       "depends_on_unknown": null,
       "title": "A thread is saved at most once per revision, and never while its history is still loading",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:3484-3500 - saveNow cancels and clears saveTask, then guard persistenceEnabled, !isLoadingHistory; then guard saveRevision != lastSavedRevision; then lastSavedRevision = saveRevision and DiskWriter.shared.encodeAndWrite(snapshotForPersistence(), to: Storage.threadURL(threadID))",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:3491 - comment \"A save before the history is installed would write an empty thread over the file.\""
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3604-3620 - saveNow cancels and clears saveTask, then guard persistenceEnabled, !isLoadingHistory; then guard saveRevision != lastSavedRevision; then lastSavedRevision = saveRevision and DiskWriter.shared.encodeAndWrite(snapshotForPersistence(), to: Storage.threadURL(threadID))",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3611 - comment \"A save before the history is installed would write an empty thread over the file.\""
       ]
     },
     {
@@ -1154,7 +1212,7 @@
       "side_effects": [],
       "persistence": "none",
       "failure_cases": [
-        "nil means the runtime falls back to a detached Storage.decodeDocument load and shows an empty history until it lands (DroppyCode/App/Runtime/ThreadRuntime.swift:541-548)."
+        "nil means the runtime falls back to a detached Storage.decodeDocument load and shows an empty history until it lands (DroppyCode/App/Runtime/ThreadRuntime.swift:547-554)."
       ],
       "cancellation": "not cancellable",
       "windows_path": "Same single-lock consuming read. It must remove the queue entries too, otherwise the worker later decodes a thread that is already open.",
@@ -1166,7 +1224,7 @@
       "title": "take() is a consuming read that also cancels any queued or in-flight work for that id",
       "source_evidence": [
         "DroppyCode/Services/Store/Storage.swift:324-330 - func take(_ id: UUID) -> ThreadDocument? { state.withLock { state in state.pending[id] = nil; state.queue.removeAll { $0.id == id }; return state.ready.removeValue(for: id) } }",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:537-538 - if let document = DocumentPrefetch.shared.take(threadID) { install(document) }"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:543-544 - if let document = DocumentPrefetch.shared.take(threadID) { install(document) }"
       ]
     },
     {
@@ -1231,8 +1289,8 @@
       "depends_on_unknown": null,
       "title": "Opening a thread with no prefetched document loads its history off the main thread and shows an empty history meanwhile",
       "source_evidence": [
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:534-548 - init: if let document = DocumentPrefetch.shared.take(threadID) { install(document) } else { isLoadingHistory = true; historyLoad = Task.detached(priority: .userInitiated) { let document = Storage.decodeDocument(threadID) ?? ThreadDocument(threadID: threadID); await self.finishLoad(document) } }",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:540-542 - comment: \"The file is read and decoded off the main thread so the click that opens the chat paints at once; the runtime shows an empty history until it lands.\""
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:540-554 - init: if let document = DocumentPrefetch.shared.take(threadID) { install(document) } else { isLoadingHistory = true; historyLoad = Task.detached(priority: .userInitiated) { let document = Storage.decodeDocument(threadID) ?? ThreadDocument(threadID: threadID); await self.finishLoad(document) } }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:546-548 - comment: \"The file is read and decoded off the main thread so the click that opens the chat paints at once; the runtime shows an empty history until it lands.\""
       ]
     },
     {
@@ -1506,7 +1564,7 @@
       "title": "Importing a file copies it into attachments/ under a fresh UUID keeping its extension",
       "source_evidence": [
         "DroppyCode/Services/Store/Storage.swift:96-103 - doc comment \"Copies a file into app storage so a message keeps its attachment after the original moves.\" then let id = UUID(); let ext = source.pathExtension.isEmpty ? \"bin\" : source.pathExtension.lowercased(); let destination = attachmentsDirectory.appendingPathComponent(\"\\(id.uuidString).\\(ext)\"); try FileManager.default.copyItem(at: source, to: destination); return Attachment(id: id, name: source.lastPathComponent, path: destination.path, mimeType: MimeType.of(ext))",
-        "DroppyCode/Core/Models/Timeline.swift:88-93 - struct Attachment { var id = UUID(); var name: String; var path: String; var mimeType: String; var url: URL { URL(fileURLWithPath: path) } }"
+        "DroppyCode/Core/Models/Timeline.swift:89-95 - struct Attachment { var id = UUID(); var name: String; var path: String; var mimeType: String; var url: URL { URL(fileURLWithPath: path) } }"
       ]
     },
     {
@@ -1788,7 +1846,7 @@
       "source_evidence": [
         "DroppyCode/Services/Store/Storage.swift:7-15 - private struct StoredContinuation: Decodable with a nested Continuation holding attachments: [Attachment]?, and the doc comment \"Just enough of a stored thread to read the files a forwarded continuation points at: the sweep runs over whole files as text, so only this key is ever decoded.\"",
         "DroppyCode/Services/Store/Storage.swift:132-139 - comment \"A forwarded continuation keeps its own copy of the metadata, and the files it names stay referenced while the thread holding it is on disk.\" then if text.contains(\"\\\"continuation\\\"\"), let stored = try? JSONDecoder.storage.decode(StoredContinuation.self, from: data) { for attachment in stored.continuation?.attachments ?? [] { referenced.insert(attachment.url.lastPathComponent) } }",
-        "DroppyCode/Core/Models/Timeline.swift:307-316 - ThreadDocument.continuation is optional so older threads still decode"
+        "DroppyCode/Core/Models/Timeline.swift:341-350 - ThreadDocument.continuation is optional so older threads still decode"
       ]
     },
     {
@@ -2388,16 +2446,17 @@
         "The marker is set at the end unconditionally, even when the folder move failed, so a failed migration is never retried."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The macOS persistent-domain merge has no Windows equivalent, since a Windows build has never shipped under the former name and there is no \"iordv.cody\" preference domain on the machine. Record this as a no-op on Windows rather than inventing a Windows source to read. The folder-move half is likewise a no-op unless the port defines its own earlier-name folder, which it must not do without a ruling.",
-      "verification_method": "unit on the guard order; the migration itself is unreachable on a first Windows install",
-      "status": "DISCOVERED",
+      "windows_path": "Not implemented on Windows: OD-0008 A5 (BLK-0005) rules the legacy-name migration not applicable. No Windows source folder or preference domain is defined or read.",
+      "verification_method": "Gate C identifier scan: the Windows implementation tree contains none of LegacyMigration, migratedFromEarlierName, formerSupportFolder",
+      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "Settings and the store folder are carried over once from the app’s former name",
       "source_evidence": [
         "DroppyCode/App/LegacyMigration.swift:1-26 - doc comment \"Carries settings, the library and thread histories over from the app’s earlier name, once.\"; private static let marker = \"migratedFromEarlierName\"; formerBundleIdentifier = \"iordv.cody\"; formerSupportFolder = \"Cody\"; run() { guard !AppInfo.isDevelopment else { return }; guard !defaults.bool(forKey: marker) else { return }; if let former = defaults.persistentDomain(forName: formerBundleIdentifier) { for (key, value) in former where defaults.object(forKey: key) == nil { defaults.set(value, forKey: key) } }; ... defaults.set(true, forKey: marker) }"
-      ]
+      ],
+      "not_applicable": "OD-0008 A5 resolves BLK-0005 (quarantined path 'any Windows implementation of the legacy name migration'): NOT_APPLICABLE_WITH_EVIDENCE: Droppy Code never shipped on Windows, so no Cody or Droppy Code support folder can exist to migrate; the owner confirmed no migration from the separate Electron Marrow app is wanted. The migration reads the former macOS identity only (DroppyCode/App/LegacyMigration.swift:6 'formerBundleIdentifier = \"iordv.cody\"', :7 'formerSupportFolder = \"Cody\"', :19 'fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]'), none of which can exist on a Windows PC."
     },
     {
       "id": "PR-STORE-104",
@@ -2412,17 +2471,18 @@
         "A failed move is silent and, because the marker is set anyway, is never retried. The user sees an empty app with their old data still on disk under the former name."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "CONSEQUENTIAL under AM-0001 if ported literally with a changed display name: the store would be migrated into a folder the app never opens, and the marker would prevent a retry - silent loss of the visible library. Since the port ships under a different display name than the literal here, the safe reading is that this migration does not apply to a Windows build at all. Do not port a Windows folder-rename migration without an explicit ruling on the source and target folder names.",
-      "verification_method": "not verifiable on Windows until the owner rules on whether any legacy Windows folder exists",
-      "status": "SPECIFIED",
+      "windows_path": "Not implemented on Windows: OD-0008 A5 (BLK-0005) rules the legacy-name migration not applicable. No Windows source folder or preference domain is defined or read.",
+      "verification_method": "Gate C identifier scan: the Windows implementation tree contains none of LegacyMigration, migratedFromEarlierName, formerSupportFolder",
+      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
       "upstream_defect": "46",
       "depends_on_unknown": null,
       "title": "The former store folder is moved only when the current one does not exist, and the target name is hard-coded",
       "source_evidence": [
-        "DroppyCode/App/LegacyMigration.swift:18-24 - let support = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]; let formerLibrary = support.appendingPathComponent(\"Cody\", isDirectory: true); let library = support.appendingPathComponent(\"Droppy Code\", isDirectory: true); if fileManager.fileExists(atPath: formerLibrary.path), !fileManager.fileExists(atPath: library.path) { try? fileManager.moveItem(at: formerLibrary, to: library) }",
+        "DroppyCode/App/LegacyMigration.swift:18-24 - let support = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]; let formerLibrary = support.appendingPathComponent(formerSupportFolder, isDirectory: true); let library = support.appendingPathComponent(\"Droppy Code\", isDirectory: true); if fileManager.fileExists(atPath: formerLibrary.path), !fileManager.fileExists(atPath: library.path) { try? fileManager.moveItem(at: formerLibrary, to: library) }",
         "DroppyCode/Services/Store/Storage.swift:22 - Storage.root uses AppInfo.name, not a literal",
         "porting/upstream_defects.md entry 46 - \"LegacyMigration.swift:21 hardcodes support.appendingPathComponent(\\\"Droppy Code\\\") instead of AppInfo.name, unlike Storage.root. The guard !AppInfo.isDevelopment at :10 currently masks the divergence, but a display-name change would migrate the old library into a folder Storage never reads.\""
-      ]
+      ],
+      "not_applicable": "OD-0008 A5 resolves BLK-0005 (quarantined path 'any Windows implementation of the legacy name migration'): NOT_APPLICABLE_WITH_EVIDENCE: Droppy Code never shipped on Windows, so no Cody or Droppy Code support folder can exist to migrate; the owner confirmed no migration from the separate Electron Marrow app is wanted. The migration reads the former macOS identity only (DroppyCode/App/LegacyMigration.swift:6 'formerBundleIdentifier = \"iordv.cody\"', :7 'formerSupportFolder = \"Cody\"', :19 'fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]'), none of which can exist on a Windows PC."
     },
     {
       "id": "PR-STORE-105",
@@ -2643,7 +2703,7 @@
       "depends_on_unknown": null,
       "title": "An empty string reads as nil through nilIfEmpty",
       "source_evidence": [
-        "DroppyCode/Core/Support/Text.swift:127-129 - extension String { var nilIfEmpty: String? { isEmpty ? nil : self } }"
+        "DroppyCode/Core/Support/Text.swift:128 - var nilIfEmpty: String? { isEmpty ? nil : self }, declared in extension String (:127-133), which at B2 also holds `var trimmed` (:130-132, PR-STORE-167)"
       ],
       "implemented_by_task": "T-M2-076"
     },
@@ -3357,7 +3417,7 @@
       ],
       "preconditions": "A stored thread record in library.json whose \"interactionMode\" key is absent, null, or of the wrong JSON type.",
       "action": "The library is decoded at app launch.",
-      "expected_result": "interactionMode decodes to .build. InteractionMode has exactly two cases, build and plan (Provider.swift:181-184), and the decode default is build. An unrecognised raw string is a type mismatch for the enum and therefore also lands on build, never on plan.",
+      "expected_result": "interactionMode decodes to .build. InteractionMode has exactly two cases, build and plan (Provider.swift:197-200), and the decode default is build. An unrecognised raw string is a type mismatch for the enum and therefore also lands on build, never on plan.",
       "side_effects": [],
       "persistence": "library.json, threads[].interactionMode. That key name is the wire format and must not be renamed or re-cased.",
       "failure_cases": [
@@ -3581,27 +3641,41 @@
     },
     {
       "id": "PR-STORE-156",
-      "title": "A thread with no stored hasCustomTitle decodes with hasCustomTitle false",
+      "title": "A thread whose stored hasCustomTitle is missing or unreadable decodes with hasCustomTitle true",
       "source_evidence": [
         "DroppyCode/Core/Models/Library.swift:248 - hasCustomTitle = container.value(.hasCustomTitle, default: false)",
         "DroppyCode/Core/Models/Library.swift:147 - var hasCustomTitle: Bool",
-        "DroppyCode/Core/Support/Coding.swift:5-7 - func value<T: Decodable>(_ key: Key, default fallback: @autoclosure () -> T) -> T { ((try? decodeIfPresent(T.self, forKey: key)) ?? nil) ?? fallback() }, so a missing key, an explicit null and a type mismatch all collapse onto the fallback"
+        "DroppyCode/Core/Support/Coding.swift:5-7 - func value<T: Decodable>(_ key: Key, default fallback: @autoclosure () -> T) -> T { ((try? decodeIfPresent(T.self, forKey: key)) ?? nil) ?? fallback() }, so a missing key, an explicit null and a type mismatch all collapse onto the fallback",
+        "DroppyCode/Core/Models/Library.swift:121-265 - struct ChatThread declares init(from:) at :223 but no encode(to:), so encoding is synthesized and every saved thread carries hasCustomTitle as a JSON boolean",
+        "DroppyCode/Core/Models/Library.swift:219 - hasCustomTitle = false in the initializer a new chat is created with",
+        "DroppyCode/App/AppModel.swift:571-581 - openThreadOnLaunch: \"Reusing an unused thread keeps a launch from leaving a \\\"New thread\\\" row behind every time.\" and the filter \"$0.projectID == project.id && !$0.isArchived && !$0.isSettled && !$0.isHelper && $0.lastStatus == nil && !$0.hasCustomTitle && $0.title == ChatThread.untitled\"",
+        "DroppyCode/App/AppModel.swift:599-600 - } else { newThread(in: project) }",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:2200-2203 - \"// Provider titles are only a fallback; they must not replace the one Droppy Code writes.\" guard turns.count <= 1, let app, let thread, !thread.hasCustomTitle, ...",
+        "porting/blocked_requirements.json BLK-0011 owner_ruling - \"FIX: an unreadable hasCustomTitle decodes as true, so a typed name is never overwritten by the auto-titler. Named deviation.\""
       ],
       "preconditions": "A stored thread record in library.json whose \"hasCustomTitle\" key is absent, null, or of the wrong JSON type.",
       "action": "The library is decoded at app launch.",
-      "expected_result": "hasCustomTitle decodes to false. false means the title is still considered generated, so automatic titling is free to overwrite it. A legacy thread the user had renamed but whose flag is unreadable will therefore have its name rewritten by the titler: the default is deliberately the permissive one.",
+      "expected_result": "Deviation, OD-0008 A11 (BLK-0011 FIX): hasCustomTitle decodes to true when the key is absent, null or of the wrong JSON type, so the title is treated as one the user typed and the automatic titler never overwrites it. A stored JSON true or false is read as stored, and a newly created chat still starts with false (Library.swift:219). Because every save writes the key as a boolean, the true default reaches only records written without the key or damaged on disk. Upstream decodes all three cases to false (Library.swift:248), which leaves such a thread free to be retitled.",
       "side_effects": [],
       "persistence": "library.json, threads[].hasCustomTitle. That key name is the wire format and must not be renamed or re-cased.",
       "failure_cases": [
-        "A missing key, an explicit null and a value of the wrong type are indistinguishable here: all three land on false and none of them fails the surrounding thread or the surrounding library."
+        "A missing key, an explicit null and a value of the wrong type are indistinguishable here: all three land on true and none of them fails the surrounding thread or the surrounding library.",
+        "A thread whose flag is unreadable but whose title really was generated keeps that title; it is not retitled again. This is the accepted cost of the ruling.",
+        "At launch, openThreadOnLaunch reuses an unused \"New thread\" only when !hasCustomTitle (AppModel.swift:578-579). An untouched \"New thread\" whose flag is missing, null or of the wrong type now reads as custom, so it is not reused: launch picks another qualifying unused thread if there is one, otherwise calls newThread(in: project) (:599-600), and the old row stays behind.",
+        "A provider-sent title is skipped for such a thread too, because that fallback also requires !thread.hasCustomTitle (ThreadRuntime.swift:2201)."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same literal false decode default, with the same consequence that a false here permits automatic retitling.",
+      "windows_path": "Lenient decode with the default true for hasCustomTitle, and only for that field; every other field keeps its upstream default.",
       "verification_method": "unit test decoding a thread record that carries only id and projectID, plus one carrying the key as null and one carrying it as the wrong JSON type, asserting the same result in all three",
-      "status": "DISCOVERED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "depends_on_unknown": null,
-      "blocked_by": "BLK-0011"
+      "blocked_by": null,
+      "deviation": {
+        "decision": "OD-0008 A11",
+        "upstream": "DroppyCode/Core/Models/Library.swift:248 - 'hasCustomTitle = container.value(.hasCustomTitle, default: false)': a missing, null or wrong-typed flag decodes to false and the auto-titler may overwrite a name the user typed",
+        "port": "Treat unreadable as \"custom\", never overwrite. FIX: an unreadable hasCustomTitle decodes as true, so a typed name is never overwritten by the auto-titler."
+      }
     },
     {
       "id": "PR-STORE-157",
@@ -3841,6 +3915,106 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
+    },
+    {
+      "id": "PR-STORE-167",
+      "title": "trimmed removes leading and trailing whitespace and newlines, and nothing else",
+      "source_evidence": [
+        "DroppyCode/Core/Support/Text.swift:130-132 - doc comment \"The string without leading or trailing whitespace and newlines. The one trim every call site means; narrower sets keep `trimmingCharacters(in:)`.\" and var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }",
+        "DroppyCode/Core/Models/Timeline.swift:31 - return block.text.trimmed.isEmpty, one of its call sites (PR-STORE-024)",
+        "git grep at the two baselines - lines containing 'trimmingCharacters(in: .whitespacesAndNewlines)' in Swift files: 175 at dd2b86, 21 at 1fbf81e; '.trimmed' appears in 55 Swift files at 1fbf81e"
+      ],
+      "preconditions": "None.",
+      "action": "Any use of String.trimmed.",
+      "expected_result": "Returns the string with every leading and trailing character of Foundation's CharacterSet.whitespacesAndNewlines removed. Inner whitespace is kept, and a string made only of such characters becomes the empty string. It is exactly trimmingCharacters(in: .whitespacesAndNewlines), which it replaced at most call sites at B2 without changing their behaviour; call sites that trim a narrower set still call trimmingCharacters(in:) with that set and are not routed through it.",
+      "side_effects": [],
+      "persistence": "",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "One shared helper whose character set is Foundation's whitespacesAndNewlines. Whether a .NET default trim uses the identical set is not assumed: it is proven by the unit test over the set's members, or the helper trims an explicit table.",
+      "verification_method": "unit test over leading and trailing space, tab, CR, LF, U+000B, U+000C, U+0085, U+00A0, U+2028, U+2029 and U+3000, plus inner whitespace that must survive and U+200B that must not be trimmed, with the expected set taken from Foundation's documented whitespacesAndNewlines membership",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
+    },
+    {
+      "id": "PR-STORE-168",
+      "title": "An ISO 8601 stamp parses with or without fractional seconds; anything else is nil",
+      "source_evidence": [
+        "DroppyCode/Core/Support/ISO8601.swift:3-7 - doc comment \"ISO 8601 stamps as they arrive from provider CLIs and from GitLab. `Date.ISO8601FormatStyle` is a `Sendable` value, so the two shapes are built once instead of allocating a formatter per stamp. A style that requires fractional seconds rejects a whole-second stamp and vice versa, so parsing tries both.\"",
+        "DroppyCode/Core/Support/ISO8601.swift:9-10 - /// `2026-09-13T18:28:42.057Z`. static let fractional = Date.ISO8601FormatStyle(includingFractionalSeconds: true)",
+        "DroppyCode/Core/Support/ISO8601.swift:12-13 - /// `2026-09-13T18:28:42Z`, also the shape written below. static let plain = Date.ISO8601FormatStyle()",
+        "DroppyCode/Core/Support/ISO8601.swift:18-21 - /// A stamp with or without fractional seconds; `nil` for anything else. static func date(from text: String) -> Date? { (try? fractional.parse(text)) ?? (try? plain.parse(text)) }",
+        "DroppyCode/Services/Store/TokenLedger.swift:583-586 - /// Parses both fractional and whole-second event stamps. private static func eventDate(from stamp: String) -> Date? { ISO8601.date(from: stamp) }",
+        "Other callers at 1fbf81e - UpdateChecker.swift:325 'ISO8601.date(from: text)'; AntigravitySession.swift:577 'bucket[\"reset_time\"]?.string.flatMap(ISO8601.date(from:))' and :594 'ISO8601.date(from: parts[3])'; CodexSession.swift:472 'return ISO8601.date(from: text)'; PlanLimits.swift:334 'return ISO8601.date(from: trimmed)'"
+      ],
+      "preconditions": "A timestamp string from a provider CLI, a token-activity event or the GitLab release feed.",
+      "action": "ISO8601.date(from:).",
+      "expected_result": "The text is parsed first with the fractional-seconds style (shape `2026-09-13T18:28:42.057Z`). If that fails it is parsed with the default whole-second style (shape `2026-09-13T18:28:42Z`). If both fail the result is nil; nothing throws. Neither style accepts the other's shape, which is why both are tried. The two styles are static values built once for the process, not per stamp. At B2 this one function serves TokenLedger.eventDate, UpdateChecker, AntigravitySession, CodexSession and PlanLimits, and CopilotSession with a date-only fallback (PR-STORE-169).",
+      "side_effects": [],
+      "persistence": "",
+      "failure_cases": [
+        "Text that neither style parses returns nil; what nil means is decided by each caller in its own area.",
+        "UNRESOLVED (UNK-0003, no matching-build macOS runtime to run Foundation on): which numeric offsets, fraction lengths and letter cases Foundation's two styles accept was not run at either baseline; the verification fixture settles it before anything beyond the two documented shapes is asserted."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "One shared static parser tried in the same order: fractional form first, whole-second form second, null otherwise. It follows Foundation's ISO8601FormatStyle grammar, not a lenient general-purpose date parser, and every shape beyond the two documented ones is fixed by the fixture.",
+      "verification_method": "unit test: `2026-09-13T18:28:42.057Z` parses to 18:28:42.057 UTC, `2026-09-13T18:28:42Z` parses to 18:28:42 UTC, and `2026-09-13`, `` and `not a date` return null; edge shapes (numeric offsets, lowercase z, one and six fraction digits) asserted only against a fixture of Foundation's results",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": "UNK-0003"
+    },
+    {
+      "id": "PR-STORE-169",
+      "title": "A bare date parses only through the separate date-only helper",
+      "source_evidence": [
+        "DroppyCode/Core/Support/ISO8601.swift:15-16 - /// `2026-09-13` with no time, which GitHub Copilot's quota endpoint writes. private static let dateOnly = Date.ISO8601FormatStyle().year().month().day()",
+        "DroppyCode/Core/Support/ISO8601.swift:23-26 - /// A bare date with no time; `nil` for anything else. static func dateOnly(from text: String) -> Date? { try? dateOnly.parse(text) }",
+        "DroppyCode/Services/Providers/CopilotSession.swift:470-472 - private static func parseDate(_ text: String) -> Date? { ISO8601.date(from: text) ?? ISO8601.dateOnly(from: text) }"
+      ],
+      "preconditions": "A date string such as `2026-09-13`, as GitHub Copilot's quota endpoint writes it.",
+      "action": "ISO8601.dateOnly(from:).",
+      "expected_result": "The text is parsed with a private static style built from Date.ISO8601FormatStyle() limited to year, month and day. A match returns that date; anything else returns nil and nothing throws. ISO8601.date(from:) does not accept this shape, so a caller that wants it must ask for it: the only caller at B2 is CopilotSession.parseDate, which tries the full stamp first and the bare date second. The instant returned follows the style's default time zone.",
+      "side_effects": [],
+      "persistence": "",
+      "failure_cases": [
+        "Anything the year-month-day style does not parse returns nil.",
+        "UNRESOLVED (UNK-0003, no matching-build macOS runtime to run Foundation on): the default time zone of Date.ISO8601FormatStyle() (UTC in Foundation's documented initializer) and whether trailing text after the day is rejected were not run; the fixture settles both."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "A separate date-only parser, never merged into the full-stamp parser, so a bare date is accepted only where the source asks for it. Midnight in the fixture-confirmed time zone of the Foundation style.",
+      "verification_method": "unit test: `2026-09-13` parses to the fixture-confirmed instant, `2026-09-13T18:28:42Z`-style input goes through CopilotSession.parseDate's first branch, and `13/09/2026` and `` return null",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": "UNK-0003"
+    },
+    {
+      "id": "PR-STORE-170",
+      "title": "A stamp is written in whole seconds, UTC, with a Z suffix",
+      "source_evidence": [
+        "DroppyCode/Core/Support/ISO8601.swift:12-13 - /// `2026-09-13T18:28:42Z`, also the shape written below. static let plain = Date.ISO8601FormatStyle()",
+        "DroppyCode/Core/Support/ISO8601.swift:28-31 - /// A stamp for a filename or a prompt: whole seconds, UTC, `Z` suffix. static func string(from date: Date) -> String { plain.format(date) }",
+        "DroppyCode/Core/Support/HangWatchdog.swift:88-89 - let stamp = ISO8601.string(from: Date()).replacingOccurrences(of: \":\", with: \"-\"); let file = folder.appendingPathComponent(\"hang-\\(stamp).txt\")",
+        "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1212 - - Today's date is \\(ISO8601.string(from: Date()))."
+      ],
+      "preconditions": "None.",
+      "action": "ISO8601.string(from:).",
+      "expected_result": "The date is formatted with the plain style: `yyyy-MM-ddTHH:mm:ssZ` in UTC, for example `2026-09-13T18:28:42Z`, with no fractional part and a literal Z. At B2 it names the hang report file (`hang-2026-09-13T18-28-42Z.txt` after every colon becomes a hyphen) and fills the system prompt line `- Today's date is 2026-09-13T18:28:42Z.` for OpenAI-compatible sessions; both callers belong to other areas.",
+      "side_effects": [],
+      "persistence": "",
+      "failure_cases": [
+        "UNRESOLVED (UNK-0003, no matching-build macOS runtime to run Foundation on): whether a sub-second part is truncated or rounded when it is dropped was not run; the fixture settles it."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Format in UTC with the invariant culture and the Gregorian calendar, four-digit year, two-digit fields, `T` and `Z` literals, so no Windows regional setting can change digits, separators or calendar.",
+      "verification_method": "unit test on fixed instants (2026-09-13 18:28:42.000 UTC and 18:28:42.999 UTC, and a local-time Date on a non-UTC machine setting) asserting `2026-09-13T18:28:42Z`, with the .999 case checked against the Foundation fixture",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": "UNK-0003"
     }
   ],
   "ui": [
@@ -3858,7 +4032,7 @@
         "none on the row itself; the trailing button is the only control"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:820-826",
+        "DroppyCode/App/Views/Settings/SettingsView.swift:859-865",
         "DroppyCode/Services/Store/Storage.swift:38",
         "DroppyCode/Services/Store/Storage.swift:43-48"
       ],
@@ -3880,13 +4054,18 @@
         "click: calls Workspace.revealInFinder(Storage.worktreesDirectory.path)"
       ],
       "source_evidence": [
-        "DroppyCode/App/Views/Settings/SettingsView.swift:823",
-        "DroppyCode/UI/Common/Components.swift:165 - Workspace.revealInFinder(_ path: String)"
+        "DroppyCode/App/Views/Settings/SettingsView.swift:862-863 - Button(\"Reveal\") { Workspace.revealInFinder(Storage.worktreesDirectory.path) } .buttonStyle(.glass)",
+        "DroppyCode/UI/Common/Components.swift:165-166 - static func revealInFinder(_ path: String) { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)]) }"
       ],
-      "notes": "The label is the single word \"Reveal\", not \"Reveal in Finder\"; the sidebar’s project menu uses the longer \"Reveal in Finder\" (SidebarView.swift:1212) and the worktree menu uses \"Reveal worktree in Finder\" (SidebarView.swift:2218). On Windows the action opens File Explorer at that folder; the button label must still be exactly \"Reveal\", and the two longer sidebar labels belong to the sidebar area, which must decide whether \"Finder\" is renamed there.",
+      "notes": "The label is the single word \"Reveal\", not \"Reveal in Finder\", and B1 of OD-0008 does not touch it. The sidebar's longer labels, \"Reveal in Finder\" (SidebarView.swift:1212) and \"Reveal worktree in Finder\" (SidebarView.swift:2218), become \"Reveal in File Explorer\" and \"Reveal worktree in File Explorer\" under OD-0008 B1; those rows belong to the sidebar area. On Windows the action opens File Explorer with the worktrees folder selected in its parent folder, as NSWorkspace.activateFileViewerSelecting does (Components.swift:165-166); it does not open the folder itself. Glass: .buttonStyle(.glass) is a macOS system material; owner ruling OD-0005 (Acrylic where the window shows the desktop, the source-defined material reproduced where the app draws its own backdrop), a named deviation, not parity.",
       "screen": "Settings, Source control, section \"Worktrees and pull requests\", \"Worktrees\" row",
       "element": "Reveal button",
-      "role": "button"
+      "role": "button",
+      "deviation": {
+        "decision": "OD-0005",
+        "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:862-863 - `Button(\"Reveal\") { ... }` with `.buttonStyle(.glass)`, macOS Liquid Glass",
+        "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced. An owner-approved deviation, not parity."
+      }
     },
     {
       "id": "UI-STORE-003",
