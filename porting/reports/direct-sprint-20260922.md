@@ -27,6 +27,10 @@ M2: 5/78 complete (6.41%), 73/78 remaining (93.59%). All packets: 5/662 complete
 657/662 remaining (99.24%). Requirements: 21/3827 IMPLEMENTED (0.55%), 0 VERIFIED.
 These are packet/requirement counts, not estimates of elapsed effort or usable-app completion.
 
+Final full verifier rerun after the checkpoint: PASS=22, FAIL=1, NOT_IMPLEMENTED=4;
+78 tests passed, none failed/skipped. The existing App stub is the single failing check.
+Protected-file check remained clean after the director's report commit.
+
 ## Source and upstream boundary
 
 Authoritative specification remains pinned to `dd2b86efef9e77168f304a86e8a8411877578bbe`.
@@ -50,6 +54,11 @@ identical blobs (paths relative to `DroppyCode/`):
 This establishes unchanged component source, not unchanged integration callers. The broader
 new-source audit is pending. Never relabel the old 433-file reading evidence as evidence for
 the new 440-file tree. Hydra, Provider, Jev, zoom/font and UI changes require fresh requirements.
+
+The adjacent `m2-upstream-source-map-20260922.json` records old/new Git blobs for every M2 packet:
+5 DONE with identical source, 32 TODO with identical source, 41 TODO with changed source.
+All 78 paths resolved. This is a scheduling aid; unchanged source may still depend on changed types.
+It was generated from `git ls-tree -r` for both commits, without modifying either reference checkout.
 
 ## Requirement-to-test evidence
 

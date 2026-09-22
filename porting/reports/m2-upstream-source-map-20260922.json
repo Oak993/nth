@@ -1,0 +1,715 @@
+{
+  "schema": "marrow-m2-source-comparison/1",
+  "old_commit": "dd2b86efef9e77168f304a86e8a8411877578bbe",
+  "latest_commit": "417ab7d3676cdf258fb6b68444f0626aa6fdfbed",
+  "note": "Mechanical blob comparison only. IDENTICAL does not prove unchanged callers or dependencies, completed source reading, or implementation readiness.",
+  "counts": {
+    "IDENTICAL/DONE": 5,
+    "CHANGED/TODO": 41,
+    "IDENTICAL/TODO": 32
+  },
+  "tasks": [
+    {
+      "id": "T-M2-001",
+      "source": "DroppyCode/Core/Models/AntiSlopPolicy.swift",
+      "status": "DONE",
+      "risk": "STANDARD",
+      "old_blob": "e06e7b8ef01e4f64a085f01a208ec7e69f80d6d2",
+      "latest_blob": "e06e7b8ef01e4f64a085f01a208ec7e69f80d6d2",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-002",
+      "source": "DroppyCode/Core/Models/Hydra.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "3c03c3fc2e3af06605d210c234ff1cd26bb2a01a",
+      "latest_blob": "06774a9df6d2cfbe8b3c5bb53556340c3565b0ff",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-003",
+      "source": "DroppyCode/Core/Models/Hydra.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "3c03c3fc2e3af06605d210c234ff1cd26bb2a01a",
+      "latest_blob": "06774a9df6d2cfbe8b3c5bb53556340c3565b0ff",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-004",
+      "source": "DroppyCode/Core/Models/Hydra.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "3c03c3fc2e3af06605d210c234ff1cd26bb2a01a",
+      "latest_blob": "06774a9df6d2cfbe8b3c5bb53556340c3565b0ff",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-005",
+      "source": "DroppyCode/Core/Models/Hydra.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "3c03c3fc2e3af06605d210c234ff1cd26bb2a01a",
+      "latest_blob": "06774a9df6d2cfbe8b3c5bb53556340c3565b0ff",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-006",
+      "source": "DroppyCode/Core/Models/Hydra.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "3c03c3fc2e3af06605d210c234ff1cd26bb2a01a",
+      "latest_blob": "06774a9df6d2cfbe8b3c5bb53556340c3565b0ff",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-007",
+      "source": "DroppyCode/Core/Models/Hydra.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "3c03c3fc2e3af06605d210c234ff1cd26bb2a01a",
+      "latest_blob": "06774a9df6d2cfbe8b3c5bb53556340c3565b0ff",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-008",
+      "source": "DroppyCode/Core/Models/Hydra.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "3c03c3fc2e3af06605d210c234ff1cd26bb2a01a",
+      "latest_blob": "06774a9df6d2cfbe8b3c5bb53556340c3565b0ff",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-009",
+      "source": "DroppyCode/Core/Models/Hydra.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "3c03c3fc2e3af06605d210c234ff1cd26bb2a01a",
+      "latest_blob": "06774a9df6d2cfbe8b3c5bb53556340c3565b0ff",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-010",
+      "source": "DroppyCode/Core/Models/Hydra.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "3c03c3fc2e3af06605d210c234ff1cd26bb2a01a",
+      "latest_blob": "06774a9df6d2cfbe8b3c5bb53556340c3565b0ff",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-011",
+      "source": "DroppyCode/Core/Models/Hydra.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "3c03c3fc2e3af06605d210c234ff1cd26bb2a01a",
+      "latest_blob": "06774a9df6d2cfbe8b3c5bb53556340c3565b0ff",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-012",
+      "source": "DroppyCode/Core/Models/HydraCookbook.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "bc97223e71b4209a82ce5f6e325e0a861db50710",
+      "latest_blob": "bc97223e71b4209a82ce5f6e325e0a861db50710",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-013",
+      "source": "DroppyCode/Core/Models/HydraCookbook.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "bc97223e71b4209a82ce5f6e325e0a861db50710",
+      "latest_blob": "bc97223e71b4209a82ce5f6e325e0a861db50710",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-014",
+      "source": "DroppyCode/Core/Models/HydraCookbook.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "bc97223e71b4209a82ce5f6e325e0a861db50710",
+      "latest_blob": "bc97223e71b4209a82ce5f6e325e0a861db50710",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-015",
+      "source": "DroppyCode/Core/Models/HydraDelegationStream.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "926bda8d9b990a9fb4a4afa917e7a55ad36064bc",
+      "latest_blob": "0ae7491ae34e4178028decb70d4759da95cdaf82",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-016",
+      "source": "DroppyCode/Core/Models/Library.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "4aa4128b40e6add75e1c5fcdaa9d317ba93f3521",
+      "latest_blob": "4aa4128b40e6add75e1c5fcdaa9d317ba93f3521",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-017",
+      "source": "DroppyCode/Core/Models/Library.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "4aa4128b40e6add75e1c5fcdaa9d317ba93f3521",
+      "latest_blob": "4aa4128b40e6add75e1c5fcdaa9d317ba93f3521",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-018",
+      "source": "DroppyCode/Core/Models/Library.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "4aa4128b40e6add75e1c5fcdaa9d317ba93f3521",
+      "latest_blob": "4aa4128b40e6add75e1c5fcdaa9d317ba93f3521",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-019",
+      "source": "DroppyCode/Core/Models/Library.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "4aa4128b40e6add75e1c5fcdaa9d317ba93f3521",
+      "latest_blob": "4aa4128b40e6add75e1c5fcdaa9d317ba93f3521",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-020",
+      "source": "DroppyCode/Core/Models/Library.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "4aa4128b40e6add75e1c5fcdaa9d317ba93f3521",
+      "latest_blob": "4aa4128b40e6add75e1c5fcdaa9d317ba93f3521",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-021",
+      "source": "DroppyCode/Core/Models/Library.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "4aa4128b40e6add75e1c5fcdaa9d317ba93f3521",
+      "latest_blob": "4aa4128b40e6add75e1c5fcdaa9d317ba93f3521",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-022",
+      "source": "DroppyCode/Core/Models/Library.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "4aa4128b40e6add75e1c5fcdaa9d317ba93f3521",
+      "latest_blob": "4aa4128b40e6add75e1c5fcdaa9d317ba93f3521",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-023",
+      "source": "DroppyCode/Core/Models/MCP.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "6a4842a22f71257d333c4d60fcf129fdd458da30",
+      "latest_blob": "5538aaf7fe897a490f1f8a6e3251a52384214177",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-024",
+      "source": "DroppyCode/Core/Models/MCP.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "6a4842a22f71257d333c4d60fcf129fdd458da30",
+      "latest_blob": "5538aaf7fe897a490f1f8a6e3251a52384214177",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-025",
+      "source": "DroppyCode/Core/Models/MCPCatalog.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "4153cedff51deea3497b12143993ce943a70b0a6",
+      "latest_blob": "4153cedff51deea3497b12143993ce943a70b0a6",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-026",
+      "source": "DroppyCode/Core/Models/MCPCatalog.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "4153cedff51deea3497b12143993ce943a70b0a6",
+      "latest_blob": "4153cedff51deea3497b12143993ce943a70b0a6",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-027",
+      "source": "DroppyCode/Core/Models/MCPCatalog.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "4153cedff51deea3497b12143993ce943a70b0a6",
+      "latest_blob": "4153cedff51deea3497b12143993ce943a70b0a6",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-028",
+      "source": "DroppyCode/Core/Models/MCPCatalog.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "4153cedff51deea3497b12143993ce943a70b0a6",
+      "latest_blob": "4153cedff51deea3497b12143993ce943a70b0a6",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-029",
+      "source": "DroppyCode/Core/Models/MCPCustom.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "53879a5bfc9e217b7490d7f814e9e555c20549c9",
+      "latest_blob": "885f26b4d93687eca138d64f83c91437bc57821d",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-030",
+      "source": "DroppyCode/Core/Models/MergeRequestLink.swift",
+      "status": "DONE",
+      "risk": "STANDARD",
+      "old_blob": "20503159a6a70bc06e6e9cbfc35939905035bdf1",
+      "latest_blob": "20503159a6a70bc06e6e9cbfc35939905035bdf1",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-031",
+      "source": "DroppyCode/Core/Models/Provider.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "2cdea9f25c4fdea82d2ea76e6e4ed727acbaa4c6",
+      "latest_blob": "834bab38081a3d6ec3c5ad3c07dcc6d4cc75ea18",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-032",
+      "source": "DroppyCode/Core/Models/Provider.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "2cdea9f25c4fdea82d2ea76e6e4ed727acbaa4c6",
+      "latest_blob": "834bab38081a3d6ec3c5ad3c07dcc6d4cc75ea18",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-033",
+      "source": "DroppyCode/Core/Models/Provider.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "2cdea9f25c4fdea82d2ea76e6e4ed727acbaa4c6",
+      "latest_blob": "834bab38081a3d6ec3c5ad3c07dcc6d4cc75ea18",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-034",
+      "source": "DroppyCode/Core/Models/Provider.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "2cdea9f25c4fdea82d2ea76e6e4ed727acbaa4c6",
+      "latest_blob": "834bab38081a3d6ec3c5ad3c07dcc6d4cc75ea18",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-035",
+      "source": "DroppyCode/Core/Models/Provider.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "2cdea9f25c4fdea82d2ea76e6e4ed727acbaa4c6",
+      "latest_blob": "834bab38081a3d6ec3c5ad3c07dcc6d4cc75ea18",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-036",
+      "source": "DroppyCode/Core/Models/Provider.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "2cdea9f25c4fdea82d2ea76e6e4ed727acbaa4c6",
+      "latest_blob": "834bab38081a3d6ec3c5ad3c07dcc6d4cc75ea18",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-037",
+      "source": "DroppyCode/Core/Models/Provider.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "2cdea9f25c4fdea82d2ea76e6e4ed727acbaa4c6",
+      "latest_blob": "834bab38081a3d6ec3c5ad3c07dcc6d4cc75ea18",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-038",
+      "source": "DroppyCode/Core/Models/Provider.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "2cdea9f25c4fdea82d2ea76e6e4ed727acbaa4c6",
+      "latest_blob": "834bab38081a3d6ec3c5ad3c07dcc6d4cc75ea18",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-039",
+      "source": "DroppyCode/Core/Models/Provider.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "2cdea9f25c4fdea82d2ea76e6e4ed727acbaa4c6",
+      "latest_blob": "834bab38081a3d6ec3c5ad3c07dcc6d4cc75ea18",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-040",
+      "source": "DroppyCode/Core/Models/Provider.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "2cdea9f25c4fdea82d2ea76e6e4ed727acbaa4c6",
+      "latest_blob": "834bab38081a3d6ec3c5ad3c07dcc6d4cc75ea18",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-041",
+      "source": "DroppyCode/Core/Models/Provider.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "2cdea9f25c4fdea82d2ea76e6e4ed727acbaa4c6",
+      "latest_blob": "834bab38081a3d6ec3c5ad3c07dcc6d4cc75ea18",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-042",
+      "source": "DroppyCode/Core/Models/ProviderSettings.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "8955c3b0fe79c5fd9787156e478342bd18da5679",
+      "latest_blob": "8955c3b0fe79c5fd9787156e478342bd18da5679",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-043",
+      "source": "DroppyCode/Core/Models/Requests.swift",
+      "status": "DONE",
+      "risk": "STANDARD",
+      "old_blob": "63c85f2f363fed1cac1609891f326a3e57101449",
+      "latest_blob": "63c85f2f363fed1cac1609891f326a3e57101449",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-044",
+      "source": "DroppyCode/Core/Models/Requests.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "63c85f2f363fed1cac1609891f326a3e57101449",
+      "latest_blob": "63c85f2f363fed1cac1609891f326a3e57101449",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-045",
+      "source": "DroppyCode/Core/Models/Shortcuts.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "a64be8c47ab5a4b91d836d2ed5a5da33cfae6999",
+      "latest_blob": "a64be8c47ab5a4b91d836d2ed5a5da33cfae6999",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-046",
+      "source": "DroppyCode/Core/Models/Shortcuts.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "a64be8c47ab5a4b91d836d2ed5a5da33cfae6999",
+      "latest_blob": "a64be8c47ab5a4b91d836d2ed5a5da33cfae6999",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-047",
+      "source": "DroppyCode/Core/Models/Shortcuts.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "a64be8c47ab5a4b91d836d2ed5a5da33cfae6999",
+      "latest_blob": "a64be8c47ab5a4b91d836d2ed5a5da33cfae6999",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-048",
+      "source": "DroppyCode/Core/Models/Shortcuts.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "a64be8c47ab5a4b91d836d2ed5a5da33cfae6999",
+      "latest_blob": "a64be8c47ab5a4b91d836d2ed5a5da33cfae6999",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-049",
+      "source": "DroppyCode/Core/Models/Shortcuts.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "a64be8c47ab5a4b91d836d2ed5a5da33cfae6999",
+      "latest_blob": "a64be8c47ab5a4b91d836d2ed5a5da33cfae6999",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-050",
+      "source": "DroppyCode/Core/Models/Shortcuts.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "a64be8c47ab5a4b91d836d2ed5a5da33cfae6999",
+      "latest_blob": "a64be8c47ab5a4b91d836d2ed5a5da33cfae6999",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-051",
+      "source": "DroppyCode/Core/Models/Shortcuts.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "a64be8c47ab5a4b91d836d2ed5a5da33cfae6999",
+      "latest_blob": "a64be8c47ab5a4b91d836d2ed5a5da33cfae6999",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-052",
+      "source": "DroppyCode/Core/Models/Shortcuts.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "a64be8c47ab5a4b91d836d2ed5a5da33cfae6999",
+      "latest_blob": "a64be8c47ab5a4b91d836d2ed5a5da33cfae6999",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-053",
+      "source": "DroppyCode/Core/Models/ThreadContinuation.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "fdc9c05950563c3ff3713f703d902cae23f9b43f",
+      "latest_blob": "a59f2ab0babc99c0b9b14274814f87dd64d6c61d",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-054",
+      "source": "DroppyCode/Core/Models/Timeline.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "34d7f7965dbbc2e0c9d8ce01bed60c401462cda9",
+      "latest_blob": "1c57a9e020ac4a24985021b4888bda0ce986b3c0",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-055",
+      "source": "DroppyCode/Core/Models/Timeline.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "34d7f7965dbbc2e0c9d8ce01bed60c401462cda9",
+      "latest_blob": "1c57a9e020ac4a24985021b4888bda0ce986b3c0",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-056",
+      "source": "DroppyCode/Core/Models/Timeline.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "34d7f7965dbbc2e0c9d8ce01bed60c401462cda9",
+      "latest_blob": "1c57a9e020ac4a24985021b4888bda0ce986b3c0",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-057",
+      "source": "DroppyCode/Core/Models/TokenSpend.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "305e13b4f5fd0582eeb4b32fef71984ee9869039",
+      "latest_blob": "305e13b4f5fd0582eeb4b32fef71984ee9869039",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-058",
+      "source": "DroppyCode/Core/Support/CaptureRun.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "03df25b23678167502f02fd6d31159e7a2ea8cb9",
+      "latest_blob": "03df25b23678167502f02fd6d31159e7a2ea8cb9",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-059",
+      "source": "DroppyCode/Core/Support/Coding.swift",
+      "status": "DONE",
+      "risk": "STANDARD",
+      "old_blob": "1a84492607b43d1b7b01acbfda9a4fac3c5d1941",
+      "latest_blob": "1a84492607b43d1b7b01acbfda9a4fac3c5d1941",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-060",
+      "source": "DroppyCode/Core/Support/HangWatchdog.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "aff6be6da907d45e8edee1b9062f0b4e5911caa4",
+      "latest_blob": "104148104db6a3ff2c9aaa0fd9832854b8ff44b7",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-061",
+      "source": "DroppyCode/Core/Support/HangWatchdog.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "aff6be6da907d45e8edee1b9062f0b4e5911caa4",
+      "latest_blob": "104148104db6a3ff2c9aaa0fd9832854b8ff44b7",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-062",
+      "source": "DroppyCode/Core/Support/JSONRPC.swift",
+      "status": "TODO",
+      "risk": "HIGH",
+      "old_blob": "8e2706f5cdfef48fe8eb175235c48b28307e5740",
+      "latest_blob": "a8909ece415a41cacfad2788e322a447aeb0a73a",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-063",
+      "source": "DroppyCode/Core/Support/JSONRPC.swift",
+      "status": "TODO",
+      "risk": "HIGH",
+      "old_blob": "8e2706f5cdfef48fe8eb175235c48b28307e5740",
+      "latest_blob": "a8909ece415a41cacfad2788e322a447aeb0a73a",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-064",
+      "source": "DroppyCode/Core/Support/JSONValue.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "ac7a4e6031d5f14f1a7224262ed874f24f05b455",
+      "latest_blob": "ac7a4e6031d5f14f1a7224262ed874f24f05b455",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-065",
+      "source": "DroppyCode/Core/Support/ObservedValue.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "c1701b810d61c8bd38398bbdfea45d1a6d83087d",
+      "latest_blob": "c1701b810d61c8bd38398bbdfea45d1a6d83087d",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-066",
+      "source": "DroppyCode/Core/Support/RecentCache.swift",
+      "status": "DONE",
+      "risk": "STANDARD",
+      "old_blob": "bfc510193d26e8744649d5507f4b3e3c20c6ae83",
+      "latest_blob": "bfc510193d26e8744649d5507f4b3e3c20c6ae83",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-067",
+      "source": "DroppyCode/Core/Support/Shell.swift",
+      "status": "TODO",
+      "risk": "HIGH",
+      "old_blob": "7c148abb4fe9a29d69c8b407ca5b895ec9e6bd35",
+      "latest_blob": "3714394aa4011a5d05885de572fa890773016c75",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-068",
+      "source": "DroppyCode/Core/Support/Shell.swift",
+      "status": "TODO",
+      "risk": "HIGH",
+      "old_blob": "7c148abb4fe9a29d69c8b407ca5b895ec9e6bd35",
+      "latest_blob": "3714394aa4011a5d05885de572fa890773016c75",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-069",
+      "source": "DroppyCode/Core/Support/Shell.swift",
+      "status": "TODO",
+      "risk": "HIGH",
+      "old_blob": "7c148abb4fe9a29d69c8b407ca5b895ec9e6bd35",
+      "latest_blob": "3714394aa4011a5d05885de572fa890773016c75",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-070",
+      "source": "DroppyCode/Core/Support/Shell.swift",
+      "status": "TODO",
+      "risk": "HIGH",
+      "old_blob": "7c148abb4fe9a29d69c8b407ca5b895ec9e6bd35",
+      "latest_blob": "3714394aa4011a5d05885de572fa890773016c75",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-071",
+      "source": "DroppyCode/Core/Support/StdioFramer.swift",
+      "status": "TODO",
+      "risk": "HIGH",
+      "old_blob": "e1ebde91ece8d47b9de5d259b99efb10733b26db",
+      "latest_blob": "e1ebde91ece8d47b9de5d259b99efb10733b26db",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-072",
+      "source": "DroppyCode/Core/Support/StdioProcess.swift",
+      "status": "TODO",
+      "risk": "HIGH",
+      "old_blob": "884cc8371e26cd7680cf44b1a37384fd2d94d15d",
+      "latest_blob": "fb65ec9e7ab4ca8190d3cb463495a93b8936519a",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-073",
+      "source": "DroppyCode/Core/Support/StdioProcess.swift",
+      "status": "TODO",
+      "risk": "HIGH",
+      "old_blob": "884cc8371e26cd7680cf44b1a37384fd2d94d15d",
+      "latest_blob": "fb65ec9e7ab4ca8190d3cb463495a93b8936519a",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-074",
+      "source": "DroppyCode/Core/Support/SwitchLatency.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "5db3937ff45d1e7cc993271c5365aff1ab2fdd04",
+      "latest_blob": "5db3937ff45d1e7cc993271c5365aff1ab2fdd04",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-075",
+      "source": "DroppyCode/Core/Support/Text.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "79324d22b12577e0216c4c1311546a390bfbc311",
+      "latest_blob": "18c8123445a49b06942ef4e68edb9991cb6834de",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-076",
+      "source": "DroppyCode/Core/Support/Text.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "79324d22b12577e0216c4c1311546a390bfbc311",
+      "latest_blob": "18c8123445a49b06942ef4e68edb9991cb6834de",
+      "source_relation": "CHANGED"
+    },
+    {
+      "id": "T-M2-077",
+      "source": "DroppyCode/Core/Support/ThumbnailCache.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "4cefb1bdedc643a1853b56a7990830f09be6de7a",
+      "latest_blob": "4cefb1bdedc643a1853b56a7990830f09be6de7a",
+      "source_relation": "IDENTICAL"
+    },
+    {
+      "id": "T-M2-078",
+      "source": "DroppyCode/Core/Support/ThumbnailCache.swift",
+      "status": "TODO",
+      "risk": "STANDARD",
+      "old_blob": "4cefb1bdedc643a1853b56a7990830f09be6de7a",
+      "latest_blob": "4cefb1bdedc643a1853b56a7990830f09be6de7a",
+      "source_relation": "IDENTICAL"
+    }
+  ]
+}
