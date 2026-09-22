@@ -1906,9 +1906,9 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": null,
-      "notes": ""
+      "status": "IMPLEMENTING",
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: Reviewed eight pure-helper requirements PR-STORE-105..112 against all 129 Swift lines; AppInfo PR-STORE-008/009 remain pending. Tests independently cover exact hunks, UTF8 cap boundaries, grapheme lengths, ANSI pattern, prescan and throughput."
     },
     {
       "id": "T-M2-076",
