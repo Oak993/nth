@@ -829,9 +829,9 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": null,
-      "notes": ""
+      "status": "IMPLEMENTING",
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: Reviewed PR-MCP-031..037 corrected against source. Final three complete fixtures, exact33 IDs/14 OAuth, positive name fallback and negative no-trim cases, seven category memberships. Expected missing-API compile failures observed before implementation."
     },
     {
       "id": "T-M2-029",
