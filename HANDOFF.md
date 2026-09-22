@@ -58,6 +58,22 @@ its `risk` field in `porting/tasks/queue.json`:
 | `risk: STANDARD` (558) | **Nemotron 3 Super, free** (OpenRouter) | Mistakes here are cheap to catch in review |
 | `risk: HIGH` (104) | **DeepSeek v4.1 Flash, paid** (native DeepSeek preset) | A plausible but wrong translation here costs data |
 | M0 probes | the owner, or DeepSeek for P5 and P6 | P2, P3, P4, P7 need an unlocked desktop |
+| **Review of every HIGH packet** | **GLM 5.3 Flash, paid** (native Z.ai preset, $4.95 balance) | A second model catches a translation that compiles, passes its own tests and still differs from the Swift |
+
+**GLM 5.3 Flash is a REVIEWER, not a worker.** Its cached-input price is about 17x DeepSeek's
+($0.050 vs $0.003 per million on OpenRouter's listing), and a worker's traffic is mostly cached input,
+so as a worker it would cost several times more per packet. As a reviewer it reads the packet, the
+Swift source and the diff, with no build loop, which is a few turns rather than about 80. After
+DeepSeek finishes a HIGH packet and before `mark.mjs ... DONE`, send GLM this and nothing else:
+
+> Review only. Do not edit any file. Packet: `porting/tasks/<id>.md`. Swift source: the file the
+> packet names under `E:\Droppy\reference\droppy-code`. Change under review: `git diff HEAD`.
+> For each requirement id, say MATCHES or DIFFERS, and for every DIFFERS quote the Swift line and the
+> C# line. List any user-visible string that is not verbatim, any number that was changed, anything
+> present in the C# with no source line behind it, and any quarantined (BLK) behaviour implemented.
+
+Any DIFFERS goes back to the worker. Codex still makes the final call. Estimated at $1.50 to $3 for
+all 104 reviews; measure the first few and report if it runs higher.
 
 Rules the orchestrator must follow:
 
