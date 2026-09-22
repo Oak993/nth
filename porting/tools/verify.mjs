@@ -524,9 +524,32 @@ check('D', 'the solution builds and every test passes, none skipped', () => {
   return `build clean with warnings as errors; ${passed} tests passed, 0 failed, 0 skipped`;
 });
 
+// Gate D proper: every applicable requirement VERIFIED by a passing, source-bound test run.
+// Status comes from porting/tools/req_verify.mjs, which derives it from test traits and a TRX run
+// bound to the current HEAD with a clean src/ and tests/. This check never runs the tests itself;
+// it refuses a stale or unbound result instead, so a green report always names the code it tested.
+check('D', 'every applicable requirement is VERIFIED by a bound test run', () => {
+  const p = rel('porting/verification/requirements.json');
+  if (!existsSync(p)) throw new Error('no requirement verification yet: run node porting/tools/req_verify.mjs');
+  const doc = JSON.parse(readFileSync(p, 'utf8'));
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim();
+  const dirty = execFileSync('git', ['status', '--porcelain', '--', 'src', 'tests'], { cwd: ROOT, encoding: 'utf8' }).trim();
+  if (doc.run.head !== head || dirty || !doc.run.bound_to_current_head) {
+    throw new Error(`verification is not bound to the current tree (run at ${String(doc.run.head).slice(0, 8)}, HEAD ${head.slice(0, 8)}${dirty ? ', src/tests dirty' : ''}); rerun req_verify.mjs`);
+  }
+  if (doc.run.baseline !== PINNED_SHA) throw new Error(`verification ran against baseline ${doc.run.baseline}, pinned is ${PINNED_SHA}`);
+  const outstanding = Object.entries(doc.requirements)
+    .filter(([, r]) => !['VERIFIED', 'BLOCKED', 'RETIRED'].includes(r.status));
+  if (outstanding.length) {
+    const by = outstanding.reduce((a, [, r]) => { a[r.status] = (a[r.status] || 0) + 1; return a; }, {});
+    throw new Error(`VERIFIED ${doc.verified}/${doc.applicable}; outstanding ${outstanding.length} ${JSON.stringify(by)}: ${outstanding.slice(0, 8).map(([id]) => id).join(', ')}`);
+  }
+  return `VERIFIED ${doc.verified}/${doc.applicable} applicable requirements`;
+});
+
 const PENDING = [
   ['C', 'no fake-success paths, dead controls or unapproved product changes'],
-  ['D', 'source-derived tests, interaction tests, visual comparison, persistence and cancellation'],
+  ['D', 'interaction tests, visual comparison, persistence/restart and cancellation evidence per verification_method'],
   ['E', 'packaged artifact installs, launches, cleans up children, upgrades and uninstalls'],
   ['F', 'independent parity review with no unresolved required discrepancy'],
 ];

@@ -2,3 +2,6 @@ node_modules/
 *.log
 bin/
 obj/
+
+# Raw per-run test output from porting/tools/req_verify.mjs; the bound summary requirements.json is committed.
+porting/verification/runs/

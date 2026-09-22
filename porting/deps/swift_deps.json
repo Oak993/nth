@@ -1,0 +1,3547 @@
+{
+ "baseline": "1fbf81e61e28a079508a074c01ee1830a9cc23dc",
+ "note": "Engineering aid for ordering work; see the docstring of porting/tools/swift_deps.py for its limits.",
+ "files": {
+  "DroppyCode/App/AppCommands.swift": {
+   "declares": [
+    "AppCommands"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Tour/TourPages.swift",
+    "DroppyCode/App/Window/WindowManager.swift",
+    "DroppyCode/Core/Models/Shortcuts.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Common/AppZoom.swift"
+   ],
+   "component": 101,
+   "level": 10
+  },
+  "DroppyCode/App/AppDelegate.swift": {
+   "declares": [
+    "AppDelegate"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/AppUpdater.swift",
+    "DroppyCode/App/Captures/WebsiteCaptures.swift",
+    "DroppyCode/App/UpdateChecker.swift",
+    "DroppyCode/App/Views/Tour/TourPages.swift",
+    "DroppyCode/App/Window/WindowManager.swift",
+    "DroppyCode/Services/MCP/MCPHub.swift",
+    "DroppyCode/Services/Store/TokenLedger.swift"
+   ],
+   "component": 102,
+   "level": 10
+  },
+  "DroppyCode/App/AppModel+Hydra.swift": {
+   "declares": [
+    "HydraPatch",
+    "HydraTreeCache",
+    "HydraWatchdog"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Chat/HydraPanel.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/Git/DiffParser.swift",
+    "DroppyCode/Services/Git/Git.swift",
+    "DroppyCode/Services/Git/TouchedPaths.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift",
+    "DroppyCode/Services/Store/Storage.swift"
+   ],
+   "component": 103,
+   "level": 10
+  },
+  "DroppyCode/App/AppModel+HydraMerge.swift": {
+   "declares": [
+    "HydraMergeHead",
+    "HydraMergeRequestError",
+    "HydraProjectMerge"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/MergeRequestLink.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/Git/DiffParser.swift",
+    "DroppyCode/Services/Git/Git.swift",
+    "DroppyCode/Services/Git/TouchedPaths.swift",
+    "DroppyCode/Services/Providers/TextGeneration.swift",
+    "DroppyCode/Services/Store/Storage.swift"
+   ],
+   "component": 104,
+   "level": 10
+  },
+  "DroppyCode/App/AppModel+HydraPairs.swift": {
+   "declares": [],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Provider.swift"
+   ],
+   "component": 105,
+   "level": 10
+  },
+  "DroppyCode/App/AppModel.swift": {
+   "declares": [
+    "AppAlert",
+    "AppModel",
+    "ProjectFile"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppSettings.swift",
+    "DroppyCode/App/Captures/WebsiteCaptures.swift",
+    "DroppyCode/App/Runtime/AutoContinue.swift",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Terminal/TerminalStore.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/ThreadContinuation.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/ObservedValue.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/SwitchLatency.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/Git/Git.swift",
+    "DroppyCode/Services/MCP/MCPStore.swift",
+    "DroppyCode/Services/Providers/ProviderRegistry.swift",
+    "DroppyCode/Services/Providers/TextGeneration.swift",
+    "DroppyCode/Services/Store/Storage.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/WindowChrome.swift",
+    "DroppyCode/UI/Sound/FinishChime.swift",
+    "DroppyCode/UI/Sound/SettleChime.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/AppSettings.swift": {
+   "declares": [
+    "ActivityThreadStyle",
+    "AppSettings",
+    "ModelPin",
+    "ModelPreference",
+    "SidebarMode",
+    "TextGenerationChoice",
+    "ThreadFinishAction"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Captures/WebsiteCaptures.swift",
+    "DroppyCode/App/Views/Chat/SubagentPanel.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/ProviderSettings.swift",
+    "DroppyCode/Core/Support/Coding.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/Providers/CommandCodeKeychain.swift",
+    "DroppyCode/Services/Providers/DeepSeekKeychain.swift",
+    "DroppyCode/Services/Providers/MetaKeychain.swift",
+    "DroppyCode/Services/Providers/ZaiKeychain.swift",
+    "DroppyCode/UI/Common/AppZoom.swift",
+    "DroppyCode/UI/Theme/AppTheme.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/AppUpdater.swift": {
+   "declares": [
+    "AppUpdater",
+    "Downloader",
+    "UpdateInstallError",
+    "UpdateInstallProgress",
+    "UpdateProgressMilestones"
+   ],
+   "depends_on": [
+    "DroppyCode/App/UpdateChecker.swift",
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Captures/TourCaptures+Hydra.swift": {
+   "declares": [],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Captures/TourCaptures.swift",
+    "DroppyCode/App/Captures/WebsiteCaptures.swift",
+    "DroppyCode/App/Views/Composer/EffortSlider.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/Coding.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift"
+   ],
+   "component": 106,
+   "level": 10
+  },
+  "DroppyCode/App/Captures/TourCaptures.swift": {
+   "declares": [
+    "TourCaptures"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Captures/WebsiteCaptures.swift",
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift",
+    "DroppyCode/App/Views/Composer/EffortSlider.swift",
+    "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift",
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift",
+    "DroppyCode/App/Views/Tour/TourPages.swift",
+    "DroppyCode/App/Views/Tour/TourWindowController.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Theme/AppTheme.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Captures/WebsiteCaptures.swift": {
+   "declares": [
+    "BackdropWallpaper",
+    "FilmRecorder",
+    "Recorder",
+    "Stage",
+    "WebsiteCaptures"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/AppSettings.swift",
+    "DroppyCode/App/Captures/TourCaptures.swift",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Composer/EffortSlider.swift",
+    "DroppyCode/App/Window/WindowManager.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Requests.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/CaptureRun.swift",
+    "DroppyCode/Core/Support/Coding.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
+    "DroppyCode/UI/Theme/AppTheme.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/DroppyCodeApp.swift": {
+   "declares": [
+    "DroppyCodeApp"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppCommands.swift",
+    "DroppyCode/App/AppDelegate.swift",
+    "DroppyCode/App/Captures/WebsiteCaptures.swift",
+    "DroppyCode/App/LegacyMigration.swift",
+    "DroppyCode/App/Window/WindowManager.swift",
+    "DroppyCode/Core/Support/HangWatchdog.swift",
+    "DroppyCode/Core/Support/SwitchLatency.swift"
+   ],
+   "component": 109,
+   "level": 11
+  },
+  "DroppyCode/App/HydraCookbook+Resolve.swift": {
+   "declares": [],
+   "depends_on": [
+    "DroppyCode/App/AppSettings.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/HydraCookbook.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Services/Providers/ProviderRegistry.swift"
+   ],
+   "component": 110,
+   "level": 10
+  },
+  "DroppyCode/App/LegacyMigration.swift": {
+   "declares": [
+    "LegacyMigration"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 107,
+   "level": 2
+  },
+  "DroppyCode/App/Runtime/AutoContinue.swift": {
+   "declares": [
+    "AutoContinue"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Runtime/LimitHandoff.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Services/Providers/PlanLimits.swift",
+    "DroppyCode/Services/Providers/UsageLimitSignal.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Runtime/LimitHandoff.swift": {
+   "declares": [
+    "LimitHandoff"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Runtime/ThreadRuntime.swift": {
+   "declares": [
+    "ComposerDraft",
+    "DraftCommand",
+    "PromptEdit",
+    "ReplyQuote",
+    "RuntimePhase",
+    "ThreadRuntime",
+    "TimelineEntry"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Views/Chat/SubagentPanel.swift",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift",
+    "DroppyCode/Core/Models/AntiSlopPolicy.swift",
+    "DroppyCode/Core/Models/FileChangeSummary.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/HydraDelegationStream.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Requests.swift",
+    "DroppyCode/Core/Models/ThreadContinuation.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Models/TokenSpend.swift",
+    "DroppyCode/Core/Support/RecentCache.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/Git/DiffParser.swift",
+    "DroppyCode/Services/Git/Git.swift",
+    "DroppyCode/Services/Git/RevertPreview.swift",
+    "DroppyCode/Services/Git/TouchedPaths.swift",
+    "DroppyCode/Services/Git/TurnDiff.swift",
+    "DroppyCode/Services/Providers/ACPSession.swift",
+    "DroppyCode/Services/Providers/AntigravitySession.swift",
+    "DroppyCode/Services/Providers/ClaudeSession.swift",
+    "DroppyCode/Services/Providers/CodexSession.swift",
+    "DroppyCode/Services/Providers/CommandCodeSession.swift",
+    "DroppyCode/Services/Providers/CopilotSession.swift",
+    "DroppyCode/Services/Providers/DeepSeekSession.swift",
+    "DroppyCode/Services/Providers/MetaSession.swift",
+    "DroppyCode/Services/Providers/PiSession.swift",
+    "DroppyCode/Services/Providers/ProviderRegistry.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift",
+    "DroppyCode/Services/Providers/TextGeneration.swift",
+    "DroppyCode/Services/Providers/ZaiSession.swift",
+    "DroppyCode/Services/Store/Storage.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
+    "DroppyCode/UI/Common/RenderBudget.swift",
+    "DroppyCode/UI/Markdown/LinkParagraphView.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/UpdateChecker.swift": {
+   "declares": [
+    "AppVersion",
+    "AvailableUpdate",
+    "GitLabRelease",
+    "UpdateChecker",
+    "UpdateError"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Captures/WebsiteCaptures.swift",
+    "DroppyCode/Core/Support/ISO8601.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Chat/ChatBadge.swift": {
+   "declares": [
+    "BadgePopoverCoordinator",
+    "BadgePopoverModifier",
+    "ChatBadge"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift",
+    "DroppyCode/App/Views/Composer/ComposerWorkingDots.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/AttachmentPreviewPanel.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Chat/ChatView.swift": {
+   "declares": [
+    "BranchMenu",
+    "ChatChromeRow",
+    "ChatChromeTitle",
+    "ChatView",
+    "CommitSheet",
+    "GitActionsMenu",
+    "GitStatusModel",
+    "HydraPresence",
+    "JumpToLatestButton",
+    "OpenInMenu",
+    "PanelMembers",
+    "PanelScene",
+    "PanelUsage",
+    "PermissionMenu",
+    "ReserveSlide",
+    "ScriptsEditor",
+    "ScriptsMenu",
+    "ThreadsButton"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Captures/WebsiteCaptures.swift",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Chat/HydraButton.swift",
+    "DroppyCode/App/Views/Chat/HydraPanel.swift",
+    "DroppyCode/App/Views/Chat/SubagentPanel.swift",
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift",
+    "DroppyCode/App/Views/Composer/ComposerView.swift",
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift",
+    "DroppyCode/App/Views/Terminal/TerminalPanel.swift",
+    "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift",
+    "DroppyCode/App/Window/WindowManager.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Shortcuts.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/Git/Git.swift",
+    "DroppyCode/Services/Providers/TextGeneration.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/Components.swift",
+    "DroppyCode/UI/Markdown/LinkParagraphView.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Chat/HydraButton.swift": {
+   "declares": [
+    "HydraButton",
+    "HydraCharge",
+    "HydraChargeLayerView",
+    "HydraChargeMotion",
+    "HydraIdlePopover",
+    "HydraMarkView",
+    "HydraPairSummary",
+    "HydraRightTap",
+    "HydraRightTapHost",
+    "HydraSendWorkingBadge",
+    "HydraSwitchPopover"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Captures/WebsiteCaptures.swift",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Support/RecentCache.swift",
+    "DroppyCode/Services/Providers/ProviderRegistry.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/HydraGlyph.swift",
+    "DroppyCode/UI/Common/WorkingIndicators.swift",
+    "DroppyCode/UI/Theme/AppTheme.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift": {
+   "declares": [
+    "HydraBriefPopover",
+    "HydraHeadReportPopover",
+    "HydraPopoverHeader"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/HydraGlyph.swift",
+    "DroppyCode/UI/Markdown/MarkdownParser.swift",
+    "DroppyCode/UI/Markdown/MarkdownView.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Chat/HydraIntroPopover.swift": {
+   "declares": [
+    "HydraInfoPopover",
+    "HydraIntroPopover",
+    "hydraIntroStep"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Window/WindowManager.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Common/HydraGlyph.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Chat/HydraMergePopover.swift": {
+   "declares": [
+    "HydraMergeNote",
+    "HydraMergePopover"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/MergeRequestLink.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Common/HydraGlyph.swift",
+    "DroppyCode/UI/Markdown/MarkdownView.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Chat/HydraPanel.swift": {
+   "declares": [
+    "HydraHeadFooter",
+    "HydraHeadRow",
+    "HydraHeadTranscript",
+    "HydraHeadsButton",
+    "HydraLiveInfo",
+    "HydraPanel",
+    "HydraSpokesMark",
+    "HydraStatusText",
+    "HydraStopButton",
+    "StageHold",
+    "StageMark"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Chat/ChatView.swift",
+    "DroppyCode/App/Views/Chat/HydraProgressBar.swift",
+    "DroppyCode/App/Views/Chat/SubagentPanel.swift",
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift",
+    "DroppyCode/App/Views/Composer/ComposerView.swift",
+    "DroppyCode/App/Views/Composer/ComposerWorkingDots.swift",
+    "DroppyCode/App/Window/WindowManager.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/Components.swift",
+    "DroppyCode/UI/Common/HydraGlyph.swift",
+    "DroppyCode/UI/Common/WorkingIndicators.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Chat/HydraProgressBar.swift": {
+   "declares": [
+    "HydraElapsedTime",
+    "HydraHeadProgress",
+    "HydraProgressBar",
+    "HydraWorkingTitle",
+    "ProgressCardSurface",
+    "SweepBudget"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Chat/HydraPanel.swift",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Common/Components.swift",
+    "DroppyCode/UI/Common/MCPGlyph.swift",
+    "DroppyCode/UI/Common/RenderBudget.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Chat/HydraReportsPopover.swift": {
+   "declares": [
+    "HydraReportDigest",
+    "HydraReportsPopover"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/HydraGlyph.swift",
+    "DroppyCode/UI/Markdown/MarkdownParser.swift",
+    "DroppyCode/UI/Markdown/MarkdownView.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Chat/HydraRunMetricsView.swift": {
+   "declares": [
+    "HydraRunMetrics",
+    "HydraRunMetricsCard",
+    "HydraRunMetricsReader",
+    "HydraRunMetricsView"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Common/Components.swift",
+    "DroppyCode/UI/Common/HydraGlyph.swift",
+    "DroppyCode/UI/Common/WorkingIndicators.swift"
+   ],
+   "component": 111,
+   "level": 10
+  },
+  "DroppyCode/App/Views/Chat/LimitResumeBadge.swift": {
+   "declares": [
+    "LimitResumeBadge"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 112,
+   "level": 10
+  },
+  "DroppyCode/App/Views/Chat/MessageEditor.swift": {
+   "declares": [
+    "MessageEditor"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Composer/PromptEditor.swift",
+    "DroppyCode/Services/Git/RevertPreview.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Common/Components.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Chat/MessagePopoverMenu.swift": {
+   "declares": [
+    "RightClickCatcher",
+    "RightClickCatcherView",
+    "RightClickPopoverModifier"
+   ],
+   "depends_on": [
+    "DroppyCode/UI/Chrome/Popovers.swift"
+   ],
+   "component": 92,
+   "level": 4
+  },
+  "DroppyCode/App/Views/Chat/NewThreadPrompt.swift": {
+   "declares": [
+    "NewThreadPrompt"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Chrome/ProjectIconPicker.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Chat/SubagentPanel.swift": {
+   "declares": [
+    "ClosePanelPopover",
+    "FloatingPanelID",
+    "PanelDockCorner",
+    "PanelDockSide",
+    "PanelDocks",
+    "PanelDragHandle",
+    "PanelDragHandleView",
+    "PanelDragState",
+    "PanelPlacement",
+    "PanelReserve",
+    "PanelResize",
+    "PanelResizeAxes",
+    "PanelResizeGrips",
+    "PanelResizeState",
+    "PlacedPanel",
+    "SubagentPanel",
+    "SubagentPanelLayout",
+    "SubagentWorkingBox"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Views/Chat/ChatView.swift",
+    "DroppyCode/App/Views/Chat/HydraProgressBar.swift",
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift",
+    "DroppyCode/App/Views/Composer/ComposerView.swift",
+    "DroppyCode/App/Window/WindowManager.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/WorkingIndicators.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Chat/ThreadTimeline.swift": {
+   "declares": [
+    "DisplayBlock",
+    "DisplayBlockView",
+    "FrontMonitor",
+    "HeadPills",
+    "RevealTimelineEndKey",
+    "RowContext",
+    "ScrollFreeze",
+    "ScrollMetrics",
+    "ScrollViewProbe",
+    "ThinkingStep",
+    "ThreadTimeline",
+    "TimelineBlockCache",
+    "TimelineGroup",
+    "TimelineGroupView",
+    "TimelineMeta",
+    "TimelineRevealBox",
+    "TimelineScrollState",
+    "TimelineScrollTracking",
+    "TimelineWindow",
+    "TurnGroupCache",
+    "TurnRow",
+    "TurnRunningBlock",
+    "WorkingBlockView",
+    "WorkingIndicator"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Chat/ChatView.swift",
+    "DroppyCode/App/Views/Chat/HydraProgressBar.swift",
+    "DroppyCode/App/Views/Chat/NewThreadPrompt.swift",
+    "DroppyCode/App/Views/Chat/TimelineMinimap.swift",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift",
+    "DroppyCode/App/Views/Composer/QuestionTab.swift",
+    "DroppyCode/App/Window/WindowManager.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/WindowChrome.swift",
+    "DroppyCode/UI/Common/RenderBudget.swift",
+    "DroppyCode/UI/Common/WorkingIndicators.swift",
+    "DroppyCode/UI/Markdown/MarkdownView.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Chat/TimelineMinimap.swift": {
+   "declares": [
+    "MinimapOutlineBlock",
+    "MinimapRailMetrics",
+    "MinimapSelection",
+    "RailHitArea",
+    "TimelineMinimap",
+    "TimelineMinimapColumn",
+    "TimelineMinimapEntry",
+    "TimelineMinimapRail"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift",
+    "DroppyCode/App/Window/WindowManager.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/RecentCache.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Chat/TimelineRows.swift": {
+   "declares": [
+    "AssistantMessageRow",
+    "AttachmentStrip",
+    "AttachmentThumbnail",
+    "DiffDetailCache",
+    "FinishedHeadPill",
+    "FoldedAnswerView",
+    "HeadStepsPopoverModifier",
+    "HydraBriefRow",
+    "HydraDelegationBlock",
+    "HydraHeadStepsPopover",
+    "HydraHeadsList",
+    "HydraHeadsWorkingRow",
+    "HydraMergeOutcome",
+    "HydraMergePhase",
+    "HydraMergeRow",
+    "HydraMergeTrack",
+    "HydraMergeTrackBody",
+    "HydraReportPopover",
+    "HydraReportRow",
+    "HydraShimmer",
+    "MessageMenuRequests",
+    "MutedRoundGlyph",
+    "NoticeRow",
+    "PlanCard",
+    "TimelineMetrics",
+    "TodoListRow",
+    "ToolDetailView",
+    "ToolPresentation",
+    "ToolRow",
+    "ToolStatusIcon",
+    "TurnEndRow",
+    "TurnFileCard",
+    "TurnFinishedBlock",
+    "UserBubble",
+    "UserMessageRow",
+    "WorkGroup",
+    "WorkGroupSummary",
+    "WorkSteps",
+    "copyMessageText",
+    "lastCodeBlock"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Chat/ChatBadge.swift",
+    "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift",
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift",
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift",
+    "DroppyCode/App/Views/Chat/MessageEditor.swift",
+    "DroppyCode/App/Views/Chat/MessagePopoverMenu.swift",
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift",
+    "DroppyCode/App/Views/Composer/ComposerView.swift",
+    "DroppyCode/App/Views/Composer/ComposerWorkingDots.swift",
+    "DroppyCode/App/Views/Composer/PromptEditor.swift",
+    "DroppyCode/App/Views/Diff/DiffInspector.swift",
+    "DroppyCode/Core/Models/FileChangeSummary.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/Core/Models/MCPCatalog.swift",
+    "DroppyCode/Core/Models/MergeRequestLink.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/RecentCache.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Core/Support/ThumbnailCache.swift",
+    "DroppyCode/Services/Git/DiffParser.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/AttachmentPreview.swift",
+    "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
+    "DroppyCode/UI/Common/Components.swift",
+    "DroppyCode/UI/Common/HydraGlyph.swift",
+    "DroppyCode/UI/Common/MCPGlyph.swift",
+    "DroppyCode/UI/Common/RenderBudget.swift",
+    "DroppyCode/UI/Common/WorkingIndicators.swift",
+    "DroppyCode/UI/Markdown/LinkParagraphView.swift",
+    "DroppyCode/UI/Markdown/MarkdownParser.swift",
+    "DroppyCode/UI/Markdown/MarkdownView.swift",
+    "DroppyCode/UI/Markdown/SelectableMessageText.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Composer/AttachmentFlight.swift": {
+   "declares": [
+    "AttachmentArrival",
+    "AttachmentDrops",
+    "AttachmentFlight",
+    "FlightWindow",
+    "ScreenFrameReader"
+   ],
+   "depends_on": [],
+   "component": 40,
+   "level": 0
+  },
+  "DroppyCode/App/Views/Composer/ComposerTextView.swift": {
+   "declares": [
+    "ComposerController",
+    "ComposerKey",
+    "ComposerNSTextView",
+    "ComposerTextView"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/Coding.swift",
+    "DroppyCode/Services/Store/Storage.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift"
+   ],
+   "component": 36,
+   "level": 4
+  },
+  "DroppyCode/App/Views/Composer/ComposerView.swift": {
+   "declares": [
+    "ChangeStatsRefresh",
+    "ChipChrome",
+    "ChipRowCollapse",
+    "ComposerArea",
+    "ComposerControls",
+    "ComposerSurface",
+    "ComposerTextColumn",
+    "ComposerView",
+    "ComposerWorkingDotsSlot",
+    "ContextMeter",
+    "DraftAttachments",
+    "DraftChips",
+    "FileIndex",
+    "ModelEffortSlot",
+    "SendButton",
+    "SendDraftState",
+    "SendRunState",
+    "SendShortcutText",
+    "Suggestion",
+    "SuggestionPopoverRow",
+    "SuggestionState",
+    "TabSlot"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift",
+    "DroppyCode/App/Views/Composer/AttachmentFlight.swift",
+    "DroppyCode/App/Views/Composer/ComposerTextView.swift",
+    "DroppyCode/App/Views/Composer/ComposerWorkingDots.swift",
+    "DroppyCode/App/Views/Composer/DownloadsPopover.swift",
+    "DroppyCode/App/Views/Composer/EffortSlider.swift",
+    "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift",
+    "DroppyCode/App/Views/Composer/RequestCards.swift",
+    "DroppyCode/App/Views/Composer/ThreadChangesTab.swift",
+    "DroppyCode/App/Views/Diff/DiffInspector.swift",
+    "DroppyCode/App/Views/RootView.swift",
+    "DroppyCode/App/Views/Usage/UsagePanel.swift",
+    "DroppyCode/App/Window/WindowManager.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Shortcuts.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/RecentCache.swift",
+    "DroppyCode/Services/Git/Git.swift",
+    "DroppyCode/Services/Providers/PlanLimits.swift",
+    "DroppyCode/Services/Providers/ProviderCredits.swift",
+    "DroppyCode/Services/Providers/ProviderRegistry.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift",
+    "DroppyCode/Services/Store/Storage.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
+    "DroppyCode/UI/Common/RenderBudget.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Composer/ComposerWorkingDots.swift": {
+   "declares": [
+    "ComposerWorkingDots",
+    "DotFieldLayerView",
+    "DotFieldSweep"
+   ],
+   "depends_on": [
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 45,
+   "level": 4
+  },
+  "DroppyCode/App/Views/Composer/DownloadsPopover.swift": {
+   "declares": [
+    "DownloadRow",
+    "DownloadsPopover",
+    "RecentDownload",
+    "RecentDownloads"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Views/Composer/AttachmentFlight.swift",
+    "DroppyCode/Core/Support/ThumbnailCache.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/AttachmentPreview.swift"
+   ],
+   "component": 41,
+   "level": 5
+  },
+  "DroppyCode/App/Views/Composer/EditorAttachments.swift": {
+   "declares": [
+    "EditorAttachments"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift",
+    "DroppyCode/App/Views/Composer/AttachmentFlight.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/UI/Common/AttachmentPreviewPanel.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Composer/EffortSlider.swift": {
+   "declares": [
+    "EffortBrand",
+    "EffortPairBrand",
+    "EffortPairLook",
+    "EffortPalette",
+    "EffortSlider",
+    "EffortSliderCard",
+    "FastModeButton",
+    "HydraPairListRow",
+    "ModelCatalog",
+    "ModelEffortButton",
+    "ModelEffortPanel",
+    "ModelList",
+    "ModelListRow",
+    "RoundIconButton",
+    "TrackEffect",
+    "TrackLook"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/AppSettings.swift",
+    "DroppyCode/App/Captures/WebsiteCaptures.swift",
+    "DroppyCode/App/Views/Chat/HydraButton.swift",
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift",
+    "DroppyCode/App/Views/Composer/HydraFusedPairIcon.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Services/Providers/ProviderRegistry.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
+    "DroppyCode/UI/Common/Components.swift",
+    "DroppyCode/UI/Common/HydraGlyph.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Composer/FollowUpEditor.swift": {
+   "declares": [
+    "FollowUpEditor"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Composer/PromptEditor.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift": {
+   "declares": [
+    "FollowUpQueueTab",
+    "FollowUpRow",
+    "QueueIconButton"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift",
+    "DroppyCode/App/Views/Composer/FollowUpEditor.swift",
+    "DroppyCode/App/Views/Composer/PromptEditor.swift",
+    "DroppyCode/App/Views/Composer/ThreadChangesTab.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/RowDrag.swift",
+    "DroppyCode/UI/Common/AttachmentPreviewPanel.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Composer/HydraFusedPairIcon.swift": {
+   "declares": [
+    "HydraFusedPairIcon"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Views/Composer/EffortSlider.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Composer/PromptEditor.swift": {
+   "declares": [
+    "PromptEditor",
+    "PromptEditorPopover"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Composer/ComposerTextView.swift",
+    "DroppyCode/App/Views/Composer/DownloadsPopover.swift",
+    "DroppyCode/App/Views/Composer/EditorAttachments.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Services/Store/Storage.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
+    "DroppyCode/UI/Theme/AppTheme.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Composer/QuestionTab.swift": {
+   "declares": [
+    "QuestionAnswers",
+    "QuestionBadgeRow",
+    "QuestionPage",
+    "QuestionSheet"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Chat/ChatBadge.swift",
+    "DroppyCode/Core/Models/Requests.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Composer/RequestCards.swift": {
+   "declares": [
+    "ApprovalCard"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/Core/Models/Requests.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Composer/ThreadChangesTab.swift": {
+   "declares": [
+    "ThreadChangesTab"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/FileChangeSummary.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Common/AttachmentPreviewPanel.swift"
+   ],
+   "component": 87,
+   "level": 6
+  },
+  "DroppyCode/App/Views/Diff/DiffInspector.swift": {
+   "declares": [
+    "DiffFileCard",
+    "DiffInspector",
+    "DiffLineBlock",
+    "DiffLineRow",
+    "DiffLinesView",
+    "DiffPopoverCoordinator",
+    "focusedFiles",
+    "lineBlocks"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Captures/WebsiteCaptures.swift",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/Core/Models/FileChangeSummary.swift",
+    "DroppyCode/Core/Models/Shortcuts.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Services/Git/DiffParser.swift",
+    "DroppyCode/Services/Git/TouchedPaths.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
+    "DroppyCode/UI/Common/Components.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Palette/CommandPalette.swift": {
+   "declares": [
+    "CommandPalette"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Window/WindowManager.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Shortcuts.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/ProjectIconPicker.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/RootView.swift": {
+   "declares": [
+    "CopyCommandButton",
+    "DetailView",
+    "NoThreadView",
+    "OpenProvidersSettingsButton",
+    "ProviderChecklist",
+    "ProviderStatusRow",
+    "RootView",
+    "ThreadColumns",
+    "WelcomeView"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/AppSettings.swift",
+    "DroppyCode/App/Views/Chat/ChatView.swift",
+    "DroppyCode/App/Views/Palette/CommandPalette.swift",
+    "DroppyCode/App/Views/Settings/SettingsView.swift",
+    "DroppyCode/App/Views/Sidebar/FloatingSidebarPanel.swift",
+    "DroppyCode/App/Views/Sidebar/RowGlide.swift",
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift",
+    "DroppyCode/App/Window/WindowManager.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Shortcuts.swift",
+    "DroppyCode/Core/Support/SwitchLatency.swift",
+    "DroppyCode/Services/Store/Storage.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/ChromeVisualPicker.swift",
+    "DroppyCode/UI/Chrome/WindowChrome.swift",
+    "DroppyCode/UI/Common/Components.swift",
+    "DroppyCode/UI/Common/Genie.swift",
+    "DroppyCode/UI/Theme/Wallpaper.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Settings/AboutUpdateViews.swift": {
+   "declares": [
+    "AboutIdentityPill",
+    "AboutSoftwareUpdateSection",
+    "AboutUpdateCheckRow",
+    "AboutUpdateChromeAccessory",
+    "AboutVersionPill",
+    "FillCanvas",
+    "FractionChase",
+    "ReleaseNoteCategory",
+    "SmoothedUpdateProgressSlider",
+    "SparkleParticle",
+    "UpdateAvailableDot",
+    "UpdateProgressSlider",
+    "UpdateReleaseNotesDigest",
+    "UpdateReleaseSectionCards",
+    "UpdateReleaseSectionPopover"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppUpdater.swift",
+    "DroppyCode/App/UpdateChecker.swift",
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/RenderBudget.swift",
+    "DroppyCode/UI/Markdown/MarkdownView.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift": {
+   "declares": [
+    "HydraCookbookPanel",
+    "HydraCookbookRow"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Views/Chat/HydraButton.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/HydraCookbook.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/HydraPairMark.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Settings/HydraSettingsPage.swift": {
+   "declares": [
+    "HydraAddPairButton",
+    "HydraCookbookButton",
+    "HydraPairEditor",
+    "HydraPairIcons",
+    "HydraPairRow",
+    "HydraSettingsPage"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Views/Chat/HydraButton.swift",
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift",
+    "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift",
+    "DroppyCode/App/Views/Settings/SettingsView.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Services/Providers/ProviderRegistry.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift",
+    "DroppyCode/UI/Chrome/ChromeVisualPicker.swift",
+    "DroppyCode/UI/Chrome/HydraPairMark.swift",
+    "DroppyCode/UI/Chrome/InfoHoverButton.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/Components.swift",
+    "DroppyCode/UI/Common/HydraGlyph.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Settings/MCPKeyPanel.swift": {
+   "declares": [
+    "MCPKeyPanel",
+    "MCPKeyPanelView"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Settings/MCPSettingsPage.swift": {
+   "declares": [
+    "FlowChips",
+    "FlowLayout",
+    "MCPConnectedRow",
+    "MCPCustomEditor",
+    "MCPCustomRow",
+    "MCPCustomSection",
+    "MCPHoverInfoButton",
+    "MCPIcon",
+    "MCPInfoButton",
+    "MCPInfoPopover",
+    "MCPLeadCard",
+    "MCPServerCard",
+    "MCPSettingsPage"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Views/Settings/MCPKeyPanel.swift",
+    "DroppyCode/App/Views/Settings/MCPSetupPanel.swift",
+    "DroppyCode/App/Views/Settings/SettingsView.swift",
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/Core/Models/MCPCatalog.swift",
+    "DroppyCode/Core/Models/MCPCustom.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/WorkingIndicators.swift",
+    "DroppyCode/UI/Sound/SettleChime.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Settings/MCPSetupPanel.swift": {
+   "declares": [
+    "MCPSetupPanel",
+    "MCPSetupPanelView"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/WorkingIndicators.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift": {
+   "declares": [
+    "ModelsSettingsPage",
+    "PinnedModelRow",
+    "ProviderModelsSection",
+    "RowControl"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/AppSettings.swift",
+    "DroppyCode/App/Views/Composer/EffortSlider.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Chrome/RowDrag.swift",
+    "DroppyCode/UI/Common/Components.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Settings/SettingsScrollTracker.swift": {
+   "declares": [
+    "SettingsScrollTracker"
+   ],
+   "depends_on": [
+    "DroppyCode/UI/Common/RenderBudget.swift"
+   ],
+   "component": 58,
+   "level": 4
+  },
+  "DroppyCode/App/Views/Settings/SettingsView.swift": {
+   "declares": [
+    "AboutSettingsPage",
+    "AppZoomCard",
+    "AppearanceSettingsPage",
+    "ArchiveDeleteAllButton",
+    "ArchiveSettingsPage",
+    "BackdropOpacitySlider",
+    "CreditLink",
+    "GeneralSettingsPage",
+    "LicensesRow",
+    "MadeByDroppyRow",
+    "ProjectMarksRow",
+    "ProviderSettingsSection",
+    "ProvidersRefreshButton",
+    "ProvidersSettingsPage",
+    "SettingsNavigation",
+    "SettingsPage",
+    "SettingsSwitch",
+    "SettingsView",
+    "SourceControlSettingsPage",
+    "ThemePickerButton"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/AppSettings.swift",
+    "DroppyCode/App/UpdateChecker.swift",
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift",
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift",
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
+    "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift",
+    "DroppyCode/App/Views/Settings/SettingsScrollTracker.swift",
+    "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift",
+    "DroppyCode/App/Views/Settings/TokenActivitySection.swift",
+    "DroppyCode/App/Views/Settings/WallpaperCard.swift",
+    "DroppyCode/App/Views/Tour/TourPages.swift",
+    "DroppyCode/App/Views/Usage/UsageViews.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/Providers/PlanLimits.swift",
+    "DroppyCode/Services/Providers/ProviderCredits.swift",
+    "DroppyCode/Services/Store/Storage.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/ChromeVisualPicker.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Chrome/ProjectIconPicker.swift",
+    "DroppyCode/UI/Chrome/WindowChrome.swift",
+    "DroppyCode/UI/Common/AppZoom.swift",
+    "DroppyCode/UI/Common/Components.swift",
+    "DroppyCode/UI/Common/HydraGlyph.swift",
+    "DroppyCode/UI/Markdown/MarkdownView.swift",
+    "DroppyCode/UI/Sound/FinishChime.swift",
+    "DroppyCode/UI/Sound/SettleChime.swift",
+    "DroppyCode/UI/Theme/AppTheme.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift": {
+   "declares": [
+    "FixedShortcutsCard",
+    "Haptics",
+    "Keycap",
+    "KeycapTint",
+    "KeycapView",
+    "ShortcutCombinedControlContent",
+    "ShortcutCombinedControlStyle",
+    "ShortcutEntryRow",
+    "ShortcutPillButtonStyle",
+    "ShortcutRecorder",
+    "ShortcutRecordingAction",
+    "ShortcutRecordingActionPillStyle",
+    "ShortcutRecordingPopoverContent",
+    "ShortcutRecordingSession",
+    "ShortcutRowMetrics",
+    "ShortcutSectionCard",
+    "ShortcutSectionHeader",
+    "ShortcutSettingsRow",
+    "ShortcutsSettingsPage"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Shortcuts.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift"
+   ],
+   "component": 72,
+   "level": 4
+  },
+  "DroppyCode/App/Views/Settings/TokenActivitySection.swift": {
+   "declares": [
+    "HeatmapBlendModifier",
+    "HeatmapCanvas",
+    "TokenActivitySection",
+    "TokenActivityStyle"
+   ],
+   "depends_on": [
+    "DroppyCode/Services/Store/TokenLedger.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 64,
+   "level": 5
+  },
+  "DroppyCode/App/Views/Settings/WallpaperCard.swift": {
+   "declares": [
+    "WallpaperCard"
+   ],
+   "depends_on": [
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Theme/Wallpaper.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Sidebar/FloatingSidebarPanel.swift": {
+   "declares": [
+    "FloatingSidebarPanel"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Views/Chat/HydraPanel.swift",
+    "DroppyCode/App/Views/Chat/SubagentPanel.swift",
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Sidebar/RowGlide.swift": {
+   "declares": [
+    "FrameShape",
+    "RowGlideAnimator",
+    "RowGlideLayer",
+    "RowGlideView"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/ObservedValue.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 53,
+   "level": 4
+  },
+  "DroppyCode/App/Views/Sidebar/SidebarView.swift": {
+   "declares": [
+    "ActivityHeader",
+    "ActivityStatus",
+    "ActivityViewToggle",
+    "ArchiveThreadPopover",
+    "DeleteThreadPopover",
+    "FrameHolder",
+    "HeadCardsRow",
+    "HelperConnector",
+    "HelperConnectorShape",
+    "HelperStubRow",
+    "MinuteClock",
+    "PlacementCache",
+    "ProjectPairChoice",
+    "ProjectPairMenuItems",
+    "ProjectRow",
+    "RelativeTimeLabel",
+    "RenameThreadPopover",
+    "RidesWithDraggedParent",
+    "RowFrames",
+    "RowHeights",
+    "SettleCheck",
+    "SettledHeader",
+    "SidebarHelperRow",
+    "SidebarItem",
+    "SidebarItemCache",
+    "SidebarMenuRequests",
+    "SidebarSearchResult",
+    "SidebarThreadRow",
+    "SidebarView",
+    "ThreadActions",
+    "ThreadBadge",
+    "ThreadGhostBadge",
+    "ThreadPlacement",
+    "ThreadRowFace",
+    "ThreadRowMetrics"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/AppSettings.swift",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/UpdateChecker.swift",
+    "DroppyCode/App/Views/Chat/HydraButton.swift",
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift",
+    "DroppyCode/App/Views/Sidebar/RowGlide.swift",
+    "DroppyCode/App/Window/ThreadWindow.swift",
+    "DroppyCode/App/Window/WindowManager.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Shortcuts.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Chrome/ProjectIconPicker.swift",
+    "DroppyCode/UI/Chrome/RowDrag.swift",
+    "DroppyCode/UI/Common/Components.swift",
+    "DroppyCode/UI/Common/Genie.swift",
+    "DroppyCode/UI/Common/HydraGlyph.swift",
+    "DroppyCode/UI/Common/WorkingIndicators.swift",
+    "DroppyCode/UI/Sound/SettleChime.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Terminal/TerminalFont.swift": {
+   "declares": [
+    "TerminalFont"
+   ],
+   "depends_on": [],
+   "component": 84,
+   "level": 0
+  },
+  "DroppyCode/App/Views/Terminal/TerminalPanel.swift": {
+   "declares": [
+    "TerminalHost",
+    "TerminalHostContainer",
+    "TerminalPanel",
+    "TerminalResizeHandle",
+    "TerminalResizeHandleView",
+    "TerminalTab"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Terminal/TerminalStore.swift",
+    "DroppyCode/Core/Models/Shortcuts.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Terminal/TerminalStore.swift": {
+   "declares": [
+    "TerminalBridge",
+    "TerminalSession",
+    "TerminalStore"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Views/Terminal/TerminalFont.swift",
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 85,
+   "level": 4
+  },
+  "DroppyCode/App/Views/Tour/TourPages.swift": {
+   "declares": [
+    "Tour"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Views/Tour/TourView.swift",
+    "DroppyCode/App/Views/Tour/TourWindowController.swift",
+    "DroppyCode/UI/Theme/AppTheme.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Tour/TourView.swift": {
+   "declares": [
+    "TourPage",
+    "TourPageIndicator",
+    "TourView"
+   ],
+   "depends_on": [
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift"
+   ],
+   "component": 62,
+   "level": 4
+  },
+  "DroppyCode/App/Views/Tour/TourWindowController.swift": {
+   "declares": [
+    "TourBottomPanelSizingView",
+    "TourWindowController"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Views/Tour/TourView.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 63,
+   "level": 5
+  },
+  "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift": {
+   "declares": [
+    "UsageFloatingPanel"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/Views/Chat/HydraPanel.swift",
+    "DroppyCode/App/Views/Chat/SubagentPanel.swift",
+    "DroppyCode/App/Views/Usage/UsagePanel.swift",
+    "DroppyCode/App/Window/WindowManager.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Services/Providers/PlanLimits.swift",
+    "DroppyCode/Services/Providers/ProviderCredits.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Common/Components.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Usage/UsagePanel.swift": {
+   "declares": [
+    "UsagePanel"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Views/Usage/UsageViews.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Services/Providers/PlanLimits.swift",
+    "DroppyCode/Services/Providers/ProviderCredits.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Common/Components.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Views/Usage/UsageViews.swift": {
+   "declares": [
+    "BankedResetRow",
+    "BankedResetRowModel",
+    "BankedResetsView",
+    "CreditsView",
+    "LimitRow",
+    "PlanLimitsView",
+    "UsageBar"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Services/Providers/PlanLimits.swift",
+    "DroppyCode/Services/Providers/ProviderCredits.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Common/Components.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/App/Window/ThreadWindow.swift": {
+   "declares": [
+    "SecondaryWindow",
+    "ThreadWindow"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Shortcuts.swift"
+   ],
+   "component": 55,
+   "level": 1
+  },
+  "DroppyCode/App/Window/WindowManager.swift": {
+   "declares": [
+    "FrameHostingView",
+    "HostedEnvironment",
+    "HostedRoot",
+    "ThemeTint",
+    "WindowLiveResize",
+    "WindowManager"
+   ],
+   "depends_on": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/Views/RootView.swift",
+    "DroppyCode/App/Views/Settings/SettingsView.swift",
+    "DroppyCode/App/Window/ThreadWindow.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/UI/Chrome/WindowChrome.swift",
+    "DroppyCode/UI/Common/AppZoom.swift",
+    "DroppyCode/UI/Theme/AppTheme.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/Core/Models/AntiSlopPolicy.swift": {
+   "declares": [
+    "AntiSlopPolicy"
+   ],
+   "depends_on": [],
+   "component": 2,
+   "level": 0
+  },
+  "DroppyCode/Core/Models/FileChangeSummary.swift": {
+   "declares": [
+    "FileChangeSummary"
+   ],
+   "depends_on": [],
+   "component": 1,
+   "level": 0
+  },
+  "DroppyCode/Core/Models/Hydra.swift": {
+   "declares": [
+    "HydraBudget",
+    "HydraDelegation",
+    "HydraDelegationBudget",
+    "HydraHeadInfo",
+    "HydraHeadProfile",
+    "HydraLanding",
+    "HydraLaunch",
+    "HydraMentionTarget",
+    "HydraMergeStage",
+    "HydraPair",
+    "HydraPersona",
+    "HydraProjectRef",
+    "HydraPrompts",
+    "HydraReport",
+    "HydraRoster"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/AntiSlopPolicy.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 4,
+   "level": 1
+  },
+  "DroppyCode/Core/Models/HydraCookbook.swift": {
+   "declares": [
+    "HydraCookbook",
+    "HydraPairRecipe"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Provider.swift"
+   ],
+   "component": 67,
+   "level": 2
+  },
+  "DroppyCode/Core/Models/HydraDelegationStream.swift": {
+   "declares": [
+    "HydraDelegationStreamParser"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 96,
+   "level": 2
+  },
+  "DroppyCode/Core/Models/Library.swift": {
+   "declares": [
+    "ChatThread",
+    "Library",
+    "Project",
+    "ProjectIcon",
+    "ProjectScript"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/CaptureRun.swift",
+    "DroppyCode/Core/Support/Coding.swift"
+   ],
+   "component": 8,
+   "level": 2
+  },
+  "DroppyCode/Core/Models/MCP.swift": {
+   "declares": [
+    "MCPCatalogEntry",
+    "MCPCategory",
+    "MCPConnection",
+    "MCPConnectionState",
+    "MCPField",
+    "MCPPaths",
+    "MCPProbeResult",
+    "MCPResolvedServer",
+    "MCPSetupGuide",
+    "MCPToolSummary",
+    "MCPTransport"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/MCP/MCPProxy.swift",
+    "DroppyCode/Services/Store/Storage.swift"
+   ],
+   "component": 14,
+   "level": 4
+  },
+  "DroppyCode/Core/Models/MCPCatalog.swift": {
+   "declares": [
+    "MCPCatalog"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/MCP.swift"
+   ],
+   "component": 33,
+   "level": 5
+  },
+  "DroppyCode/Core/Models/MCPCustom.swift": {
+   "declares": [
+    "MCPCustomError",
+    "MCPCustomServer"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 59,
+   "level": 5
+  },
+  "DroppyCode/Core/Models/MergeRequestLink.swift": {
+   "declares": [
+    "MergeRequestLink"
+   ],
+   "depends_on": [],
+   "component": 77,
+   "level": 0
+  },
+  "DroppyCode/Core/Models/Provider.swift": {
+   "declares": [
+    "InteractionMode",
+    "ModelOption",
+    "ProviderKind",
+    "RuntimeMode",
+    "SlashCommand",
+    "WorkspaceMode"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 4,
+   "level": 1
+  },
+  "DroppyCode/Core/Models/ProviderSettings.swift": {
+   "declares": [
+    "ProviderSettings"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Provider.swift"
+   ],
+   "component": 23,
+   "level": 2
+  },
+  "DroppyCode/Core/Models/Requests.swift": {
+   "declares": [
+    "ApprovalRequest",
+    "QuestionRequest"
+   ],
+   "depends_on": [],
+   "component": 12,
+   "level": 0
+  },
+  "DroppyCode/Core/Models/Shortcuts.swift": {
+   "declares": [
+    "AppShortcut",
+    "KeyChord",
+    "KeyNames",
+    "ShortcutStore"
+   ],
+   "depends_on": [],
+   "component": 54,
+   "level": 0
+  },
+  "DroppyCode/Core/Models/ThreadContinuation.swift": {
+   "declares": [
+    "ContinuationUnit",
+    "ThreadContinuation"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 4,
+   "level": 1
+  },
+  "DroppyCode/Core/Models/Timeline.swift": {
+   "declares": [
+    "AssistantMessage",
+    "Attachment",
+    "ContextUsage",
+    "FileEdit",
+    "FollowUpPrompt",
+    "HydraMergeRecord",
+    "LimitNotice",
+    "Notice",
+    "ProposedPlan",
+    "ReasoningBlock",
+    "ThreadDocument",
+    "TimelineItem",
+    "TodoStep",
+    "ToolCall",
+    "TurnRecord",
+    "TurnStatus",
+    "TurnSummary",
+    "UserMessage"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/FileChangeSummary.swift",
+    "DroppyCode/Core/Models/ThreadContinuation.swift",
+    "DroppyCode/Core/Models/TokenSpend.swift",
+    "DroppyCode/Core/Support/Coding.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 4,
+   "level": 1
+  },
+  "DroppyCode/Core/Models/TokenSpend.swift": {
+   "declares": [
+    "TokenSpend"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Provider.swift"
+   ],
+   "component": 4,
+   "level": 1
+  },
+  "DroppyCode/Core/Support/CaptureRun.swift": {
+   "declares": [
+    "CaptureRun"
+   ],
+   "depends_on": [],
+   "component": 5,
+   "level": 0
+  },
+  "DroppyCode/Core/Support/Coding.swift": {
+   "declares": [
+    "Lenient"
+   ],
+   "depends_on": [],
+   "component": 0,
+   "level": 0
+  },
+  "DroppyCode/Core/Support/HangWatchdog.swift": {
+   "declares": [
+    "HangWatchdog"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/ISO8601.swift"
+   ],
+   "component": 108,
+   "level": 1
+  },
+  "DroppyCode/Core/Support/ISO8601.swift": {
+   "declares": [
+    "ISO8601"
+   ],
+   "depends_on": [],
+   "component": 6,
+   "level": 0
+  },
+  "DroppyCode/Core/Support/JSONRPC.swift": {
+   "declares": [
+    "JSONRPCConnection",
+    "RPCError",
+    "RPCID"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/StdioProcess.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 20,
+   "level": 2
+  },
+  "DroppyCode/Core/Support/JSONValue.swift": {
+   "declares": [
+    "JSONValue"
+   ],
+   "depends_on": [],
+   "component": 3,
+   "level": 0
+  },
+  "DroppyCode/Core/Support/ObservedValue.swift": {
+   "declares": [
+    "ObservedValue"
+   ],
+   "depends_on": [],
+   "component": 46,
+   "level": 0
+  },
+  "DroppyCode/Core/Support/RecentCache.swift": {
+   "declares": [
+    "RecentCache"
+   ],
+   "depends_on": [],
+   "component": 7,
+   "level": 0
+  },
+  "DroppyCode/Core/Support/Shell.swift": {
+   "declares": [
+    "LoginEnvironment",
+    "OnceContinuation",
+    "OutputCollector",
+    "Shell",
+    "ShellCommandKind",
+    "ShellError",
+    "ShellResult"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 9,
+   "level": 2
+  },
+  "DroppyCode/Core/Support/StdioFramer.swift": {
+   "declares": [
+    "StdioFramer"
+   ],
+   "depends_on": [],
+   "component": 17,
+   "level": 0
+  },
+  "DroppyCode/Core/Support/StdioProcess.swift": {
+   "declares": [
+    "StdioProcess"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/StdioFramer.swift"
+   ],
+   "component": 18,
+   "level": 1
+  },
+  "DroppyCode/Core/Support/SwitchLatency.swift": {
+   "declares": [
+    "SwitchLatency"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 73,
+   "level": 2
+  },
+  "DroppyCode/Core/Support/Text.swift": {
+   "declares": [
+    "AppInfo",
+    "SimpleDiff",
+    "TextCleanup"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Timeline.swift"
+   ],
+   "component": 4,
+   "level": 1
+  },
+  "DroppyCode/Core/Support/ThumbnailCache.swift": {
+   "declares": [
+    "ThumbnailCache",
+    "ThumbnailMemory"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/RecentCache.swift"
+   ],
+   "component": 37,
+   "level": 1
+  },
+  "DroppyCode/Services/Git/DiffParser.swift": {
+   "declares": [
+    "DiffFile",
+    "DiffHunk",
+    "DiffLine",
+    "DiffParser"
+   ],
+   "depends_on": [],
+   "component": 88,
+   "level": 0
+  },
+  "DroppyCode/Services/Git/FileChangeSummary+Diff.swift": {
+   "declares": [],
+   "depends_on": [
+    "DroppyCode/Core/Models/FileChangeSummary.swift",
+    "DroppyCode/Services/Git/DiffParser.swift"
+   ],
+   "component": 113,
+   "level": 1
+  },
+  "DroppyCode/Services/Git/Git.swift": {
+   "declares": [
+    "Git",
+    "GitBranch",
+    "GitStatus"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/MergeRequestLink.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/Git/RevertPreview.swift",
+    "DroppyCode/Services/Git/WorkingTreeWatch.swift"
+   ],
+   "component": 79,
+   "level": 3
+  },
+  "DroppyCode/Services/Git/RevertPreview.swift": {
+   "declares": [
+    "RevertPreview"
+   ],
+   "depends_on": [],
+   "component": 78,
+   "level": 0
+  },
+  "DroppyCode/Services/Git/TouchedPaths.swift": {
+   "declares": [
+    "TouchedPaths"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/Git/DiffParser.swift"
+   ],
+   "component": 89,
+   "level": 2
+  },
+  "DroppyCode/Services/Git/TurnDiff.swift": {
+   "declares": [
+    "TurnDiff"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Services/Git/DiffParser.swift",
+    "DroppyCode/Services/Git/TouchedPaths.swift"
+   ],
+   "component": 99,
+   "level": 3
+  },
+  "DroppyCode/Services/Git/WorkingTreeWatch.swift": {
+   "declares": [
+    "WorkingTreeWatch"
+   ],
+   "depends_on": [],
+   "component": 76,
+   "level": 0
+  },
+  "DroppyCode/Services/MCP/MCPBridgeSource.swift": {
+   "declares": [
+    "MCPBridge"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/Shell.swift"
+   ],
+   "component": 26,
+   "level": 3
+  },
+  "DroppyCode/Services/MCP/MCPExternalSync.swift": {
+   "declares": [
+    "MCPExternalSync"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/Core/Support/Shell.swift"
+   ],
+   "component": 81,
+   "level": 5
+  },
+  "DroppyCode/Services/MCP/MCPHub.swift": {
+   "declares": [
+    "HubConversation",
+    "MCPClient",
+    "MCPHub",
+    "MCPHubError",
+    "MCPLiveProcesses",
+    "MCPServerSpec"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 29,
+   "level": 5
+  },
+  "DroppyCode/Services/MCP/MCPKeychain.swift": {
+   "declares": [
+    "MCPKeychain"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/Core/Support/CaptureRun.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 14,
+   "level": 4
+  },
+  "DroppyCode/Services/MCP/MCPOAuth.swift": {
+   "declares": [
+    "AuthServerMetadata",
+    "CallbackResult",
+    "CallbackState",
+    "CallbackWait",
+    "MCPOAuth",
+    "MCPOAuthError",
+    "OAuthRefreshGate",
+    "RegisteredClient"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Services/MCP/MCPKeychain.swift"
+   ],
+   "component": 14,
+   "level": 4
+  },
+  "DroppyCode/Services/MCP/MCPProbe.swift": {
+   "declares": [
+    "MCPProbe",
+    "MCPProbeError",
+    "StdioConversation"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 80,
+   "level": 5
+  },
+  "DroppyCode/Services/MCP/MCPProviderConfig.swift": {
+   "declares": [
+    "MCPProviderConfig"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Shell.swift"
+   ],
+   "component": 15,
+   "level": 5
+  },
+  "DroppyCode/Services/MCP/MCPProxy.swift": {
+   "declares": [
+    "MCPProxy"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/MCP/MCPOAuth.swift"
+   ],
+   "component": 14,
+   "level": 4
+  },
+  "DroppyCode/Services/MCP/MCPSessionOverrides.swift": {
+   "declares": [
+    "MCPSessionOverrides"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Services/MCP/MCPProviderConfig.swift"
+   ],
+   "component": 16,
+   "level": 6
+  },
+  "DroppyCode/Services/MCP/MCPStore.swift": {
+   "declares": [
+    "MCPStore"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/Core/Models/MCPCatalog.swift",
+    "DroppyCode/Core/Models/MCPCustom.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/MCP/MCPExternalSync.swift",
+    "DroppyCode/Services/MCP/MCPHub.swift",
+    "DroppyCode/Services/MCP/MCPKeychain.swift",
+    "DroppyCode/Services/MCP/MCPOAuth.swift",
+    "DroppyCode/Services/MCP/MCPProbe.swift",
+    "DroppyCode/Services/MCP/MCPProviderConfig.swift",
+    "DroppyCode/Services/MCP/MCPProxy.swift"
+   ],
+   "component": 82,
+   "level": 6
+  },
+  "DroppyCode/Services/Providers/ACPSession.swift": {
+   "declares": [
+    "ACPLaunchGate",
+    "ACPSession"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Requests.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/JSONRPC.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/StdioProcess.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/MCP/MCPProviderConfig.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift"
+   ],
+   "component": 21,
+   "level": 6
+  },
+  "DroppyCode/Services/Providers/APIKeychain.swift": {
+   "declares": [
+    "APIKeychain"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/CaptureRun.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 47,
+   "level": 2
+  },
+  "DroppyCode/Services/Providers/AntigravitySession.swift": {
+   "declares": [
+    "AntigravitySession"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Models/TokenSpend.swift",
+    "DroppyCode/Core/Support/ISO8601.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/StdioProcess.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/Providers/PlanLimits.swift",
+    "DroppyCode/Services/Providers/ProviderRegistry.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift",
+    "DroppyCode/Services/Store/TokenLedger.swift"
+   ],
+   "component": 25,
+   "level": 7
+  },
+  "DroppyCode/Services/Providers/ClaudeSession.swift": {
+   "declares": [
+    "ClaudeSession"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/AntiSlopPolicy.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Requests.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Models/TokenSpend.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/StdioProcess.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/MCP/MCPProviderConfig.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift",
+    "DroppyCode/Services/Providers/UsageLimitSignal.swift",
+    "DroppyCode/Services/Store/TokenLedger.swift"
+   ],
+   "component": 24,
+   "level": 6
+  },
+  "DroppyCode/Services/Providers/CodexSession.swift": {
+   "declares": [
+    "CodexSession"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/AntiSlopPolicy.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Requests.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Models/TokenSpend.swift",
+    "DroppyCode/Core/Support/ISO8601.swift",
+    "DroppyCode/Core/Support/JSONRPC.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/StdioProcess.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/MCP/MCPProviderConfig.swift",
+    "DroppyCode/Services/Providers/PlanLimits.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift",
+    "DroppyCode/Services/Providers/UsageLimitSignal.swift",
+    "DroppyCode/Services/Store/TokenLedger.swift"
+   ],
+   "component": 25,
+   "level": 7
+  },
+  "DroppyCode/Services/Providers/CommandCodeAPI.swift": {
+   "declares": [
+    "CommandCodeAPI"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/Providers/PlanLimits.swift",
+    "DroppyCode/Services/Providers/ProviderCredits.swift",
+    "DroppyCode/Services/Providers/ProviderRegistry.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift"
+   ],
+   "component": 25,
+   "level": 7
+  },
+  "DroppyCode/Services/Providers/CommandCodeKeychain.swift": {
+   "declares": [
+    "CommandCodeKeychain"
+   ],
+   "depends_on": [
+    "DroppyCode/Services/Providers/APIKeychain.swift"
+   ],
+   "component": 74,
+   "level": 3
+  },
+  "DroppyCode/Services/Providers/CommandCodeSession.swift": {
+   "declares": [
+    "CommandCodeSession"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Requests.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Models/TokenSpend.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/StdioProcess.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/MCP/MCPBridgeSource.swift",
+    "DroppyCode/Services/Providers/CommandCodeAPI.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift",
+    "DroppyCode/Services/Store/TokenLedger.swift"
+   ],
+   "component": 27,
+   "level": 8
+  },
+  "DroppyCode/Services/Providers/CopilotSession.swift": {
+   "declares": [
+    "CopilotSession"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/AntiSlopPolicy.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Requests.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Models/TokenSpend.swift",
+    "DroppyCode/Core/Support/ISO8601.swift",
+    "DroppyCode/Core/Support/JSONRPC.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/StdioProcess.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/MCP/MCPSessionOverrides.swift",
+    "DroppyCode/Services/Providers/PlanLimits.swift",
+    "DroppyCode/Services/Providers/ProviderRegistry.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift",
+    "DroppyCode/Services/Store/TokenLedger.swift"
+   ],
+   "component": 25,
+   "level": 7
+  },
+  "DroppyCode/Services/Providers/DeepSeekAPI.swift": {
+   "declares": [
+    "DeepSeekAPI"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/Providers/ProviderCredits.swift"
+   ],
+   "component": 25,
+   "level": 7
+  },
+  "DroppyCode/Services/Providers/DeepSeekKeychain.swift": {
+   "declares": [
+    "DeepSeekKeychain"
+   ],
+   "depends_on": [
+    "DroppyCode/Services/Providers/APIKeychain.swift"
+   ],
+   "component": 75,
+   "level": 3
+  },
+  "DroppyCode/Services/Providers/DeepSeekSession.swift": {
+   "declares": [
+    "DeepSeekSession"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Services/Providers/DeepSeekAPI.swift",
+    "DroppyCode/Services/Providers/OpenAICompatibleSession.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift"
+   ],
+   "component": 32,
+   "level": 8
+  },
+  "DroppyCode/Services/Providers/MetaAPI.swift": {
+   "declares": [
+    "MetaAPI"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 22,
+   "level": 2
+  },
+  "DroppyCode/Services/Providers/MetaKeychain.swift": {
+   "declares": [
+    "MetaKeychain"
+   ],
+   "depends_on": [
+    "DroppyCode/Services/Providers/APIKeychain.swift"
+   ],
+   "component": 49,
+   "level": 3
+  },
+  "DroppyCode/Services/Providers/MetaSession.swift": {
+   "declares": [
+    "MetaSession"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Services/Providers/MetaAPI.swift",
+    "DroppyCode/Services/Providers/OpenAICompatibleSession.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift"
+   ],
+   "component": 98,
+   "level": 7
+  },
+  "DroppyCode/Services/Providers/NativeFileTools.swift": {
+   "declares": [
+    "NativeFileTools"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift"
+   ],
+   "component": 28,
+   "level": 3
+  },
+  "DroppyCode/Services/Providers/OpenAICompatibleSession.swift": {
+   "declares": [
+    "OpenAICompatibleSession"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/AntiSlopPolicy.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Requests.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Models/TokenSpend.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/MCP/MCPHub.swift",
+    "DroppyCode/Services/Providers/NativeFileTools.swift",
+    "DroppyCode/Services/Providers/ProjectGuidance.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift",
+    "DroppyCode/Services/Store/TokenLedger.swift"
+   ],
+   "component": 31,
+   "level": 6
+  },
+  "DroppyCode/Services/Providers/PiCLI.swift": {
+   "declares": [
+    "PiCLI"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/StdioProcess.swift",
+    "DroppyCode/Services/Providers/ProviderRegistry.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift"
+   ],
+   "component": 25,
+   "level": 7
+  },
+  "DroppyCode/Services/Providers/PiPlanLimits.swift": {
+   "declares": [
+    "PiPlanLimits"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Services/Providers/PiCLI.swift",
+    "DroppyCode/Services/Providers/PlanLimits.swift"
+   ],
+   "component": 25,
+   "level": 7
+  },
+  "DroppyCode/Services/Providers/PiSession.swift": {
+   "declares": [
+    "PiSession"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Requests.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/StdioProcess.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/MCP/MCPBridgeSource.swift",
+    "DroppyCode/Services/Providers/PiCLI.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift"
+   ],
+   "component": 97,
+   "level": 8
+  },
+  "DroppyCode/Services/Providers/PlanLimits.swift": {
+   "declares": [
+    "PlanLimits",
+    "PlanLimitsReader",
+    "ResetCreditError"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Support/ISO8601.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/StdioProcess.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/Providers/AntigravitySession.swift",
+    "DroppyCode/Services/Providers/CodexSession.swift",
+    "DroppyCode/Services/Providers/CommandCodeAPI.swift",
+    "DroppyCode/Services/Providers/CopilotSession.swift",
+    "DroppyCode/Services/Providers/PiPlanLimits.swift",
+    "DroppyCode/Services/Providers/ZaiAPI.swift"
+   ],
+   "component": 25,
+   "level": 7
+  },
+  "DroppyCode/Services/Providers/ProjectGuidance.swift": {
+   "declares": [
+    "ProjectGuidance"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 30,
+   "level": 2
+  },
+  "DroppyCode/Services/Providers/ProviderCredits.swift": {
+   "declares": [
+    "CreditsReader",
+    "ProviderCredits"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Services/Providers/CommandCodeAPI.swift",
+    "DroppyCode/Services/Providers/DeepSeekAPI.swift"
+   ],
+   "component": 25,
+   "level": 7
+  },
+  "DroppyCode/Services/Providers/ProviderRegistry.swift": {
+   "declares": [
+    "ProviderRegistry",
+    "ProviderStatus"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/ProviderSettings.swift",
+    "DroppyCode/Core/Support/CaptureRun.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/MCP/MCPProviderConfig.swift",
+    "DroppyCode/Services/MCP/MCPSessionOverrides.swift",
+    "DroppyCode/Services/Providers/ACPSession.swift",
+    "DroppyCode/Services/Providers/AntigravitySession.swift",
+    "DroppyCode/Services/Providers/ClaudeSession.swift",
+    "DroppyCode/Services/Providers/CodexSession.swift",
+    "DroppyCode/Services/Providers/CommandCodeAPI.swift",
+    "DroppyCode/Services/Providers/CopilotSession.swift",
+    "DroppyCode/Services/Providers/DeepSeekAPI.swift",
+    "DroppyCode/Services/Providers/MetaAPI.swift",
+    "DroppyCode/Services/Providers/PiCLI.swift",
+    "DroppyCode/Services/Providers/PlanLimits.swift",
+    "DroppyCode/Services/Providers/ProviderCredits.swift",
+    "DroppyCode/Services/Providers/ZaiAPI.swift"
+   ],
+   "component": 25,
+   "level": 7
+  },
+  "DroppyCode/Services/Providers/ProviderSession.swift": {
+   "declares": [
+    "AgentSpawn",
+    "ProviderError",
+    "ProviderEvent",
+    "ProviderSession",
+    "SessionConfiguration",
+    "ToolTitles",
+    "ToolUpdate",
+    "TranscriptMessage",
+    "TurnInput"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/Requests.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Models/TokenSpend.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 13,
+   "level": 2
+  },
+  "DroppyCode/Services/Providers/TextGeneration.swift": {
+   "declares": [
+    "TextGeneration"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 83,
+   "level": 3
+  },
+  "DroppyCode/Services/Providers/UsageLimitSignal.swift": {
+   "declares": [
+    "UsageLimitSignal"
+   ],
+   "depends_on": [],
+   "component": 19,
+   "level": 0
+  },
+  "DroppyCode/Services/Providers/ZaiAPI.swift": {
+   "declares": [
+    "ZaiAPI"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Services/Providers/PlanLimits.swift"
+   ],
+   "component": 25,
+   "level": 7
+  },
+  "DroppyCode/Services/Providers/ZaiKeychain.swift": {
+   "declares": [
+    "ZaiKeychain"
+   ],
+   "depends_on": [
+    "DroppyCode/Services/Providers/APIKeychain.swift"
+   ],
+   "component": 48,
+   "level": 3
+  },
+  "DroppyCode/Services/Providers/ZaiSession.swift": {
+   "declares": [
+    "ZaiSession"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/JSONValue.swift",
+    "DroppyCode/Services/Providers/OpenAICompatibleSession.swift",
+    "DroppyCode/Services/Providers/ProviderSession.swift",
+    "DroppyCode/Services/Providers/ZaiAPI.swift"
+   ],
+   "component": 95,
+   "level": 8
+  },
+  "DroppyCode/Services/Store/Storage.swift": {
+   "declares": [
+    "AttachmentSource",
+    "DiskWriter",
+    "DocumentPrefetch",
+    "MimeType",
+    "Storage",
+    "StoredContinuation"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/CaptureRun.swift",
+    "DroppyCode/Core/Support/Coding.swift",
+    "DroppyCode/Core/Support/RecentCache.swift",
+    "DroppyCode/Core/Support/Shell.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 10,
+   "level": 3
+  },
+  "DroppyCode/Services/Store/TokenLedger.swift": {
+   "declares": [
+    "CodexFileFingerprint",
+    "CodexFingerprintStore",
+    "LiveSpendState",
+    "LiveSpendStateStore",
+    "TokenActivityGrid",
+    "TokenActivityMode",
+    "TokenHistoryScanner",
+    "TokenLedger",
+    "TokenSpendTracker"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/TokenSpend.swift",
+    "DroppyCode/Core/Support/CaptureRun.swift",
+    "DroppyCode/Core/Support/ISO8601.swift",
+    "DroppyCode/Services/Store/Storage.swift"
+   ],
+   "component": 11,
+   "level": 4
+  },
+  "DroppyCode/UI/Chrome/Chrome.swift": {
+   "declares": [
+    "Chrome",
+    "ChromeCapsule",
+    "ChromeCard",
+    "ChromeCircleButton",
+    "ChromeCircleMenu",
+    "ChromeCompactTitle",
+    "ChromeDivider",
+    "ChromeGlassSurface",
+    "ChromeIconButton",
+    "ChromeIconLabel",
+    "ChromeMenuButton",
+    "ChromeQuietButtonStyle",
+    "ChromeRevealLayout",
+    "ChromeRow",
+    "ChromeRowDivider",
+    "ChromeScrollModel",
+    "ChromeSearchField",
+    "ChromeSection",
+    "ChromeTextButton",
+    "ChromeTextMenu",
+    "DetailSheetModifier",
+    "GlassPickerButton",
+    "NoWindowDragArea",
+    "NoWindowDragView",
+    "PaneTopVeil",
+    "RowAccessoryIcon",
+    "SettleGlideModifier",
+    "SidebarIconBadge",
+    "SidebarRow",
+    "SidebarSearchField",
+    "SidebarSymbol",
+    "SoftAppearModifier",
+    "WindowBackdrop",
+    "WindowDragArea",
+    "WindowDragView"
+   ],
+   "depends_on": [
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/RenderBudget.swift",
+    "DroppyCode/UI/Theme/AppTheme.swift"
+   ],
+   "component": 35,
+   "level": 3
+  },
+  "DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift": {
+   "declares": [
+    "ChromeSegment",
+    "ChromeSegmentedOption",
+    "ChromeSegmentedPicker"
+   ],
+   "depends_on": [
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 68,
+   "level": 4
+  },
+  "DroppyCode/UI/Chrome/ChromeVisualPicker.swift": {
+   "declares": [
+    "ChromeVisualPicker",
+    "ChromeVisualTile",
+    "ChromeVisualTileMetrics"
+   ],
+   "depends_on": [
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 65,
+   "level": 4
+  },
+  "DroppyCode/UI/Chrome/HydraPairMark.swift": {
+   "declares": [
+    "HydraPairMark"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Common/Components.swift"
+   ],
+   "component": 66,
+   "level": 5
+  },
+  "DroppyCode/UI/Chrome/InfoHoverButton.swift": {
+   "declares": [
+    "InfoHoverButton"
+   ],
+   "depends_on": [
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 69,
+   "level": 4
+  },
+  "DroppyCode/UI/Chrome/Popovers.swift": {
+   "declares": [
+    "PopoverCloseBox",
+    "PopoverDivider",
+    "PopoverItem",
+    "PopoverMenu",
+    "PopoverNote",
+    "PopoverScroll",
+    "PopoverSectionHeader",
+    "RowAction",
+    "RowActionItems",
+    "RowActionMenuButtons",
+    "RowActionsButton"
+   ],
+   "depends_on": [
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Theme/AppTheme.swift"
+   ],
+   "component": 35,
+   "level": 3
+  },
+  "DroppyCode/UI/Chrome/ProjectIconPicker.swift": {
+   "declares": [
+    "IconTile",
+    "ProjectIconButton",
+    "ProjectIconMark",
+    "ProjectIconPicker"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Library.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/ProjectSymbolCatalogue.swift"
+   ],
+   "component": 51,
+   "level": 4
+  },
+  "DroppyCode/UI/Chrome/ProjectSymbolCatalogue.swift": {
+   "declares": [
+    "ProjectSymbolCatalogue"
+   ],
+   "depends_on": [],
+   "component": 50,
+   "level": 0
+  },
+  "DroppyCode/UI/Chrome/RowDrag.swift": {
+   "declares": [
+    "RowDrag"
+   ],
+   "depends_on": [],
+   "component": 57,
+   "level": 0
+  },
+  "DroppyCode/UI/Chrome/WindowChrome.swift": {
+   "declares": [
+    "SidebarLayout",
+    "SidebarResizeHandle",
+    "SidebarResizeHandleView",
+    "WindowChrome",
+    "WindowChromeConfigurator",
+    "WindowChromeProbeView"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/CaptureRun.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 43,
+   "level": 4
+  },
+  "DroppyCode/UI/Common/AppZoom.swift": {
+   "declares": [
+    "AppZoom",
+    "AppZoomModifier",
+    "ZoomLayout"
+   ],
+   "depends_on": [],
+   "component": 71,
+   "level": 0
+  },
+  "DroppyCode/UI/Common/AttachmentPreview.swift": {
+   "declares": [
+    "AttachmentLargePreview",
+    "AttachmentPlayBadge",
+    "AttachmentVideoThumbnail",
+    "FileIcons",
+    "PreviewImages",
+    "PreviewVideos",
+    "ToolImagePreview"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Support/RecentCache.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/Core/Support/ThumbnailCache.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 38,
+   "level": 4
+  },
+  "DroppyCode/UI/Common/AttachmentPreviewPanel.swift": {
+   "declares": [
+    "AttachmentAnchorCapture",
+    "AttachmentPreviewCoordinator",
+    "AttachmentPreviewSlot",
+    "WeakView",
+    "WindowRectAnchor"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/AttachmentPreview.swift"
+   ],
+   "component": 39,
+   "level": 5
+  },
+  "DroppyCode/UI/Common/ChatFont.swift": {
+   "declares": [],
+   "depends_on": [],
+   "component": 114,
+   "level": 0
+  },
+  "DroppyCode/UI/Common/Components.swift": {
+   "declares": [
+    "ChipButtonStyle",
+    "DiffStatLabel",
+    "ProviderIcon",
+    "RelativeTime",
+    "Workspace"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Support/RecentCache.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 56,
+   "level": 4
+  },
+  "DroppyCode/UI/Common/Genie.swift": {
+   "declares": [
+    "GenieAnimator",
+    "GenieFlightView",
+    "GenieGhost",
+    "GenieLayer",
+    "MorphView"
+   ],
+   "depends_on": [],
+   "component": 52,
+   "level": 0
+  },
+  "DroppyCode/UI/Common/HydraGlyph.swift": {
+   "declares": [
+    "HydraBreathRing",
+    "HydraBreathRingView",
+    "HydraGlyph",
+    "HydraMarkImage",
+    "HydraNameStyle",
+    "HydraNameText"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 42,
+   "level": 4
+  },
+  "DroppyCode/UI/Common/MCPGlyph.swift": {
+   "declares": [
+    "MCPGlyph"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Common/HydraGlyph.swift"
+   ],
+   "component": 86,
+   "level": 5
+  },
+  "DroppyCode/UI/Common/RenderBudget.swift": {
+   "declares": [
+    "ScrollActivity",
+    "ScrollActivityReporter"
+   ],
+   "depends_on": [
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 35,
+   "level": 3
+  },
+  "DroppyCode/UI/Common/WorkingIndicators.swift": {
+   "declares": [
+    "GradientSpin",
+    "MiniSpinner",
+    "SpinnerCell",
+    "SpinnerCells",
+    "SpinnerLayerView",
+    "StillSpinnerCells",
+    "WorkingSpinner",
+    "WorkingWords"
+   ],
+   "depends_on": [
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Theme/AppTheme.swift"
+   ],
+   "component": 44,
+   "level": 4
+  },
+  "DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift": {
+   "declares": [
+    "HydraHeadHoverCard",
+    "HydraHeadHoverPopover"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/HydraGlyph.swift"
+   ],
+   "component": 93,
+   "level": 5
+  },
+  "DroppyCode/UI/Markdown/LinkParagraphView.swift": {
+   "declares": [
+    "LinkParagraphView",
+    "LinkTextView",
+    "MergeRequestTarget",
+    "MergeRequestTargetKey"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/MergeRequestLink.swift",
+    "DroppyCode/Core/Support/Coding.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Markdown/LinkPopover.swift",
+    "DroppyCode/UI/Markdown/MarkdownView.swift",
+    "DroppyCode/UI/Markdown/StreamVeil.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/UI/Markdown/LinkPopover.swift": {
+   "declares": [
+    "LinkPopover",
+    "LinkPopoverContent"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/MergeRequestLink.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Markdown/LinkParagraphView.swift",
+    "DroppyCode/UI/Markdown/MarkdownView.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/UI/Markdown/LinkTitles.swift": {
+   "declares": [
+    "LinkTitles"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 94,
+   "level": 2
+  },
+  "DroppyCode/UI/Markdown/MarkdownParser.swift": {
+   "declares": [
+    "MarkdownBlock",
+    "MarkdownListItem",
+    "MarkdownParser"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 90,
+   "level": 2
+  },
+  "DroppyCode/UI/Markdown/MarkdownView.swift": {
+   "declares": [
+    "BlockHover",
+    "CodeBlock",
+    "CodeBlockCopyButton",
+    "CopyButton",
+    "FaviconCache",
+    "InlineText",
+    "MarkdownBlockSelection",
+    "MarkdownBlockSelectionKey",
+    "MarkdownBlockView",
+    "MarkdownDimmedKey",
+    "MarkdownListDepthKey",
+    "MarkdownPointSizeKey",
+    "MarkdownProseRunsKey",
+    "MarkdownSegment",
+    "MarkdownStreamingKey",
+    "MarkdownView",
+    "ProseReflow",
+    "RichLink",
+    "TableBlock"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Views/Chat/TimelineRows.swift",
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Support/RecentCache.swift",
+    "DroppyCode/Core/Support/Text.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
+    "DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift",
+    "DroppyCode/UI/Markdown/LinkParagraphView.swift",
+    "DroppyCode/UI/Markdown/LinkTitles.swift",
+    "DroppyCode/UI/Markdown/MarkdownParser.swift",
+    "DroppyCode/UI/Markdown/ProseRunView.swift",
+    "DroppyCode/UI/Markdown/StreamVeil.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/UI/Markdown/ProseRunView.swift": {
+   "declares": [
+    "ProseRunRepresentable",
+    "ProseRunView"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/UI/Common/AttachmentPreviewPanel.swift",
+    "DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift",
+    "DroppyCode/UI/Markdown/LinkParagraphView.swift",
+    "DroppyCode/UI/Markdown/MarkdownParser.swift",
+    "DroppyCode/UI/Markdown/MarkdownView.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/UI/Markdown/SelectableMessageText.swift": {
+   "declares": [
+    "MessageText"
+   ],
+   "depends_on": [
+    "DroppyCode/UI/Markdown/MarkdownParser.swift"
+   ],
+   "component": 91,
+   "level": 3
+  },
+  "DroppyCode/UI/Markdown/StreamVeil.swift": {
+   "declares": [
+    "LinkTextVeil",
+    "MarkdownVeiledKey",
+    "StreamVeil",
+    "VeilClock",
+    "VeiledText"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/Coding.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Common/RenderBudget.swift",
+    "DroppyCode/UI/Markdown/MarkdownView.swift"
+   ],
+   "component": 100,
+   "level": 9
+  },
+  "DroppyCode/UI/Sound/FinishChime.swift": {
+   "declares": [
+    "FinishChime"
+   ],
+   "depends_on": [
+    "DroppyCode/UI/Sound/ToneSynth.swift"
+   ],
+   "component": 70,
+   "level": 1
+  },
+  "DroppyCode/UI/Sound/SettleChime.swift": {
+   "declares": [
+    "SettleChime"
+   ],
+   "depends_on": [
+    "DroppyCode/UI/Sound/ToneSynth.swift"
+   ],
+   "component": 61,
+   "level": 1
+  },
+  "DroppyCode/UI/Sound/ToneSynth.swift": {
+   "declares": [
+    "ToneSynth"
+   ],
+   "depends_on": [],
+   "component": 60,
+   "level": 0
+  },
+  "DroppyCode/UI/Theme/AppTheme.swift": {
+   "declares": [
+    "AppTheme",
+    "ThemeManager",
+    "ThemeSpec"
+   ],
+   "depends_on": [
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "component": 34,
+   "level": 2
+  },
+  "DroppyCode/UI/Theme/ShortcutTint.swift": {
+   "declares": [],
+   "depends_on": [
+    "DroppyCode/Core/Models/Shortcuts.swift",
+    "DroppyCode/UI/Chrome/Chrome.swift"
+   ],
+   "component": 115,
+   "level": 4
+  },
+  "DroppyCode/UI/Theme/Wallpaper.swift": {
+   "declares": [
+    "DecodedPicture",
+    "WallpaperStore"
+   ],
+   "depends_on": [
+    "DroppyCode/App/Captures/WebsiteCaptures.swift",
+    "DroppyCode/Services/Store/Storage.swift"
+   ],
+   "component": 100,
+   "level": 9
+  }
+ },
+ "components": [
+  {
+   "id": 4,
+   "files": [
+    "DroppyCode/Core/Models/Hydra.swift",
+    "DroppyCode/Core/Models/Provider.swift",
+    "DroppyCode/Core/Models/ThreadContinuation.swift",
+    "DroppyCode/Core/Models/Timeline.swift",
+    "DroppyCode/Core/Models/TokenSpend.swift",
+    "DroppyCode/Core/Support/Text.swift"
+   ],
+   "level": 1
+  },
+  {
+   "id": 14,
+   "files": [
+    "DroppyCode/Core/Models/MCP.swift",
+    "DroppyCode/Services/MCP/MCPKeychain.swift",
+    "DroppyCode/Services/MCP/MCPOAuth.swift",
+    "DroppyCode/Services/MCP/MCPProxy.swift"
+   ],
+   "level": 4
+  },
+  {
+   "id": 25,
+   "files": [
+    "DroppyCode/Services/Providers/AntigravitySession.swift",
+    "DroppyCode/Services/Providers/CodexSession.swift",
+    "DroppyCode/Services/Providers/CommandCodeAPI.swift",
+    "DroppyCode/Services/Providers/CopilotSession.swift",
+    "DroppyCode/Services/Providers/DeepSeekAPI.swift",
+    "DroppyCode/Services/Providers/PiCLI.swift",
+    "DroppyCode/Services/Providers/PiPlanLimits.swift",
+    "DroppyCode/Services/Providers/PlanLimits.swift",
+    "DroppyCode/Services/Providers/ProviderCredits.swift",
+    "DroppyCode/Services/Providers/ProviderRegistry.swift",
+    "DroppyCode/Services/Providers/ZaiAPI.swift"
+   ],
+   "level": 7
+  },
+  {
+   "id": 35,
+   "files": [
+    "DroppyCode/UI/Chrome/Chrome.swift",
+    "DroppyCode/UI/Chrome/Popovers.swift",
+    "DroppyCode/UI/Common/RenderBudget.swift"
+   ],
+   "level": 3
+  },
+  {
+   "id": 100,
+   "files": [
+    "DroppyCode/App/AppModel.swift",
+    "DroppyCode/App/AppSettings.swift",
+    "DroppyCode/App/AppUpdater.swift",
+    "DroppyCode/App/Captures/TourCaptures.swift",
+    "DroppyCode/App/Captures/WebsiteCaptures.swift",
+    "DroppyCode/App/Runtime/AutoContinue.swift",
+    "DroppyCode/App/Runtime/LimitHandoff.swift",
+    "DroppyCode/App/Runtime/ThreadRuntime.swift",
+    "DroppyCode/App/UpdateChecker.swift",
+    "DroppyCode/App/Views/Chat/ChatBadge.swift",
+    "DroppyCode/App/Views/Chat/ChatView.swift",
+    "DroppyCode/App/Views/Chat/HydraButton.swift",
+    "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift",
+    "DroppyCode/App/Views/Chat/HydraIntroPopover.swift",
+    "DroppyCode/App/Views/Chat/HydraMergePopover.swift",
+    "DroppyCode/App/Views/Chat/HydraPanel.swift",
+    "DroppyCode/App/Views/Chat/HydraProgressBar.swift",
+    "DroppyCode/App/Views/Chat/HydraReportsPopover.swift",
+    "DroppyCode/App/Views/Chat/MessageEditor.swift",
+    "DroppyCode/App/Views/Chat/NewThreadPrompt.swift",
+    "DroppyCode/App/Views/Chat/SubagentPanel.swift",
+    "DroppyCode/App/Views/Chat/ThreadTimeline.swift",
+    "DroppyCode/App/Views/Chat/TimelineMinimap.swift",
+    "DroppyCode/App/Views/Chat/TimelineRows.swift",
+    "DroppyCode/App/Views/Composer/ComposerView.swift",
+    "DroppyCode/App/Views/Composer/EditorAttachments.swift",
+    "DroppyCode/App/Views/Composer/EffortSlider.swift",
+    "DroppyCode/App/Views/Composer/FollowUpEditor.swift",
+    "DroppyCode/App/Views/Composer/FollowUpQueueTab.swift",
+    "DroppyCode/App/Views/Composer/HydraFusedPairIcon.swift",
+    "DroppyCode/App/Views/Composer/PromptEditor.swift",
+    "DroppyCode/App/Views/Composer/QuestionTab.swift",
+    "DroppyCode/App/Views/Composer/RequestCards.swift",
+    "DroppyCode/App/Views/Diff/DiffInspector.swift",
+    "DroppyCode/App/Views/Palette/CommandPalette.swift",
+    "DroppyCode/App/Views/RootView.swift",
+    "DroppyCode/App/Views/Settings/AboutUpdateViews.swift",
+    "DroppyCode/App/Views/Settings/HydraCookbookPanel.swift",
+    "DroppyCode/App/Views/Settings/HydraSettingsPage.swift",
+    "DroppyCode/App/Views/Settings/MCPKeyPanel.swift",
+    "DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
+    "DroppyCode/App/Views/Settings/MCPSetupPanel.swift",
+    "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift",
+    "DroppyCode/App/Views/Settings/SettingsView.swift",
+    "DroppyCode/App/Views/Settings/WallpaperCard.swift",
+    "DroppyCode/App/Views/Sidebar/FloatingSidebarPanel.swift",
+    "DroppyCode/App/Views/Sidebar/SidebarView.swift",
+    "DroppyCode/App/Views/Terminal/TerminalPanel.swift",
+    "DroppyCode/App/Views/Tour/TourPages.swift",
+    "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift",
+    "DroppyCode/App/Views/Usage/UsagePanel.swift",
+    "DroppyCode/App/Views/Usage/UsageViews.swift",
+    "DroppyCode/App/Window/WindowManager.swift",
+    "DroppyCode/UI/Markdown/LinkParagraphView.swift",
+    "DroppyCode/UI/Markdown/LinkPopover.swift",
+    "DroppyCode/UI/Markdown/MarkdownView.swift",
+    "DroppyCode/UI/Markdown/ProseRunView.swift",
+    "DroppyCode/UI/Markdown/StreamVeil.swift",
+    "DroppyCode/UI/Theme/Wallpaper.swift"
+   ],
+   "level": 9
+  }
+ ],
+ "layer_violations": [
+  {
+   "from": "DroppyCode/Core/Models/MCP.swift",
+   "to": "DroppyCode/Services/MCP/MCPProxy.swift",
+   "from_layer": "Core",
+   "to_layer": "Services"
+  },
+  {
+   "from": "DroppyCode/Core/Models/MCP.swift",
+   "to": "DroppyCode/Services/Store/Storage.swift",
+   "from_layer": "Core",
+   "to_layer": "Services"
+  },
+  {
+   "from": "DroppyCode/UI/Markdown/MarkdownView.swift",
+   "to": "DroppyCode/App/Views/Chat/TimelineRows.swift",
+   "from_layer": "UI",
+   "to_layer": "App"
+  },
+  {
+   "from": "DroppyCode/UI/Theme/Wallpaper.swift",
+   "to": "DroppyCode/App/Captures/WebsiteCaptures.swift",
+   "from_layer": "UI",
+   "to_layer": "App"
+  },
+  {
+   "from": "DroppyCode/UI/Theme/Wallpaper.swift",
+   "to": "DroppyCode/Services/Store/Storage.swift",
+   "from_layer": "UI",
+   "to_layer": "Services"
+  }
+ ]
+}
