@@ -645,7 +645,7 @@ control is removed and disposed; children follow the items' order. Rows are keye
 *Evidence:* `HeadlessTests.ForEach_keeps_a_surviving_rows_control_and_state_and_drops_the_vanished_one`.
 
 **R-VIEW-9. Presentation.** `.popover(isPresented:)`, sheets and extra windows present through
-`Popovers.Presenter` (an `Ambient` seam): production opens the Avalonia `Popup`; headless tests override it,
+`Presentation.Presenter` (an `Ambient` seam): production opens the Avalonia `Popup`; headless tests override it,
 because Avalonia 12.1.2 headless cannot open a `Popup` in a theme-less window. Windows themselves are PA-0002's.
 
 **R-VIEW-10. Frame-driven work (ED-083).** `TimelineView(.animation)`, `CADisplayLink` and every sleep that stands
@@ -1191,7 +1191,7 @@ UI (`src/Marrow.UI/Port`, Avalonia):
 |---|---|---|---|
 | `AvaloniaMainExecutor.cs` | `sealed class AvaloniaMainExecutor : IMainExecutor` (`Instance`; `Enqueue` is `Dispatcher.UIThread.Post(work, DispatcherPriority.Default)`) | the main thread | `HeadlessTests` (6) |
 | `ViewSupport.cs` | `abstract record Animation`; `static class Transaction`: `Current`, `WithAnimation(Animation?, Action)`; `sealed class Tracked<T>(Func<T>, Action<T>) : IDisposable`; `sealed class OnChange<T>(Func<T>, Action<T, T>, bool initial = false) : IDisposable`; `sealed class ViewTask<TId>(TId, Func<TId, Task>)`: `Running`, `Appear()`, `Disappear()`, `UpdateId(TId)`; `sealed class Binding<T>(Func<T>, Action<T>)`: `Value`, `static Constant(T)` | body re-evaluation, `withAnimation`, `.onChange`, `.task(id:)`, `Binding` | `ViewSupportTests` (5) |
-| `ViewLifetime.cs` | `static class ViewLifetime`: `control.Track(value, apply)`, `control.Task(id, body)`; `sealed class EnvironmentValues`: `AccessibilityReduceMotionProperty` (inherited attached); `interface IPopoverPresenter`, `static class Popovers`: `Ambient<IPopoverPresenter> Presenter`; `sealed class ForEach<TItem, TId>(Panel, Func<TItem, TId>, Func<TItem, Control>, Action<Control, TItem>)`: `Apply(IReadOnlyList<TItem>)` | view lifetimes, `@Environment`, `.popover`, `ForEach` identity | `HeadlessTests` |
+| `ViewLifetime.cs` | `static class ViewLifetime`: `control.Track(value, apply)`, `control.Task(id, body)`; `sealed class EnvironmentValues`: `AccessibilityReduceMotionProperty` (inherited attached); `interface IPopoverPresenter`, `static class Presentation`: `Ambient<IPopoverPresenter> Presenter`; `sealed class ForEach<TItem, TId>(Panel, Func<TItem, TId>, Func<TItem, Control>, Action<Control, TItem>)`: `Apply(IReadOnlyList<TItem>)` | view lifetimes, `@Environment`, `.popover`, `ForEach` identity | `HeadlessTests` |
 
 Tests (`tests/Marrow.Testing`, a class library, `IsTestProject` false, referencing Marrow.Core and xunit):
 
@@ -1453,7 +1453,7 @@ place). *Evidence:* `ObservationTests` (8), `ViewSupportTests`, `HeadlessTests`.
 
 **ED-071 SwiftUI views.** One code-first Avalonia control per SwiftUI view, in the twin file, with no AXAML and no
 invented view model; the view mechanics live in `UI/Port` (`Tracked`, `OnChange`, `ViewTask`, `Binding`,
-`Transaction`, `ForEach`, `EnvironmentValues`, the `Popovers` presenter seam); `@State` read by `body` lives in a
+`Transaction`, `ForEach`, `EnvironmentValues`, the `Presentation` presenter seam); `@State` read by `body` lives in a
 per-control `MainActorModel`; one point is one DIP. *Why:* one Swift file stays one C# file with per-modifier
 citations; identity and state stay where SwiftUI keeps them; headless tests construct controls directly. *From:* C
 ED-058 and ED-072, A R-4.5. *Evidence:* `ViewSupportTests` (5), `HeadlessTests` (6). *Action:* adoption; confirm "one

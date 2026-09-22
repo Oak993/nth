@@ -133,7 +133,7 @@ if os.path.exists(fpath):
     RANK = {'Marrow.Core': 0, 'Marrow.Services': 1, 'Marrow.UI': 1, 'Marrow.App': 2, 'Marrow.Testing': 9}
     REF = deps.get('reference') or json.load(open(os.path.join(ROOT, 'porting', 'baseline.json'), encoding='utf-8'))['current']['reference_path']
     fdoc = json.load(open(fpath, encoding='utf-8'))
-    fdeps = {'F.SettingsStore': ['F.FileOps']}
+    fdeps = {'F.SettingsStore': ['F.FileOps'], 'F.StyledText': ['F.SwiftFont', 'F.SwiftColor']}
     for u in units:
         src = open(os.path.join(REF, u['swift']), encoding='utf-8', errors='replace').read()
         for f in fdoc['units']:

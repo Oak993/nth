@@ -69,7 +69,7 @@ public interface IPopoverPresenter
     void SetPresented(Popup popup, bool presented);
 }
 
-public static class Popovers
+public static class Presentation
 {
     public static Ambient<IPopoverPresenter> Presenter { get; } = new(new AvaloniaPopoverPresenter());
 

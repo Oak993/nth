@@ -3,6 +3,101 @@
  "part_size": 24,
  "units": [
   {
+   "id": "F.StyledText",
+   "kind": "foundation",
+   "swift": null,
+   "target": "src/Marrow.UI/Port/StyledText.cs",
+   "project": "Marrow.UI",
+   "test_project": "tests/Marrow.UI.Tests",
+   "level": -1,
+   "component": null,
+   "component_members": [],
+   "deps": [
+    "F.SwiftFont",
+    "F.SwiftColor"
+   ],
+   "intra_deps": [],
+   "records_total": 0,
+   "records_todo": [],
+   "parts": [
+    []
+   ],
+   "packets": [],
+   "risk": "STANDARD",
+   "spec": "SwiftUI Text as a value (ED-092 part 3). StyledText is an immutable list of runs, each a string with optional SwiftFont, SwiftColor, weight, italic, underline, strikethrough, monospacedDigit and baseline offset; modifiers return new values; + concatenates; Render(TextBlock) writes the runs as Avalonia inlines. AttributedString is not part of this unit. First tests: concatenation keeps each run style, modifiers apply to every run of the receiver, and a rendered TextBlock has one Run per run with the resolved font and brush.",
+   "extends_existing": false,
+   "status": "TODO"
+  },
+  {
+   "id": "F.SwiftAnimation",
+   "kind": "foundation",
+   "swift": null,
+   "target": "src/Marrow.UI/Port/SwiftAnimation.cs",
+   "project": "Marrow.UI",
+   "test_project": "tests/Marrow.UI.Tests",
+   "level": -1,
+   "component": null,
+   "component_members": [],
+   "deps": [],
+   "intra_deps": [],
+   "records_total": 0,
+   "records_todo": [],
+   "parts": [
+    []
+   ],
+   "packets": [],
+   "risk": "STANDARD",
+   "spec": "SwiftUI animation curves and transitions (ED-092 part 2, ED-011; R-VIEW-4). Concrete records under the existing abstract Animation in ViewSupport.cs (make it partial if the factories need it): Spring(response, dampingFraction, blendDuration), Spring(duration, bounce), Spring(response, dampingRatio) with SettlingDuration = ln(1000)/(zeta*omega0) per ED-011, Smooth (bounce 0), Snappy (bounce 0.15), EaseIn, EaseOut, EaseInOut (cubic Beziers 0.42,0,1,1 / 0,0,0.58,1 / 0.42,0,0.58,1), Linear, Delay; defaults duration 0.35 for timing curves and 0.5 for smooth, snappy and spring(duration:). A spring is a damped oscillator, omega0 = 2*pi/response, zeta = dampingFraction or 1 - bounce (bounce >= 0) or 1/(1+bounce), exposed as progress(t) and as an Avalonia Easing. SwiftTransition: Identity, Opacity, Scale(scale, anchor), Offset(x, y), Move(edge), BlurReplace, Modifier(active, identity), Asymmetric(insertion, removal), Combined(with), Animation(a); an applier animates insertion from active to identity and removal from identity to active before the control leaves, using Transaction.Current. First tests: the spring progress at fixed times against the closed form, settlingDuration 0.767 s for response 0.6 / damping 0.86, the Bezier curves at known points, delay, and insertion/removal state on a headless control.",
+   "extends_existing": false,
+   "status": "TODO"
+  },
+  {
+   "id": "F.SwiftColor",
+   "kind": "foundation",
+   "swift": null,
+   "target": "src/Marrow.UI/Port/SwiftColor.cs",
+   "project": "Marrow.UI",
+   "test_project": "tests/Marrow.UI.Tests",
+   "level": -1,
+   "component": null,
+   "component_members": [],
+   "deps": [],
+   "intra_deps": [],
+   "records_total": 0,
+   "records_todo": [],
+   "parts": [
+    []
+   ],
+   "packets": [],
+   "risk": "STANDARD",
+   "spec": "SwiftUI Color model (ED-092 part 1, ED-051, ED-062; R-VIEW-11). One immutable SwiftColor: fixed sRGB with alpha (red/green/blue, white, white+alpha, and the Core hex extension), an appearance pair resolved per ActualThemeVariant (NSColor dynamicProvider, the ED-051/ED-062 token pairs), or a named system colour (clear, white, black, primary, secondary, accentColor, yellow, NSColor labelColor, placeholderTextColor, controlAccentColor). Opacity(x) multiplies alpha and returns a new value. Resolve(theme) gives an Avalonia Color; Brush(control) gives a brush that follows the control theme changes. The accent is the Windows personalization accent. System colours with no B2 value use the macOS documented values, UNVERIFIED under OD-0001. First tests: opacity arithmetic, the token pairs in light and dark, a brush updating when the theme flips, hex parsing through the Core extension, and that Opacity does not change the receiver.",
+   "extends_existing": false,
+   "status": "TODO"
+  },
+  {
+   "id": "F.SwiftFont",
+   "kind": "foundation",
+   "swift": null,
+   "target": "src/Marrow.UI/Port/SwiftFont.cs",
+   "project": "Marrow.UI",
+   "test_project": "tests/Marrow.UI.Tests",
+   "level": -1,
+   "component": null,
+   "component_members": [],
+   "deps": [],
+   "intra_deps": [],
+   "records_total": 0,
+   "records_todo": [],
+   "parts": [
+    []
+   ],
+   "packets": [],
+   "risk": "STANDARD",
+   "spec": "SwiftUI Font model (ED-091, ED-059, OD-0009, PA-0013; R-VIEW-11). One immutable SwiftFont value: text style or fixed size, optional weight, design default or monospaced, monospacedDigit/italic/bold modifiers returning new values; factories System(style, design), System(size, weight, design) and one static per text style; NSFont.systemFont(ofSize:weight:), monospacedSystemFont(ofSize:weight:) and boldSystemFont(ofSize:) through the same type. Resolve() gives Avalonia FontFamily (Inter, or Cascadia Mono for monospaced), FontSize (ED-059 table from B1:DroppyCode/UI/Common/ChatZoom.swift:44-57, or the fixed size), FontWeight (100..900), FontStyle and font features (tnum for monospacedDigit); plus an Apply helper for TextBlock and TemplatedControl. Headline with no weight resolves bold; every other style regular. No zoom. First tests: the size per style, the weight map, the headline default, the monospaced face, the digits feature, and that modifiers do not change the receiver.",
+   "extends_existing": false,
+   "status": "TODO"
+  },
+  {
    "id": "F.SourceScan",
    "kind": "foundation",
    "swift": null,
@@ -113,7 +208,7 @@
    ],
    "packets": [],
    "risk": "HIGH",
-   "spec": "Secret store in Windows Credential Manager (OD-0008 B3, ADR-0002 deviation 8; R-SEC-1): trimming, empty means delete, the Boolean result the Keychain helpers return, never a plain-text fallback (OD-0008 A6). First tests: trimming, empty deletes, the Boolean result, a refused write reports false.",
+   "spec": "Secret store in Windows Credential Manager (OD-0008 B3, ADR-0002 deviation 8; R-SEC-1): trimming, empty means delete, the Boolean result the Keychain helpers return, never a plain-text fallback (OD-0008 A6). Credential mapping, case-safe target names, 2560-byte chunking, the SecItem status contract and the backend seam per ED-093. First tests: trimming, empty deletes, the Boolean result, a refused write reports false, case-different accounts stay separate, a 2561-byte value round-trips in chunks, the live test only under MARROW_PORT_CREDMAN_LIVE=1.",
    "extends_existing": false,
    "status": "TODO"
   },
@@ -207,7 +302,7 @@
    ],
    "packets": [],
    "risk": "STANDARD",
-   "spec": "ICU formatters through Windows icu.dll (ED-073): udat skeletons, ureldatefmt, unum spell-out, currency, Int.formatted(); ByteCountFormatter from its documented rules (R-FMT-2). First tests: the O-23 fixtures, marked Oracle until settled.",
+   "spec": "ICU formatters through Windows icu.dll (ED-073, ED-094 Calendar.current, ED-096 the accepted API): udat skeletons, ureldatefmt, unum spell-out, currency, Int.formatted(); ByteCountFormatter from its documented rules (R-FMT-2). First tests: the O-23 fixtures, marked Oracle until settled.",
    "extends_existing": false,
    "status": "TODO"
   },
@@ -266,7 +361,9 @@
    "level": 0,
    "component": null,
    "component_members": [],
-   "deps": [],
+   "deps": [
+    "F.SwiftColor"
+   ],
    "intra_deps": [],
    "records_total": 3,
    "records_todo": [
@@ -299,7 +396,8 @@
    "component_members": [],
    "deps": [
     "F.FileOps",
-    "F.SettingsStore"
+    "F.SettingsStore",
+    "F.SwiftFont"
    ],
    "intra_deps": [],
    "records_total": 10,
@@ -1099,7 +1197,9 @@
    "level": 0,
    "component": null,
    "component_members": [],
-   "deps": [],
+   "deps": [
+    "F.SwiftFont"
+   ],
    "intra_deps": [],
    "records_total": 3,
    "records_todo": [
@@ -1130,7 +1230,9 @@
    "level": 0,
    "component": null,
    "component_members": [],
-   "deps": [],
+   "deps": [
+    "F.SwiftAnimation"
+   ],
    "intra_deps": [],
    "records_total": 6,
    "records_todo": [
@@ -3041,7 +3143,8 @@
    "component": null,
    "component_members": [],
    "deps": [
-    "Core.Support.Text"
+    "Core.Support.Text",
+    "F.SwiftColor"
    ],
    "intra_deps": [],
    "records_total": 38,
@@ -3798,6 +3901,9 @@
     "UI.Common.RenderBudget"
    ],
    "deps": [
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Theme.AppTheme"
    ],
    "intra_deps": [
@@ -3990,6 +4096,10 @@
     "UI.Common.RenderBudget"
    ],
    "deps": [
+    "F.StyledText",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Theme.AppTheme"
    ],
    "intra_deps": [
@@ -4140,6 +4250,8 @@
    "component_members": [],
    "deps": [
     "Core.Support.Coding",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "Services.Store.Storage",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers"
@@ -4193,6 +4305,8 @@
    "component": null,
    "component_members": [],
    "deps": [
+    "F.SwiftAnimation",
+    "F.SwiftColor",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [],
@@ -4259,6 +4373,9 @@
    "component_members": [],
    "deps": [
     "Core.Models.Shortcuts",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers"
    ],
@@ -4320,6 +4437,9 @@
    "component_members": [],
    "deps": [
     "Core.Support.ObservedValue",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [],
@@ -4369,6 +4489,8 @@
     "Core.Models.Library",
     "Core.Support.Shell",
     "F.PathIdentity",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [],
@@ -4443,6 +4565,9 @@
    "component": null,
    "component_members": [],
    "deps": [
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers"
    ],
@@ -4867,6 +4992,9 @@
    "component": null,
    "component_members": [],
    "deps": [
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [],
@@ -4900,6 +5028,9 @@
    "component": null,
    "component_members": [],
    "deps": [
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [],
@@ -4935,6 +5066,8 @@
    "component": null,
    "component_members": [],
    "deps": [
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [],
@@ -4964,6 +5097,9 @@
    "component_members": [],
    "deps": [
     "Core.Models.Library",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.ProjectSymbolCatalogue"
    ],
@@ -5013,6 +5149,8 @@
    "component_members": [],
    "deps": [
     "Core.Support.CaptureRun",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [],
@@ -5132,6 +5270,9 @@
     "F.FileOps",
     "F.ICUFormatters",
     "F.PathIdentity",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "F.URL",
     "UI.Chrome.Chrome"
    ],
@@ -5204,6 +5345,9 @@
     "F.FileOps",
     "F.ICUFormatters",
     "F.PathIdentity",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [],
@@ -5242,6 +5386,10 @@
    "component_members": [],
    "deps": [
     "Core.Models.Hydra",
+    "F.StyledText",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [],
@@ -5280,6 +5428,8 @@
    "component_members": [],
    "deps": [
     "F.FrameClock",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
     "UI.Chrome.Chrome",
     "UI.Theme.AppTheme"
    ],
@@ -5336,6 +5486,7 @@
    "component_members": [],
    "deps": [
     "Core.Models.Shortcuts",
+    "F.SwiftColor",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [],
@@ -5372,6 +5523,9 @@
     "F.FileOps",
     "F.ICUFormatters",
     "F.PathIdentity",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
     "UI.Common.AttachmentPreview"
@@ -5423,6 +5577,9 @@
    "component": null,
    "component_members": [],
    "deps": [
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "Services.Store.TokenLedger",
     "UI.Chrome.Chrome"
    ],
@@ -5482,6 +5639,8 @@
    "component_members": [],
    "deps": [
     "App.Views.Tour.TourView",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [],
@@ -5887,6 +6046,8 @@
    "component_members": [],
    "deps": [
     "Core.Models.Provider",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Common.Components"
    ],
@@ -5957,6 +6118,9 @@
    "deps": [
     "Core.Models.MCP",
     "Core.Models.Timeline",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Common.HydraGlyph"
    ],
@@ -5987,6 +6151,8 @@
    "component_members": [],
    "deps": [
     "Core.Models.Hydra",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
     "UI.Common.HydraGlyph"
@@ -6021,6 +6187,8 @@
    "component_members": [],
    "deps": [
     "Core.Models.FileChangeSummary",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Common.AttachmentPreviewPanel"
    ],
@@ -9145,6 +9313,8 @@
     "F.FileOps",
     "F.PathIdentity",
     "F.SecretStore",
+    "F.StyledText",
+    "F.SwiftAnimation",
     "Services.Git.Git",
     "Services.MCP.MCPStore",
     "Services.Providers.ProviderRegistry",
@@ -9387,6 +9557,7 @@
     "Core.Support.Text",
     "F.SecretStore",
     "F.SettingsStore",
+    "F.StyledText",
     "Services.Providers.CommandCodeKeychain",
     "Services.Providers.DeepSeekKeychain",
     "Services.Providers.MetaKeychain",
@@ -10074,6 +10245,8 @@
     "Core.Support.Shell",
     "Core.Support.Text",
     "F.PathIdentity",
+    "F.StyledText",
+    "F.SwiftAnimation",
     "Services.Git.DiffParser",
     "Services.Git.Git",
     "Services.Git.RevertPreview",
@@ -10969,6 +11142,8 @@
    ],
    "deps": [
     "App.Views.Composer.ComposerWorkingDots",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
     "UI.Common.AttachmentPreviewPanel"
@@ -11072,6 +11247,9 @@
     "Core.Support.Shell",
     "Core.Support.Text",
     "F.PathIdentity",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "Services.Git.Git",
     "Services.Providers.TextGeneration",
     "UI.Chrome.Chrome",
@@ -11363,6 +11541,9 @@
     "Core.Models.Library",
     "Core.Models.Provider",
     "Core.Support.RecentCache",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "Services.Providers.ProviderRegistry",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
@@ -11527,6 +11708,8 @@
    "deps": [
     "Core.Models.Hydra",
     "Core.Support.Text",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
     "UI.Common.HydraGlyph",
@@ -11636,6 +11819,8 @@
    ],
    "deps": [
     "Core.Models.Hydra",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Common.HydraGlyph"
    ],
@@ -11763,6 +11948,9 @@
     "Core.Models.Hydra",
     "Core.Models.MergeRequestLink",
     "Core.Support.Text",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Common.HydraGlyph"
    ],
@@ -11921,6 +12109,9 @@
     "Core.Models.Hydra",
     "Core.Models.Library",
     "Core.Support.Text",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
     "UI.Common.Components",
@@ -12089,6 +12280,10 @@
     "Core.Models.Timeline",
     "Core.Support.Text",
     "F.FrameClock",
+    "F.StyledText",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Common.Components",
     "UI.Common.MCPGlyph",
@@ -12222,6 +12417,9 @@
    "deps": [
     "Core.Models.Hydra",
     "Core.Support.Text",
+    "F.StyledText",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
     "UI.Common.HydraGlyph",
@@ -12368,6 +12566,8 @@
     "UI.Theme.Wallpaper"
    ],
    "deps": [
+    "F.SwiftColor",
+    "F.SwiftFont",
     "Services.Git.RevertPreview",
     "UI.Chrome.Chrome",
     "UI.Common.Components"
@@ -12498,6 +12698,9 @@
    ],
    "deps": [
     "Core.Models.Library",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
     "UI.Chrome.ProjectIconPicker"
@@ -12597,6 +12800,9 @@
    "deps": [
     "Core.Models.Library",
     "Core.Support.Text",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
     "UI.Common.WorkingIndicators"
@@ -12735,6 +12941,10 @@
     "Core.Models.Hydra",
     "Core.Models.Library",
     "Core.Models.Timeline",
+    "F.StyledText",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.WindowChrome",
     "UI.Common.RenderBudget",
@@ -13017,6 +13227,9 @@
    "deps": [
     "Core.Models.Timeline",
     "Core.Support.RecentCache",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [
@@ -13147,6 +13360,10 @@
     "Core.Support.ThumbnailCache",
     "F.FrameClock",
     "F.PathIdentity",
+    "F.StyledText",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "F.URL",
     "Services.Git.DiffParser",
     "UI.Chrome.Chrome",
@@ -13562,6 +13779,9 @@
     "Core.Support.RecentCache",
     "F.FileOps",
     "F.PathIdentity",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "Services.Git.Git",
     "Services.Providers.PlanLimits",
     "Services.Providers.ProviderCredits",
@@ -13890,6 +14110,7 @@
    "deps": [
     "App.Views.Composer.AttachmentFlight",
     "Core.Models.Timeline",
+    "F.SwiftColor",
     "UI.Common.AttachmentPreviewPanel"
    ],
    "intra_deps": [
@@ -13985,6 +14206,9 @@
     "Core.Models.Library",
     "Core.Models.Provider",
     "F.FrameClock",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "Services.Providers.ProviderRegistry",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
@@ -14307,6 +14531,9 @@
     "App.Views.Composer.ThreadChangesTab",
     "Core.Models.Timeline",
     "Core.Support.Text",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.RowDrag",
     "UI.Common.AttachmentPreviewPanel"
@@ -14459,6 +14686,8 @@
    ],
    "deps": [
     "Core.Models.Provider",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [
@@ -14550,6 +14779,8 @@
     "App.Views.Composer.ComposerTextView",
     "App.Views.Composer.DownloadsPopover",
     "Core.Models.Timeline",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "Services.Store.Storage",
     "UI.Chrome.Chrome",
     "UI.Common.AttachmentPreviewPanel",
@@ -14663,6 +14894,9 @@
    "deps": [
     "Core.Models.Requests",
     "Core.Support.Text",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers"
    ],
@@ -14799,6 +15033,8 @@
    ],
    "deps": [
     "Core.Models.Requests",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [
@@ -14911,6 +15147,10 @@
     "Core.Models.FileChangeSummary",
     "Core.Models.Shortcuts",
     "Core.Models.Timeline",
+    "F.StyledText",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "Services.Git.DiffParser",
     "Services.Git.TouchedPaths",
     "UI.Chrome.Chrome",
@@ -15071,6 +15311,8 @@
    "deps": [
     "Core.Models.Library",
     "Core.Models.Shortcuts",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.ProjectIconPicker"
    ],
@@ -15230,6 +15472,9 @@
     "Core.Models.Shortcuts",
     "Core.Support.SwitchLatency",
     "F.FileOps",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "Services.Store.Storage",
     "UI.Chrome.Chrome",
     "UI.Chrome.ChromeVisualPicker",
@@ -15408,6 +15653,9 @@
     "Core.Support.Text",
     "F.FrameClock",
     "F.ICUFormatters",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
     "UI.Common.RenderBudget"
@@ -15619,6 +15867,9 @@
     "Core.Models.Hydra",
     "Core.Models.HydraCookbook",
     "Core.Models.Provider",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.HydraPairMark"
    ],
@@ -15716,6 +15967,10 @@
    "deps": [
     "Core.Models.Hydra",
     "Core.Models.Provider",
+    "F.StyledText",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "Services.Providers.ProviderRegistry",
     "UI.Chrome.Chrome",
     "UI.Chrome.ChromeSegmentedPicker",
@@ -15899,6 +16154,9 @@
    ],
    "deps": [
     "Core.Models.MCP",
+    "F.StyledText",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "F.URL",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers"
@@ -16022,6 +16280,9 @@
     "Core.Models.MCPCustom",
     "Core.Support.Text",
     "F.SecretStore",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "F.URL",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
@@ -16324,6 +16585,10 @@
    ],
    "deps": [
     "Core.Models.MCP",
+    "F.StyledText",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "F.URL",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
@@ -16448,6 +16713,9 @@
    "deps": [
     "Core.Models.Provider",
     "Core.Support.Text",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
     "UI.Chrome.RowDrag",
@@ -16596,6 +16864,10 @@
     "Core.Models.Provider",
     "Core.Support.Text",
     "F.SecretStore",
+    "F.StyledText",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "F.URL",
     "Services.Providers.PlanLimits",
     "Services.Providers.ProviderCredits",
@@ -17152,6 +17424,9 @@
     "UI.Theme.Wallpaper"
    ],
    "deps": [
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [
@@ -17307,6 +17582,9 @@
     "UI.Theme.Wallpaper"
    ],
    "deps": [
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [
@@ -17427,6 +17705,9 @@
     "Core.Models.Shortcuts",
     "Core.Support.Text",
     "F.ICUFormatters",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
     "UI.Chrome.ProjectIconPicker",
@@ -17900,6 +18181,9 @@
    "deps": [
     "App.Views.Terminal.TerminalStore",
     "Core.Models.Shortcuts",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [
@@ -18201,6 +18485,9 @@
    ],
    "deps": [
     "Core.Models.Provider",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "Services.Providers.PlanLimits",
     "Services.Providers.ProviderCredits",
     "UI.Chrome.Chrome",
@@ -18325,6 +18612,8 @@
    "deps": [
     "Core.Models.Provider",
     "Core.Models.Timeline",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "Services.Providers.PlanLimits",
     "Services.Providers.ProviderCredits",
     "UI.Chrome.Chrome",
@@ -18455,6 +18744,9 @@
    "deps": [
     "Core.Models.Provider",
     "F.ICUFormatters",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "Services.Providers.PlanLimits",
     "Services.Providers.ProviderCredits",
     "UI.Chrome.Chrome",
@@ -18737,6 +19029,7 @@
    "deps": [
     "App.Window.ThreadWindow",
     "Core.Support.Text",
+    "F.SwiftColor",
     "UI.Chrome.WindowChrome",
     "UI.Common.AppZoom",
     "UI.Theme.AppTheme"
@@ -18886,6 +19179,8 @@
     "Core.Models.MergeRequestLink",
     "Core.Support.Coding",
     "Core.Support.Text",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "F.URL",
     "UI.Chrome.Chrome"
    ],
@@ -18999,6 +19294,7 @@
    ],
    "deps": [
     "Core.Models.MergeRequestLink",
+    "F.StyledText",
     "UI.Chrome.Popovers"
    ],
    "intra_deps": [
@@ -19100,6 +19396,10 @@
     "Core.Models.Hydra",
     "Core.Support.RecentCache",
     "Core.Support.Text",
+    "F.StyledText",
+    "F.SwiftAnimation",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "F.URL",
     "UI.Chrome.Chrome",
     "UI.Common.AttachmentPreviewPanel",
@@ -19297,6 +19597,8 @@
    ],
    "deps": [
     "Core.Models.Hydra",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Common.AttachmentPreviewPanel",
     "UI.Markdown.HydraHeadHoverPopover",
     "UI.Markdown.MarkdownParser"
@@ -19392,6 +19694,8 @@
    "deps": [
     "Core.Support.Coding",
     "F.FrameClock",
+    "F.StyledText",
+    "F.SwiftColor",
     "UI.Chrome.Chrome",
     "UI.Common.RenderBudget"
    ],
@@ -19502,6 +19806,7 @@
    "deps": [
     "F.FileOps",
     "F.PathIdentity",
+    "F.SwiftAnimation",
     "Services.Store.Storage"
    ],
    "intra_deps": [],
@@ -19567,6 +19872,7 @@
     "App.Window.WindowManager",
     "Core.Models.Shortcuts",
     "Core.Support.Text",
+    "F.SwiftAnimation",
     "UI.Chrome.Chrome",
     "UI.Common.AppZoom"
    ],
@@ -20333,6 +20639,8 @@
     "Core.Models.Library",
     "Core.Models.Provider",
     "Core.Models.Timeline",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome",
     "UI.Common.Components",
     "UI.Common.HydraGlyph",
@@ -20359,6 +20667,8 @@
     "App.AppModel",
     "App.Views.Chat.TimelineRows",
     "Core.Models.Timeline",
+    "F.SwiftColor",
+    "F.SwiftFont",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [],
