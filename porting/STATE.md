@@ -3,7 +3,61 @@
 Continuation record. Reread `porting/PORT_CONTRACT.md` before acting on this file.
 This file is a navigation aid; the contract and the source are the authority.
 
-Last updated: 2026-09-19, session 1.
+## Current checkpoint: 2026-09-22, direct worker bypass
+
+This section supersedes all historical progress and next-action entries below.
+Read [HANDOFF.md](../HANDOFF.md) and [the current evidence report](reports/direct-bypass-20260922.md).
+
+- Workspace: E:\Droppy\port, branch port/windows-exact-parity. Latest implementation commit:
+  a06858e; subsequent commits save evidence only. No unreviewed worker output is in the tree.
+- Pinned source: dd2b86efef9e77168f304a86e8a8411877578bbe, tree
+  f761e5ef3745c4f68958ffa4014ab0b618c9d419. Original checkout remains read-only and clean.
+- Latest upstream candidate: 417ab7d3676cdf258fb6b68444f0626aa6fdfbed, separate read-only checkout.
+  GitLab main still matched at approximately 04:00 UTC. Whole-source reread/spec refresh is incomplete;
+  existing Gate A is not evidence for the candidate revision.
+- Workers remain explicitly bypassed. Director performs implementation, tests review and adversarial
+  review. T-M2-071 is HIGH and has no independent GLM review in this run; do not claim otherwise.
+- Gate A 12/12, Gate B 8/8, protected/reference guard and quarantine guard pass. Warnings-as-errors
+  build and all 251 tests pass. Full verify remains exit 1: existing app entry stub plus incomplete
+  full acceptance C/D/E/F. No new gate regression.
+- 13/662 packets DONE (1.96%); M2 13/78 (16.67%), 65 M2 remain (83.33%). 85/3827 requirements
+  IMPLEMENTED (2.22%); 0/3827 VERIFIED. These are literal coverage counts, not overall effort.
+
+Completed packet / requirement IDs:
+
+| Packet | Implemented IDs |
+| --- | --- |
+| T-M2-001 | PR-HYDRA-055; PR-STORE-129, PR-STORE-130 |
+| T-M2-023 | PR-MCP-038 through PR-MCP-047 |
+| T-M2-025 | PR-MCP-001 through PR-MCP-010 |
+| T-M2-026 | PR-MCP-011 through PR-MCP-020 |
+| T-M2-027 | PR-MCP-021 through PR-MCP-030 |
+| T-M2-028 | PR-MCP-031 through PR-MCP-037 |
+| T-M2-030 | PR-GIT-052 through PR-GIT-055 |
+| T-M2-043 | PR-RUNTIME-016 through PR-RUNTIME-020 |
+| T-M2-059 | PR-STORE-017, PR-STORE-018, PR-STORE-020 |
+| T-M2-066 | PR-STORE-053 through PR-STORE-058 |
+| T-M2-071 | PR-PROVACP-149 through PR-PROVACP-153 |
+| T-M2-075 | PR-STORE-008, PR-STORE-009; PR-STORE-105 through PR-STORE-112 |
+| T-M2-076 | PR-STORE-113, PR-STORE-114 |
+
+Last commands: per-packet protected/A/B/C/D checks via run-packet-gates.mjs; Debug and Release
+build/tests; git diff --check; read-only assembly metadata probe. Exact outputs, exits, environment
+and test mapping are saved with the current report in reports/direct-bypass-evidence/.
+
+Next: setup/protected checks, then M2 in source-settled dependency order. JSONValue needs exact
+Foundation numeric/formatting behavior; latest Hydra and Provider need spec updates. The revised
+FileEdit carrier and text helpers now exist for Timeline/Hydra integration. Preserve every approved
+test, take a new regression before any correction, and use temporary MARROW_PORT_DATA_DIR.
+
+Unchanged blockers: 12 quarantined behaviors, recorded owner choices, shipping data-folder collision,
+matching macOS visual/runtime oracle unavailable, M0 desktop probes, actual provider and persistence
+integration, UI and installer acceptance. The earlier two-model bake-off remains incomplete while
+the owner's bypass is active. No fresh account-balance or model-cost measurement was made this run.
+
+## Historical session log (superseded by the checkpoint above)
+
+Historical entry last updated: 2026-09-19, session 1.
 
 ## Baseline
 

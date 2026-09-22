@@ -25,9 +25,10 @@ from the old Marrow into the port.
 
 ## 2. Where the project stands, honestly
 
-**Continuation checkpoint, 2026-09-22:** the owner explicitly extended the Codex-only worker
-bypass while awaiting the ChatGPT reset. Ten M2 packets are committed on
-`port/windows-exact-parity`; see [the continuation report](porting/reports/direct-continuation-20260922.md)
+**Direct-bypass checkpoint, 2026-09-22:** the owner said to bypass workers again and continue.
+Thirteen M2 packets are committed on `port/windows-exact-parity`; see
+[the latest report](porting/reports/direct-bypass-20260922.md),
+[the continuation report](porting/reports/direct-continuation-20260922.md)
 and [the original sprint report](porting/reports/direct-sprint-20260922.md) for commits, tests,
 evidence and restart instructions. The current worker bypass remains in force unless the owner
 changes it. This checkpoint supersedes older progress and routing statements below.
@@ -37,20 +38,23 @@ changes it. This checkpoint supersedes older progress and routing statements bel
 | Source read and evidenced | 433 of 433 files (Gate A: 12/12) |
 | Specification | 3,827 requirements, 1,029 UI records (Gate B: 8/8) |
 | Stack | Avalonia 12.1.2 on .NET 10, decided with evidence (ADR-0002); probe P1 passed |
-| Solution and Core implementation | 4 layered projects + 3 test projects, builds clean, 135 tests pass |
-| **Packets completed** | **10 of 662 (1.51%); M2: 10 of 78 (12.82%)** |
-| **Requirements implemented** | **68 of 3,827 (1.78%)** |
+| Solution and Core implementation | 4 layered projects + 3 test projects, builds clean, 251 tests pass |
+| **Packets completed** | **13 of 662 (1.96%); M2: 13 of 78 (16.67%)** |
+| **Requirements implemented** | **85 of 3,827 (2.22%)** |
 | **Requirements verified** | **0 of 3,827** |
 
 Completed: AntiSlopPolicy, RecentCache, MergeRequestLink, Coding, Requests, MCP models and
-transport resolution, and all four MCP catalog packets (33 entries plus lookups/grouping).
+transport resolution, all four MCP catalog packets (33 entries plus lookups/grouping), StdioFramer,
+text cleanup, compact diffs, app metadata, file-edit construction and nilIfEmpty.
 The application entry point remains a stub; full Gates C/D/E/F are incomplete. DONE is not VERIFIED.
 
 Latest GitLab snapshot discovered: `417ab7d3676cdf258fb6b68444f0626aa6fdfbed`, separately
 checked out at `E:\Droppy\reference\droppy-code-417ab7d3`. It is 32 commits ahead with
 127 changed paths. **The specification and Gate A still refer to the original pinned SHA.**
-Nine completed packets cite identical Git blobs in both snapshots. T-M2-023's only source change
+Ten completed packets cite identical Git blobs in both snapshots. T-M2-023's only source change
 replaces inline trimming with the equivalent Text.trimmed helper, reviewed against its definition.
+T-M2-075/076's source only adds that new extension; covered behavior and the FileEdit carrier are
+unchanged. GitLab main was rechecked at approximately 04:00 UTC and still matches this snapshot.
 Other changed-source packets, especially Hydra and Provider, need a source/specification update.
 Do not mark the new snapshot fully read merely because the old Gate A passes.
 

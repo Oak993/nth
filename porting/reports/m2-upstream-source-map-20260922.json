@@ -4,10 +4,10 @@
   "latest_commit": "417ab7d3676cdf258fb6b68444f0626aa6fdfbed",
   "note": "Mechanical blob comparison only. IDENTICAL does not prove unchanged callers or dependencies, completed source reading, or implementation readiness.",
   "counts": {
-    "IDENTICAL/DONE": 9,
-    "CHANGED/TODO": 40,
-    "IDENTICAL/TODO": 28,
-    "CHANGED/DONE": 1
+    "IDENTICAL/DONE": 10,
+    "CHANGED/TODO": 38,
+    "IDENTICAL/TODO": 27,
+    "CHANGED/DONE": 3
   },
   "tasks": [
     {
@@ -643,7 +643,7 @@
     {
       "id": "T-M2-071",
       "source": "DroppyCode/Core/Support/StdioFramer.swift",
-      "status": "TODO",
+      "status": "DONE",
       "risk": "HIGH",
       "old_blob": "e1ebde91ece8d47b9de5d259b99efb10733b26db",
       "latest_blob": "e1ebde91ece8d47b9de5d259b99efb10733b26db",
@@ -679,7 +679,7 @@
     {
       "id": "T-M2-075",
       "source": "DroppyCode/Core/Support/Text.swift",
-      "status": "TODO",
+      "status": "DONE",
       "risk": "STANDARD",
       "old_blob": "79324d22b12577e0216c4c1311546a390bfbc311",
       "latest_blob": "18c8123445a49b06942ef4e68edb9991cb6834de",
@@ -688,7 +688,7 @@
     {
       "id": "T-M2-076",
       "source": "DroppyCode/Core/Support/Text.swift",
-      "status": "TODO",
+      "status": "DONE",
       "risk": "STANDARD",
       "old_blob": "79324d22b12577e0216c4c1311546a390bfbc311",
       "latest_blob": "18c8123445a49b06942ef4e68edb9991cb6834de",
