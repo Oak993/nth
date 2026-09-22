@@ -1,0 +1,242 @@
+{
+  "acceptable": true,
+  "records": [
+    {
+      "timestamp": "2026-09-22T02:56:12.548Z",
+      "cwd": "E:/Droppy/port",
+      "command": "node porting/tools/check_protected.mjs",
+      "exit": 0,
+      "stdout": "protected paths unchanged against HEAD; reference checkout clean\n",
+      "stderr": ""
+    },
+    {
+      "timestamp": "2026-09-22T02:56:12.747Z",
+      "cwd": "E:/Droppy/port",
+      "command": "node porting/tools/verify.mjs --gate A --json",
+      "exit": 0,
+      "stdout": "{\n  \"pinned_sha\": \"dd2b86efef9e77168f304a86e8a8411877578bbe\",\n  \"pinned_tree\": \"f761e5ef3745c4f68958ffa4014ab0b618c9d419\",\n  \"reference\": \"E:/Droppy/reference/droppy-code\",\n  \"counts\": {\n    \"PASS\": 12\n  },\n  \"ok\": true,\n  \"results\": [\n    {\n      \"gate\": \"A\",\n      \"name\": \"reference checkout is at the pinned commit\",\n      \"status\": \"PASS\",\n      \"detail\": \"dd2b86efef9e77168f304a86e8a8411877578bbe\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"reference tree hash matches the pinned tree\",\n      \"status\": \"PASS\",\n      \"detail\": \"f761e5ef3745c4f68958ffa4014ab0b618c9d419\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"reference working tree is unmodified\",\n      \"status\": \"PASS\",\n      \"detail\": \"clean\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"inventory reconciles against the pinned git tree\",\n      \"status\": \"PASS\",\n      \"detail\": \"433 files reconciled\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"every inventory sha256 matches the file on disk\",\n      \"status\": \"PASS\",\n      \"detail\": \"433 digests verified\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"every first-party file is marked READ\",\n      \"status\": \"PASS\",\n      \"detail\": \"433/433 read\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"read ledger has exactly one record per inventory path\",\n      \"status\": \"PASS\",\n      \"detail\": \"433 records, 1:1 with inventory\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"ledger digests match the pinned inventory digests\",\n      \"status\": \"PASS\",\n      \"detail\": \"433 ledger digests match\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"text-file coverage reaches the true last line\",\n      \"status\": \"PASS\",\n      \"detail\": \"all text files covered end to end\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"binary assets carry an inspection record\",\n      \"status\": \"PASS\",\n      \"detail\": \"30 binary assets inspected\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"no generic finding reused across different files\",\n      \"status\": \"PASS\",\n      \"detail\": \"every purpose is file-specific\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"every critic finding has been adjudicated\",\n      \"status\": \"PASS\",\n      \"detail\": \"258 findings adjudicated across 9 families\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "report": {
+        "pinned_sha": "dd2b86efef9e77168f304a86e8a8411877578bbe",
+        "pinned_tree": "f761e5ef3745c4f68958ffa4014ab0b618c9d419",
+        "reference": "E:/Droppy/reference/droppy-code",
+        "counts": {
+          "PASS": 12
+        },
+        "ok": true,
+        "results": [
+          {
+            "gate": "A",
+            "name": "reference checkout is at the pinned commit",
+            "status": "PASS",
+            "detail": "dd2b86efef9e77168f304a86e8a8411877578bbe"
+          },
+          {
+            "gate": "A",
+            "name": "reference tree hash matches the pinned tree",
+            "status": "PASS",
+            "detail": "f761e5ef3745c4f68958ffa4014ab0b618c9d419"
+          },
+          {
+            "gate": "A",
+            "name": "reference working tree is unmodified",
+            "status": "PASS",
+            "detail": "clean"
+          },
+          {
+            "gate": "A",
+            "name": "inventory reconciles against the pinned git tree",
+            "status": "PASS",
+            "detail": "433 files reconciled"
+          },
+          {
+            "gate": "A",
+            "name": "every inventory sha256 matches the file on disk",
+            "status": "PASS",
+            "detail": "433 digests verified"
+          },
+          {
+            "gate": "A",
+            "name": "every first-party file is marked READ",
+            "status": "PASS",
+            "detail": "433/433 read"
+          },
+          {
+            "gate": "A",
+            "name": "read ledger has exactly one record per inventory path",
+            "status": "PASS",
+            "detail": "433 records, 1:1 with inventory"
+          },
+          {
+            "gate": "A",
+            "name": "ledger digests match the pinned inventory digests",
+            "status": "PASS",
+            "detail": "433 ledger digests match"
+          },
+          {
+            "gate": "A",
+            "name": "text-file coverage reaches the true last line",
+            "status": "PASS",
+            "detail": "all text files covered end to end"
+          },
+          {
+            "gate": "A",
+            "name": "binary assets carry an inspection record",
+            "status": "PASS",
+            "detail": "30 binary assets inspected"
+          },
+          {
+            "gate": "A",
+            "name": "no generic finding reused across different files",
+            "status": "PASS",
+            "detail": "every purpose is file-specific"
+          },
+          {
+            "gate": "A",
+            "name": "every critic finding has been adjudicated",
+            "status": "PASS",
+            "detail": "258 findings adjudicated across 9 families"
+          }
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-09-22T02:56:12.897Z",
+      "cwd": "E:/Droppy/port",
+      "command": "node porting/tools/verify.mjs --gate B --json",
+      "exit": 0,
+      "stdout": "{\n  \"pinned_sha\": \"dd2b86efef9e77168f304a86e8a8411877578bbe\",\n  \"pinned_tree\": \"f761e5ef3745c4f68958ffa4014ab0b618c9d419\",\n  \"reference\": \"E:/Droppy/reference/droppy-code\",\n  \"counts\": {\n    \"PASS\": 8\n  },\n  \"ok\": true,\n  \"results\": [\n    {\n      \"gate\": \"B\",\n      \"name\": \"architecture record exists and is substantive\",\n      \"status\": \"PASS\",\n      \"detail\": \"63015 bytes, 194 source citations\"\n    },\n    {\n      \"gate\": \"B\",\n      \"name\": \"parity matrix exists with well-formed requirements\",\n      \"status\": \"PASS\",\n      \"detail\": \"3827 requirements across 20 areas\"\n    },\n    {\n      \"gate\": \"B\",\n      \"name\": \"every cited source path exists in the pinned inventory\",\n      \"status\": \"PASS\",\n      \"detail\": \"all cited source paths exist at dd2b86ef; all cited port artifacts exist on disk\"\n    },\n    {\n      \"gate\": \"B\",\n      \"name\": \"UI contract exists with well-formed records\",\n      \"status\": \"PASS\",\n      \"detail\": \"1029 UI records\"\n    },\n    {\n      \"gate\": \"B\",\n      \"name\": \"quarantined behavior is not marked ready to implement\",\n      \"status\": \"PASS\",\n      \"detail\": \"12 open quarantine entries, 27 requirement(s) correctly held at DISCOVERED\"\n    },\n    {\n      \"gate\": \"B\",\n      \"name\": \"no requirement silently depends on an unresolved unknown\",\n      \"status\": \"PASS\",\n      \"detail\": \"15 open unknowns, 127 requirement(s) declare a dependency\"\n    },\n    {\n      \"gate\": \"B\",\n      \"name\": \"every completeness-audit finding has been adjudicated\",\n      \"status\": \"PASS\",\n      \"detail\": \"83 findings adjudicated across 4 scopes\"\n    },\n    {\n      \"gate\": \"B\",\n      \"name\": \"platform adaptation register covers the identified boundaries\",\n      \"status\": \"PASS\",\n      \"detail\": \"16 adaptation entries\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "report": {
+        "pinned_sha": "dd2b86efef9e77168f304a86e8a8411877578bbe",
+        "pinned_tree": "f761e5ef3745c4f68958ffa4014ab0b618c9d419",
+        "reference": "E:/Droppy/reference/droppy-code",
+        "counts": {
+          "PASS": 8
+        },
+        "ok": true,
+        "results": [
+          {
+            "gate": "B",
+            "name": "architecture record exists and is substantive",
+            "status": "PASS",
+            "detail": "63015 bytes, 194 source citations"
+          },
+          {
+            "gate": "B",
+            "name": "parity matrix exists with well-formed requirements",
+            "status": "PASS",
+            "detail": "3827 requirements across 20 areas"
+          },
+          {
+            "gate": "B",
+            "name": "every cited source path exists in the pinned inventory",
+            "status": "PASS",
+            "detail": "all cited source paths exist at dd2b86ef; all cited port artifacts exist on disk"
+          },
+          {
+            "gate": "B",
+            "name": "UI contract exists with well-formed records",
+            "status": "PASS",
+            "detail": "1029 UI records"
+          },
+          {
+            "gate": "B",
+            "name": "quarantined behavior is not marked ready to implement",
+            "status": "PASS",
+            "detail": "12 open quarantine entries, 27 requirement(s) correctly held at DISCOVERED"
+          },
+          {
+            "gate": "B",
+            "name": "no requirement silently depends on an unresolved unknown",
+            "status": "PASS",
+            "detail": "15 open unknowns, 127 requirement(s) declare a dependency"
+          },
+          {
+            "gate": "B",
+            "name": "every completeness-audit finding has been adjudicated",
+            "status": "PASS",
+            "detail": "83 findings adjudicated across 4 scopes"
+          },
+          {
+            "gate": "B",
+            "name": "platform adaptation register covers the identified boundaries",
+            "status": "PASS",
+            "detail": "16 adaptation entries"
+          }
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-09-22T02:56:12.939Z",
+      "cwd": "E:/Droppy/port",
+      "command": "node porting/tools/verify.mjs --gate C --json",
+      "exit": 1,
+      "stdout": "{\n  \"pinned_sha\": \"dd2b86efef9e77168f304a86e8a8411877578bbe\",\n  \"pinned_tree\": \"f761e5ef3745c4f68958ffa4014ab0b618c9d419\",\n  \"reference\": \"E:/Droppy/reference/droppy-code\",\n  \"counts\": {\n    \"PASS\": 1,\n    \"FAIL\": 1,\n    \"NOT_IMPLEMENTED\": 1\n  },\n  \"ok\": false,\n  \"results\": [\n    {\n      \"gate\": \"C\",\n      \"name\": \"no quarantined behavior is implemented while its owner decision is open\",\n      \"status\": \"PASS\",\n      \"detail\": \"12 open entries respected (5 by identifier, 7 by required marker) across 1 tree(s)\"\n    },\n    {\n      \"gate\": \"C\",\n      \"name\": \"no temporary stub remains in the implementation\",\n      \"status\": \"FAIL\",\n      \"detail\": \"2 stub(s) remain:\\n    src\\\\Marrow.App\\\\Program.cs:4 TODO/FIXME/HACK/STUB comment\\n    src\\\\Marrow.App\\\\Program.cs:11 MARROW_STUB marker\"\n    },\n    {\n      \"gate\": \"C\",\n      \"name\": \"no fake-success paths, dead controls or unapproved product changes\",\n      \"status\": \"NOT_IMPLEMENTED\",\n      \"detail\": \"gate not built yet; it fails by design rather than passing by omission\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "report": {
+        "pinned_sha": "dd2b86efef9e77168f304a86e8a8411877578bbe",
+        "pinned_tree": "f761e5ef3745c4f68958ffa4014ab0b618c9d419",
+        "reference": "E:/Droppy/reference/droppy-code",
+        "counts": {
+          "PASS": 1,
+          "FAIL": 1,
+          "NOT_IMPLEMENTED": 1
+        },
+        "ok": false,
+        "results": [
+          {
+            "gate": "C",
+            "name": "no quarantined behavior is implemented while its owner decision is open",
+            "status": "PASS",
+            "detail": "12 open entries respected (5 by identifier, 7 by required marker) across 1 tree(s)"
+          },
+          {
+            "gate": "C",
+            "name": "no temporary stub remains in the implementation",
+            "status": "FAIL",
+            "detail": "2 stub(s) remain:\n    src\\Marrow.App\\Program.cs:4 TODO/FIXME/HACK/STUB comment\n    src\\Marrow.App\\Program.cs:11 MARROW_STUB marker"
+          },
+          {
+            "gate": "C",
+            "name": "no fake-success paths, dead controls or unapproved product changes",
+            "status": "NOT_IMPLEMENTED",
+            "detail": "gate not built yet; it fails by design rather than passing by omission"
+          }
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-09-22T02:56:15.309Z",
+      "cwd": "E:/Droppy/port",
+      "command": "node porting/tools/verify.mjs --gate D --json",
+      "exit": 1,
+      "stdout": "{\n  \"pinned_sha\": \"dd2b86efef9e77168f304a86e8a8411877578bbe\",\n  \"pinned_tree\": \"f761e5ef3745c4f68958ffa4014ab0b618c9d419\",\n  \"reference\": \"E:/Droppy/reference/droppy-code\",\n  \"counts\": {\n    \"PASS\": 1,\n    \"NOT_IMPLEMENTED\": 1\n  },\n  \"ok\": false,\n  \"results\": [\n    {\n      \"gate\": \"D\",\n      \"name\": \"the solution builds and every test passes, none skipped\",\n      \"status\": \"PASS\",\n      \"detail\": \"build clean with warnings as errors; 78 tests passed, 0 failed, 0 skipped\"\n    },\n    {\n      \"gate\": \"D\",\n      \"name\": \"source-derived tests, interaction tests, visual comparison, persistence and cancellation\",\n      \"status\": \"NOT_IMPLEMENTED\",\n      \"detail\": \"gate not built yet; it fails by design rather than passing by omission\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "report": {
+        "pinned_sha": "dd2b86efef9e77168f304a86e8a8411877578bbe",
+        "pinned_tree": "f761e5ef3745c4f68958ffa4014ab0b618c9d419",
+        "reference": "E:/Droppy/reference/droppy-code",
+        "counts": {
+          "PASS": 1,
+          "NOT_IMPLEMENTED": 1
+        },
+        "ok": false,
+        "results": [
+          {
+            "gate": "D",
+            "name": "the solution builds and every test passes, none skipped",
+            "status": "PASS",
+            "detail": "build clean with warnings as errors; 78 tests passed, 0 failed, 0 skipped"
+          },
+          {
+            "gate": "D",
+            "name": "source-derived tests, interaction tests, visual comparison, persistence and cancellation",
+            "status": "NOT_IMPLEMENTED",
+            "detail": "gate not built yet; it fails by design rather than passing by omission"
+          }
+        ]
+      }
+    }
+  ]
+}
