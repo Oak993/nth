@@ -780,9 +780,9 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "IMPLEMENTING",
+      "status": "DONE",
       "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: PR-MCP-011..020 complete Expected table independently frozen and reviewed; both new tests red against 10-entry baseline. Exact strings, case, OAuth URLs, fields and env verified against source."
+      "notes": "2026-09-22 TESTS_REVIEW: PR-MCP-011..020 complete Expected table independently frozen and reviewed; both new tests red against 10-entry baseline. Exact strings, case, OAuth URLs, fields and env verified against source. | 2026-09-22 DONE: PR-MCP-011..020 complete independent catalog fixtures, Slack literal env behavior. Director diff review passed; approved tests unchanged. 104 tests pass, A12 B8 quarantine protected. Static metadata only; no external connections or messages."
     },
     {
       "id": "T-M2-027",

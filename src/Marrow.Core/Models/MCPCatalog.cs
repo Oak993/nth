@@ -24,6 +24,26 @@ public static partial class MCPCatalog
         new("sequential-thinking", "Sequential Thinking", "Anthropic", "Thinks hard problems through step by step", MCPCategory.Knowledge, "mcp-sequential-thinking", 0x30B0C7, new MCPTransport.Stdio("npx", ["-y", "@modelcontextprotocol/server-sequential-thinking"]), "https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking")
         { SampleTools = ["sequentialthinking"] },
         new("git", "Git", "Anthropic", "Status, diffs, history and commits for a repo", MCPCategory.Developer, "mcp-git", 0xF05032, new MCPTransport.Stdio("uvx", ["mcp-server-git"]), "https://github.com/modelcontextprotocol/servers/tree/main/src/git")
-        { SampleTools = ["git_status", "git_diff", "git_log", "git_commit"] }
+        { SampleTools = ["git_status", "git_diff", "git_log", "git_commit"] },
+        new("brave-search", "Brave Search", "Brave", "Searches the web, local places and news", MCPCategory.Search, "mcp-brave-search", 0xFB542B, new MCPTransport.Stdio("npx", ["-y", "@brave/brave-search-mcp-server"]), "https://github.com/brave/brave-search-mcp-server")
+        { Fields = [new MCPField("key", "API key", "BSA…", MCPField.Kind.Secret, Help: "Make a key on the page, then copy it")], Env = new Dictionary<string, string> { ["BRAVE_API_KEY"] = "{key}" }, SampleTools = ["brave_web_search", "brave_local_search", "brave_news_search"], KeysUrl = "https://api-dashboard.search.brave.com/app/keys" },
+        new("tavily", "Tavily", "Tavily", "Searches the web and pulls out page content", MCPCategory.Search, "mcp-tavily", 0x0D9488, new MCPTransport.OAuth("https://mcp.tavily.com/mcp"), "https://github.com/tavily-ai/tavily-mcp")
+        { SampleTools = ["tavily-search", "tavily-extract", "tavily-crawl"] },
+        new("exa", "Exa", "Exa", "Searches the web and reads pages, with code-focused answers", MCPCategory.Search, "mcp-exa", 0x1F4FFF, new MCPTransport.OAuth("https://mcp.exa.ai/mcp"), "https://github.com/exa-labs/exa-mcp-server")
+        { SampleTools = ["web_search_exa", "web_fetch_exa", "agent_run"] },
+        new("firecrawl", "Firecrawl", "Firecrawl", "Scrapes, searches and maps whole websites", MCPCategory.Browser, "mcp-firecrawl", 0xFF6B1A, new MCPTransport.Stdio("npx", ["-y", "firecrawl-mcp"]), "https://github.com/firecrawl/firecrawl-mcp-server")
+        { Fields = [new MCPField("key", "API key", "fc-…", MCPField.Kind.Secret, Help: "Make a key on the page, then copy it")], Env = new Dictionary<string, string> { ["FIRECRAWL_API_KEY"] = "{key}" }, SampleTools = ["firecrawl_scrape", "firecrawl_search", "firecrawl_crawl", "firecrawl_map"], KeysUrl = "https://www.firecrawl.dev/app/api-keys" },
+        new("perplexity", "Perplexity", "Perplexity", "Asks the web and answers with sources", MCPCategory.Search, "mcp-perplexity", 0x20808D, new MCPTransport.Stdio("npx", ["-y", "@perplexity-ai/mcp-server"]), "https://github.com/perplexityai/modelcontextprotocol")
+        { Fields = [new MCPField("key", "API key", "pplx-…", MCPField.Kind.Secret, Help: "Make a key on the page, then copy it")], Env = new Dictionary<string, string> { ["PERPLEXITY_API_KEY"] = "{key}" }, SampleTools = ["perplexity_search", "perplexity_ask", "perplexity_research", "perplexity_reason"], KeysUrl = "https://www.perplexity.ai/settings/api" },
+        new("slack", "Slack", "Slack", "Lists channels, reads and posts messages", MCPCategory.Work, "mcp-slack", 0x4A154B, new MCPTransport.Stdio("npx", ["-y", "slack-mcp-server@latest", "--transport", "stdio"]), "https://github.com/korotovsky/slack-mcp-server")
+        { Fields = [new MCPField("token", "Bot token", "xoxb-…", MCPField.Kind.Secret, Help: "Copy the Bot User OAuth Token from your app, then invite the bot to the channels it should read")], Env = new Dictionary<string, string> { ["SLACK_MCP_XOXB_TOKEN"] = "{token}", ["SLACK_MCP_ADD_MESSAGE_TOOL"] = "true" }, SampleTools = ["channels_list", "conversations_history", "conversations_search_messages", "conversations_add_message"], KeysUrl = "https://api.slack.com/apps" },
+        new("notion", "Notion", "Notion", "Finds and edits pages in your workspace", MCPCategory.Work, "mcp-notion", 0x000000, new MCPTransport.OAuth("https://mcp.notion.com/mcp"), "https://developers.notion.com/docs/mcp")
+        { IsMonochrome = true, SampleTools = ["API-post-search", "API-retrieve-a-page", "API-patch-block-children"] },
+        new("linear", "Linear", "Linear", "Issues and projects in your Linear teams", MCPCategory.Work, "mcp-linear", 0x5E6AD2, new MCPTransport.OAuth("https://mcp.linear.app/mcp"), "https://linear.app/docs/mcp")
+        { SampleTools = ["list_issues", "create_issue", "update_issue", "list_projects"] },
+        new("atlassian", "Atlassian", "Atlassian", "Jira issues and Confluence pages", MCPCategory.Work, "mcp-atlassian", 0x0052CC, new MCPTransport.OAuth("https://mcp.atlassian.com/v2/mcp"), "https://developer.atlassian.com/cloud/rovo-mcp/")
+        { SampleTools = ["searchJiraIssuesUsingJql", "createJiraIssue", "getConfluenceContent"] },
+        new("figma", "Figma", "Figma", "Design details and screenshots from files", MCPCategory.Work, "mcp-figma", 0xF24E1E, new MCPTransport.OAuth("https://mcp.figma.com/mcp"), "https://help.figma.com/hc/en-us/articles/32132100833559")
+        { SampleTools = ["get_design_context", "get_screenshot", "get_metadata"] }
     });
 }
