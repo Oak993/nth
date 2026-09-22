@@ -45,7 +45,42 @@ the work this handoff assigns.
   and the gates, commits, updates the queue. Writes no feature code itself except on HIGH-risk packets
   where it chooses to. **Workers never commit; only the orchestrator does.** That rule is what makes
   `check_protected.mjs` work.
-- **Workers (DeepSeek v4.1 Flash, as heads):** implement one packet at a time under `WORKER_BRIEF.md`.
+- **Workers (heads):** implement one packet at a time under `WORKER_BRIEF.md`. Which model a packet
+  goes to is decided by section 4a, not by availability.
+
+## 4a. Budget and model routing (owner's cap: $10)
+
+**Owner's decision, 2026-09-22: total paid spend on workers is capped at $10.** Route every packet by
+its `risk` field in `porting/tasks/queue.json`:
+
+| Packets | Head provider | Why |
+| --- | --- | --- |
+| `risk: STANDARD` (558) | **Nemotron 3 Super, free** (OpenRouter) | Mistakes here are cheap to catch in review |
+| `risk: HIGH` (104) | **DeepSeek v4.1 Flash, paid** (native DeepSeek preset) | A plausible but wrong translation here costs data |
+| M0 probes | the owner, or DeepSeek for P5 and P6 | P2, P3, P4, P7 need an unlocked desktop |
+
+Rules the orchestrator must follow:
+
+1. **Never send a STANDARD packet to the paid model.** When the free model's daily ceiling runs out,
+   STOP assigning STANDARD packets until it resets. Work on reviews, or on HIGH packets, in the
+   meantime. Overflowing easy work onto the paid model is exactly how the $10 would disappear.
+2. **The $10 is a hard cap by construction:** it is loaded as a prepaid balance, so requests fail
+   rather than overspend. Before each HIGH packet, check the remaining balance. If it would not cover
+   the packet at the measured per-packet cost, stop and report to the owner rather than starting work
+   that cannot finish.
+3. **Measure, then plan.** After the bake-off (section 5), read the real spend per HIGH packet from the
+   DeepSeek console, multiply by the HIGH packets remaining, and report the projection to the owner.
+   The planning estimate of about $0.08 per packet assumes about 80 model turns at 35K context with
+   90% cache hits. It is an assumption, not a measurement.
+4. **If the projection exceeds the balance**, tell the owner before continuing. The lever that does not
+   cost quality is `deepseek-v4-flash` (much cheaper output) for the simpler HIGH packets; the lever
+   that does is moving some HIGH packets to the free model, which needs the owner's approval.
+5. Record the model on every packet: `node porting/tools/mark.mjs <id> ASSIGNED --by <model id>`, so
+   rejection rates per model are visible later.
+
+Throughput under this plan is set by the free model's daily request ceiling
+(`GET https://openrouter.ai/api/v1/key`, field `free_model_daily_requests`). 558 packets at roughly 80
+requests each is on the order of 45,000 free requests; divide by the ceiling for the number of days.
 
 ## 4. One-time setup in Marrow
 
@@ -81,8 +116,9 @@ Each step below was checked against the running 0.2.1 build on 2026-09-22.
 
 Nobody has measured any model on *this* job yet, so do not commit to one on price alone. Take three
 low-risk packets from M2 (pure Core logic, no UI, no processes), for example `T-M2-001`, `T-M2-002` and
-`T-M2-003`, and run each through the full loop in section 6 with **two** worker models: DeepSeek v4.1
-Flash and one alternative. Compare:
+`T-M2-003`, and run each through the full loop in section 6 with **both** worker models: Nemotron 3
+Super (free) and DeepSeek v4.1 Flash. The question is whether the free model is good enough for the
+558 STANDARD packets section 4a routes to it. Compare:
 
 - did the tests-first step produce tests that actually test the source's "Expected" text?
 - how many review rounds before `mark.mjs ... DONE` accepted it?
