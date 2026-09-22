@@ -70,8 +70,14 @@ Rules the orchestrator must follow:
    that cannot finish.
 3. **Measure, then plan.** After the bake-off (section 5), read the real spend per HIGH packet from the
    DeepSeek console, multiply by the HIGH packets remaining, and report the projection to the owner.
-   The planning estimate of about $0.08 per packet assumes about 80 model turns at 35K context with
-   90% cache hits. It is an assumption, not a measurement.
+   **Calibration from real usage (owner's report, 2026-09-22):** $10 on DeepSeek v4.1 bought about
+   550M tokens, an effective **$0.018 per million**, which implies the large majority of tokens were
+   served from cache. At that rate the planning estimate is about **$0.05 per packet** (assuming ~2.85M
+   tokens per packet: roughly 80 turns at 35K context), so the 104 HIGH packets come to about $5.40
+   and $10 covers roughly 190 packets. The price per token is now evidenced; the **tokens per packet
+   on this job is still an assumption** until the bake-off measures it. Keep the remaining ~$4.60 as a
+   buffer until then. If the bake-off confirms the estimate, offer the owner to move the hardest
+   STANDARD packets (large M7 views, anything adjacent to the runtime) onto the paid model.
 4. **If the projection exceeds the balance**, tell the owner before continuing. The lever that does not
    cost quality is `deepseek-v4-flash` (much cheaper output) for the simpler HIGH packets; the lever
    that does is moving some HIGH packets to the free model, which needs the owner's approval.
