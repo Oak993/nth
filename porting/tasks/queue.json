@@ -1924,9 +1924,9 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": null,
-      "notes": ""
+      "status": "IMPLEMENTING",
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: Reviewed exact Text.swift 114..129 convenience construction and nilIfEmpty, plus unchanged Timeline.swift 170..175 carrier fields. Tests cover source hunk, >200000 cap, no trimming, same-object strings and strict Codable carrier shape."
     },
     {
       "id": "T-M2-077",
