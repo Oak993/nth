@@ -189,3 +189,9 @@ public static class SimpleDiff
     private static bool Equal(string left, string right) => left == right ||
         left.Normalize(NormalizationForm.FormC) == right.Normalize(NormalizationForm.FormC);
 }
+
+public static class StringExtensions
+{
+    // Text.swift:127-129; whitespace-only strings are present values.
+    public static string? NilIfEmpty(this string text) => text.Length == 0 ? null : text;
+}

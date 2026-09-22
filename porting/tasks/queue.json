@@ -1924,9 +1924,9 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "IMPLEMENTING",
+      "status": "DONE",
       "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: Reviewed exact Text.swift 114..129 convenience construction and nilIfEmpty, plus unchanged Timeline.swift 170..175 carrier fields. Tests cover source hunk, >200000 cap, no trimming, same-object strings and strict Codable carrier shape."
+      "notes": "2026-09-22 TESTS_REVIEW: Reviewed exact Text.swift 114..129 convenience construction and nilIfEmpty, plus unchanged Timeline.swift 170..175 carrier fields. Tests cover source hunk, >200000 cap, no trimming, same-object strings and strict Codable carrier shape. | 2026-09-22 DONE: 15 tests pass; source convenience initializer computes stats once and preserves path; nilIfEmpty preserves all nonempty strings. Minimal FileEdit carrier read from Timeline.swift 170..175, unchanged by latest diff. Exact JSON field keys, strict nonoptional decoding and nil diff omission covered. Director source/diff review; no tests modified after approval. 251 total tests, protected/A/B/quarantine and build floor pass; integration remains unverified."
     },
     {
       "id": "T-M2-077",

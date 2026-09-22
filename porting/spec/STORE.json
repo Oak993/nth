@@ -2616,14 +2616,15 @@
       "cancellation": "not cancellable",
       "windows_path": "Same convenience constructor.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "A file edit can be built directly from the old and new text",
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:114-125 - extension FileEdit { struct Stats { var diff: String?; var additions: Int; var deletions: Int }; init(path: String, old: String, new: String) { let stats = SimpleDiff.unified(old: old, new: new); self.init(path: path, diff: stats.diff, additions: stats.additions, deletions: stats.deletions) } }"
-      ]
+      ],
+      "implemented_by_task": "T-M2-076"
     },
     {
       "id": "PR-STORE-114",
@@ -2636,14 +2637,15 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, and specifically without trimming.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "An empty string reads as nil through nilIfEmpty",
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:127-129 - extension String { var nilIfEmpty: String? { isEmpty ? nil : self } }"
-      ]
+      ],
+      "implemented_by_task": "T-M2-076"
     },
     {
       "id": "PR-STORE-115",
