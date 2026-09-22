@@ -1,0 +1,2 @@
+﻿Get-Counter '\GPU Engine(pid_60124_*engtype_3D)\Utilization Percentage' -SampleInterval 1 -MaxSamples 8   (pid 60124, started 20:18:47Z)
+luid_0x00000000_0x00016317 eng_0  samples=8 mean=2.6% max=2.8%

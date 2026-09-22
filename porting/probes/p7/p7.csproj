@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    P7 (task packet T-M0-006): chrome and windowing. Extended client area + title bar height hint +
+    WindowDecorations, app-drawn caption buttons on the leading edge declared through
+    Win32Properties.SetNonClientHitTestResult, and a WS_EX_NOACTIVATE panel with a typed field.
+    A throwaway probe, never production code.
+
+    Built the way P10 and P3 are built: this folder sits under the repo root, so Directory.Build.props
+    (TreatWarningsAsErrors, Nullable, ManagePackageVersionsCentrally) and Directory.Packages.props
+    (Avalonia 12.1.2) apply, and no PackageReference carries a Version attribute.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>P7</RootNamespace>
+    <AssemblyName>p7</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Skia" />
+  </ItemGroup>
+
+</Project>

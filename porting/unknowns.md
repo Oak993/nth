@@ -20,6 +20,8 @@ carries that dependency in `porting/parity_matrix.json`.
 
 ## UNK-0002 Product branding for the Windows artifact
 
+- **2026-09-22:** RESOLVED by OD-0002 (the build ships as Marrow) and OD-0008 C7 (install and data identity "Marrow Code").
+
 - **Status:** BLOCKED_ON_OWNER. Does not block reading, specification, or implementation.
   Blocks the final packaging identity and Gate E artifact naming only.
 - **Why it cannot be resolved from source:** the pinned source names the product "Droppy Code",
@@ -60,6 +62,8 @@ carries that dependency in `porting/parity_matrix.json`.
   requirements ship as UNVERIFIED with the exact list named in the final report.
 
 ## UNK-0004 Liquid Glass has no Windows equivalent and needs an accepted deviation
+
+- **2026-09-22:** RESOLVED by OD-0005 (Acrylic over the desktop, SKSL shader over app content), a named deviation; OD-0014 keeps the clear default.
 
 - **Status:** BLOCKED_ON_OWNER for acceptance of the deviation. Does not block reading, spec, or
   the stack evaluation; it is a primary **input** to the stack evaluation.
@@ -166,6 +170,8 @@ carries that dependency in `porting/parity_matrix.json`.
 
 ## UNK-0008 App icon artwork and the in-repo Droppy marks under the Marrow name
 
+- **2026-09-22:** RESOLVED by OD-0012 F1: every remaining product-name occurrence becomes Marrow, except droppy-code.json and DROPPY_CODE_PROJECT_ROOT.
+
 - **Status:** BLOCKED_ON_OWNER. Raised by OD-0002 (the build ships as Marrow). Blocks packaging
   identity and the icon asset set; blocks nothing upstream of that.
 - **What the source ships:** `DroppyCode/Resources/AppIcon.icon/` (an Icon Composer document with
@@ -235,8 +241,6 @@ carries that dependency in `porting/parity_matrix.json`.
 Both remain open options for the owner alone.
 
 ## UNK-0011 Thirteen findings the repair pass could not settle from source alone
-
-- **2026-09-22:** RESOLVED by OD-0008 (see the matching BLK entry in porting/blocked_requirements.json).
 
 - **Status:** OPEN. None blocks the specification; each names the exact missing evidence.
 - **Source:** the repair pass returned 13 `still_unresolved` items across the nine families, held
@@ -350,6 +354,8 @@ Both remain open options for the owner alone.
 
 ## UNK-0023 Whether the app should always draw its own backdrop
 
+- **2026-09-22:** RESOLVED by OD-0014: keep upstream's clear window (parity).
+
 - **Status:** OPEN. Follows from OD-0005. Does not block the stack choice or implementation of
   anything else; it decides how often the richer material is visible.
 - **The facts:** `UI/Chrome/WindowChrome.swift:116-117` sets `isOpaque = false` and
@@ -392,3 +398,31 @@ Both remain open options for the owner alone.
   under a distinct folder until then, which is a visible deviation from the source's
   `AppInfo.name`-derived root. The same collision applies to the installer identity, the Start menu
   entry and any single-instance lock, which are packaging decisions for M8.
+
+## UNK-0016 Quarantine question behind BLK-0006
+
+- **Status:** RESOLVED 2026-09-22 by OD-0008. Raised 2026-09-20 with the quarantine entry BLK-0006 in porting/blocked_requirements.json, which holds the evidence, the harm and the ruling; recorded here so every unknown a record names has an entry.
+
+## UNK-0017 Quarantine question behind BLK-0007
+
+- **Status:** RESOLVED 2026-09-22 by OD-0008. Raised 2026-09-20 with the quarantine entry BLK-0007 in porting/blocked_requirements.json, which holds the evidence, the harm and the ruling; recorded here so every unknown a record names has an entry.
+
+## UNK-0018 Quarantine question behind BLK-0008
+
+- **Status:** RESOLVED 2026-09-22 by OD-0008. Raised 2026-09-20 with the quarantine entry BLK-0008 in porting/blocked_requirements.json, which holds the evidence, the harm and the ruling; recorded here so every unknown a record names has an entry.
+
+## UNK-0019 Quarantine question behind BLK-0009
+
+- **Status:** RESOLVED 2026-09-22 by OD-0008. Raised 2026-09-20 with the quarantine entry BLK-0009 in porting/blocked_requirements.json, which holds the evidence, the harm and the ruling; recorded here so every unknown a record names has an entry.
+
+## UNK-0020 Quarantine question behind BLK-0010
+
+- **Status:** RESOLVED 2026-09-22 by OD-0008. Raised 2026-09-20 with the quarantine entry BLK-0010 in porting/blocked_requirements.json, which holds the evidence, the harm and the ruling; recorded here so every unknown a record names has an entry.
+
+## UNK-0021 Quarantine question behind BLK-0011
+
+- **Status:** RESOLVED 2026-09-22 by OD-0008. Raised 2026-09-20 with the quarantine entry BLK-0011 in porting/blocked_requirements.json, which holds the evidence, the harm and the ruling; recorded here so every unknown a record names has an entry.
+
+## UNK-0022 Quarantine question behind BLK-0012
+
+- **Status:** RESOLVED 2026-09-22 by OD-0008. Raised 2026-09-20 with the quarantine entry BLK-0012 in porting/blocked_requirements.json, which holds the evidence, the harm and the ruling; recorded here so every unknown a record names has an entry.

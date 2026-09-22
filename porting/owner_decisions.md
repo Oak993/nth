@@ -219,3 +219,24 @@ instruction may change one.
   - I1: the update feed is an internal value, empty by default, no settings UI; while empty no request is
     made and the pill shows "Check failed" with the note "No update feed is set."
   Every item is a named deviation in the final report.
+
+
+## OD-0013 The live-resize edge strip must be fixed
+
+- **Asked:** 2026-09-22, after probe P4 measured a one-frame edge lag during live resize: while the
+  pointer moves, the growing edges show a 3-5 px strip of the window's own backdrop without the app
+  layer in 4-12% of samples, and the shrinking edges clip for about a frame; never at rest.
+- **Options put to the owner:** try a fix and otherwise accept it as a named deviation (recommended);
+  accept it now; treat it as a blocker.
+- **Answer, verbatim (selected option):** "Must be fixed"
+- **Effect:** the main window chrome is not accepted until the strip is gone. Probe P4b is measuring
+  remedies (synchronous present in the size loop, DwmFlush, WVR_VALIDRECTS, over-rendering). If none
+  removes it, this returns to the owner; it is not quietly downgraded to a deviation.
+
+## OD-0014 The window stays clear by default, as upstream
+
+- **Asked:** 2026-09-22 (UNK-0023): keep upstream's clear window, where the glass sits over the desktop
+  until the user picks a wallpaper, or always draw a backdrop.
+- **Answer, verbatim (selected option):** "Keep upstream default (Recommended)"
+- **Effect:** exact parity. Over the desktop the material is Acrylic plus the app-drawn scrim (OD-0005,
+  probe P3); the richer drawn material appears once the user sets a wallpaper. UNK-0023 is resolved.

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    P2 (task packet T-M0-001): snapshot budget at production scale. A throwaway probe, never production code.
+
+    Built the way P10, P3, P4 and P7 are built: this folder sits under the repo root, so Directory.Build.props
+    (TreatWarningsAsErrors, Nullable, ManagePackageVersionsCentrally) and Directory.Packages.props (Avalonia 12.1.2)
+    apply, and no PackageReference carries a Version attribute. Avalonia.Desktop is the real Win32 platform backend,
+    so the window renders through Avalonia's GPU path (ANGLE over Direct3D 11) unless a run forces software.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>P2</RootNamespace>
+    <AssemblyName>p2</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Skia" />
+  </ItemGroup>
+
+</Project>

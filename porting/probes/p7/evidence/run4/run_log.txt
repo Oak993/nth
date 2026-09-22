@@ -1,0 +1,747 @@
+19:38:23.443Z P7 start; cursor0=(970,1401); pid=54348
+19:38:23.452Z avalonia 12.1.2+d3c867a9e2de379249b03dbeb3495bd7f076a81a
+19:38:23.452Z os Microsoft Windows NT 10.0.26200.0; .NET 10.0.12; MARROW_PORT_DATA_DIR=C:\Users\omera\AppData\Local\Temp\marrow-p7-7e6fa315
+19:38:23.453Z primary work area [0,0]-[2560,1392] 2560x1392; SPI_GETANIMATION iMinAnimate=1; SPI_GETCLIENTAREAANIMATION=1; double-click time=500 ms
+19:38:24.501Z sampling monitor [0,0]-[2560,1440] 2560x1440
+19:38:24.504Z === VARIANT os_standard: WindowDecorations=Full ExtendClientAreaToDecorationsHint=False TitleBarHeightHint=-1 SetNonClientHitTestResult declared=False
+19:38:26.835Z INPUT os_standard focus (SetForegroundWindow refused): left x1 at (668,531) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:38:27.247Z os_standard focus: foreground via click on own window = True
+19:38:27.652Z os_standard: hwnd=0x1300CA dpi=96 GetWindowRect=[160,140]-[1160,780] 1000x640 frame=[167,140]-[1153,773] 986x633 style=0x16CF0000 CAPTION=True SYSMENU=True THICKFRAME=True MINBOX=True MAXBOX=True POPUP=False ex=0x00240100 IsExtendedIntoWindowDecorations=False WindowDecorationMargin=0,0,0,0 ClientSize=984, 601 WindowDecorations=Full
+19:38:27.661Z os_standard: SCREEN content interior [227,230]-[1093,733] 866x503 magentaFraction=1.0000 live=True
+19:38:27.668Z CAPTURE os_standard_titlebar rect=[167,140]-[1153,230] 986x90 -> os_standard_titlebar.png (2038 B)
+19:38:27.668Z os_standard: NCHITTEST sidebar placement (18,16): caption(660,155)=HTCAPTION close(1127,155)=HTCLOSE min(1031,155)=HTCAPTION max(1079,155)=HTMINBUTTON content(668,531)=HTCLIENT => ok=False
+19:38:27.675Z os_standard: NCHITTEST row y=155: HTLEFT[167..167] HTSYSMENU[169..185] HTCAPTION[187..1047] HTMINBUTTON[1049..1081] HTCAPTION[1083..1083] HTMAXBUTTON[1085..1115] HTCLOSE[1117..1152]
+19:38:28.781Z os_standard: DRAG from (660,155) by (+150,+90): window moved (150,90) before=[160,140]-[1160,780] 1000x640 after=[310,230]-[1310,870] 1000x640 => ok=True
+19:38:28.782Z MSGS os_standard drag: 19:38:27.763Z WM_NCLBUTTONDOWN HTCAPTION | 19:38:27.763Z WM_SYSCOMMAND 0xF010 | 19:38:27.900Z WM_ENTERSIZEMOVE | 19:38:28.380Z WM_EXITSIZEMOVE
+19:38:29.603Z os_standard refocus: foreground via SetForegroundWindow
+19:38:29.668Z INPUT double-click caption: left x2 at (660,155) sent=4 (WM_NCHITTEST there just before = HTCAPTION)
+19:38:30.581Z os_standard: DOUBLE-CLICK caption => IsZoomed=True
+19:38:30.581Z MSGS os_standard dblclick-max: 19:38:29.668Z WM_NCLBUTTONDOWN HTCAPTION | 19:38:29.668Z WM_SYSCOMMAND 0xF010 | 19:38:29.669Z WM_NCLBUTTONDBLCLK HTCAPTION | 19:38:29.669Z WM_SYSCOMMAND 0xF030 | 19:38:29.672Z WM_LBUTTONUP (client)
+19:38:30.647Z INPUT double-click caption (maximised): left x2 at (1280,7) sent=4 (WM_NCHITTEST there just before = HTCAPTION)
+19:38:31.558Z os_standard: DOUBLE-CLICK caption while maximised => restored=True
+19:38:31.558Z MSGS os_standard dblclick-restore: 19:38:30.647Z WM_NCLBUTTONDOWN HTCAPTION | 19:38:30.647Z WM_SYSCOMMAND 0xF010 | 19:38:30.648Z WM_NCLBUTTONDBLCLK HTCAPTION | 19:38:30.648Z WM_SYSCOMMAND 0xF120
+19:38:32.379Z os_standard refocus: foreground via SetForegroundWindow
+19:38:32.443Z INPUT right-click caption: right x1 at (660,155) sent=2 (WM_NCHITTEST there just before = HTCAPTION)
+19:38:33.252Z os_standard: RIGHT-CLICK caption => our #32768 menu visible=True [660,155]-[845,302] 185x147
+19:38:33.268Z CAPTURE os_standard_sysmenu_rightclick rect=[167,140]-[1153,773] 986x633 -> os_standard_sysmenu_rightclick.png (9380 B)
+19:38:33.269Z INPUT keys Escape (close system menu): foreground 0x1300CA (Avalonia-305fd477-c8e5-428f-a099-5e60016d9c5b) sent=2/2
+19:38:33.683Z MSGS os_standard rightclick: 19:38:32.443Z WM_NCRBUTTONDOWN HTCAPTION | 19:38:32.443Z WM_CONTEXTMENU | 19:38:32.444Z WM_ENTERMENULOOP | 19:38:32.445Z WM_INITMENUPOPUP (window menu)
+19:38:33.992Z os_standard refocus: foreground via SetForegroundWindow
+19:38:34.195Z INPUT keys Alt+Space: foreground 0x1300CA (Avalonia-305fd477-c8e5-428f-a099-5e60016d9c5b) sent=4/4
+19:38:35.003Z os_standard: ALT+SPACE => our #32768 menu visible=False 
+19:38:35.003Z MSGS os_standard altspace: 19:38:34.195Z WM_SYSKEYDOWN vk=0x12
+19:38:35.313Z os_standard refocus: foreground via SetForegroundWindow
+19:38:36.119Z os_standard: SC_KEYMENU ' ' (keyboard window-menu path) => our #32768 menu visible=False 
+19:38:36.119Z MSGS os_standard sc_keymenu: 19:38:35.313Z WM_SYSCOMMAND 0xF100
+19:38:36.429Z os_standard refocus: foreground via SetForegroundWindow
+19:38:36.527Z INPUT min button: left x1 at (1031,155) sent=2 (WM_NCHITTEST there just before = HTCAPTION)
+19:38:37.260Z ANIM os_standard_minimize: frames=44 meanFrameMs=16.5 preArea=36900 postArea=0 distinctIntermediateAreas=6 => animated=True
+19:38:37.260Z ANIM os_standard_minimize series: 93ms:36900 118ms:36900 136ms:36207 154ms:34655 171ms:32571 188ms:29835 204ms:26082 223ms:21318 238ms:15680 255ms:8880 271ms:1188 287ms:0 303ms:0 320ms:0 337ms:0 354ms:0 370ms:0 386ms:0 403ms:0 419ms:0 435ms:0 449ms:0 466ms:0 482ms:0 500ms:0 516ms:0 533ms:0 549ms:0 566ms:0 582ms:0 595ms:0 611ms:0 624ms:0 641ms:0 657ms:0 674ms:0 690ms:0 706ms:0 720ms:0 737ms:0 753ms:0 770ms:0 787ms:0 803ms:0
+19:38:37.269Z ANIM os_standard_minimize: mid-transition frame at 238 ms -> anim_os_standard_minimize_mid_mask.png (995 B)
+19:38:37.269Z os_standard: MIN button => IsIconic=True
+19:38:37.269Z MSGS os_standard min: 19:38:36.527Z WM_NCLBUTTONDOWN HTMINBUTTON | 19:38:36.540Z WM_SYSCOMMAND 0xF020
+19:38:39.004Z os_standard refocus: foreground via SetForegroundWindow
+19:38:39.085Z INPUT max button: left x1 at (1079,155) sent=2 (WM_NCHITTEST there just before = HTMINBUTTON)
+19:38:39.826Z ANIM os_standard_maximize: frames=48 meanFrameMs=15.4 preArea=36900 postArea=218880 distinctIntermediateAreas=7 => animated=True
+19:38:39.826Z ANIM os_standard_maximize series: 84ms:36900 101ms:36900 116ms:37050 133ms:37448 150ms:38654 166ms:40663 178ms:44173 191ms:48165 203ms:57350 216ms:75088 229ms:140668 245ms:161865 262ms:181853 278ms:194123 292ms:202290 309ms:208082 326ms:212310 342ms:215265 359ms:217558 376ms:217899 394ms:218880 409ms:218880 425ms:218880 442ms:218880 455ms:218880 467ms:218880 484ms:218880 500ms:218880 519ms:218880 533ms:218880 550ms:218880 567ms:218880 583ms:218880 600ms:218880 616ms:218880 633ms:218880 650ms:218880 666ms:218880 680ms:218880 696ms:218880 711ms:218880 724ms:218880 736ms:218880 750ms:218880 766ms:218880 779ms:218880 795ms:218880 807ms:218880
+19:38:39.831Z ANIM os_standard_maximize: mid-transition frame at 229 ms -> anim_os_standard_maximize_mid_mask.png (1406 B)
+19:38:39.831Z os_standard: MAX button => IsZoomed=True; maximised GetWindowRect=[-8,-8]-[2568,1400] 2576x1408 frame=[0,0]-[2560,1392] 2560x1392 monitor=[0,0]-[2560,1440] 2560x1440 work=[0,0]-[2560,1392] 2560x1392
+19:38:39.831Z MSGS os_standard max: 19:38:39.085Z WM_NCLBUTTONDOWN HTMAXBUTTON | 19:38:39.096Z WM_SYSCOMMAND 0xF030
+19:38:40.219Z INPUT max button (restore): left x1 at (2485,7) sent=2 (WM_NCHITTEST there just before = HTMINBUTTON)
+19:38:40.955Z ANIM os_standard_restore: frames=49 meanFrameMs=15.0 preArea=218880 postArea=36900 distinctIntermediateAreas=7 => animated=True
+19:38:40.955Z ANIM os_standard_restore series: 83ms:218880 102ms:218880 118ms:217899 132ms:215900 150ms:203167 167ms:197461 186ms:188760 202ms:172523 222ms:133532 239ms:66542 256ms:54646 271ms:48334 286ms:44499 304ms:42135 321ms:39680 338ms:38962 355ms:37599 371ms:37050 387ms:36900 403ms:36900 415ms:36900 431ms:36900 443ms:36900 455ms:36900 469ms:36900 486ms:36900 503ms:36900 519ms:36900 531ms:36900 543ms:36900 556ms:36900 570ms:36900 587ms:36900 604ms:36900 619ms:36900 631ms:36900 644ms:36900 656ms:36900 668ms:36900 681ms:36900 694ms:36900 706ms:36900 719ms:36900 736ms:36900 748ms:36900 765ms:36900 777ms:36900 789ms:36900 802ms:36900
+19:38:40.960Z ANIM os_standard_restore: mid-transition frame at 222 ms -> anim_os_standard_restore_mid_mask.png (1368 B)
+19:38:40.960Z os_standard: MAX button while maximised => restored=True
+19:38:40.960Z MSGS os_standard restore: 19:38:40.219Z WM_NCLBUTTONDOWN HTMAXBUTTON | 19:38:40.229Z WM_SYSCOMMAND 0xF120
+19:38:41.874Z os_standard refocus: foreground via SetForegroundWindow
+19:38:42.796Z os_standard: NCHITTEST at hover point (1079,155) = HTMINBUTTON
+19:38:45.012Z CAPTURE os_standard_snap_hover rect=[167,140]-[1153,560] 986x420 -> os_standard_snap_hover.png (51284 B)
+19:38:45.014Z os_standard: SNAP hover max (1079,155) 2000 ms: zone=[167,190]-[1153,480] 986x290 zonePixelsChanged=0.1984 foreignWindowsAboveOursInZone before=0 after=0 new=[] => flyout=True
+19:38:46.532Z os_standard: SNAP 1.5 s after parking in the content: zonePixelsChanged vs pre=0.0000 (flyout dismissed if near 0)
+19:38:46.532Z MSGS os_standard snap: (none)
+19:38:46.837Z os_standard refocus: foreground via SetForegroundWindow
+19:38:46.903Z INPUT close button: left x1 at (1127,155) sent=2 (WM_NCHITTEST there just before = HTCLOSE)
+19:38:47.907Z os_standard: CLOSE button => closed=True (IsWindow=False ClosedEvent=True)
+19:38:47.907Z MSGS os_standard close: 19:38:46.904Z WM_NCLBUTTONDOWN HTCLOSE | 19:38:46.904Z WM_SYSCOMMAND 0xF060
+19:38:48.419Z RESULT-ROW os_standard: map=False mapCollapsed=False drag=True dblMax=True dblRestore=True rightClickMenu=True altSpaceMenu=False keyMenu=False min=True max=True restore=True close=True snapFlyout=True animMin=True animMax=True animRestore=True
+19:38:48.419Z === VARIANT full_declared: WindowDecorations=Full ExtendClientAreaToDecorationsHint=True TitleBarHeightHint=44 SetNonClientHitTestResult declared=True
+19:38:50.684Z full_declared focus: foreground via SetForegroundWindow
+19:38:51.087Z full_declared: hwnd=0x1400CA dpi=96 GetWindowRect=[160,140]-[1160,780] 1000x640 frame=[167,140]-[1153,773] 986x633 style=0x16CF0000 CAPTION=True SYSMENU=True THICKFRAME=True MINBOX=True MAXBOX=True POPUP=False ex=0x00240100 IsExtendedIntoWindowDecorations=True WindowDecorationMargin=0,44,0,0 ClientSize=984, 632 WindowDecorations=Full
+19:38:51.095Z full_declared: SCREEN content interior [227,230]-[1093,733] 866x503 magentaFraction=1.0000 live=True
+19:38:51.101Z CAPTURE full_declared_titlebar rect=[167,140]-[1153,230] 986x90 -> full_declared_titlebar.png (1483 B)
+19:38:51.102Z full_declared: GEOMETRY client origin (168,140) scale 1.00; close phys [186,156]-[200,170] dip left=18.0 top=16.0 size=14.0; min phys [209,156]-[223,170] dip left=41.0 top=16.0 size=14.0; max phys [232,156]-[246,170] dip left=64.0 top=16.0 size=14.0; titlebar height dip=44.0
+19:38:51.103Z full_declared: NCHITTEST sidebar placement (18,16): caption(468,162)=HTCAPTION close(193,163)=HTCLOSE min(216,163)=HTMINBUTTON max(239,163)=HTMAXBUTTON content(668,500)=HTCLIENT => ok=True
+19:38:51.113Z full_declared: NCHITTEST row y=163: HTLEFT[167..167] HTCAPTION[169..185] HTCLOSE[187..199] HTCAPTION[201..207] HTMINBUTTON[209..223] HTCAPTION[225..231] HTMAXBUTTON[233..245] HTCAPTION[247..1152]
+19:38:51.522Z full_declared: NCHITTEST collapsed placement (14,21): caption(468,162)=HTCAPTION close(189,168)=HTCLOSE min(212,168)=HTMINBUTTON max(235,168)=HTMAXBUTTON content(668,500)=HTCLIENT => ok=True
+19:38:53.041Z full_declared: DRAG from (468,162) by (+150,+90): window moved (150,90) before=[160,140]-[1160,780] 1000x640 after=[310,230]-[1310,870] 1000x640 => ok=True
+19:38:53.041Z MSGS full_declared drag: 19:38:52.025Z WM_NCLBUTTONDOWN HTCAPTION | 19:38:52.025Z WM_SYSCOMMAND 0xF010 | 19:38:52.158Z WM_ENTERSIZEMOVE | 19:38:52.639Z WM_EXITSIZEMOVE
+19:38:53.862Z full_declared refocus: foreground via SetForegroundWindow
+19:38:53.929Z INPUT double-click caption: left x2 at (468,162) sent=4 (WM_NCHITTEST there just before = HTCAPTION)
+19:38:54.840Z full_declared: DOUBLE-CLICK caption => IsZoomed=True
+19:38:54.840Z MSGS full_declared dblclick-max: 19:38:53.930Z WM_NCLBUTTONDOWN HTCAPTION | 19:38:53.930Z WM_SYSCOMMAND 0xF010 | 19:38:53.931Z WM_NCLBUTTONDBLCLK HTCAPTION | 19:38:53.931Z WM_SYSCOMMAND 0xF030 | 19:38:53.934Z WM_LBUTTONUP (client)
+19:38:54.909Z INPUT double-click caption (maximised): left x2 at (300,22) sent=4 (WM_NCHITTEST there just before = HTCAPTION)
+19:38:55.818Z full_declared: DOUBLE-CLICK caption while maximised => restored=True
+19:38:55.818Z MSGS full_declared dblclick-restore: 19:38:54.909Z WM_NCLBUTTONDOWN HTCAPTION | 19:38:54.910Z WM_SYSCOMMAND 0xF010 | 19:38:54.911Z WM_NCLBUTTONDBLCLK HTCAPTION | 19:38:54.911Z WM_SYSCOMMAND 0xF120
+19:38:56.639Z full_declared refocus: foreground via SetForegroundWindow
+19:38:56.704Z INPUT right-click caption: right x1 at (468,162) sent=2 (WM_NCHITTEST there just before = HTCAPTION)
+19:38:57.508Z full_declared: RIGHT-CLICK caption => our #32768 menu visible=False 
+19:38:57.508Z MSGS full_declared rightclick: 19:38:56.705Z WM_NCRBUTTONDOWN HTCAPTION | 19:38:56.705Z WM_CONTEXTMENU
+19:38:57.818Z full_declared refocus: foreground via SetForegroundWindow
+19:38:58.020Z INPUT keys Alt+Space: foreground 0x1400CA (Avalonia-788a28e6-80db-48b1-9818-77022a0201c7) sent=4/4
+19:38:58.825Z full_declared: ALT+SPACE => our #32768 menu visible=False 
+19:38:58.826Z MSGS full_declared altspace: 19:38:58.020Z WM_SYSKEYDOWN vk=0x12
+19:38:59.135Z full_declared refocus: foreground via SetForegroundWindow
+19:38:59.942Z full_declared: SC_KEYMENU ' ' (keyboard window-menu path) => our #32768 menu visible=False 
+19:38:59.942Z MSGS full_declared sc_keymenu: 19:38:59.135Z WM_SYSCOMMAND 0xF100
+19:39:00.253Z full_declared refocus: foreground via SetForegroundWindow
+19:39:00.334Z INPUT min button: left x1 at (216,163) sent=2 (WM_NCHITTEST there just before = HTMINBUTTON)
+19:39:01.079Z ANIM full_declared_minimize: frames=52 meanFrameMs=14.3 preArea=36162 postArea=36162 distinctIntermediateAreas=0 => animated=False
+19:39:01.079Z ANIM full_declared_minimize series: 80ms:36162 93ms:36162 109ms:36162 126ms:36162 141ms:36162 157ms:36162 173ms:36162 189ms:36162 206ms:36162 223ms:36162 241ms:36162 256ms:36162 272ms:36162 290ms:36162 305ms:36162 319ms:36162 334ms:36162 347ms:36162 360ms:36162 372ms:36162 384ms:36162 397ms:36162 410ms:36162 422ms:36162 438ms:36162 451ms:36162 464ms:36162 476ms:36162 489ms:36162 501ms:36162 514ms:36162 527ms:36162 541ms:36162 555ms:36162 570ms:36162 584ms:36162 597ms:36162 609ms:36162 622ms:36162 635ms:36162 647ms:36162 660ms:36162 672ms:36162 684ms:36162 697ms:36162 710ms:36162 727ms:36162 743ms:36162 763ms:36162 777ms:36162 795ms:36162 810ms:36162
+19:39:01.079Z full_declared: MIN button => IsIconic=False
+19:39:01.079Z MSGS full_declared min: 19:39:00.335Z WM_NCLBUTTONDOWN HTMINBUTTON
+19:39:01.898Z full_declared refocus: foreground via SetForegroundWindow
+19:39:02.055Z INPUT max button: left x1 at (239,163) sent=2 (WM_NCHITTEST there just before = HTMAXBUTTON)
+19:39:02.808Z ANIM full_declared_maximize: frames=51 meanFrameMs=14.7 preArea=36162 postArea=36162 distinctIntermediateAreas=0 => animated=False
+19:39:02.808Z ANIM full_declared_maximize series: 79ms:36162 96ms:36162 112ms:36162 124ms:36162 136ms:36162 149ms:36162 166ms:36162 180ms:36162 197ms:36162 212ms:36162 230ms:36162 245ms:36162 262ms:36162 279ms:36162 296ms:36162 312ms:36162 324ms:36162 336ms:36162 349ms:36162 361ms:36162 374ms:36162 386ms:36162 399ms:36162 411ms:36162 424ms:36162 439ms:36162 454ms:36162 470ms:36162 487ms:36162 499ms:36162 512ms:36162 529ms:36162 546ms:36162 562ms:36162 574ms:36162 586ms:36162 600ms:36162 615ms:36162 628ms:36162 641ms:36162 657ms:36162 670ms:36162 683ms:36162 700ms:36162 718ms:36162 736ms:36162 750ms:36162 767ms:36162 784ms:36162 800ms:36162 816ms:36162
+19:39:02.808Z full_declared: MAX button => IsZoomed=False; maximised GetWindowRect=[160,140]-[1160,780] 1000x640 frame=[167,140]-[1153,773] 986x633 monitor=[0,0]-[2560,1440] 2560x1440 work=[0,0]-[2560,1392] 2560x1392
+19:39:02.808Z MSGS full_declared max: 19:39:02.055Z WM_NCLBUTTONDOWN HTMAXBUTTON
+19:39:03.729Z full_declared refocus: foreground via SetForegroundWindow
+19:39:04.649Z full_declared: NCHITTEST at hover point (239,163) = HTMAXBUTTON
+19:39:06.881Z CAPTURE full_declared_snap_hover rect=[167,140]-[1153,560] 986x420 -> full_declared_snap_hover.png (52436 B)
+19:39:06.882Z full_declared: SNAP hover max (239,163) 2000 ms: zone=[167,190]-[659,480] 492x290 zonePixelsChanged=0.4009 foreignWindowsAboveOursInZone before=0 after=0 new=[] => flyout=True
+19:39:08.404Z full_declared: SNAP 1.5 s after parking in the content: zonePixelsChanged vs pre=0.0000 (flyout dismissed if near 0)
+19:39:08.404Z MSGS full_declared snap: (none)
+19:39:08.704Z full_declared refocus: foreground via SetForegroundWindow
+19:39:08.769Z INPUT close button: left x1 at (193,163) sent=2 (WM_NCHITTEST there just before = HTCLOSE)
+19:39:09.774Z full_declared: CLOSE button => closed=False (IsWindow=True ClosedEvent=False)
+19:39:09.774Z MSGS full_declared close: 19:39:08.770Z WM_NCLBUTTONDOWN HTCLOSE
+19:39:10.286Z RESULT-ROW full_declared: map=True mapCollapsed=True drag=True dblMax=True dblRestore=True rightClickMenu=False altSpaceMenu=False keyMenu=False min=False max=False restore=False close=False snapFlyout=True animMin=False animMax=False animRestore=
+19:39:10.286Z === VARIANT borderonly_declared: WindowDecorations=BorderOnly ExtendClientAreaToDecorationsHint=True TitleBarHeightHint=44 SetNonClientHitTestResult declared=True
+19:39:12.538Z borderonly_declared focus: foreground via SetForegroundWindow
+19:39:12.943Z borderonly_declared: hwnd=0xC04C8 dpi=96 GetWindowRect=[160,140]-[1160,780] 1000x640 frame=[167,140]-[1153,773] 986x633 style=0x16870000 CAPTION=False SYSMENU=False THICKFRAME=True MINBOX=True MAXBOX=True POPUP=False ex=0x00240100 IsExtendedIntoWindowDecorations=True WindowDecorationMargin=0,0,0,0 ClientSize=984, 631 WindowDecorations=BorderOnly
+19:39:12.948Z borderonly_declared: SCREEN content interior [227,230]-[1093,733] 866x503 magentaFraction=1.0000 live=True
+19:39:12.954Z CAPTURE borderonly_declared_titlebar rect=[167,140]-[1153,230] 986x90 -> borderonly_declared_titlebar.png (2037 B)
+19:39:12.955Z borderonly_declared: GEOMETRY client origin (168,141) scale 1.00; close phys [186,157]-[200,171] dip left=18.0 top=16.0 size=14.0; min phys [209,157]-[223,171] dip left=41.0 top=16.0 size=14.0; max phys [232,157]-[246,171] dip left=64.0 top=16.0 size=14.0; titlebar height dip=44.0
+19:39:12.955Z borderonly_declared: NCHITTEST sidebar placement (18,16): caption(468,163)=HTCAPTION close(193,164)=HTCLOSE min(216,164)=HTMINBUTTON max(239,164)=HTMAXBUTTON content(668,501)=HTCLIENT => ok=True
+19:39:12.962Z borderonly_declared: NCHITTEST row y=164: HTLEFT[167..167] HTCAPTION[169..185] HTCLOSE[187..199] HTCAPTION[201..207] HTMINBUTTON[209..223] HTCAPTION[225..231] HTMAXBUTTON[233..245] HTCAPTION[247..1152]
+19:39:13.375Z borderonly_declared: NCHITTEST collapsed placement (14,21): caption(468,163)=HTCAPTION close(189,169)=HTCLOSE min(212,169)=HTMINBUTTON max(235,169)=HTMAXBUTTON content(668,501)=HTCLIENT => ok=True
+19:39:14.894Z borderonly_declared: DRAG from (468,163) by (+150,+90): window moved (150,90) before=[160,140]-[1160,780] 1000x640 after=[310,230]-[1310,870] 1000x640 => ok=True
+19:39:14.894Z MSGS borderonly_declared drag: 19:39:13.877Z WM_NCLBUTTONDOWN HTCAPTION | 19:39:13.878Z WM_SYSCOMMAND 0xF010 | 19:39:14.011Z WM_ENTERSIZEMOVE | 19:39:14.492Z WM_EXITSIZEMOVE
+19:39:15.717Z borderonly_declared refocus: foreground via SetForegroundWindow
+19:39:15.783Z INPUT double-click caption: left x2 at (468,163) sent=4 (WM_NCHITTEST there just before = HTCAPTION)
+19:39:16.693Z borderonly_declared: DOUBLE-CLICK caption => IsZoomed=True
+19:39:16.693Z MSGS borderonly_declared dblclick-max: 19:39:15.783Z WM_NCLBUTTONDOWN HTCAPTION | 19:39:15.783Z WM_SYSCOMMAND 0xF010 | 19:39:15.784Z WM_NCLBUTTONDBLCLK HTCAPTION | 19:39:15.784Z WM_SYSCOMMAND 0xF030 | 19:39:15.787Z WM_LBUTTONUP (client)
+19:39:16.757Z INPUT double-click caption (maximised): left x2 at (300,22) sent=4 (WM_NCHITTEST there just before = HTCAPTION)
+19:39:17.670Z borderonly_declared: DOUBLE-CLICK caption while maximised => restored=True
+19:39:17.670Z MSGS borderonly_declared dblclick-restore: 19:39:16.758Z WM_NCLBUTTONDOWN HTCAPTION | 19:39:16.758Z WM_SYSCOMMAND 0xF010 | 19:39:16.759Z WM_NCLBUTTONDBLCLK HTCAPTION | 19:39:16.759Z WM_SYSCOMMAND 0xF120
+19:39:18.493Z borderonly_declared refocus: foreground via SetForegroundWindow
+19:39:18.558Z INPUT right-click caption: right x1 at (468,163) sent=2 (WM_NCHITTEST there just before = HTCAPTION)
+19:39:19.362Z borderonly_declared: RIGHT-CLICK caption => our #32768 menu visible=False 
+19:39:19.362Z MSGS borderonly_declared rightclick: 19:39:18.558Z WM_NCRBUTTONDOWN HTCAPTION | 19:39:18.558Z WM_CONTEXTMENU
+19:39:19.671Z borderonly_declared refocus: foreground via SetForegroundWindow
+19:39:19.874Z INPUT keys Alt+Space: foreground 0xC04C8 (Avalonia-58e66895-0327-4422-a9f5-0c103d11b31e) sent=4/4
+19:39:20.680Z borderonly_declared: ALT+SPACE => our #32768 menu visible=False 
+19:39:20.680Z MSGS borderonly_declared altspace: 19:39:19.874Z WM_SYSKEYDOWN vk=0x12
+19:39:20.990Z borderonly_declared refocus: foreground via SetForegroundWindow
+19:39:21.797Z borderonly_declared: SC_KEYMENU ' ' (keyboard window-menu path) => our #32768 menu visible=False 
+19:39:21.797Z MSGS borderonly_declared sc_keymenu: 19:39:20.990Z WM_SYSCOMMAND 0xF100
+19:39:22.107Z borderonly_declared refocus: foreground via SetForegroundWindow
+19:39:22.204Z INPUT min button: left x1 at (216,164) sent=2 (WM_NCHITTEST there just before = HTMINBUTTON)
+19:39:22.940Z ANIM borderonly_declared_minimize: frames=48 meanFrameMs=15.3 preArea=36162 postArea=36162 distinctIntermediateAreas=0 => animated=False
+19:39:22.940Z ANIM borderonly_declared_minimize series: 92ms:36162 109ms:36162 125ms:36162 142ms:36162 159ms:36162 175ms:36162 193ms:36162 209ms:36162 226ms:36162 243ms:36162 260ms:36162 277ms:36162 297ms:36162 314ms:36162 330ms:36162 346ms:36162 363ms:36162 380ms:36162 397ms:36162 413ms:36162 429ms:36162 447ms:36162 462ms:36162 480ms:36162 496ms:36162 513ms:36162 527ms:36162 538ms:36162 551ms:36162 564ms:36162 576ms:36162 588ms:36162 601ms:36162 613ms:36162 626ms:36162 638ms:36162 651ms:36162 663ms:36162 676ms:36162 692ms:36162 710ms:36162 726ms:36162 742ms:36162 759ms:36162 771ms:36162 784ms:36162 796ms:36162 810ms:36162
+19:39:22.940Z borderonly_declared: MIN button => IsIconic=False
+19:39:22.940Z MSGS borderonly_declared min: 19:39:22.205Z WM_NCLBUTTONDOWN HTMINBUTTON
+19:39:23.767Z borderonly_declared refocus: foreground via SetForegroundWindow
+19:39:23.925Z INPUT max button: left x1 at (239,164) sent=2 (WM_NCHITTEST there just before = HTMAXBUTTON)
+19:39:24.666Z ANIM borderonly_declared_maximize: frames=56 meanFrameMs=13.2 preArea=36162 postArea=36162 distinctIntermediateAreas=0 => animated=False
+19:39:24.666Z ANIM borderonly_declared_maximize series: 79ms:36162 91ms:36162 104ms:36162 116ms:36162 129ms:36162 141ms:36162 154ms:36162 166ms:36162 179ms:36162 191ms:36162 203ms:36162 216ms:36162 228ms:36162 245ms:36162 258ms:36162 272ms:36162 289ms:36162 305ms:36162 321ms:36162 338ms:36162 354ms:36162 366ms:36162 383ms:36162 395ms:36162 408ms:36162 420ms:36162 433ms:36162 445ms:36162 457ms:36162 470ms:36162 483ms:36162 496ms:36162 508ms:36162 521ms:36162 533ms:36162 545ms:36162 558ms:36162 570ms:36162 583ms:36162 596ms:36162 608ms:36162 620ms:36162 632ms:36162 649ms:36162 666ms:36162 678ms:36162 691ms:36162 704ms:36162 716ms:36162 729ms:36162 742ms:36162 754ms:36162 767ms:36162 779ms:36162 792ms:36162 804ms:36162
+19:39:24.666Z borderonly_declared: MAX button => IsZoomed=False; maximised GetWindowRect=[160,140]-[1160,780] 1000x640 frame=[167,140]-[1153,773] 986x633 monitor=[0,0]-[2560,1440] 2560x1440 work=[0,0]-[2560,1392] 2560x1392
+19:39:24.666Z MSGS borderonly_declared max: 19:39:23.925Z WM_NCLBUTTONDOWN HTMAXBUTTON
+19:39:25.583Z borderonly_declared refocus: foreground via SetForegroundWindow
+19:39:26.502Z borderonly_declared: NCHITTEST at hover point (239,164) = HTMAXBUTTON
+19:39:28.734Z CAPTURE borderonly_declared_snap_hover rect=[167,140]-[1153,560] 986x420 -> borderonly_declared_snap_hover.png (52540 B)
+19:39:28.735Z borderonly_declared: SNAP hover max (239,164) 2000 ms: zone=[167,190]-[659,480] 492x290 zonePixelsChanged=0.4004 foreignWindowsAboveOursInZone before=0 after=0 new=[] => flyout=True
+19:39:30.245Z borderonly_declared: SNAP 1.5 s after parking in the content: zonePixelsChanged vs pre=0.0000 (flyout dismissed if near 0)
+19:39:30.245Z MSGS borderonly_declared snap: (none)
+19:39:30.546Z borderonly_declared refocus: foreground via SetForegroundWindow
+19:39:30.614Z INPUT close button: left x1 at (193,164) sent=2 (WM_NCHITTEST there just before = HTCLOSE)
+19:39:31.618Z borderonly_declared: CLOSE button => closed=False (IsWindow=True ClosedEvent=False)
+19:39:31.618Z MSGS borderonly_declared close: 19:39:30.615Z WM_NCLBUTTONDOWN HTCLOSE
+19:39:32.130Z RESULT-ROW borderonly_declared: map=True mapCollapsed=True drag=True dblMax=True dblRestore=True rightClickMenu=False altSpaceMenu=False keyMenu=False min=False max=False restore=False close=False snapFlyout=True animMin=False animMax=False animRestore=
+19:39:32.130Z === VARIANT none_declared: WindowDecorations=None ExtendClientAreaToDecorationsHint=True TitleBarHeightHint=44 SetNonClientHitTestResult declared=True
+19:39:34.379Z none_declared focus: foreground via SetForegroundWindow
+19:39:34.783Z none_declared: hwnd=0x1006EE dpi=96 GetWindowRect=[160,140]-[1160,780] 1000x640 frame=[160,140]-[1160,780] 1000x640 style=0x16030000 CAPTION=False SYSMENU=False THICKFRAME=False MINBOX=True MAXBOX=True POPUP=False ex=0x00240000 IsExtendedIntoWindowDecorations=True WindowDecorationMargin=0,0,0,0 ClientSize=1000, 640 WindowDecorations=None
+19:39:34.794Z none_declared: SCREEN content interior [220,230]-[1100,740] 880x510 magentaFraction=1.0000 live=True
+19:39:34.799Z CAPTURE none_declared_titlebar rect=[160,140]-[1160,230] 1000x90 -> none_declared_titlebar.png (1289 B)
+19:39:34.800Z none_declared: GEOMETRY client origin (160,140) scale 1.00; close phys [178,156]-[192,170] dip left=18.0 top=16.0 size=14.0; min phys [201,156]-[215,170] dip left=41.0 top=16.0 size=14.0; max phys [224,156]-[238,170] dip left=64.0 top=16.0 size=14.0; titlebar height dip=44.0
+19:39:34.800Z none_declared: NCHITTEST sidebar placement (18,16): caption(460,162)=HTCAPTION close(185,163)=HTCLOSE min(208,163)=HTMINBUTTON max(231,163)=HTMAXBUTTON content(660,500)=HTCLIENT => ok=True
+19:39:34.805Z none_declared: NCHITTEST row y=163: HTCAPTION[160..176] HTCLOSE[178..192] HTCAPTION[194..200] HTMINBUTTON[202..214] HTCAPTION[216..222] HTMAXBUTTON[224..238] HTCAPTION[240..1159]
+19:39:35.217Z none_declared: NCHITTEST collapsed placement (14,21): caption(460,162)=HTCAPTION close(181,168)=HTCLOSE min(204,168)=HTMINBUTTON max(227,168)=HTMAXBUTTON content(660,500)=HTCLIENT => ok=True
+19:39:36.720Z none_declared: DRAG from (460,162) by (+150,+90): window moved (150,90) before=[160,140]-[1160,780] 1000x640 after=[310,230]-[1310,870] 1000x640 => ok=True
+19:39:36.720Z MSGS none_declared drag: 19:39:35.715Z WM_NCLBUTTONDOWN HTCAPTION | 19:39:35.715Z WM_SYSCOMMAND 0xF010 | 19:39:35.839Z WM_ENTERSIZEMOVE | 19:39:36.319Z WM_EXITSIZEMOVE
+19:39:37.542Z none_declared refocus: foreground via SetForegroundWindow
+19:39:37.611Z INPUT double-click caption: left x2 at (460,162) sent=4 (WM_NCHITTEST there just before = HTCAPTION)
+19:39:38.519Z none_declared: DOUBLE-CLICK caption => IsZoomed=True
+19:39:38.519Z MSGS none_declared dblclick-max: 19:39:37.611Z WM_NCLBUTTONDOWN HTCAPTION | 19:39:37.611Z WM_SYSCOMMAND 0xF010 | 19:39:37.612Z WM_NCLBUTTONDBLCLK HTCAPTION | 19:39:37.612Z WM_SYSCOMMAND 0xF030 | 19:39:37.614Z WM_LBUTTONUP (client)
+19:39:38.590Z INPUT double-click caption (maximised): left x2 at (300,22) sent=4 (WM_NCHITTEST there just before = HTCAPTION)
+19:39:39.496Z none_declared: DOUBLE-CLICK caption while maximised => restored=True
+19:39:39.496Z MSGS none_declared dblclick-restore: 19:39:38.590Z WM_NCLBUTTONDOWN HTCAPTION | 19:39:38.591Z WM_SYSCOMMAND 0xF010 | 19:39:38.592Z WM_NCLBUTTONDBLCLK HTCAPTION | 19:39:38.592Z WM_SYSCOMMAND 0xF120
+19:39:40.318Z none_declared refocus: foreground via SetForegroundWindow
+19:39:40.381Z INPUT right-click caption: right x1 at (460,162) sent=2 (WM_NCHITTEST there just before = HTCAPTION)
+19:39:41.187Z none_declared: RIGHT-CLICK caption => our #32768 menu visible=False 
+19:39:41.187Z MSGS none_declared rightclick: 19:39:40.382Z WM_NCRBUTTONDOWN HTCAPTION | 19:39:40.382Z WM_CONTEXTMENU
+19:39:41.498Z none_declared refocus: foreground via SetForegroundWindow
+19:39:41.701Z INPUT keys Alt+Space: foreground 0x1006EE (Avalonia-1c7647c0-ad09-4b48-b4f1-60e4751abfb8) sent=4/4
+19:39:42.507Z none_declared: ALT+SPACE => our #32768 menu visible=False 
+19:39:42.507Z MSGS none_declared altspace: 19:39:41.701Z WM_SYSKEYDOWN vk=0x12
+19:39:42.816Z none_declared refocus: foreground via SetForegroundWindow
+19:39:43.623Z none_declared: SC_KEYMENU ' ' (keyboard window-menu path) => our #32768 menu visible=False 
+19:39:43.623Z MSGS none_declared sc_keymenu: 19:39:42.817Z WM_SYSCOMMAND 0xF100
+19:39:43.933Z none_declared refocus: foreground via SetForegroundWindow
+19:39:44.028Z INPUT min button: left x1 at (208,163) sent=2 (WM_NCHITTEST there just before = HTMINBUTTON)
+19:39:44.763Z ANIM none_declared_minimize: frames=44 meanFrameMs=16.7 preArea=37250 postArea=37250 distinctIntermediateAreas=0 => animated=False
+19:39:44.763Z ANIM none_declared_minimize series: 94ms:37250 110ms:37250 126ms:37250 143ms:37250 160ms:37250 177ms:37250 193ms:37250 210ms:37250 227ms:37250 245ms:37250 261ms:37250 278ms:37250 294ms:37250 310ms:37250 328ms:37250 344ms:37250 360ms:37250 377ms:37250 394ms:37250 410ms:37250 427ms:37250 443ms:37250 460ms:37250 477ms:37250 493ms:37250 510ms:37250 528ms:37250 545ms:37250 561ms:37250 577ms:37250 594ms:37250 611ms:37250 626ms:37250 644ms:37250 660ms:37250 676ms:37250 693ms:37250 709ms:37250 727ms:37250 744ms:37250 760ms:37250 777ms:37250 793ms:37250 811ms:37250
+19:39:44.763Z none_declared: MIN button => IsIconic=False
+19:39:44.763Z MSGS none_declared min: 19:39:44.029Z WM_NCLBUTTONDOWN HTMINBUTTON
+19:39:45.578Z none_declared refocus: foreground via SetForegroundWindow
+19:39:45.756Z INPUT max button: left x1 at (231,163) sent=2 (WM_NCHITTEST there just before = HTMAXBUTTON)
+19:39:46.477Z ANIM none_declared_maximize: frames=55 meanFrameMs=13.1 preArea=37250 postArea=37250 distinctIntermediateAreas=0 => animated=False
+19:39:46.477Z ANIM none_declared_maximize series: 95ms:37250 107ms:37250 121ms:37250 137ms:37250 153ms:37250 166ms:37250 178ms:37250 190ms:37250 204ms:37250 219ms:37250 231ms:37250 244ms:37250 257ms:37250 271ms:37250 286ms:37250 298ms:37250 311ms:37250 324ms:37250 336ms:37250 349ms:37250 361ms:37250 373ms:37250 386ms:37250 398ms:37250 412ms:37250 423ms:37250 436ms:37250 448ms:37250 461ms:37250 473ms:37250 486ms:37250 499ms:37250 512ms:37250 523ms:37250 536ms:37250 549ms:37250 562ms:37250 580ms:37250 594ms:37250 607ms:37250 619ms:37250 632ms:37250 644ms:37250 658ms:37250 674ms:37250 686ms:37250 699ms:37250 712ms:37250 728ms:37250 740ms:37250 753ms:37250 765ms:37250 778ms:37250 790ms:37250 803ms:37250
+19:39:46.477Z none_declared: MAX button => IsZoomed=False; maximised GetWindowRect=[160,140]-[1160,780] 1000x640 frame=[160,140]-[1160,780] 1000x640 monitor=[0,0]-[2560,1440] 2560x1440 work=[0,0]-[2560,1392] 2560x1392
+19:39:46.477Z MSGS none_declared max: 19:39:45.756Z WM_NCLBUTTONDOWN HTMAXBUTTON
+19:39:47.393Z none_declared refocus: foreground via SetForegroundWindow
+19:39:48.313Z none_declared: NCHITTEST at hover point (231,163) = HTMAXBUTTON
+19:39:50.528Z CAPTURE none_declared_snap_hover rect=[160,140]-[1160,560] 1000x420 -> none_declared_snap_hover.png (3021 B)
+19:39:50.529Z none_declared: SNAP hover max (231,163) 2000 ms: zone=[160,190]-[651,480] 491x290 zonePixelsChanged=0.0000 foreignWindowsAboveOursInZone before=0 after=0 new=[] => flyout=False
+19:39:52.040Z none_declared: SNAP 1.5 s after parking in the content: zonePixelsChanged vs pre=0.0000 (flyout dismissed if near 0)
+19:39:52.040Z MSGS none_declared snap: (none)
+19:39:52.341Z none_declared refocus: foreground via SetForegroundWindow
+19:39:52.408Z INPUT close button: left x1 at (185,163) sent=2 (WM_NCHITTEST there just before = HTCLOSE)
+19:39:53.413Z none_declared: CLOSE button => closed=False (IsWindow=True ClosedEvent=False)
+19:39:53.413Z MSGS none_declared close: 19:39:52.409Z WM_NCLBUTTONDOWN HTCLOSE
+19:39:53.925Z RESULT-ROW none_declared: map=True mapCollapsed=True drag=True dblMax=True dblRestore=True rightClickMenu=False altSpaceMenu=False keyMenu=False min=False max=False restore=False close=False snapFlyout=False animMin=False animMax=False animRestore=
+19:39:53.925Z === VARIANT full_undeclared: WindowDecorations=Full ExtendClientAreaToDecorationsHint=True TitleBarHeightHint=44 SetNonClientHitTestResult declared=False
+19:39:56.176Z full_undeclared focus: foreground via SetForegroundWindow
+19:39:56.579Z full_undeclared: hwnd=0xA0700 dpi=96 GetWindowRect=[160,140]-[1160,780] 1000x640 frame=[167,140]-[1153,773] 986x633 style=0x16CF0000 CAPTION=True SYSMENU=True THICKFRAME=True MINBOX=True MAXBOX=True POPUP=False ex=0x00240100 IsExtendedIntoWindowDecorations=True WindowDecorationMargin=0,44,0,0 ClientSize=984, 632 WindowDecorations=Full
+19:39:56.592Z full_undeclared: SCREEN content interior [227,230]-[1093,733] 866x503 magentaFraction=1.0000 live=True
+19:39:56.603Z CAPTURE full_undeclared_titlebar rect=[167,140]-[1153,230] 986x90 -> full_undeclared_titlebar.png (1483 B)
+19:39:56.603Z full_undeclared: GEOMETRY client origin (168,140) scale 1.00; close phys [186,156]-[200,170] dip left=18.0 top=16.0 size=14.0; min phys [209,156]-[223,170] dip left=41.0 top=16.0 size=14.0; max phys [232,156]-[246,170] dip left=64.0 top=16.0 size=14.0; titlebar height dip=44.0
+19:39:56.603Z full_undeclared: NCHITTEST sidebar placement (18,16): caption(468,162)=HTCLIENT close(193,163)=HTCLIENT min(216,163)=HTCLIENT max(239,163)=HTCLIENT content(668,500)=HTCLIENT => ok=False
+19:39:56.609Z full_undeclared: NCHITTEST row y=163: HTLEFT[167..167] HTCLIENT[169..1152]
+19:39:57.013Z full_undeclared: NCHITTEST collapsed placement (14,21): caption(468,162)=HTCLIENT close(189,168)=HTCLIENT min(212,168)=HTCLIENT max(235,168)=HTCLIENT content(668,500)=HTCLIENT => ok=False
+19:39:58.532Z full_undeclared: DRAG from (468,162) by (+150,+90): window moved (0,0) before=[160,140]-[1160,780] 1000x640 after=[160,140]-[1160,780] 1000x640 => ok=False
+19:39:58.532Z MSGS full_undeclared drag: 19:39:57.514Z WM_LBUTTONDOWN (client) | 19:39:58.130Z WM_LBUTTONUP (client)
+19:39:59.353Z full_undeclared refocus: foreground via SetForegroundWindow
+19:39:59.418Z INPUT double-click caption: left x2 at (468,162) sent=4 (WM_NCHITTEST there just before = HTCLIENT)
+19:40:00.330Z full_undeclared: DOUBLE-CLICK caption => IsZoomed=False
+19:40:00.330Z MSGS full_undeclared dblclick-max: 19:39:59.418Z WM_LBUTTONDOWN (client) | 19:39:59.419Z WM_LBUTTONUP (client) | 19:39:59.419Z WM_LBUTTONDOWN (client) | 19:39:59.419Z WM_LBUTTONUP (client)
+19:40:01.153Z full_undeclared refocus: foreground via SetForegroundWindow
+19:40:01.218Z INPUT right-click caption: right x1 at (468,162) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:40:02.022Z full_undeclared: RIGHT-CLICK caption => our #32768 menu visible=False 
+19:40:02.022Z MSGS full_undeclared rightclick: 19:40:01.218Z WM_RBUTTONDOWN (client) | 19:40:01.219Z WM_CONTEXTMENU
+19:40:02.332Z full_undeclared refocus: foreground via SetForegroundWindow
+19:40:02.534Z INPUT keys Alt+Space: foreground 0xA0700 (Avalonia-b7e38200-9856-4c32-bf92-7a18d463bd0a) sent=4/4
+19:40:03.341Z full_undeclared: ALT+SPACE => our #32768 menu visible=False 
+19:40:03.341Z MSGS full_undeclared altspace: 19:40:02.535Z WM_SYSKEYDOWN vk=0x12
+19:40:03.651Z full_undeclared refocus: foreground via SetForegroundWindow
+19:40:04.458Z full_undeclared: SC_KEYMENU ' ' (keyboard window-menu path) => our #32768 menu visible=False 
+19:40:04.458Z MSGS full_undeclared sc_keymenu: 19:40:03.651Z WM_SYSCOMMAND 0xF100
+19:40:04.768Z full_undeclared refocus: foreground via SetForegroundWindow
+19:40:04.864Z INPUT min button: left x1 at (216,163) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:40:05.604Z ANIM full_undeclared_minimize: frames=46 meanFrameMs=16.0 preArea=36162 postArea=36162 distinctIntermediateAreas=0 => animated=False
+19:40:05.604Z ANIM full_undeclared_minimize series: 93ms:36162 109ms:36162 126ms:36162 142ms:36162 161ms:36162 176ms:36162 192ms:36162 209ms:36162 225ms:36162 243ms:36162 261ms:36162 276ms:36162 292ms:36162 309ms:36162 325ms:36162 342ms:36162 359ms:36162 375ms:36162 392ms:36162 409ms:36162 426ms:36162 443ms:36162 460ms:36162 477ms:36162 493ms:36162 509ms:36162 526ms:36162 544ms:36162 560ms:36162 575ms:36162 593ms:36162 610ms:36162 626ms:36162 643ms:36162 657ms:36162 669ms:36162 681ms:36162 698ms:36162 711ms:36162 726ms:36162 743ms:36162 759ms:36162 774ms:36162 785ms:36162 798ms:36162 815ms:36162
+19:40:05.604Z full_undeclared: MIN button => IsIconic=False
+19:40:05.604Z MSGS full_undeclared min: 19:40:04.865Z WM_LBUTTONDOWN (client) | 19:40:04.865Z WM_LBUTTONUP (client)
+19:40:06.428Z full_undeclared refocus: foreground via SetForegroundWindow
+19:40:06.511Z INPUT max button: left x1 at (239,163) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:40:07.250Z ANIM full_undeclared_maximize: frames=52 meanFrameMs=14.1 preArea=36162 postArea=36162 distinctIntermediateAreas=0 => animated=False
+19:40:07.250Z ANIM full_undeclared_maximize series: 86ms:36162 103ms:36162 119ms:36162 134ms:36162 150ms:36162 162ms:36162 174ms:36162 189ms:36162 206ms:36162 220ms:36162 232ms:36162 246ms:36162 262ms:36162 274ms:36162 287ms:36162 300ms:36162 311ms:36162 324ms:36162 337ms:36162 350ms:36162 367ms:36162 383ms:36162 399ms:36162 411ms:36162 424ms:36162 442ms:36162 458ms:36162 474ms:36162 491ms:36162 508ms:36162 520ms:36162 533ms:36162 545ms:36162 557ms:36162 574ms:36162 586ms:36162 599ms:36162 612ms:36162 624ms:36162 641ms:36162 657ms:36162 674ms:36162 686ms:36162 700ms:36162 711ms:36162 724ms:36162 738ms:36162 753ms:36162 766ms:36162 778ms:36162 795ms:36162 807ms:36162
+19:40:07.250Z full_undeclared: MAX button => IsZoomed=False; maximised GetWindowRect=[160,140]-[1160,780] 1000x640 frame=[167,140]-[1153,773] 986x633 monitor=[0,0]-[2560,1440] 2560x1440 work=[0,0]-[2560,1392] 2560x1392
+19:40:07.250Z MSGS full_undeclared max: 19:40:06.511Z WM_LBUTTONDOWN (client) | 19:40:06.511Z WM_LBUTTONUP (client)
+19:40:08.166Z full_undeclared refocus: foreground via SetForegroundWindow
+19:40:09.087Z full_undeclared: NCHITTEST at hover point (239,163) = HTCLIENT
+19:40:11.315Z CAPTURE full_undeclared_snap_hover rect=[167,140]-[1153,560] 986x420 -> full_undeclared_snap_hover.png (3189 B)
+19:40:11.316Z full_undeclared: SNAP hover max (239,163) 2000 ms: zone=[167,190]-[659,480] 492x290 zonePixelsChanged=0.0000 foreignWindowsAboveOursInZone before=0 after=0 new=[] => flyout=False
+19:40:12.827Z full_undeclared: SNAP 1.5 s after parking in the content: zonePixelsChanged vs pre=0.0000 (flyout dismissed if near 0)
+19:40:12.827Z MSGS full_undeclared snap: (none)
+19:40:13.131Z full_undeclared refocus: foreground via SetForegroundWindow
+19:40:13.195Z INPUT close button: left x1 at (193,163) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:40:14.200Z full_undeclared: CLOSE button => closed=False (IsWindow=True ClosedEvent=False)
+19:40:14.200Z MSGS full_undeclared close: 19:40:13.196Z WM_LBUTTONDOWN (client) | 19:40:13.196Z WM_LBUTTONUP (client)
+19:40:14.712Z RESULT-ROW full_undeclared: map=False mapCollapsed=False drag=False dblMax=False dblRestore=False rightClickMenu=False altSpaceMenu=False keyMenu=False min=False max=False restore=False close=False snapFlyout=False animMin=False animMax=False animRestore=
+19:40:14.712Z === VARIANT borderonly_undeclared: WindowDecorations=BorderOnly ExtendClientAreaToDecorationsHint=True TitleBarHeightHint=44 SetNonClientHitTestResult declared=False
+19:40:16.959Z borderonly_undeclared focus: foreground via SetForegroundWindow
+19:40:17.363Z borderonly_undeclared: hwnd=0x1306EE dpi=96 GetWindowRect=[160,140]-[1160,780] 1000x640 frame=[167,140]-[1153,773] 986x633 style=0x16870000 CAPTION=False SYSMENU=False THICKFRAME=True MINBOX=True MAXBOX=True POPUP=False ex=0x00240100 IsExtendedIntoWindowDecorations=True WindowDecorationMargin=0,0,0,0 ClientSize=984, 631 WindowDecorations=BorderOnly
+19:40:17.372Z borderonly_undeclared: SCREEN content interior [227,230]-[1093,733] 866x503 magentaFraction=1.0000 live=True
+19:40:17.381Z CAPTURE borderonly_undeclared_titlebar rect=[167,140]-[1153,230] 986x90 -> borderonly_undeclared_titlebar.png (1536 B)
+19:40:17.382Z borderonly_undeclared: GEOMETRY client origin (168,141) scale 1.00; close phys [186,157]-[200,171] dip left=18.0 top=16.0 size=14.0; min phys [209,157]-[223,171] dip left=41.0 top=16.0 size=14.0; max phys [232,157]-[246,171] dip left=64.0 top=16.0 size=14.0; titlebar height dip=44.0
+19:40:17.382Z borderonly_undeclared: NCHITTEST sidebar placement (18,16): caption(468,163)=HTCLIENT close(193,164)=HTCLIENT min(216,164)=HTCLIENT max(239,164)=HTCLIENT content(668,501)=HTCLIENT => ok=False
+19:40:17.387Z borderonly_undeclared: NCHITTEST row y=164: HTLEFT[167..167] HTCLIENT[169..1152]
+19:40:17.797Z borderonly_undeclared: NCHITTEST collapsed placement (14,21): caption(468,163)=HTCLIENT close(189,169)=HTCLIENT min(212,169)=HTCLIENT max(235,169)=HTCLIENT content(668,501)=HTCLIENT => ok=False
+19:40:19.315Z borderonly_undeclared: DRAG from (468,163) by (+150,+90): window moved (0,0) before=[160,140]-[1160,780] 1000x640 after=[160,140]-[1160,780] 1000x640 => ok=False
+19:40:19.315Z MSGS borderonly_undeclared drag: 19:40:18.300Z WM_LBUTTONDOWN (client) | 19:40:18.913Z WM_LBUTTONUP (client)
+19:40:20.137Z borderonly_undeclared refocus: foreground via SetForegroundWindow
+19:40:20.200Z INPUT double-click caption: left x2 at (468,163) sent=4 (WM_NCHITTEST there just before = HTCLIENT)
+19:40:21.114Z borderonly_undeclared: DOUBLE-CLICK caption => IsZoomed=False
+19:40:21.114Z MSGS borderonly_undeclared dblclick-max: 19:40:20.200Z WM_LBUTTONDOWN (client) | 19:40:20.201Z WM_LBUTTONUP (client) | 19:40:20.201Z WM_LBUTTONDOWN (client) | 19:40:20.201Z WM_LBUTTONUP (client)
+19:40:21.935Z borderonly_undeclared refocus: foreground via SetForegroundWindow
+19:40:22.000Z INPUT right-click caption: right x1 at (468,163) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:40:22.805Z borderonly_undeclared: RIGHT-CLICK caption => our #32768 menu visible=False 
+19:40:22.805Z MSGS borderonly_undeclared rightclick: 19:40:22.001Z WM_RBUTTONDOWN (client) | 19:40:22.001Z WM_CONTEXTMENU
+19:40:23.114Z borderonly_undeclared refocus: foreground via SetForegroundWindow
+19:40:23.317Z INPUT keys Alt+Space: foreground 0x1306EE (Avalonia-3f525cf4-1fe3-4689-9790-a28eb60396cc) sent=4/4
+19:40:24.123Z borderonly_undeclared: ALT+SPACE => our #32768 menu visible=False 
+19:40:24.123Z MSGS borderonly_undeclared altspace: 19:40:23.318Z WM_SYSKEYDOWN vk=0x12
+19:40:24.433Z borderonly_undeclared refocus: foreground via SetForegroundWindow
+19:40:25.241Z borderonly_undeclared: SC_KEYMENU ' ' (keyboard window-menu path) => our #32768 menu visible=False 
+19:40:25.241Z MSGS borderonly_undeclared sc_keymenu: 19:40:24.433Z WM_SYSCOMMAND 0xF100
+19:40:25.550Z borderonly_undeclared refocus: foreground via SetForegroundWindow
+19:40:25.647Z INPUT min button: left x1 at (216,164) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:40:26.391Z ANIM borderonly_undeclared_minimize: frames=46 meanFrameMs=16.2 preArea=36162 postArea=36162 distinctIntermediateAreas=0 => animated=False
+19:40:26.391Z ANIM borderonly_undeclared_minimize series: 88ms:36162 108ms:36162 126ms:36162 142ms:36162 159ms:36162 176ms:36162 193ms:36162 210ms:36162 226ms:36162 243ms:36162 259ms:36162 277ms:36162 292ms:36162 309ms:36162 325ms:36162 342ms:36162 359ms:36162 376ms:36162 393ms:36162 410ms:36162 428ms:36162 442ms:36162 459ms:36162 476ms:36162 493ms:36162 509ms:36162 526ms:36162 543ms:36162 559ms:36162 576ms:36162 593ms:36162 609ms:36162 626ms:36162 643ms:36162 658ms:36162 675ms:36162 686ms:36162 700ms:36162 716ms:36162 728ms:36162 740ms:36162 753ms:36162 767ms:36162 784ms:36162 799ms:36162 815ms:36162
+19:40:26.391Z borderonly_undeclared: MIN button => IsIconic=False
+19:40:26.391Z MSGS borderonly_undeclared min: 19:40:25.647Z WM_LBUTTONDOWN (client) | 19:40:25.648Z WM_LBUTTONUP (client)
+19:40:27.209Z borderonly_undeclared refocus: foreground via SetForegroundWindow
+19:40:27.292Z INPUT max button: left x1 at (239,164) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:40:28.032Z ANIM borderonly_undeclared_maximize: frames=57 meanFrameMs=13.0 preArea=36162 postArea=36162 distinctIntermediateAreas=0 => animated=False
+19:40:28.032Z ANIM borderonly_undeclared_maximize series: 79ms:36162 91ms:36162 103ms:36162 115ms:36162 132ms:36162 148ms:36162 162ms:36162 173ms:36162 186ms:36162 199ms:36162 215ms:36162 228ms:36162 240ms:36162 253ms:36162 265ms:36162 278ms:36162 291ms:36162 304ms:36162 316ms:36162 328ms:36162 340ms:36162 352ms:36162 365ms:36162 378ms:36162 390ms:36162 403ms:36162 415ms:36162 429ms:36162 440ms:36162 452ms:36162 465ms:36162 478ms:36162 491ms:36162 503ms:36162 515ms:36162 528ms:36162 545ms:36162 562ms:36162 574ms:36162 586ms:36162 599ms:36162 611ms:36162 628ms:36162 645ms:36162 657ms:36162 670ms:36162 682ms:36162 695ms:36162 707ms:36162 719ms:36162 732ms:36162 745ms:36162 757ms:36162 770ms:36162 782ms:36162 794ms:36162 807ms:36162
+19:40:28.032Z borderonly_undeclared: MAX button => IsZoomed=False; maximised GetWindowRect=[160,140]-[1160,780] 1000x640 frame=[167,140]-[1153,773] 986x633 monitor=[0,0]-[2560,1440] 2560x1440 work=[0,0]-[2560,1392] 2560x1392
+19:40:28.032Z MSGS borderonly_undeclared max: 19:40:27.292Z WM_LBUTTONDOWN (client) | 19:40:27.293Z WM_LBUTTONUP (client)
+19:40:28.945Z borderonly_undeclared refocus: foreground via SetForegroundWindow
+19:40:29.853Z borderonly_undeclared: NCHITTEST at hover point (239,164) = HTCLIENT
+19:40:32.078Z CAPTURE borderonly_undeclared_snap_hover rect=[167,140]-[1153,560] 986x420 -> borderonly_undeclared_snap_hover.png (3421 B)
+19:40:32.079Z borderonly_undeclared: SNAP hover max (239,164) 2000 ms: zone=[167,190]-[659,480] 492x290 zonePixelsChanged=0.0000 foreignWindowsAboveOursInZone before=0 after=0 new=[] => flyout=False
+19:40:33.588Z borderonly_undeclared: SNAP 1.5 s after parking in the content: zonePixelsChanged vs pre=0.0000 (flyout dismissed if near 0)
+19:40:33.588Z MSGS borderonly_undeclared snap: (none)
+19:40:33.894Z borderonly_undeclared refocus: foreground via SetForegroundWindow
+19:40:33.965Z INPUT close button: left x1 at (193,164) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:40:34.980Z borderonly_undeclared: CLOSE button => closed=False (IsWindow=True ClosedEvent=False)
+19:40:34.980Z MSGS borderonly_undeclared close: 19:40:33.965Z WM_LBUTTONDOWN (client) | 19:40:33.966Z WM_LBUTTONUP (client)
+19:40:35.491Z RESULT-ROW borderonly_undeclared: map=False mapCollapsed=False drag=False dblMax=False dblRestore=False rightClickMenu=False altSpaceMenu=False keyMenu=False min=False max=False restore=False close=False snapFlyout=False animMin=False animMax=False animRestore=
+19:40:35.491Z === VARIANT none_undeclared: WindowDecorations=None ExtendClientAreaToDecorationsHint=True TitleBarHeightHint=44 SetNonClientHitTestResult declared=False
+19:40:37.741Z none_undeclared focus: foreground via SetForegroundWindow
+19:40:38.144Z none_undeclared: hwnd=0xC0700 dpi=96 GetWindowRect=[160,140]-[1160,780] 1000x640 frame=[160,140]-[1160,780] 1000x640 style=0x16030000 CAPTION=False SYSMENU=False THICKFRAME=False MINBOX=True MAXBOX=True POPUP=False ex=0x00240000 IsExtendedIntoWindowDecorations=True WindowDecorationMargin=0,0,0,0 ClientSize=1000, 640 WindowDecorations=None
+19:40:38.158Z none_undeclared: SCREEN content interior [220,230]-[1100,740] 880x510 magentaFraction=1.0000 live=True
+19:40:38.163Z CAPTURE none_undeclared_titlebar rect=[160,140]-[1160,230] 1000x90 -> none_undeclared_titlebar.png (1289 B)
+19:40:38.164Z none_undeclared: GEOMETRY client origin (160,140) scale 1.00; close phys [178,156]-[192,170] dip left=18.0 top=16.0 size=14.0; min phys [201,156]-[215,170] dip left=41.0 top=16.0 size=14.0; max phys [224,156]-[238,170] dip left=64.0 top=16.0 size=14.0; titlebar height dip=44.0
+19:40:38.164Z none_undeclared: NCHITTEST sidebar placement (18,16): caption(460,162)=HTCLIENT close(185,163)=HTCLIENT min(208,163)=HTCLIENT max(231,163)=HTCLIENT content(660,500)=HTCLIENT => ok=False
+19:40:38.170Z none_undeclared: NCHITTEST row y=163: HTCLIENT[160..1159]
+19:40:38.579Z none_undeclared: NCHITTEST collapsed placement (14,21): caption(460,162)=HTCLIENT close(181,168)=HTCLIENT min(204,168)=HTCLIENT max(227,168)=HTCLIENT content(660,500)=HTCLIENT => ok=False
+19:40:40.084Z none_undeclared: DRAG from (460,162) by (+150,+90): window moved (0,0) before=[160,140]-[1160,780] 1000x640 after=[160,140]-[1160,780] 1000x640 => ok=False
+19:40:40.084Z MSGS none_undeclared drag: 19:40:39.078Z WM_LBUTTONDOWN (client) | 19:40:39.681Z WM_LBUTTONUP (client)
+19:40:40.907Z none_undeclared refocus: foreground via SetForegroundWindow
+19:40:40.974Z INPUT double-click caption: left x2 at (460,162) sent=4 (WM_NCHITTEST there just before = HTCLIENT)
+19:40:41.884Z none_undeclared: DOUBLE-CLICK caption => IsZoomed=False
+19:40:41.884Z MSGS none_undeclared dblclick-max: 19:40:40.975Z WM_LBUTTONDOWN (client) | 19:40:40.975Z WM_LBUTTONUP (client) | 19:40:40.975Z WM_LBUTTONDOWN (client) | 19:40:40.975Z WM_LBUTTONUP (client)
+19:40:42.705Z none_undeclared refocus: foreground via SetForegroundWindow
+19:40:42.774Z INPUT right-click caption: right x1 at (460,162) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:40:43.589Z none_undeclared: RIGHT-CLICK caption => our #32768 menu visible=False 
+19:40:43.589Z MSGS none_undeclared rightclick: 19:40:42.774Z WM_RBUTTONDOWN (client) | 19:40:42.775Z WM_CONTEXTMENU
+19:40:43.899Z none_undeclared refocus: foreground via SetForegroundWindow
+19:40:44.101Z INPUT keys Alt+Space: foreground 0xC0700 (Avalonia-a0ce1b08-48b2-4f42-a0fd-a004adcbe94d) sent=4/4
+19:40:44.907Z none_undeclared: ALT+SPACE => our #32768 menu visible=False 
+19:40:44.907Z MSGS none_undeclared altspace: 19:40:44.102Z WM_SYSKEYDOWN vk=0x12
+19:40:45.216Z none_undeclared refocus: foreground via SetForegroundWindow
+19:40:46.022Z none_undeclared: SC_KEYMENU ' ' (keyboard window-menu path) => our #32768 menu visible=False 
+19:40:46.022Z MSGS none_undeclared sc_keymenu: 19:40:45.216Z WM_SYSCOMMAND 0xF100
+19:40:46.332Z none_undeclared refocus: foreground via SetForegroundWindow
+19:40:46.429Z INPUT min button: left x1 at (208,163) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:40:47.152Z ANIM none_undeclared_minimize: frames=52 meanFrameMs=13.9 preArea=37250 postArea=37250 distinctIntermediateAreas=0 => animated=False
+19:40:47.152Z ANIM none_undeclared_minimize series: 93ms:37250 105ms:37250 118ms:37250 130ms:37250 143ms:37250 155ms:37250 168ms:37250 185ms:37250 201ms:37250 218ms:37250 235ms:37250 252ms:37250 268ms:37250 280ms:37250 296ms:37250 309ms:37250 321ms:37250 334ms:37250 347ms:37250 359ms:37250 372ms:37250 384ms:37250 401ms:37250 413ms:37250 426ms:37250 438ms:37250 451ms:37250 464ms:37250 476ms:37250 488ms:37250 501ms:37250 513ms:37250 526ms:37250 538ms:37250 551ms:37250 563ms:37250 580ms:37250 597ms:37250 613ms:37250 631ms:37250 647ms:37250 664ms:37250 681ms:37250 693ms:37250 706ms:37250 718ms:37250 731ms:37250 743ms:37250 755ms:37250 768ms:37250 785ms:37250 801ms:37250
+19:40:47.152Z none_undeclared: MIN button => IsIconic=False
+19:40:47.152Z MSGS none_undeclared min: 19:40:46.429Z WM_LBUTTONDOWN (client) | 19:40:46.430Z WM_LBUTTONUP (client)
+19:40:47.977Z none_undeclared refocus: foreground via SetForegroundWindow
+19:40:48.071Z INPUT max button: left x1 at (231,163) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:40:48.798Z ANIM none_undeclared_maximize: frames=55 meanFrameMs=13.2 preArea=37250 postArea=37250 distinctIntermediateAreas=0 => animated=False
+19:40:48.798Z ANIM none_undeclared_maximize series: 91ms:37250 104ms:37250 116ms:37250 128ms:37250 141ms:37250 154ms:37250 167ms:37250 178ms:37250 191ms:37250 203ms:37250 216ms:37250 228ms:37250 240ms:37250 253ms:37250 265ms:37250 278ms:37250 291ms:37250 303ms:37250 315ms:37250 328ms:37250 341ms:37250 353ms:37250 366ms:37250 378ms:37250 395ms:37250 407ms:37250 420ms:37250 433ms:37250 445ms:37250 458ms:37250 472ms:37250 489ms:37250 505ms:37250 520ms:37250 533ms:37250 545ms:37250 558ms:37250 570ms:37250 583ms:37250 595ms:37250 608ms:37250 620ms:37250 633ms:37250 645ms:37250 657ms:37250 670ms:37250 688ms:37250 703ms:37250 719ms:37250 736ms:37250 753ms:37250 766ms:37250 779ms:37250 791ms:37250 804ms:37250
+19:40:48.798Z none_undeclared: MAX button => IsZoomed=False; maximised GetWindowRect=[160,140]-[1160,780] 1000x640 frame=[160,140]-[1160,780] 1000x640 monitor=[0,0]-[2560,1440] 2560x1440 work=[0,0]-[2560,1392] 2560x1392
+19:40:48.798Z MSGS none_undeclared max: 19:40:48.071Z WM_LBUTTONDOWN (client) | 19:40:48.071Z WM_LBUTTONUP (client)
+19:40:49.713Z none_undeclared refocus: foreground via SetForegroundWindow
+19:40:50.635Z none_undeclared: NCHITTEST at hover point (231,163) = HTCLIENT
+19:40:52.850Z CAPTURE none_undeclared_snap_hover rect=[160,140]-[1160,560] 1000x420 -> none_undeclared_snap_hover.png (3021 B)
+19:40:52.851Z none_undeclared: SNAP hover max (231,163) 2000 ms: zone=[160,190]-[651,480] 491x290 zonePixelsChanged=0.0000 foreignWindowsAboveOursInZone before=0 after=0 new=[] => flyout=False
+19:40:54.357Z none_undeclared: SNAP 1.5 s after parking in the content: zonePixelsChanged vs pre=0.0000 (flyout dismissed if near 0)
+19:40:54.357Z MSGS none_undeclared snap: (none)
+19:40:54.662Z none_undeclared refocus: foreground via SetForegroundWindow
+19:40:54.726Z INPUT close button: left x1 at (185,163) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:40:55.733Z none_undeclared: CLOSE button => closed=False (IsWindow=True ClosedEvent=False)
+19:40:55.733Z MSGS none_undeclared close: 19:40:54.727Z WM_LBUTTONDOWN (client) | 19:40:54.727Z WM_LBUTTONUP (client)
+19:40:56.245Z RESULT-ROW none_undeclared: map=False mapCollapsed=False drag=False dblMax=False dblRestore=False rightClickMenu=False altSpaceMenu=False keyMenu=False min=False max=False restore=False close=False snapFlyout=False animMin=False animMax=False animRestore=
+19:40:56.245Z === VARIANT full_hooked: WindowDecorations=Full ExtendClientAreaToDecorationsHint=True TitleBarHeightHint=44 SetNonClientHitTestResult declared=True
+19:40:58.494Z full_hooked focus: foreground via SetForegroundWindow
+19:40:58.897Z full_hooked: hwnd=0x1506EE dpi=96 GetWindowRect=[160,140]-[1160,780] 1000x640 frame=[167,140]-[1153,773] 986x633 style=0x16CF0000 CAPTION=True SYSMENU=True THICKFRAME=True MINBOX=True MAXBOX=True POPUP=False ex=0x00240100 IsExtendedIntoWindowDecorations=True WindowDecorationMargin=0,44,0,0 ClientSize=984, 632 WindowDecorations=Full
+19:40:58.906Z full_hooked: SCREEN content interior [227,230]-[1093,733] 866x503 magentaFraction=1.0000 live=True
+19:40:58.912Z CAPTURE full_hooked_titlebar rect=[167,140]-[1153,230] 986x90 -> full_hooked_titlebar.png (1483 B)
+19:40:58.912Z full_hooked: GEOMETRY client origin (168,140) scale 1.00; close phys [186,156]-[200,170] dip left=18.0 top=16.0 size=14.0; min phys [209,156]-[223,170] dip left=41.0 top=16.0 size=14.0; max phys [232,156]-[246,170] dip left=64.0 top=16.0 size=14.0; titlebar height dip=44.0
+19:40:58.913Z full_hooked: NCHITTEST sidebar placement (18,16): caption(468,162)=HTCAPTION close(193,163)=HTCLOSE min(216,163)=HTMINBUTTON max(239,163)=HTMAXBUTTON content(668,500)=HTCLIENT => ok=True
+19:40:58.921Z full_hooked: NCHITTEST row y=163: HTLEFT[167..167] HTCAPTION[169..185] HTCLOSE[187..199] HTCAPTION[201..207] HTMINBUTTON[209..223] HTCAPTION[225..231] HTMAXBUTTON[233..245] HTCAPTION[247..1152]
+19:40:59.332Z full_hooked: NCHITTEST collapsed placement (14,21): caption(468,162)=HTCAPTION close(189,168)=HTCLOSE min(212,168)=HTMINBUTTON max(235,168)=HTMAXBUTTON content(668,500)=HTCLIENT => ok=True
+19:41:00.836Z full_hooked: DRAG from (468,162) by (+150,+90): window moved (150,90) before=[160,140]-[1160,780] 1000x640 after=[310,230]-[1310,870] 1000x640 => ok=True
+19:41:00.836Z MSGS full_hooked drag: 19:40:59.831Z WM_NCLBUTTONDOWN HTCAPTION | 19:40:59.831Z WM_SYSCOMMAND 0xF010 | 19:40:59.956Z WM_ENTERSIZEMOVE | 19:41:00.434Z WM_EXITSIZEMOVE
+19:41:01.659Z full_hooked refocus: foreground via SetForegroundWindow
+19:41:01.723Z INPUT double-click caption: left x2 at (468,162) sent=4 (WM_NCHITTEST there just before = HTCAPTION)
+19:41:02.636Z full_hooked: DOUBLE-CLICK caption => IsZoomed=True
+19:41:02.636Z MSGS full_hooked dblclick-max: 19:41:01.723Z WM_NCLBUTTONDOWN HTCAPTION | 19:41:01.724Z WM_SYSCOMMAND 0xF010 | 19:41:01.724Z WM_NCLBUTTONDBLCLK HTCAPTION | 19:41:01.724Z WM_SYSCOMMAND 0xF030 | 19:41:01.727Z WM_LBUTTONUP (client)
+19:41:02.702Z INPUT double-click caption (maximised): left x2 at (300,22) sent=4 (WM_NCHITTEST there just before = HTCAPTION)
+19:41:03.613Z full_hooked: DOUBLE-CLICK caption while maximised => restored=True
+19:41:03.613Z MSGS full_hooked dblclick-restore: 19:41:02.703Z WM_NCLBUTTONDOWN HTCAPTION | 19:41:02.703Z WM_SYSCOMMAND 0xF010 | 19:41:02.704Z WM_NCLBUTTONDBLCLK HTCAPTION | 19:41:02.704Z WM_SYSCOMMAND 0xF120
+19:41:04.434Z full_hooked refocus: foreground via SetForegroundWindow
+19:41:04.502Z INPUT right-click caption: right x1 at (468,162) sent=2 (WM_NCHITTEST there just before = HTCAPTION)
+19:41:05.304Z full_hooked: RIGHT-CLICK caption => our #32768 menu visible=True [468,162]-[653,309] 185x147
+19:41:05.318Z CAPTURE full_hooked_sysmenu_rightclick rect=[167,140]-[1153,773] 986x633 -> full_hooked_sysmenu_rightclick.png (8916 B)
+19:41:05.319Z INPUT keys Escape (close system menu): foreground 0x1506EE (Avalonia-ff986dc7-e52c-4fd3-9818-ddf796593f23) sent=2/2
+19:41:05.723Z MSGS full_hooked rightclick: 19:41:04.503Z WM_NCRBUTTONDOWN HTCAPTION | 19:41:04.503Z WM_CONTEXTMENU | 19:41:04.503Z HOOK WM_CONTEXTMENU on HTCAPTION at (468,162) -> TrackPopupMenu(GetSystemMenu=0x7A20295) | 19:41:04.504Z WM_ENTERMENULOOP | 19:41:04.505Z WM_INITMENUPOPUP | 19:41:05.320Z HOOK TrackPopupMenu returned 0x0000
+19:41:06.033Z full_hooked refocus: foreground via SetForegroundWindow
+19:41:06.237Z INPUT keys Alt+Space: foreground 0x1506EE (Avalonia-ff986dc7-e52c-4fd3-9818-ddf796593f23) sent=4/4
+19:41:07.043Z full_hooked: ALT+SPACE => our #32768 menu visible=False 
+19:41:07.043Z MSGS full_hooked altspace: 19:41:06.237Z WM_SYSKEYDOWN vk=0x12
+19:41:07.352Z full_hooked refocus: foreground via SetForegroundWindow
+19:41:08.159Z full_hooked: SC_KEYMENU ' ' (keyboard window-menu path) => our #32768 menu visible=True [168,184]-[353,331] 185x147
+19:41:08.172Z CAPTURE full_hooked_sysmenu_keyboard rect=[167,140]-[1153,773] 986x633 -> full_hooked_sysmenu_keyboard.png (8707 B)
+19:41:08.173Z INPUT keys Escape (close system menu): foreground 0x1506EE (Avalonia-ff986dc7-e52c-4fd3-9818-ddf796593f23) sent=2/2
+19:41:08.579Z MSGS full_hooked sc_keymenu: 19:41:07.352Z WM_SYSCOMMAND 0xF100 | 19:41:07.352Z HOOK WM_SYSCOMMAND SC_KEYMENU ' ' -> TrackPopupMenu(GetSystemMenu=0x7A20295) at (168,184) | 19:41:07.354Z WM_ENTERMENULOOP | 19:41:07.354Z WM_INITMENUPOPUP | 19:41:08.174Z HOOK TrackPopupMenu returned 0x0000
+19:41:08.890Z full_hooked refocus: foreground via SetForegroundWindow
+19:41:08.986Z INPUT min button: left x1 at (216,163) sent=2 (WM_NCHITTEST there just before = HTMINBUTTON)
+19:41:09.715Z ANIM full_hooked_minimize: frames=49 meanFrameMs=14.9 preArea=36162 postArea=0 distinctIntermediateAreas=7 => animated=True
+19:41:09.715Z ANIM full_hooked_minimize series: 89ms:36162 105ms:36162 119ms:35624 135ms:34848 148ms:33796 164ms:32387 176ms:29172 190ms:27264 206ms:24442 219ms:19260 234ms:15105 247ms:8190 260ms:1392 276ms:0 289ms:0 301ms:0 314ms:0 326ms:0 339ms:0 351ms:0 364ms:0 377ms:0 390ms:0 407ms:0 424ms:0 440ms:0 456ms:0 469ms:0 486ms:0 502ms:0 516ms:0 531ms:0 544ms:0 561ms:0 578ms:0 594ms:0 611ms:0 628ms:0 645ms:0 661ms:0 678ms:0 695ms:0 710ms:0 724ms:0 740ms:0 757ms:0 772ms:0 786ms:0 802ms:0
+19:41:09.720Z ANIM full_hooked_minimize: mid-transition frame at 219 ms -> anim_full_hooked_minimize_mid_mask.png (1007 B)
+19:41:09.720Z full_hooked: MIN button => IsIconic=True
+19:41:09.720Z MSGS full_hooked min: 19:41:08.987Z WM_NCLBUTTONDOWN HTMINBUTTON | 19:41:08.987Z HOOK swallowed WM_NCLBUTTONDOWN HTMINBUTTON | 19:41:08.987Z WM_NCLBUTTONUP HTMINBUTTON | 19:41:08.987Z HOOK WM_NCLBUTTONUP HTMINBUTTON -> PostMessage WM_SYSCOMMAND 0xF020 | 19:41:08.987Z WM_SYSCOMMAND 0xF020
+19:41:11.464Z full_hooked refocus: foreground via SetForegroundWindow
+19:41:11.545Z INPUT max button: left x1 at (239,163) sent=2 (WM_NCHITTEST there just before = HTMAXBUTTON)
+19:41:12.279Z ANIM full_hooked_maximize: frames=50 meanFrameMs=14.7 preArea=36162 postArea=215680 distinctIntermediateAreas=8 => animated=True
+19:41:12.279Z ANIM full_hooked_maximize series: 83ms:36162 101ms:36162 117ms:36309 133ms:36704 145ms:37800 158ms:39886 170ms:41762 183ms:45036 195ms:50787 207ms:64600 220ms:103920 233ms:143344 246ms:161581 263ms:184670 279ms:193920 292ms:201142 308ms:204638 324ms:208199 337ms:211422 349ms:213395 363ms:214368 379ms:214704 391ms:215680 403ms:215680 416ms:215680 429ms:215680 441ms:215680 454ms:215680 472ms:215680 487ms:215680 502ms:215680 518ms:215680 534ms:215680 550ms:215680 566ms:215680 580ms:215680 597ms:215680 613ms:215680 630ms:215680 647ms:215680 662ms:215680 674ms:215680 687ms:215680 700ms:215680 719ms:215680 734ms:215680 751ms:215680 769ms:215680 784ms:215680 801ms:215680
+19:41:12.283Z ANIM full_hooked_maximize: mid-transition frame at 233 ms -> anim_full_hooked_maximize_mid_mask.png (1336 B)
+19:41:12.283Z full_hooked: MAX button => IsZoomed=True; maximised GetWindowRect=[-8,-8]-[2568,1400] 2576x1408 frame=[0,0]-[2560,1392] 2560x1392 monitor=[0,0]-[2560,1440] 2560x1440 work=[0,0]-[2560,1392] 2560x1392
+19:41:12.283Z MSGS full_hooked max: 19:41:11.545Z WM_NCLBUTTONDOWN HTMAXBUTTON | 19:41:11.545Z HOOK swallowed WM_NCLBUTTONDOWN HTMAXBUTTON | 19:41:11.545Z WM_NCLBUTTONUP HTMAXBUTTON | 19:41:11.545Z HOOK WM_NCLBUTTONUP HTMAXBUTTON -> PostMessage WM_SYSCOMMAND 0xF030 | 19:41:11.545Z WM_SYSCOMMAND 0xF030
+19:41:12.695Z INPUT max button (restore): left x1 at (71,23) sent=2 (WM_NCHITTEST there just before = HTMAXBUTTON)
+19:41:13.422Z ANIM full_hooked_restore: frames=51 meanFrameMs=14.1 preArea=215680 postArea=36162 distinctIntermediateAreas=8 => animated=True
+19:41:13.422Z ANIM full_hooked_restore series: 98ms:215680 117ms:215680 136ms:214368 156ms:200028 175ms:195312 191ms:187884 205ms:176118 223ms:161018 239ms:85172 255ms:60720 268ms:53244 285ms:48140 302ms:43566 317ms:40765 329ms:39064 343ms:38100 359ms:36852 376ms:36704 392ms:36162 405ms:36162 418ms:36162 434ms:36162 447ms:36162 459ms:36162 471ms:36162 483ms:36162 496ms:36162 510ms:36162 525ms:36162 537ms:36162 550ms:36162 562ms:36162 575ms:36162 588ms:36162 600ms:36162 614ms:36162 630ms:36162 642ms:36162 654ms:36162 666ms:36162 679ms:36162 692ms:36162 704ms:36162 716ms:36162 729ms:36162 741ms:36162 754ms:36162 767ms:36162 779ms:36162 791ms:36162 804ms:36162
+19:41:13.427Z ANIM full_hooked_restore: mid-transition frame at 223 ms -> anim_full_hooked_restore_mid_mask.png (1363 B)
+19:41:13.427Z full_hooked: MAX button while maximised => restored=True
+19:41:13.427Z MSGS full_hooked restore: 19:41:12.696Z WM_NCLBUTTONDOWN HTMAXBUTTON | 19:41:12.696Z HOOK swallowed WM_NCLBUTTONDOWN HTMAXBUTTON | 19:41:12.696Z WM_NCLBUTTONUP HTMAXBUTTON | 19:41:12.696Z HOOK WM_NCLBUTTONUP HTMAXBUTTON -> PostMessage WM_SYSCOMMAND 0xF120 | 19:41:12.696Z WM_SYSCOMMAND 0xF120
+19:41:14.352Z full_hooked refocus: foreground via SetForegroundWindow
+19:41:15.271Z full_hooked: NCHITTEST at hover point (239,163) = HTMAXBUTTON
+19:41:17.492Z CAPTURE full_hooked_snap_hover rect=[167,140]-[1153,560] 986x420 -> full_hooked_snap_hover.png (52484 B)
+19:41:17.492Z full_hooked: SNAP hover max (239,163) 2000 ms: zone=[167,190]-[659,480] 492x290 zonePixelsChanged=0.4009 foreignWindowsAboveOursInZone before=0 after=0 new=[] => flyout=True
+19:41:19.011Z full_hooked: SNAP 1.5 s after parking in the content: zonePixelsChanged vs pre=0.0000 (flyout dismissed if near 0)
+19:41:19.011Z MSGS full_hooked snap: (none)
+19:41:19.316Z full_hooked refocus: foreground via SetForegroundWindow
+19:41:19.380Z INPUT close button: left x1 at (193,163) sent=2 (WM_NCHITTEST there just before = HTCLOSE)
+19:41:20.387Z full_hooked: CLOSE button => closed=True (IsWindow=False ClosedEvent=True)
+19:41:20.387Z MSGS full_hooked close: 19:41:19.380Z WM_NCLBUTTONDOWN HTCLOSE | 19:41:19.380Z HOOK swallowed WM_NCLBUTTONDOWN HTCLOSE | 19:41:19.380Z WM_NCLBUTTONUP HTCLOSE | 19:41:19.380Z HOOK WM_NCLBUTTONUP HTCLOSE -> PostMessage WM_SYSCOMMAND 0xF060 | 19:41:19.380Z WM_SYSCOMMAND 0xF060
+19:41:20.898Z RESULT-ROW full_hooked: map=True mapCollapsed=True drag=True dblMax=True dblRestore=True rightClickMenu=True altSpaceMenu=False keyMenu=True min=True max=True restore=True close=True snapFlyout=True animMin=True animMax=True animRestore=True
+19:41:20.898Z === VARIANT borderonly_hooked: WindowDecorations=BorderOnly ExtendClientAreaToDecorationsHint=True TitleBarHeightHint=44 SetNonClientHitTestResult declared=True
+19:41:23.149Z borderonly_hooked focus: foreground via SetForegroundWindow
+19:41:23.553Z borderonly_hooked: hwnd=0x1D00CA dpi=96 GetWindowRect=[160,140]-[1160,780] 1000x640 frame=[167,140]-[1153,773] 986x633 style=0x16870000 CAPTION=False SYSMENU=False THICKFRAME=True MINBOX=True MAXBOX=True POPUP=False ex=0x00240100 IsExtendedIntoWindowDecorations=True WindowDecorationMargin=0,0,0,0 ClientSize=984, 631 WindowDecorations=BorderOnly
+19:41:23.560Z borderonly_hooked: SCREEN content interior [227,230]-[1093,733] 866x503 magentaFraction=1.0000 live=True
+19:41:23.566Z CAPTURE borderonly_hooked_titlebar rect=[167,140]-[1153,230] 986x90 -> borderonly_hooked_titlebar.png (2037 B)
+19:41:23.566Z borderonly_hooked: GEOMETRY client origin (168,141) scale 1.00; close phys [186,157]-[200,171] dip left=18.0 top=16.0 size=14.0; min phys [209,157]-[223,171] dip left=41.0 top=16.0 size=14.0; max phys [232,157]-[246,171] dip left=64.0 top=16.0 size=14.0; titlebar height dip=44.0
+19:41:23.566Z borderonly_hooked: NCHITTEST sidebar placement (18,16): caption(468,163)=HTCAPTION close(193,164)=HTCLOSE min(216,164)=HTMINBUTTON max(239,164)=HTMAXBUTTON content(668,501)=HTCLIENT => ok=True
+19:41:23.573Z borderonly_hooked: NCHITTEST row y=164: HTLEFT[167..167] HTCAPTION[169..185] HTCLOSE[187..199] HTCAPTION[201..207] HTMINBUTTON[209..223] HTCAPTION[225..231] HTMAXBUTTON[233..245] HTCAPTION[247..1152]
+19:41:23.986Z borderonly_hooked: NCHITTEST collapsed placement (14,21): caption(468,163)=HTCAPTION close(189,169)=HTCLOSE min(212,169)=HTMINBUTTON max(235,169)=HTMAXBUTTON content(668,501)=HTCLIENT => ok=True
+19:41:25.489Z borderonly_hooked: DRAG from (468,163) by (+150,+90): window moved (150,90) before=[160,140]-[1160,780] 1000x640 after=[310,230]-[1310,870] 1000x640 => ok=True
+19:41:25.489Z MSGS borderonly_hooked drag: 19:41:24.485Z WM_NCLBUTTONDOWN HTCAPTION | 19:41:24.485Z WM_SYSCOMMAND 0xF010 | 19:41:24.609Z WM_ENTERSIZEMOVE | 19:41:25.087Z WM_EXITSIZEMOVE
+19:41:26.311Z borderonly_hooked refocus: foreground via SetForegroundWindow
+19:41:26.377Z INPUT double-click caption: left x2 at (468,163) sent=4 (WM_NCHITTEST there just before = HTCAPTION)
+19:41:27.287Z borderonly_hooked: DOUBLE-CLICK caption => IsZoomed=True
+19:41:27.287Z MSGS borderonly_hooked dblclick-max: 19:41:26.377Z WM_NCLBUTTONDOWN HTCAPTION | 19:41:26.377Z WM_SYSCOMMAND 0xF010 | 19:41:26.378Z WM_NCLBUTTONDBLCLK HTCAPTION | 19:41:26.378Z WM_SYSCOMMAND 0xF030 | 19:41:26.380Z WM_LBUTTONUP (client)
+19:41:27.356Z INPUT double-click caption (maximised): left x2 at (300,22) sent=4 (WM_NCHITTEST there just before = HTCAPTION)
+19:41:28.263Z borderonly_hooked: DOUBLE-CLICK caption while maximised => restored=True
+19:41:28.263Z MSGS borderonly_hooked dblclick-restore: 19:41:27.356Z WM_NCLBUTTONDOWN HTCAPTION | 19:41:27.356Z WM_SYSCOMMAND 0xF010 | 19:41:27.357Z WM_NCLBUTTONDBLCLK HTCAPTION | 19:41:27.357Z WM_SYSCOMMAND 0xF120
+19:41:29.084Z borderonly_hooked refocus: foreground via SetForegroundWindow
+19:41:29.148Z INPUT right-click caption: right x1 at (468,163) sent=2 (WM_NCHITTEST there just before = HTCAPTION)
+19:41:29.953Z borderonly_hooked: RIGHT-CLICK caption => our #32768 menu visible=False 
+19:41:29.953Z MSGS borderonly_hooked rightclick: 19:41:29.148Z WM_NCRBUTTONDOWN HTCAPTION | 19:41:29.149Z WM_CONTEXTMENU | 19:41:29.149Z HOOK WM_CONTEXTMENU on HTCAPTION at (468,163) -> TrackPopupMenu(GetSystemMenu=0x0) | 19:41:29.149Z HOOK TrackPopupMenu returned 0x0000
+19:41:30.263Z borderonly_hooked refocus: foreground via SetForegroundWindow
+19:41:30.466Z INPUT keys Alt+Space: foreground 0x1D00CA (Avalonia-79704c8b-e944-4955-aea9-218bfcdeb7e0) sent=4/4
+19:41:31.272Z borderonly_hooked: ALT+SPACE => our #32768 menu visible=False 
+19:41:31.272Z MSGS borderonly_hooked altspace: 19:41:30.466Z WM_SYSKEYDOWN vk=0x12
+19:41:31.581Z borderonly_hooked refocus: foreground via SetForegroundWindow
+19:41:32.388Z borderonly_hooked: SC_KEYMENU ' ' (keyboard window-menu path) => our #32768 menu visible=False 
+19:41:32.388Z MSGS borderonly_hooked sc_keymenu: 19:41:31.581Z WM_SYSCOMMAND 0xF100 | 19:41:31.581Z HOOK WM_SYSCOMMAND SC_KEYMENU ' ' -> TrackPopupMenu(GetSystemMenu=0x0) at (168,184) | 19:41:31.581Z HOOK TrackPopupMenu returned 0x0000
+19:41:32.698Z borderonly_hooked refocus: foreground via SetForegroundWindow
+19:41:32.794Z INPUT min button: left x1 at (216,164) sent=2 (WM_NCHITTEST there just before = HTMINBUTTON)
+19:41:33.532Z ANIM borderonly_hooked_minimize: frames=51 meanFrameMs=14.4 preArea=36162 postArea=0 distinctIntermediateAreas=0 => animated=False
+19:41:33.532Z ANIM borderonly_hooked_minimize series: 89ms:36162 105ms:0 119ms:0 135ms:0 147ms:0 159ms:0 172ms:0 185ms:0 199ms:0 214ms:0 231ms:0 249ms:0 266ms:0 283ms:0 298ms:0 316ms:0 332ms:0 347ms:0 362ms:0 377ms:0 394ms:0 411ms:0 426ms:0 438ms:0 452ms:0 467ms:0 480ms:0 492ms:0 505ms:0 517ms:0 530ms:0 543ms:0 555ms:0 567ms:0 581ms:0 598ms:0 613ms:0 626ms:0 638ms:0 652ms:0 668ms:0 681ms:0 693ms:0 706ms:0 723ms:0 739ms:0 755ms:0 768ms:0 781ms:0 794ms:0 811ms:0
+19:41:33.532Z borderonly_hooked: MIN button => IsIconic=True
+19:41:33.532Z MSGS borderonly_hooked min: 19:41:32.794Z WM_NCLBUTTONDOWN HTMINBUTTON | 19:41:32.794Z HOOK swallowed WM_NCLBUTTONDOWN HTMINBUTTON | 19:41:32.794Z WM_NCLBUTTONUP HTMINBUTTON | 19:41:32.794Z HOOK WM_NCLBUTTONUP HTMINBUTTON -> PostMessage WM_SYSCOMMAND 0xF020 | 19:41:32.794Z WM_SYSCOMMAND 0xF020
+19:41:35.271Z borderonly_hooked refocus: foreground via SetForegroundWindow
+19:41:35.353Z INPUT max button: left x1 at (239,164) sent=2 (WM_NCHITTEST there just before = HTMAXBUTTON)
+19:41:36.089Z ANIM borderonly_hooked_maximize: frames=54 meanFrameMs=13.6 preArea=36162 postArea=215680 distinctIntermediateAreas=0 => animated=False
+19:41:36.089Z ANIM borderonly_hooked_maximize series: 84ms:36162 100ms:215680 117ms:215680 133ms:215680 145ms:215680 158ms:215680 175ms:215680 191ms:215680 203ms:215680 216ms:215680 228ms:215680 241ms:215680 254ms:215680 266ms:215680 279ms:215680 295ms:215680 307ms:215680 320ms:215680 332ms:215680 345ms:215680 358ms:215680 370ms:215680 382ms:215680 395ms:215680 408ms:215680 420ms:215680 432ms:215680 445ms:215680 458ms:215680 470ms:215680 483ms:215680 496ms:215680 512ms:215680 526ms:215680 542ms:215680 559ms:215680 575ms:215680 587ms:215680 599ms:215680 612ms:215680 625ms:215680 637ms:215680 650ms:215680 666ms:215680 678ms:215680 691ms:215680 708ms:215680 724ms:215680 741ms:215680 754ms:215680 766ms:215680 779ms:215680 791ms:215680 804ms:215680
+19:41:36.089Z borderonly_hooked: MAX button => IsZoomed=True; maximised GetWindowRect=[-8,-8]-[2568,1400] 2576x1408 frame=[0,0]-[2560,1392] 2560x1392 monitor=[0,0]-[2560,1440] 2560x1440 work=[0,0]-[2560,1392] 2560x1392
+19:41:36.089Z MSGS borderonly_hooked max: 19:41:35.353Z WM_NCLBUTTONDOWN HTMAXBUTTON | 19:41:35.353Z HOOK swallowed WM_NCLBUTTONDOWN HTMAXBUTTON | 19:41:35.353Z WM_NCLBUTTONUP HTMAXBUTTON | 19:41:35.353Z HOOK WM_NCLBUTTONUP HTMAXBUTTON -> PostMessage WM_SYSCOMMAND 0xF030 | 19:41:35.353Z WM_SYSCOMMAND 0xF030
+19:41:36.482Z INPUT max button (restore): left x1 at (71,23) sent=2 (WM_NCHITTEST there just before = HTMAXBUTTON)
+19:41:37.226Z ANIM borderonly_hooked_restore: frames=55 meanFrameMs=13.5 preArea=215680 postArea=36162 distinctIntermediateAreas=0 => animated=False
+19:41:37.226Z ANIM borderonly_hooked_restore series: 78ms:215680 91ms:36162 108ms:36162 121ms:36162 136ms:36162 149ms:36162 160ms:36162 174ms:36162 186ms:36162 199ms:36162 212ms:36162 227ms:36162 241ms:36162 253ms:36162 266ms:36162 277ms:36162 290ms:36162 303ms:36162 316ms:36162 328ms:36162 340ms:36162 354ms:36162 370ms:36162 382ms:36162 395ms:36162 407ms:36162 420ms:36162 437ms:36162 453ms:36162 465ms:36162 478ms:36162 491ms:36162 503ms:36162 515ms:36162 528ms:36162 541ms:36162 554ms:36162 571ms:36162 587ms:36162 604ms:36162 620ms:36162 633ms:36162 650ms:36162 665ms:36162 678ms:36162 691ms:36162 703ms:36162 715ms:36162 728ms:36162 740ms:36162 753ms:36162 766ms:36162 779ms:36162 795ms:36162 807ms:36162
+19:41:37.226Z borderonly_hooked: MAX button while maximised => restored=True
+19:41:37.226Z MSGS borderonly_hooked restore: 19:41:36.482Z WM_NCLBUTTONDOWN HTMAXBUTTON | 19:41:36.482Z HOOK swallowed WM_NCLBUTTONDOWN HTMAXBUTTON | 19:41:36.482Z WM_NCLBUTTONUP HTMAXBUTTON | 19:41:36.482Z HOOK WM_NCLBUTTONUP HTMAXBUTTON -> PostMessage WM_SYSCOMMAND 0xF120 | 19:41:36.482Z WM_SYSCOMMAND 0xF120
+19:41:38.141Z borderonly_hooked refocus: foreground via SetForegroundWindow
+19:41:39.059Z borderonly_hooked: NCHITTEST at hover point (239,164) = HTMAXBUTTON
+19:41:41.279Z CAPTURE borderonly_hooked_snap_hover rect=[167,140]-[1153,560] 986x420 -> borderonly_hooked_snap_hover.png (52622 B)
+19:41:41.280Z borderonly_hooked: SNAP hover max (239,164) 2000 ms: zone=[167,190]-[659,480] 492x290 zonePixelsChanged=0.4007 foreignWindowsAboveOursInZone before=0 after=0 new=[] => flyout=True
+19:41:42.798Z borderonly_hooked: SNAP 1.5 s after parking in the content: zonePixelsChanged vs pre=0.0000 (flyout dismissed if near 0)
+19:41:42.798Z MSGS borderonly_hooked snap: (none)
+19:41:43.102Z borderonly_hooked refocus: foreground via SetForegroundWindow
+19:41:43.166Z INPUT close button: left x1 at (193,164) sent=2 (WM_NCHITTEST there just before = HTCLOSE)
+19:41:44.173Z borderonly_hooked: CLOSE button => closed=True (IsWindow=False ClosedEvent=True)
+19:41:44.173Z MSGS borderonly_hooked close: 19:41:43.167Z WM_NCLBUTTONDOWN HTCLOSE | 19:41:43.167Z HOOK swallowed WM_NCLBUTTONDOWN HTCLOSE | 19:41:43.168Z WM_NCLBUTTONUP HTCLOSE | 19:41:43.168Z HOOK WM_NCLBUTTONUP HTCLOSE -> PostMessage WM_SYSCOMMAND 0xF060 | 19:41:43.168Z WM_SYSCOMMAND 0xF060
+19:41:44.685Z RESULT-ROW borderonly_hooked: map=True mapCollapsed=True drag=True dblMax=True dblRestore=True rightClickMenu=False altSpaceMenu=False keyMenu=False min=True max=True restore=True close=True snapFlyout=True animMin=False animMax=False animRestore=False
+19:41:44.685Z === VARIANT none_hooked: WindowDecorations=None ExtendClientAreaToDecorationsHint=True TitleBarHeightHint=44 SetNonClientHitTestResult declared=True
+19:41:46.936Z none_hooked focus: foreground via SetForegroundWindow
+19:41:47.339Z none_hooked: hwnd=0xA5087C dpi=96 GetWindowRect=[160,140]-[1160,780] 1000x640 frame=[160,140]-[1160,780] 1000x640 style=0x16030000 CAPTION=False SYSMENU=False THICKFRAME=False MINBOX=True MAXBOX=True POPUP=False ex=0x00240000 IsExtendedIntoWindowDecorations=True WindowDecorationMargin=0,0,0,0 ClientSize=1000, 640 WindowDecorations=None
+19:41:47.351Z none_hooked: SCREEN content interior [220,230]-[1100,740] 880x510 magentaFraction=1.0000 live=True
+19:41:47.357Z CAPTURE none_hooked_titlebar rect=[160,140]-[1160,230] 1000x90 -> none_hooked_titlebar.png (1289 B)
+19:41:47.357Z none_hooked: GEOMETRY client origin (160,140) scale 1.00; close phys [178,156]-[192,170] dip left=18.0 top=16.0 size=14.0; min phys [201,156]-[215,170] dip left=41.0 top=16.0 size=14.0; max phys [224,156]-[238,170] dip left=64.0 top=16.0 size=14.0; titlebar height dip=44.0
+19:41:47.357Z none_hooked: NCHITTEST sidebar placement (18,16): caption(460,162)=HTCAPTION close(185,163)=HTCLOSE min(208,163)=HTMINBUTTON max(231,163)=HTMAXBUTTON content(660,500)=HTCLIENT => ok=True
+19:41:47.363Z none_hooked: NCHITTEST row y=163: HTCAPTION[160..176] HTCLOSE[178..192] HTCAPTION[194..200] HTMINBUTTON[202..214] HTCAPTION[216..222] HTMAXBUTTON[224..238] HTCAPTION[240..1159]
+19:41:47.774Z none_hooked: NCHITTEST collapsed placement (14,21): caption(460,162)=HTCAPTION close(181,168)=HTCLOSE min(204,168)=HTMINBUTTON max(227,168)=HTMAXBUTTON content(660,500)=HTCLIENT => ok=True
+19:41:49.294Z none_hooked: DRAG from (460,162) by (+150,+90): window moved (150,90) before=[160,140]-[1160,780] 1000x640 after=[310,230]-[1310,870] 1000x640 => ok=True
+19:41:49.294Z MSGS none_hooked drag: 19:41:48.276Z WM_NCLBUTTONDOWN HTCAPTION | 19:41:48.276Z WM_SYSCOMMAND 0xF010 | 19:41:48.413Z WM_ENTERSIZEMOVE | 19:41:48.892Z WM_EXITSIZEMOVE
+19:41:50.115Z none_hooked refocus: foreground via SetForegroundWindow
+19:41:50.180Z INPUT double-click caption: left x2 at (460,162) sent=4 (WM_NCHITTEST there just before = HTCAPTION)
+19:41:51.094Z none_hooked: DOUBLE-CLICK caption => IsZoomed=True
+19:41:51.095Z MSGS none_hooked dblclick-max: 19:41:50.180Z WM_NCLBUTTONDOWN HTCAPTION | 19:41:50.181Z WM_SYSCOMMAND 0xF010 | 19:41:50.182Z WM_NCLBUTTONDBLCLK HTCAPTION | 19:41:50.182Z WM_SYSCOMMAND 0xF030 | 19:41:50.183Z WM_LBUTTONUP (client)
+19:41:51.159Z INPUT double-click caption (maximised): left x2 at (300,22) sent=4 (WM_NCHITTEST there just before = HTCAPTION)
+19:41:52.071Z none_hooked: DOUBLE-CLICK caption while maximised => restored=True
+19:41:52.071Z MSGS none_hooked dblclick-restore: 19:41:51.160Z WM_NCLBUTTONDOWN HTCAPTION | 19:41:51.160Z WM_SYSCOMMAND 0xF010 | 19:41:51.161Z WM_NCLBUTTONDBLCLK HTCAPTION | 19:41:51.161Z WM_SYSCOMMAND 0xF120
+19:41:52.893Z none_hooked refocus: foreground via SetForegroundWindow
+19:41:52.960Z INPUT right-click caption: right x1 at (460,162) sent=2 (WM_NCHITTEST there just before = HTCAPTION)
+19:41:53.762Z none_hooked: RIGHT-CLICK caption => our #32768 menu visible=False 
+19:41:53.762Z MSGS none_hooked rightclick: 19:41:52.960Z WM_NCRBUTTONDOWN HTCAPTION | 19:41:52.961Z WM_CONTEXTMENU | 19:41:52.961Z HOOK WM_CONTEXTMENU on HTCAPTION at (460,162) -> TrackPopupMenu(GetSystemMenu=0x0) | 19:41:52.961Z HOOK TrackPopupMenu returned 0x0000
+19:41:54.072Z none_hooked refocus: foreground via SetForegroundWindow
+19:41:54.275Z INPUT keys Alt+Space: foreground 0xA5087C (Avalonia-15bade08-db7f-4257-bd9e-cb48a6c8054b) sent=4/4
+19:41:55.080Z none_hooked: ALT+SPACE => our #32768 menu visible=False 
+19:41:55.080Z MSGS none_hooked altspace: 19:41:54.275Z WM_SYSKEYDOWN vk=0x12
+19:41:55.389Z none_hooked refocus: foreground via SetForegroundWindow
+19:41:56.196Z none_hooked: SC_KEYMENU ' ' (keyboard window-menu path) => our #32768 menu visible=False 
+19:41:56.196Z MSGS none_hooked sc_keymenu: 19:41:55.390Z WM_SYSCOMMAND 0xF100 | 19:41:55.390Z HOOK WM_SYSCOMMAND SC_KEYMENU ' ' -> TrackPopupMenu(GetSystemMenu=0x0) at (168,184) | 19:41:55.390Z HOOK TrackPopupMenu returned 0x0000
+19:41:56.506Z none_hooked refocus: foreground via SetForegroundWindow
+19:41:56.602Z INPUT min button: left x1 at (208,163) sent=2 (WM_NCHITTEST there just before = HTMINBUTTON)
+19:41:57.324Z ANIM none_hooked_minimize: frames=52 meanFrameMs=13.8 preArea=37250 postArea=0 distinctIntermediateAreas=0 => animated=False
+19:41:57.324Z ANIM none_hooked_minimize series: 96ms:37250 114ms:0 128ms:0 144ms:0 160ms:0 174ms:0 190ms:0 203ms:0 220ms:0 235ms:0 248ms:0 264ms:0 276ms:0 290ms:0 306ms:0 318ms:0 332ms:0 347ms:0 359ms:0 372ms:0 384ms:0 397ms:0 410ms:0 422ms:0 434ms:0 447ms:0 460ms:0 472ms:0 485ms:0 498ms:0 514ms:0 526ms:0 538ms:0 551ms:0 564ms:0 579ms:0 592ms:0 605ms:0 618ms:0 630ms:0 643ms:0 656ms:0 674ms:0 690ms:0 707ms:0 722ms:0 734ms:0 747ms:0 759ms:0 773ms:0 789ms:0 801ms:0
+19:41:57.324Z none_hooked: MIN button => IsIconic=True
+19:41:57.324Z MSGS none_hooked min: 19:41:56.603Z WM_NCLBUTTONDOWN HTMINBUTTON | 19:41:56.603Z HOOK swallowed WM_NCLBUTTONDOWN HTMINBUTTON | 19:41:56.603Z WM_NCLBUTTONUP HTMINBUTTON | 19:41:56.603Z HOOK WM_NCLBUTTONUP HTMINBUTTON -> PostMessage WM_SYSCOMMAND 0xF020 | 19:41:56.603Z WM_SYSCOMMAND 0xF020
+19:41:59.064Z none_hooked refocus: foreground via SetForegroundWindow
+19:41:59.144Z INPUT max button: left x1 at (231,163) sent=2 (WM_NCHITTEST there just before = HTMAXBUTTON)
+19:41:59.892Z ANIM none_hooked_maximize: frames=50 meanFrameMs=14.9 preArea=37250 postArea=215680 distinctIntermediateAreas=0 => animated=False
+19:41:59.892Z ANIM none_hooked_maximize series: 80ms:37250 96ms:215680 108ms:215680 120ms:215680 133ms:215680 145ms:215680 157ms:215680 171ms:215680 183ms:215680 196ms:215680 208ms:215680 220ms:215680 234ms:215680 250ms:215680 267ms:215680 284ms:215680 301ms:215680 316ms:215680 331ms:215680 346ms:215680 360ms:215680 377ms:215680 394ms:215680 409ms:215680 425ms:215680 438ms:215680 451ms:215680 467ms:215680 483ms:215680 502ms:215680 518ms:215680 534ms:215680 551ms:215680 566ms:215680 579ms:215680 591ms:215680 604ms:215680 621ms:215680 639ms:215680 655ms:215680 671ms:215680 688ms:215680 705ms:215680 722ms:215680 738ms:215680 755ms:215680 771ms:215680 783ms:215680 795ms:215680 812ms:215680
+19:41:59.892Z none_hooked: MAX button => IsZoomed=True; maximised GetWindowRect=[0,0]-[2560,1392] 2560x1392 frame=[0,0]-[2560,1392] 2560x1392 monitor=[0,0]-[2560,1440] 2560x1440 work=[0,0]-[2560,1392] 2560x1392
+19:41:59.892Z MSGS none_hooked max: 19:41:59.144Z WM_NCLBUTTONDOWN HTMAXBUTTON | 19:41:59.144Z HOOK swallowed WM_NCLBUTTONDOWN HTMAXBUTTON | 19:41:59.144Z WM_NCLBUTTONUP HTMAXBUTTON | 19:41:59.144Z HOOK WM_NCLBUTTONUP HTMAXBUTTON -> PostMessage WM_SYSCOMMAND 0xF030 | 19:41:59.144Z WM_SYSCOMMAND 0xF030
+19:42:00.277Z INPUT max button (restore): left x1 at (71,23) sent=2 (WM_NCHITTEST there just before = HTMAXBUTTON)
+19:42:01.021Z ANIM none_hooked_restore: frames=56 meanFrameMs=13.2 preArea=215680 postArea=37250 distinctIntermediateAreas=0 => animated=False
+19:42:01.021Z ANIM none_hooked_restore series: 84ms:215680 100ms:37250 116ms:37250 129ms:37250 142ms:37250 159ms:37250 175ms:37250 191ms:37250 204ms:37250 216ms:37250 228ms:37250 242ms:37250 259ms:37250 275ms:37250 286ms:37250 299ms:37250 311ms:37250 324ms:37250 336ms:37250 349ms:37250 361ms:37250 373ms:37250 386ms:37250 399ms:37250 412ms:37250 426ms:37250 441ms:37250 453ms:37250 465ms:37250 478ms:37250 491ms:37250 503ms:37250 516ms:37250 529ms:37250 546ms:37250 562ms:37250 574ms:37250 587ms:37250 599ms:37250 611ms:37250 624ms:37250 636ms:37250 648ms:37250 661ms:37250 674ms:37250 687ms:37250 699ms:37250 711ms:37250 724ms:37250 737ms:37250 749ms:37250 761ms:37250 774ms:37250 786ms:37250 799ms:37250 811ms:37250
+19:42:01.021Z none_hooked: MAX button while maximised => restored=True
+19:42:01.021Z MSGS none_hooked restore: 19:42:00.278Z WM_NCLBUTTONDOWN HTMAXBUTTON | 19:42:00.278Z HOOK swallowed WM_NCLBUTTONDOWN HTMAXBUTTON | 19:42:00.278Z WM_NCLBUTTONUP HTMAXBUTTON | 19:42:00.278Z HOOK WM_NCLBUTTONUP HTMAXBUTTON -> PostMessage WM_SYSCOMMAND 0xF120 | 19:42:00.278Z WM_SYSCOMMAND 0xF120
+19:42:01.947Z none_hooked refocus: foreground via SetForegroundWindow
+19:42:02.866Z none_hooked: NCHITTEST at hover point (231,163) = HTMAXBUTTON
+19:42:05.094Z CAPTURE none_hooked_snap_hover rect=[160,140]-[1160,560] 1000x420 -> none_hooked_snap_hover.png (3021 B)
+19:42:05.095Z none_hooked: SNAP hover max (231,163) 2000 ms: zone=[160,190]-[651,480] 491x290 zonePixelsChanged=0.0000 foreignWindowsAboveOursInZone before=0 after=0 new=[] => flyout=False
+19:42:06.605Z none_hooked: SNAP 1.5 s after parking in the content: zonePixelsChanged vs pre=0.0000 (flyout dismissed if near 0)
+19:42:06.605Z MSGS none_hooked snap: (none)
+19:42:06.911Z none_hooked refocus: foreground via SetForegroundWindow
+19:42:06.978Z INPUT close button: left x1 at (185,163) sent=2 (WM_NCHITTEST there just before = HTCLOSE)
+19:42:07.982Z none_hooked: CLOSE button => closed=True (IsWindow=False ClosedEvent=True)
+19:42:07.982Z MSGS none_hooked close: 19:42:06.979Z WM_NCLBUTTONDOWN HTCLOSE | 19:42:06.979Z HOOK swallowed WM_NCLBUTTONDOWN HTCLOSE | 19:42:06.979Z WM_NCLBUTTONUP HTCLOSE | 19:42:06.979Z HOOK WM_NCLBUTTONUP HTCLOSE -> PostMessage WM_SYSCOMMAND 0xF060 | 19:42:06.979Z WM_SYSCOMMAND 0xF060
+19:42:08.493Z RESULT-ROW none_hooked: map=True mapCollapsed=True drag=True dblMax=True dblRestore=True rightClickMenu=False altSpaceMenu=False keyMenu=False min=True max=True restore=True close=True snapFlyout=False animMin=False animMax=False animRestore=False
+19:42:08.494Z === RAW control: class with lpfnWndProc = user32!DefWindowProcW, WS_OVERLAPPEDWINDOW, created on the UI thread
+19:42:08.506Z RAW atom=49919 wndproc=0x7FFBFF660A70 hwnd=0x294043A style=0x14CF0000 CAPTION=True SYSMENU=True THICKFRAME=True MINBOX=True MAXBOX=True POPUP=False
+19:42:09.315Z RAW rect=[160,140]-[860,500] 700x360 NCHITTEST caption(410,155)=HTCAPTION content(510,320)=HTCLIENT
+19:42:09.625Z raw focus: foreground via SetForegroundWindow
+19:42:09.895Z INPUT raw right-click caption: right x1 at (410,155) sent=2 (WM_NCHITTEST there just before = HTCAPTION)
+19:42:10.696Z RAW RIGHT-CLICK caption => our #32768 menu visible=True
+19:42:10.697Z INPUT keys Escape (close raw menu): foreground 0x294043A (P7RawControl) sent=2/2
+19:42:11.410Z raw focus: foreground via SetForegroundWindow
+19:42:11.612Z INPUT keys raw Alt+Space: foreground 0x294043A (P7RawControl) sent=4/4
+19:42:12.418Z RAW ALT+SPACE => our #32768 menu visible=False
+19:42:12.728Z raw focus: foreground via SetForegroundWindow
+19:42:13.737Z RAW posted SC_KEYMENU ' ' => our #32768 menu visible=True
+19:42:13.748Z CAPTURE raw_sysmenu_keyboard rect=[160,140]-[860,500] 700x360 -> raw_sysmenu_keyboard.png (6092 B)
+19:42:13.748Z INPUT keys Escape (close raw menu): foreground 0x294043A (P7RawControl) sent=2/2
+19:42:14.161Z RAW destroyed, IsWindow=False
+19:42:15.818Z === PANEL noactivate: WS_EX_NOACTIVATE via AddWindowStylesCallback=True WM_MOUSEACTIVATE->MA_NOACTIVATE via AddWndProcHookCallback=True field=Focus WH_CBT activation/focus refusal=False
+19:42:16.126Z host focus: foreground via SetForegroundWindow
+19:42:16.196Z INPUT host sink field (give it focus): left x1 at (328,269) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:16.504Z INPUT keys type into host sink (baseline: host keyboard path works): foreground 0x295043A (Avalonia-fd649c35-9f66-4eef-a46f-8aa97c3ae73e) sent=14/14
+19:42:16.919Z PANEL noactivate: host sink baseline text="Pw7!xyz" (expects "Pw7!xyz")
+19:42:18.439Z PANEL noactivate: hwnd=0xA6087C frame=[667,340]-[1027,460] 360x120 ex=0x08200008 NOACTIVATE=True style=0x16020000 CAPTION=False SYSMENU=False THICKFRAME=False MINBOX=True MAXBOX=False POPUP=False
+19:42:18.439Z PANEL noactivate: foreground BEFORE click = 0x295043A (host)
+19:42:18.505Z INPUT panel field: left x1 at (847,400) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:19.012Z PANEL noactivate: foreground AFTER click = 0xA6087C (panel); Win32 GetFocus(driver thread)=0x0
+19:42:19.013Z PANEL noactivate: panel.IsActive=True host.IsActive=False panelField.IsFocused=True panel.Focused=Field host.Focused=Field
+19:42:19.015Z INPUT keys type "Pw7!xyz" (VK_PACKET unicode): foreground 0xA6087C (Avalonia-e1f17619-e755-4721-be98-9f58fb8d27bb) sent=14/14
+19:42:19.727Z PANEL noactivate: panel field text="Pw7!xyz" (presses=1 keyDowns=7 textInputs=7) host sink text="" WM_MOUSEACTIVATE seen=1 foreground at end=0xA6087C (panel)
+19:42:19.727Z PANEL noactivate EVENT 19:42:18.505Z WM_MOUSEACTIVATE -> MA_NOACTIVATE (hook)
+19:42:19.727Z PANEL noactivate EVENT 19:42:18.508Z WM_NCACTIVATE 1 stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.SetFocus < UnmanagedMethods.SetFocus < WindowImpl.AppWndProc < WindowImpl.WndProcMessageHandler < UnmanagedMethods.DispatchMessage < UnmanagedMethods.DispatchMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:19.727Z PANEL noactivate EVENT 19:42:18.508Z WM_ACTIVATE 1 stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.SetFocus < UnmanagedMethods.SetFocus < WindowImpl.AppWndProc < WindowImpl.WndProcMessageHandler < UnmanagedMethods.DispatchMessage < UnmanagedMethods.DispatchMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:19.727Z PANEL noactivate EVENT 19:42:18.509Z WM_SETFOCUS stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.SetFocus < UnmanagedMethods.SetFocus < WindowImpl.AppWndProc < WindowImpl.WndProcMessageHandler < UnmanagedMethods.DispatchMessage < UnmanagedMethods.DispatchMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:19.732Z CAPTURE panel_noactivate rect=[667,340]-[1027,460] 360x120 -> panel_noactivate.png (556 B)
+19:42:19.732Z PANEL noactivate: noActivate=False textArrived=True cbtRefusedActivate=0 cbtRefusedFocus=0
+19:42:20.237Z === PANEL control_plain: WS_EX_NOACTIVATE via AddWindowStylesCallback=False WM_MOUSEACTIVATE->MA_NOACTIVATE via AddWndProcHookCallback=False field=Focus WH_CBT activation/focus refusal=False
+19:42:20.547Z host focus: foreground via SetForegroundWindow
+19:42:20.614Z INPUT host sink field (give it focus): left x1 at (328,269) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:20.921Z INPUT keys type into host sink (baseline: host keyboard path works): foreground 0x295043A (Avalonia-fd649c35-9f66-4eef-a46f-8aa97c3ae73e) sent=14/14
+19:42:21.323Z PANEL control_plain: host sink baseline text="Pw7!xyz" (expects "Pw7!xyz")
+19:42:22.843Z PANEL control_plain: hwnd=0xA7087C frame=[667,340]-[1027,460] 360x120 ex=0x00200008 NOACTIVATE=False style=0x16020000 CAPTION=False SYSMENU=False THICKFRAME=False MINBOX=True MAXBOX=False POPUP=False
+19:42:22.843Z PANEL control_plain: foreground BEFORE click = 0x295043A (host)
+19:42:22.910Z INPUT panel field: left x1 at (847,400) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:23.417Z PANEL control_plain: foreground AFTER click = 0xA7087C (panel); Win32 GetFocus(driver thread)=0x0
+19:42:23.418Z PANEL control_plain: panel.IsActive=True host.IsActive=False panelField.IsFocused=True panel.Focused=Field host.Focused=Field
+19:42:23.420Z INPUT keys type "Pw7!xyz" (VK_PACKET unicode): foreground 0xA7087C (Avalonia-03447a3b-9945-48f9-910e-31364b14ff78) sent=14/14
+19:42:24.131Z PANEL control_plain: panel field text="Pw7!xyz" (presses=1 keyDowns=7 textInputs=7) host sink text="" WM_MOUSEACTIVATE seen=1 foreground at end=0xA7087C (panel)
+19:42:24.131Z PANEL control_plain EVENT 19:42:22.910Z WM_MOUSEACTIVATE -> default
+19:42:24.131Z PANEL control_plain EVENT 19:42:22.911Z WM_NCACTIVATE 1 stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.GetMessage < UnmanagedMethods.GetMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:24.131Z PANEL control_plain EVENT 19:42:22.911Z WM_ACTIVATE 2 stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.GetMessage < UnmanagedMethods.GetMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:24.131Z PANEL control_plain EVENT 19:42:22.912Z WM_SETFOCUS stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.GetMessage < UnmanagedMethods.GetMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:24.137Z CAPTURE panel_control_plain rect=[667,340]-[1027,460] 360x120 -> panel_control_plain.png (556 B)
+19:42:24.137Z PANEL control_plain: noActivate=False textArrived=True cbtRefusedActivate=0 cbtRefusedFocus=0
+19:42:24.642Z === PANEL style_only: WS_EX_NOACTIVATE via AddWindowStylesCallback=True WM_MOUSEACTIVATE->MA_NOACTIVATE via AddWndProcHookCallback=False field=Focus WH_CBT activation/focus refusal=False
+19:42:24.952Z host focus: foreground via SetForegroundWindow
+19:42:25.018Z INPUT host sink field (give it focus): left x1 at (328,269) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:25.326Z INPUT keys type into host sink (baseline: host keyboard path works): foreground 0x295043A (Avalonia-fd649c35-9f66-4eef-a46f-8aa97c3ae73e) sent=14/14
+19:42:25.727Z PANEL style_only: host sink baseline text="Pw7!xyz" (expects "Pw7!xyz")
+19:42:27.247Z PANEL style_only: hwnd=0x1C06EE frame=[667,340]-[1027,460] 360x120 ex=0x08200008 NOACTIVATE=True style=0x16020000 CAPTION=False SYSMENU=False THICKFRAME=False MINBOX=True MAXBOX=False POPUP=False
+19:42:27.247Z PANEL style_only: foreground BEFORE click = 0x295043A (host)
+19:42:27.315Z INPUT panel field: left x1 at (847,400) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:27.822Z PANEL style_only: foreground AFTER click = 0x1C06EE (panel); Win32 GetFocus(driver thread)=0x0
+19:42:27.822Z PANEL style_only: panel.IsActive=True host.IsActive=False panelField.IsFocused=True panel.Focused=Field host.Focused=Field
+19:42:27.823Z INPUT keys type "Pw7!xyz" (VK_PACKET unicode): foreground 0x1C06EE (Avalonia-a486392e-96b9-431a-8fca-b806324e7074) sent=14/14
+19:42:28.536Z PANEL style_only: panel field text="Pw7!xyz" (presses=1 keyDowns=7 textInputs=7) host sink text="" WM_MOUSEACTIVATE seen=1 foreground at end=0x1C06EE (panel)
+19:42:28.536Z PANEL style_only EVENT 19:42:27.315Z WM_MOUSEACTIVATE -> default
+19:42:28.536Z PANEL style_only EVENT 19:42:27.316Z WM_NCACTIVATE 1 stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.GetMessage < UnmanagedMethods.GetMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:28.536Z PANEL style_only EVENT 19:42:27.316Z WM_ACTIVATE 2 stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.GetMessage < UnmanagedMethods.GetMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:28.536Z PANEL style_only EVENT 19:42:27.317Z WM_SETFOCUS stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.GetMessage < UnmanagedMethods.GetMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:28.542Z CAPTURE panel_style_only rect=[667,340]-[1027,460] 360x120 -> panel_style_only.png (556 B)
+19:42:28.542Z PANEL style_only: noActivate=False textArrived=True cbtRefusedActivate=0 cbtRefusedFocus=0
+19:42:29.048Z === PANEL hook_only: WS_EX_NOACTIVATE via AddWindowStylesCallback=False WM_MOUSEACTIVATE->MA_NOACTIVATE via AddWndProcHookCallback=True field=Focus WH_CBT activation/focus refusal=False
+19:42:29.358Z host focus: foreground via SetForegroundWindow
+19:42:29.427Z INPUT host sink field (give it focus): left x1 at (328,269) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:29.731Z INPUT keys type into host sink (baseline: host keyboard path works): foreground 0x295043A (Avalonia-fd649c35-9f66-4eef-a46f-8aa97c3ae73e) sent=14/14
+19:42:30.133Z PANEL hook_only: host sink baseline text="Pw7!xyz" (expects "Pw7!xyz")
+19:42:31.651Z PANEL hook_only: hwnd=0x1D06EE frame=[667,340]-[1027,460] 360x120 ex=0x00200008 NOACTIVATE=False style=0x16020000 CAPTION=False SYSMENU=False THICKFRAME=False MINBOX=True MAXBOX=False POPUP=False
+19:42:31.651Z PANEL hook_only: foreground BEFORE click = 0x295043A (host)
+19:42:31.720Z INPUT panel field: left x1 at (847,400) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:32.225Z PANEL hook_only: foreground AFTER click = 0x1D06EE (panel); Win32 GetFocus(driver thread)=0x0
+19:42:32.225Z PANEL hook_only: panel.IsActive=True host.IsActive=False panelField.IsFocused=True panel.Focused=Field host.Focused=Field
+19:42:32.226Z INPUT keys type "Pw7!xyz" (VK_PACKET unicode): foreground 0x1D06EE (Avalonia-abcb8eb4-ec80-4184-9772-9d9627cfae20) sent=14/14
+19:42:32.938Z PANEL hook_only: panel field text="Pw7!xyz" (presses=1 keyDowns=7 textInputs=7) host sink text="" WM_MOUSEACTIVATE seen=1 foreground at end=0x1D06EE (panel)
+19:42:32.938Z PANEL hook_only EVENT 19:42:31.720Z WM_MOUSEACTIVATE -> MA_NOACTIVATE (hook)
+19:42:32.938Z PANEL hook_only EVENT 19:42:31.722Z WM_NCACTIVATE 1 stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.SetFocus < UnmanagedMethods.SetFocus < WindowImpl.AppWndProc < WindowImpl.WndProcMessageHandler < UnmanagedMethods.DispatchMessage < UnmanagedMethods.DispatchMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:32.938Z PANEL hook_only EVENT 19:42:31.722Z WM_ACTIVATE 1 stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.SetFocus < UnmanagedMethods.SetFocus < WindowImpl.AppWndProc < WindowImpl.WndProcMessageHandler < UnmanagedMethods.DispatchMessage < UnmanagedMethods.DispatchMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:32.938Z PANEL hook_only EVENT 19:42:31.723Z WM_SETFOCUS stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.SetFocus < UnmanagedMethods.SetFocus < WindowImpl.AppWndProc < WindowImpl.WndProcMessageHandler < UnmanagedMethods.DispatchMessage < UnmanagedMethods.DispatchMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:32.942Z CAPTURE panel_hook_only rect=[667,340]-[1027,460] 360x120 -> panel_hook_only.png (556 B)
+19:42:32.942Z PANEL hook_only: noActivate=False textArrived=True cbtRefusedActivate=0 cbtRefusedFocus=0
+19:42:33.450Z === PANEL noactivate_nofocus: WS_EX_NOACTIVATE via AddWindowStylesCallback=True WM_MOUSEACTIVATE->MA_NOACTIVATE via AddWndProcHookCallback=True field=NoFocus WH_CBT activation/focus refusal=False
+19:42:33.761Z host focus: foreground via SetForegroundWindow
+19:42:33.824Z INPUT host sink field (give it focus): left x1 at (328,269) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:34.134Z INPUT keys type into host sink (baseline: host keyboard path works): foreground 0x295043A (Avalonia-fd649c35-9f66-4eef-a46f-8aa97c3ae73e) sent=14/14
+19:42:34.536Z PANEL noactivate_nofocus: host sink baseline text="Pw7!xyz" (expects "Pw7!xyz")
+19:42:36.057Z PANEL noactivate_nofocus: hwnd=0x1E06EE frame=[667,340]-[1027,460] 360x120 ex=0x08200008 NOACTIVATE=True style=0x16020000 CAPTION=False SYSMENU=False THICKFRAME=False MINBOX=True MAXBOX=False POPUP=False
+19:42:36.057Z PANEL noactivate_nofocus: foreground BEFORE click = 0x295043A (host)
+19:42:36.120Z INPUT panel field: left x1 at (847,400) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:36.630Z PANEL noactivate_nofocus: foreground AFTER click = 0x1E06EE (panel); Win32 GetFocus(driver thread)=0x0
+19:42:36.631Z PANEL noactivate_nofocus: panel.IsActive=True host.IsActive=False panelField.IsFocused=False panel.Focused=null host.Focused=null
+19:42:36.632Z INPUT keys type "Pw7!xyz" (VK_PACKET unicode): foreground 0x1E06EE (Avalonia-83637a75-eddc-4699-b86c-275165ea588d) sent=14/14
+19:42:37.344Z PANEL noactivate_nofocus: panel field text="" (presses=1 keyDowns=0 textInputs=0) host sink text="" WM_MOUSEACTIVATE seen=1 foreground at end=0x1E06EE (panel)
+19:42:37.344Z PANEL noactivate_nofocus EVENT 19:42:36.120Z WM_MOUSEACTIVATE -> MA_NOACTIVATE (hook)
+19:42:37.344Z PANEL noactivate_nofocus EVENT 19:42:36.122Z WM_NCACTIVATE 1 stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.SetFocus < UnmanagedMethods.SetFocus < WindowImpl.AppWndProc < WindowImpl.WndProcMessageHandler < UnmanagedMethods.DispatchMessage < UnmanagedMethods.DispatchMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:37.344Z PANEL noactivate_nofocus EVENT 19:42:36.122Z WM_ACTIVATE 1 stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.SetFocus < UnmanagedMethods.SetFocus < WindowImpl.AppWndProc < WindowImpl.WndProcMessageHandler < UnmanagedMethods.DispatchMessage < UnmanagedMethods.DispatchMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:37.344Z PANEL noactivate_nofocus EVENT 19:42:36.123Z WM_SETFOCUS stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.SetFocus < UnmanagedMethods.SetFocus < WindowImpl.AppWndProc < WindowImpl.WndProcMessageHandler < UnmanagedMethods.DispatchMessage < UnmanagedMethods.DispatchMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:37.347Z CAPTURE panel_noactivate_nofocus rect=[667,340]-[1027,460] 360x120 -> panel_noactivate_nofocus.png (527 B)
+19:42:37.347Z PANEL noactivate_nofocus: noActivate=False textArrived=False cbtRefusedActivate=0 cbtRefusedFocus=0
+19:42:37.856Z === PANEL noactivate_forward: WS_EX_NOACTIVATE via AddWindowStylesCallback=True WM_MOUSEACTIVATE->MA_NOACTIVATE via AddWndProcHookCallback=True field=Forward WH_CBT activation/focus refusal=False
+19:42:38.167Z host focus: foreground via SetForegroundWindow
+19:42:38.233Z INPUT host sink field (give it focus): left x1 at (328,269) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:38.541Z INPUT keys type into host sink (baseline: host keyboard path works): foreground 0x295043A (Avalonia-fd649c35-9f66-4eef-a46f-8aa97c3ae73e) sent=14/14
+19:42:38.942Z PANEL noactivate_forward: host sink baseline text="Pw7!xyz" (expects "Pw7!xyz")
+19:42:40.463Z PANEL noactivate_forward: hwnd=0x1F06EE frame=[667,340]-[1027,460] 360x120 ex=0x08200008 NOACTIVATE=True style=0x16020000 CAPTION=False SYSMENU=False THICKFRAME=False MINBOX=True MAXBOX=False POPUP=False
+19:42:40.463Z PANEL noactivate_forward: foreground BEFORE click = 0x295043A (host)
+19:42:40.529Z INPUT panel field: left x1 at (847,400) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:41.036Z PANEL noactivate_forward: foreground AFTER click = 0x1F06EE (panel); Win32 GetFocus(driver thread)=0x0
+19:42:41.036Z PANEL noactivate_forward: panel.IsActive=True host.IsActive=False panelField.IsFocused=False panel.Focused=null host.Focused=null
+19:42:41.038Z INPUT keys type "Pw7!xyz" (VK_PACKET unicode): foreground 0x1F06EE (Avalonia-37124855-c112-43d3-bff1-b485b84db025) sent=14/14
+19:42:41.751Z PANEL noactivate_forward: panel field text="" (presses=1 keyDowns=0 textInputs=0) host sink text="" WM_MOUSEACTIVATE seen=1 foreground at end=0x1F06EE (panel)
+19:42:41.751Z PANEL noactivate_forward EVENT 19:42:40.529Z WM_MOUSEACTIVATE -> MA_NOACTIVATE (hook)
+19:42:41.751Z PANEL noactivate_forward EVENT 19:42:40.531Z WM_NCACTIVATE 1 stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.SetFocus < UnmanagedMethods.SetFocus < WindowImpl.AppWndProc < WindowImpl.WndProcMessageHandler < UnmanagedMethods.DispatchMessage < UnmanagedMethods.DispatchMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:41.751Z PANEL noactivate_forward EVENT 19:42:40.532Z WM_ACTIVATE 1 stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.SetFocus < UnmanagedMethods.SetFocus < WindowImpl.AppWndProc < WindowImpl.WndProcMessageHandler < UnmanagedMethods.DispatchMessage < UnmanagedMethods.DispatchMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:41.751Z PANEL noactivate_forward EVENT 19:42:40.532Z WM_SETFOCUS stack: WindowImpl.WndProcMessageHandler < UnmanagedMethods.SetFocus < UnmanagedMethods.SetFocus < WindowImpl.AppWndProc < WindowImpl.WndProcMessageHandler < UnmanagedMethods.DispatchMessage < UnmanagedMethods.DispatchMessage < Win32DispatcherImpl.RunLoop < DispatcherFrame.Run < Dispatcher.PushFrame < Dispatcher.MainLoop < Program.Main
+19:42:41.756Z CAPTURE panel_noactivate_forward rect=[667,340]-[1027,460] 360x120 -> panel_noactivate_forward.png (527 B)
+19:42:41.756Z PANEL noactivate_forward: noActivate=False textArrived=False cbtRefusedActivate=0 cbtRefusedFocus=0
+19:42:42.262Z === PANEL cbt_focus: WS_EX_NOACTIVATE via AddWindowStylesCallback=True WM_MOUSEACTIVATE->MA_NOACTIVATE via AddWndProcHookCallback=True field=Focus WH_CBT activation/focus refusal=True
+19:42:42.572Z host focus: foreground via SetForegroundWindow
+19:42:42.638Z INPUT host sink field (give it focus): left x1 at (328,269) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:42.947Z INPUT keys type into host sink (baseline: host keyboard path works): foreground 0x295043A (Avalonia-fd649c35-9f66-4eef-a46f-8aa97c3ae73e) sent=14/14
+19:42:43.349Z PANEL cbt_focus: host sink baseline text="Pw7!xyz" (expects "Pw7!xyz")
+19:42:44.871Z PANEL cbt_focus: hwnd=0x2006EE frame=[667,340]-[1027,460] 360x120 ex=0x08200008 NOACTIVATE=True style=0x16020000 CAPTION=False SYSMENU=False THICKFRAME=False MINBOX=True MAXBOX=False POPUP=False
+19:42:44.871Z PANEL cbt_focus: foreground BEFORE click = 0x295043A (host)
+19:42:44.938Z INPUT panel field: left x1 at (847,400) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:45.445Z PANEL cbt_focus: foreground AFTER click = 0x295043A (host); Win32 GetFocus(driver thread)=0x0
+19:42:45.445Z PANEL cbt_focus: panel.IsActive=False host.IsActive=True panelField.IsFocused=True panel.Focused=Field host.Focused=Field
+19:42:45.446Z INPUT keys type "Pw7!xyz" (VK_PACKET unicode): foreground 0x295043A (Avalonia-fd649c35-9f66-4eef-a46f-8aa97c3ae73e) sent=14/14
+19:42:46.158Z PANEL cbt_focus: panel field text="Pw7!xyz" (presses=1 keyDowns=7 textInputs=7) host sink text="" WM_MOUSEACTIVATE seen=1 foreground at end=0x295043A (host)
+19:42:46.158Z PANEL cbt_focus EVENT 19:42:44.266Z CBT hook installed=0x120F0271 thread=55512
+19:42:46.158Z PANEL cbt_focus EVENT 19:42:44.938Z WM_MOUSEACTIVATE -> MA_NOACTIVATE (hook)
+19:42:46.158Z PANEL cbt_focus EVENT 19:42:44.939Z CBT refused HCBT_SETFOCUS
+19:42:46.165Z CAPTURE panel_cbt_focus rect=[667,340]-[1027,460] 360x120 -> panel_cbt_focus.png (556 B)
+19:42:46.165Z PANEL cbt_focus: noActivate=True textArrived=True cbtRefusedActivate=0 cbtRefusedFocus=1
+19:42:46.670Z === PANEL cbt_nofocus: WS_EX_NOACTIVATE via AddWindowStylesCallback=True WM_MOUSEACTIVATE->MA_NOACTIVATE via AddWndProcHookCallback=True field=NoFocus WH_CBT activation/focus refusal=True
+19:42:46.981Z host focus: foreground via SetForegroundWindow
+19:42:47.051Z INPUT host sink field (give it focus): left x1 at (328,269) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:47.355Z INPUT keys type into host sink (baseline: host keyboard path works): foreground 0x295043A (Avalonia-fd649c35-9f66-4eef-a46f-8aa97c3ae73e) sent=14/14
+19:42:47.757Z PANEL cbt_nofocus: host sink baseline text="Pw7!xyz" (expects "Pw7!xyz")
+19:42:49.276Z PANEL cbt_nofocus: hwnd=0x2106EE frame=[667,340]-[1027,460] 360x120 ex=0x08200008 NOACTIVATE=True style=0x16020000 CAPTION=False SYSMENU=False THICKFRAME=False MINBOX=True MAXBOX=False POPUP=False
+19:42:49.276Z PANEL cbt_nofocus: foreground BEFORE click = 0x295043A (host)
+19:42:49.340Z INPUT panel field: left x1 at (847,400) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:49.849Z PANEL cbt_nofocus: foreground AFTER click = 0x295043A (host); Win32 GetFocus(driver thread)=0x0
+19:42:49.849Z PANEL cbt_nofocus: panel.IsActive=False host.IsActive=True panelField.IsFocused=False panel.Focused=Field host.Focused=Field
+19:42:49.852Z INPUT keys type "Pw7!xyz" (VK_PACKET unicode): foreground 0x295043A (Avalonia-fd649c35-9f66-4eef-a46f-8aa97c3ae73e) sent=14/14
+19:42:50.563Z PANEL cbt_nofocus: panel field text="" (presses=1 keyDowns=0 textInputs=0) host sink text="Pw7!xyz" WM_MOUSEACTIVATE seen=1 foreground at end=0x295043A (host)
+19:42:50.563Z PANEL cbt_nofocus EVENT 19:42:48.671Z CBT hook installed=0xC6E059D thread=55512
+19:42:50.563Z PANEL cbt_nofocus EVENT 19:42:49.340Z WM_MOUSEACTIVATE -> MA_NOACTIVATE (hook)
+19:42:50.563Z PANEL cbt_nofocus EVENT 19:42:49.340Z CBT refused HCBT_SETFOCUS
+19:42:50.574Z CAPTURE panel_cbt_nofocus rect=[667,340]-[1027,460] 360x120 -> panel_cbt_nofocus.png (527 B)
+19:42:50.574Z PANEL cbt_nofocus: noActivate=True textArrived=False cbtRefusedActivate=0 cbtRefusedFocus=1
+19:42:51.075Z === PANEL cbt_forward: WS_EX_NOACTIVATE via AddWindowStylesCallback=True WM_MOUSEACTIVATE->MA_NOACTIVATE via AddWndProcHookCallback=True field=Forward WH_CBT activation/focus refusal=True
+19:42:51.386Z host focus: foreground via SetForegroundWindow
+19:42:51.456Z INPUT host sink field (give it focus): left x1 at (328,269) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:51.761Z INPUT keys type into host sink (baseline: host keyboard path works): foreground 0x295043A (Avalonia-fd649c35-9f66-4eef-a46f-8aa97c3ae73e) sent=14/14
+19:42:52.162Z PANEL cbt_forward: host sink baseline text="Pw7!xyz" (expects "Pw7!xyz")
+19:42:53.682Z PANEL cbt_forward: hwnd=0x110700 frame=[667,340]-[1027,460] 360x120 ex=0x08200008 NOACTIVATE=True style=0x16020000 CAPTION=False SYSMENU=False THICKFRAME=False MINBOX=True MAXBOX=False POPUP=False
+19:42:53.682Z PANEL cbt_forward: foreground BEFORE click = 0x295043A (host)
+19:42:53.747Z INPUT panel field: left x1 at (847,400) sent=2 (WM_NCHITTEST there just before = HTCLIENT)
+19:42:54.256Z PANEL cbt_forward: foreground AFTER click = 0x295043A (host); Win32 GetFocus(driver thread)=0x0
+19:42:54.256Z PANEL cbt_forward: panel.IsActive=False host.IsActive=True panelField.IsFocused=False panel.Focused=Field host.Focused=Field
+19:42:54.257Z INPUT keys type "Pw7!xyz" (VK_PACKET unicode): foreground 0x295043A (Avalonia-fd649c35-9f66-4eef-a46f-8aa97c3ae73e) sent=14/14
+19:42:54.969Z PANEL cbt_forward: panel field text="Pw7!xyz" (presses=1 keyDowns=0 textInputs=7) host sink text="" WM_MOUSEACTIVATE seen=1 foreground at end=0x295043A (host)
+19:42:54.969Z PANEL cbt_forward EVENT 19:42:53.077Z CBT hook installed=0xFF103E1 thread=55512
+19:42:54.969Z PANEL cbt_forward EVENT 19:42:53.748Z WM_MOUSEACTIVATE -> MA_NOACTIVATE (hook)
+19:42:54.969Z PANEL cbt_forward EVENT 19:42:53.748Z CBT refused HCBT_SETFOCUS
+19:42:54.975Z CAPTURE panel_cbt_forward rect=[667,340]-[1027,460] 360x120 -> panel_cbt_forward.png (556 B)
+19:42:54.975Z PANEL cbt_forward: noActivate=True textArrived=True cbtRefusedActivate=0 cbtRefusedFocus=1
+19:42:55.900Z === SUMMARY
+19:42:55.900Z SUMMARY os_standard            map=False drag=True  dblMax=True  dblRestore=True  rMenu=True  altMenu=False keyMenu=False min=True  max=True  restore=True  close=True  snap=True  animMin=True  animMax=True  animRestore=True  chromeAll=True
+19:42:55.900Z SUMMARY full_declared          map=True  drag=True  dblMax=True  dblRestore=True  rMenu=False altMenu=False keyMenu=False min=False max=False restore=False close=False snap=True  animMin=False animMax=False animRestore=      chromeAll=False
+19:42:55.900Z SUMMARY borderonly_declared    map=True  drag=True  dblMax=True  dblRestore=True  rMenu=False altMenu=False keyMenu=False min=False max=False restore=False close=False snap=True  animMin=False animMax=False animRestore=      chromeAll=False
+19:42:55.900Z SUMMARY none_declared          map=True  drag=True  dblMax=True  dblRestore=True  rMenu=False altMenu=False keyMenu=False min=False max=False restore=False close=False snap=False animMin=False animMax=False animRestore=      chromeAll=False
+19:42:55.900Z SUMMARY full_undeclared        map=False drag=False dblMax=False dblRestore=False rMenu=False altMenu=False keyMenu=False min=False max=False restore=False close=False snap=False animMin=False animMax=False animRestore=      chromeAll=False
+19:42:55.900Z SUMMARY borderonly_undeclared  map=False drag=False dblMax=False dblRestore=False rMenu=False altMenu=False keyMenu=False min=False max=False restore=False close=False snap=False animMin=False animMax=False animRestore=      chromeAll=False
+19:42:55.900Z SUMMARY none_undeclared        map=False drag=False dblMax=False dblRestore=False rMenu=False altMenu=False keyMenu=False min=False max=False restore=False close=False snap=False animMin=False animMax=False animRestore=      chromeAll=False
+19:42:55.900Z SUMMARY full_hooked            map=True  drag=True  dblMax=True  dblRestore=True  rMenu=True  altMenu=False keyMenu=True  min=True  max=True  restore=True  close=True  snap=True  animMin=True  animMax=True  animRestore=True  chromeAll=True
+19:42:55.900Z SUMMARY borderonly_hooked      map=True  drag=True  dblMax=True  dblRestore=True  rMenu=False altMenu=False keyMenu=False min=True  max=True  restore=True  close=True  snap=True  animMin=False animMax=False animRestore=False chromeAll=False
+19:42:55.900Z SUMMARY none_hooked            map=True  drag=True  dblMax=True  dblRestore=True  rMenu=False altMenu=False keyMenu=False min=True  max=True  restore=True  close=True  snap=False animMin=False animMax=False animRestore=False chromeAll=False
+19:42:55.900Z SUMMARY panel noactivate     ex=0x08200008 NOACTIVATE=True fgBefore=host fgAfter=panel noActivate=False panelText="Pw7!xyz" sinkText="" textArrived=True mouseActivates=1 activations=1
+19:42:55.900Z SUMMARY panel control_plain  ex=0x00200008 NOACTIVATE=False fgBefore=host fgAfter=panel noActivate=False panelText="Pw7!xyz" sinkText="" textArrived=True mouseActivates=1 activations=1
+19:42:55.900Z SUMMARY panel style_only     ex=0x08200008 NOACTIVATE=True fgBefore=host fgAfter=panel noActivate=False panelText="Pw7!xyz" sinkText="" textArrived=True mouseActivates=1 activations=1
+19:42:55.900Z SUMMARY panel hook_only      ex=0x00200008 NOACTIVATE=False fgBefore=host fgAfter=panel noActivate=False panelText="Pw7!xyz" sinkText="" textArrived=True mouseActivates=1 activations=1
+19:42:55.900Z SUMMARY panel noactivate_nofocus ex=0x08200008 NOACTIVATE=True fgBefore=host fgAfter=panel noActivate=False panelText="" sinkText="" textArrived=False mouseActivates=1 activations=1
+19:42:55.900Z SUMMARY panel noactivate_forward ex=0x08200008 NOACTIVATE=True fgBefore=host fgAfter=panel noActivate=False panelText="" sinkText="" textArrived=False mouseActivates=1 activations=1
+19:42:55.900Z SUMMARY panel cbt_focus      ex=0x08200008 NOACTIVATE=True fgBefore=host fgAfter=host noActivate=True panelText="Pw7!xyz" sinkText="" textArrived=True mouseActivates=1 activations=0
+19:42:55.900Z SUMMARY panel cbt_nofocus    ex=0x08200008 NOACTIVATE=True fgBefore=host fgAfter=host noActivate=True panelText="" sinkText="Pw7!xyz" textArrived=False mouseActivates=1 activations=0
+19:42:55.900Z SUMMARY panel cbt_forward    ex=0x08200008 NOACTIVATE=True fgBefore=host fgAfter=host noActivate=True panelText="Pw7!xyz" sinkText="" textArrived=True mouseActivates=1 activations=0
+19:42:55.901Z VERDICT osStandardPositiveControl=True undeclaredNegativeControlsFail=True verbatimChromePassingDecorations=[] verbatimPanelPass=False panelControlActivates=True
+19:42:55.901Z VERDICT remedy: hookedChromePassingDecorations=[full_hooked] forwardPanelPass=False forwardControl(nofocus)TextMissing=True
+19:42:55.901Z VERDICT raw DefWindowProc control: rightClickMenu=True altSpaceMenu=False postedKeyMenu=True
+19:42:55.902Z VERDICT remedy WH_CBT: cbtForwardPass=True (noActivate=True text="Pw7!xyz" sink="") control cbt_nofocus: noActivate=True panelTextMissing=True sink="Pw7!xyz"; cbt_focus: noActivate=True text="Pw7!xyz" sink=""
+19:42:55.902Z RESULT (packet configuration, verbatim): FAIL
+19:42:55.902Z windows closed (0); cursor restored to (970,1401) (was (970,1401))

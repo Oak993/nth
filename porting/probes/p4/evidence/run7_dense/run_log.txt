@@ -1,0 +1,98 @@
+19:58:09.787Z [      0.0] P4 start composition=default deco=Full level=AcrylicBlur dense=True cursor0=(2182,855)
+19:58:09.797Z [      1.9] avalonia 12.1.2+d3c867a9e2de379249b03dbeb3495bd7f076a81a
+19:58:09.797Z [      1.9] skiasharp 3.119.4+release-3.119.4.f568ac94dd768ef9a2f593537cfde2dd0d348ef5.f568ac94dd768ef9a2f593537cfde2dd0d348ef5
+19:58:09.797Z [      2.0] os Microsoft Windows NT 10.0.26200.0; MARROW_PORT_DATA_DIR=C:\Users\omera\AppData\Local\Temp\marrow-p4-run7_dense
+19:58:09.798Z [      2.5] primary work area [0,0]-[2560,1392] 2560x1392; virtual screen (0,0) 2560x1440
+19:58:09.916Z [    121.1] checker rect [100,40]-[2100,1352] 2000x1312
+19:58:12.452Z [   2657.2] subject hwnd=0x1006F8 dpi=96 GetWindowRect=[200,100]-[1536,968] 1336x868 frame=[207,100]-[1529,961] 1322x861 client=1320x860 at (208,100) style=0x16CF0000 ex=0x00200108 ActualTransparencyLevel=AcrylicBlur IsExtendedIntoWindowDecorations=True Bounds=1320x860 ActualThemeVariant=Dark
+19:58:12.452Z [   2657.3] glass: lease=True surface=True effect=True 
+19:58:12.452Z [   2657.3] capture union [191,84]-[1833,1165] 1642x1081; row y = client top + 410
+19:58:12.469Z [   2674.3] REST edges (raw offsets) left=[1,1,1,1,1] top=[1,1,1,1,1] right=[1,1,1,1,1] bottom=[1,1,1,1,1] stable=True
+19:58:12.472Z [   2676.4] CALIB left=1 top=1 right=1 bottom=1 consistent=True
+19:58:12.474Z [   2679.3] screenLive: checker strip two-valued fraction=1.0000 markers found on every side=True => True
+19:58:12.503Z [   2708.2] PNG rest_window_half.png crop=[199,92]-[1537,969] 1338x877 scale=0.50 bytes=106471
+19:58:12.507Z [   2711.6] PNG rest_corner_br.png crop=[1329,761]-[1545,977] 216x216 scale=1.00 bytes=11005
+19:58:16.658Z [   6862.9] phases: baseline 3120.6..5325.7; ctl_stall block 5636.2..6147.7
+19:58:16.667Z [   6871.7] NCHITTEST diagonal scan from the frame's bottom-right pixel: (1524,956)ht=1 (1525,957)ht=1 (1526,958)ht=1 (1527,959)ht=1 (1528,960)ht=17 
+19:58:16.667Z [   6871.7] drag start point (1528,960) HTBOTTOMRIGHT on our HWND
+19:58:21.872Z [  12076.9] drag times: down 7002.5 grow 7219.2 hold 8428.7 shrink 9438.9 hold2 10246.9 up 10557.1; pointerMisses=0
+19:58:21.884Z [  12089.3] AFTER frame=[207,100]-[1659,1051] 1452x951 edges left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0 artefact=False
+19:58:21.913Z [  12118.1] PNG after_window_half.png crop=[199,92]-[1667,1059] 1468x967 scale=0.50 bytes=126596
+19:58:21.917Z [  12121.6] PNG after_corner_br.png crop=[1459,851]-[1675,1067] 216x216 scale=1.00 bytes=9715
+19:58:24.568Z [  14773.1] CTL_INSET frame=[207,100]-[1529,961] 1322x861 stable=True edges left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[25,25,25,25,25]dev24band(134,156,245) bottom=[25,25,25,25,25]dev24band(94,124,245) artefact=True
+19:58:24.572Z [  14776.7] PNG ctl_inset_corner_br.png crop=[1329,761]-[1545,977] 216x216 scale=1.00 bytes=12539
+19:58:24.577Z [  14782.2] MSG 7009.6 WM_NCLBUTTONDOWN ht=17
+19:58:24.577Z [  14782.2] MSG 7012.0 WM_SYSCOMMAND 0xF000
+19:58:24.577Z [  14782.2] MSG 7012.5 WM_ENTERSIZEMOVE
+19:58:24.577Z [  14782.3] MSG 10557.8 WM_CAPTURECHANGED
+19:58:24.577Z [  14782.3] MSG 10559.4 WM_EXITSIZEMOVE
+19:58:24.580Z [  14784.4] modal loop: WM_ENTERSIZEMOVE x1 WM_EXITSIZEMOVE x1 WM_SIZING x100 WM_SIZE x102
+19:58:24.598Z [  14802.9] FRAMES ui baseline: frames=517 medianInterval=4.19ms maxInterval=7.6ms (starting at 4862.5)
+19:58:24.598Z [  14802.9] FRAMES render baseline: frames=518 medianInterval=4.19ms maxInterval=7.7ms (starting at 4862.6)
+19:58:24.598Z [  14802.9] FRAMES ui ctl_stall: frames=27 medianInterval=4.24ms maxInterval=514.3ms (starting at 5633.5)
+19:58:24.598Z [  14802.9] FRAMES render ctl_stall: frames=27 medianInterval=4.24ms maxInterval=510.0ms (starting at 5638.0)
+19:58:24.598Z [  14802.9] FRAMES ui modal [ENTER 7012.5 .. EXIT 10559.4] incl. boundary frames: frames=828 medianInterval=4.08ms maxInterval=13.2ms (starting at 7246.4)
+19:58:24.598Z [  14802.9] FRAMES render modal incl. boundary frames: frames=847 medianInterval=4.17ms maxInterval=8.4ms (starting at 7888.7)
+19:58:24.599Z [  14803.4] FRAMES phase grow: ui frames=277 medianInterval=4.01ms maxInterval=13.2ms (starting at 7246.4) | render frames=288 medianInterval=4.17ms maxInterval=8.4ms (starting at 7888.7)
+19:58:24.599Z [  14803.8] FRAMES phase hold: ui frames=245 medianInterval=4.19ms maxInterval=6.2ms (starting at 9438.0) | render frames=245 medianInterval=4.18ms maxInterval=5.6ms (starting at 9438.0)
+19:58:24.600Z [  14805.2] FRAMES phase shrink: ui frames=187 medianInterval=3.96ms maxInterval=9.8ms (starting at 10042.7) | render frames=195 medianInterval=4.15ms maxInterval=7.7ms (starting at 9443.7)
+19:58:24.601Z [  14805.5] FRAMES phase hold2: ui frames=76 medianInterval=4.17ms maxInterval=5.4ms (starting at 10479.6) | render frames=76 medianInterval=4.19ms maxInterval=5.4ms (starting at 10479.6)
+19:58:24.602Z [  14806.4] BOUNDARY interval containing WM_ENTERSIZEMOVE: ui 4.1ms render 4.3ms; containing WM_EXITSIZEMOVE: ui 4.7ms render 4.7ms
+19:58:24.602Z [  14807.0] ROW SAMPLER capture time median=3.46ms p95=5.36ms max=5.95ms n=562
+19:58:24.604Z [  14808.7] VISIBLE baseline: samples=134 notFound=0 longestUnchanged=31.5ms (from 5107.5) maxStep=72px maxSpeed=2.97px/ms
+19:58:24.604Z [  14808.7] VISIBLE ctl_stall: samples=39 notFound=0 longestUnchanged=496.1ms (from 5651.6) maxStep=729px maxSpeed=47.00px/ms
+19:58:24.604Z [  14808.7] VISIBLE modal (ENTER-100 .. EXIT+100): samples=240 notFound=0 longestUnchanged=31.1ms (from 10402.0) maxStep=44px maxSpeed=2.84px/ms
+19:58:24.604Z [  14808.7] VISIBLE phase grow: samples=79 notFound=0 longestUnchanged=31.0ms (from 8304.6) maxStep=44px maxSpeed=2.84px/ms
+19:58:24.604Z [  14808.7] VISIBLE phase hold: samples=66 notFound=0 longestUnchanged=30.9ms (from 9002.9) maxStep=43px maxSpeed=2.78px/ms
+19:58:24.604Z [  14808.7] VISIBLE phase shrink: samples=52 notFound=0 longestUnchanged=31.0ms (from 9579.0) maxStep=43px maxSpeed=2.77px/ms
+19:58:24.604Z [  14808.7] VISIBLE phase hold2: samples=20 notFound=0 longestUnchanged=31.1ms (from 10402.0) maxStep=24px maxSpeed=1.55px/ms
+19:58:24.604Z [  14808.7] VISIBLE phase post: samples=91 notFound=0 longestUnchanged=31.0ms (from 11797.5) maxStep=44px maxSpeed=2.84px/ms
+19:58:24.604Z [  14808.8] EDGE 3125.8..3136.1 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.8] EDGE 3246.0..3256.9 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.8] EDGE 3370.8..3381.8 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.8] EDGE 3495.9..3506.5 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.8] EDGE 3621.1..3633.0 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.8] EDGE 3746.0..3756.8 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.8] EDGE 3871.6..3881.9 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.8] EDGE 3992.3..4001.8 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.8] EDGE 4116.9..4128.8 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.8] EDGE 4241.8..4252.1 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.8] EDGE 4366.8..4377.2 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.8] EDGE 4487.7..4499.7 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.8] EDGE 4613.2..4623.7 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.8] EDGE 4738.0..4748.7 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.8] EDGE 4862.5..4873.7 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 4987.8..4998.1 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 5112.8..5123.7 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 5234.1..5246.3 baseline stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 5358.6..5369.0 ctl_stall stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 5483.9..5493.8 ctl_stall stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 5609.1..5619.7 ctl_stall stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 5734.0..5743.5 ctl_stall stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 5854.7..5865.3 ctl_stall stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 5979.9..5990.2 ctl_stall stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 6104.7..6115.1 ctl_stall stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 6229.7..6240.3 ctl_stall stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 6354.6..6364.7 ctl_stall stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 6475.5..6485.4 ctl_stall stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 6600.9..6611.0 ctl_stall stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 6725.7..6736.5 ctl_stall stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 6851.3..6862.7 ctl_stall stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 6975.6..6985.9 pre    stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.604Z [  14808.9] EDGE 7096.4..7106.8 pre    stable=True frame=[207,100]-[1529,961] 1322x861 artefact=False left=[1,1,1,1,1]dev0 top=[1,1,1,1,1]dev0 right=[1,1,1,1,1]dev0 bottom=[1,1,1,1,1]dev0
+19:58:24.605Z [  14809.6] EDGE SUMMARY stable captures during/after drag=0 (unstable skipped=0) with artefact=0; per phase: 
+19:58:24.605Z [  14810.0] EDGE side left: artefact in 0 captures, max dev 0
+19:58:24.605Z [  14810.0] EDGE side top: artefact in 0 captures, max dev 0
+19:58:24.605Z [  14810.0] EDGE side right: artefact in 0 captures, max dev 0
+19:58:24.605Z [  14810.1] EDGE side bottom: artefact in 0 captures, max dev 0
+19:58:24.606Z [  14810.9] DENSE sample time median=8.36ms max=9.27ms n=312
+19:58:24.607Z [  14811.4] DENSE phase grow: stable samples=78 artefact(any)=4 (5.1%) right=4 bottom=0; deviations r5/b0:2 r4/b0:2
+19:58:24.607Z [  14811.5] DENSE phase hold: stable samples=65 artefact(any)=0 (0.0%) right=0 bottom=0; deviations 
+19:58:24.607Z [  14811.5] DENSE phase shrink: stable samples=51 artefact(any)=2 (3.9%) right=2 bottom=0; deviations rnone/b0:2
+19:58:24.607Z [  14811.5] DENSE phase hold2: stable samples=20 artefact(any)=0 (0.0%) right=0 bottom=0; deviations 
+19:58:24.607Z [  14811.5] DENSE phase post: stable samples=98 artefact(any)=0 (0.0%) right=0 bottom=0; deviations 
+19:58:24.607Z [  14811.5] DENSE unstable samples skipped=0
+19:58:24.607Z [  14811.6] CONTROLS stall control flagged=True (visible longest 496.1ms, ui max 514.3ms, render max 510.0ms); inset control flagged=True
+19:58:24.607Z [  14811.6] SUMMARY screenLive=True modalLoop=True pointerMisses=0 baselineClean=True | marginArtefact=False (0/0 stable drag captures, after=False) | visibleStall=False visibleSnap=False frameStall=False (ui max 13.2ms, render max 8.4ms)
+19:58:24.607Z [  14811.6] RESULT margin: PASS; animation held across the modal size loop: PASS; P4: PASS
+19:58:24.616Z [  14820.6] windows closed; cursor restored to (2182,855) (was (2182,855))

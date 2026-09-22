@@ -1,0 +1,47 @@
+20:17:30.029Z [      0.0] P2 start config=noglass adapter=amd render=gpu ctl=none notimer=False seconds=12 heavyPasses=12 cursor0=(1765,516)
+20:17:30.041Z [      4.4] avalonia 12.1.2+d3c867a9e2de379249b03dbeb3495bd7f076a81a
+20:17:30.044Z [      6.8] skiasharp 3.119.4+release-3.119.4.f568ac94dd768ef9a2f593537cfde2dd0d348ef5.f568ac94dd768ef9a2f593537cfde2dd0d348ef5
+20:17:30.046Z [      9.3] os Microsoft Windows NT 10.0.26200.0; pid=54064; MARROW_PORT_DATA_DIR=C:\Users\omera\AppData\Local\Temp\marrow-p2-run5_amd_noglass-672356676
+20:17:30.049Z [     12.3] primary work area [0,0]-[2560,1392] 2560x1392; virtual screen (0,0) 2560x1440
+20:17:30.052Z [     14.8] sites=22 interactive=12 snapshotGroups=0 snapshotPixels=0 (window 1135200)
+20:17:30.052Z [     15.1]   site A1 threads circle rect=[14,12,46,44] r=16 tintA=0.3 interactive=True container=0 packetGroup=0 src=Chrome.swift:180 via ChatView.swift:1123
+20:17:30.052Z [     15.3]   site A2 new thread circle rect=[56,12,88,44] r=16 tintA=0.3 interactive=True container=0 packetGroup=0 src=Chrome.swift:180 via ChatView.swift:1123
+20:17:30.052Z [     15.3]   site A3 hydra circle rect=[98,12,130,44] r=16 tintA=0.3 interactive=True container=0 packetGroup=0 src=Chrome.swift:180 via ChatView.swift:1123
+20:17:30.052Z [     15.4]   site A4 permission capsule rect=[140,12,256,44] r=16 tintA=0.3 interactive=True container=0 packetGroup=0 src=Chrome.swift:180 via ChatView.swift:1123
+20:17:30.052Z [     15.5]   site A5 branch capsule rect=[266,12,406,44] r=16 tintA=0.3 interactive=True container=0 packetGroup=0 src=Chrome.swift:180 via ChatView.swift:1123
+20:17:30.052Z [     15.5]   site A6 title capsule rect=[416,12,796,44] r=16 tintA=0.3 interactive=True container=0 packetGroup=0 src=Chrome.swift:180 via ChatView.swift:1123
+20:17:30.052Z [     15.5]   site A7 open|scripts|git capsule rect=[1086,12,1222,44] r=16 tintA=0.3 interactive=True container=0 packetGroup=0 src=Chrome.swift:180 via ChatView.swift:1153
+20:17:30.052Z [     15.6]   site A8 terminal|changes capsule rect=[1230,12,1306,44] r=16 tintA=0.3 interactive=True container=0 packetGroup=0 src=Chrome.swift:180 via ChatView.swift:1164
+20:17:30.052Z [     15.6]   site B1 diff scope text menu rect=[1000,64,1150,96] r=16 tintA=0.3 interactive=True container=1 packetGroup=1 src=Chrome.swift:180 via DiffInspector.swift:27
+20:17:30.053Z [     15.7]   site B2 diff more|hide capsule rect=[1230,64,1306,96] r=16 tintA=0.3 interactive=True container=1 packetGroup=1 src=Chrome.swift:180 via DiffInspector.swift:55
+20:17:30.053Z [     15.7]   site C1 composer surface rect=[250,736,1070,846] r=22 tintA=0 interactive=False container=2 packetGroup=2 src=ComposerView.swift:1304 .glassEffect(.regular)
+20:17:30.053Z [     15.8]   site C2 thread changes tab rect=[700,704,900,740] r=12 tintA=0 interactive=True container=2 packetGroup=2 src=ThreadChangesTab.swift:38 .regular.interactive()
+20:17:30.053Z [     15.8]   site C3 approval request card rect=[250,602,1070,692] r=20 tintA=0.1 interactive=False container=2 packetGroup=2 src=RequestCards.swift:64 tint(Chrome.warning.opacity(0.1))
+20:17:30.053Z [     15.8]   site C4 effort slider knob rect=[960,808,984,832] r=12 tintA=0.32 interactive=True container=2 packetGroup=2 src=EffortSlider.swift:788 tint(white 0.32 dark).interactive(), Circle()
+20:17:30.053Z [     15.9]   site S1 minimap preview card rect=[990,300,1290,420] r=16 tintA=0 interactive=False container=-1 packetGroup=1 src=TimelineMinimap.swift:338
+20:17:30.053Z [     16.0]   site S2 floating sidebar panel rect=[14,120,314,680] r=22 tintA=0 interactive=False container=-1 packetGroup=0 src=FloatingSidebarPanel.swift:90 (300x560, :17)
+20:17:30.053Z [     16.0]   site S3 usage floating panel rect=[1000,440,1300,590] r=22 tintA=0 interactive=False container=-1 packetGroup=1 src=UsageFloatingPanel.swift:59
+20:17:30.053Z [     16.1]   site S4 hydra panel rect=[340,110,640,330] r=22 tintA=0 interactive=False container=-1 packetGroup=0 src=HydraPanel.swift:105
+20:17:30.053Z [     16.2]   site S5 subagent panel rect=[660,110,960,330] r=22 tintA=0 interactive=False container=-1 packetGroup=0 src=SubagentPanel.swift:339
+20:17:30.053Z [     16.4]   site S6 hydra progress bar rect=[400,350,920,382] r=16 tintA=0 interactive=False container=-1 packetGroup=2 src=HydraProgressBar.swift:576
+20:17:30.053Z [     16.6]   site S7 command palette rect=[380,150,940,470] r=24 tintA=0 interactive=False container=-1 packetGroup=0 src=CommandPalette.swift:97
+20:17:30.053Z [     16.6]   site S8 follow-up queue tab rect=[360,704,660,740] r=12 tintA=0 interactive=False container=-1 packetGroup=2 src=FollowUpQueueTab.swift:154 (maxWidth 560, :153)
+20:17:32.678Z [   2640.8] window hwnd=0x5008BC dpi=96 frame=[127,60]-[1449,921] 1322x861 client=1320x860 at (128,60) ActualTransparencyLevel=AcrylicBlur IsExtendedIntoWindowDecorations=True
+20:17:32.678Z [   2640.9] render path: lease=True GrContext=non-null backend=OpenGL effect=False 
+20:17:32.678Z [   2641.0] GL_VENDOR='Google Inc. (AMD)' GL_RENDERER='ANGLE (AMD, AMD Radeon(TM) Graphics (0x000013C0) Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.21036.18)' GL_VERSION='OpenGL ES 3.0 (ANGLE 2.1.1 git hash: 1c89805903c1)'
+20:17:32.678Z [   2641.0] gpu timer: mode=GL_TIME_ELAPSED_EXT queries; GL_EXT_disjoint_timer_query in GL_EXTENSIONS=True; entry points resolved
+20:17:32.678Z [   2641.1] adapter selection callback: offered 4: [0] nvidia geforce rtx 4080 luid_0x00000000_0x00016317 | [1] amd radeon(tm) graphics luid_0x00000000_0x00017631 | [2] nvidia geforce rtx 4080 luid_0x00000000_0x0002405A | [3] microsoft basic render driver luid_0x00000000_0x000175E0; chose index 1 for 'amd'
+20:17:45.411Z [  15374.0] SCREEN capture [127,60]-[1449,921] 1322x861 stable=True markerMagentaPx=80 markerGreenPx=80 distinctColours(sampled)=217 => live=True
+20:17:45.436Z [  15398.9] PNG window_mid_run.png 1322x861 scale=0.50 bytes=125926
+20:17:45.453Z [  15416.3] FRAMES render-op interval (frame time): n=2842 median=4.17 p95=4.60 p99=7.42 max=10.36; over 12014 ms; frames>16.7ms=0 frames>33ms=0
+20:17:45.453Z [  15416.5] CPU    render-op duration: n=2843 median=0.36 p95=0.51 p99=0.65 max=0.87
+20:17:45.453Z [  15416.7] GPU    pass0 main content: n=2843 median=0.30 p95=0.30 p99=0.31 max=0.64
+20:17:45.454Z [  15416.8] GPU    pass1 SNAPSHOT:     n=0 median=NaN p95=NaN p99=NaN max=NaN
+20:17:45.454Z [  15417.0] GPU    pass2 glass lens:   n=0 median=NaN p95=NaN p99=NaN max=NaN
+20:17:45.454Z [  15417.2] GPU    total (medians): NaN ms; disjoint results=0; dropped queries=0
+20:17:45.454Z [  15417.3] UI     animation-frame interval: n=2842 median=4.17 p95=4.64 p99=7.46 max=10.36
+20:17:45.455Z [  15417.8] FLUSH  45 ms cadence interval: n=266 median=45.00 p95=45.07 p99=45.20 max=46.63; flushes=267; max row length=3835 (tier 4096); transcript lines=220
+20:17:45.455Z [  15418.0] POINTER moves=1378 readback misses=0 target-not-ours skips=0 interference=False PointerMoved events=1378 (of which in the 44 px title-bar band: 519)
+20:17:45.462Z [  15425.3] CHECKS screenLive=True gpuPath=True timerCoverage=1.00 timerOk=True flushOk=True pointerOk=True | frameMedian=4.17<=16.7 frameP99=7.42<=33 -> True | snapshotGpuP99=NaN<=3.0 -> True
+20:17:45.462Z [  15425.4] RESULT baseline (noglass, not a verdict run): frame budget met
+20:17:45.475Z [  15438.5] window closed; cursor restored to (1765,516) (was (1765,516))

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    P4 (task packet T-M0-003): acrylic plus extended client area plus live resize, all three at once.
+    A throwaway probe, never production code.
+
+    Built the way P10, P3 and P7 are built: this folder sits under the repo root, so Directory.Build.props
+    (TreatWarningsAsErrors, Nullable, ManagePackageVersionsCentrally) and Directory.Packages.props
+    (Avalonia 12.1.2) apply, and no PackageReference carries a Version attribute.
+    Avalonia.Desktop is the real Win32 platform backend.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>P4</RootNamespace>
+    <AssemblyName>p4</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Skia" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,1 @@
+﻿Get-Counter '\GPU Engine(pid_60640_*engtype_3D)\Utilization Percentage' -SampleInterval 1 -MaxSamples 8   (pid 60640, started 20:18:32Z)
