@@ -1695,9 +1695,9 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "IMPLEMENTING",
+      "status": "DONE",
       "assignee": "codex-direct",
-      "notes": "2026-09-22 TESTS_REVIEW: Director reviewed PR-STORE-053..058 against all57 source lines; tests cover generation rollover, promotion with original cost, eviction-before-rejection, clamping, replacement and refunds. Swift file unchanged at417ab7d3. Expected red build CS0234 missing Support."
+      "notes": "2026-09-22 TESTS_REVIEW: Director reviewed PR-STORE-053..058 against all57 source lines; tests cover generation rollover, promotion with original cost, eviction-before-rejection, clamping, replacement and refunds. Swift file unchanged at417ab7d3. Expected red build CS0234 missing Support. | 2026-09-22 DONE: All6 requirements implemented; reviewed source ordering and both cost counters. A12 B8 quarantine pass;27 tests zero failed/skipped. Try/out API preserves missing generic values; caller owns mutable cache and synchronization. Evidence main-T-M2-066-gates-1790045097121.json."
     },
     {
       "id": "T-M2-067",

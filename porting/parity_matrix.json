@@ -7,9 +7,9 @@
   "counts": {
     "total": 3827,
     "by_status": {
-      "SPECIFIED": 3739,
+      "SPECIFIED": 3733,
       "DISCOVERED": 85,
-      "IMPLEMENTED": 3
+      "IMPLEMENTED": 9
     },
     "by_area": {
       "CHAT": 188,
@@ -72626,7 +72626,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port the generational structure verbatim. An LRU substitute has a different hit rate and a different memory ceiling and would change how often threads and thumbnails are re-decoded.",
       "verification_method": "unit reproducing a known hit and eviction sequence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -72635,7 +72635,8 @@
         "DroppyCode/Core/Support/RecentCache.swift:9-20 - private var current / previous dictionaries, currentCost / previousCost, limit and costLimit set in init",
         "DroppyCode/Core/Support/RecentCache.swift:30-32 - contains(_:) is true when the key is in either generation",
         "porting/port_impacts.md entry 117 - \"Implement the generational cache exactly; an LRU substitute changes hit rate and memory ceiling.\""
-      ]
+      ],
+      "implemented_by_task": "T-M2-066"
     },
     {
       "area": "STORE",
@@ -72649,14 +72650,15 @@
       "cancellation": "not cancellable",
       "windows_path": "The reader must have write access to the cache. A port that exposes a const read will silently lose the promotion and halve the effective capacity.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "A hit in the previous generation is promoted back into the current one",
       "source_evidence": [
         "DroppyCode/Core/Support/RecentCache.swift:22-28 - mutating func value(for key:) returns current[key] directly, otherwise removes the entry from previous, subtracts its cost from previousCost and re-inserts it into current at the same cost"
-      ]
+      ],
+      "implemented_by_task": "T-M2-066"
     },
     {
       "area": "STORE",
@@ -72670,14 +72672,15 @@
       "cancellation": "not cancellable",
       "windows_path": "Same condition, same wholesale discard, same ordering (rollover, then write).",
       "verification_method": "unit on both arms of the condition",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "44",
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "The current generation rolls over when it is full by count or by cost",
       "source_evidence": [
         "DroppyCode/Core/Support/RecentCache.swift:47-55 - if current.count >= limit || currentCost > costLimit - cost { previous = current; previousCost = currentCost; current = [:]; current.reserveCapacity(limit); currentCost = 0 }; current[key] = Entry(value:cost:); currentCost += cost"
-      ]
+      ],
+      "implemented_by_task": "T-M2-066"
     },
     {
       "area": "STORE",
@@ -72693,14 +72696,15 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the ordering exactly: remove, clamp, then reject. It is an ordinary quirk under AM-0001 (a cache miss, no lasting harm), so it is the product.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "43",
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "Inserting an over-budget value evicts the existing entry for that key and stores nothing",
       "source_evidence": [
         "DroppyCode/Core/Support/RecentCache.swift:43-46 - mutating func insert(_ value:for:cost:) { removeValue(for: key); let cost = max(0, cost); guard cost <= costLimit else { return } ... }"
-      ]
+      ],
+      "implemented_by_task": "T-M2-066"
     },
     {
       "area": "STORE",
@@ -72716,7 +72720,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three clamps and the same default cost of 1.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -72725,7 +72729,8 @@
         "DroppyCode/Core/Support/RecentCache.swift:16-20 - self.limit = max(1, limit); self.costLimit = max(0, costLimit); current.reserveCapacity(self.limit)",
         "DroppyCode/Core/Support/RecentCache.swift:44 - let cost = max(0, cost)",
         "DroppyCode/Core/Support/RecentCache.swift:43 - cost defaults to 1"
-      ]
+      ],
+      "implemented_by_task": "T-M2-066"
     },
     {
       "area": "STORE",
@@ -72739,14 +72744,15 @@
       "cancellation": "not cancellable",
       "windows_path": "Same dual removal and dual refund; refunding only one counter leaks budget and causes premature rollovers.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "Removing a key clears it from both generations and refunds both cost counters",
       "source_evidence": [
         "DroppyCode/Core/Support/RecentCache.swift:34-41 - removeValue(for:) removes from current and from previous, subtracts each entry’s cost from the matching counter, and returns the current entry’s value if there was one, otherwise the previous entry’s"
-      ]
+      ],
+      "implemented_by_task": "T-M2-066"
     },
     {
       "area": "STORE",
