@@ -1,0 +1,158 @@
+{
+  "timestamp": "2026-09-22T04:03:30.278Z",
+  "cwd": "E:/Droppy/port",
+  "head": "081f4a365307a61084bec148c00019a2f752614f",
+  "implementation": "a06858e44218ac9fa8aeda9fad1d85b83db80f4e",
+  "pinnedSource": "dd2b86efef9e77168f304a86e8a8411877578bbe",
+  "latestCandidate": "417ab7d3676cdf258fb6b68444f0626aa6fdfbed",
+  "environment": {
+    "node": "v24.14.1",
+    "dotnet": "10.0.401",
+    "platform": "win32",
+    "arch": "x64",
+    "isolatedData": "C:\\Users\\omera\\AppData\\Local\\Temp/marrow-final-bypass-1790049810278"
+  },
+  "hashes": {
+    "src/Marrow.App/AssemblyInfo.cs": "3c8fb2bca12a33deaca7a021984b387170d060bc469c38f20ed24e5f7e2ca7a8",
+    "src/Marrow.App/Marrow.App.csproj": "f2b3370670d8827812e145d667346e143aa5bed4c78261668bec4612090c7f24",
+    "src/Marrow.App/Program.cs": "d3c87400a0ab9d468b6cb8d9fcf750506a086f736a1c2e178b8be1a937bb751e",
+    "src/Marrow.Core/AssemblyMarker.cs": "925b76c3679eb6dc0c0c449e94482e832af218031b12bd8064cc91eb125f4ad0",
+    "src/Marrow.Core/Marrow.Core.csproj": "61e3f2d043e37f0db4be1d8083dd31bebbfbb8fde2cf027327db2556c16bc385",
+    "src/Marrow.Core/Models/AntiSlopPolicy.cs": "657f6cb7d77d979c8db97109bca45b233f0491d2486ba667ae2320e0bebb7b33",
+    "src/Marrow.Core/Models/FileEdit.cs": "0be50195b3f7a3cd2f4e35625736f28c81e78469817268ed44c6c2aa7be1dca3",
+    "src/Marrow.Core/Models/MCP.cs": "6167f57f39a21daa9f16ef20fb4abae360e4cc034e21ba0a6bb8b2e70e335700",
+    "src/Marrow.Core/Models/MCPCatalog.cs": "24caf3a472cc7453feb0b213ae8113f2d9b0fa47ac1999eea5a1229c29b4e3fe",
+    "src/Marrow.Core/Models/MergeRequestLink.cs": "8d3a65f938cdf6ed3617efe7b0483c153d1cc35f21635e4237a9f087ba2724ac",
+    "src/Marrow.Core/Models/Requests.cs": "938e11de5306c95496b793a96672a923b5dbf379141b755b6ef71103d5bb2354",
+    "src/Marrow.Core/Support/Coding.cs": "17093b150a1cc5e8f0d28a31f08daeded4d4173c7b772579ca49fa7591a67bbb",
+    "src/Marrow.Core/Support/FoundationText.cs": "7605f1e09e28310190af8e378f535bf86d9596fe28e0a55586a8cfbe2cee2e2c",
+    "src/Marrow.Core/Support/RecentCache.cs": "fcc40ebaeaa0c88d1fcad325b1b41d091c351ab2aec8f096da0b37c79a385501",
+    "src/Marrow.Core/Support/StdioFramer.cs": "aab579a7cd6e399bfa7030f938c86de13ca7decb1b0da644048a76f738379c5c",
+    "src/Marrow.Core/Support/Text.cs": "6de6cbd223dc46c3e5b558b486def01b16231b3658f2e7d30a6dfa82f5ca2030",
+    "src/Marrow.Services/AssemblyMarker.cs": "56eb3117458c0ce46ed93c97d8ea8dfa624a7d793f03db9ecc3a777107d26245",
+    "src/Marrow.Services/MCP/MCPResolver.cs": "d18c109f870cd649f07b4d32a569d7258d689caf2c898ce9af52c26954f94365",
+    "src/Marrow.Services/Marrow.Services.csproj": "459c346c0fe92f71d642b30d673ab30454cb901f3cf453fd268f3d7fb38d50c9",
+    "src/Marrow.UI/AssemblyMarker.cs": "4e0f81f417d21e83acfcaa685c98a8422bb6a97a95ec78c3e3e20ac00e0e1b72",
+    "src/Marrow.UI/Marrow.UI.csproj": "7ac2bbf55662c68e584ee847be8b13bfe47c605851bf4f428635878a1a23d539",
+    "tests/Marrow.Core.Tests/LayeringTests.cs": "7123874dc1e5f50c97f47e94947fce545295e17344fd3dabbe57b7f199f6008c",
+    "tests/Marrow.Core.Tests/Marrow.Core.Tests.csproj": "4d03219d8b245518114ea152eea69d61329aca1a9adab32a3a69b86c97185deb",
+    "tests/Marrow.Core.Tests/Models/AntiSlopPolicyTests.cs": "064a9bc98bb3f3407addac51f5df0c88897d890d3548980dc5bfc9938adf961f",
+    "tests/Marrow.Core.Tests/Models/MCPCatalogFinalTests.cs": "36e9b4e1e3a72fff2530f8fb922cbf45fefb6763f978c93fc4814da8f2e36df0",
+    "tests/Marrow.Core.Tests/Models/MCPCatalogSecondTests.cs": "4d668c42cbf58d69c2cc51d02a4eef5209f79e9b1b2d389f1241436840a3e3cb",
+    "tests/Marrow.Core.Tests/Models/MCPCatalogTests.cs": "9a8b368aa3413a1cb8da8c415695f4adffecd05cf35cd8d792078757faa4aada",
+    "tests/Marrow.Core.Tests/Models/MCPCatalogThirdTests.cs": "66fe1f26e4b1fd6fca188d77c21fab7a204a5e998fc4f7d49421e1c9e66923fb",
+    "tests/Marrow.Core.Tests/Models/MCPNullRootTests.cs": "f3b39fe2ce8597757158ccfeb0beb0f2411cba77b26a1ea9dd8f1640333ceb7f",
+    "tests/Marrow.Core.Tests/Models/MCPOptionalEncodingTests.cs": "6ccaca84ea9da898185c0e4dd4b522b05cae708868ad0546d90fc10a63f26541",
+    "tests/Marrow.Core.Tests/Models/MCPTests.cs": "3430351d66ea06107835941419ab04eacf0a5547042ff877d4a8fa3836ea48dd",
+    "tests/Marrow.Core.Tests/Models/MCPToolSummaryCodingTests.cs": "30e03773e7ca06f2dda728726ea5b5235994243dc28dd10d79bb77f7103552e2",
+    "tests/Marrow.Core.Tests/Models/MCPValueSemanticsTests.cs": "0008b5638480ebe6db0713eeec90780eefac03bf8d39f106080c6d6e0314f446",
+    "tests/Marrow.Core.Tests/Models/MCPWhitespaceTests.cs": "d77794c28b4c3682bf09034ee0c55900339242cbbd146ebbd0604c4004d54b79",
+    "tests/Marrow.Core.Tests/Models/MergeRequestLinkTests.cs": "3dabcb81fb524994e62b969889e794a93a4e498f21f69d9a193428b601ed158f",
+    "tests/Marrow.Core.Tests/Models/RequestsTests.cs": "a5a8203afbec85f2f5551be7c76ef5198fc8da9d8f6923796f7ce8a7f6eaf51c",
+    "tests/Marrow.Core.Tests/Support/AppInfoBuildChannelTests.cs": "5c3614a251dec1fae17f8d2c15cef1eaa7e4795ddd94f6da17d2a60bac16afb5",
+    "tests/Marrow.Core.Tests/Support/AppInfoTests.cs": "fc313f5fc40c354e7d4eb59b014a35ae3422077343e31a83fd2e3c17223f8b54",
+    "tests/Marrow.Core.Tests/Support/CodingIntegerTests.cs": "c75dba2bec41c4f6b11d261d17c8f26ef42722c0933a5c41c42d694c6561c0eb",
+    "tests/Marrow.Core.Tests/Support/CodingTests.cs": "025cdfc542a203e6cbe70fbc9db35bd4fc0ead4c42830800a09f6e25238fb590",
+    "tests/Marrow.Core.Tests/Support/FileEditTextTests.cs": "ac7c5dc584925528a9b2151927dfdcacbf61c7a8b6b8e558262413b958c701d7",
+    "tests/Marrow.Core.Tests/Support/RecentCacheTests.cs": "0a29bf184a91e19a2cba2cb051ddb066efdd7a2eb4d7edb3559787323b2cc3d6",
+    "tests/Marrow.Core.Tests/Support/SimpleDiffTests.cs": "d8922b0dd526451e1345f96ff30a3917d71789070edf135d82f48f0fedc8ee86",
+    "tests/Marrow.Core.Tests/Support/StdioFramerTests.cs": "1fd0618edfea24a27b5e64c3b73dc4df52c68913782ca0477cd90cc06e2b4733",
+    "tests/Marrow.Core.Tests/Support/StdioFramerWhitespaceTests.cs": "8d17a5fe030cb6a4aeebeeccdddeed3a0198e5a1640b70931c440b59a5567c5e",
+    "tests/Marrow.Core.Tests/Support/TextCleanupTests.cs": "1530519604ff359171ab6ff81b16abeb597e191dd1201ea984f4f56e0a27e569",
+    "tests/Marrow.Core.Tests/Support/TextCleanupUnicodeTests.cs": "6645afc8d736488ee1d0de976f7de40a0a47e5552d5d4498e979f8a6ccd2215d",
+    "tests/Marrow.Services.Tests/LayeringTests.cs": "f3fbe45fe775c2646e7ebbc3ac3f735261d3c2a6e09252d3702bb64c62589f38",
+    "tests/Marrow.Services.Tests/MCPCatalogDatabaseTests.cs": "08e9a02780a4960716c7802abf2837610f9f62bb3461792f45f33f81787b8a73",
+    "tests/Marrow.Services.Tests/MCPCatalogFinalResolutionTests.cs": "9f616c72d37a8c22a7e05ce3ae6267f569f2ee01127635e2102824f215b478a4",
+    "tests/Marrow.Services.Tests/MCPCatalogResolutionTests.cs": "9a831474231ebf42be84a074a337a327c9b51870be35cc244a00e658545ea33d",
+    "tests/Marrow.Services.Tests/MCPCatalogSlackTests.cs": "0718bdeafea10d178c094fc92742831cabd47e18ce3c57ee21eb51d2035e4b1f",
+    "tests/Marrow.Services.Tests/MCPResolverTests.cs": "518482e75e1d20d30b956a9d165bc30271965f904e3d4607e87d84de4b35d2aa",
+    "tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj": "e86b9a881113cc3b4de9673383c1b223369f8086ad742c61ad8051b292d1ade8",
+    "tests/Marrow.UI.Tests/LayeringTests.cs": "8879fe81c58248e1adabfea7acd0219ef0cf45408acb7a53f14f81262f274f8d",
+    "tests/Marrow.UI.Tests/Marrow.UI.Tests.csproj": "b7a215ff7e2a8f3d4c19260f8523bef850a836c15d0b56c3eff8c7105fa0c93a"
+  },
+  "records": [
+    {
+      "timestamp": "2026-09-22T04:03:30.569Z",
+      "command": "node",
+      "args": [
+        "porting/tools/check_protected.mjs"
+      ],
+      "exit": 0,
+      "stdout": "protected paths unchanged against HEAD; reference checkout clean\n",
+      "stderr": ""
+    },
+    {
+      "timestamp": "2026-09-22T04:03:33.742Z",
+      "command": "node",
+      "args": [
+        "porting/tools/verify.mjs",
+        "--json"
+      ],
+      "exit": 1,
+      "stdout": "{\n  \"pinned_sha\": \"dd2b86efef9e77168f304a86e8a8411877578bbe\",\n  \"pinned_tree\": \"f761e5ef3745c4f68958ffa4014ab0b618c9d419\",\n  \"reference\": \"E:/Droppy/reference/droppy-code\",\n  \"counts\": {\n    \"PASS\": 22,\n    \"FAIL\": 1,\n    \"NOT_IMPLEMENTED\": 4\n  },\n  \"ok\": false,\n  \"results\": [\n    {\n      \"gate\": \"A\",\n      \"name\": \"reference checkout is at the pinned commit\",\n      \"status\": \"PASS\",\n      \"detail\": \"dd2b86efef9e77168f304a86e8a8411877578bbe\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"reference tree hash matches the pinned tree\",\n      \"status\": \"PASS\",\n      \"detail\": \"f761e5ef3745c4f68958ffa4014ab0b618c9d419\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"reference working tree is unmodified\",\n      \"status\": \"PASS\",\n      \"detail\": \"clean\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"inventory reconciles against the pinned git tree\",\n      \"status\": \"PASS\",\n      \"detail\": \"433 files reconciled\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"every inventory sha256 matches the file on disk\",\n      \"status\": \"PASS\",\n      \"detail\": \"433 digests verified\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"every first-party file is marked READ\",\n      \"status\": \"PASS\",\n      \"detail\": \"433/433 read\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"read ledger has exactly one record per inventory path\",\n      \"status\": \"PASS\",\n      \"detail\": \"433 records, 1:1 with inventory\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"ledger digests match the pinned inventory digests\",\n      \"status\": \"PASS\",\n      \"detail\": \"433 ledger digests match\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"text-file coverage reaches the true last line\",\n      \"status\": \"PASS\",\n      \"detail\": \"all text files covered end to end\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"binary assets carry an inspection record\",\n      \"status\": \"PASS\",\n      \"detail\": \"30 binary assets inspected\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"no generic finding reused across different files\",\n      \"status\": \"PASS\",\n      \"detail\": \"every purpose is file-specific\"\n    },\n    {\n      \"gate\": \"A\",\n      \"name\": \"every critic finding has been adjudicated\",\n      \"status\": \"PASS\",\n      \"detail\": \"258 findings adjudicated across 9 families\"\n    },\n    {\n      \"gate\": \"C\",\n      \"name\": \"no quarantined behavior is implemented while its owner decision is open\",\n      \"status\": \"PASS\",\n      \"detail\": \"12 open entries respected (5 by identifier, 7 by required marker) across 1 tree(s)\"\n    },\n    {\n      \"gate\": \"B\",\n      \"name\": \"architecture record exists and is substantive\",\n      \"status\": \"PASS\",\n      \"detail\": \"63015 bytes, 194 source citations\"\n    },\n    {\n      \"gate\": \"B\",\n      \"name\": \"parity matrix exists with well-formed requirements\",\n      \"status\": \"PASS\",\n      \"detail\": \"3827 requirements across 20 areas\"\n    },\n    {\n      \"gate\": \"B\",\n      \"name\": \"every cited source path exists in the pinned inventory\",\n      \"status\": \"PASS\",\n      \"detail\": \"all cited source paths exist at dd2b86ef; all cited port artifacts exist on disk\"\n    },\n    {\n      \"gate\": \"B\",\n      \"name\": \"UI contract exists with well-formed records\",\n      \"status\": \"PASS\",\n      \"detail\": \"1029 UI records\"\n    },\n    {\n      \"gate\": \"B\",\n      \"name\": \"quarantined behavior is not marked ready to implement\",\n      \"status\": \"PASS\",\n      \"detail\": \"12 open quarantine entries, 27 requirement(s) correctly held at DISCOVERED\"\n    },\n    {\n      \"gate\": \"B\",\n      \"name\": \"no requirement silently depends on an unresolved unknown\",\n      \"status\": \"PASS\",\n      \"detail\": \"15 open unknowns, 127 requirement(s) declare a dependency\"\n    },\n    {\n      \"gate\": \"B\",\n      \"name\": \"every completeness-audit finding has been adjudicated\",\n      \"status\": \"PASS\",\n      \"detail\": \"83 findings adjudicated across 4 scopes\"\n    },\n    {\n      \"gate\": \"B\",\n      \"name\": \"platform adaptation register covers the identified boundaries\",\n      \"status\": \"PASS\",\n      \"detail\": \"16 adaptation entries\"\n    },\n    {\n      \"gate\": \"C\",\n      \"name\": \"no temporary stub remains in the implementation\",\n      \"status\": \"FAIL\",\n      \"detail\": \"2 stub(s) remain:\\n    src\\\\Marrow.App\\\\Program.cs:4 TODO/FIXME/HACK/STUB comment\\n    src\\\\Marrow.App\\\\Program.cs:11 MARROW_STUB marker\"\n    },\n    {\n      \"gate\": \"D\",\n      \"name\": \"the solution builds and every test passes, none skipped\",\n      \"status\": \"PASS\",\n      \"detail\": \"build clean with warnings as errors; 251 tests passed, 0 failed, 0 skipped\"\n    },\n    {\n      \"gate\": \"C\",\n      \"name\": \"no fake-success paths, dead controls or unapproved product changes\",\n      \"status\": \"NOT_IMPLEMENTED\",\n      \"detail\": \"gate not built yet; it fails by design rather than passing by omission\"\n    },\n    {\n      \"gate\": \"D\",\n      \"name\": \"source-derived tests, interaction tests, visual comparison, persistence and cancellation\",\n      \"status\": \"NOT_IMPLEMENTED\",\n      \"detail\": \"gate not built yet; it fails by design rather than passing by omission\"\n    },\n    {\n      \"gate\": \"E\",\n      \"name\": \"packaged artifact installs, launches, cleans up children, upgrades and uninstalls\",\n      \"status\": \"NOT_IMPLEMENTED\",\n      \"detail\": \"gate not built yet; it fails by design rather than passing by omission\"\n    },\n    {\n      \"gate\": \"F\",\n      \"name\": \"independent parity review with no unresolved required discrepancy\",\n      \"status\": \"NOT_IMPLEMENTED\",\n      \"detail\": \"gate not built yet; it fails by design rather than passing by omission\"\n    }\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "timestamp": "2026-09-22T04:03:34.528Z",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "Marrow.sln",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-warnaserror"
+      ],
+      "exit": 0,
+      "stdout": "  Marrow.Core -> E:\\Droppy\\port\\src\\Marrow.Core\\bin\\Release\\net10.0\\Marrow.Core.dll\r\n  Marrow.UI -> E:\\Droppy\\port\\src\\Marrow.UI\\bin\\Release\\net10.0\\Marrow.UI.dll\r\n  Marrow.Services -> E:\\Droppy\\port\\src\\Marrow.Services\\bin\\Release\\net10.0-windows\\Marrow.Services.dll\r\n  Marrow.Core.Tests -> E:\\Droppy\\port\\tests\\Marrow.Core.Tests\\bin\\Release\\net10.0\\Marrow.Core.Tests.dll\r\n  Marrow.Services.Tests -> E:\\Droppy\\port\\tests\\Marrow.Services.Tests\\bin\\Release\\net10.0-windows\\Marrow.Services.Tests.dll\r\n  Marrow.UI.Tests -> E:\\Droppy\\port\\tests\\Marrow.UI.Tests\\bin\\Release\\net10.0\\Marrow.UI.Tests.dll\r\n  Marrow.App -> E:\\Droppy\\port\\src\\Marrow.App\\bin\\Release\\net10.0-windows\\Marrow.App.dll\r\n\r\nBuild succeeded.\r\n    0 Warning(s)\r\n    0 Error(s)\r\n\r\nTime Elapsed 00:00:00.62\r\n",
+      "stderr": ""
+    },
+    {
+      "timestamp": "2026-09-22T04:03:36.289Z",
+      "command": "dotnet",
+      "args": [
+        "test",
+        "Marrow.sln",
+        "-c",
+        "Release",
+        "--no-build"
+      ],
+      "exit": 0,
+      "stdout": "Test run for E:\\Droppy\\port\\tests\\Marrow.UI.Tests\\bin\\Release\\net10.0\\Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)\r\nTest run for E:\\Droppy\\port\\tests\\Marrow.Core.Tests\\bin\\Release\\net10.0\\Marrow.Core.Tests.dll (.NETCoreApp,Version=v10.0)\r\nTest run for E:\\Droppy\\port\\tests\\Marrow.Services.Tests\\bin\\Release\\net10.0-windows\\Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)\r\nA total of 1 test files matched the specified pattern.\r\nA total of 1 test files matched the specified pattern.\r\nA total of 1 test files matched the specified pattern.\r\n\r\nPassed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 14 ms - Marrow.UI.Tests.dll (net10.0)\r\n\r\nPassed!  - Failed:     0, Passed:    10, Skipped:     0, Total:    10, Duration: 75 ms - Marrow.Services.Tests.dll (net10.0)\r\n\r\nPassed!  - Failed:     0, Passed:   239, Skipped:     0, Total:   239, Duration: 430 ms - Marrow.Core.Tests.dll (net10.0)\r\n",
+      "stderr": ""
+    },
+    {
+      "timestamp": "2026-09-22T04:03:36.523Z",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "E:/Droppy/bakeoff/check-app-metadata.cs"
+      ],
+      "exit": 0,
+      "stdout": "Debug: Marrow Dev, 1.6.0 (19), PASS; read metadata only, app not run\r\nRelease: Marrow, 1.6.0 (19), PASS; read metadata only, app not run\r\n",
+      "stderr": ""
+    },
+    {
+      "timestamp": "2026-09-22T04:03:36.553Z",
+      "command": "git",
+      "args": [
+        "diff",
+        "--check"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "timestamp": "2026-09-22T04:03:36.578Z",
+      "command": "git",
+      "args": [
+        "status",
+        "--short"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ]
+}
