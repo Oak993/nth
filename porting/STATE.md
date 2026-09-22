@@ -3,55 +3,49 @@
 Continuation record. Reread `porting/PORT_CONTRACT.md` before acting on this file.
 This file is a navigation aid; the contract and the source are the authority.
 
-## Current checkpoint: 2026-09-22 evening, new orchestrator (Claude Opus 5.5), rebaseline to 1.6.2
+## Current checkpoint: 2026-09-22 23:45, orchestrator Claude Opus 5.5
 
-This section supersedes every checkpoint below it. The owner handed the whole port to a new
-orchestrator ("complete it till 100%"). Codex/Marrow worker orchestration is no longer used; work
-runs as Claude subagent workflows driven from this session.
+This section supersedes every checkpoint below it. Work runs as Claude subagent workflows driven from
+the orchestrator session; results land in E:\Droppy\work\... and are committed here after review.
 
-**Baseline.** OD-0006 / AM-0002: the pin moved to live GitLab main `1fbf81e61e28a079508a074c01ee1830a9cc23dc`
-(1.6.2 build 20, tree `a583cec4...`), checkout `E:\Droppy\reference\droppy-code-v1.6.2`. Recorded in
-`porting/baseline.json` (B2; B1 = old pin, archived in `porting/baselines/B1/`). All tools read the
-baseline from there (`porting/tools/baseline.mjs`). 317 files carried their reading evidence over
-(byte-identical); 115 changed + 4 added are UNREAD until re-read; `ChatZoom.swift` was removed.
+**Baseline B2** (OD-0006 / AM-0002): `1fbf81e61e28a079508a074c01ee1830a9cc23dc` (Droppy Code 1.6.2 build 20),
+checkout `E:\Droppy\reference\droppy-code-v1.6.2`, record `porting/baseline.json`.
 
-**Gates right now.** Gate A FAILS honestly: 119 files unread at B2 (re-read in progress). Gate B
-passes mechanically but is stale for the changed files until the spec refresh. Gate D now has a
-real per-requirement check (`porting/tools/req_verify.mjs`, trait `[Trait("Req", "<id>")]`):
-VERIFIED 0 / 4,829 applicable (3,827 behaviour requirements + 1,029 UI records, 27 blocked).
+**Gates.** A 12/12 at B2 (436/436 files read with evidence; 119 re-read through reader, critic and
+adjudicator). B 8/8 at B2 (spec refreshed for the delta: 3,938 requirements, 1,051 UI records,
+4,973 in scope; every area critiqued and adjudicated). C: quarantine guard passes (no open entries);
+stub scan fails on the entry-point stub (expected). D: per-requirement check live
+(`porting/tools/req_verify.mjs`), VERIFIED 0 so far. E, F not built.
 
-**Running (background workflows, results land in E:\Droppy\work\...):**
-1. `takeover-verify-probe-delta`: adversarial re-verification of the 13 DONE packets (fidelity +
-   mutation lenses), headless probes P5 P6 P8 P9 P10 P11, and a requirement-level drift map of
-   the 120 changed paths (22 batches). Early results: P5, P8, P10 PASS; DONE packets mostly match,
-   with test gaps and a few real defects (T-M2-001 major, T-M2-023 major test gaps, T-M2-030 one
-   DIFFERS). Incident: the T-M2-076 mutation agent edited `src/Marrow.Core/Models/FileEdit.cs` in
-   the main tree instead of its worktree; reverted by the orchestrator (`git checkout`), nothing
-   committed. Its surviving mutation (`path.ToLowerInvariant()` passed all tests) is a real test gap.
-2. `b2-reread`: evidence-bearing full re-read of the 119 files in 41 bundles, each through reader,
-   independent critic and adjudicator with a dry-run of `ledger_apply.mjs`.
-3. `port-conventions`: Swift construct survey, three independent Swift-to-C# convention drafts
-   with compiled prototypes, judged into one `IMPLEMENTING.md` plus foundation helper types.
+**Owner rulings in force:** OD-0001..OD-0014 (`porting/owner_decisions.md`), sheets
+`porting/decision_batch_20260922.md` and `..._20260922b.md`. Engineering decisions ED-001..ED-063.
+All 12 quarantine entries resolved; all 27 pending decisions resolved; OD-0013 makes the live-resize
+edge strip a blocker for the window chrome (probe P4b is measuring remedies).
 
-**Next, in order.**
-1. Apply re-read reports with `ledger_apply.mjs`; add the B2 critic family and repair record; Gate A.
-2. Spec refresh from the drift map: re-cite, re-state, retire or add requirements and UI records
-   for the changed files; regenerate parity matrix and packets (`merge_spec.mjs`, `gen_tasks.mjs`,
-   preserving DONE statuses); Gate B.
-3. Repair the 13 DONE packets from the verification findings; convert their requirement comments
-   to `[Trait("Req", ...)]`; rerun `req_verify.mjs`.
-4. Run desktop probes P2 P3 P4 P7 (OD-0007: no need to ask).
-5. Commit IMPLEMENTING.md and the foundation helpers; then implement unit by unit (one Swift file
-   or dependency cycle per unit) in dependency order from `porting/deps/swift_deps.json`: tests
-   first, adversarial test review, implementation, two-lens adversarial review, serialized merge.
-   The 59-file App cycle gets C# type skeletons first.
-6. Build the remaining gate checks (C fake-success/dead controls, D interaction/visual/persistence
-   evidence, E packaging, F independent parity review) and the owner decision batch (12 quarantine
-   entries, 27 pending decisions).
+**Probes.** P2 PASS, P3 PASS via app scrim, P4 animation PASS / edge FAIL (OD-0013), P5 PASS, P6 PASS,
+P7 PASS with the ED-063 hook, P8 PASS, P9 font: Inter (OD-0009), P10 PASS, P11 PASS.
 
-**Honest counts.** Packets DONE 13/662 (1.6.0-era work, being re-verified against 1.6.2).
-Requirements VERIFIED 0 / 4,829 applicable. No application functionality runs yet.
+**In flight:** conventions judge (`E:\Droppy\work\conventions\IMPLEMENTING.md` + foundation-proto),
+spec maintenance (OD-0012..0014, ED-059..063, 20 verification spec defects, ledger cleanup; staged in
+`E:\Droppy\work\spec_m`), probe P4b.
 
+**Next, in order.** (1) Merge spec maintenance, run merge_spec / gen_tasks / Gate B. (2) Flag the 9
+files behind the 13 early packets for rework (`porting/tools/flag_rework.py
+E:\Droppy\work\takeover\rework_findings.json`). (3) Commit `porting/IMPLEMENTING.md` and port the
+foundation helpers with tests. (4) Create branch `impl/b2` in worktree `E:\Droppy\wt\integration`,
+run `porting/tools/plan_units.py`, then `porting/tools/build_impl_args.py --max-level N` and launch
+the implementation workflow (`E:\Droppy\work\impl\impl-units.js`) wave by wave; merge `impl/b2` back
+into `port/windows-exact-parity` after each wave. (5) Gates C, D evidence, E packaging, F review.
+
+**Incident log.** A verifier once edited the main tree instead of its worktree (reverted, nothing
+committed). Subagents hit the account's weekly limit once at about 22:40 and failed; after the owner
+said "Resume" agents ran again and the interrupted workflows were resumed. Writing Windows paths
+through inline shell heredocs turned "\r" into a carriage return twice; files with backslashes are
+now written with the Write tool only.
+
+**Measured counts** (`node porting/tools/progress.mjs`): source files read 436/436; requirements
+VERIFIED 0/4,973; IMPLEMENTED 85 (to be reset to rework for the 9 files with findings); packets DONE
+12/684; Swift files with real C# 9/194. No application functionality runs yet.
 
 ## Current checkpoint: 2026-09-22, direct worker bypass
 
