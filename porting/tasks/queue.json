@@ -1191,8 +1191,8 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": null,
+      "status": "IMPLEMENTING",
+      "assignee": "codex-direct",
       "notes": ""
     },
     {
