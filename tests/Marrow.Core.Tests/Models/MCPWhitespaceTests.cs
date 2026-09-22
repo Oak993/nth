@@ -4,7 +4,8 @@ namespace Marrow.Core.Tests.Models;
 
 public sealed class MCPWhitespaceTests
 {
-    [Fact] // PR-MCP-040: Foundation whitespace differs from String.Trim().
+    [Fact] // Foundation whitespace differs from String.Trim().
+    [Trait("Req", "PR-MCP-040")]
     public void Host_placeholder_trims_Foundation_zero_width_space_before_removing_scheme_and_slash()
     {
         var entry = new MCPCatalogEntry("test", "test", "test", "test", MCPCategory.Developer,

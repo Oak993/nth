@@ -4,12 +4,21 @@ namespace Marrow.Core.Tests.Models;
 
 public sealed class MCPCatalogThirdTests
 {
-    [Fact] // PR-MCP-021..030. Expected text fixtures, not generated from production.
+    [Fact] // Expected text fixtures, not generated from production.
+    [Trait("Req", "PR-MCP-021")]
+    [Trait("Req", "PR-MCP-022")]
+    [Trait("Req", "PR-MCP-023")]
+    [Trait("Req", "PR-MCP-024")]
+    [Trait("Req", "PR-MCP-025")]
+    [Trait("Req", "PR-MCP-026")]
+    [Trait("Req", "PR-MCP-027")]
+    [Trait("Req", "PR-MCP-028")]
+    [Trait("Req", "PR-MCP-029")]
+    [Trait("Req", "PR-MCP-030")]
     public void Third_ten_entries_match_every_expected_field()
     {
         const string fixture = """
-        [
-          ["sentry","Sentry","Sentry","Error reports and which projects they hit","developer","mcp-sentry","7B61FF",false,"oauth","https://mcp.sentry.dev/mcp",[],{},[],{},"https://mcp.sentry.dev",["search_issues","get_issue_details","find_projects"],null,false,true],
+        [["sentry","Sentry","Sentry","Error reports and which projects they hit","developer","mcp-sentry","7B61FF",false,"oauth","https://mcp.sentry.dev/mcp",[],{},[],{},"https://mcp.sentry.dev",["search_issues","get_issue_details","find_projects"],null,false,true],
           ["vercel","Vercel","Vercel","Projects, deployments and their build logs","cloud","mcp-vercel","000000",true,"oauth","https://mcp.vercel.com",[],{},[],{},"https://vercel.com/docs/agent-resources/vercel-mcp",["list_projects","list_deployments","get_deployment_build_logs"],null,false,true],
           ["cloudflare","Cloudflare","Cloudflare","Workers, storage buckets and databases","cloud","mcp-cloudflare","F38020",false,"oauth","https://bindings.mcp.cloudflare.com/mcp",[],{},[],{},"https://github.com/cloudflare/mcp-server-cloudflare",["workers_list","kv_namespaces_list","r2_buckets_list","d1_databases_list"],null,false,true],
           ["netlify","Netlify","Netlify","Sites, deploys, forms and environment variables","cloud","mcp-netlify","00C7B7",false,"oauth","https://netlify-mcp.netlify.app/mcp",[],{},[],{},"https://docs.netlify.com/welcome/build-with-ai/netlify-mcp-server/",["get-projects","deploy-site","manage-env-vars","get-deploy"],null,false,true],

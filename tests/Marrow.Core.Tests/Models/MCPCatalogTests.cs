@@ -7,8 +7,7 @@ public sealed class MCPCatalogTests
 {
     // Frozen from PR-MCP-001..010 Expected text, independently of the implementation table.
     private const string FirstTen = """
-    [
-      ["github","GitHub","GitHub","Issues, pull requests and code across your repositories","developer","mcp-github","24292F",true,"http","https://api.githubcopilot.com/mcp/",[],{"Authorization":"Bearer {token}"},[["token","Personal access token","ghp_…","Secret","Create a fine-grained token on the page, then copy it",null,true]],{},"https://github.com/github/github-mcp-server",["list_issues","create_pull_request","search_code","get_file_contents"],"https://github.com/settings/personal-access-tokens/new",true,false],
+    [["github","GitHub","GitHub","Issues, pull requests and code across your repositories","developer","mcp-github","24292F",true,"http","https://api.githubcopilot.com/mcp/",[],{"Authorization":"Bearer {token}"},[["token","Personal access token","ghp_…","Secret","Create a fine-grained token on the page, then copy it",null,true]],{},"https://github.com/github/github-mcp-server",["list_issues","create_pull_request","search_code","get_file_contents"],"https://github.com/settings/personal-access-tokens/new",true,false],
       ["gitlab","GitLab","GitLab","Issues, merge requests, pipelines and code across your projects","developer","mcp-gitlab","FC6D26",false,"oauth","https://{instance}/api/v4/mcp",[],{},[["instance","GitLab address","gitlab.com","Text","gitlab.com, or your own instance's host","gitlab.com",false]],{},"https://docs.gitlab.com/user/model_context_protocol/mcp_server/",["list_merge_requests","get_merge_request_diffs","create_issue","get_pipeline_jobs"],null,false,true],
       ["playwright","Playwright","Microsoft","Drives a real browser: open pages, click, fill forms, screenshot","browser","mcp-playwright","2EAD33",false,"stdio","npx",["-y","@playwright/mcp@latest"],{},[],{},"https://github.com/microsoft/playwright-mcp",["browser_navigate","browser_click","browser_snapshot","browser_take_screenshot"],null,false,false],
       ["chrome-devtools","Chrome DevTools","Google","Inspects pages, console messages and performance traces","browser","mcp-chrome-devtools","4285F4",false,"stdio","npx",["-y","chrome-devtools-mcp@latest"],{},[],{},"https://github.com/ChromeDevTools/chrome-devtools-mcp",["navigate_page","take_screenshot","list_console_messages","performance_start_trace"],null,false,false],
@@ -21,11 +20,22 @@ public sealed class MCPCatalogTests
     ]
     """;
 
-    [Fact] // PR-MCP-001..010: every scalar, collection, default and declaration order.
+    [Fact] // Every scalar, collection, default and declaration order.
+    [Trait("Req", "PR-MCP-001")]
+    [Trait("Req", "PR-MCP-002")]
+    [Trait("Req", "PR-MCP-003")]
+    [Trait("Req", "PR-MCP-004")]
+    [Trait("Req", "PR-MCP-005")]
+    [Trait("Req", "PR-MCP-006")]
+    [Trait("Req", "PR-MCP-007")]
+    [Trait("Req", "PR-MCP-008")]
+    [Trait("Req", "PR-MCP-009")]
+    [Trait("Req", "PR-MCP-010")]
     public void First_ten_entries_match_the_complete_frozen_expected_table() =>
         AssertSnapshot(FirstTen, MCPCatalog.Entries.Take(10));
 
-    [Fact] // PR-MCP-006: home default is dynamic; the user-visible macOS placeholder stays verbatim.
+    [Fact] // Home default is dynamic; the user-visible macOS placeholder stays verbatim.
+    [Trait("Req", "PR-MCP-006")]
     public void Filesystem_home_default_uses_the_Windows_user_profile()
     {
         var entry = MCPCatalog.Entries.Single(e => e.Id == "filesystem");
@@ -51,7 +61,7 @@ public sealed class MCPCatalogTests
             _ => throw new InvalidOperationException()
         };
         return [entry.Id, entry.Name, entry.Vendor, entry.Summary, entry.Category.Id(), entry.Asset,
-            entry.ColorValue.ToString("X6"), entry.IsMonochrome, kind, address, args, headers,
+            entry.ColorValue.ToString("X6", System.Globalization.CultureInfo.InvariantCulture), entry.IsMonochrome, kind, address, args, headers,
             entry.Fields.Select(f => new object?[] { f.Key, f.Label, f.Placeholder, f.FieldKind.ToString(), f.Help, f.DefaultValue, f.IsRequired }).ToArray(),
             entry.Env, entry.DocsUrl, entry.SampleTools, entry.KeysUrl, entry.NeedsInput, entry.IsOAuth];
     }

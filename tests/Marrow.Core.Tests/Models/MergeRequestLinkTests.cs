@@ -5,7 +5,10 @@ namespace Marrow.Core.Tests.Models;
 
 public sealed class MergeRequestLinkTests
 {
-    [Theory] // PR-GIT-052..054
+    [Theory]
+    [Trait("Req", "PR-GIT-052")]
+    [Trait("Req", "PR-GIT-053")]
+    [Trait("Req", "PR-GIT-054")]
     [InlineData("https://gitlab.example/group/sub/project/-/merge_requests/95/diffs", MergeRequestLink.Forge.GitLab, 95, "!95")]
     [InlineData("https://gitlab.example/x/merge_requests/1", MergeRequestLink.Forge.GitLab, 1, "!1")]
     [InlineData("https://github.com/owner/repo/pull/95", MergeRequestLink.Forge.GitHub, 95, "#95")]
@@ -21,7 +24,8 @@ public sealed class MergeRequestLinkTests
         Assert.Equal("Merge " + label, parsed.Title); Assert.Equal(new Uri(url), parsed.Url);
     }
 
-    [Theory] // PR-GIT-052
+    [Theory]
+    [Trait("Req", "PR-GIT-052")]
     [InlineData("https://host/merge_requests/95")]
     [InlineData("https://host/x/merge_requests/bad/merge_requests/95")]
     [InlineData("https://host/o/r/pull/0")]
@@ -36,7 +40,8 @@ public sealed class MergeRequestLinkTests
     public void Rejects_nonmatching_shapes_and_invalid_integers(string url)
         => Assert.Null(MergeRequestLink.Parse(new Uri(url)));
 
-    [Theory] // PR-GIT-055, independent verbatim Expected fixtures
+    [Theory] // Independent verbatim Expected fixtures.
+    [Trait("Req", "PR-GIT-055")]
     [InlineData("https://host/g/p/-/merge_requests/95", "!95", "Use glab from this directory: `glab mr merge 95 --yes`. If GitLab answers that the request is still being checked (a 405), wait a few seconds and try again; if it reports conflicts, stop and say so instead of resolving them.")]
     [InlineData("https://host/o/r/pull/95", "#95", "Use gh from this directory: `gh pr merge 95 --merge`. If GitHub reports the pull request is not mergeable, stop and say so instead of resolving it.")]
     [InlineData("https://host/o/r/pulls/95", "#95", "Use tea from this directory: `tea pulls merge 95`. If tea is not installed or signed in to this host, or the pull request is not mergeable, stop and say so instead of working around it.")]

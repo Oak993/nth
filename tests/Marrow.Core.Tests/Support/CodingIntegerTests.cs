@@ -8,6 +8,8 @@ public sealed class CodingIntegerTests
     // Foundation JSONDecoder's integer slow path accepts integral JSON numbers,
     // but never numeric strings. Source: swift-6.0-RELEASE JSONDecoder.swift.
     [Theory]
+    [Trait("Req", "PR-STORE-020")]
+    [Trait("Rule", "R-CODE-1")]
     [InlineData("1.0", 1L)]
     [InlineData("1e3", 1000L)]
     [InlineData("-1.0", -1L)]

@@ -11,5 +11,11 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Deterministic>true</Deterministic>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- ED-074: Swift arithmetic and narrowing conversions trap; C# would wrap silently. -->
+    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+    <!-- ED-075: a switch over a ported enum carries no discard arm, so a missing case stays CS8509. -->
+    <NoWarn>$(NoWarn);CS8524</NoWarn>
+    <!-- ED-076: culture and string-comparison analyzers; severities in .editorconfig. -->
+    <AnalysisLevel>latest</AnalysisLevel>
   </PropertyGroup>
 </Project>

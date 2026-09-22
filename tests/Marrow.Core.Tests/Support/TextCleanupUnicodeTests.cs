@@ -4,7 +4,8 @@ namespace Marrow.Core.Tests.Support;
 
 public sealed class TextCleanupUnicodeTests
 {
-    [Theory] // PR-STORE-107; Swift SE-0363 custom ranges match whole, single-scalar NFC characters.
+    [Theory] // Swift SE-0363 custom ranges match whole, single-scalar NFC characters.
+    [Trait("Req", "PR-STORE-107")]
     [InlineData("\u001B[31m\u0301X", "\u001B[31m\u0301X")]
     [InlineData("\u001B[3\u03011mX", "\u001B[3\u03011mX")]
     [InlineData("\u001B[\u030131mX", "\u001B[\u030131mX")]

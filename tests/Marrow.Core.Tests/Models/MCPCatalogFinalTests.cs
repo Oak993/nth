@@ -4,12 +4,14 @@ namespace Marrow.Core.Tests.Models;
 
 public sealed class MCPCatalogFinalTests
 {
-    [Fact] // PR-MCP-031..033.
+    [Fact]
+    [Trait("Req", "PR-MCP-031")]
+    [Trait("Req", "PR-MCP-032")]
+    [Trait("Req", "PR-MCP-033")]
     public void Last_three_entries_match_every_expected_field()
     {
         const string fixture = """
-        [
-          ["huggingface","Hugging Face","Hugging Face","Searches models, datasets and papers","knowledge","mcp-huggingface","FFB000",false,"http","https://huggingface.co/mcp",[],{"Authorization":"Bearer {token}"},[["token","Access token","hf_…","Secret","Optional. Raises the limits",null,false]],{},"https://github.com/huggingface/hf-mcp-server",["hub_repo_search","hub_repo_details","hf_fs","hf_whoami"],"https://huggingface.co/settings/tokens",false,false],
+        [["huggingface","Hugging Face","Hugging Face","Searches models, datasets and papers","knowledge","mcp-huggingface","FFB000",false,"http","https://huggingface.co/mcp",[],{"Authorization":"Bearer {token}"},[["token","Access token","hf_…","Secret","Optional. Raises the limits",null,false]],{},"https://github.com/huggingface/hf-mcp-server",["hub_repo_search","hub_repo_details","hf_fs","hf_whoami"],"https://huggingface.co/settings/tokens",false,false],
           ["deepwiki","DeepWiki","Cognition","Reads docs and answers questions about repos","knowledge","mcp-deepwiki","1D1D1F",true,"http","https://mcp.deepwiki.com/mcp",[],{},[],{},"https://docs.devin.ai/work-with-devin/deepwiki-mcp",["read_wiki_structure","read_wiki_contents","ask_question"],null,false,false],
           ["aws-docs","AWS Docs","Amazon Web Services","Searches and reads the AWS documentation","cloud","mcp-aws-docs","FF9900",false,"stdio","uvx",["awslabs.aws-documentation-mcp-server@latest"],{},[],{"FASTMCP_LOG_LEVEL":"ERROR"},"https://awslabs.github.io/mcp/servers/aws-documentation-mcp-server",["read_documentation","search_documentation","recommend"],null,false,false]
         ]
@@ -17,7 +19,8 @@ public sealed class MCPCatalogFinalTests
         MCPCatalogTests.AssertSnapshot(fixture, MCPCatalog.Entries.Skip(30));
     }
 
-    [Fact] // PR-MCP-034
+    [Fact]
+    [Trait("Req", "PR-MCP-034")]
     public void Catalog_has_exactly_33_ids_in_source_order_and_the_fourteen_OAuth_entries()
     {
         const string ids = "github,gitlab,playwright,chrome-devtools,context7,filesystem,fetch,memory,sequential-thinking,git,brave-search,tavily,exa,firecrawl,perplexity,slack,notion,linear,atlassian,figma,sentry,vercel,cloudflare,netlify,supabase,stripe,resend,postgres,sqlite,mongodb,huggingface,deepwiki,aws-docs";
@@ -26,14 +29,16 @@ public sealed class MCPCatalogFinalTests
         Assert.Equal("gitlab,tavily,exa,notion,linear,atlassian,figma,sentry,vercel,cloudflare,netlify,supabase,stripe,resend".Split(','), MCPCatalog.Entries.Where(entry => entry.IsOAuth).Select(entry => entry.Id));
     }
 
-    [Fact] // PR-MCP-035
+    [Fact]
+    [Trait("Req", "PR-MCP-035")]
     public void Exact_id_lookup_is_case_sensitive_and_returns_null_for_unknown_ids()
     {
         foreach (var entry in MCPCatalog.Entries) Assert.Equal(entry, MCPCatalog.Entry(entry.Id));
         Assert.Null(MCPCatalog.Entry("GitHub")); Assert.Null(MCPCatalog.Entry("missing")); Assert.Null(MCPCatalog.Entry(" github"));
     }
 
-    [Theory] // PR-MCP-036: corrected from executable source before test approval.
+    [Theory] // Corrected from executable source before test approval.
+    [Trait("Req", "PR-MCP-036")]
     [InlineData("Chrome DevTools", "chrome-devtools")]
     [InlineData("CHROME_DEVTOOLS", "chrome-devtools")]
     [InlineData("chrome-devtools", "chrome-devtools")]
@@ -50,7 +55,8 @@ public sealed class MCPCatalogFinalTests
     public void Normalized_lookup_uses_only_lowercase_underscore_and_space_replacement(string value, string? id) =>
         Assert.Equal(id, MCPCatalog.EntryMatching(value)?.Id);
 
-    [Fact] // PR-MCP-037
+    [Fact]
+    [Trait("Req", "PR-MCP-037")]
     public void Categories_and_their_members_preserve_both_source_orders()
     {
         var groups = MCPCatalog.ByCategory;

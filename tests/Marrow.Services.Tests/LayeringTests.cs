@@ -7,11 +7,13 @@ public class LayeringTests
         .GetReferencedAssemblies().Select(a => a.Name ?? string.Empty).ToArray();
 
     [Theory]
+    [Trait("Decision", "ED-064")] // IMPLEMENTING.md 2.1 layer table, adopted under ED-064.
     [InlineData("Marrow.UI")]
     [InlineData("Marrow.App")]
     public void Services_does_not_reference(string forbidden) => Assert.DoesNotContain(forbidden, Referenced);
 
     [Fact]
+    [Trait("Decision", "ED-064")] // IMPLEMENTING.md 2.1 layer table, adopted under ED-064.
     public void Services_references_no_UI_framework()
         => Assert.DoesNotContain(Referenced, n => n.StartsWith("Avalonia", StringComparison.Ordinal));
 }

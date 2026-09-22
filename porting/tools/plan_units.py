@@ -125,6 +125,32 @@ for f in sorted(files, key=lambda x: (deps['files'][x]['level'], x)):
         'status': 'DONE' if rs and not todo else ('NO_RECORDS' if not rs else 'TODO'),
     })
 
+# Port-only foundation units (porting/deps/foundation_units.json, IMPLEMENTING.md section 4.3). A Swift unit
+# depends on one when its B2 source uses the API the foundation unit replaces, and the foundation unit's
+# layer is at or below the Swift unit's (Core < Services, UI < App), so no dependency crosses the layering.
+fpath = os.path.join(ROOT, 'porting', 'deps', 'foundation_units.json')
+if os.path.exists(fpath):
+    RANK = {'Marrow.Core': 0, 'Marrow.Services': 1, 'Marrow.UI': 1, 'Marrow.App': 2, 'Marrow.Testing': 9}
+    REF = deps.get('reference') or json.load(open(os.path.join(ROOT, 'porting', 'baseline.json'), encoding='utf-8'))['current']['reference_path']
+    fdoc = json.load(open(fpath, encoding='utf-8'))
+    fdeps = {'F.SettingsStore': ['F.FileOps']}
+    for u in units:
+        src = open(os.path.join(REF, u['swift']), encoding='utf-8', errors='replace').read()
+        for f in fdoc['units']:
+            if RANK[f['project']] > RANK[u['project']] or RANK[f['project']] == 1 and u['project'] != 'Marrow.App' and f['project'] != u['project']:
+                continue
+            if any(p in src for p in f['patterns']):
+                u['deps'] = sorted(set(u['deps']) | {f['id']})
+    for f in fdoc['units']:
+        exists = os.path.exists(os.path.join(ROOT, f['target']))
+        units.insert(0, {
+            'id': f['id'], 'kind': 'foundation', 'swift': None, 'target': f['target'], 'project': f['project'],
+            'test_project': 'tests/Marrow.Core.Tests' if f['project'] in ('Marrow.Core', 'Marrow.Testing') else f'tests/{f["project"]}.Tests',
+            'level': -1, 'component': None, 'component_members': [], 'deps': fdeps.get(f['id'], []), 'intra_deps': [],
+            'records_total': 0, 'records_todo': [], 'parts': [[]], 'packets': [], 'risk': f['risk'],
+            'spec': f['spec'], 'extends_existing': exists, 'status': 'TODO',
+        })
+
 os.makedirs(os.path.dirname(os.path.join(ROOT, out)), exist_ok=True)
 json.dump({'baseline': deps['baseline'], 'part_size': PART_SIZE, 'units': units},
           open(os.path.join(ROOT, out), 'w', encoding='utf-8'), indent=1)

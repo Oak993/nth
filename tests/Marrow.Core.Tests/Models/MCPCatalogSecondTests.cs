@@ -4,12 +4,21 @@ namespace Marrow.Core.Tests.Models;
 
 public sealed class MCPCatalogSecondTests
 {
-    [Fact] // PR-MCP-011..020, frozen from packet Expected text in source declaration order.
+    [Fact] // Frozen from packet Expected text in source declaration order.
+    [Trait("Req", "PR-MCP-011")]
+    [Trait("Req", "PR-MCP-012")]
+    [Trait("Req", "PR-MCP-013")]
+    [Trait("Req", "PR-MCP-014")]
+    [Trait("Req", "PR-MCP-015")]
+    [Trait("Req", "PR-MCP-016")]
+    [Trait("Req", "PR-MCP-017")]
+    [Trait("Req", "PR-MCP-018")]
+    [Trait("Req", "PR-MCP-019")]
+    [Trait("Req", "PR-MCP-020")]
     public void Second_ten_entries_match_every_expected_field()
     {
         const string fixture = """
-        [
-          ["brave-search","Brave Search","Brave","Searches the web, local places and news","search","mcp-brave-search","FB542B",false,"stdio","npx",["-y","@brave/brave-search-mcp-server"],{},[["key","API key","BSA…","Secret","Make a key on the page, then copy it",null,true]],{"BRAVE_API_KEY":"{key}"},"https://github.com/brave/brave-search-mcp-server",["brave_web_search","brave_local_search","brave_news_search"],"https://api-dashboard.search.brave.com/app/keys",true,false],
+        [["brave-search","Brave Search","Brave","Searches the web, local places and news","search","mcp-brave-search","FB542B",false,"stdio","npx",["-y","@brave/brave-search-mcp-server"],{},[["key","API key","BSA…","Secret","Make a key on the page, then copy it",null,true]],{"BRAVE_API_KEY":"{key}"},"https://github.com/brave/brave-search-mcp-server",["brave_web_search","brave_local_search","brave_news_search"],"https://api-dashboard.search.brave.com/app/keys",true,false],
           ["tavily","Tavily","Tavily","Searches the web and pulls out page content","search","mcp-tavily","0D9488",false,"oauth","https://mcp.tavily.com/mcp",[],{},[],{},"https://github.com/tavily-ai/tavily-mcp",["tavily-search","tavily-extract","tavily-crawl"],null,false,true],
           ["exa","Exa","Exa","Searches the web and reads pages, with code-focused answers","search","mcp-exa","1F4FFF",false,"oauth","https://mcp.exa.ai/mcp",[],{},[],{},"https://github.com/exa-labs/exa-mcp-server",["web_search_exa","web_fetch_exa","agent_run"],null,false,true],
           ["firecrawl","Firecrawl","Firecrawl","Scrapes, searches and maps whole websites","browser","mcp-firecrawl","FF6B1A",false,"stdio","npx",["-y","firecrawl-mcp"],{},[["key","API key","fc-…","Secret","Make a key on the page, then copy it",null,true]],{"FIRECRAWL_API_KEY":"{key}"},"https://github.com/firecrawl/firecrawl-mcp-server",["firecrawl_scrape","firecrawl_search","firecrawl_crawl","firecrawl_map"],"https://www.firecrawl.dev/app/api-keys",true,false],

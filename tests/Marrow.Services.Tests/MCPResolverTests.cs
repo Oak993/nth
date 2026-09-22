@@ -9,7 +9,9 @@ public sealed class MCPResolverTests
         new("server", "Server", "Vendor", "Summary", MCPCategory.Developer, "asset", 0,
             transport, "docs") { Fields = [new("key", "Key", "", IsRequired: false)] };
 
-    [Fact] // PR-MCP-041, PR-MCP-046
+    [Fact]
+    [Trait("Req", "PR-MCP-041")]
+    [Trait("Req", "PR-MCP-046")]
     public void Stdio_fills_args_and_env_values_but_never_command_or_env_keys()
     {
         var entry = Entry(new MCPTransport.Stdio("{key}", ["{key}", "{unknown}"])) with
@@ -21,7 +23,9 @@ public sealed class MCPResolverTests
         Assert.Null(server.Url); Assert.Null(server.OAuthUpstream); Assert.Empty(server.Headers); Assert.False(server.IsRemote);
     }
 
-    [Fact] // PR-MCP-042, PR-MCP-046
+    [Fact]
+    [Trait("Req", "PR-MCP-042")]
+    [Trait("Req", "PR-MCP-046")]
     public void Http_keeps_Bearer_space_but_drops_a_wholly_empty_header()
     {
         var entry = Entry(new MCPTransport.Http("https://host/{key}", new Dictionary<string,string> { ["Authorization"] = "Bearer {key}", ["Empty"] = "{key}", ["{key}"] = "value" }));
@@ -31,7 +35,8 @@ public sealed class MCPResolverTests
         Assert.Null(server.Command); Assert.Empty(server.Args); Assert.Empty(server.Env); Assert.Null(server.OAuthUpstream); Assert.True(server.IsRemote);
     }
 
-    [Fact] // PR-MCP-043; Core-to-Services boundary mandated by architecture V1.
+    [Fact] // Core-to-Services boundary mandated by architecture V1.
+    [Trait("Req", "PR-MCP-043")]
     public void OAuth_calls_only_the_proxy_route_supplier_and_keeps_upstream_separate()
     {
         var entry = Entry(new MCPTransport.OAuth("https://remote/{key}"));

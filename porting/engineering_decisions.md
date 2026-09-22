@@ -258,3 +258,111 @@ porting/owner_decisions_pending.md.
 ## ED-063
 
 [WIN] Window chrome, from probe P7 (porting/probes/p7/RESULT.md, run 4). Declaring the app-drawn caption controls through Win32Properties.SetNonClientHitTestResult is not enough on Avalonia 12.1.2: drag and double-click work, but the minimise, maximise and close controls do nothing and right-click opens no system menu, on every WindowDecorations value. DECISION: the main window uses WindowDecorations.Full with ExtendClientAreaToDecorationsHint and a 44 px title bar (source geometry), declares its leading-edge controls through SetNonClientHitTestResult, and installs a WndProc hook that performs minimise, maximise, restore and close (swallow WM_NCLBUTTONDOWN on the control, post the SC_* command on WM_NCLBUTTONUP), shows TrackPopupMenu(GetSystemMenu) on WM_CONTEXTMENU and SC_KEYMENU, and sets the system menu's item states first. Measured with this hook: every action works, DWM minimise, maximise and restore animations run, and the Snap Layouts flyout appears. BorderOnly and None are ruled out (they lose the DWM animations and the system menu; None also loses Snap Layouts). Non-activating panels (MCPKeyPanel.swift:41, MCPSetupPanel.swift:66 use nonactivatingPanel): WS_EX_NOACTIVATE with MA_NOACTIVATE is not enough because Avalonia calls SetFocus on the panel; use a thread-local WH_CBT hook that refuses activation for the panel HWND, so the host keeps activation and Avalonia routes keyboard input to the panel's focused field. Rendering (probe P2): the glass needs the GPU; with a null GrContext at startup the app degrades the glass as a named deviation rather than running the scene in software at about 10 fps.
+
+## ED-064
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-064 Implementing conventions. This guide becomes `porting/IMPLEMENTING.md`: one C# file per Swift file at Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-065
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-065 The main actor. `MainActor` over `IMainExecutor` in Core, bound once by Marrow.App to Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-066
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-066 The ambient Swift task model. The current Swift task (its cancellation) is ambient, as in Swift: set by Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-067
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-067 Actors are strands. A Swift `actor` derives from `Actor`: one synchronous segment at a time on a strand Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-068
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-068 One clock, and Swift's sleep. Every stamp, timer and wait reads `SwiftClock.Provider` (the BCL Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-069
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-069 Streams, continuations, locks and queues. `AsyncStream<T>` with Swift's storage semantics (buffering, Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-070
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-070 Observation. `@Observable` is `ObservableModel` with per-access tracking across objects (`Read`, `Set`, Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-071
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-071 SwiftUI views. One code-first Avalonia control per SwiftUI view, in the twin file, with no AXAML and no Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-072
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-072 (token forms), B ED-062 (token forms), C R-TASK-1 to R-TASK-3 (token forms). *Evidence:* `SwiftTaskTests` Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-073
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-073 Swift value semantics for text, numbers, dates and UUIDs. `SwiftString` (Characters, canonical equality Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-074
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-074 Checked arithmetic. `<CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>` in Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-075
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-075 Enums. `[RawValue]` plus `SwiftEnum<T>` (declaration order, exact raw spelling compared as Swift strings Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-076
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-076 Analyzers and the source scan. `AnalysisLevel` latest with CA1304, CA1305, CA1307, CA1309, CA1310 and Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-077
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-077 Value semantics. Models are immutable sealed records; collections in them are `ValueList`, `ValueMap`, Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-078
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-078 Errors and traps. `SwiftError`, `ILocalizedError`, `ISwiftErrorIdentity`; `SwiftTrapException` and the Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-079
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-079 Settings. `UserDefaults.standard` is `UserDefaults.Standard` (`Ambient<ISettingsStore>`): unbound, it Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-080
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-080 The deterministic test runtime and `tests/Marrow.Testing`. `ManualMainLoop`, `ManualTimeProvider`, Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-081
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-081 Traceability. The traits of R-TEST-1 with checked id formats, the three meta-tests in every test project, Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-082
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-082 Headless UI tests. `HeadlessUnitTestSession` per test assembly in a collection fixture, on xunit 2.9.3; Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-083
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-083 Frame clock and timer resolution. Frame-driven work (`TimelineView(.animation)`, `CADisplayLink`, sleeps Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-084
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-084 Reduce motion. `\.accessibilityReduceMotion` follows Windows' animation-effects setting Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-085
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-085 Port-only code in `Port/`. Code without a Swift twin lives in `src/Marrow.<Layer>/Port`, namespace Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-086
+
+[CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-086 The Swift oracle and the UNVERIFIED policy. Items O-01 to O-24 (Appendix B) are settled only by running Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
+
+## ED-087
+
+[CHAT] OD-0012 G4 as the owner accepted it in porting/decision_batch_20260922b.md: the Mac-only "Open in" items change (Finder becomes "File Explorer"; Terminal means Windows Terminal; Xcode and iTerm are left out because they do not exist on Windows). The other editors upstream's catalogue lists stay. The owner_decisions.md summary "offers File Explorer and Terminal only" overstated the sheet and is corrected there. DECISION for the Windows detection the source does with Launch Services bundle ids (Components.swift:103-106, :139-147): an editor is present when its executable is registered under HKCU or HKLM Software\Microsoft\Windows\CurrentVersion\App Paths\<exe>, or is found on PATH (PATHEXT, ED-031 rules): Visual Studio Code "Code.exe" / "code", Cursor "Cursor.exe" / "cursor", Zed "Zed.exe" / "zed", Windows Terminal "wt.exe". Ghostty has no Windows build and is therefore never present. File Explorer is always present. Launch passes the folder as the single argument (explorer.exe for File Explorer; wt.exe -d <folder> for Terminal). The icon is the executable's own icon.
+
+## ED-088
+
+[ALL] Scope of OD-0012 F1 ("every remaining Droppy Code / droppy-code the app shows or sends out becomes Marrow / marrow"). DECISION: it covers everything a user can see or that the app writes into places the user owns: UI text, file and folder names in the user's home or projects (the state folder ".droppy-code" becomes ".marrow", shown in Settings; the home state directory becomes %USERPROFILE%\.marrow, with %USERPROFILE%\.marrow-dev for a development build), git data written into the user's repositories (the checkpoint ref namespace refs/droppy-code/checkpoints/ becomes refs/marrow/checkpoints/, the checkpoint author and messages per F1), and identities sent over the network or to other programs. It does not cover names that live only inside the app and its own helper processes and are never shown or stored in user space: the bridge variable DROPPY_CODE_MCP_CONFIG and the login-shell marker __DROPPY_CODE_ENVIRONMENT__ keep upstream's names (parity, invisible). The two F1 exceptions stand: droppy-code.json and DROPPY_CODE_PROJECT_ROOT. The OAuth callback page's Droppy logo is replaced by the port's own icon once the owner approves it (the owner chose a new icon design, 2026-09-23).
+
+## ED-089
+
+[PROVREG][WIN][SETTINGS] Opening a provider CLI's sign-in on Windows (PR-PROVREG-233, PR-WIN-085, PR-SETTINGS-231 described it three ways). Upstream (Workspace.openTerminal) opens Terminal.app running the login command. DECISION: open a new Windows Terminal window (wt.exe new-tab, starting in the user's home folder) whose shell is the one OD-0008 C5 picks (PowerShell 7 when installed, otherwise Windows PowerShell), running the provider's login command unchanged (ProviderKind.loginCommand, verbatim per OD-0008 B6); if wt.exe is not present, start that PowerShell directly in its own console window with -NoExit -Command <login command>. All three records follow this one path.
+
+## ED-090
+
+[MCP][PROVAPI][PROVREG][SETTINGS][LAUNCH] The error and report lines OD-0012 E3-E6 create have wording from the owner but no style in the source. DECISION: each uses the typography and colour of the nearest existing upstream line with the same role in the same surface, and the implementing unit cites that line (for example the MCP key panel's existing save-failure text for E3 and E6, the provider key row's detail text for E5, the main window's existing notice style for E4). A line clears when the condition it reports no longer holds (the file reads, the key is saved, the next disconnect succeeds).

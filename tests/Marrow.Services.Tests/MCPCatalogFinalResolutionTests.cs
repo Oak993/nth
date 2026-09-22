@@ -5,7 +5,10 @@ namespace Marrow.Services.Tests;
 
 public sealed class MCPCatalogFinalResolutionTests
 {
-    [Fact] // PR-MCP-031..033
+    [Fact]
+    [Trait("Req", "PR-MCP-031")]
+    [Trait("Req", "PR-MCP-032")]
+    [Trait("Req", "PR-MCP-033")]
     public void Final_entries_preserve_empty_headers_optional_Bearer_and_literal_log_level()
     {
         MCPResolvedServer Resolve(string id) => MCPResolver.Resolve(MCPCatalog.Entry(id)!, new Dictionary<string,string>(), _ => throw new InvalidOperationException());

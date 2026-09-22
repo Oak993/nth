@@ -212,7 +212,8 @@ instruction may change one.
     home for your coding agents." F3: About line "Based on Droppy Code by Jordy Spruit (Droppy),
     https://getdroppycode.app".
   - G1 "this PC"; G2 "Credential Manager" in the provider key rows; G3 the ninth em dash kept; G4 "Open
-    in" offers File Explorer and Terminal only; G5 "Welcome tour" in the command palette; G6 Ctrl+0 is
+    in": Finder becomes File Explorer, Terminal is Windows Terminal, Xcode and iTerm are left out, the
+    other editors stay (the sheet's wording; an earlier summary here said "only", corrected by ED-087); G5 "Welcome tour" in the command palette; G6 Ctrl+0 is
     Actual Size and "Show Marrow" has no default chord.
   - H: the exact About and tour rewrites listed in the sheet; the terminal credit names the component the
     Windows build ships.

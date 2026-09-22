@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- ED-079 (proposed): the shared test-support library every Marrow test project references. Core plus
+       xunit only; it is not a test project itself. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <!-- A library the test projects reference, not a test project: dotnet test must not try to run it. -->
+    <IsTestProject>false</IsTestProject>
+    <RootNamespace>Marrow.Testing</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Marrow.Core\Marrow.Core.csproj" />
+  </ItemGroup>
+</Project>

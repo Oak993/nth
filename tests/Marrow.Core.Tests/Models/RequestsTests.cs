@@ -4,7 +4,10 @@ namespace Marrow.Core.Tests.Models;
 
 public sealed class RequestsTests
 {
-    [Theory] // PR-RUNTIME-016..018
+    [Theory]
+    [Trait("Req", "PR-RUNTIME-016")]
+    [Trait("Req", "PR-RUNTIME-017")]
+    [Trait("Req", "PR-RUNTIME-018")]
     [InlineData(ApprovalRequest.Kind.Command, "Run this command?", "terminal")]
     [InlineData(ApprovalRequest.Kind.FileChange, "Apply these changes?", "doc.badge.plus")]
     [InlineData(ApprovalRequest.Kind.Tool, "Allow this action?", "wrench.and.screwdriver")]
@@ -21,7 +24,9 @@ public sealed class RequestsTests
         Assert.Equal(headline, request.Headline); Assert.Equal(symbol, request.Symbol);
     }
 
-    [Fact] // PR-RUNTIME-016, PR-RUNTIME-019
+    [Fact]
+    [Trait("Req", "PR-RUNTIME-016")]
+    [Trait("Req", "PR-RUNTIME-019")]
     public void Kinds_and_roles_have_exact_source_cardinality_and_options_use_value_equality()
     {
         Assert.Equal(5, Enum.GetValues<ApprovalRequest.Kind>().Length);
@@ -35,7 +40,8 @@ public sealed class RequestsTests
         Assert.NotEqual(new ApprovalRequest.Option("id", "title", ApprovalRequest.Option.Role.Approve), new ApprovalRequest.Option("id", "title", ApprovalRequest.Option.Role.ApproveAlways));
     }
 
-    [Fact] // PR-RUNTIME-020
+    [Fact]
+    [Trait("Req", "PR-RUNTIME-020")]
     public void Multi_question_payload_preserves_all_fields_flags_and_optional_choice_detail()
     {
         var one = new QuestionRequest.Question("q/1", "Header", "Prompt", [new("A", "detail"), new("B", null)], true, false, true);
@@ -48,7 +54,9 @@ public sealed class RequestsTests
         Assert.False(two.AllowsMultiple); Assert.True(two.AllowsOther); Assert.False(two.IsSecret); Assert.Empty(two.Choices);
     }
 
-    [Fact] // Source Question/Choice Hashable, PR-RUNTIME-020
+    [Fact] // Source Question/Choice Hashable.
+    [Trait("Req", "PR-RUNTIME-020")]
+    [Trait("Rule", "R-VAL-2")]
     public void Question_equality_compares_choice_values_and_copies_the_input_collection()
     {
         var choices = new List<QuestionRequest.Choice> { new("A", null) };

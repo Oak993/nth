@@ -4,7 +4,8 @@ namespace Marrow.Core.Tests.Support;
 
 public sealed class SimpleDiffTests
 {
-    [Fact] // PR-STORE-112
+    [Fact]
+    [Trait("Req", "PR-STORE-112")]
     public void One_hunk_preserves_three_old_context_lines_and_removals_before_additions()
     {
         var stats = SimpleDiff.Unified("a\nb\nc\nd\nold\ne\nf\ng\nh", "a\nb\nc\nd\nnew1\nnew2\ne\nf\ng\nh");
@@ -13,7 +14,8 @@ public sealed class SimpleDiffTests
         Assert.Equal(1, stats.Deletions);
     }
 
-    [Theory] // PR-STORE-112
+    [Theory]
+    [Trait("Req", "PR-STORE-112")]
     [InlineData("", "", "@@ -1,0 +1,0 @@", 0, 0)]
     [InlineData("", "a", "@@ -1,0 +1,1 @@\n+a", 1, 0)]
     [InlineData("a", "", "@@ -1,1 +1,0 @@\n-a", 0, 1)]
@@ -29,7 +31,9 @@ public sealed class SimpleDiffTests
         Assert.Equal(deletions, stats.Deletions);
     }
 
-    [Theory] // PR-STORE-110, PR-STORE-111
+    [Theory]
+    [Trait("Req", "PR-STORE-110")]
+    [Trait("Req", "PR-STORE-111")]
     [InlineData(199999, true)]
     [InlineData(200000, true)]
     [InlineData(200001, false)]
@@ -43,7 +47,9 @@ public sealed class SimpleDiffTests
         Assert.Equal(keepsHunk, stats.Diff is not null);
     }
 
-    [Fact] // PR-STORE-110, PR-STORE-111
+    [Fact]
+    [Trait("Req", "PR-STORE-110")]
+    [Trait("Req", "PR-STORE-111")]
     public void Limit_is_bytes_and_over_limit_counts_still_trim_common_prefix_and_suffix()
     {
         var oldText = "head\n" + new string('é', 100000) + "\ntail";
@@ -53,7 +59,8 @@ public sealed class SimpleDiffTests
         Assert.Equal(1, stats.Deletions);
     }
 
-    [Fact] // PR-STORE-112: Swift String equality uses canonical equivalence.
+    [Fact] // Swift String equality uses canonical equivalence.
+    [Trait("Req", "PR-STORE-112")]
     public void Canonically_equivalent_lines_are_context_in_their_original_old_spelling()
     {
         var stats = SimpleDiff.Unified("é\nold", "e\u0301\nnew");

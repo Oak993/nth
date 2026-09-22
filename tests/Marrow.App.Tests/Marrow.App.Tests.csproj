@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Marrow.Testing\Marrow.Testing.csproj" />
     <ProjectReference Include="..\..\src\Marrow.App\Marrow.App.csproj" />
     <ProjectReference Include="..\..\src\Marrow.UI\Marrow.UI.csproj" />
     <ProjectReference Include="..\..\src\Marrow.Services\Marrow.Services.csproj" />

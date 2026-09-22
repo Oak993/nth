@@ -5,6 +5,7 @@ namespace Marrow.Core.Tests.Models;
 public sealed class MCPValueSemanticsTests
 {
     [Fact] // MCP.swift Hashable/Sendable collections have value semantics.
+    [Trait("Rule", "R-VAL-2")]
     public void Transport_equality_and_hashing_compare_contents_and_own_input_arrays()
     {
         var args = new List<string> { "a" };
@@ -19,6 +20,7 @@ public sealed class MCPValueSemanticsTests
     }
 
     [Fact]
+    [Trait("Rule", "R-VAL-2")]
     public void Catalog_entries_copy_collections_and_compare_transport_fields_and_tools()
     {
         var fields = new List<MCPField> { new("key", "Key", "") };
@@ -31,6 +33,7 @@ public sealed class MCPValueSemanticsTests
     }
 
     [Fact]
+    [Trait("Rule", "R-VAL-2")]
     public void Connection_and_resolved_server_compare_collection_contents()
     {
         var values = new Dictionary<string,string> { ["path"] = "one" };

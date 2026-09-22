@@ -34,7 +34,8 @@ public class AntiSlopPolicyTests
 
     // ------------------------------------------------------------------ PR-STORE-129
 
-    [Fact] // PR-STORE-129
+    [Fact]
+    [Trait("Rule", "R-STR-9")] // No Req: pins the upstream first line, which PR-STORE-129 changes (OD-0012 F1); rework.
     public void Enabled_guidance_is_the_source_literal_byte_for_byte()
     {
         byte[] expected = Utf8(Enabled);
@@ -44,7 +45,8 @@ public class AntiSlopPolicyTests
         Assert.Equal(expected, actual);
     }
 
-    [Fact] // PR-STORE-129
+    [Fact]
+    [Trait("Rule", "R-STR-9")] // No Req: pins the upstream first line, which PR-STORE-129 changes (OD-0012 F1); rework.
     public void Enabled_guidance_digest_matches_the_source_literal()
     {
         string expected = Convert.ToHexString(SHA256.HashData(Utf8(Enabled))).ToLowerInvariant();
@@ -54,7 +56,8 @@ public class AntiSlopPolicyTests
         Assert.Equal(expected, actual);
     }
 
-    [Fact] // PR-STORE-129, PR-HYDRA-055
+    [Fact]
+    [Trait("Rule", "R-STR-9")] // No Req: pins the upstream first line, which PR-STORE-129 and PR-HYDRA-055 change (OD-0012 F1); rework.
     public void Enabled_guidance_is_five_lines_joined_by_single_newlines_with_no_blank_edge()
     {
         string text = AntiSlopPolicy.EnabledInstructions;
@@ -62,7 +65,7 @@ public class AntiSlopPolicyTests
         Assert.False(text.StartsWith('\n'));
         Assert.False(text.EndsWith('\n'));
         Assert.DoesNotContain('\r', text);
-        Assert.DoesNotContain("\n\n", text);
+        Assert.DoesNotContain("\n\n", text, StringComparison.Ordinal);
 
         string[] lines = text.Split('\n');
         Assert.Equal(5, lines.Length);
@@ -72,20 +75,22 @@ public class AntiSlopPolicyTests
 
     // ------------------------------------------------------------------ PR-HYDRA-055
 
-    [Fact] // PR-HYDRA-055
+    [Fact]
+    [Trait("Req", "PR-HYDRA-055")]
     public void Enabled_guidance_carries_u2019_and_the_us_spelling()
     {
         string text = AntiSlopPolicy.EnabledInstructions;
 
-        Assert.Contains("product\u2019s", text);
-        Assert.DoesNotContain("product's", text);
-        Assert.Contains("colors", text);
-        Assert.Contains("typography and colors", text);
+        Assert.Contains("product\u2019s", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("product's", text, StringComparison.Ordinal);
+        Assert.Contains("colors", text, StringComparison.Ordinal);
+        Assert.Contains("typography and colors", text, StringComparison.Ordinal);
     }
 
     // ------------------------------------------------------------------ PR-STORE-130
 
-    [Fact] // PR-STORE-130
+    [Fact]
+    [Trait("Rule", "R-STR-9")] // No Req: pins the upstream first line, which PR-STORE-130 changes (OD-0012 F1); rework.
     public void Disabled_guidance_is_the_source_literal_byte_for_byte()
     {
         byte[] expected = Utf8(Disabled);
@@ -95,7 +100,8 @@ public class AntiSlopPolicyTests
         Assert.Equal(expected, actual);
     }
 
-    [Fact] // PR-STORE-130
+    [Fact]
+    [Trait("Rule", "R-STR-9")] // No Req: pins the upstream first line, which PR-STORE-130 changes (OD-0012 F1); rework.
     public void Disabled_guidance_digest_matches_the_source_literal()
     {
         string expected = Convert.ToHexString(SHA256.HashData(Utf8(Disabled))).ToLowerInvariant();
@@ -105,7 +111,8 @@ public class AntiSlopPolicyTests
         Assert.Equal(expected, actual);
     }
 
-    [Fact] // PR-STORE-130
+    [Fact]
+    [Trait("Rule", "R-STR-9")] // No Req: pins the upstream first line, which PR-STORE-130 changes (OD-0012 F1); rework.
     public void Disabled_guidance_is_two_lines_joined_by_a_single_newline_with_no_blank_edge()
     {
         string text = AntiSlopPolicy.DisabledInstructions;
@@ -113,7 +120,7 @@ public class AntiSlopPolicyTests
         Assert.False(text.StartsWith('\n'));
         Assert.False(text.EndsWith('\n'));
         Assert.DoesNotContain('\r', text);
-        Assert.DoesNotContain("\n\n", text);
+        Assert.DoesNotContain("\n\n", text, StringComparison.Ordinal);
 
         string[] lines = text.Split('\n');
         Assert.Equal(2, lines.Length);
@@ -126,19 +133,23 @@ public class AntiSlopPolicyTests
 
     // ------------------------------------------------------------------ selector (PR-STORE-130, PR-HYDRA-055)
 
-    [Fact] // PR-STORE-130
+    [Fact]
+    [Trait("Rule", "R-STR-9")] // No Req: pins the upstream first line, which PR-STORE-129 changes (OD-0012 F1); rework.
     public void Selector_returns_the_enabled_block_when_enabled()
     {
         Assert.Equal(Utf8(Enabled), Utf8(AntiSlopPolicy.Instructions(true)));
     }
 
-    [Fact] // PR-STORE-130
+    [Fact]
+    [Trait("Rule", "R-STR-9")] // No Req: pins the upstream first line, which PR-STORE-130 changes (OD-0012 F1); rework.
     public void Selector_returns_the_disabled_block_when_disabled()
     {
         Assert.Equal(Utf8(Disabled), Utf8(AntiSlopPolicy.Instructions(false)));
     }
 
-    [Fact] // PR-STORE-130, PR-HYDRA-055
+    [Fact]
+    [Trait("Req", "PR-STORE-130")]
+    [Trait("Req", "PR-HYDRA-055")]
     public void Selector_never_returns_empty_and_has_no_third_state()
     {
         string on = AntiSlopPolicy.Instructions(true);

@@ -4,7 +4,8 @@ namespace Marrow.Core.Tests.Support;
 
 public sealed class AppInfoBuildChannelTests
 {
-    [Fact] // PR-STORE-008: exercised in both Debug and Release test runs.
+    [Fact] // Exercised in both Debug and Release test runs.
+    [Trait("Rule", "R-STR-9")] // No Req: pins .droppy-code, which PR-STORE-008 changes to .marrow (OD-0012 F1); rework.
     public void Cached_application_info_uses_the_compiled_build_channel()
     {
 #if DEBUG

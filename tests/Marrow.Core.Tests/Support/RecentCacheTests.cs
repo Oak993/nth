@@ -4,7 +4,9 @@ namespace Marrow.Core.Tests.Support;
 
 public sealed class RecentCacheTests
 {
-    [Fact] // PR-STORE-053, PR-STORE-055
+    [Fact]
+    [Trait("Req", "PR-STORE-053")]
+    [Trait("Req", "PR-STORE-055")]
     public void Two_generations_remain_readable_until_the_next_wholesale_rollover()
     {
         var cache = new RecentCache<string, string>(2);
@@ -16,7 +18,8 @@ public sealed class RecentCacheTests
         Assert.All(new[] { "c", "d", "e" }, key => Assert.True(cache.Contains(key)));
     }
 
-    [Fact] // PR-STORE-054
+    [Fact]
+    [Trait("Req", "PR-STORE-054")]
     public void Reading_previous_promotes_and_can_itself_discard_the_old_generation()
     {
         var cache = new RecentCache<string, string>(2);
@@ -26,7 +29,9 @@ public sealed class RecentCacheTests
         Assert.True(cache.Contains("c")); Assert.True(cache.Contains("d")); Assert.True(cache.Contains("a"));
     }
 
-    [Fact] // PR-STORE-053, PR-STORE-054
+    [Fact]
+    [Trait("Req", "PR-STORE-053")]
+    [Trait("Req", "PR-STORE-054")]
     public void Contains_does_not_promote_and_current_hits_do_not_refresh_the_generation()
     {
         var cache = new RecentCache<string, int>(1);
@@ -38,7 +43,9 @@ public sealed class RecentCacheTests
         Assert.False(cache.TryGetValue("missing", out _));
     }
 
-    [Fact] // PR-STORE-054, PR-STORE-055
+    [Fact]
+    [Trait("Req", "PR-STORE-054")]
+    [Trait("Req", "PR-STORE-055")]
     public void Promotion_preserves_original_cost_and_exact_budget_equality_does_not_roll()
     {
         var cache = new RecentCache<string, int>(10, 5);
@@ -51,7 +58,8 @@ public sealed class RecentCacheTests
         Assert.False(cache.Contains("b")); Assert.True(cache.Contains("a"));
     }
 
-    [Theory] // PR-STORE-056
+    [Theory]
+    [Trait("Req", "PR-STORE-056")]
     [InlineData(false)]
     [InlineData(true)]
     public void Over_budget_replacement_removes_existing_value_even_from_previous(bool previous)
@@ -64,7 +72,8 @@ public sealed class RecentCacheTests
         if (previous) Assert.True(cache.Contains("b"));
     }
 
-    [Fact] // PR-STORE-057
+    [Fact]
+    [Trait("Req", "PR-STORE-057")]
     public void Nonpositive_limits_and_negative_costs_follow_source_clamps()
     {
         var cache = new RecentCache<string, int>(-2, -10);
@@ -75,7 +84,8 @@ public sealed class RecentCacheTests
         Assert.False(cache.Contains("a")); Assert.True(cache.Contains("b"));
     }
 
-    [Fact] // PR-STORE-058
+    [Fact]
+    [Trait("Req", "PR-STORE-058")]
     public void Removal_returns_current_or_previous_and_refunds_current_cost()
     {
         var cache = new RecentCache<string, int>(10, 5);
@@ -91,7 +101,9 @@ public sealed class RecentCacheTests
         Assert.False(cache.RemoveValue("a", out _));
     }
 
-    [Fact] // PR-STORE-055, PR-STORE-058
+    [Fact]
+    [Trait("Req", "PR-STORE-055")]
+    [Trait("Req", "PR-STORE-058")]
     public void Replacing_a_key_removes_it_before_count_and_cost_checks()
     {
         var cache = new RecentCache<string, int>(2, 5);
@@ -101,7 +113,9 @@ public sealed class RecentCacheTests
         Assert.True(cache.TryGetValue("a", out var a)); Assert.Equal(4, a);
     }
 
-    [Fact] // PR-STORE-055, PR-STORE-057
+    [Fact]
+    [Trait("Req", "PR-STORE-055")]
+    [Trait("Req", "PR-STORE-057")]
     public void Maximum_64_bit_cost_is_supported_without_addition_overflow()
     {
         var cache = new RecentCache<string, int>(2);

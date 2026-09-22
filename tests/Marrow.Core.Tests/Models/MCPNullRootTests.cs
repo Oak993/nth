@@ -7,7 +7,8 @@ namespace Marrow.Core.Tests.Models;
 
 public sealed class MCPNullRootTests
 {
-    [Theory] // PR-MCP-047: both Swift values require a keyed container, never a null struct.
+    [Theory] // Both Swift values require a keyed container, never a null struct.
+    [Trait("Req", "PR-MCP-047")]
     [InlineData(true, "null")]
     [InlineData(false, "null")]
     [InlineData(true, "[]")]

@@ -7,7 +7,8 @@ namespace Marrow.Core.Tests.Support;
 
 public sealed class FileEditTextTests
 {
-    [Fact] // PR-STORE-113
+    [Fact]
+    [Trait("Req", "PR-STORE-113")]
     public void Convenience_constructor_passes_the_path_and_all_three_computed_stats_through()
     {
         var edit = new FileEdit("folder/a.txt", "keep\nold\n", "keep\nnew\nmore\n");
@@ -17,7 +18,8 @@ public sealed class FileEditTextTests
         Assert.Equal(1, edit.Deletions);
     }
 
-    [Fact] // PR-STORE-113
+    [Fact]
+    [Trait("Req", "PR-STORE-113")]
     public void Over_cap_edit_keeps_the_counts_while_omitting_diff_from_storage()
     {
         var edit = new FileEdit("large", new string('a', 200001), "new");
@@ -28,7 +30,9 @@ public sealed class FileEditTextTests
         Assert.Equal(edit, Coding.Decode<FileEdit>(Coding.Encode(edit)));
     }
 
-    [Fact] // PR-STORE-113; carrier fields from Timeline.swift:170-175.
+    [Fact] // Carrier fields from Timeline.swift:202-207.
+    [Trait("Rule", "R-CODE-3")] // The carrier Codable, not the PR-STORE-113 initializer.
+    [Trait("Rule", "R-CODE-1")]
     public void Memberwise_defaults_and_exact_storage_keys_survive_a_round_trip()
     {
         Assert.Equal(new FileEdit("x", null, 0, 0), new FileEdit("x"));
@@ -39,7 +43,8 @@ public sealed class FileEditTextTests
         Assert.Equal("null", Encoding.UTF8.GetString(Coding.Encode<FileEdit?>(null)));
     }
 
-    [Theory] // PR-STORE-113; Swift synthesized Codable requires nonoptional carrier fields.
+    [Theory] // Swift synthesized Codable requires nonoptional carrier fields.
+    [Trait("Rule", "R-CODE-1")] // The carrier Codable, not the PR-STORE-113 initializer.
     [InlineData("null")]
     [InlineData("{}")]
     [InlineData("{\"path\":\"x\",\"additions\":1}")]
@@ -50,20 +55,23 @@ public sealed class FileEditTextTests
     public void Invalid_persisted_edit_is_rejected_without_inventing_defaults(string json) =>
         Assert.Throws<JsonException>(() => Coding.Decode<FileEdit>(Encoding.UTF8.GetBytes(json)));
 
-    [Fact] // PR-STORE-113
+    [Fact]
+    [Trait("Rule", "R-CODE-1")] // The carrier Codable, not the PR-STORE-113 initializer.
     public void Explicit_null_diff_and_integral_JSON_number_follow_the_storage_decoder()
     {
         var edit = Coding.Decode<FileEdit>("{\"path\":\"x\",\"diff\":null,\"additions\":1.0,\"deletions\":2}"u8);
         Assert.Equal(new FileEdit("x", null, 1, 2), edit);
     }
 
-    [Theory] // PR-STORE-114
+    [Theory]
+    [Trait("Req", "PR-STORE-114")]
     [InlineData(" ")]
     [InlineData("\t\r\n")]
     [InlineData("text")]
     public void Nil_if_empty_preserves_every_nonempty_string_by_identity(string text) =>
         Assert.Same(text, text.NilIfEmpty());
 
-    [Fact] // PR-STORE-114
+    [Fact]
+    [Trait("Req", "PR-STORE-114")]
     public void Nil_if_empty_returns_null_for_only_the_empty_string() => Assert.Null("".NilIfEmpty());
 }

@@ -7,7 +7,9 @@ namespace Marrow.Core.Tests.Models;
 
 public sealed class MCPToolSummaryCodingTests
 {
-    [Theory] // PR-MCP-047: synthesized Codable name is required even outside MCPConnection.
+    [Theory] // Synthesized Codable name is required even outside MCPConnection.
+    [Trait("Req", "PR-MCP-047")]
+    [Trait("Rule", "R-CODE-1")]
     [InlineData("{}")]
     [InlineData("{\"name\":null}")]
     [InlineData("{\"name\":1}")]
@@ -16,6 +18,7 @@ public sealed class MCPToolSummaryCodingTests
         Assert.Throws<JsonException>(() => Coding.Decode<MCPToolSummary>(Encoding.UTF8.GetBytes(json)));
 
     [Fact]
+    [Trait("Req", "PR-MCP-047")]
     public void Standalone_tool_summary_preserves_optional_summary_and_omits_computed_id()
     {
         Assert.Equal(new MCPToolSummary("tool", null), Coding.Decode<MCPToolSummary>("{\"name\":\"tool\"}"u8));

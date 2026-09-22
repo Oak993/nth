@@ -6,7 +6,8 @@ namespace Marrow.Core.Tests.Support;
 
 public sealed class CodingTests
 {
-    [Fact] // PR-STORE-017
+    [Fact]
+    [Trait("Req", "PR-STORE-017")]
     public void Storage_sorts_keys_recursively_is_compact_and_escapes_slashes()
     {
         var payload = new Dictionary<string, object?>
@@ -18,7 +19,9 @@ public sealed class CodingTests
         Assert.Equal(Coding.Encode(payload), Coding.Encode(payload));
     }
 
-    [Fact] // PR-STORE-017, PR-STORE-018
+    [Fact]
+    [Trait("Req", "PR-STORE-017")]
+    [Trait("Req", "PR-STORE-018")]
     public void Dates_write_UTC_ISO8601_without_fractional_seconds_and_read_offsets()
     {
         var date = new DateTimeOffset(2026, 9, 22, 5, 0, 1, TimeSpan.FromHours(3)).AddMilliseconds(500);
@@ -28,17 +31,19 @@ public sealed class CodingTests
         Assert.Equal(DateTimeOffset.UnixEpoch, Coding.Decode<DateTimeOffset>(Encoding.UTF8.GetBytes("\"1970-01-01T00:00:00Z\"")));
     }
 
-    [Fact] // PR-STORE-017
+    [Fact]
+    [Trait("Req", "PR-STORE-017")]
     public void Escaped_slash_format_round_trips_backslashes_quotes_controls_and_unicode()
     {
         const string value = "\\/\"\n\t\u00e9";
         var encoded = Coding.Encode(value);
         Assert.Equal(value, Coding.Decode<string>(encoded));
-        Assert.Contains("\\/", Encoding.UTF8.GetString(encoded));
+        Assert.Contains("\\/", Encoding.UTF8.GetString(encoded), StringComparison.Ordinal);
         Assert.DoesNotContain((byte)'\n', encoded);
     }
 
-    [Theory] // PR-STORE-020
+    [Theory]
+    [Trait("Req", "PR-STORE-020")]
     [InlineData("{}")]
     [InlineData("{\"x\":null}")]
     [InlineData("{\"x\":\"1\"}")]
@@ -54,7 +59,8 @@ public sealed class CodingTests
         Assert.Equal(42, result); Assert.Equal(1, calls);
     }
 
-    [Fact] // PR-STORE-020
+    [Fact]
+    [Trait("Req", "PR-STORE-020")]
     public void Present_value_does_not_evaluate_fallback_and_keys_are_case_sensitive()
     {
         using var document = JsonDocument.Parse("{\"x\":0,\"X\":99}");
@@ -63,7 +69,9 @@ public sealed class CodingTests
         Assert.Equal(-1, Coding.Value(document.RootElement, "missing", () => -1L));
     }
 
-    [Theory] // PR-STORE-018, PR-STORE-020
+    [Theory]
+    [Trait("Req", "PR-STORE-018")]
+    [Trait("Req", "PR-STORE-020")]
     [InlineData("{\"date\":\"yesterday\"}")]
     [InlineData("{\"date\":123}")]
     [InlineData("{\"date\":\"2026-99-99T99:99:99Z\"}")]
@@ -73,14 +81,16 @@ public sealed class CodingTests
         Assert.Equal(DateTimeOffset.UnixEpoch, Coding.Value(document.RootElement, "date", () => DateTimeOffset.UnixEpoch));
     }
 
-    [Fact] // PR-STORE-020
+    [Fact]
+    [Trait("Req", "PR-STORE-020")]
     public void One_invalid_array_member_falls_back_the_whole_field()
     {
         using var document = JsonDocument.Parse("{\"values\":[1,\"bad\",3]}");
         Assert.Equal(new long[] { 9 }, Coding.Value(document.RootElement, "values", () => new long[] { 9 }));
     }
 
-    [Fact] // PR-STORE-018
+    [Fact]
+    [Trait("Req", "PR-STORE-018")]
     public void Storage_options_are_shared_and_frozen()
     {
         Assert.Same(Coding.StorageOptions, Coding.StorageOptions);

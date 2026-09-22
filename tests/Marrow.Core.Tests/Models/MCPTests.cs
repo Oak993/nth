@@ -11,7 +11,8 @@ public sealed class MCPTests
         new("test", "Test", "Vendor", "Summary", MCPCategory.Developer, "asset", 0x123456,
             transport ?? new MCPTransport.OAuth("https://{instance}/api"), "docs");
 
-    [Fact] // PR-MCP-038
+    [Fact]
+    [Trait("Req", "PR-MCP-038")]
     public void Category_order_ids_and_titles_are_verbatim()
     {
         var categories = Enum.GetValues<MCPCategory>();
@@ -19,7 +20,8 @@ public sealed class MCPTests
         Assert.Equal(new[] { "Developer", "Browser", "Search", "Work", "Data", "Cloud", "Knowledge" }, categories.Select(c => c.Title()));
     }
 
-    [Fact] // PR-MCP-039
+    [Fact]
+    [Trait("Req", "PR-MCP-039")]
     public void Fill_uses_field_order_replaces_all_occurrences_and_preserves_unknown_tokens()
     {
         var entry = Entry() with { Fields = [new("a", "A", "", DefaultValue: "{b}"), new("b", "B", "", DefaultValue: "fallback"), new("c", "C", "")] };
@@ -28,7 +30,8 @@ public sealed class MCPTests
         Assert.Equal("fallback", entry.Fill("{a}", new Dictionary<string,string>()));
     }
 
-    [Theory] // PR-MCP-040
+    [Theory]
+    [Trait("Req", "PR-MCP-040")]
     [InlineData("  HTTPS://gitlab.example.com///\r\n", "https://gitlab.example.com/api")]
     [InlineData("https://http://x", "https://x/api")]
     [InlineData("http://https://x", "https://https://x/api")]
@@ -42,7 +45,10 @@ public sealed class MCPTests
         Assert.Equal(input, entry.Fill("{instance}", values));
     }
 
-    [Fact] // PR-MCP-044..046
+    [Fact]
+    [Trait("Req", "PR-MCP-044")]
+    [Trait("Req", "PR-MCP-045")]
+    [Trait("Req", "PR-MCP-046")]
     public void OAuth_URL_and_input_flags_are_derived_from_the_transport_and_required_fields()
     {
         var entry = Entry();
@@ -60,7 +66,8 @@ public sealed class MCPTests
         Assert.True((new MCPResolvedServer("id", "name") { Url = "" }).IsRemote);
     }
 
-    [Fact] // PR-MCP-047
+    [Fact]
+    [Trait("Req", "PR-MCP-047")]
     public void Connection_JSON_uses_exact_keys_and_restarts_with_date_tools_and_values()
     {
         var connection = new MCPConnection("github") { IsEnabled = false, Values = new Dictionary<string,string> { ["path"] = "/repo" },
@@ -78,6 +85,8 @@ public sealed class MCPTests
     }
 
     [Theory] // Swift synthesized Codable requires the nonoptional fields even when construction has defaults.
+    [Trait("Req", "PR-MCP-047")]
+    [Trait("Rule", "R-CODE-1")]
     [InlineData("{}")]
     [InlineData("{\"catalogID\":\"x\"}")]
     [InlineData("{\"catalogID\":null,\"isEnabled\":true,\"values\":{},\"tools\":[]}")]

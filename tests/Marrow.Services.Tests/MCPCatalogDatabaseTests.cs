@@ -5,7 +5,10 @@ namespace Marrow.Services.Tests;
 
 public sealed class MCPCatalogDatabaseTests
 {
-    [Fact] // PR-MCP-028..030: test-only strings, no external database or process.
+    [Fact] // Test-only strings, no external database or process.
+    [Trait("Req", "PR-MCP-028")]
+    [Trait("Req", "PR-MCP-029")]
+    [Trait("Req", "PR-MCP-030")]
     public void Database_values_resolve_into_the_source_argument_or_environment_location()
     {
         var postgres = Resolve("postgres", "url", "postgresql://fixture.invalid/db");

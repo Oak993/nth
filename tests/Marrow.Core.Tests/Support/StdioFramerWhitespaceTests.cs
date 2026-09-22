@@ -5,7 +5,8 @@ namespace Marrow.Core.Tests.Support;
 
 public sealed class StdioFramerWhitespaceTests
 {
-    [Fact] // PR-PROVACP-152; CFUniChar.c isWhitespace includes U+200B despite its Unicode Cf category.
+    [Fact] // CFUniChar.c isWhitespace includes U+200B despite its Unicode Cf category.
+    [Trait("Req", "PR-PROVACP-152")]
     public void Foundation_whitespace_includes_zero_width_space_around_the_name_and_value()
     {
         var framer = new StdioFramer(StdioFramer.Framing.ContentLength);
@@ -13,7 +14,8 @@ public sealed class StdioFramerWhitespaceTests
         Assert.Equal(new byte[] { 0x5A }, Assert.Single(framer.Append(wire)));
     }
 
-    [Theory] // PR-PROVACP-152; these format characters are not Foundation whitespace.
+    [Theory] // These format characters are not Foundation whitespace.
+    [Trait("Req", "PR-PROVACP-152")]
     [InlineData("\u180E")]
     [InlineData("\uFEFF")]
     [InlineData("\u200C")]

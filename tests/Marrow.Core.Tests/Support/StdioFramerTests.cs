@@ -8,7 +8,8 @@ public sealed class StdioFramerTests
 {
     private static byte[] Bytes(string value) => Encoding.UTF8.GetBytes(value);
 
-    [Fact] // PR-PROVACP-149
+    [Fact]
+    [Trait("Req", "PR-PROVACP-149")]
     public void Lines_split_only_on_LF_preserving_CR_empty_messages_and_arbitrary_bytes()
     {
         var framer = new StdioFramer(StdioFramer.Framing.Lines);
@@ -19,7 +20,9 @@ public sealed class StdioFramerTests
         Assert.Equal(new byte[] { 0x0D, 0x0B, 0x0C }, framer.Finish());
     }
 
-    [Fact] // PR-PROVACP-149, PR-PROVACP-150
+    [Fact]
+    [Trait("Req", "PR-PROVACP-149")]
+    [Trait("Req", "PR-PROVACP-150")]
     public void Lines_survive_every_two_chunk_split_without_duplication()
     {
         var wire = Bytes("a\r\nb\n\nlast");
@@ -37,7 +40,8 @@ public sealed class StdioFramerTests
         }
     }
 
-    [Theory] // PR-PROVACP-150: test budget is infrastructure, not a product timeout.
+    [Theory] // Test budget is infrastructure, not a product timeout.
+    [Trait("Req", "PR-PROVACP-150")]
     [InlineData(StdioFramer.Framing.Lines)]
     [InlineData(StdioFramer.Framing.ContentLength)]
     public void One_MiB_byte_at_a_time_is_intact_and_does_not_take_quadratic_time(StdioFramer.Framing framing)
@@ -72,7 +76,9 @@ public sealed class StdioFramerTests
         Assert.True(timer.Elapsed < TimeSpan.FromSeconds(10), $"Byte-at-a-time feed took {timer.Elapsed}.");
     }
 
-    [Fact] // PR-PROVACP-150, PR-PROVACP-151
+    [Fact]
+    [Trait("Req", "PR-PROVACP-150")]
+    [Trait("Req", "PR-PROVACP-151")]
     public void Content_length_survives_every_pair_of_chunk_boundaries_including_separator_overlap()
     {
         var wire = Bytes("Content-Length: 2\r\n\r\nABContent-Length: 0\r\n\r\nContent-Length: 3\r\n\r\nCDE");
@@ -91,7 +97,8 @@ public sealed class StdioFramerTests
         }
     }
 
-    [Fact] // PR-PROVACP-151
+    [Fact]
+    [Trait("Req", "PR-PROVACP-151")]
     public void Body_length_counts_bytes_not_characters_and_preserves_nontext_bytes()
     {
         var framer = new StdioFramer(StdioFramer.Framing.ContentLength);
@@ -101,7 +108,8 @@ public sealed class StdioFramerTests
             Assert.Single(framer.Append([0x80, 0xFF, 0x00, 0x0A])));
     }
 
-    [Theory] // PR-PROVACP-151
+    [Theory]
+    [Trait("Req", "PR-PROVACP-151")]
     [InlineData("Content-Length: 1\n\nA")]
     [InlineData("Content-Length: 1\r\rA")]
     [InlineData("Content-Length: 1\r\n\nA")]
@@ -112,7 +120,9 @@ public sealed class StdioFramerTests
         Assert.Null(framer.Finish());
     }
 
-    [Theory] // PR-PROVACP-151, PR-PROVACP-152
+    [Theory]
+    [Trait("Req", "PR-PROVACP-151")]
+    [Trait("Req", "PR-PROVACP-152")]
     [InlineData("Ignored: yes")]
     [InlineData("Content-Length: -1")]
     [InlineData("Content-Length: garbage")]
@@ -134,7 +144,8 @@ public sealed class StdioFramerTests
         Assert.Null(framer.Finish());
     }
 
-    [Theory] // PR-PROVACP-152
+    [Theory]
+    [Trait("Req", "PR-PROVACP-152")]
     [InlineData("content-length:1")]
     [InlineData("CONTENT-LENGTH: 1")]
     [InlineData(" \tContent-Length \t: \t+1 \t")]
@@ -156,7 +167,8 @@ public sealed class StdioFramerTests
         Assert.Equal(Bytes("Z"), Assert.Single(framer.Append(Bytes(header + "\r\n\r\nZ"))));
     }
 
-    [Theory] // PR-PROVACP-152
+    [Theory]
+    [Trait("Req", "PR-PROVACP-152")]
     [InlineData("0")]
     [InlineData("+0")]
     [InlineData("-0")]
@@ -167,7 +179,8 @@ public sealed class StdioFramerTests
         Assert.Null(framer.Finish());
     }
 
-    [Theory] // PR-PROVACP-152
+    [Theory]
+    [Trait("Req", "PR-PROVACP-152")]
     [InlineData("2147483648")]
     [InlineData("9223372036854775807")]
     public void A_valid_64_bit_length_waits_for_its_body_instead_of_being_rejected_or_allocated_up_front(string length)
@@ -177,7 +190,8 @@ public sealed class StdioFramerTests
         Assert.Null(framer.Finish());
     }
 
-    [Fact] // PR-PROVACP-151
+    [Fact]
+    [Trait("Req", "PR-PROVACP-151")]
     public void Invalid_header_does_not_consume_a_body_and_garbage_becomes_part_of_the_next_header()
     {
         var framer = new StdioFramer(StdioFramer.Framing.ContentLength);
@@ -185,7 +199,8 @@ public sealed class StdioFramerTests
         Assert.Equal(Bytes("Z"), Assert.Single(framer.Append(Bytes(wire))));
     }
 
-    [Fact] // PR-PROVACP-153
+    [Fact]
+    [Trait("Req", "PR-PROVACP-153")]
     public void Finish_flushes_only_nonempty_line_remainder_and_resets_scanning()
     {
         var framer = new StdioFramer(StdioFramer.Framing.Lines);
@@ -197,7 +212,8 @@ public sealed class StdioFramerTests
         Assert.Null(framer.Finish());
     }
 
-    [Theory] // PR-PROVACP-153
+    [Theory]
+    [Trait("Req", "PR-PROVACP-153")]
     [InlineData("Content-Len")]
     [InlineData("Content-Length: 8\r\n\r\nshort")]
     public void Finish_discards_partial_header_or_body_and_resets_all_content_length_state(string partial)
@@ -209,7 +225,10 @@ public sealed class StdioFramerTests
         Assert.Equal(Bytes("Z"), Assert.Single(framer.Append(Bytes("Content-Length: 1\r\n\r\nZ"))));
     }
 
-    [Fact] // PR-PROVACP-149, PR-PROVACP-150, PR-PROVACP-153
+    [Fact]
+    [Trait("Req", "PR-PROVACP-149")]
+    [Trait("Req", "PR-PROVACP-150")]
+    [Trait("Req", "PR-PROVACP-153")]
     public void Input_and_returned_messages_do_not_alias_the_mutable_remainder()
     {
         var framer = new StdioFramer(StdioFramer.Framing.Lines);
@@ -224,7 +243,9 @@ public sealed class StdioFramerTests
         Assert.Equal(Bytes("tail"), tail);
     }
 
-    [Fact] // PR-PROVACP-150, PR-PROVACP-151
+    [Fact]
+    [Trait("Req", "PR-PROVACP-150")]
+    [Trait("Req", "PR-PROVACP-151")]
     public void One_MiB_header_byte_at_a_time_does_not_rescan_its_entire_prefix()
     {
         var framer = new StdioFramer(StdioFramer.Framing.ContentLength);
@@ -237,7 +258,8 @@ public sealed class StdioFramerTests
         Assert.True(timer.Elapsed < TimeSpan.FromSeconds(10), $"Byte-at-a-time header took {timer.Elapsed}.");
     }
 
-    [Fact] // PR-PROVACP-152: Swift's separator is a Character, not a UTF-16 code unit.
+    [Fact] // Swift's separator is a Character, not a UTF-16 code unit.
+    [Trait("Req", "PR-PROVACP-152")]
     public void A_colon_with_a_combining_mark_is_not_a_colon_separator()
     {
         var framer = new StdioFramer(StdioFramer.Framing.ContentLength);

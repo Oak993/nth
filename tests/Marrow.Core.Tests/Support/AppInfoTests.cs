@@ -6,7 +6,8 @@ namespace Marrow.Core.Tests.Support;
 
 public sealed class AppInfoTests
 {
-    [Theory] // PR-STORE-008
+    [Theory]
+    [Trait("Rule", "R-STR-9")] // No Req: pins .droppy-code, which PR-STORE-008 changes to .marrow (OD-0012 F1); rework.
     [InlineData(false, ".droppy-code")]
     [InlineData(true, ".droppy-code-dev")]
     public void Packaged_development_flag_selects_the_exact_hidden_state_directory(bool development, string expected)
@@ -16,7 +17,8 @@ public sealed class AppInfoTests
         Assert.Equal(expected, info.StateDirectoryName);
     }
 
-    [Fact] // PR-STORE-009
+    [Fact]
+    [Trait("Rule", "R-STR-9")] // No Req: pins the Droppy Code fallback, which PR-STORE-009 changes to Marrow (OD-0012 F1); rework.
     public void Missing_and_wrongly_typed_metadata_use_the_three_literal_fallbacks()
     {
         foreach (var metadata in new[]
@@ -37,7 +39,8 @@ public sealed class AppInfoTests
         }
     }
 
-    [Fact] // PR-STORE-009
+    [Fact]
+    [Trait("Req", "PR-STORE-009")]
     public void Present_strings_including_empty_ones_are_snapshotted_without_normalization()
     {
         var metadata = new Dictionary<string, object?>
@@ -54,7 +57,8 @@ public sealed class AppInfoTests
         Assert.Same(AppInfo.Current, AppInfo.Current);
     }
 
-    [Fact] // PR-STORE-009: Windows package metadata comes from the entry assembly.
+    [Fact] // Windows package metadata comes from the entry assembly.
+    [Trait("Req", "PR-STORE-009")]
     public void Assembly_metadata_uses_the_original_three_keys_and_an_explicit_build_channel()
     {
         var assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("MetadataFixture"), AssemblyBuilderAccess.Run);

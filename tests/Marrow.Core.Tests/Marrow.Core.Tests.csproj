@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Marrow.Testing\Marrow.Testing.csproj" />
     <ProjectReference Include="..\..\src\Marrow.Core\Marrow.Core.csproj" />
   </ItemGroup>
 

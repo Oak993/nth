@@ -35,7 +35,9 @@ for u in plan['units']:
     units.append(u)
 if empty:
     sys.exit(f'units with work but no records (specify them first): {empty}')
-done_ids = {u['id'] for u in plan['units'] if u['status'] in ('DONE',)}
+# A unit whose records are all NOT_APPLICABLE (dead code, or not ported by a recorded decision) has
+# nothing to build; its dependents follow the not_applicable evidence instead of waiting for it.
+done_ids = {u['id'] for u in plan['units'] if u['status'] in ('DONE', 'NO_RECORDS')}
 wave_ids = {u['id'] for u in units}
 for u in units:
     missing = [d for d in u['deps'] + u.get('intra_deps', []) if d not in wave_ids and d not in done_ids]

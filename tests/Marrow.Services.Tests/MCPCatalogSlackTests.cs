@@ -5,7 +5,8 @@ namespace Marrow.Services.Tests;
 
 public sealed class MCPCatalogSlackTests
 {
-    [Fact] // PR-MCP-016: the literal flag survives an omitted token.
+    [Fact] // The literal flag survives an omitted token.
+    [Trait("Req", "PR-MCP-016")]
     public void Slack_message_tool_flag_is_literal_and_token_placeholder_is_optional_at_resolution()
     {
         var entry = MCPCatalog.Entries.Single(e => e.Id == "slack");
