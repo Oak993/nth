@@ -55,7 +55,7 @@ the work this handoff assigns.
 | Cast entry | Endpoint | Model id | Role |
 | --- | --- | --- | --- |
 | Codex (Director) | Codex | GPT-6-Astra, effort High | orchestrator; reviews and commits |
-| OpenRouter | OpenRouter | `nvidia/nemotron-3-super-120b-a12b:free` | STANDARD packets |
+| OpenRouter | OpenRouter | `nvidia/nemotron-3-ultra-550b-a55b:free` | STANDARD packets |
 | OpenRouter | OpenRouter | `deepseek/deepseek-v4.1-flash` | HIGH packets |
 | Z.ai (GLM) | Z.ai (native) | `glm-5.3-flash` | review of every HIGH packet |
 
@@ -67,7 +67,7 @@ its `risk` field in `porting/tasks/queue.json`:
 
 | Packets | Head provider | Why |
 | --- | --- | --- |
-| `risk: STANDARD` (558) | **Nemotron 3 Super, free** (OpenRouter) | Mistakes here are cheap to catch in review |
+| `risk: STANDARD` (558) | **Nemotron 3 Ultra, free** (OpenRouter) | Mistakes here are cheap to catch in review |
 | `risk: HIGH` (104) | **DeepSeek v4.1 Flash, paid** (via OpenRouter: `deepseek/deepseek-v4.1-flash`) | A plausible but wrong translation here costs data |
 | M0 probes | the owner, or DeepSeek for P5 and P6 | P2, P3, P4, P7 need an unlocked desktop |
 | **Review of every HIGH packet** | **GLM 5.3 Flash, paid** (native Z.ai preset, $4.95 balance) | A second model catches a translation that compiles, passes its own tests and still differs from the Swift |
@@ -124,7 +124,7 @@ Each step below was checked against the running 0.2.1 build on 2026-09-22.
 
 1. **Add the worker models.** *Settings > API endpoints*:
    - **OpenRouter** preset with your OpenRouter key. It serves both
-     `nvidia/nemotron-3-super-120b-a12b:free` and `deepseek/deepseek-v4.1-flash`. The preset's model
+     `nvidia/nemotron-3-ultra-550b-a55b:free` and `deepseek/deepseek-v4.1-flash`. The preset's model
      list is empty in 0.2.1, so type the ids.
    - **Z.ai (GLM)** preset with your Z.ai key, model `glm-5.3-flash`.
    - Put the **$10 on OpenRouter** (not on DeepSeek's own platform, which this setup never calls), and
@@ -157,7 +157,7 @@ Each step below was checked against the running 0.2.1 build on 2026-09-22.
 Nobody has measured any model on *this* job yet, so do not commit to one on price alone. Take three
 low-risk packets from M2 (pure Core logic, no UI, no processes), for example `T-M2-001`, `T-M2-002` and
 `T-M2-003`, and run each through the full loop in section 6 with **both** worker models: Nemotron 3
-Super (free) and DeepSeek v4.1 Flash. The question is whether the free model is good enough for the
+Ultra (free) and DeepSeek v4.1 Flash. The question is whether the free model is good enough for the
 558 STANDARD packets section 4a routes to it. Compare:
 
 - did the tests-first step produce tests that actually test the source's "Expected" text?
