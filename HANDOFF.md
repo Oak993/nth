@@ -37,7 +37,7 @@ changes it. This checkpoint supersedes older progress and routing statements bel
 | Source read and evidenced | 433 of 433 files (Gate A: 12/12) |
 | Specification | 3,827 requirements, 1,029 UI records (Gate B: 8/8) |
 | Stack | Avalonia 12.1.2 on .NET 10, decided with evidence (ADR-0002); probe P1 passed |
-| Solution and Core implementation | 4 layered projects + 3 test projects, builds clean, 133 tests pass |
+| Solution and Core implementation | 4 layered projects + 3 test projects, builds clean, 135 tests pass |
 | **Packets completed** | **10 of 662 (1.51%); M2: 10 of 78 (12.82%)** |
 | **Requirements implemented** | **68 of 3,827 (1.78%)** |
 | **Requirements verified** | **0 of 3,827** |

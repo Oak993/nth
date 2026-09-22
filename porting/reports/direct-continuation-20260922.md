@@ -19,12 +19,13 @@ Five additional STANDARD packets are DONE on `port/windows-exact-parity`:
 | T-M2-028 | Catalog entries 31-33, IDs, exact/normalized lookup and grouping | d3be35f | 7c0a180 |
 
 Additional T-M2-023 source-derived regressions: standalone tool decoding tests `081e8b9`, fix
-`84685b7`; null-root tests `f3a21f2`, fix `1e07e6f`. All approved tests remain unchanged.
+`84685b7`; null-root tests `f3a21f2`, fix `1e07e6f`; optional-null encoding tests `0a2d9d3`,
+fix `8d1ac03`. All approved tests remain unchanged.
 
 Canonical totals: 10 DONE, 652 TODO; M2 10/78 (12.82%) complete, 68/78 (87.18%) remaining.
 All packets 10/662 (1.51%) complete; 98.49% remain. Requirements 68/3827 IMPLEMENTED (1.78%),
-0 VERIFIED. Latest clean build: 133 tests passed, 0 failed, 0 skipped, warnings treated as errors.
-The continuation adds 47 implemented requirement IDs and 55 tests to the previous checkpoint.
+0 VERIFIED. Latest clean build: 135 tests passed, 0 failed, 0 skipped, warnings treated as errors.
+The continuation adds 47 implemented requirement IDs and 57 tests to the previous checkpoint.
 These percentages count packets and requirements, not equivalent work effort or app usability.
 
 ## Source evidence and specification correction
@@ -129,6 +130,8 @@ Observed failures and fixes, not hidden passes:
   then passed after entries were added.
 - Standalone tool-summary decode: 2 failures (missing and null name) before a strict converter.
 - Null JSON roots: 2 failures before opting converters into null handling and rejecting nonobjects.
+- Optional-null encoding: 2 failures before retaining explicit null output for absent optional values,
+  independently of the rejection of null when decoding a required Swift struct.
 - The final null-root gate run detected the director's uncommitted source-map report refresh.
   This was an administrative protected-path change, not a worker edit; it is committed with this
   report before the final protected/gate rerun. That failed artifact remains evidence, not a pass.
@@ -137,6 +140,9 @@ All final checks: A 12/12; B 8/8; quarantine guard passes. Full C still fails on
 App stub markers and has one unfinished acceptance check. D build/test floor passes but its full
 acceptance check is NOT_IMPLEMENTED. E/F remain incomplete. No claim of full app acceptance.
 Exact timestamped command/output JSON files are copied under `direct-continuation-evidence/`.
+The final accepted run is `main-T-M2-023-gates-1790047448205.json`: protected exit 0,
+A12/B8, quarantine pass and 135 tests passing. The intermediate clean 133-test rerun is
+`main-T-M2-023-gates-1790047399691.json`.
 
 ## Scope and next work
 
