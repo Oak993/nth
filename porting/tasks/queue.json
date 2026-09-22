@@ -754,9 +754,9 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": null,
-      "notes": ""
+      "status": "IMPLEMENTING",
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: Frozen PR-MCP-001..010 Expected rows reviewed against all source fields. Fixture covers defaults and order, exact glyph text and hex colors, profile-root adaptation, Bearer-space contract."
     },
     {
       "id": "T-M2-026",
