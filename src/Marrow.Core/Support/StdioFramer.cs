@@ -113,9 +113,9 @@ public sealed class StdioFramer(StdioFramer.Framing framing)
                 break;
             }
             if (colon < 0 || colon == line.Length - 1) continue;
-            var name = TrimWhitespace(line.AsSpan(partStart, colon - partStart));
+            var name = FoundationText.Trim(line.AsSpan(partStart, colon - partStart));
             if (name.ToString().ToLowerInvariant() != "content-length") continue;
-            var value = TrimWhitespace(line.AsSpan(colon + 1));
+            var value = FoundationText.Trim(line.AsSpan(colon + 1));
             if (value.IsEmpty) return null;
             var digitStart = value[0] is '+' or '-' ? 1 : 0;
             if (digitStart == value.Length) return null;
@@ -127,17 +127,4 @@ public sealed class StdioFramer(StdioFramer.Framing framing)
         return null;
     }
 
-    private static ReadOnlySpan<char> TrimWhitespace(ReadOnlySpan<char> text)
-    {
-        // CFUniChar.c isWhitespace also includes U+200B (unlike Unicode Zs).
-        var start = 0;
-        var end = text.Length;
-        while (start < end && IsWhitespace(text[start])) start++;
-        while (end > start && IsWhitespace(text[end - 1])) end--;
-        return text[start..end];
-    }
-
-    private static bool IsWhitespace(char value) => value is
-        '\u0009' or '\u0020' or '\u00A0' or '\u1680' or
-        >= '\u2000' and <= '\u200B' or '\u202F' or '\u205F' or '\u3000';
 }

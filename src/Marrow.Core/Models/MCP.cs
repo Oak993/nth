@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Marrow.Core.Support;
 
 namespace Marrow.Core.Models;
 
@@ -76,7 +77,7 @@ public sealed record MCPCatalogEntry(string Id, string Name, string Vendor, stri
             var token = "{" + field.Key + "}";
             if (output.Contains("://" + token, StringComparison.Ordinal))
             {
-                value = value.Trim();
+                value = FoundationText.Trim(value, includeNewlines: true);
                 foreach (var scheme in new[] { "https://", "http://" })
                     if (value.StartsWith(scheme, StringComparison.OrdinalIgnoreCase)) value = value[scheme.Length..];
                 value = value.TrimEnd('/');

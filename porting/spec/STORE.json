@@ -186,7 +186,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The same two literal folder names under %USERPROFILE%, selected by the packaged build channel rather than by a bundle identifier. The identifier string \"iordv.droppycode.dev\" has no Windows equivalent and is replaced by the port build flag that marks a development build; the two resulting folder names must not change.",
       "verification_method": "unit on both branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -194,7 +194,8 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:5 - AppInfo.isDevelopment = Bundle.main.bundleIdentifier == \"iordv.droppycode.dev\"",
         "DroppyCode/Core/Support/Text.swift:6 - AppInfo.stateDirectoryName = isDevelopment ? \".droppy-code-dev\" : \".droppy-code\""
-      ]
+      ],
+      "implemented_by_task": "T-M2-075"
     },
     {
       "id": "PR-STORE-009",
@@ -209,7 +210,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Read from the packaged application metadata with the same three literal fallbacks. Because AppInfo.name is the store folder name, the fallback must stay a constant, not a computed product name.",
       "verification_method": "unit on both the present and absent branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -218,7 +219,8 @@
         "DroppyCode/Core/Support/Text.swift:4 - name = CFBundleDisplayName as? String ?? \"Droppy Code\"",
         "DroppyCode/Core/Support/Text.swift:7 - version = CFBundleShortVersionString as? String ?? \"1.0.0\"",
         "DroppyCode/Core/Support/Text.swift:8 - build = CFBundleVersion as? String ?? \"1\""
-      ]
+      ],
+      "implemented_by_task": "T-M2-075"
     },
     {
       "id": "PR-STORE-010",
@@ -2433,7 +2435,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One idempotent helper called at all seven sites, exactly as port_impacts.md entry 118 requires: \"One idempotent helper called at all 7 sites; keep the byte prescan and keep the en dash. Do not try to deduplicate the passes.\"",
       "verification_method": "unit over all four scalars, the en dash and a double application",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2441,7 +2443,8 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:36-44 - doc comment \"Model prose never ships an em dash. It is the tell of a machine-written paragraph, so every string a model writes for the thread passes through here: replies as they stream and as they land, thinking, plans, generated titles and commit messages. The dash becomes a plain hyphen with the spacing around it kept, so \\\"works — every time\\\" reads \\\"works - every time\\\" and \\\"ships—sometimes\\\" reads \\\"ships-sometimes\\\".\" and \"The en dash stays: it is the correct mark in a range, as in \\\"lines 10–20\\\".\" then static func withoutEmDashes(_ text: String) -> String",
         "DroppyCode/Core/Support/Text.swift:68-74 - private static func isEmDash(_ character: Character) -> Bool { case \"\\u{2014}\", \"\\u{2015}\", \"\\u{2E3A}\", \"\\u{2E3B}\": true; default: false }"
-      ]
+      ],
+      "implemented_by_task": "T-M2-075"
     },
     {
       "id": "PR-STORE-106",
@@ -2456,7 +2459,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the prescan. It is on the hot path for every streamed token, and a naive per-character replace measurably changes streaming cost.",
       "verification_method": "unit including the truncated-tail case, plus a throughput benchmark",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2464,7 +2467,8 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:42 - guard mayContainEmDash(text), text.contains(where: { isEmDash($0) }) else { return text }",
         "DroppyCode/Core/Support/Text.swift:46-65 - doc comment \"Whether any dash scalar is in the bytes, checked without walking graphemes: every streamed delta and every stored message passes through here, and model prose is full of other E2-led scalars (curly quotes, ellipses, en dashes) that made the lead-byte test alone let most of it through to the slow path.\" then the iterator scanning for 0xE2 followed by 0x80 with third byte 0x94 or 0x95, or 0xB8 with third byte 0xBA or 0xBB"
-      ]
+      ],
+      "implemented_by_task": "T-M2-075"
     },
     {
       "id": "PR-STORE-107",
@@ -2477,14 +2481,15 @@
       "cancellation": "not cancellable",
       "windows_path": "Same pattern. Windows consoles emit the same CSI forms under virtual terminal processing.",
       "verification_method": "unit over a colored git output fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "ANSI control sequences are stripped with a fixed pattern",
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:12-14 - static func stripANSI(_ text: String) -> String { text.replacing(#/\\x1B\\[[0-9;?]*[ -/]*[@-~]/#, with: \"\") }"
-      ]
+      ],
+      "implemented_by_task": "T-M2-075"
     },
     {
       "id": "PR-STORE-108",
@@ -2499,14 +2504,15 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Splitting on any newline character already handles CRLF, because the carriage return is then trimmed as whitespace.",
       "verification_method": "unit including a CRLF fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "The last four meaningful lines of process output become the error detail",
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:16-24 - doc comment \"The last meaningful lines of process output, for error messages.\" then static func lastLines(_ text: String, count: Int = 4) -> String? { let lines = stripANSI(text).split(whereSeparator: \\.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }; guard !lines.isEmpty else { return nil }; return lines.suffix(count).joined(separator: \"\\n\") }"
-      ]
+      ],
+      "implemented_by_task": "T-M2-075"
     },
     {
       "id": "PR-STORE-109",
@@ -2519,14 +2525,15 @@
       "cancellation": "not cancellable",
       "windows_path": "Same limit of 120, the same off-by-one prefix of limit - 1, and the single ellipsis character rather than three dots.",
       "verification_method": "unit at lengths 119, 120 and 121",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "A single-line summary takes the first line and truncates at 120 with an ellipsis",
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:26-31 - static func singleLine(_ text: String, limit: Int = 120) -> String { let remaining = text.drop(while: \\.isNewline); let end = remaining.firstIndex(where: \\.isNewline) ?? remaining.endIndex; let line = remaining[..<end].trimmingCharacters(in: .whitespaces); return line.count > limit ? String(line.prefix(limit - 1)) + \"…\" : line }"
-      ]
+      ],
+      "implemented_by_task": "T-M2-075"
     },
     {
       "id": "PR-STORE-110",
@@ -2539,7 +2546,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the literal 200000 and keep it on the input sum. Do not unify the two caps just because the comments claim they are the same.",
       "verification_method": "unit just under and just over the cap",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "42",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2548,7 +2555,8 @@
         "DroppyCode/Core/Support/Text.swift:77-81 - doc comment \"Past this much text a reported edit keeps its line counts and drops the hunk: the diff of a whole generated file would otherwise sit in the thread document forever and be encoded with every save. The same cap bounds command diffs (`ThreadRuntime.fileEdits`).\" then static let diffLimit = 200_000",
         "DroppyCode/Core/Support/Text.swift:101-103 - guard old.utf8.count + new.utf8.count <= diffLimit else { return FileEdit.Stats(diff: nil, additions: added.count, deletions: removed.count) }",
         "porting/upstream_defects.md entry 42 - the two 200_000 constants bound different operands (input sum here, produced hunk in ThreadRuntime); the comments claiming they are \"the same cap\" are misleading but the value really is the same"
-      ]
+      ],
+      "implemented_by_task": "T-M2-075"
     },
     {
       "id": "PR-STORE-111",
@@ -2563,7 +2571,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the ordering. It is an ordinary quirk under AM-0001: slow, not harmful.",
       "verification_method": "unit asserting the counts are still correct for an over-cap pair",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "47",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2571,7 +2579,8 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:87-101 - the prefix scan, the suffix scan and the four slice constructions all run before the guard at :101",
         "porting/upstream_defects.md entry 47 - \"the input-size guard in SimpleDiff.unified is evaluated AFTER the prefix/suffix scans and slice construction at :87-100, so a multi-megabyte pair is fully line-split and walked before being rejected. A cost defect, not a correctness one.\""
-      ]
+      ],
+      "implemented_by_task": "T-M2-075"
     },
     {
       "id": "PR-STORE-112",
@@ -2586,14 +2595,15 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte-identical hunk text, including the single header, the three-line context on both sides and the removals-before-additions order. The line split is on \"\\n\" only, so a CRLF file keeps its carriage returns inside the line content.",
       "verification_method": "contract fixture comparing produced hunks against macOS output for the same inputs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "title": "A unified hunk trims the common head and tail and keeps three lines of context on each side",
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:83-111 - doc comment \"A compact unified hunk between two texts, trimming the unchanged head and tail.\" then the prefix and suffix loops, leading = oldLines[max(0, prefix - 3)..<prefix], trailingEnd = min(oldLines.count, oldLines.count - suffix + 3), trailing = oldLines[(oldLines.count - suffix)..<trailingEnd], lines = [\"@@ -\\(oldStart),\\(leading.count + removed.count + trailing.count) +\\(oldStart),\\(leading.count + added.count + trailing.count) @@\"] with oldStart = prefix - leading.count + 1, then leading mapped with \" \", removed with \"-\", added with \"+\", trailing with \" \", joined with \"\\n\""
-      ]
+      ],
+      "implemented_by_task": "T-M2-075"
     },
     {
       "id": "PR-STORE-113",
