@@ -1307,10 +1307,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port, including the asymmetry between the searched GitLab index and the fixed index 2 for the other two.",
       "verification_method": "unit table over a GitLab subgroup URL, a /diffs suffix, github.com, a GitHub Enterprise host, Codeberg and a non-matching URL",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-030"
     },
     {
       "id": "PR-GIT-053",
@@ -1331,10 +1332,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit for both forms",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-030"
     },
     {
       "id": "PR-GIT-054",
@@ -1355,10 +1357,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit for both forges",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-030"
     },
     {
       "id": "PR-GIT-055",
@@ -1379,10 +1382,11 @@
       "cancellation": "The helper thread can be stopped like any other.",
       "windows_path": "Reproduce every character including the backticks and the parenthetical \"(a 405)\". The prompt is deliberately self-contained because a native provider reads no AGENTS.md before it starts.",
       "verification_method": "unit asserting the three assembled strings byte for byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implemented_by_task": "T-M2-030"
     },
     {
       "id": "PR-GIT-056",
