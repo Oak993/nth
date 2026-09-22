@@ -1,20 +1,26 @@
 # Droppy Code Windows port
 
-> **Work is now assigned through `HANDOFF.md`** (orchestrator) and `WORKER_BRIEF.md` (workers).
-> Task packets are in `porting/tasks/`. Read those before anything else.
+> Orchestrated since 2026-09-22 by Claude (see `porting/STATE.md`, top checkpoint). Implementation agents
+> follow `porting/IMPLEMENTING.md` (conventions) and the contract; the old Codex/Marrow worker setup in
+> `HANDOFF.md` and `WORKER_BRIEF.md` is historical.
 
 Exact-parity Windows 11 x64 port of the macOS app Droppy Code. Read
-`porting/PORT_CONTRACT.md` before doing anything; it is the authority and it overrides
-this file. This file is the short index, not a substitute.
+`porting/PORT_CONTRACT.md` and `porting/contract_amendments.md` before doing anything; they are the
+authority and override this file. This file is the short index, not a substitute.
 
-## Pinned baseline (frozen, do not move)
+## Pinned baseline (B2, frozen; owner decision OD-0006, amendment AM-0002)
 
 - Repository `https://gitlab.com/droppyformac1/droppy-code`, branch `main`.
-- Commit `dd2b86efef9e77168f304a86e8a8411877578bbe`, tree `f761e5ef3745c4f68958ffa4014ab0b618c9d419`.
-- App version 1.6.0, build 19, bundle id `iordv.droppycode`.
-- Pristine reference: `E:\Droppy\reference\droppy-code`. **Never write to it.**
-- Port workspace: `E:\Droppy\port`, branch `port/windows-exact-parity`.
-- Full record: `porting/baseline.md`.
+- Commit `1fbf81e61e28a079508a074c01ee1830a9cc23dc`, tree `a583cec47ea4e97dbdb81349fa0cb45499b88fe6`.
+- App version 1.6.2, build 20, bundle id `iordv.droppycode`.
+- Pristine reference: `E:\Droppy\reference\droppy-code-v1.6.2`. **Never write to it.**
+- The earlier pin B1 (1.6.0, `dd2b86ef`, `E:\Droppy\reference\droppy-code`) is history only; never
+  implement from it.
+- Port workspace: `E:\Droppy\port`, branch `port/windows-exact-parity`. Record: `porting/baseline.json`.
+- Product identity on Windows: "Marrow"; install and data identity "Marrow Code"
+  (`%LOCALAPPDATA%\Marrow Code`), so it never touches the owner's separate Electron app "Marrow".
+- Owner rulings in force: `porting/owner_decisions.md` (OD-0001 to OD-0011) and every `deviation` field
+  in the spec. They are the only permitted differences from the source.
 
 ## The rules that do not bend
 
@@ -75,8 +81,9 @@ from a reader report that carries findings. A hash-and-set script does not count
 
 ## Current gate
 
-See `porting/STATE.md`. Do not start production application code or scaffolding until the
-complete-code reading gate (A) and the specification gate (B) are satisfied.
+See `porting/STATE.md`. At B2, Gate A passes (436/436 files read with evidence) and Gate B is
+re-earned for the 1.6.0 to 1.6.2 delta by the spec refresh. Implementation runs unit by unit (one
+Swift file per unit) under `porting/IMPLEMENTING.md`: tests first, adversarial review, then code.
 
 ## Label every claim
 
