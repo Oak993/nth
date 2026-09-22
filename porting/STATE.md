@@ -10,7 +10,7 @@ orchestrator ("complete it till 100%"). Codex/Marrow worker orchestration is no 
 runs as Claude subagent workflows driven from this session.
 
 **Baseline.** OD-0006 / AM-0002: the pin moved to live GitLab main `1fbf81e61e28a079508a074c01ee1830a9cc23dc`
-(1.6.2 build 20, tree `a583cec4...`), checkout `E:\Droppyeference\droppy-code-v1.6.2`. Recorded in
+(1.6.2 build 20, tree `a583cec4...`), checkout `E:\Droppy\reference\droppy-code-v1.6.2`. Recorded in
 `porting/baseline.json` (B2; B1 = old pin, archived in `porting/baselines/B1/`). All tools read the
 baseline from there (`porting/tools/baseline.mjs`). 317 files carried their reading evidence over
 (byte-identical); 115 changed + 4 added are UNREAD until re-read; `ChatZoom.swift` was removed.
