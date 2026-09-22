@@ -1695,9 +1695,9 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
-      "assignee": null,
-      "notes": ""
+      "status": "IMPLEMENTING",
+      "assignee": "codex-direct",
+      "notes": "2026-09-22 TESTS_REVIEW: Director reviewed PR-STORE-053..058 against all57 source lines; tests cover generation rollover, promotion with original cost, eviction-before-rejection, clamping, replacement and refunds. Swift file unchanged at417ab7d3. Expected red build CS0234 missing Support."
     },
     {
       "id": "T-M2-067",
