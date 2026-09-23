@@ -1,13 +1,27 @@
+using System.Diagnostics;
+using System.IO;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 
 namespace Marrow.Core.Models;
 
 // Source: DroppyCode/Core/Models/Timeline.swift (B2 1fbf81e), :1-366.
-// SKELETON (cycle c4). Every member with behaviour throws MARROW_STUB until its unit ports it.
 // :202-207 FileEdit is already ported in Models/FileEdit.cs (pre-convention file, kept as is).
-// Codable conformance (synthesized coding, :312-328 and :356-365 init(from:)) is left to the implementing unit.
+//
+// BLOCKED (reported, not invented): TurnRecord.TokenSpends (:303) and ThreadDocument.Continuation (:350) are left
+// undecoded and unwritten below. Both need the Codable conformance of a sibling skeleton in this unit's dependency
+// cycle (Core.Models.TokenSpend, TokenSpend.swift:56-65 init(from:); Core.Models.ThreadContinuation) which their own
+// file headers say is "left to the implementing unit" - not this one. Writing that Codable here would be inventing
+// another file's behaviour from evidence this packet does not carry (TokenSpend's per-field leniency) or reaching
+// into a sibling unit's file (ThreadContinuation). Both fields decode to null and are omitted on encode, which
+// round-trips a document that never had them (Swift's synthesized encoder omits a nil optional the same way) but
+// loses a real TokenSpend list or a real ThreadContinuation across a save. See the STOP report for this unit.
 
 // :4-33
+[JsonConverter(typeof(TimelineItemConverter))]
 public sealed record TimelineItem
 {
     public string Id { get; init; }                           // :5
@@ -18,7 +32,10 @@ public sealed record TimelineItem
     // :10-15. Swift order is (id, turnID, date, content); the defaulted id and date go last here.
     public TimelineItem(Guid? turnID, Content content, string? id = null, DateTimeOffset? date = null)
     {
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Timeline.swift:10");
+        Id = id ?? SwiftUUID.UuidString(Guid.NewGuid());
+        TurnID = turnID;
+        Date = date ?? SwiftDate.Now;
+        TimelineItemContent = content;
     }
 
     // :17-26
@@ -36,12 +53,111 @@ public sealed record TimelineItem
         public sealed record TurnEnd(TurnSummary Value) : Content;                       // :25
     }
 
-    public bool IsEmptyReasoning => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Timeline.swift:29");
+    // :28-32
+    public bool IsEmptyReasoning => TimelineItemContent is Content.Reasoning reasoning && reasoning.Value.Text.Trimmed().Length == 0;
 
-    public TimelineItem CleanedOfEmDashes => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Timeline.swift:39");
+    // :39-55
+    public TimelineItem CleanedOfEmDashes => TimelineItemContent switch
+    {
+        Content.Assistant a => this with { TimelineItemContent = new Content.Assistant(a.Value with { Text = TextCleanup.WithoutEmDashes(a.Value.Text) }) },
+        Content.Reasoning r => this with { TimelineItemContent = new Content.Reasoning(r.Value with { Text = TextCleanup.WithoutEmDashes(r.Value.Text) }) },
+        Content.Plan p => this with { TimelineItemContent = new Content.Plan(p.Value with { Markdown = TextCleanup.WithoutEmDashes(p.Value.Markdown) }) },
+        _ => this,
+    };
+}
+
+// :4-15 synthesized: id, turnID, date required; content required via the union coder below.
+internal sealed class TimelineItemConverter : JsonConverter<TimelineItem>
+{
+    public override TimelineItem Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        return Decode(document.RootElement);
+    }
+
+    internal static TimelineItem Decode(JsonElement element) => new(
+        SwiftDecoding.DecodeIfPresentValue(element, "turnID", SwiftDecoding.ReadUUID),
+        SwiftDecoding.Decode(element, "content", TimelineContentCoding.Decode),
+        SwiftDecoding.Decode(element, "id", SwiftDecoding.ReadString),
+        SwiftDecoding.Decode(element, "date", SwiftDecoding.ReadStorageDate));
+
+    public override void Write(Utf8JsonWriter writer, TimelineItem value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+    internal static void WriteMembers(Utf8JsonWriter writer, TimelineItem value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("id", value.Id);
+        if (value.TurnID is { } turnID) writer.WriteString("turnID", SwiftUUID.UuidString(turnID));
+        writer.WriteString("date", FoundationISO8601.Format(value.Date));
+        writer.WritePropertyName("content");
+        TimelineContentCoding.Write(writer, value.TimelineItemContent);
+        writer.WriteEndObject();
+    }
+}
+
+// :17-26. SE-0295 synthesized enum Codable: one key holding the case name, whose value is an object with the
+// single unlabeled associated value under "_0" (SwiftDecoding.cs:187-197).
+internal static class TimelineContentCoding
+{
+    public static TimelineItem.Content Decode(JsonElement element)
+    {
+        var (caseName, payload) = SwiftEnumCoding.ReadCase(element);
+        return caseName switch
+        {
+            "user" => new TimelineItem.Content.User(SwiftDecoding.Decode(payload, "_0", UserMessageConverter.Decode)),
+            "assistant" => new TimelineItem.Content.Assistant(SwiftDecoding.Decode(payload, "_0", AssistantMessageConverter.Decode)),
+            "reasoning" => new TimelineItem.Content.Reasoning(SwiftDecoding.Decode(payload, "_0", ReasoningBlockConverter.Decode)),
+            "tool" => new TimelineItem.Content.Tool(SwiftDecoding.Decode(payload, "_0", ToolCallConverter.Decode)),
+            "plan" => new TimelineItem.Content.Plan(SwiftDecoding.Decode(payload, "_0", ProposedPlanConverter.Decode)),
+            "todos" => new TimelineItem.Content.Todos(SwiftDecoding.Decode(payload, "_0", field => SwiftDecoding.ReadArray(field, TodoStepConverter.Decode))),
+            "notice" => new TimelineItem.Content.Notice(SwiftDecoding.Decode(payload, "_0", NoticeConverter.Decode)),
+            "turnEnd" => new TimelineItem.Content.TurnEnd(SwiftDecoding.Decode(payload, "_0", TurnSummaryConverter.Decode)),
+            _ => throw new DecodingError("typeMismatch", $"Unknown TimelineItem.Content case \"{caseName}\"."),
+        };
+    }
+
+    public static void Write(Utf8JsonWriter writer, TimelineItem.Content value)
+    {
+        switch (value)
+        {
+            case TimelineItem.Content.User v:
+                SwiftEnumCoding.WriteCase(writer, "user", w => { w.WritePropertyName("_0"); UserMessageConverter.WriteMembers(w, v.Value); });
+                break;
+            case TimelineItem.Content.Assistant v:
+                SwiftEnumCoding.WriteCase(writer, "assistant", w => { w.WritePropertyName("_0"); AssistantMessageConverter.WriteMembers(w, v.Value); });
+                break;
+            case TimelineItem.Content.Reasoning v:
+                SwiftEnumCoding.WriteCase(writer, "reasoning", w => { w.WritePropertyName("_0"); ReasoningBlockConverter.WriteMembers(w, v.Value); });
+                break;
+            case TimelineItem.Content.Tool v:
+                SwiftEnumCoding.WriteCase(writer, "tool", w => { w.WritePropertyName("_0"); ToolCallConverter.WriteMembers(w, v.Value); });
+                break;
+            case TimelineItem.Content.Plan v:
+                SwiftEnumCoding.WriteCase(writer, "plan", w => { w.WritePropertyName("_0"); ProposedPlanConverter.WriteMembers(w, v.Value); });
+                break;
+            case TimelineItem.Content.Todos v:
+                SwiftEnumCoding.WriteCase(writer, "todos", w =>
+                {
+                    w.WritePropertyName("_0");
+                    w.WriteStartArray();
+                    foreach (var step in v.Value) TodoStepConverter.WriteMembers(w, step);
+                    w.WriteEndArray();
+                });
+                break;
+            case TimelineItem.Content.Notice v:
+                SwiftEnumCoding.WriteCase(writer, "notice", w => { w.WritePropertyName("_0"); NoticeConverter.WriteMembers(w, v.Value); });
+                break;
+            case TimelineItem.Content.TurnEnd v:
+                SwiftEnumCoding.WriteCase(writer, "turnEnd", w => { w.WritePropertyName("_0"); TurnSummaryConverter.WriteMembers(w, v.Value); });
+                break;
+            default:
+                throw new UnreachableException();
+        }
+    }
 }
 
 // :58-70
+[JsonConverter(typeof(UserMessageConverter))]
 public sealed record UserMessage
 {
     public required string Text { get; init; }                                  // :59
@@ -49,11 +165,53 @@ public sealed record UserMessage
     public ValueList<long>? HydraHeads { get; init; }                           // :63
     public bool? HydraBrief { get; init; }                                      // :66
 
-    public bool IsFromHydra => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Timeline.swift:68");
-    public bool IsHydraBrief => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Timeline.swift:69");
+    // :68
+    public bool IsFromHydra => HydraHeads is not null;
+
+    // :69
+    public bool IsHydraBrief => HydraBrief == true;
+}
+
+internal sealed class UserMessageConverter : JsonConverter<UserMessage>
+{
+    public override UserMessage Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        return Decode(document.RootElement);
+    }
+
+    internal static UserMessage Decode(JsonElement element) => new()
+    {
+        Text = SwiftDecoding.Decode(element, "text", SwiftDecoding.ReadString),
+        Attachments = SwiftDecoding.Decode(element, "attachments", field => SwiftDecoding.ReadArray(field, AttachmentConverter.Decode)),
+        HydraHeads = SwiftDecoding.DecodeIfPresent(element, "hydraHeads", field => SwiftDecoding.ReadArray(field, SwiftDecoding.ReadInt)),
+        HydraBrief = SwiftDecoding.DecodeIfPresentValue(element, "hydraBrief", SwiftDecoding.ReadBool),
+    };
+
+    public override void Write(Utf8JsonWriter writer, UserMessage value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+    internal static void WriteMembers(Utf8JsonWriter writer, UserMessage value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("text", value.Text);
+        writer.WritePropertyName("attachments");
+        writer.WriteStartArray();
+        foreach (var attachment in value.Attachments) AttachmentConverter.WriteMembers(writer, attachment);
+        writer.WriteEndArray();
+        if (value.HydraHeads is { } heads)
+        {
+            writer.WritePropertyName("hydraHeads");
+            writer.WriteStartArray();
+            foreach (var head in heads) writer.WriteNumberValue(head);
+            writer.WriteEndArray();
+        }
+        if (value.HydraBrief is { } brief) writer.WriteBoolean("hydraBrief", brief);
+        writer.WriteEndObject();
+    }
 }
 
 // :75-87
+[JsonConverter(typeof(FollowUpPromptConverter))]
 public sealed record FollowUpPrompt
 {
     public Guid Id { get; init; } = Guid.NewGuid();                             // :76
@@ -62,10 +220,46 @@ public sealed record FollowUpPrompt
     public DateTimeOffset CreatedAt { get; init; } = SwiftDate.Now;             // :79
     public Guid? BundleID { get; init; } = null;                                // :82
 
-    public bool IsEmpty => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Timeline.swift:84");
+    // :84-86
+    public bool IsEmpty => Attachments.Count == 0 && !SwiftString.Characters(Text).Any(character => !SwiftCharacter.IsWhitespace(character));
+}
+
+internal sealed class FollowUpPromptConverter : JsonConverter<FollowUpPrompt>
+{
+    public override FollowUpPrompt Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        return Decode(document.RootElement);
+    }
+
+    internal static FollowUpPrompt Decode(JsonElement element) => new()
+    {
+        Id = SwiftDecoding.Decode(element, "id", SwiftDecoding.ReadUUID),
+        Text = SwiftDecoding.Decode(element, "text", SwiftDecoding.ReadString),
+        Attachments = SwiftDecoding.Decode(element, "attachments", field => SwiftDecoding.ReadArray(field, AttachmentConverter.Decode)),
+        CreatedAt = SwiftDecoding.Decode(element, "createdAt", SwiftDecoding.ReadStorageDate),
+        BundleID = SwiftDecoding.DecodeIfPresentValue(element, "bundleID", SwiftDecoding.ReadUUID),
+    };
+
+    public override void Write(Utf8JsonWriter writer, FollowUpPrompt value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+    internal static void WriteMembers(Utf8JsonWriter writer, FollowUpPrompt value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("id", SwiftUUID.UuidString(value.Id));
+        writer.WriteString("text", value.Text);
+        writer.WritePropertyName("attachments");
+        writer.WriteStartArray();
+        foreach (var attachment in value.Attachments) AttachmentConverter.WriteMembers(writer, attachment);
+        writer.WriteEndArray();
+        writer.WriteString("createdAt", FoundationISO8601.Format(value.CreatedAt));
+        if (value.BundleID is { } bundleID) writer.WriteString("bundleID", SwiftUUID.UuidString(bundleID));
+        writer.WriteEndObject();
+    }
 }
 
 // :89-138
+[JsonConverter(typeof(AttachmentConverter))]
 public sealed record Attachment
 {
     public Guid Id { get; init; } = Guid.NewGuid(); // :90
@@ -73,30 +267,152 @@ public sealed record Attachment
     public required string Path { get; init; }      // :92
     public required string MimeType { get; init; }  // :93
 
-    public SwiftURL Url => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Timeline.swift:95");
+    // :95 URL(fileURLWithPath: path). ENGINEERING DECISION: F.URL (SwiftURL) only builds URL(string:); there is no
+    // ported fileURLWithPath initializer, and the windows_path note on PR-CHAT-005 says the stored Path is what
+    // Windows reads back for file I/O (Base64Images below reads Path directly, never this property). Built as an
+    // absolute file URI so any other caller of Url still gets a working SwiftURL.
+    public SwiftURL Url =>
+        SwiftURL.Create("file://" + PercentEncodeFileUriPath(Path)) ?? throw SwiftTraps.Fatal("Invalid attachment path.");
 
-    public bool IsImage => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Timeline.swift:96");
+    // :96
+    public bool IsImage => SwiftString.HasPrefix(MimeType, "image/");
 
-    // :102-111 @concurrent static func base64Images(_:)
+    // :113-114
+    private const long MaxPixelSize = 2000;
+
+    // :102-111 @concurrent static func base64Images(_:). Runs off the calling thread (Task.Run), matching "read
+    // and encoded off the main actor" (:98-100).
     public static Task<ValueList<(Attachment Image, string Base64)>> Base64Images(IReadOnlyList<Attachment> attachments) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Timeline.swift:103");
+        Task.Run(() =>
+        {
+            var results = new List<(Attachment, string)>();
+            foreach (var attachment in attachments)
+            {
+                if (!attachment.IsImage) continue; // :105
+                byte[] data;
+                try { data = File.ReadAllBytes(attachment.Path); }
+                catch (Exception error) when (SwiftTry.IsThrownError(error)) { continue; } // :105 try?
+                var downscaled = WicImageDecoder.DownscaleToJpeg(data, MaxPixelSize, 0.8); // :106, :120-137
+                var sent = downscaled is not null ? attachment with { MimeType = "image/jpeg" } : attachment; // :107-108
+                results.Add((sent, Convert.ToBase64String(downscaled ?? data))); // :109
+            }
+            return new ValueList<(Attachment, string)>(results);
+        });
+
+    // Manual, minimal RFC3986 percent-encoding for the Url property above (not a Swift twin; see the DEVIATION note
+    // on Url). Keeps the ASCII unreserved set and the path delimiters '/' and ':' (a Windows drive letter) literal.
+    private static string PercentEncodeFileUriPath(string path)
+    {
+        var builder = new StringBuilder();
+        var normalized = path.Replace('\\', '/');
+        if (normalized.Length == 0 || normalized[0] != '/') builder.Append('/');
+        foreach (var b in Encoding.UTF8.GetBytes(normalized))
+        {
+            var c = (char)b;
+            if (b < 0x80 && (char.IsAsciiLetterOrDigit(c) || "-._~/:".IndexOf(c, StringComparison.Ordinal) >= 0)) builder.Append(c);
+            else builder.Append('%').Append(b.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
+        }
+        return builder.ToString();
+    }
+}
+
+internal sealed class AttachmentConverter : JsonConverter<Attachment>
+{
+    public override Attachment Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        return Decode(document.RootElement);
+    }
+
+    internal static Attachment Decode(JsonElement element) => new()
+    {
+        Id = SwiftDecoding.Decode(element, "id", SwiftDecoding.ReadUUID),
+        Name = SwiftDecoding.Decode(element, "name", SwiftDecoding.ReadString),
+        Path = SwiftDecoding.Decode(element, "path", SwiftDecoding.ReadString),
+        MimeType = SwiftDecoding.Decode(element, "mimeType", SwiftDecoding.ReadString),
+    };
+
+    public override void Write(Utf8JsonWriter writer, Attachment value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+    internal static void WriteMembers(Utf8JsonWriter writer, Attachment value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("id", SwiftUUID.UuidString(value.Id));
+        writer.WriteString("name", value.Name);
+        writer.WriteString("path", value.Path);
+        writer.WriteString("mimeType", value.MimeType);
+        writer.WriteEndObject();
+    }
 }
 
 // :140-143
+[JsonConverter(typeof(AssistantMessageConverter))]
 public sealed record AssistantMessage
 {
     public required string Text { get; init; }       // :141
     public bool IsStreaming { get; init; } = false;  // :142
 }
 
+internal sealed class AssistantMessageConverter : JsonConverter<AssistantMessage>
+{
+    public override AssistantMessage Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        return Decode(document.RootElement);
+    }
+
+    internal static AssistantMessage Decode(JsonElement element) => new()
+    {
+        Text = SwiftDecoding.Decode(element, "text", SwiftDecoding.ReadString),
+        IsStreaming = SwiftDecoding.Decode(element, "isStreaming", SwiftDecoding.ReadBool),
+    };
+
+    public override void Write(Utf8JsonWriter writer, AssistantMessage value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+    internal static void WriteMembers(Utf8JsonWriter writer, AssistantMessage value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("text", value.Text);
+        writer.WriteBoolean("isStreaming", value.IsStreaming);
+        writer.WriteEndObject();
+    }
+}
+
 // :145-148
+[JsonConverter(typeof(ReasoningBlockConverter))]
 public sealed record ReasoningBlock
 {
     public required string Text { get; init; }       // :146
     public bool IsStreaming { get; init; } = false;  // :147
 }
 
+internal sealed class ReasoningBlockConverter : JsonConverter<ReasoningBlock>
+{
+    public override ReasoningBlock Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        return Decode(document.RootElement);
+    }
+
+    internal static ReasoningBlock Decode(JsonElement element) => new()
+    {
+        Text = SwiftDecoding.Decode(element, "text", SwiftDecoding.ReadString),
+        IsStreaming = SwiftDecoding.Decode(element, "isStreaming", SwiftDecoding.ReadBool),
+    };
+
+    public override void Write(Utf8JsonWriter writer, ReasoningBlock value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+    internal static void WriteMembers(Utf8JsonWriter writer, ReasoningBlock value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("text", value.Text);
+        writer.WriteBoolean("isStreaming", value.IsStreaming);
+        writer.WriteEndObject();
+    }
+}
+
 // :150-200
+[JsonConverter(typeof(ToolCallConverter))]
 public sealed record ToolCall
 {
     // :151-160
@@ -134,17 +450,68 @@ public sealed record ToolCall
     public DateTimeOffset? FinishedAt { get; init; }                           // :179
 
     // The mutating methods return the changed copy (R-VAL-1).
-    public ToolCall AppendOutput(string text) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Timeline.swift:181");
+    // :181-184
+    public ToolCall AppendOutput(string text) => this with { Output = TrimOutput(Output + text) };
 
-    public ToolCall SetOutput(string text) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Timeline.swift:186");
+    // :186-189
+    public ToolCall SetOutput(string text) => this with { Output = TrimOutput(text) };
 
-    public ToolCall Finish(Status status) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Timeline.swift:191");
+    // :191-194
+    public ToolCall Finish(Status status) => this with { ToolCallStatus = status, FinishedAt = FinishedAt ?? SwiftDate.Now };
+
+    // :196-199
+    private static string TrimOutput(string output) =>
+        SwiftString.Utf8Count(output) > OutputLimit ? "…" + SwiftString.Suffix(output, (int)(OutputLimit / 2)) : output;
+}
+
+internal sealed class ToolCallConverter : JsonConverter<ToolCall>
+{
+    public override ToolCall Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        return Decode(document.RootElement);
+    }
+
+    internal static ToolCall Decode(JsonElement element) => new()
+    {
+        ToolCallKind = SwiftDecoding.Decode(element, "kind", SwiftDecoding.ReadRawValue<ToolCall.Kind>),
+        Title = SwiftDecoding.Decode(element, "title", SwiftDecoding.ReadString),
+        Detail = SwiftDecoding.DecodeIfPresent(element, "detail", SwiftDecoding.ReadString),
+        Output = SwiftDecoding.Decode(element, "output", SwiftDecoding.ReadString),
+        ToolCallStatus = SwiftDecoding.Decode(element, "status", SwiftDecoding.ReadRawValue<ToolCall.Status>),
+        ExitCode = SwiftDecoding.DecodeIfPresentValue(element, "exitCode", SwiftDecoding.ReadInt),
+        Edits = SwiftDecoding.Decode(element, "edits", field => SwiftDecoding.ReadArray(field, FileEditConverter_Decode)),
+        StartedAt = SwiftDecoding.Decode(element, "startedAt", SwiftDecoding.ReadStorageDate),
+        FinishedAt = SwiftDecoding.DecodeIfPresentValue(element, "finishedAt", SwiftDecoding.ReadStorageDate),
+    };
+
+    // FileEdit already has its own JsonConverter (Models/FileEdit.cs); reuse it through JsonSerializer for one
+    // element rather than duplicating its field reads here.
+    private static FileEdit FileEditConverter_Decode(JsonElement element) => element.Deserialize<FileEdit>(Coding.StorageOptions)!;
+
+    public override void Write(Utf8JsonWriter writer, ToolCall value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+    internal static void WriteMembers(Utf8JsonWriter writer, ToolCall value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("kind", SwiftEnum<ToolCall.Kind>.RawValue(value.ToolCallKind));
+        writer.WriteString("title", value.Title);
+        if (value.Detail is { } detail) writer.WriteString("detail", detail);
+        writer.WriteString("output", value.Output);
+        writer.WriteString("status", SwiftEnum<ToolCall.Status>.RawValue(value.ToolCallStatus));
+        if (value.ExitCode is { } exitCode) writer.WriteNumber("exitCode", exitCode);
+        writer.WritePropertyName("edits");
+        writer.WriteStartArray();
+        foreach (var edit in value.Edits) JsonSerializer.Serialize(writer, edit, Coding.StorageOptions);
+        writer.WriteEndArray();
+        writer.WriteString("startedAt", FoundationISO8601.Format(value.StartedAt));
+        if (value.FinishedAt is { } finishedAt) writer.WriteString("finishedAt", FoundationISO8601.Format(finishedAt));
+        writer.WriteEndObject();
+    }
 }
 
 // :209-219
+[JsonConverter(typeof(ProposedPlanConverter))]
 public sealed record ProposedPlan
 {
     // :210-215
@@ -160,7 +527,33 @@ public sealed record ProposedPlan
     public required State ProposedPlanState { get; init; }    // :218 Swift: state (R-NAME-3)
 }
 
+internal sealed class ProposedPlanConverter : JsonConverter<ProposedPlan>
+{
+    public override ProposedPlan Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        return Decode(document.RootElement);
+    }
+
+    internal static ProposedPlan Decode(JsonElement element) => new()
+    {
+        Markdown = SwiftDecoding.Decode(element, "markdown", SwiftDecoding.ReadString),
+        ProposedPlanState = SwiftDecoding.Decode(element, "state", SwiftDecoding.ReadRawValue<ProposedPlan.State>),
+    };
+
+    public override void Write(Utf8JsonWriter writer, ProposedPlan value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+    internal static void WriteMembers(Utf8JsonWriter writer, ProposedPlan value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("markdown", value.Markdown);
+        writer.WriteString("state", SwiftEnum<ProposedPlan.State>.RawValue(value.ProposedPlanState));
+        writer.WriteEndObject();
+    }
+}
+
 // :221-230
+[JsonConverter(typeof(TodoStepConverter))]
 public sealed record TodoStep
 {
     // :222-226
@@ -175,7 +568,33 @@ public sealed record TodoStep
     public required Status TodoStepStatus { get; init; }    // :229 Swift: status (R-NAME-3)
 }
 
+internal sealed class TodoStepConverter : JsonConverter<TodoStep>
+{
+    public override TodoStep Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        return Decode(document.RootElement);
+    }
+
+    internal static TodoStep Decode(JsonElement element) => new()
+    {
+        Text = SwiftDecoding.Decode(element, "text", SwiftDecoding.ReadString),
+        TodoStepStatus = SwiftDecoding.Decode(element, "status", SwiftDecoding.ReadRawValue<TodoStep.Status>),
+    };
+
+    public override void Write(Utf8JsonWriter writer, TodoStep value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+    internal static void WriteMembers(Utf8JsonWriter writer, TodoStep value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("text", value.Text);
+        writer.WriteString("status", SwiftEnum<TodoStep.Status>.RawValue(value.TodoStepStatus));
+        writer.WriteEndObject();
+    }
+}
+
 // :232-244
+[JsonConverter(typeof(NoticeConverter))]
 public sealed record Notice
 {
     // :233-237
@@ -191,10 +610,62 @@ public sealed record Notice
     public LimitNotice? Limit { get; init; } = null;   // :243
 }
 
+internal sealed class NoticeConverter : JsonConverter<Notice>
+{
+    public override Notice Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        return Decode(document.RootElement);
+    }
+
+    internal static Notice Decode(JsonElement element) => new()
+    {
+        NoticeLevel = SwiftDecoding.Decode(element, "level", SwiftDecoding.ReadRawValue<Notice.Level>),
+        Message = SwiftDecoding.Decode(element, "message", SwiftDecoding.ReadString),
+        Limit = SwiftDecoding.DecodeIfPresent(element, "limit", LimitNoticeConverter.Decode),
+    };
+
+    public override void Write(Utf8JsonWriter writer, Notice value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+    internal static void WriteMembers(Utf8JsonWriter writer, Notice value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("level", SwiftEnum<Notice.Level>.RawValue(value.NoticeLevel));
+        writer.WriteString("message", value.Message);
+        if (value.Limit is { } limit)
+        {
+            writer.WritePropertyName("limit");
+            LimitNoticeConverter.WriteMembers(writer, limit);
+        }
+        writer.WriteEndObject();
+    }
+}
+
 // :248-250
+[JsonConverter(typeof(LimitNoticeConverter))]
 public sealed record LimitNotice
 {
     public required Guid ThreadID { get; init; } // :249
+}
+
+internal sealed class LimitNoticeConverter : JsonConverter<LimitNotice>
+{
+    public override LimitNotice Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        return Decode(document.RootElement);
+    }
+
+    internal static LimitNotice Decode(JsonElement element) => new() { ThreadID = SwiftDecoding.Decode(element, "threadID", SwiftDecoding.ReadUUID) };
+
+    public override void Write(Utf8JsonWriter writer, LimitNotice value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+    internal static void WriteMembers(Utf8JsonWriter writer, LimitNotice value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("threadID", SwiftUUID.UuidString(value.ThreadID));
+        writer.WriteEndObject();
+    }
 }
 
 // :252-257
@@ -207,6 +678,7 @@ public enum TurnStatus
 }
 
 // :259-267.
+[JsonConverter(typeof(TurnSummaryConverter))]
 public sealed record TurnSummary
 {
     public required Guid TurnID { get; init; }         // :260
@@ -218,7 +690,51 @@ public sealed record TurnSummary
     public FileChangeSummary? Changes { get; init; }    // :266
 }
 
+internal sealed class TurnSummaryConverter : JsonConverter<TurnSummary>
+{
+    public override TurnSummary Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        return Decode(document.RootElement);
+    }
+
+    internal static TurnSummary Decode(JsonElement element) => new()
+    {
+        TurnID = SwiftDecoding.Decode(element, "turnID", SwiftDecoding.ReadUUID),
+        Status = SwiftDecoding.Decode(element, "status", SwiftDecoding.ReadRawValue<TurnStatus>),
+        Duration = SwiftDecoding.Decode(element, "duration", SwiftDecoding.ReadDouble),
+        FilesChanged = SwiftDecoding.Decode(element, "filesChanged", SwiftDecoding.ReadInt),
+        Additions = SwiftDecoding.Decode(element, "additions", SwiftDecoding.ReadInt),
+        Deletions = SwiftDecoding.Decode(element, "deletions", SwiftDecoding.ReadInt),
+        Changes = SwiftDecoding.DecodeIfPresent(element, "changes", FileChangeSummaryConverterDecode),
+    };
+
+    // FileChangeSummary already has its own JsonConverter (Models/FileChangeSummary.cs).
+    private static FileChangeSummary FileChangeSummaryConverterDecode(JsonElement element) =>
+        element.Deserialize<FileChangeSummary>(Coding.StorageOptions)!;
+
+    public override void Write(Utf8JsonWriter writer, TurnSummary value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+    internal static void WriteMembers(Utf8JsonWriter writer, TurnSummary value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("turnID", SwiftUUID.UuidString(value.TurnID));
+        writer.WriteString("status", SwiftEnum<TurnStatus>.RawValue(value.Status));
+        SwiftJson.WriteDouble(writer, "duration", value.Duration);
+        writer.WriteNumber("filesChanged", value.FilesChanged);
+        writer.WriteNumber("additions", value.Additions);
+        writer.WriteNumber("deletions", value.Deletions);
+        if (value.Changes is { } changes)
+        {
+            writer.WritePropertyName("changes");
+            JsonSerializer.Serialize(writer, changes, Coding.StorageOptions);
+        }
+        writer.WriteEndObject();
+    }
+}
+
 // :270-281.
+[JsonConverter(typeof(HydraMergeRecordConverter))]
 public sealed record HydraMergeRecord
 {
     // :273
@@ -240,7 +756,47 @@ public sealed record HydraMergeRecord
     public string? Detail { get; init; }                              // :280
 }
 
+internal sealed class HydraMergeRecordConverter : JsonConverter<HydraMergeRecord>
+{
+    public override HydraMergeRecord Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        return Decode(document.RootElement);
+    }
+
+    internal static HydraMergeRecord Decode(JsonElement element) => new()
+    {
+        At = SwiftDecoding.Decode(element, "at", SwiftDecoding.ReadStorageDate),
+        HydraMergeRecordOutcome = SwiftDecoding.Decode(element, "outcome", SwiftDecoding.ReadRawValue<HydraMergeRecord.Outcome>),
+        Project = SwiftDecoding.DecodeIfPresent(element, "project", SwiftDecoding.ReadString),
+        Label = SwiftDecoding.DecodeIfPresent(element, "label", SwiftDecoding.ReadString),
+        Url = SwiftDecoding.DecodeIfPresent(element, "url", SwiftURL.JsonConverter.Decode),
+        Files = SwiftDecoding.Decode(element, "files", SwiftDecoding.ReadInt),
+        Detail = SwiftDecoding.DecodeIfPresent(element, "detail", SwiftDecoding.ReadString),
+    };
+
+    public override void Write(Utf8JsonWriter writer, HydraMergeRecord value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+    internal static void WriteMembers(Utf8JsonWriter writer, HydraMergeRecord value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("at", FoundationISO8601.Format(value.At));
+        writer.WriteString("outcome", SwiftEnum<HydraMergeRecord.Outcome>.RawValue(value.HydraMergeRecordOutcome));
+        if (value.Project is { } project) writer.WriteString("project", project);
+        if (value.Label is { } label) writer.WriteString("label", label);
+        if (value.Url is { } url)
+        {
+            writer.WritePropertyName("url");
+            SwiftURL.JsonConverter.WriteMembers(writer, url);
+        }
+        writer.WriteNumber("files", value.Files);
+        if (value.Detail is { } detail) writer.WriteString("detail", detail);
+        writer.WriteEndObject();
+    }
+}
+
 // :283-307
+[JsonConverter(typeof(TurnRecordConverter))]
 public sealed record TurnRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();                     // :284
@@ -255,20 +811,114 @@ public sealed record TurnRecord
     public string? ProviderDiff { get; init; }                          // :294
     public string? ProviderAnchor { get; init; }                        // :296
     public ValueList<string>? TouchedPaths { get; init; }               // :299
-    public ValueList<TokenSpend>? TokenSpends { get; init; }            // :303
+    public ValueList<TokenSpend>? TokenSpends { get; init; }            // :303 BLOCKED, see the file header note
     public bool HydraMerged { get; init; } = false;                     // :306
 }
 
+// :309-329 init(from:): every field read with a default, so an older turn still decodes (PR-GIT-148). The
+// encoder is synthesized (declaration order, nil optionals omitted); there is no custom encode(to:) in the Swift.
+internal sealed class TurnRecordConverter : JsonConverter<TurnRecord>
+{
+    public override TurnRecord Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        return Decode(document.RootElement);
+    }
+
+    internal static TurnRecord Decode(JsonElement element)
+    {
+        // :313 decoder.container(keyedBy:) throws typeMismatch for a non-object element, before any field is read;
+        // every field below is then read leniently through Coding.Value, which never itself throws.
+        if (element.ValueKind != JsonValueKind.Object) throw new DecodingError("typeMismatch", "Expected to decode Dictionary<String, Any>.");
+        return DecodeFields(element);
+    }
+
+    private static TurnRecord DecodeFields(JsonElement element) => new()
+    {
+        Id = Coding.Value(element, "id", SwiftDecoding.ReadUUID, () => Guid.NewGuid()),                                   // :314
+        Index = Coding.Value(element, "index", SwiftDecoding.ReadInt, () => 0L),                                          // :315
+        ProviderTurnID = Coding.Value(element, "providerTurnID", SwiftDecoding.ReadString, () => (string?)null),          // :316
+        StartedAt = Coding.Value(element, "startedAt", SwiftDecoding.ReadStorageDate, () => SwiftDate.Now),               // :317
+        CompletedAt = Coding.Value(element, "completedAt", field => (DateTimeOffset?)SwiftDecoding.ReadStorageDate(field), () => (DateTimeOffset?)null), // :318
+        Status = Coding.Value(element, "status", SwiftDecoding.ReadRawValue<TurnStatus>, () => TurnStatus.Running),       // :319
+        BaseCheckpoint = Coding.Value(element, "baseCheckpoint", SwiftDecoding.ReadString, () => (string?)null),          // :320
+        EndCheckpoint = Coding.Value(element, "endCheckpoint", SwiftDecoding.ReadString, () => (string?)null),            // :321
+        UserItemID = Coding.Value(element, "userItemID", SwiftDecoding.ReadString, () => (string?)null),                  // :322
+        ProviderDiff = Coding.Value(element, "providerDiff", SwiftDecoding.ReadString, () => (string?)null),              // :323
+        ProviderAnchor = Coding.Value(element, "providerAnchor", SwiftDecoding.ReadString, () => (string?)null),          // :324
+        TouchedPaths = Coding.Value(element, "touchedPaths",
+            field => (ValueList<string>?)SwiftDecoding.ReadArray(field, SwiftDecoding.ReadString), () => (ValueList<string>?)null), // :325
+        // :326 tokenSpends - BLOCKED (see file header): left undecoded until Core.Models.TokenSpend has its Codable.
+        HydraMerged = Coding.Value(element, "hydraMerged", SwiftDecoding.ReadBool, () => false),                          // :327
+    };
+
+    public override void Write(Utf8JsonWriter writer, TurnRecord value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+    internal static void WriteMembers(Utf8JsonWriter writer, TurnRecord value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("id", SwiftUUID.UuidString(value.Id));
+        writer.WriteNumber("index", value.Index);
+        if (value.ProviderTurnID is { } providerTurnID) writer.WriteString("providerTurnID", providerTurnID);
+        writer.WriteString("startedAt", FoundationISO8601.Format(value.StartedAt));
+        if (value.CompletedAt is { } completedAt) writer.WriteString("completedAt", FoundationISO8601.Format(completedAt));
+        writer.WriteString("status", SwiftEnum<TurnStatus>.RawValue(value.Status));
+        if (value.BaseCheckpoint is { } baseCheckpoint) writer.WriteString("baseCheckpoint", baseCheckpoint);
+        if (value.EndCheckpoint is { } endCheckpoint) writer.WriteString("endCheckpoint", endCheckpoint);
+        if (value.UserItemID is { } userItemID) writer.WriteString("userItemID", userItemID);
+        if (value.ProviderDiff is { } providerDiff) writer.WriteString("providerDiff", providerDiff);
+        if (value.ProviderAnchor is { } providerAnchor) writer.WriteString("providerAnchor", providerAnchor);
+        if (value.TouchedPaths is { } touchedPaths)
+        {
+            writer.WritePropertyName("touchedPaths");
+            writer.WriteStartArray();
+            foreach (var path in touchedPaths) writer.WriteStringValue(path);
+            writer.WriteEndArray();
+        }
+        // tokenSpends: BLOCKED, never written (see file header note).
+        writer.WriteBoolean("hydraMerged", value.HydraMerged);
+        writer.WriteEndObject();
+    }
+}
+
 // :331-339
+[JsonConverter(typeof(ContextUsageConverter))]
 public sealed record ContextUsage
 {
     public required long UsedTokens { get; init; }  // :332
     public long? WindowTokens { get; init; }        // :333
 
-    public double? Fraction => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Timeline.swift:335");
+    // :335-338
+    public double? Fraction => WindowTokens is { } window && window > 0 ? Math.Min(1, (double)UsedTokens / window) : null;
+}
+
+internal sealed class ContextUsageConverter : JsonConverter<ContextUsage>
+{
+    public override ContextUsage Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        return Decode(document.RootElement);
+    }
+
+    internal static ContextUsage Decode(JsonElement element) => new()
+    {
+        UsedTokens = SwiftDecoding.Decode(element, "usedTokens", SwiftDecoding.ReadInt),
+        WindowTokens = SwiftDecoding.DecodeIfPresentValue(element, "windowTokens", SwiftDecoding.ReadInt),
+    };
+
+    public override void Write(Utf8JsonWriter writer, ContextUsage value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+    internal static void WriteMembers(Utf8JsonWriter writer, ContextUsage value)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("usedTokens", value.UsedTokens);
+        if (value.WindowTokens is { } windowTokens) writer.WriteNumber("windowTokens", windowTokens);
+        writer.WriteEndObject();
+    }
 }
 
 // :341-366
+[JsonConverter(typeof(ThreadDocumentConverter))]
 public sealed record ThreadDocument
 {
     public Guid ThreadID { get; init; }                                                        // :342
@@ -277,11 +927,62 @@ public sealed record ThreadDocument
     public ContextUsage? Usage { get; init; }                                                  // :345
     public ValueList<FollowUpPrompt> FollowUps { get; init; } = ValueList<FollowUpPrompt>.Empty; // :346
     public ValueList<HydraMergeRecord> HydraMerges { get; init; } = ValueList<HydraMergeRecord>.Empty; // :347
-    public ThreadContinuation? Continuation { get; init; } = null;                             // :350
+    public ThreadContinuation? Continuation { get; init; } = null;                             // :350 BLOCKED, see file header
 
     // :352-354
     public ThreadDocument(Guid threadID)
     {
         ThreadID = threadID;
+    }
+}
+
+// :356-365 init(from:): items, turns, followUps and hydraMerges decode leniently, dropping any element that fails
+// (PR-CHAT-019); usage defaults to null; threadID is the one field that is not lenient (a missing threadID fails
+// the whole decode). The encoder is synthesized (declaration order, nil optionals omitted).
+internal sealed class ThreadDocumentConverter : JsonConverter<ThreadDocument>
+{
+    public override ThreadDocument Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        return Decode(document.RootElement);
+    }
+
+    internal static ThreadDocument Decode(JsonElement element) => new(SwiftDecoding.Decode(element, "threadID", SwiftDecoding.ReadUUID)) // :358
+    {
+        Items = Coding.LenientList(element, "items", TimelineItemConverter.Decode, () => ValueList<TimelineItem>.Empty),           // :359
+        Turns = Coding.LenientList(element, "turns", TurnRecordConverter.Decode, () => ValueList<TurnRecord>.Empty),               // :360
+        Usage = Coding.Value(element, "usage", ContextUsageConverter.Decode, () => (ContextUsage?)null),                           // :361
+        FollowUps = Coding.LenientList(element, "followUps", FollowUpPromptConverter.Decode, () => ValueList<FollowUpPrompt>.Empty), // :362
+        HydraMerges = Coding.LenientList(element, "hydraMerges", HydraMergeRecordConverter.Decode, () => ValueList<HydraMergeRecord>.Empty), // :363
+        // continuation: BLOCKED (see file header) - left null until Core.Models.ThreadContinuation has its Codable.
+    };
+
+    public override void Write(Utf8JsonWriter writer, ThreadDocument value, JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("threadID", SwiftUUID.UuidString(value.ThreadID));
+        writer.WritePropertyName("items");
+        writer.WriteStartArray();
+        foreach (var item in value.Items) TimelineItemConverter.WriteMembers(writer, item);
+        writer.WriteEndArray();
+        writer.WritePropertyName("turns");
+        writer.WriteStartArray();
+        foreach (var turn in value.Turns) TurnRecordConverter.WriteMembers(writer, turn);
+        writer.WriteEndArray();
+        if (value.Usage is { } usage)
+        {
+            writer.WritePropertyName("usage");
+            ContextUsageConverter.WriteMembers(writer, usage);
+        }
+        writer.WritePropertyName("followUps");
+        writer.WriteStartArray();
+        foreach (var followUp in value.FollowUps) FollowUpPromptConverter.WriteMembers(writer, followUp);
+        writer.WriteEndArray();
+        writer.WritePropertyName("hydraMerges");
+        writer.WriteStartArray();
+        foreach (var merge in value.HydraMerges) HydraMergeRecordConverter.WriteMembers(writer, merge);
+        writer.WriteEndArray();
+        // continuation: BLOCKED, never written (see file header note).
+        writer.WriteEndObject();
     }
 }

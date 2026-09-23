@@ -3371,7 +3371,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the byte-versus-character mismatch: a UTF-8-heavy output is trimmed to more than 30000 bytes on purpose, because that is what the source does.",
       "verification_method": "unit - ASCII and multi-byte fixtures at the boundary",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

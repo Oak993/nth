@@ -1,4 +1,5 @@
 using Marrow.Core.Models;
+using Marrow.Core.Port;
 using Marrow.Services.MCP;
 
 namespace Marrow.Services.Tests;
@@ -22,5 +23,6 @@ public sealed class MCPCatalogDatabaseTests
     }
 
     private static MCPResolvedServer Resolve(string id, string key, string value) =>
-        MCPResolver.Resolve(MCPCatalog.Entries.Single(e => e.Id == id), new Dictionary<string,string> { [key] = value }, _ => throw new InvalidOperationException());
+        MCPResolver.Resolve(MCPCatalog.Entries.Single(e => e.Id == id),
+            new ValueMap<string, string>(new Dictionary<string, string> { [key] = value }), _ => throw new InvalidOperationException());
 }
