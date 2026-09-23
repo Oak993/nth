@@ -149,6 +149,25 @@ public sealed class TurnDiffTests
         Assert.Null(seen.ReportedAdditions);
     }
 
+    [Fact]
+    [Trait("Req", "PR-GIT-089")] // Services/Git/TurnDiff.swift:30-37
+    [Trait("Req", "PR-GIT-090")] // Services/Git/TurnDiff.swift:38-47
+    [Trait("Decision", "ED-173")]
+    public void Merge_with_a_snapshot_keeps_a_reported_UNC_file_and_a_UNC_edit_outside_the_root()
+    {
+        // ED-173: reportedPath (TurnDiff.swift:8-9) forward-slashes through TouchedPaths.normalize (ED-019 (3)), so a
+        // UNC path outside the root reaches the hasPrefix("/") guards at :34 and :41 as "//srv/share/..."; macOS
+        // hasPrefix("/") is true for it, so both the reported file and the edit survive the snapshot branch.
+        var snapshot = new[] { File("src/a.cs") };
+        var providerFiles = new[] { File(@"\\srv\share\notes\plan.md", hunks: [OneAddition(1)]) };
+        var edits = new[] { new FileEdit(@"\\srv\share\notes\todo.md", null, 2, 0) };
+        var result = TurnDiff.Merge(snapshot, "", edits, null, Root, providerFiles: providerFiles);
+        Assert.Equal(new[] { "//srv/share/notes/plan.md", "//srv/share/notes/todo.md", "src/a.cs" }, Paths(result));
+        var todo = result.Single(file => file.Path == "//srv/share/notes/todo.md");
+        Assert.Equal(2, todo.ReportedAdditions);
+        Assert.Equal(0, todo.ReportedDeletions);
+    }
+
     // ---- PR-GIT-090: per-edit files last, then the sort -----------------------------------------------------------
 
     [Fact]
@@ -289,9 +308,10 @@ public sealed class TurnDiffTests
     }
 
     // The Swift at :56-59 reads existing.hunks.last inside the loop, after each append, so the appended hunks get
-    // last+1, last+2, ... in turn. PR-GIT-091's expected_result says every appended hunk gets the identical id; the
-    // Swift does not do that (reported as a record conflict), so this test pins the Swift and carries no Req trait.
+    // last+1, last+2, ... in turn. ED-172 corrected PR-GIT-091 to this sequential renumbering.
     [Fact]
+    [Trait("Req", "PR-GIT-091")]
+    [Trait("Decision", "ED-172")]
     [Trait("Rule", "R-VAL-1")]
     public void Append_renumbers_each_appended_hunk_from_the_last_hunk_id_read_after_each_append()
     {
@@ -302,6 +322,8 @@ public sealed class TurnDiffTests
     }
 
     [Fact]
+    [Trait("Req", "PR-GIT-091")]
+    [Trait("Decision", "ED-172")]
     [Trait("Rule", "R-VAL-1")]
     public void Append_onto_an_entry_without_hunks_numbers_from_one()
     {
