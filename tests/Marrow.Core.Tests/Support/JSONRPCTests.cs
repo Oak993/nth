@@ -37,6 +37,12 @@ public sealed class JSONRPCTests
 
     private static JSONValue Obj(params (string Key, JSONValue Value)[] members) => JSONValue.FromDictionaryLiteral(members);
 
+    private static JSONValue Resolved(Task<JSONValue> task)
+    {
+        Assert.True(task.IsCompletedSuccessfully, "the request did not resolve");
+        return task.Result;
+    }
+
     private static RPCError RpcFailure(Task task)
     {
         Assert.True(task.IsFaulted, "the request did not fail");
@@ -214,7 +220,7 @@ public sealed class JSONRPCTests
         runtime.OnMain(() => connection.Notify("go", Obj()));
         runtime.OnMain(() => after = MainActor.SpawnThrowing(() => connection.Request("d", Obj())));
         runtime.Loop.RunUntil(() => after!.Value.IsCompleted, Bound);
-        Assert.Equal(new JSONValue.String("ok"), after!.Value.Result);
+        Assert.Equal(new JSONValue.String("ok"), Resolved(after!.Value));
         Assert.False(parked!.Value.IsCompleted);
 
         runtime.OnMain(() => connection.Notify("bye"));
@@ -364,7 +370,7 @@ public sealed class JSONRPCTests
         });
         runtime.Loop.RunUntil(() => calls.All(c => c.Value.IsCompleted), Bound);
 
-        Assert.Equal(Obj(("ok", true)), calls[0].Value.Result);
+        Assert.Equal(Obj(("ok", true)), Resolved(calls[0].Value));
         var bad = RpcFailure(calls[1].Value);
         Assert.Equal(-32602, bad.Code);
         Assert.Equal("bad params", bad.Message);
@@ -374,8 +380,8 @@ public sealed class JSONRPCTests
         Assert.Equal("The agent returned an error.", bare.Message);
         Assert.Equal("The agent returned an error.", SwiftErrors.LocalizedDescription(bare));
         Assert.Null(bare.Data);
-        Assert.Equal(new JSONValue.Int(5), calls[3].Value.Result);
-        Assert.Equal(new JSONValue.Null(), calls[4].Value.Result);
+        Assert.Equal(new JSONValue.Int(5), Resolved(calls[3].Value));
+        Assert.Equal(new JSONValue.Null(), Resolved(calls[4].Value));
         var truncated = RpcFailure(calls[5].Value);
         Assert.Equal(7, truncated.Code);
         Assert.Equal("truncated id", truncated.Message);
