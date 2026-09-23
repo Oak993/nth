@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using ValueDictionary = System.Collections.Generic.Dictionary<string, Marrow.Core.Support.JSONValue>;
@@ -54,6 +55,28 @@ namespace Marrow.Core.Models;
 // HasSentDelegationBlock/HasLeavingDelegationBlock/MarkingDelegationBlockLeaving/MarkingDelegationBlockSent/
 // InterruptedBlockMessage/DroppedBlockNotice are not named by any record in this part and stay MARROW_STUB for
 // part 4.
+// Unit Core.Models.Hydra part 4 of 4 (PR-HYDRA-080, 082, 083, 088 to 093, 097, 098, 248 to 251,
+// PR-HYDRAMERGE-083, UI-HYDRAMERGE-003) implemented HydraDelegationBudget (CanDelegate, BeginTurn,
+// ChargeRound, Refuse, NoteDropped, TakeDropNotice), DelegationOpener/LineStartFences (private),
+// DelegationBlockRange, HasDelegationBlock, HasDelegationOpener, WithoutDelegationBlock,
+// HasSentDelegationBlock/HasLeavingDelegationBlock, MarkingDelegationBlockSent/Leaving,
+// InterruptedBlockMessage and DroppedBlockNotice. PR-HYDRA-097 (the fenced-code-block prohibition sentence)
+// and PR-HYDRAMERGE-083 (MergeStatus's .held/.settled branches) were both already implemented by part 3's
+// FallbackPolicy and MergeStatus; this part only adds their test coverage. UI-HYDRAMERGE-003's testable
+// surface in this file is HydraMergeStage.Words alone (already implemented and tested, part 1); its
+// geometry, typography, colors, transitions and shimmer belong to App/Views/Chat/TimelineRows.swift, a UI
+// unit, and are untestable here.
+// STOP (missing dependency, PR-HYDRA-084/085/098): Delegations(string) stays MARROW_STUB. Its Swift
+// twin's private helper delegations(fromBody:) (:1156-1162) calls delegation(fromEntry:), which Swift
+// declares as an extension of HydraPrompts in a DIFFERENT file, DroppyCode/Core/Models/
+// HydraDelegationStream.swift:110-118 - not this unit's Hydra.swift. That extension's C# twin belongs in
+// HydraDelegationStream.cs (R-FILE-1: "an extension X in another file is a partial of X in that file's
+// twin"), a file that does not exist anywhere in this tree (grepped, none found) because unit
+// Core.Models.HydraDelegationStream has not been built yet, and this packet's own "C# this unit depends
+// on" section does not list it. Per the packet's hard fences ("If ... a dependency ... is missing from the
+// C# tree, STOP and report it; never write a stand-in") this call is left unwritten rather than inlined
+// into this file (which would also violate R-FILE-1) or stood in with a guess at delegation(fromEntry:)'s
+// exact keep/reject/title/name rules. See the STOP block in this unit's report.
 
 // :17-51. Codable is synthesized (no CodingKeys, no custom init(from:)/encode(to:)): id and name are strictly
 // required in declaration order, provider/model/effort are decodeIfPresent/encodeIfPresent (R-CODE-1).
@@ -819,28 +842,38 @@ public sealed record HydraDelegationBudget
     public long Refusals { get; private init; } = 0;        // :563
     public string? DropNotice { get; private init; }        // :568
 
-    public bool CanDelegate => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:571");
+    // :571. PR-HYDRA-248
+    public bool CanDelegate => Rounds < HydraPrompts.MaxDelegationRounds;
 
+    // :577-581. Only a user-authored turn resets; a turn carrying head reports or a refusal notice
+    // continues the same request and resets neither. PR-HYDRA-248
     public HydraDelegationBudget BeginTurn(bool userAuthored) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:577");
+        userAuthored ? this with { Rounds = 0, Refusals = 0 } : this;
 
-    public HydraDelegationBudget ChargeRound() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:584");
+    // :584-586. PR-HYDRA-248
+    public HydraDelegationBudget ChargeRound() => this with { Rounds = Rounds + 1 };
 
-    public (HydraDelegationBudget Budget, bool Result) Refuse(string message) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:591");
+    // :591-598. PR-HYDRA-249
+    public (HydraDelegationBudget Budget, bool Result) Refuse(string message)
+    {
+        if (Refusals >= MaxRefusals) return (NoteDropped(message), false);
+        return (this with { Refusals = Refusals + 1 }, true);
+    }
 
+    // :602-604. PR-HYDRA-249
     public HydraDelegationBudget NoteDropped(string message) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:602");
+        this with { DropNotice = HydraPrompts.DroppedBlockNotice(message) };
 
+    // :607-610. `defer { dropNotice = nil }; return dropNotice` (R-VAL-1: return both the changed copy and
+    // the value taken). PR-HYDRA-249
     public (HydraDelegationBudget Budget, string? Result) TakeDropNotice() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:607");
+        (this with { DropNotice = null }, DropNotice);
 
     public const long MaxRefusals = 3; // :616
 }
 
 // :620-1434.
-public static class HydraPrompts
+public static partial class HydraPrompts
 {
     public const string WorkerAgentName = "droppy-worker"; // :621
     public const string ScoutAgentName = "droppy-scout";    // :622
@@ -1349,43 +1382,109 @@ public static class HydraPrompts
         $"Hydra held back {(count == 1 ? "a head" : $"{count} heads")}.\n" +
         $"None of the heads you asked for went out: this request has had all {MaxDelegationRounds} of its rounds of heads already. Do the rest yourself now, without git status or git diff on the heads' work, and answer the user.";
 
+    // :1075-1080. PR-HYDRA-251
     public static string InterruptedBlockMessage(bool stopped) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1075");
+        "No heads went out.\n" +
+        $"Your reply's delegation block was dropped: the turn {(stopped ? "was stopped" : "failed")} before the heads could go out, and none of that work was delegated. Do it yourself, or send the block again.";
 
-    public static string DroppedBlockNotice(string message) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1086");
+    // :1086-1088. PR-HYDRA-250
+    public static string DroppedBlockNotice(string message) => "[Hydra] " + message + "\n\n---\n\n";
 
-    // :1117. Range<String.Index> is a UTF-16 offset range (R-STR-10).
-    public static (int LowerBound, int UpperBound)? DelegationBlockRange(string @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1117");
+    // :1092-1094. Three dialects, case-insensitive: hydra, hydra-sent, hydra-leaving. R-RE-1. PR-HYDRA-080
+    [GeneratedRegex(@"```[ \t]*hydra(?:-sent|-leaving)?[ \t]*\r?\n", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex DelegationOpenerPattern();
 
-    public static bool HasDelegationBlock(string @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1124");
+    private static (int Lower, int Upper)? DelegationOpener(string text)
+    {
+        var match = DelegationOpenerPattern().Match(text);
+        return match.Success ? (match.Index, match.Index + match.Length) : null;
+    }
 
-    // :1129. The Swift parameter is a Substring.
-    public static bool HasDelegationOpener(string @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1129");
+    // :1099-1109. Every "```" that opens a line (text start, or immediately preceded by a Character.isNewline
+    // character), from `start` on, in order. A fence with an info string after it still counts. PR-HYDRA-082
+    private static List<(int Lower, int Upper)> LineStartFences(string text, int start)
+    {
+        var fences = new List<(int Lower, int Upper)>();
+        var cursor = start;
+        while (true)
+        {
+            var index = text.IndexOf("```", cursor, StringComparison.Ordinal);
+            if (index < 0) break;
+            if (index == 0 || FoundationText.IsNewline(text[index - 1]))
+                fences.Add((index, index + 3));
+            cursor = index + 3;
+        }
+        return fences;
+    }
 
+    // :1117-1121. The end is the LAST line-start fence after the opener, never the first, or the end of the
+    // text when there is none. R-STR-10: a UTF-16 offset range. PR-HYDRA-083
+    public static (int LowerBound, int UpperBound)? DelegationBlockRange(string @in)
+    {
+        if (DelegationOpener(@in) is not { } opener) return null;
+        var fences = LineStartFences(@in, opener.Upper);
+        var end = fences.Count > 0 ? fences[^1].Upper : @in.Length;
+        return (opener.Lower, end);
+    }
+
+    // :1124. PR-HYDRA-089
+    public static bool HasDelegationBlock(string @in) => DelegationBlockRange(@in) is not null;
+
+    // :1129-1131. The Swift parameter is a Substring (a streaming tail); the same three-dialect regex.
+    // PR-HYDRA-089
+    public static bool HasDelegationOpener(string @in) => DelegationOpenerPattern().IsMatch(@in);
+
+    // :1140-1149, :1156-1162. Blocked: delegations(fromBody:) calls delegation(fromEntry:), declared as an
+    // extension of HydraPrompts in DroppyCode/Core/Models/HydraDelegationStream.swift:110-118, a different
+    // Swift file whose C# twin (a separate unit, Core.Models.HydraDelegationStream) does not exist yet in
+    // this tree. Per R-FILE-1 that function belongs in HydraDelegationStream.cs, not here, and per the
+    // packet's hard fences a missing cross-file dependency is never stood in for. STOP (see report):
+    // PR-HYDRA-084, PR-HYDRA-085, PR-HYDRA-098 stay unwritten.
     public static ValueList<HydraDelegation>? Delegations(string @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1140");
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1140 - blocked, see STOP in report: HydraDelegationStream.swift:110 delegation(fromEntry:) is not yet ported (Core.Models.HydraDelegationStream)");
 
-    public static string WithoutDelegationBlock(string text) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1165");
+    // :1165-1169. `.trimmed` is `trimmingCharacters(in: .whitespacesAndNewlines)`, ported as StringExtensions.
+    // Trimmed (Support/Text.cs). PR-HYDRA-088
+    public static string WithoutDelegationBlock(string text)
+    {
+        var kept = text;
+        if (DelegationBlockRange(text) is { } range)
+            kept = kept.Remove(range.LowerBound, range.UpperBound - range.LowerBound);
+        return kept.Trimmed();
+    }
 
     public static TimeSpan DelegationSentHold { get; } = SwiftTask.Seconds(3.2);          // :1173
     public static TimeSpan DelegationLeaveFade { get; } = TimeSpan.FromMilliseconds(450); // :1177
 
-    public static bool HasSentDelegationBlock(string @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1181");
+    // :1181-1183. Matches hydra-sent OR hydra-leaving; the plain hydra opener does not match. `contains`, so
+    // the match may sit anywhere in the text. PR-HYDRA-092
+    [GeneratedRegex(@"```[ \t]*hydra-(?:sent|leaving)[ \t]*\r?\n", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex SentOrLeavingDelegationPattern();
 
-    public static bool HasLeavingDelegationBlock(string @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1186");
+    public static bool HasSentDelegationBlock(string @in) => SentOrLeavingDelegationPattern().IsMatch(@in);
 
-    public static string MarkingDelegationBlockLeaving(string text) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1193");
+    // :1186-1188. PR-HYDRA-092
+    [GeneratedRegex(@"```[ \t]*hydra-leaving[ \t]*\r?\n", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex LeavingDelegationPattern();
 
-    public static string MarkingDelegationBlockSent(string text) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1200");
+    public static bool HasLeavingDelegationBlock(string @in) => LeavingDelegationPattern().IsMatch(@in);
+
+    // :1193-1196. Only rewrites a sent, not-yet-leaving block; idempotent. PR-HYDRA-091
+    public static string MarkingDelegationBlockLeaving(string text)
+    {
+        if (!HasSentDelegationBlock(text) || HasLeavingDelegationBlock(text) || DelegationOpener(text) is not { } opener)
+            return text;
+        return text[..opener.Lower] + "```hydra-leaving\n" + text[opener.Upper..];
+    }
+
+    // :1200-1203. Only rewrites when an opener exists and no sent-or-leaving block is already present;
+    // idempotent. Always LF, never CRLF, even when the original opener ended with CRLF. PR-HYDRA-090
+    public static string MarkingDelegationBlockSent(string text)
+    {
+        if (DelegationOpener(text) is not { } opener || HasSentDelegationBlock(text))
+            return text;
+        return text[..opener.Lower] + "```hydra-sent\n" + text[opener.Upper..];
+    }
 
     // :1207-1213. The single call site (ThreadRuntime.swift:2846) always passes nil, so the reason branch is
     // ported for structural parity only; it is unreachable in shipped code.
