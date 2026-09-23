@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 
@@ -242,15 +243,83 @@ public sealed record ModelOption
     public ModelOption(string id, string name, string? detail = null, ValueList<string>? efforts = null,
         string? defaultEffort = null, bool isDefault = false, string? fastTier = null)
     {
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:226");
+        Id = id; // :235
+        Name = name; // :236
+        Detail = detail; // :237
+        Efforts = efforts ?? ValueList<string>.Empty; // :238
+        DefaultEffort = defaultEffort; // :239
+        IsDefault = isDefault; // :240
+        FastTier = fastTier; // :241
     }
 
-    public bool SupportsFast => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:255");
-    public string ShortName => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:258");
-    public string ChipName => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:268");
+    // :244-253 `init(from decoder: Decoder)`. id and name are required and strictly typed (PR-PROVREG-157);
+    // detail, defaultEffort and fastTier are optional; efforts defaults to the empty array and isDefault to
+    // false when absent, so a row written by an older build without either still decodes.
+    public static ModelOption Decode(JsonElement element) => new(
+        id: SwiftDecoding.Decode(element, "id", SwiftDecoding.ReadString), // :246
+        name: SwiftDecoding.Decode(element, "name", SwiftDecoding.ReadString), // :247
+        detail: SwiftDecoding.DecodeIfPresent(element, "detail", SwiftDecoding.ReadString), // :248
+        efforts: SwiftDecoding.DecodeIfPresent(element, "efforts", e => SwiftDecoding.ReadArray(e, SwiftDecoding.ReadString))
+            ?? ValueList<string>.Empty, // :249
+        defaultEffort: SwiftDecoding.DecodeIfPresent(element, "defaultEffort", SwiftDecoding.ReadString), // :250
+        isDefault: SwiftDecoding.DecodeIfPresentValue(element, "isDefault", SwiftDecoding.ReadBool) ?? false, // :251
+        fastTier: SwiftDecoding.DecodeIfPresent(element, "fastTier", SwiftDecoding.ReadString)); // :252
 
-    public static string EffortTitle(string effort) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:284");
+    // :255 `fastTier != nil`. PR-PROVREG-158: true even when fastTier is the empty string.
+    public bool SupportsFast => FastTier is not null;
+
+    // :257-262. PR-PROVREG-159: drop a leading "gpt-" (case-insensitive test, exact 4-character count drop),
+    // then turn every remaining hyphen into a space.
+    public string ShortName
+    {
+        get
+        {
+            var trimmed = Name; // :259
+            if (SwiftString.HasPrefix(SwiftString.Lowercased(trimmed), "gpt-")) trimmed = SwiftString.DropFirst(trimmed, 4); // :260
+            return trimmed.Replace("-", " ", StringComparison.Ordinal); // :261 `replacingOccurrences(of: "-", with: " ")`
+        }
+    }
+
+    // :264-282. PR-PROVREG-160: cut at the first of six separators (loop continues over all six, so later
+    // separators still apply to the remainder), then drop the first matching vendor prefix among ten
+    // (loop breaks on first match; the length guard keeps a text equal to the prefix untouched), trim, and
+    // fall back to shortName when the result is empty.
+    private static readonly string[] ChipNameSeparators = [" (", " · ", " — ", " – ", " - ", ": "]; // :270
+    private static readonly string[] ChipNameVendorPrefixes =
+        ["claude ", "gpt ", "gemini ", "deepseek ", "openai ", "anthropic ", "google ", "meta ", "muse ", "glm "]; // :274
+
+    public string ChipName
+    {
+        get
+        {
+            var text = ShortName; // :269
+            foreach (var separator in ChipNameSeparators) // :270-272
+            {
+                var index = text.IndexOf(separator, StringComparison.Ordinal);
+                if (index >= 0) text = text[..index];
+            }
+            var lowered = SwiftString.Lowercased(text); // :273
+            foreach (var vendor in ChipNameVendorPrefixes) // :274-279
+            {
+                if (SwiftString.HasPrefix(lowered, vendor) && SwiftString.Count(text) > SwiftString.Count(vendor))
+                {
+                    text = SwiftString.DropFirst(text, SwiftString.Count(vendor)); // :276
+                    break; // :277
+                }
+            }
+            var cleaned = FoundationText.Trim(text); // :280 `.trimmingCharacters(in: .whitespaces)`
+            return cleaned.Length == 0 ? ShortName : cleaned; // :281
+        }
+    }
+
+    // :284-290. PR-PROVREG-161: "xhigh" and "extra-high" both title as "Extra High"; the empty string as
+    // "Default"; otherwise the first character upper-cased and the rest kept as is (NOT lowercased).
+    public static string EffortTitle(string effort) => effort switch
+    {
+        "xhigh" or "extra-high" => "Extra High", // :286
+        "" => "Default", // :287
+        _ => SwiftString.Uppercased(SwiftString.Prefix(effort, 1)) + SwiftString.DropFirst(effort, 1), // :288 `effort.prefix(1).uppercased() + effort.dropFirst()`
+    };
 }
 
 // :293-351
