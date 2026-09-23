@@ -1094,7 +1094,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same configuration, including the per-model identity string.",
       "verification_method": "unit plus contract fixture on the request body",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1116,7 +1116,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same keys, and nothing extra.",
       "verification_method": "contract fixture on the request body",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1138,7 +1138,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same mapping, including the nil-model default.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1160,7 +1160,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same tests and message, keeping the U+2192 arrows.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1182,7 +1182,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same tests and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1204,7 +1204,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same tests and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1226,7 +1226,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same tests and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1248,7 +1248,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same test and message, keeping the straight quotes.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1270,7 +1270,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same tests and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1292,7 +1292,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same test and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1314,7 +1314,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Preserve the branch order; reordering changes which message a user sees.",
       "verification_method": "unit with overlapping inputs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2090,7 +2090,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same message with the U+2192 arrows.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2111,7 +2111,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same id shape, lowercase with hyphens, no braces.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2133,7 +2133,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same replay, mapping every non-user role to 'assistant'.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2155,7 +2155,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not emit a models event from these sessions.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2175,7 +2175,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same composition; these sessions never emit an exited event because they launch no process.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2198,7 +2198,7 @@
       "cancellation": "Cancelling the caller cancels the turn task; the turn then takes the interrupted path (PR-PROVAPI-109).",
       "windows_path": "One in-flight turn per session, with a cancellation token reaching tools and approvals.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2222,7 +2222,7 @@
       "cancellation": "A turn cancelled before this point finishes as interrupted without any request.",
       "windows_path": "Same per-turn reset, and the same rule that an empty model string is ignored.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2244,7 +2244,7 @@
       "cancellation": "not cancellable at this point",
       "windows_path": "Same event with a null provider turn id.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2270,7 +2270,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same cap, same notice level, same interrupted status and the same curly quotes.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2297,7 +2297,7 @@
       "cancellation": "The round is cancellable like any other.",
       "windows_path": "Same thresholds, same note text with the product name as [Marrow] (OD-0012 F1), same no-tools round.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2325,7 +2325,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same thresholds and the same note with the product name as [Marrow] (OD-0012 F1), appended once per turn.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2354,7 +2354,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same counter, threshold, reset rule and note (product name as [Marrow], OD-0012 F1), with the number interpolated from the same constant.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2383,7 +2383,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same ordering: the base 401 check precedes the subclass mapping.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2406,7 +2406,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same mapping path and the same terminal status.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2426,7 +2426,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same rule, including that an empty reply adds nothing.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2448,7 +2448,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same ordering.",
       "verification_method": "contract fixture on the next request body",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2475,7 +2475,7 @@
       "cancellation": "Cancelling the turn cancels every read still in flight; a cancelled read's output is never appended.",
       "windows_path": "Same concurrency limit and the same order-preserving placement.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2496,7 +2496,7 @@
       "cancellation": "Cancelling between tools stops the loop and ends the turn as interrupted.",
       "windows_path": "Same barrier semantics.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2517,7 +2517,7 @@
       "cancellation": "A cancelled tool's output is not appended.",
       "windows_path": "Same message shape and the same trim after each result.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2540,7 +2540,7 @@
       "cancellation": "This requirement is the cancellation behavior.",
       "windows_path": "Same checks before and after each tool; a cancelled tool's output is discarded rather than recorded.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2565,7 +2565,7 @@
       "cancellation": "This requirement is the cancellation behavior.",
       "windows_path": "Resolve every outstanding approval promise as a decline; an in-flight permission dialog is answered 'no' on stop (port_impacts.md entry 15).",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2587,7 +2587,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same zero status code, which is load-bearing for which error branch is reachable here.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2613,7 +2613,7 @@
       "cancellation": "An interrupted turn emits no plan event.",
       "windows_path": "Same event, same id shape, same blank check.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2635,7 +2635,7 @@
       "cancellation": "This requirement is the cancellation behavior.",
       "windows_path": "Three separate cancellations are needed because there is no child process to kill: the turn, the request, and the response reader (port_impacts.md entry 15).",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2655,7 +2655,7 @@
       "cancellation": "This requirement is the stop behavior.",
       "windows_path": "Same teardown, with no process to terminate.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2679,7 +2679,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same three option ids and the same per-turn scope for 'always'.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2699,7 +2699,7 @@
       "cancellation": "not applicable",
       "windows_path": "Implement as a no-op so the session interface stays uniform.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2723,7 +2723,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same threshold of 12, same tail of 10, same two notice strings at info level.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2751,7 +2751,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same two reporting shapes and the same hasSpend rule.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2775,7 +2775,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same one-shot MCP load and the same repair-before-send rule.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2795,7 +2795,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same key names, same ordering of the tools array.",
       "verification_method": "contract fixture on the request body",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2819,7 +2819,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same name grammar, which is also what the MCP area's requirements depend on.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2845,7 +2845,7 @@
       "cancellation": "A stop between attempts throws CancellationError and no further attempt is made.",
       "windows_path": "Map to the equivalent Windows network error conditions by code, not by message text.",
       "verification_method": "integration with a fault-injecting transport",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2867,7 +2867,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same notice, emitted only when output had already been shown.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2890,7 +2890,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same message, same computed attempt count, same optional parenthetical.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2915,7 +2915,7 @@
       "cancellation": "Checked immediately before sending.",
       "windows_path": "Same method, headers and timeout; serialize the body off the UI thread in the main process.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2937,7 +2937,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same 8000 character read cap and the same line joining with newlines.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2959,7 +2959,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same precedence and the same 500 character cap.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2981,7 +2981,7 @@
       "cancellation": "The loop checks for cancellation before every line and throws CancellationError, so a stop halts the read at the next line.",
       "windows_path": "Same prefix handling, including that exactly five characters are dropped and the rest is trimmed of spaces only.",
       "verification_method": "unit with a recorded SSE fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3004,7 +3004,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same continue-on-error behavior; do not abort the read on the first error line.",
       "verification_method": "unit with a recorded SSE fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3028,7 +3028,7 @@
       "cancellation": "not applicable",
       "windows_path": "Reproduce the constant. Candidate upstream defect not currently recorded in upstream_defects.md; see open questions.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3050,7 +3050,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same field names in the same fallback order.",
       "verification_method": "unit with recorded usage payloads from all three providers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3072,7 +3072,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same first-choice-only rule and the same two reasoning field names.",
       "verification_method": "unit with recorded SSE fixtures",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3094,7 +3094,7 @@
       "cancellation": "A cancelled drain finishes the coalescer, flushing whatever it held.",
       "windows_path": "Same 30 millisecond window and the same flush-on-switch rule, so streamed text does not arrive out of order.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3117,7 +3117,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same accumulation rules.",
       "verification_method": "unit with recorded SSE fixtures",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3139,7 +3139,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same sort, the same drop rule and the same generated id shape.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3166,7 +3166,7 @@
       "cancellation": "A cancelled round emits no completion events.",
       "windows_path": "Same id grammar and the same per-round scoping.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3188,7 +3188,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same precedence.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3211,7 +3211,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same guard, keyed off the same fenced-block grammar.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3233,7 +3233,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four constants, the same marker string with the product name as Marrow, '…[Marrow condensed this output' (OD-0012 F1; note the leading U+2026 and the unbalanced opening bracket, which are reproduced verbatim), and the same 400 character head.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3261,7 +3261,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same thresholds of 60 and 50 and the same turn-preserving rule.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3283,7 +3283,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same algorithm, including the last-index-first removal so pending indices do not shift.",
       "verification_method": "unit with an orphaned history fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3304,7 +3304,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The identity line reads exactly: You are Marrow's <identity>, working inside <working directory> on Windows. (OD-0012 F1, which also fixes the host word ED-029 had decided). Every other line is copied verbatim, and the date stays a full ISO 8601 timestamp.",
       "verification_method": "contract fixture on the request body",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3329,7 +3329,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same line, and note plan mode wins over every runtime mode.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3349,7 +3349,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same line with the product name as Marrow (OD-0012 F1).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3374,7 +3374,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same line for both runtime modes, with the product name as Marrow (OD-0012 F1).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3399,7 +3399,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same line.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3420,7 +3420,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering and the same always-present anti-slop notice.",
       "verification_method": "contract fixture on the request body",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3445,7 +3445,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same in-place replacement and the same stat-based refresh.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3498,7 +3498,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape; an attachment counts as an image when its MIME type starts with 'image/'.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3520,7 +3520,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same sentence and the same separator.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3552,7 +3552,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same cap of four, same part ordering and the same data URL grammar. The downscale uses the Windows Imaging Component in place of ImageIO with the same rule: only when max(width, height) > 2000, longest side scaled to at most 2000, EXIF orientation applied, JPEG at quality 0.8, and the MIME type becomes image/jpeg only when the re-encode succeeded; otherwise the original bytes and MIME type are sent. The two encoders are not expected to produce identical JPEG bytes; the fixture checks dimensions, orientation, MIME type and decodability, not bytes.",
       "verification_method": "contract fixture on the request body: a 1000x800 PNG is sent unchanged as data:image/png; a 4000x3000 JPEG and a 3000x4000 JPEG carrying EXIF orientation 6 are each sent as data:image/jpeg whose decoded longest side is at most 2000 px and whose pixels are upright; a file with an image MIME type that no decoder can read is sent with its own bytes and MIME type; with five images attached only the first four appear",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3576,7 +3576,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same three-field shape and the same per-provider reasoning rule; do not reformat the arguments string.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3598,7 +3598,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same helper, the same four limits and the same marker with its leading U+2026.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3618,7 +3618,7 @@
       "cancellation": "not applicable",
       "windows_path": "Verbatim description and schema. The six definitions are built once and are identical on every round.",
       "verification_method": "contract fixture on the request body",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3638,7 +3638,7 @@
       "cancellation": "not applicable",
       "windows_path": "Verbatim description and schema, including the absent required array.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3658,7 +3658,7 @@
       "cancellation": "not applicable",
       "windows_path": "Verbatim description and schema.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3678,7 +3678,7 @@
       "cancellation": "not applicable",
       "windows_path": "Verbatim description and schema.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3698,7 +3698,7 @@
       "cancellation": "not applicable",
       "windows_path": "Verbatim description and schema.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3718,7 +3718,7 @@
       "cancellation": "not applicable",
       "windows_path": "Verbatim description and schema. The command text is run by PowerShell 7 when installed, otherwise Windows PowerShell (OD-0008 C5, resolving UNK-0005; see PR-PROVAPI-175).",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3742,7 +3742,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same decision order exactly; the ordering is the load-bearing part, not just the outcomes.",
       "verification_method": "unit across the full mode matrix",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3764,7 +3764,7 @@
       "cancellation": "Cancellation resolves the waiting continuation with false and removes it from the pending map.",
       "windows_path": "Same three option ids, titles and roles, and the same decline-on-cancel rule.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3786,7 +3786,7 @@
       "cancellation": "not applicable",
       "windows_path": "Both strings verbatim, and a system prompt rule already tells the model not to retry a declined action.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3807,7 +3807,7 @@
       "cancellation": "This requirement is the cancellation behavior.",
       "windows_path": "Same literal string in every tool path (port_impacts.md entry 15).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3832,7 +3832,7 @@
       "cancellation": "Checked before the call, after it returns and in the error path.",
       "windows_path": "Same titles, separators and four result strings.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3856,7 +3856,7 @@
       "cancellation": "Checked after the read returns and in the error path; a stopped turn returns 'Stopped.'",
       "windows_path": "Same titles and the same 'Error: ' prefix.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3881,7 +3881,7 @@
       "cancellation": "Checked after the listing and in the error path.",
       "windows_path": "Same titles, including the bare-folder-name fallback.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3907,7 +3907,7 @@
       "cancellation": "Checked after the search returns.",
       "windows_path": "Same titles and curly quotes; the always-completed status is source behavior and is reproduced.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3932,7 +3932,7 @@
       "cancellation": "The write itself checks for cancellation before resolving the path, before creating directories and before writing.",
       "windows_path": "Same message, same byte counting and the same whole-file diff shape.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3954,7 +3954,7 @@
       "cancellation": "This requirement describes the cancellation asymmetry.",
       "windows_path": "Reproduce the asymmetry rather than normalizing it. Candidate upstream defect not currently recorded in upstream_defects.md; see open questions.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3980,7 +3980,7 @@
       "cancellation": "The edit checks for cancellation before and during the match scan and before writing.",
       "windows_path": "Same two argument spellings and the same messages.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4006,7 +4006,7 @@
       "cancellation": "Checked after the command returns; a stopped turn says no more about it.",
       "windows_path": "The six unwrap prefixes are POSIX shell spellings and must still be recognized, because they are what a model writes. The command is run by PowerShell 7 when installed, otherwise Windows PowerShell (OD-0008 C5, resolving UNK-0005; see PR-PROVAPI-175).",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4029,7 +4029,7 @@
       "cancellation": "The initial cancellation check at the top of executeTool applies.",
       "windows_path": "Same two strings, and the same absence of an approval step.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4055,7 +4055,7 @@
       "cancellation": "The process is bounded by its timeout; the turn's own cancellation checks run after it returns.",
       "windows_path": "There is no /usr/bin/grep on Windows. The search must be implemented so that the same four exclusions, the same fixed-string versus regex choice, the same -- operand safety, the same containment guard and the same output shape hold; ED-028 (2) implements it natively: a recursive walk honouring the same four exclusions, skipping binary files as -I does, emitting grep's path:line:text shape with -n line numbers and honouring the -E/-F switch, never through findstr. UNK-0005 (resolved by OD-0008 C5) chose only the shell; search_text launches none. The containment guard is security-relevant and must not be relaxed.",
       "verification_method": "integration plus a containment test using an absolute path and a parent-climbing path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4076,7 +4076,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same 120 line cap, same two literals with the leading U+2026, and the same merging of standard error into the result.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4103,7 +4103,7 @@
       "cancellation": "The turn's cancellation reaches the launched process through the shell runner; the result is discarded either way.",
       "windows_path": "/bin/zsh -lc has no Windows equivalent. The command runs in PowerShell 7 when installed, otherwise Windows PowerShell (OD-0008 C5, resolving UNK-0005), as <interpreter> -NoProfile -NonInteractive -Command <trimmed command> (ED-028 (1), whose choice of powershell.exe alone OD-0008 C5 supersedes). The 120 second timeout, the 24000 byte cap, the tail-keeping truncation and the two failure strings are portable and are reproduced.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4792,7 +4792,8 @@
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1068-1075",
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:448-453"
       ],
-      "notes": "The option id 'allow' is the wire value and must not change; the title is the visible label."
+      "notes": "The option id 'allow' is the wire value and must not change; the title is the visible label.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-012",
@@ -4816,7 +4817,8 @@
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:292",
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1044-1050"
       ],
-      "notes": "In plan mode this button never unlocks edits or commands, because plan mode is decided before the blanket approval is consulted."
+      "notes": "In plan mode this button never unlocks edits or commands, because plan mode is decided before the blanket approval is consulted.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-013",
@@ -4837,7 +4839,8 @@
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1071",
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1035-1038"
       ],
-      "notes": "Any option id that is neither 'allow' nor 'always' declines, so an unknown id is safe by default."
+      "notes": "Any option id that is neither 'allow' nor 'always' declines, so an unknown id is safe by default.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-014",
@@ -4863,7 +4866,8 @@
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:900",
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1062-1067"
       ],
-      "notes": "list_files is the odd one out: its approval title is the row title (a bare folder name) rather than a verb phrase. search_text wraps the pattern in U+201C and U+201D. The MCP title uses plain spaces, 'Call <server> <tool>', while the timeline row for the same call uses a middle dot."
+      "notes": "list_files is the odd one out: its approval title is the row title (a bare folder name) rather than a verb phrase. search_text wraps the pattern in U+201C and U+201D. The MCP title uses plain spaces, 'Call <server> <tool>', while the timeline row for the same call uses a middle dot.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-015",
@@ -4884,7 +4888,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:919-935"
       ],
-      "notes": "An empty path argument renders as the full working directory, because displayPath falls back to it."
+      "notes": "An empty path argument renders as the full working directory, because displayPath falls back to it.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-016",
@@ -4905,7 +4910,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:936-953"
       ],
-      "notes": "Deliberately the same shape as Claude's LS row, with the folder as the subject."
+      "notes": "Deliberately the same shape as Claude's LS row, with the folder as the subject.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-017",
@@ -4925,7 +4931,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:954-965"
       ],
-      "notes": "This row never shows a failed status, even when the search errored; the failure is carried in the text. That is source behavior."
+      "notes": "This row never shows a failed status, even when the search errored; the failure is carried in the text. That is source behavior.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-018",
@@ -4946,7 +4953,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:966-987"
       ],
-      "notes": "The diff is attached twice, once on start and once on completion, with the same content."
+      "notes": "The diff is attached twice, once on start and once on completion, with the same content.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-019",
@@ -4967,7 +4975,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:988-1010"
       ],
-      "notes": "The old and new text come from old_string and new_string, or from old_text and new_text when the model used those spellings."
+      "notes": "The old and new text come from old_string and new_string, or from old_text and new_text when the model used those spellings.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-020",
@@ -4989,7 +4998,8 @@
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1011-1026",
         "DroppyCode/Services/Providers/ProviderSession.swift:180-192"
       ],
-      "notes": "The row carries the real exit code, so a non-zero exit is visibly a failure rather than a silent completion."
+      "notes": "The row carries the real exit code, so a non-zero exit is visibly a failure rather than a silent completion.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-021",
@@ -5010,7 +5020,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:898-917"
       ],
-      "notes": "The separator is U+00B7 with a space either side, unlike the approval title for the same call which uses plain spaces."
+      "notes": "The separator is U+00B7 with a space either side, unlike the approval title for the same call which uses plain spaces.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-022",
@@ -5028,7 +5039,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1027-1032"
       ],
-      "notes": "The row text and the string returned to the model differ: the row says 'Unknown tool.' and the model is told 'Error: unknown tool <name>.'"
+      "notes": "The row text and the string returned to the model differ: the row says 'Unknown tool.' and the model is told 'Error: unknown tool <name>.'",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-023",
@@ -5047,7 +5059,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:547-549"
       ],
-      "notes": "The provider title is interpolated, so the same sentence appears with Meta or Z.ai in place of DeepSeek."
+      "notes": "The provider title is interpolated, so the same sentence appears with Meta or Z.ai in place of DeepSeek.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-024",
@@ -5066,7 +5079,8 @@
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:425-429",
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:72"
       ],
-      "notes": "The number is interpolated from maxRoundsPerTurn, and the word continue is wrapped in U+201C and U+201D."
+      "notes": "The number is interpolated from maxRoundsPerTurn, and the word continue is wrapped in U+201C and U+201D.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-025",
@@ -5087,7 +5101,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:457-468"
       ],
-      "notes": "Both are info level, not warning, and both end with a full stop."
+      "notes": "Both are info level, not warning, and both end with a full stop.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-026",

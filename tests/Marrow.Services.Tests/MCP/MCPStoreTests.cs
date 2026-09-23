@@ -30,6 +30,24 @@ namespace Marrow.Services.Tests.MCP;
 //    store level - connect's own two sign-out branches, independent of any network - is PR-MCP-057/058 below.
 //  - The needsSetup half of PR-MCP-068 (states becomes .needsSetup and the OAuth session is kept): needsSetup is
 //    thrown only for a live GitLab probe (MCPProbe.GitLabServerDisabled), the same TLS-loopback gap as above.
+//
+// [Collection(MCPProxyCollection.Name)]: every MCPStore construction here (MCPStoreHarness/MCPStoreDirectHarness)
+// runs MCPStore.ctor -> ExportAll -> MCPProxy.Shared.Current.ReplaceAll (MCPStore.cs:38-39,334), which rewrites
+// the WHOLE route table of the same process-wide MCPProxy.Shared singleton MCPProxyTests drives (R-TEST-9's own
+// note). Before this class joined that collection, the two ran in xUnit's default parallel collections and
+// MEASURED interference: filtering both classes together and running 5 times reproduced cross-test failures in
+// 3/5 runs (MCPProxyTests' An_OAuth_route_adds_a_fresh_bearer_token, OAuth_bearer_token_is_dropped_on_a_cross_
+// origin_redirect_but_kept_same_origin and OAuth_401_is_retried_once_with_a_refetched_token_and_then_given_up_on
+// in one run, and this class's own Connect_signs_out_an_oauth_server_when_the_draft_changes_its_filled_address in
+// another - Assert.Null failure, Actual: "token" - a stray route/secret-store state left by the other class's
+// concurrent MCPStore/MCPProxy.Shared.Current.Start() call). Sharing MCPProxyTests' named collection serializes
+// this class against it; MCPProxyCollection.cs also promotes MCPProxySingletonFixture to a COLLECTION fixture
+// (not MCPProxyTests' own IClassFixture) so it is guaranteed to run - and call Start() under fixture.Store -
+// before the first test of EITHER class, closing the ordering race a same-collection-only fix would leave open
+// (MEASURED: with the classes merely sharing the collection but the fixture still class-scoped, the same 3 OAuth
+// tests failed in 8/8 runs instead of 3/5, because MCPStoreHarness now reliably ran first). ENGINEERING DECISION,
+// test-only: no expectation or product code changed.
+[Collection(MCPProxyCollection.Name)]
 public sealed class MCPStoreTests
 {
     private static MCPCustomServer StdioCustom(string name, string command = "marrow-store-test-nonexistent-cmd-93a1",

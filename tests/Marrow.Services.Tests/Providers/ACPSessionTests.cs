@@ -1468,6 +1468,12 @@ public sealed class ACPSessionTests
             Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " + EndOnBye);
         Assert.True(session.IsRunning);
         runtime.OnMain(connection.Close);
+        // Close() only closes stdin (StdioProcess.Terminate, JSONRPC.cs:200-203); IsClosed flips only once the
+        // real child process has actually exited and the background read loop observes end-of-stream and calls
+        // DidClose (JSONRPC.cs:107-121,260-270). That is real OS process/IO timing, not the manual clock, so an
+        // immediate assert right after OnMain(Close) races the process exit. Wait for the same condition the
+        // production isRunning getter reports instead of assuming it is already true.
+        runtime.Loop.RunUntil(() => !session.IsRunning, Bound);
         Assert.False(session.IsRunning);
     }
 

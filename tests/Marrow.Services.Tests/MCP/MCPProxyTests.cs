@@ -22,10 +22,15 @@ using Xunit;
 // backend; overriding the same instance here, for this constructor's flow, makes every test method see it too
 // (xUnit builds a fresh MCPProxyTests per test method, constructor through Dispose, one flow), so a Set here and
 // the proxy's AccessToken read agree, and neither one reaches the real Windows Credential Manager.
+//
+// MCPProxySingletonFixture is a COLLECTION fixture (MCPProxyCollection.cs, ICollectionFixture<T>), not this
+// class's own IClassFixture<T>: MCPStoreTests shares this same named collection (its own note) because it also
+// drives MCPProxy.Shared, and only a collection fixture is guaranteed to run before the first test of EITHER
+// class, so Start()'s ExecutionContext capture always sees fixture.Store first, never MCPStoreHarness's.
 namespace Marrow.Services.Tests.MCP;
 
-[Collection("MCPProxy singleton")]
-public sealed class MCPProxyTests : IClassFixture<MCPProxySingletonFixture>, IDisposable
+[Collection(MCPProxyCollection.Name)]
+public sealed class MCPProxyTests : IDisposable
 {
     private readonly MCPProxySingletonFixture fixture;
     private readonly IDisposable secretStoreScope;
