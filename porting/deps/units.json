@@ -217,8 +217,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "SwiftUI animation curves and transitions (ED-092 part 2, ED-098, ED-011; R-VIEW-4). Time comes only from the F.FrameClock seam (ED-098 (1)); animatable modifiers implement IAnimatableModifier (ED-098 (2)). Concrete records under the existing abstract Animation in ViewSupport.cs (make it partial if the factories need it): Spring(response, dampingFraction, blendDuration), Spring(duration, bounce), Spring(response, dampingRatio) with SettlingDuration = ln(1000)/(zeta*omega0) per ED-011, Smooth (bounce 0), Snappy (bounce 0.15), EaseIn, EaseOut, EaseInOut (cubic Beziers 0.42,0,1,1 / 0,0,0.58,1 / 0.42,0,0.58,1), Linear, Delay; defaults duration 0.35 for timing curves and 0.5 for smooth, snappy and spring(duration:). A spring is a damped oscillator, omega0 = 2*pi/response, zeta = dampingFraction or 1 - bounce (bounce >= 0) or 1/(1+bounce), exposed as progress(t) and as an Avalonia Easing. SwiftTransition: Identity, Opacity, Scale(scale, anchor), Offset(x, y), Move(edge), BlurReplace, Modifier(active, identity), Asymmetric(insertion, removal), Combined(with), Animation(a); an applier animates insertion from active to identity and removal from identity to active before the control leaves, using Transaction.Current. First tests: the spring progress at fixed times against the closed form, settlingDuration 0.767 s for response 0.6 / damping 0.86, the Bezier curves at known points, delay, and insertion/removal state on a headless control.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.SwiftColor",
