@@ -851,29 +851,13 @@
    ],
    "intra_deps": [],
    "records_total": 6,
-   "records_todo": [
-    "PR-GIT-083",
-    "PR-GIT-084",
-    "PR-GIT-085",
-    "PR-GIT-086",
-    "PR-GIT-087",
-    "PR-GIT-088"
-   ],
-   "parts": [
-    [
-     "PR-GIT-083",
-     "PR-GIT-084",
-     "PR-GIT-085",
-     "PR-GIT-086",
-     "PR-GIT-087",
-     "PR-GIT-088"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M3-001"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Git.RevertPreview",
