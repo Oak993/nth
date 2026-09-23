@@ -112,4 +112,31 @@ public sealed class AppInfoTests
         Assert.Equal("19", info.Build);
         Assert.True(info.IsDevelopment);
     }
+
+    [Fact] // Text.swift:4,7,8 read the value as-is; nothing trims it on the assembly path either.
+    [Trait("Req", "PR-STORE-009")]
+    public void Assembly_metadata_values_are_never_trimmed()
+    {
+        var assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("MetadataWhitespaceFixture"), AssemblyBuilderAccess.Run);
+        var constructor = typeof(AssemblyMetadataAttribute).GetConstructor([typeof(string), typeof(string)])!;
+        foreach (var (key, value) in new[]
+        {
+            ("CFBundleDisplayName", "  Marrow  "), ("CFBundleShortVersionString", " 1.6.2"), ("CFBundleVersion", "20 ")
+        }) assembly.SetCustomAttribute(new CustomAttributeBuilder(constructor, [key, value]));
+        var info = AppInfo.FromAssembly(assembly, false);
+        Assert.Equal("  Marrow  ", info.Name);
+        Assert.Equal(" 1.6.2", info.Version);
+        Assert.Equal("20 ", info.Build);
+    }
+
+    [Fact] // Text.swift:4,7,8: a key absent from the assembly's own metadata falls back to the same three literals.
+    [Trait("Req", "PR-STORE-009")]
+    public void Assembly_metadata_missing_keys_use_the_three_literal_fallbacks()
+    {
+        var assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("MetadataMissingFixture"), AssemblyBuilderAccess.Run);
+        var info = AppInfo.FromAssembly(assembly, false);
+        Assert.Equal("Droppy Code", info.Name);
+        Assert.Equal("1.0.0", info.Version);
+        Assert.Equal("1", info.Build);
+    }
 }
