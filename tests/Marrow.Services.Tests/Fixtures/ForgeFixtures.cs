@@ -29,7 +29,7 @@ public static class ForgeStandIns
     internal static void PutFolderOnPath()
 #pragma warning restore CA2255
     {
-        var dataDirectory = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
+        var dataDirectory = Marrow.Testing.TestDataDirectory.Read();
         if (string.IsNullOrEmpty(dataDirectory)) return;
         var folder = dataDirectory.TrimEnd('\\', '/') + "\\ForgeStandIns\\" + Guid.NewGuid().ToString("N");
         Directory.CreateDirectory(folder);

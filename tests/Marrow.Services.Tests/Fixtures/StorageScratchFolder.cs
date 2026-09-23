@@ -13,7 +13,7 @@ public sealed class StorageScratchFolder : IDisposable
 
     public StorageScratchFolder(bool isDevelopment = false)
     {
-        var dataDirectory = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
+        var dataDirectory = Marrow.Testing.TestDataDirectory.Read();
         if (string.IsNullOrEmpty(dataDirectory))
             throw new InvalidOperationException("Set MARROW_PORT_DATA_DIR to a throwaway folder before running the tests (R-TEST-9).");
         var baseFolder = Path.Combine(dataDirectory, "StorageTests", Guid.NewGuid().ToString("N"));

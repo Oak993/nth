@@ -477,7 +477,7 @@ public sealed class AttachmentPreviewPanelTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-072")] // AttachmentPreviewPanel.swift:230, :237-242 a readable text file sizes by character count
     public void A_readable_text_attachment_sizes_the_popup_from_its_character_count() => headless.OnUiThread(() =>
     {
-        var root = Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, Guid.NewGuid().ToString("N"))).FullName;
+        var root = Directory.CreateDirectory(Path.Combine(Marrow.Testing.TestDataDirectory.Read()!, Guid.NewGuid().ToString("N"))).FullName;
         var path = Path.Combine(root, "notes.txt");
         var text = new string('a', 2_000); // count/4 = 500, clamped to 320
         File.WriteAllText(path, text);
@@ -502,7 +502,7 @@ public sealed class AttachmentPreviewPanelTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-072")] // AttachmentPreviewPanel.swift:230 the height floor at 120 for a short text file
     public void A_short_text_attachment_floors_the_popup_height_at_120_plus_chrome() => headless.OnUiThread(() =>
     {
-        var root = Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, Guid.NewGuid().ToString("N"))).FullName;
+        var root = Directory.CreateDirectory(Path.Combine(Marrow.Testing.TestDataDirectory.Read()!, Guid.NewGuid().ToString("N"))).FullName;
         var path = Path.Combine(root, "short.txt");
         File.WriteAllText(path, "hi"); // count/4 = 0, floored to 120
         var recorder = new PopoverRecorder();
@@ -525,7 +525,7 @@ public sealed class AttachmentPreviewPanelTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-072")] // AttachmentPreviewPanel.swift:239 a text file 500,000 bytes or larger is not sampled
     public void A_text_file_at_the_500000_byte_ceiling_falls_back_to_the_plain_box() => headless.OnUiThread(() =>
     {
-        var root = Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, Guid.NewGuid().ToString("N"))).FullName;
+        var root = Directory.CreateDirectory(Path.Combine(Marrow.Testing.TestDataDirectory.Read()!, Guid.NewGuid().ToString("N"))).FullName;
         var path = Path.Combine(root, "big.txt");
         File.WriteAllBytes(path, new byte[500_000]);
         var recorder = new PopoverRecorder();
