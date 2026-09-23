@@ -589,6 +589,7 @@ public sealed class ClaudeSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-020")] // ClaudeSession.swift:161-163,169-181
+    [Trait("Req", "UI-PROVCLI-022")] // ClaudeSession.swift:169-181 - the model picker row from the CLI's own initialize response
     public void Start_publishes_the_model_catalog_from_the_initialize_response()
     {
         using var runtime = new TestRuntime();
@@ -1196,6 +1197,7 @@ public sealed class ClaudeSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-041")] // ClaudeSession.swift:375-382 - the rate_limit_event case of the same dispatch switch
+    [Trait("Req", "UI-PROVCLI-029")] // ClaudeSession.swift:380 - Claude's usage-limit warning notice, with the reset-time suffix
     public void Handle_rate_limit_event_emits_a_warning_notice_and_usageLimit_only_when_rejected()
     {
         var events = new List<ProviderEvent>();
@@ -1268,6 +1270,7 @@ public sealed class ClaudeSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-045")] // ClaudeSession.swift:395-396
+    [Trait("Req", "UI-PROVCLI-028")] // ClaudeSession.swift:396 - Claude's compaction notice, verbatim "Context compacted."
     public void HandleSystem_compact_boundary_emits_the_verbatim_info_notice()
     {
         var events = new List<ProviderEvent>();
@@ -1481,6 +1484,7 @@ public sealed class ClaudeSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-051")] // ClaudeSession.swift:499-519
+    [Trait("Req", "UI-PROVCLI-034")] // ClaudeSession.swift:499-519 - the two synthetic placeholders are dropped, not drawn
     public void HandleAssistant_drops_synthetic_placeholders_and_surfaces_synthetic_api_errors_as_warnings()
     {
         var events = new List<ProviderEvent>();
@@ -1672,6 +1676,7 @@ public sealed class ClaudeSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-055")] // ClaudeSession.swift:574-609
+    [Trait("Req", "UI-PROVCLI-030")] // ClaudeSession.swift:604 - Claude's turn-failure fallback, verbatim "Claude stopped before finishing."
     public async Task HandleResult_after_start_ends_the_turn_with_usage_spend_cleared_state_and_status()
     {
         using var runtime = new TestRuntime();
@@ -1843,6 +1848,9 @@ public sealed class ClaudeSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-059")] // ClaudeSession.swift:642-653
+    [Trait("Req", "UI-PROVCLI-014")] // ClaudeSession.swift:647 - plan approval title, verbatim "Implement this plan"
+    [Trait("Req", "UI-PROVCLI-004")] // ClaudeSession.swift:649 - "Implement plan" button, id "allow", role approve
+    [Trait("Req", "UI-PROVCLI-005")] // ClaudeSession.swift:650 - "Keep planning" button, id "deny", role decline
     public void HandleControlRequest_exitPlanMode_emits_plan_then_a_two_option_approval()
     {
         var events = new List<ProviderEvent>();
@@ -1881,6 +1889,9 @@ public sealed class ClaudeSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-060")] // ClaudeSession.swift:654-677
+    [Trait("Req", "UI-PROVCLI-001")] // ClaudeSession.swift:663 - "Approve" button, id "allow", role approve
+    [Trait("Req", "UI-PROVCLI-002")] // ClaudeSession.swift:664-666 - "Approve for session" button, id "always", conditional on permission_suggestions
+    [Trait("Req", "UI-PROVCLI-003")] // ClaudeSession.swift:667 - "Decline" button, id "deny", role decline
     public void HandleControlRequest_default_tool_builds_an_approval_whose_kind_follows_the_call_with_edits_suppressed()
     {
         var events = new List<ProviderEvent>();
@@ -1901,8 +1912,15 @@ public sealed class ClaudeSessionTests
         Assert.Equal("matches an allowlist", approval.Reason);
         Assert.Equal("tu-1", approval.ToolItemID);
         Assert.Equal(3, approval.Options.Count);
+        Assert.Equal("allow", approval.Options[0].Id);
+        Assert.Equal("Approve", approval.Options[0].Title);
+        Assert.Equal(ApprovalRequest.Option.Role.Approve, approval.Options[0].OptionRole);
         Assert.Equal("always", approval.Options[1].Id);
+        Assert.Equal("Approve for session", approval.Options[1].Title);
         Assert.Equal(ApprovalRequest.Option.Role.ApproveAlways, approval.Options[1].OptionRole);
+        Assert.Equal("deny", approval.Options[2].Id);
+        Assert.Equal("Decline", approval.Options[2].Title);
+        Assert.Equal(ApprovalRequest.Option.Role.Decline, approval.Options[2].OptionRole);
 
         // An edit call, with no permission_suggestions -> only allow/deny; Write's edits stay suppressed.
         events.Clear();
@@ -2204,5 +2222,191 @@ public sealed class ClaudeSessionTests
         Assert.Equal(3 + 2 + 1, eventSingle.InputTokens);
         Assert.Equal(4, eventSingle.OutputTokens);
         Assert.Equal(2, eventSingle.CachedInputTokens);
+    }
+
+    // ---- PR-PROVCLI-362 to PR-PROVCLI-370, UI-PROVCLI-031 (part 4) ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-362")] // ClaudeSession.swift:740-741
+    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:740-741 - Claude's fallback title "Find files"
+    public void ToolCall_glob_titles_with_the_pattern_and_subtitles_with_the_relative_search_path()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+        var call = session.ToolCall("Glob", JSONValue.FromDictionaryLiteral(("pattern", "*.cs"), ("path", "src")))!;
+        Assert.Equal(ToolCall.Kind.Search, call.ToolCallKind);
+        Assert.Equal("*.cs", call.Title);
+        Assert.Equal("src", call.Detail);
+        Assert.Empty(call.Edits);
+
+        var fallback = session.ToolCall("Glob", JSONValue.FromDictionaryLiteral())!;
+        Assert.Equal("Find files", fallback.Title); // Glob's own fallback, distinct from Grep's "Search"
+        Assert.Null(fallback.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-363")] // ClaudeSession.swift:742-743
+    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:742-743 - Claude's fallback title "Search", one word apart from Glob's "Find files"
+    public void ToolCall_grep_titles_with_the_pattern_and_subtitles_with_the_relative_search_path()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+        var call = session.ToolCall("Grep", JSONValue.FromDictionaryLiteral(("pattern", "TODO"), ("path", "src")))!;
+        Assert.Equal(ToolCall.Kind.Search, call.ToolCallKind);
+        Assert.Equal("TODO", call.Title);
+        Assert.Equal("src", call.Detail);
+
+        var fallback = session.ToolCall("Grep", JSONValue.FromDictionaryLiteral())!;
+        Assert.Equal("Search", fallback.Title); // NOT "Find files", which is Glob's
+        Assert.Null(fallback.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-364")] // ClaudeSession.swift:744-745
+    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:744-745 - Claude's fallback title "List files"
+    public void ToolCall_ls_titles_with_the_relative_path_and_has_no_subtitle()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+        var call = session.ToolCall("LS", JSONValue.FromDictionaryLiteral(("path", "src")))!;
+        Assert.Equal(ToolCall.Kind.Search, call.ToolCallKind);
+        Assert.Equal("src", call.Title); // the path is the TITLE here, opposite of Glob and Grep
+        Assert.Null(call.Detail);
+
+        var fallback = session.ToolCall("LS", JSONValue.FromDictionaryLiteral())!;
+        Assert.Equal("List files", fallback.Title);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-365")] // ClaudeSession.swift:746-747
+    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:746-747 - Claude's fallback title "Fetch page"
+    public void ToolCall_webFetch_titles_with_the_raw_url_and_has_no_subtitle()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+        var call = session.ToolCall("WebFetch", JSONValue.FromDictionaryLiteral(("url", "https://example.com/a")))!;
+        Assert.Equal(ToolCall.Kind.Web, call.ToolCallKind);
+        Assert.Equal("https://example.com/a", call.Title); // the raw URL, not shortened to a host
+        Assert.Null(call.Detail);
+
+        var fallback = session.ToolCall("WebFetch", JSONValue.FromDictionaryLiteral())!;
+        Assert.Equal("Fetch page", fallback.Title);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-366")] // ClaudeSession.swift:748-749
+    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:748-749 - Claude's fallback title "Search the web"
+    public void ToolCall_webSearch_titles_with_the_query_and_has_no_subtitle()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+        var call = session.ToolCall("WebSearch", JSONValue.FromDictionaryLiteral(("query", "how to port swift")))!;
+        Assert.Equal(ToolCall.Kind.Web, call.ToolCallKind);
+        Assert.Equal("how to port swift", call.Title);
+        Assert.Null(call.Detail);
+
+        var fallback = session.ToolCall("WebSearch", JSONValue.FromDictionaryLiteral())!;
+        Assert.Equal("Search the web", fallback.Title); // a different key and a different fallback from WebFetch
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-367")] // ClaudeSession.swift:750-751
+    [Trait("Req", "UI-PROVCLI-031")] // ClaudeSession.swift:750-751 - Claude's fallback title "Subagent"
+    public void ToolCall_task_and_agent_both_title_with_the_description_and_subtitle_with_the_subagent_type()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+        foreach (var name in new[] { "Task", "Agent" })
+        {
+            var call = session.ToolCall(name, JSONValue.FromDictionaryLiteral(("description", "Build the thing"), ("subagent_type", "builder")))!;
+            Assert.Equal(ToolCall.Kind.Agent, call.ToolCallKind);
+            Assert.Equal("Build the thing", call.Title);
+            Assert.Equal("builder", call.Detail);
+        }
+
+        var fallback = session.ToolCall("Task", JSONValue.FromDictionaryLiteral())!;
+        Assert.Equal("Subagent", fallback.Title);
+        Assert.Null(fallback.Detail); // no detail fallback
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-368")] // ClaudeSession.swift:752-753
+    public void ToolCall_skill_titles_with_Skill_middle_dot_and_the_skill_name_falling_back_to_command_then_empty()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+        var bySkillKey = session.ToolCall("Skill", JSONValue.FromDictionaryLiteral(("skill", "reviewer")))!;
+        Assert.Equal(ToolCall.Kind.Other, bySkillKey.ToolCallKind);
+        Assert.Equal("Skill · reviewer", bySkillKey.Title); // U+00B7 MIDDLE DOT, not a hyphen, bullet or colon
+        Assert.Null(bySkillKey.Detail);
+
+        var byCommandKey = session.ToolCall("Skill", JSONValue.FromDictionaryLiteral(("command", "cmd-name")))!;
+        Assert.Equal("Skill · cmd-name", byCommandKey.Title); // falls back to "command" when "skill" is absent
+
+        var neitherKey = session.ToolCall("Skill", JSONValue.FromDictionaryLiteral())!;
+        Assert.Equal("Skill · ", neitherKey.Title); // empty fallback: a visible trailing separator and space
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-369")] // ClaudeSession.swift:754-760
+    public void ToolCall_unrecognized_mcp_prefixed_name_splits_into_server_and_tool_rejoining_extra_underscored_segments()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+
+        // Three+ segments: parts[1] is the server, parts[2...] rejoined with "__" is the tool -
+        // a tool name that itself contains "__" is put back together, not truncated at the first split.
+        var multiSegment = session.ToolCall("mcp__myserver__nested__tool", JSONValue.FromDictionaryLiteral(("a", 1L)))!;
+        Assert.Equal(ToolCall.Kind.Mcp, multiSegment.ToolCallKind);
+        Assert.Equal("myserver · nested__tool", multiSegment.Title); // U+00B7 MIDDLE DOT
+        Assert.Equal("{\"a\":1}", multiSegment.Detail);
+
+        // Exactly two segments after "mcp": server present, tool falls back to the WHOLE original name.
+        var twoSegments = session.ToolCall("mcp__onlyserver", JSONValue.FromDictionaryLiteral())!;
+        Assert.Equal("onlyserver · mcp__onlyserver", twoSegments.Title);
+
+        // Only "mcp" itself (no server segment): server falls back to the literal "MCP".
+        var justMcp = session.ToolCall("mcp__", JSONValue.FromDictionaryLiteral())!;
+        Assert.Equal("MCP · mcp__", justMcp.Title);
+
+        // Null input: detail is nil, not the string "null". An empty (non-null) object is not nil, though:
+        // it stringifies to "{}" (compactString of an empty object), as seen for twoSegments/justMcp above.
+        var nullInput = session.ToolCall("mcp__s__t", new JSONValue.Null())!;
+        Assert.Null(nullInput.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-370")] // ClaudeSession.swift:761
+    public void ToolCall_any_other_unrecognized_name_becomes_an_other_row_titled_with_its_name_verbatim()
+    {
+        var session = new ClaudeSession(MinimalConfig());
+        var call = session.ToolCall("SomeFutureTool", JSONValue.FromDictionaryLiteral(("x", "y")))!;
+        Assert.Equal(ToolCall.Kind.Other, call.ToolCallKind);
+        Assert.Equal("SomeFutureTool", call.Title); // no humanizing, no truncation
+        Assert.Null(call.Detail);
+        Assert.Empty(call.Edits);
+    }
+
+    // ---- PR-PROVCLI-439 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-439")] // ClaudeSession.swift:799-824, :35,:62,:222-225, :583
+    public void HandleResult_turnSpendEvent_carries_the_sessions_own_stored_model()
+    {
+        // model starts as configuration.model at init (:35,:62) and HandleResult (:583) passes it through
+        // to TurnSpendEvent unchanged, including the literal "default".
+        using var storage_runtime = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig() with { Model = "default" }) { OnEvent = events.Add };
+        session.MarkStarted();
+        runtime.OnMain(() => session.HandleResult(JSONValue.FromDictionaryLiteral(
+            ("subtype", "success"),
+            ("usage", JSONValue.FromDictionaryLiteral(("input_tokens", 1L), ("output_tokens", 1L))))));
+        var spend = Assert.Single(events.OfType<ProviderEvent.TokenSpend>()).Value;
+        Assert.Equal("default", spend.Model); // kept verbatim; only the wire value sent to the CLI becomes null
+        Assert.Equal(ProviderKind.Claude, spend.Provider);
+
+        // A different configured model is likewise carried through unchanged.
+        events.Clear();
+        var session2 = new ClaudeSession(MinimalConfig() with { Model = "claude-opus-4" }) { OnEvent = events.Add };
+        session2.MarkStarted();
+        runtime.OnMain(() => session2.HandleResult(JSONValue.FromDictionaryLiteral(
+            ("subtype", "success"),
+            ("usage", JSONValue.FromDictionaryLiteral(("input_tokens", 1L), ("output_tokens", 1L))))));
+        var spend2 = Assert.Single(events.OfType<ProviderEvent.TokenSpend>()).Value;
+        Assert.Equal("claude-opus-4", spend2.Model);
     }
 }
