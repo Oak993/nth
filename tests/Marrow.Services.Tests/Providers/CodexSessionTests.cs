@@ -118,6 +118,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-066")] // CodexSession.swift:508
     public void Connect_launches_the_process_with_exactly_the_argument_app_server()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("argv");
         script.SetResponse("thread/start", "{\"thread\":{\"id\":\"t1\"}}");
@@ -133,6 +134,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-067")] // CodexSession.swift:509
     public void Every_outbound_frame_is_a_bare_line_with_no_jsonrpc_member_and_ids_start_at_one()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("framing");
         script.SetResponse("thread/start", "{\"thread\":{\"id\":\"t1\"}}");
@@ -161,6 +163,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-068")] // CodexSession.swift:517-527
     public void Connect_sends_the_marrow_client_identity_then_an_initialized_notification()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("identity");
         script.SetResponse("thread/start", "{\"thread\":{\"id\":\"t1\"}}");
@@ -182,6 +185,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-068")] // CodexSession.swift:522-524
     public async Task Connect_closes_the_connection_and_rethrows_when_initialize_fails()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = new CodexScript("initialize-fails");
         script.SetError("initialize", "codex refused to initialize");
@@ -199,6 +203,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-069")] // CodexSession.swift:512-516
     public async Task Connect_closes_the_connection_after_a_20_second_watchdog_when_initialize_never_replies()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = new CodexScript("watchdog"); // no response for "initialize": the stand-in stays silent
         var session = new CodexSession(Config(script));
@@ -222,6 +227,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-070")] // CodexSession.swift:78-84, 100-103
     public async Task Start_clears_the_connection_when_the_thread_never_opens()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("no-thread-id");
         script.SetResponse("thread/start", "{}"); // no thread.id
@@ -239,11 +245,12 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-071")] // CodexSession.swift:224-232
     public void ThreadParameters_carries_cwd_approvalPolicy_sandbox_and_approvalsReviewer_rebuilt_fresh()
     {
+        using var storage = new StorageScratchFolder();
         var script = new CodexScript("params");
         var config = Config(script, runtimeMode: RuntimeMode.Supervised);
         var session = new CodexSession(config);
         var parameters = Private<Dictionary<string, JSONValue>>(session, "ThreadParameters");
-        Assert.Equal(Path.GetDirectoryName(script.ExecutablePath), parameters["cwd"].JSONValueString);
+        Assert.Equal(FileUrl(Path.GetDirectoryName(script.ExecutablePath)!).Path, parameters["cwd"].JSONValueString);
         Assert.Equal("untrusted", parameters["approvalPolicy"].JSONValueString);
         Assert.Equal("read-only", parameters["sandbox"].JSONValueString); // string form, unlike turn's sandboxPolicy
         Assert.Equal("user", parameters["approvalsReviewer"].JSONValueString);
@@ -264,6 +271,7 @@ public sealed class CodexSessionTests
     public void PolicySettings_maps_each_runtime_mode_to_its_exact_four_values(
         RuntimeMode mode, string approvalPolicy, string sandbox, string sandboxPolicyType, string reviewer)
     {
+        using var storage = new StorageScratchFolder();
         var script = new CodexScript("policy");
         var session = new CodexSession(Config(script, runtimeMode: mode));
         var parameters = Private<Dictionary<string, JSONValue>>(session, "ThreadParameters");
@@ -291,14 +299,17 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-073")] // CodexSession.swift:234-237
     public void ThreadParameters_merges_hydra_config_and_sets_developer_instructions_when_hydra_runs_natively()
     {
+        using var storage = new StorageScratchFolder();
         var script = new CodexScript("hydra-native");
         var hydra = new HydraLaunch { HeadsProvider = ProviderKind.Codex, RunsNatively = true, MaxHeads = 3 };
         var session = new CodexSession(Config(script, hydra: hydra, antiSlopEnabled: false));
         var parameters = Private<Dictionary<string, JSONValue>>(session, "ThreadParameters");
         var config = parameters["config"].JSONValueObject!;
-        Assert.Equal(3L, config["max_concurrent_threads_per_session"]!.JSONValueInt);
+        Assert.Equal(3L, config["agents"]!["max_concurrent_threads_per_session"]!.JSONValueInt);
         var instructions = parameters["developerInstructions"].JSONValueString!;
-        Assert.Equal(HydraPrompts.Policy(ProviderKind.Codex, hydra), instructions); // anti-slop disabled: nothing appended
+        // PR-PROVCLI-075 (:249-257) always appends the anti-slop text afterwards, even when disabled: Swift's
+        // AntiSlopPolicy.disabledInstructions is itself a non-empty notice, never the empty string.
+        Assert.Equal(HydraPrompts.Policy(ProviderKind.Codex, hydra) + "\n\n" + AntiSlopPolicy.Instructions(false), instructions);
     }
 
     // ---- PR-PROVCLI-074 ----
@@ -307,13 +318,16 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-074")] // CodexSession.swift:238-246
     public void ThreadParameters_switches_multi_agent_off_and_uses_the_fallback_policy_when_hydra_heads_run_elsewhere()
     {
+        using var storage = new StorageScratchFolder();
         var script = new CodexScript("hydra-elsewhere");
         var hydra = new HydraLaunch { HeadsProvider = ProviderKind.Claude, RunsNatively = false, MaxHeads = 2 };
         var session = new CodexSession(Config(script, hydra: hydra, antiSlopEnabled: false));
         var parameters = Private<Dictionary<string, JSONValue>>(session, "ThreadParameters");
         var config = parameters["config"].JSONValueObject!;
         Assert.False(config["features"]!["multi_agent"]!.JSONValueBool);
-        Assert.Equal(HydraPrompts.FallbackPolicy(hydra), parameters["developerInstructions"].JSONValueString);
+        Assert.Equal(
+            HydraPrompts.FallbackPolicy(hydra) + "\n\n" + AntiSlopPolicy.Instructions(false),
+            parameters["developerInstructions"].JSONValueString);
     }
 
     // ---- PR-PROVCLI-075 ----
@@ -322,6 +336,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-075")] // CodexSession.swift:249-257
     public void ThreadParameters_always_sets_developerInstructions_joining_existing_and_anti_slop_text()
     {
+        using var storage = new StorageScratchFolder();
         var script = new CodexScript("anti-slop-only");
         var session = new CodexSession(Config(script, antiSlopEnabled: true));
         var parameters = Private<Dictionary<string, JSONValue>>(session, "ThreadParameters");
@@ -331,7 +346,11 @@ public sealed class CodexSessionTests
         var offSession = new CodexSession(Config(offScript, antiSlopEnabled: false));
         var offParameters = Private<Dictionary<string, JSONValue>>(offSession, "ThreadParameters");
         Assert.True(offParameters.ContainsKey("developerInstructions"));
-        Assert.Equal("", offParameters["developerInstructions"].JSONValueString); // key present, value is the empty string
+        // The record's prose ("the value is the EMPTY STRING") does not match the pinned Swift:
+        // AntiSlopPolicy.swift:9-13 defines disabledInstructions as a non-empty "[...guidance: off]" notice, so
+        // that is what AntiSlopPolicy.Instructions(false) (and this joined value) actually is; the key is still
+        // always present, which is the part of the record this proves.
+        Assert.Equal(AntiSlopPolicy.Instructions(false), offParameters["developerInstructions"].JSONValueString);
 
         var hydraScript = new CodexScript("both");
         var hydra = new HydraLaunch { HeadsProvider = ProviderKind.Codex, RunsNatively = true };
@@ -370,7 +389,7 @@ public sealed class CodexSessionTests
         var config = parameters["config"].JSONValueObject!;
 
         // The Hydra-built key from :236 survives the merge (never replaced).
-        Assert.Equal(4L, config["max_concurrent_threads_per_session"]!.JSONValueInt);
+        Assert.Equal(4L, config["agents"]!["max_concurrent_threads_per_session"]!.JSONValueInt);
         // codexOverrides() may add "enabled": false entries for the real host's other configured server names
         // (PR-MCP-171, out of this unit's control), so this checks the scripted server is present rather than
         // asserting the whole object.
@@ -384,6 +403,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-077")] // CodexSession.swift:87-98
     public void Start_resumes_a_thread_sending_the_resume_id_and_excludeTurns_true()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("resume");
         script.SetResponse("thread/resume", "{\"thread\":{\"id\":\"resume-1\"},\"model\":\"gpt-5.1-codex\"}");
@@ -391,7 +411,7 @@ public sealed class CodexSessionTests
         var id = RunStart(runtime, session);
         Assert.Equal("resume-1", id);
 
-        var request = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 1)))!;
+        var request = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 2)))!;
         Assert.Equal("thread/resume", request["method"]!.JSONValueString);
         Assert.Equal("resume-1", request["params"]!["threadId"]!.JSONValueString);
         Assert.True(request["params"]!["excludeTurns"]!.JSONValueBool);
@@ -401,6 +421,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-077")] // CodexSession.swift:92-94
     public async Task Start_throws_when_the_resumed_thread_id_does_not_match()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("resume-mismatch");
         script.SetResponse("thread/resume", "{\"thread\":{\"id\":\"different\"}}");
@@ -417,6 +438,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-078")] // CodexSession.swift:100-107
     public void Start_starts_a_new_thread_and_stores_the_server_minted_id()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("new-thread");
         script.SetResponse("thread/start", "{\"thread\":{\"id\":\"server-minted\"},\"model\":\"gpt-5.1-codex\"}");
@@ -446,7 +468,7 @@ public sealed class CodexSessionTests
         var id = RunStart(runtime, session);
         Assert.Equal("t1", id);
 
-        var retried = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 2)))!;
+        var retried = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!;
         Assert.Equal("thread/start", retried["method"]!.JSONValueString);
         Assert.Null(retried["params"]!["config"]); // mcp_servers stripped and config removed once it was the only key
 
@@ -468,7 +490,7 @@ public sealed class CodexSessionTests
         Run(runtime, task);
         var error = await Assert.ThrowsAsync<RPCError>(() => task);
         Assert.Equal("failed to load configuration: unrelated", error.Message);
-        Assert.Equal(1, script.MessageCount(0) - 1); // only initialize + the one failed thread/start, no retry
+        Assert.Equal(3, script.MessageCount(0)); // initialize, initialized, one failed thread/start: no retry sent
     }
 
     // ---- PR-PROVCLI-080, 081, 082, 083, 084 ----
@@ -485,6 +507,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-080")] // CodexSession.swift:135-143
     public void Send_builds_the_six_base_turn_fields_from_the_turns_own_runtime_mode()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("send-base");
         var session = StartedSession(runtime, script);
@@ -498,7 +521,7 @@ public sealed class CodexSessionTests
         };
         Run(runtime, session.Send(input));
 
-        var request = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 2)))!;
+        var request = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!;
         Assert.Equal("turn/start", request["method"]!.JSONValueString);
         var p = request["params"]!;
         Assert.Equal("t1", p["threadId"]!.JSONValueString);
@@ -512,6 +535,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-081")] // CodexSession.swift:131-134
     public void Send_builds_one_text_part_by_default_then_a_localImage_part_per_image()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("send-content");
         var session = StartedSession(runtime, script);
@@ -528,7 +552,7 @@ public sealed class CodexSessionTests
         };
         Run(runtime, session.Send(input));
 
-        var request = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 2)))!;
+        var request = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!;
         var content = request["params"]!["input"]!.JSONValueArray!;
         Assert.Equal(2, content.Count); // the text-only attachment is skipped
         Assert.Equal("text", content[0]["type"]!.JSONValueString);
@@ -541,6 +565,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-082")] // CodexSession.swift:144-146
     public void Send_normalizes_an_empty_effort_to_absent_and_always_sends_a_present_service_tier()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("send-effort");
         var session = StartedSession(runtime, script);
@@ -555,7 +580,7 @@ public sealed class CodexSessionTests
             InteractionMode = InteractionMode.Build,
         };
         Run(runtime, session.Send(input));
-        var request = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 2)))!;
+        var request = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!;
         Assert.Null(request["params"]!["effort"]);
         Assert.Equal("priority", request["params"]!["serviceTierForTurn"]!.JSONValueString);
     }
@@ -564,6 +589,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-083")] // CodexSession.swift:147-157
     public void Send_attaches_collaborationMode_with_mixed_casing_when_a_model_is_known()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("send-model");
         var session = StartedSession(runtime, script); // activeModel becomes "gpt-5.1-codex" from thread/start's reply
@@ -577,7 +603,7 @@ public sealed class CodexSessionTests
             InteractionMode = InteractionMode.Plan,
         };
         Run(runtime, session.Send(input));
-        var p = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 2)))!["params"]!;
+        var p = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!["params"]!;
         Assert.Equal("gpt-5.1-codex", p["model"]!.JSONValueString); // fallback to activeModel: input.Model is null
         var mode = p["collaborationMode"]!;
         Assert.Equal("plan", mode["mode"]!.JSONValueString);
@@ -590,6 +616,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-083")] // CodexSession.swift:147
     public void Send_sends_neither_model_nor_collaborationMode_with_no_model_known()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("send-no-model");
         script.SetResponse("thread/start", "{\"thread\":{\"id\":\"t1\"}}"); // no model in the reply
@@ -604,7 +631,7 @@ public sealed class CodexSessionTests
             InteractionMode = InteractionMode.Build,
         };
         Run(runtime, session.Send(input));
-        var p = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 2)))!["params"]!;
+        var p = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!["params"]!;
         Assert.Null(p["model"]);
         Assert.Null(p["collaborationMode"]);
     }
@@ -613,6 +640,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-084")] // CodexSession.swift:158-160
     public void Send_records_the_turn_id_returned_by_turn_start()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("turn-id");
         var session = StartedSession(runtime, script);
@@ -623,7 +651,7 @@ public sealed class CodexSessionTests
         // The stored turnID is exercised (not directly readable) through Interrupt, PR-PROVCLI-085.
         script.SetResponse("turn/interrupt", "{}");
         Run(runtime, session.Interrupt());
-        var interrupt = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!;
+        var interrupt = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 4)))!;
         Assert.Equal("turn-1", interrupt["params"]!["turnId"]!.JSONValueString);
     }
 
@@ -633,6 +661,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-085")] // CodexSession.swift:162-168
     public void Interrupt_does_nothing_without_a_thread_or_a_turn()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = new CodexScript("interrupt-nothing");
         var session = new CodexSession(Config(script)); // never started: no connection
@@ -644,6 +673,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-085")] // CodexSession.swift:164-166
     public void Interrupt_sends_the_leads_thread_and_turn_and_swallows_a_failure()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("interrupt");
         var session = StartedSession(runtime, script);
@@ -651,7 +681,7 @@ public sealed class CodexSessionTests
         Run(runtime, session.Send(new TurnInput { Text = "x", Images = ValueList<Attachment>.Empty, RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build }));
         script.SetError("turn/interrupt", "boom");
         Run(runtime, session.Interrupt()); // must not throw: try? in the Swift
-        var interrupt = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!;
+        var interrupt = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 4)))!;
         Assert.Equal("t1", interrupt["params"]!["threadId"]!.JSONValueString);
         Assert.Equal("turn-9", interrupt["params"]!["turnId"]!.JSONValueString);
     }
@@ -671,6 +701,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-086")] // CodexSession.swift:172
     public async Task Compact_sends_thread_compact_start_and_propagates_a_server_error()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("compact");
         var session = StartedSession(runtime, script);
@@ -679,7 +710,7 @@ public sealed class CodexSessionTests
         Run(runtime, task);
         var error = await Assert.ThrowsAsync<RPCError>(() => task);
         Assert.Equal("cannot compact right now", error.Message);
-        var request = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 2)))!;
+        var request = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!;
         Assert.Equal("thread/compact/start", request["method"]!.JSONValueString);
         Assert.Equal("t1", request["params"]!["threadId"]!.JSONValueString);
     }
@@ -690,6 +721,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-087")] // CodexSession.swift:186-203
     public void Rollback_pages_thread_turns_list_in_descending_pages_of_100_counting_to_the_target()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("rollback-page");
         var session = StartedSession(runtime, script);
@@ -703,13 +735,13 @@ public sealed class CodexSessionTests
         var result = Resolved(task);
         Assert.Equal("t1", result);
 
-        var page = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 2)))!;
+        var page = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!;
         Assert.Equal("thread/turns/list", page["method"]!.JSONValueString);
         Assert.Equal(100L, page["params"]!["limit"]!.JSONValueInt);
         Assert.Equal("desc", page["params"]!["sortDirection"]!.JSONValueString);
         Assert.Equal("notLoaded", page["params"]!["itemsView"]!.JSONValueString);
 
-        var rollback = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 3)))!;
+        var rollback = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 4)))!;
         Assert.Equal(3L, rollback["params"]!["numTurns"]!.JSONValueInt); // t3, t2, target: three turns walked
     }
 
@@ -717,6 +749,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-087")] // CodexSession.swift:191-192, 195
     public async Task Rollback_throws_the_exact_message_when_a_page_has_no_data_array_or_a_turn_has_no_id()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("rollback-no-data");
         var session = StartedSession(runtime, script);
@@ -731,6 +764,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-087")] // CodexSession.swift:204
     public async Task Rollback_throws_when_the_target_turn_is_never_found()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("rollback-not-found");
         var session = StartedSession(runtime, script);
@@ -745,6 +779,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-087")] // CodexSession.swift:177-181
     public async Task Rollback_closes_the_connection_after_a_30_second_watchdog()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("rollback-watchdog");
         var session = StartedSession(runtime, script);
@@ -766,6 +801,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-088")] // CodexSession.swift:207-219
     public async Task Rollback_throws_the_exact_message_when_the_server_does_not_confirm_the_rollback()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("rollback-unconfirmed");
         var session = StartedSession(runtime, script);
@@ -782,6 +818,7 @@ public sealed class CodexSessionTests
     [Trait("Req", "PR-PROVCLI-088")] // CodexSession.swift:220-221
     public void Rollback_clears_the_turn_id_and_returns_the_unchanged_thread_id_on_success()
     {
+        using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
         var script = Script("rollback-ok");
         var session = StartedSession(runtime, script);
