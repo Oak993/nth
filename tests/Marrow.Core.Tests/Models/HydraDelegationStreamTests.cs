@@ -229,7 +229,8 @@ public sealed class HydraDelegationStreamTests
     [Fact]
     public void An_unbalanced_closing_brace_at_negative_depth_marks_the_block_complete()
     {
-        var result = HydraPrompts.StreamedDelegationsInBody("}");
+        // The array opens, then an extra "}" with nothing open drives depth to -1.
+        var result = HydraPrompts.StreamedDelegationsInBody("[}");
 
         Assert.True(result.IsComplete);
         Assert.Empty(result.Delegations);
