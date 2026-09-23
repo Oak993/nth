@@ -115,7 +115,7 @@ public static class RealWindowDriver
             {
                 try
                 {
-                    var builder = AppBuilder.Configure<Application>().UseSkia();
+                    var builder = AppBuilder.Configure<Application>().UseSkia().UseHarfBuzz();
                     Win32.GetType("Avalonia.Win32ApplicationExtensions", throwOnError: true)!
                         .GetMethod("UseWin32", BindingFlags.Public | BindingFlags.Static)!
                         .Invoke(null, [builder]);
@@ -130,7 +130,7 @@ public static class RealWindowDriver
                 Dispatcher.UIThread.MainLoop(CancellationToken.None);
             })
             { IsBackground = true, Name = "ResizeStretch Win32 UI" };
-            thread.SetApartmentState(ApartmentState.STA);
+            if (OperatingSystem.IsWindows()) thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
             if (!ready.Task.Wait(TimeSpan.FromSeconds(60))) throw new TimeoutException("the Win32 platform did not start");
             started = true;
