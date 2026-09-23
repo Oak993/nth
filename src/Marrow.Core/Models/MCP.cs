@@ -1,240 +1,323 @@
-using Marrow.Core.Port;
+using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Marrow.Core.Port;
 using Marrow.Core.Support;
+using static Marrow.Core.Port.SwiftDecoding;
 
 namespace Marrow.Core.Models;
 
-// DroppyCode/Core/Models/MCP.swift:4-100.
+// Source: DroppyCode/Core/Models/MCP.swift (B2 1fbf81e), :1-263.
+//
+// resolve(values:) (:152-169) and MCPPaths (:236-253) reach MCPProxy.url(for:) and Storage.root, both
+// Services-layer (HANDOFF section 9, IMPLEMENTING 2.1); they are ported to Marrow.Services (already begun as
+// Marrow.Services.MCP.MCPResolver, architecture V1) once the still-unbuilt Services.Store.Storage unit lands, and
+// are not implemented in this Core file. The Color(rgb:) extension (:255-263) is SwiftUI/SwiftColor territory
+// (ED-095) and out of scope here; this file only stores the ColorValue a SwiftColor is built from elsewhere.
+
+// :39-61 enum MCPCategory: String, CaseIterable, Sendable, Identifiable
+public enum MCPCategory
+{
+    [RawValue("developer")] Developer,
+    [RawValue("browser")] Browser,
+    [RawValue("search")] Search,
+    [RawValue("work")] Work,
+    [RawValue("data")] Data,
+    [RawValue("cloud")] Cloud,
+    [RawValue("knowledge")] Knowledge,
+}
+
+public static class MCPCategoryExtensions
+{
+    // :48 var id: String { rawValue }
+    public static string Id(this MCPCategory category) => SwiftEnum<MCPCategory>.RawValue(category);
+
+    // :50-60 var title: String
+    public static string Title(this MCPCategory category) => category switch
+    {
+        MCPCategory.Developer => "Developer",
+        MCPCategory.Browser => "Browser",
+        MCPCategory.Search => "Search",
+        MCPCategory.Work => "Work",
+        MCPCategory.Data => "Data",
+        MCPCategory.Cloud => "Cloud",
+        MCPCategory.Knowledge => "Knowledge",
+    };
+}
+
+// :5-15 enum MCPTransport: Sendable, Hashable (not Codable; R-ENUM-2 associated-value union)
 public abstract record MCPTransport
 {
     private MCPTransport() { }
-    public sealed record Stdio(string Command, IReadOnlyList<string> Args) : MCPTransport
-    {
-        private IReadOnlyList<string> _args = MCPValues.List(Args);
-        public IReadOnlyList<string> Args { get => _args; init => _args = MCPValues.List(value); }
-    }
-    public sealed record Http(string Url, IReadOnlyDictionary<string, string> Headers) : MCPTransport
-    {
-        private IReadOnlyDictionary<string, string> _headers = MCPValues.Map(Headers);
-        public IReadOnlyDictionary<string, string> Headers { get => _headers; init => _headers = MCPValues.Map(value); }
-    }
-    public sealed record OAuth(string Url) : MCPTransport;
+
+    // :8 A local process speaking JSON-RPC over stdio.
+    public sealed record Stdio(string Command, ValueList<string> Args) : MCPTransport;
+
+    // :10 A remote streamable-HTTP server.
+    public sealed record Http(string Url, ValueMap<string, string> Headers) : MCPTransport;
+
+    // :14 A remote server behind OAuth, proxied through MCPProxy (Services).
+    public sealed record Oauth(string Url) : MCPTransport;
 }
 
+// :18-37 struct MCPField: Sendable, Hashable, Identifiable
 public sealed record MCPField(string Key, string Label, string Placeholder,
     MCPField.Kind FieldKind = MCPField.Kind.Secret, string? Help = null,
     string? DefaultValue = null, bool IsRequired = true)
 {
+    // :19-23 enum Kind: Sendable, Hashable (no raw value)
     public enum Kind { Secret, Text, Path }
+
+    // :36 var id: String { key }
     public string Id => Key;
 }
 
-public enum MCPCategory { Developer, Browser, Search, Work, Data, Cloud, Knowledge }
-
-public static class MCPCategoryExtensions
-{
-    public static string Id(this MCPCategory category) => category switch
-    {
-        MCPCategory.Developer => "developer", MCPCategory.Browser => "browser",
-        MCPCategory.Search => "search", MCPCategory.Work => "work", MCPCategory.Data => "data",
-        MCPCategory.Cloud => "cloud", MCPCategory.Knowledge => "knowledge",
-        _ => throw new ArgumentOutOfRangeException(nameof(category))
-    };
-
-    public static string Title(this MCPCategory category) => category switch
-    {
-        MCPCategory.Developer => "Developer", MCPCategory.Browser => "Browser",
-        MCPCategory.Search => "Search", MCPCategory.Work => "Work", MCPCategory.Data => "Data",
-        MCPCategory.Cloud => "Cloud", MCPCategory.Knowledge => "Knowledge",
-        _ => throw new ArgumentOutOfRangeException(nameof(category))
-    };
-}
-
+// :65-101 struct MCPCatalogEntry: Sendable, Hashable, Identifiable
 public sealed record MCPCatalogEntry(string Id, string Name, string Vendor, string Summary,
-    MCPCategory Category, string Asset, uint ColorValue, MCPTransport Transport, string DocsUrl)
+    MCPCategory Category, string Asset, uint ColorValue, MCPTransport Transport, string DocsURL)
 {
+    // :79 var isMonochrome = false
     public bool IsMonochrome { get; init; }
-    private IReadOnlyList<MCPField> _fields = MCPValues.List<MCPField>([]);
-    private IReadOnlyDictionary<string, string> _env = MCPValues.Map(new Dictionary<string, string>());
-    private IReadOnlyList<string> _sampleTools = MCPValues.List<string>([]);
-    public IReadOnlyList<MCPField> Fields { get => _fields; init => _fields = MCPValues.List(value); }
-    public IReadOnlyDictionary<string, string> Env { get => _env; init => _env = MCPValues.Map(value); }
-    public IReadOnlyList<string> SampleTools { get => _sampleTools; init => _sampleTools = MCPValues.List(value); }
-    public string? KeysUrl { get; init; }
+
+    // :81 var fields: [MCPField] = []
+    public ValueList<MCPField> Fields { get; init; } = ValueList<MCPField>.Empty;
+
+    // :83 var env: [String: String] = [:]
+    public ValueMap<string, string> Env { get; init; } = ValueMap<string, string>.Empty;
+
+    // :86 var sampleTools: [String] = []
+    public ValueList<string> SampleTools { get; init; } = ValueList<string>.Empty;
+
+    // :90 var keysURL: String? = nil
+    public string? KeysURL { get; init; }
+
+    // :95 var needsInput: Bool { fields.contains { $0.isRequired } }
     public bool NeedsInput => Fields.Any(item => item.IsRequired);
-    public bool IsOAuth => Transport is MCPTransport.OAuth;
 
-    public string? OAuthUrl(IReadOnlyDictionary<string, string>? values = null) =>
-        Transport is MCPTransport.OAuth oauth ? Fill(oauth.Url, values) : null;
+    // :97-100 var isOAuth: Bool
+    public bool IsOAuth => Transport is MCPTransport.Oauth;
 
-    public string Fill(string text, IReadOnlyDictionary<string, string>? values)
+    // :127-130 func oauthURL(values: [String: String] = [:]) -> String?
+    public string? OauthURL(ValueMap<string, string>? values = null) =>
+        Transport is MCPTransport.Oauth oauth ? Fill(oauth.Url, values ?? ValueMap<string, string>.Empty) : null;
+
+    // :135-150 func fill(_ text: String, values: [String: String]) -> String
+    public string Fill(string text, ValueMap<string, string> values)
     {
         var output = text;
-        foreach (var field in Fields)
+        foreach (var field in Fields) // :137
         {
-            var value = values is not null && values.TryGetValue(field.Key, out var supplied) && supplied.Length > 0
-                ? supplied : field.DefaultValue ?? "";
-            var token = "{" + field.Key + "}";
-            if (output.Contains("://" + token, StringComparison.Ordinal))
+            // :138 values[field.key].flatMap { $0.isEmpty ? nil : $0 } ?? field.defaultValue ?? ""
+            var typed = values.TryGetValue(field.Key, out var supplied) && supplied.Length > 0 ? supplied : null;
+            var value = typed ?? field.DefaultValue ?? "";
+            var token = "{" + field.Key + "}"; // :139
+            if (ContainsCanonical(output, "://" + token)) // :140
             {
-                value = FoundationText.Trim(value, includeNewlines: true);
-                foreach (var scheme in new[] { "https://", "http://" })
-                    if (value.StartsWith(scheme, StringComparison.OrdinalIgnoreCase)) value = value[scheme.Length..];
-                value = value.TrimEnd('/');
+                value = FoundationText.Trim(value, includeNewlines: true); // :141
+                foreach (var scheme in new[] { "https://", "http://" }) // :142, no break: both schemes are tried in order
+                    if (SwiftString.HasPrefix(SwiftString.Lowercased(value), scheme))
+                        value = SwiftString.DropFirst(value, SwiftString.Count(scheme)); // :143
+                while (SwiftString.HasSuffix(value, "/")) value = SwiftString.DropLast(value); // :145
             }
-            output = output.Replace(token, value, StringComparison.Ordinal);
+            output = ReplaceAllCanonical(output, token, value); // :147
         }
-        return output;
+        return output; // :149
+    }
+
+    // Swift `contains` over Characters, canonical equivalence (R-STR-2 extended to a substring search: no shared
+    // helper exists for `contains`/`replacingOccurrences`, so this file owns the two it needs).
+    private static bool ContainsCanonical(string text, string other)
+    {
+        if (other.Length == 0) return true;
+        var haystack = SwiftString.Characters(text).ToArray();
+        var needle = SwiftString.Characters(other).ToArray();
+        for (var start = 0; start <= haystack.Length - needle.Length; start++)
+            if (MatchesAt(haystack, start, needle)) return true;
+        return false;
+    }
+
+    // Swift `replacingOccurrences(of:with:)` with no `.literal` option: canonical equivalence, left to right,
+    // non-overlapping (Foundation's own behaviour, matched over Characters rather than NSString UTF-16 units).
+    private static string ReplaceAllCanonical(string text, string token, string value)
+    {
+        var haystack = SwiftString.Characters(text).ToArray();
+        var needle = SwiftString.Characters(token).ToArray();
+        if (needle.Length == 0) return text;
+        var result = new StringBuilder();
+        var i = 0;
+        while (i < haystack.Length)
+        {
+            if (i + needle.Length <= haystack.Length && MatchesAt(haystack, i, needle))
+            {
+                result.Append(value);
+                i += needle.Length;
+            }
+            else
+            {
+                result.Append(haystack[i]);
+                i++;
+            }
+        }
+        return result.ToString();
+    }
+
+    private static bool MatchesAt(string[] haystack, int start, string[] needle)
+    {
+        for (var i = 0; i < needle.Length; i++)
+            if (!SwiftString.Equal(haystack[start + i], needle[i])) return false;
+        return true;
     }
 }
 
-// The Swift proxy dependency is resolved in Marrow.Services.MCP.MCPResolver (architecture V1).
+// :104-119 struct MCPResolvedServer: Sendable, Hashable, Identifiable
+// The Swift extension that builds one, resolve(values:) (:152-169), needs MCPProxy (Services) and lives in
+// Marrow.Services.MCP.MCPResolver.
 public sealed record MCPResolvedServer(string Id, string Name)
 {
+    // :108 Set for a local server.
     public string? Command { get; init; }
-    private IReadOnlyList<string> _args = MCPValues.List<string>([]);
-    private IReadOnlyDictionary<string, string> _env = MCPValues.Map(new Dictionary<string, string>());
-    private IReadOnlyDictionary<string, string> _headers = MCPValues.Map(new Dictionary<string, string>());
-    public IReadOnlyList<string> Args { get => _args; init => _args = MCPValues.List(value); }
-    public IReadOnlyDictionary<string, string> Env { get => _env; init => _env = MCPValues.Map(value); }
+
+    // :109 var args: [String] = []
+    public ValueList<string> Args { get; init; } = ValueList<string>.Empty;
+
+    // :110 var env: [String: String] = [:]
+    public ValueMap<string, string> Env { get; init; } = ValueMap<string, string>.Empty;
+
+    // :112 Set for a remote streamable-HTTP server.
     public string? Url { get; init; }
-    public IReadOnlyDictionary<string, string> Headers { get => _headers; init => _headers = MCPValues.Map(value); }
-    public string? OAuthUpstream { get; init; }
+
+    // :113 var headers: [String: String] = [:]
+    public ValueMap<string, string> Headers { get; init; } = ValueMap<string, string>.Empty;
+
+    // :116 For an OAuth server, the remote address behind the proxy route in `url`.
+    public string? OauthUpstream { get; init; }
+
+    // :118 var isRemote: Bool { url != nil }
     public bool IsRemote => Url is not null;
 }
 
+// :173-177 struct MCPToolSummary: Codable, Sendable, Hashable, Identifiable
 [JsonConverter(typeof(MCPToolSummaryConverter))]
-public sealed record MCPToolSummary(
-    [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("summary")] string? Summary = null)
+public sealed record MCPToolSummary(string Name, string? Summary = null)
 {
-    [JsonIgnore] public string Id => Name;
+    // :176 var id: String { name }, computed, never coded
+    public string Id => Name;
+
+    public static MCPToolSummary Read(JsonElement e) =>
+        new(Decode(e, "name", ReadString), DecodeIfPresent(e, "summary", ReadString));
+
+    public void Write(Utf8JsonWriter w)
+    {
+        w.WriteStartObject();
+        w.WriteString("name", Name);
+        if (Summary is not null) w.WriteString("summary", Summary);
+        w.WriteEndObject();
+    }
 }
 
-internal sealed class MCPToolSummaryConverter : JsonConverter<MCPToolSummary>
+// R-CODE-1/R-CODE-3: the hand-written reader/writer every persisted type gets; never System.Text.Json default binding.
+public sealed class MCPToolSummaryConverter : JsonConverter<MCPToolSummary>
 {
     public override bool HandleNull => true;
 
     public override MCPToolSummary Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         using var document = JsonDocument.ParseValue(ref reader);
-        var root = document.RootElement;
-        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("name", out var name) || name.ValueKind != JsonValueKind.String)
-            throw new JsonException();
-        string? summary = null;
-        if (root.TryGetProperty("summary", out var value) && value.ValueKind != JsonValueKind.Null)
-        {
-            if (value.ValueKind != JsonValueKind.String) throw new JsonException();
-            summary = value.GetString();
-        }
-        return new(name.GetString()!, summary);
+        return MCPToolSummary.Read(document.RootElement);
     }
 
     public override void Write(Utf8JsonWriter writer, MCPToolSummary value, JsonSerializerOptions options)
     {
         if (value is null) { writer.WriteNullValue(); return; }
-        writer.WriteStartObject();
-        writer.WriteString("name", value.Name);
-        if (value.Summary is not null) writer.WriteString("summary", value.Summary);
-        writer.WriteEndObject();
+        value.Write(writer);
     }
 }
 
-// Construction defaults do not make synthesized Swift Codable fields optional during decoding.
+// :179-184 struct MCPProbeResult: Sendable, Hashable (not Codable)
+public sealed record MCPProbeResult(string? ServerName, string? ServerVersion, ValueList<MCPToolSummary> Tools);
+
+// :188-199 struct MCPConnection: Codable, Sendable, Hashable, Identifiable
 [JsonConverter(typeof(MCPConnectionConverter))]
 public sealed record MCPConnection(string CatalogID)
 {
+    // :191 var isEnabled = true. Synthesized Decodable still requires the key (R-CODE-1).
     public bool IsEnabled { get; init; } = true;
-    private IReadOnlyDictionary<string, string> _values = MCPValues.Map(new Dictionary<string, string>());
-    private IReadOnlyList<MCPToolSummary> _tools = MCPValues.List<MCPToolSummary>([]);
-    public IReadOnlyDictionary<string, string> Values { get => _values; init => _values = MCPValues.Map(value); }
+
+    // :193 var values: [String: String] = [:]
+    public ValueMap<string, string> Values { get; init; } = ValueMap<string, string>.Empty;
+
+    // :194 var connectedAt: Date?
     public DateTimeOffset? ConnectedAt { get; init; }
+
+    // :195 var serverVersion: String?
     public string? ServerVersion { get; init; }
-    public IReadOnlyList<MCPToolSummary> Tools { get => _tools; init => _tools = MCPValues.List(value); }
+
+    // :196 var tools: [MCPToolSummary] = []
+    public ValueList<MCPToolSummary> Tools { get; init; } = ValueList<MCPToolSummary>.Empty;
+
+    // :198 var id: String { catalogID }
     public string Id => CatalogID;
 }
 
-// Swift arrays/dictionaries are values: copying and content equality must survive the C# boundary.
-internal static class MCPValues
-{
-    public static IReadOnlyList<T> List<T>(IEnumerable<T> values) => new ValueList<T>(values);
-    public static IReadOnlyDictionary<string, string> Map(IReadOnlyDictionary<string, string> values) => new ValueMap(values);
-
-    private sealed class ValueList<T>(IEnumerable<T> values) : System.Collections.ObjectModel.ReadOnlyCollection<T>(values.ToArray())
-    {
-        public override bool Equals(object? obj) => obj is ValueList<T> other && this.SequenceEqual(other);
-        public override int GetHashCode()
-        {
-            var hash = new HashCode();
-            foreach (var item in this) hash.Add(item);
-            return hash.ToHashCode();
-        }
-    }
-
-    private sealed class ValueMap(IReadOnlyDictionary<string, string> values) :
-        System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(values.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal))
-    {
-        public override bool Equals(object? obj) => obj is ValueMap other && Count == other.Count
-            && this.All(pair => other.TryGetValue(pair.Key, out var value) && pair.Value == value);
-        public override int GetHashCode()
-        {
-            var hash = 0;
-            foreach (var pair in this) hash ^= HashCode.Combine(pair.Key, pair.Value);
-            return hash;
-        }
-    }
-}
-
-internal sealed class MCPConnectionConverter : JsonConverter<MCPConnection>
+public sealed class MCPConnectionConverter : JsonConverter<MCPConnection>
 {
     public override bool HandleNull => true;
 
     public override MCPConnection Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         using var document = JsonDocument.ParseValue(ref reader);
-        var root = document.RootElement;
-        var id = Required(root, "catalogID", JsonValueKind.String).GetString()!;
-        if (!root.TryGetProperty("isEnabled", out var enabled) || enabled.ValueKind is not (JsonValueKind.True or JsonValueKind.False)) throw new JsonException();
-        var values = new Dictionary<string, string>();
-        foreach (var pair in Required(root, "values", JsonValueKind.Object).EnumerateObject())
+        var e = document.RootElement;
+        return new(Decode(e, "catalogID", ReadString))
         {
-            if (pair.Value.ValueKind != JsonValueKind.String) throw new JsonException();
-            values[pair.Name] = pair.Value.GetString()!;
-        }
-        var tools = new List<MCPToolSummary>();
-        foreach (var tool in Required(root, "tools", JsonValueKind.Array).EnumerateArray())
-            tools.Add(new(Required(tool, "name", JsonValueKind.String).GetString()!, OptionalString(tool, "summary")));
-        DateTimeOffset? date = null;
-        if (root.TryGetProperty("connectedAt", out var dateElement) && dateElement.ValueKind != JsonValueKind.Null)
-            date = dateElement.Deserialize<DateTimeOffset>(options);
-        return new(id) { IsEnabled = enabled.GetBoolean(), Values = values, Tools = tools,
-            ConnectedAt = date, ServerVersion = OptionalString(root, "serverVersion") };
+            IsEnabled = Decode(e, "isEnabled", ReadBool),
+            Values = Decode(e, "values", a => ReadMap(a, ReadString)),
+            ConnectedAt = DecodeIfPresentValue(e, "connectedAt", ReadStorageDate),
+            ServerVersion = DecodeIfPresent(e, "serverVersion", ReadString),
+            Tools = Decode(e, "tools", a => ReadArray(a, MCPToolSummary.Read)),
+        };
     }
 
-    private static JsonElement Required(JsonElement root, string key, JsonValueKind kind)
+    public override void Write(Utf8JsonWriter w, MCPConnection value, JsonSerializerOptions options)
     {
-        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(key, out var value) || value.ValueKind != kind) throw new JsonException();
-        return value;
+        if (value is null) { w.WriteNullValue(); return; }
+        w.WriteStartObject();
+        w.WriteString("catalogID", value.CatalogID);
+        w.WriteBoolean("isEnabled", value.IsEnabled);
+        w.WriteStartObject("values");
+        foreach (var pair in value.Values) w.WriteString(pair.Key, pair.Value);
+        w.WriteEndObject();
+        if (value.ConnectedAt is { } date) w.WriteString("connectedAt", FoundationISO8601.Format(date));
+        if (value.ServerVersion is not null) w.WriteString("serverVersion", value.ServerVersion);
+        w.WriteStartArray("tools");
+        foreach (var tool in value.Tools) tool.Write(w);
+        w.WriteEndArray();
+        w.WriteEndObject();
     }
+}
 
-    private static string? OptionalString(JsonElement root, string key)
-    {
-        if (!root.TryGetProperty(key, out var value) || value.ValueKind == JsonValueKind.Null) return null;
-        if (value.ValueKind != JsonValueKind.String) throw new JsonException();
-        return value.GetString();
-    }
+// :203-215 struct MCPSetupGuide: Sendable, Hashable (not Codable)
+public sealed record MCPSetupGuide(string Title, string Reason, ValueList<string> Steps, string PageLabel, string PageURL, string? Note = null);
 
-    public override void Write(Utf8JsonWriter writer, MCPConnection value, JsonSerializerOptions options)
-    {
-        if (value is null) { writer.WriteNullValue(); return; }
-        writer.WriteStartObject();
-        writer.WriteString("catalogID", value.CatalogID);
-        writer.WriteBoolean("isEnabled", value.IsEnabled);
-        writer.WritePropertyName("values"); JsonSerializer.Serialize(writer, value.Values, options);
-        if (value.ConnectedAt is { } date) { writer.WritePropertyName("connectedAt"); JsonSerializer.Serialize(writer, date, options); }
-        if (value.ServerVersion is not null) writer.WriteString("serverVersion", value.ServerVersion);
-        writer.WritePropertyName("tools"); JsonSerializer.Serialize(writer, value.Tools, options);
-        writer.WriteEndObject();
-    }
+// :218-232 enum MCPConnectionState: Sendable, Hashable (not Codable; R-ENUM-2 associated-value union)
+public abstract record MCPConnectionState
+{
+    private MCPConnectionState() { }
+
+    public sealed record NotConnected : MCPConnectionState;
+
+    public sealed record Connecting : MCPConnectionState;
+
+    public sealed record Connected(long ToolCount) : MCPConnectionState;
+
+    public sealed record Failed(string Message) : MCPConnectionState;
+
+    // :224 Signed in or keyed correctly, but the server itself needs a step on its side first.
+    public sealed record NeedsSetup(MCPSetupGuide Guide) : MCPConnectionState;
+
+    // :227-228 var isConnected: Bool
+    public bool IsConnected => this is Connected;
+
+    // :231 var isConnecting: Bool { self == .connecting }
+    public bool IsConnecting => this is Connecting;
 }
