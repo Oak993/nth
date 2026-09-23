@@ -6,7 +6,7 @@ using Marrow.Testing;
 
 namespace Marrow.Core.Tests.Support;
 
-// Shell.swift:1-134 and :218-325: ShellResult, ShellError, Shell.run with its deadline and termination ladder,
+// Shell.swift:1-134 and :218-325: ShellResult, ShellError, Shell.run with its deadline and termination ladder, run(tool:),
 // OnceContinuation and OutputCollector. Expectations come from the Swift lines cited on each test and from the records;
 // the Windows ladder is ED-047 (a) as ED-126 applies it (CTRL_BREAK_EVENT to the child's group, TerminateJobObject one
 // second later). Which exit status a killed child reports is an open owner question (ED-126), so no test pins it
@@ -122,6 +122,31 @@ public sealed class ShellTests
             environment: environment).WaitAsync(Bound);
         Assert.Equal(0, result.Status);
         Assert.Equal("probe-value||", result.Output);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-081")] // Core/Support/Shell.swift:40,49
+    [Trait("Decision", "ED-170")]
+    public async Task Without_an_environment_the_child_gets_LoginEnvironment_current()
+    {
+        using var runtime = new TestRuntime();
+        var names = new[] { "PATH", "LANG", "MARROW_PORT_DATA_DIR" }.Concat(LoginEnvironmentSamples.ExcludedKeys).ToArray();
+        var result = await Shell.Run(SystemTools.PowerShell, ShellScripts.Arguments(ShellScripts.ReportVariables(names)))
+            .WaitAsync(Bound);
+        Assert.Equal(0, result.Status);
+        var host = ShellScripts.HostEnvironment();
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        // current is the host's environment without the fifteen excluded keys, with the augmented PATH and a LANG
+        // (Shell.swift:455-460 as ED-170 (2) applies it), so a child that inherited the host's own would differ.
+        var expected = new List<string>
+        {
+            "PATH=" + LoginEnvironmentSamples.ExpectedAugmentedPath(host.GetValueOrDefault("PATH"), home),
+            "LANG=" + (host.GetValueOrDefault("LANG") ?? "en_US.UTF-8"),
+            "MARROW_PORT_DATA_DIR=" + host["MARROW_PORT_DATA_DIR"],
+        };
+        expected.AddRange(LoginEnvironmentSamples.ExcludedKeys.Select(name => name + "!"));
+        Assert.Equal(expected, result.Output.Split('\n'));
+        Assert.Equal(LoginEnvironmentSamples.ExpectedAugmentedPath(host.GetValueOrDefault("PATH"), home), LoginEnvironment.Current["PATH"]);
     }
 
     [Fact]
@@ -311,6 +336,88 @@ public sealed class ShellTests
         Assert.False(SpinWait.SpinUntil(() => handle.Value.IsCompleted, TimeSpan.FromMilliseconds(500)), "the child ended on the stop request");
         runtime.Advance(TimeSpan.FromSeconds(1));
         await Assert.ThrowsAsync<CancellationError>(() => handle.Value.WaitAsync(Bound));
+    }
+
+    // ---- Shell.run(tool:) (:120-133) ----
+
+    [Fact]
+    [Trait("Req", "PR-TERM-090")] // Core/Support/Shell.swift:120-131
+    public async Task RunTool_throws_the_named_not_found_error_when_the_tool_is_not_on_the_login_PATH()
+    {
+        using var runtime = new TestRuntime();
+        var name = "marrow-no-such-tool-" + Guid.NewGuid().ToString("N");
+        // An async throw: the call returns a task, and the error comes out of the await.
+        var run = Shell.RunTool(name, ["--version"]);
+        var error = await Assert.ThrowsAsync<ShellError>(() => run.WaitAsync(Bound));
+        Assert.Equal(name + " was not found on your PATH.", error.ErrorDescription);
+        Assert.Equal(name + " was not found on your PATH.", SwiftErrors.LocalizedDescription(error));
+        // Nothing was launched, so no deadline was armed.
+        Assert.Equal(0, runtime.Time.ActiveTimers);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-090")] // Core/Support/Shell.swift:129
+    public async Task RunTool_looks_the_tool_up_on_the_login_PATH_not_on_the_PATH_of_the_environment_it_is_given()
+    {
+        using var runtime = new TestRuntime();
+        var folder = ProcessTestFolders.Create("shell tool elsewhere");
+        var name = "marrow-tool-" + Guid.NewGuid().ToString("N");
+        ProcessTestFolders.Touch(folder, name + ".exe");
+        var environment = ShellScripts.HostEnvironment();
+        environment["PATH"] = folder;
+        // which(name) is called without the environment (:129), so only current's PATH is searched.
+        var error = await Assert.ThrowsAsync<ShellError>(() => Shell.RunTool(name, [], environment: environment).WaitAsync(Bound));
+        Assert.Equal(name + " was not found on your PATH.", error.ErrorDescription);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-090")] // Core/Support/Shell.swift:129,132
+    public async Task RunTool_runs_the_resolved_tool_with_the_given_directory_environment_and_input()
+    {
+        using var runtime = new TestRuntime();
+        var folder = ProcessTestFolders.Create("shell tool run");
+        var environment = ShellScripts.HostEnvironment();
+        environment["MARROW_SHELL_PROBE"] = "tool-probe";
+        var script = "$i=[Console]::In.ReadToEnd(); " +
+            ShellScripts.WriteText("$i + '|' + $env:MARROW_SHELL_PROBE + '|' + [Environment]::CurrentDirectory");
+        // A name holding '\' is a path to which, found without a PATH search (ED-031 (3)).
+        var result = await Shell.RunTool(SystemTools.PowerShell, ShellScripts.Arguments(script), folder, environment,
+            ShellScripts.Utf8("stdin-text")).WaitAsync(Bound);
+        Assert.Equal(0, result.Status);
+        Assert.Equal("stdin-text|tool-probe|" + Path.GetFullPath(folder), result.Output);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-090")] // Core/Support/Shell.swift:127,132
+    [Trait("Req", "PR-TERM-084")] // Core/Support/Shell.swift:81-85
+    [Trait("Decision", "ED-047")]
+    public async Task RunTool_forwards_its_timeout_to_the_deadline()
+    {
+        using var runtime = new TestRuntime();
+        var armed = Path.Join(ProcessTestFolders.Create("shell tool timeout"), "armed");
+        var run = Shell.RunTool(SystemTools.PowerShell, ShellScripts.Arguments(ShellScripts.BreakChild(exitsOnBreak: true, armed)),
+            timeout: 7);
+        Assert.True(Eventually(() => File.Exists(armed)), "the child never armed its Ctrl+Break handler");
+        Assert.True(Eventually(() => runtime.Time.ActiveTimers == 1), "no deadline was armed");
+        runtime.Advance(TimeSpan.FromSeconds(7) - TimeSpan.FromTicks(1));
+        Assert.False(run.IsCompleted);
+        runtime.Advance(TimeSpan.FromTicks(1));
+        var result = await run.WaitAsync(Bound);
+        Assert.Equal(ShellScripts.BreakExitCode, result.Status);
+        Assert.Equal(ShellScripts.BreakSeen, result.Output);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-091")] // Core/Support/Shell.swift:120-133
+    public async Task RunTool_has_no_outputLimit_so_a_tool_run_by_name_keeps_its_whole_output()
+    {
+        using var runtime = new TestRuntime();
+        var parameters = typeof(Shell).GetMethod(nameof(Shell.RunTool))!.GetParameters().Select(p => p.Name).ToArray();
+        Assert.Equal(new[] { "tool", "arguments", "in", "environment", "input", "timeout" }, parameters);
+        var result = await Shell.RunTool(SystemTools.PowerShell, ShellScripts.Arguments(
+            ShellScripts.WritePattern("Output", 300_000, 7_000) + ShellScripts.WritePattern("Error", 70_000, 3_000))).WaitAsync(Bound);
+        Assert.Equal(ShellScripts.Pattern(300_000), result.Stdout);
+        Assert.Equal(ShellScripts.Pattern(70_000), result.Stderr);
     }
 
     // ---- OnceContinuation (:218-243) ----

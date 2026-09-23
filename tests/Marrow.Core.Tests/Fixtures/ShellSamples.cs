@@ -111,4 +111,101 @@ public static class ShellScripts
     }
 
     public static byte[] Utf8(string text) => Encoding.UTF8.GetBytes(text);
+
+    /// <summary>
+    /// A script that writes, one per line, "NAME=value" for each of <paramref name="names"/> the child has in its
+    /// environment and "NAME!" for each it lacks.
+    /// </summary>
+    public static string ReportVariables(IEnumerable<string> names) =>
+        "$t = (@(" + string.Join(",", names.Select(name => "'" + name + "'")) + ") | ForEach-Object { " +
+        "$v = [Environment]::GetEnvironmentVariable($_); if ($null -eq $v) { $_ + '!' } else { $_ + '=' + $v } }) -join [char]10; " +
+        WriteText("$t");
 }
+
+/// <summary>Inputs and independently written expectations for the LoginEnvironment tests (Shell.swift:327-462).</summary>
+public static class LoginEnvironmentSamples
+{
+    /// <summary>Shell.swift:335-339, all 15 names, in source order.</summary>
+    public static readonly string[] ExcludedKeys =
+    [
+        "_", "SHLVL", "PWD", "OLDPWD", "TERM", "TERM_PROGRAM", "TERM_PROGRAM_VERSION",
+        "TERM_SESSION_ID", "COLORTERM", "ITERM_SESSION_ID", "XPC_SERVICE_NAME",
+        "__CFBundleIdentifier", "CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_SSE_PORT",
+    ];
+
+    /// <summary>The seven absolute macOS locations of Shell.swift:445-447 that ED-170 (1) does not append.</summary>
+    public static readonly string[] MacOSEntries =
+        ["/opt/homebrew/bin", "/opt/homebrew/sbin", "/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"];
+
+    /// <summary>Shell.swift:445-446 with ED-170 (1): the five entries under <paramref name="home"/>, in the Swift order.</summary>
+    public static string[] HomeEntries(string home) =>
+    [
+        Path.Join(home, ".local", "bin"), Path.Join(home, ".bun", "bin"), Path.Join(home, ".cargo", "bin"),
+        Path.Join(home, ".npm-global", "bin"), Path.Join(home, ".volta", "bin"),
+    ];
+
+    /// <summary>
+    /// ED-170 (1) written out for a real PATH: the non-empty ';' pieces, then each home entry no piece equals ignoring
+    /// letter case after one trailing separator is trimmed. (On real paths OrdinalIgnoreCase and the Windows ordinal
+    /// table agree; the one pair where they differ has its own test.)
+    /// </summary>
+    public static string ExpectedAugmentedPath(string? path, string home)
+    {
+        var entries = (path ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
+        foreach (var directory in HomeEntries(home))
+        {
+            if (!entries.Any(entry => string.Equals(entry.EndsWith('\\') || entry.EndsWith('/') ? entry[..^1] : entry, directory,
+                    StringComparison.OrdinalIgnoreCase)))
+                entries.Add(directory);
+        }
+        return string.Join(";", entries);
+    }
+
+    /// <summary>A case-insensitive environment, as ED-128 (1) has every environment dictionary.</summary>
+    public static Dictionary<string, string> Environment(params (string Name, string Value)[] variables)
+    {
+        var environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (name, value) in variables) environment[name] = value;
+        return environment;
+    }
+
+    /// <summary>The same names and values as the pairs, for Fallback's process environment.</summary>
+    public static List<KeyValuePair<string, string>> Pairs(params (string Name, string Value)[] variables) =>
+        variables.Select(variable => new KeyValuePair<string, string>(variable.Name, variable.Value)).ToList();
+
+    /// <summary>A folder under MARROW_PORT_DATA_DIR standing in for the home folder, with empty files at the given relative paths.</summary>
+    public static string Home(params string[] files)
+    {
+        var home = ProcessTestFolders.Create("login home");
+        foreach (var file in files)
+        {
+            var path = Path.Join(home, file);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllBytes(path, []);
+        }
+        return home;
+    }
+}
+
+/// <summary>
+/// Sets one variable of the test process's own environment and puts the old value back on Dispose. Used only in the
+/// "Login environment" collection, which runs alone (R-TEST-5).
+/// </summary>
+public sealed class ProcessVariable : IDisposable
+{
+    private readonly string name;
+    private readonly string? previous;
+
+    public ProcessVariable(string name, string? value)
+    {
+        this.name = name;
+        previous = System.Environment.GetEnvironmentVariable(name);
+        System.Environment.SetEnvironmentVariable(name, value);
+    }
+
+    public void Dispose() => System.Environment.SetEnvironmentVariable(name, previous);
+}
+
+/// <summary>Tests that read or change process-wide state: LoginEnvironment's own load, and the process's PATHEXT.</summary>
+[CollectionDefinition("Login environment", DisableParallelization = true)]
+public sealed class LoginEnvironmentCollection;
