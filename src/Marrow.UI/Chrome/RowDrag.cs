@@ -3,8 +3,7 @@ using Marrow.Core.Port;
 namespace Marrow.UI.Chrome;
 
 // Source: DroppyCode/UI/Chrome/RowDrag.swift (B2 1fbf81e), :1-62.
-// Records: PR-SIDEBAR-051 (its source_evidence cites RowDrag.swift:41-77 and :36, line numbers that do not exist in
-// the 62-line B2 file; the code it quotes is B2 :29-61 and :33, which is what the citations below use).
+// Records: PR-SIDEBAR-051.
 // Callers: SidebarView.swift:33 and FollowUpQueueTab.swift:35 (`RowDrag<UUID>`), ModelsSettingsPage.swift:9
 // (`RowDrag<ModelPin>`).
 
@@ -16,12 +15,11 @@ namespace Marrow.UI.Chrome;
 /// <remarks>
 /// :7. <c>struct RowDrag&lt;ID: Hashable&gt;</c> is an immutable sealed record (R-VAL-1, ED-077); the memberwise
 /// <c>RowDrag(id:)</c> and <c>RowDrag()</c> are object initializers. Hashable maps to <c>IEquatable&lt;TID&gt;</c>
-/// (R-PROTO-1). ENGINEERING DECISION: <c>var id: ID?</c> is a real optional (R-COND-1, <c>T?</c> is <c>T?</c>), and
-/// C# makes <c>TID?</c> a <c>Nullable&lt;TID&gt;</c> only under a <c>struct</c> constraint; without it a default
-/// <c>RowDrag&lt;Guid&gt;</c> would hold Guid.Empty instead of nil and <c>guard let id</c> (:36) could not fail.
-/// So TID is constrained to value types, which UUID (Guid) satisfies; ModelsSettingsPage.swift:9's
-/// <c>RowDrag&lt;ModelPin&gt;</c> needs ModelPin (AppSettings.swift:96, a struct of a ProviderKind and a String)
-/// ported as a value type when that App unit comes.
+/// (R-PROTO-1). Per ED-149: <c>var id: ID?</c> is a real optional (R-COND-1). TID is constrained to
+/// <c>struct</c> so that <c>TID?</c> is <c>Nullable&lt;TID&gt;</c>, and a default <c>RowDrag&lt;Guid&gt;</c> holds
+/// nil, not Guid.Empty, which :36's <c>guard let id</c> requires. UUID is Guid, and ModelsSettingsPage.swift:9's
+/// <c>RowDrag&lt;ModelPin&gt;</c> is handled on the App side, where ModelPin (AppSettings.swift:96-101) is ported
+/// as a readonly record struct under ED-149.
 /// </remarks>
 public sealed record RowDrag<TID> where TID : struct, IEquatable<TID>
 {
