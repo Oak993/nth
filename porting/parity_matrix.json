@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 597,
+      "IMPLEMENTED": 617,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 3282,
+      "SPECIFIED": 3262,
       "RETIRED": 6,
       "DISCOVERED": 28
     },
@@ -28444,7 +28444,7 @@
       "cancellation": "the whole probe runs inside a cancellable task",
       "windows_path": "Same precedence: command wins over url.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28470,7 +28470,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three params verbatim. The clientInfo name is \"Marrow\" (OD-0012 F1); the version \"1.0\" is a literal unrelated to the app version and stays \"1.0\". The installed JavaScript bridge deliberately sends no version and no protocol header (PR-MCP-196) - do not normalize the three clients.",
       "verification_method": "contract fixture capturing the initialize payload from all three clients",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -28501,7 +28501,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same envelope and the same id sequence, since a server may echo ids back out of order and the reader matches on them.",
       "verification_method": "contract fixture on the wire bytes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28526,7 +28526,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the object-only check and the \"unknown error\" fallback.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28551,7 +28551,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Note the in-app hub keeps a 400-character description instead (PR-MCP-182) - the two clients differ deliberately.",
       "verification_method": "unit with a multi-line description, an empty first line and a nameless tool",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -28578,7 +28578,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Resolution must honour PATHEXT and find npx.cmd, uvx.exe and the like. The uvx message is the OD-0008 B5 wording naming winget; the npx and generic messages carry over verbatim.",
       "verification_method": "unit over the three message branches plus a Windows PATHEXT resolution test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -28608,7 +28608,7 @@
       "cancellation": "the deadline check runs inside the polling loop alongside the cancellation check",
       "windows_path": "Implement the branch exactly, but design no 240-second wait into the built-in server experience; the real OAuth retry comes from the HTTP path.",
       "verification_method": "unit on the two deadlines",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28633,7 +28633,7 @@
       "cancellation": "the deferred cleanup runs on every exit path, including cancellation: handlers detached, process terminated, stdin closed",
       "windows_path": "Same layering and the same working directory (the Windows user profile). Arguments must be passed as a vector, never as a joined command line, or arguments containing spaces or quotes would be re-split.",
       "verification_method": "integration test with a scripted stand-in server asserting the child's environment and cwd",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28659,7 +28659,7 @@
       "cancellation": "the surrounding task is cancellable; the cancellation is observed by the store, not inside the loop",
       "windows_path": "Same sequence, same newline framing, same 10-page cap.",
       "verification_method": "contract fixture with a scripted server returning three pages and one returning eleven",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28685,7 +28685,7 @@
       "cancellation": "the sleep is the cancellation point; a cancelled task throws CancellationError out of it",
       "windows_path": "Same 5 ms interval and the same discard-other-ids behavior. The interval is observable as probe latency.",
       "verification_method": "unit plus a scripted-server timing test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28710,7 +28710,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two substring checks and the same precedence. This branch is unreachable for the built-in catalog (see PR-MCP-106).",
       "verification_method": "unit over the three outcomes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28736,7 +28736,7 @@
       "cancellation": "this IS part of the cancellation cleanup",
       "windows_path": "Windows has no process groups or signals. The equivalent is a graceful close followed one second later by a forced kill of the whole process tree, which matters because npx spawns node as a grandchild; a bare per-pid kill would leak it. Name this as the platform boundary.",
       "verification_method": "integration test asserting no orphaned node process survives a cancelled probe",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28761,7 +28761,7 @@
       "cancellation": "the handlers are detached by the probe's deferred cleanup",
       "windows_path": "Same framing on 0x0A only: a server emitting CRLF leaves the carriage return at the end of the line, and the JSON parser tolerates it. Same two byte caps.",
       "verification_method": "unit feeding split writes and an oversized stderr",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -28787,7 +28787,7 @@
       "cancellation": "each POST is a cancellation point",
       "windows_path": "Same sequence and the same swallow-except-cancellation on the notification.",
       "verification_method": "contract fixture against a stub streamable-HTTP server",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28812,7 +28812,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same substring, same case-insensitive comparison.",
       "verification_method": "contract fixture answering 403 with and without that body text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28838,7 +28838,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same suffix test on the lowercased path, so a relative URL root such as https://host/gitlab/api/v4/mcp still matches.",
       "verification_method": "unit over a GitLab path, a non-GitLab path, and a URL with no host",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28863,7 +28863,7 @@
       "cancellation": "the request is a cancellation point",
       "windows_path": "Same 30-second flat timeout for the probe's remote leg. Do not unify it with the hub's 30/60/120 or the proxy's 3600.",
       "verification_method": "contract fixture asserting the four headers and the 2000-character truncation",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -28890,7 +28890,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Note the installed JavaScript bridge accepts a frame with \"result\" or \"error\" instead of \"id\" (PR-MCP-196): the three clients differ deliberately.",
       "verification_method": "unit with a notification frame before the reply frame",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28915,7 +28915,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings including the U+203A. The apostrophes in \"GitLab's\" and \"You're\" are ASCII U+0027 in the source.",
       "verification_method": "unit with byte-exact string comparison plus an origin-building test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28965,7 +28965,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim, except the uvx message, which is the OD-0008 B5 wording naming winget. Note the malformed message ends without a full stop while the hub's equivalents end with one.",
       "verification_method": "unit with byte-exact comparison of every branch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
