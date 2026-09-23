@@ -16,20 +16,6 @@ using Xunit;
 // xUnit runs the methods of one class sequentially, never in parallel with each other.
 namespace Marrow.Services.Tests.MCP;
 
-public sealed class MCPProxySingletonFixture : IDisposable
-{
-    private readonly StorageScratchFolder folder = new();
-    public int Port { get; }
-
-    public MCPProxySingletonFixture()
-    {
-        Port = MCPProxy.Port; // :12-25, first access in the process: binds the portBox to this scratch root
-        MCPProxy.Shared.Current.Start(); // :84-92
-    }
-
-    public void Dispose() => folder.Dispose();
-}
-
 [Collection("MCPProxy singleton")]
 public sealed class MCPProxyTests : IClassFixture<MCPProxySingletonFixture>
 {
@@ -555,7 +541,7 @@ public sealed class MCPProxyTests : IClassFixture<MCPProxySingletonFixture>
 
     // ---- OD-0022 ----
 
-    [Trait("Decision", "OD-0022")] // custom headers/Authorization forwarded only to that route's server
+    [Trait("Req", "PR-MCP-131")] // OD-0022: custom headers/Authorization forwarded only to that route's server
     [Fact]
     public async Task OAuth_bearer_token_is_dropped_on_a_cross_origin_redirect_but_kept_same_origin()
     {
