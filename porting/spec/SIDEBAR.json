@@ -3640,7 +3640,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The exact storage format must be preserved so a library moved between platforms reads. Emoji are stored as their own characters, so the file must be UTF-8.",
       "verification_method": "round-trip unit test for both cases, the bare-name case and the empty-string failure.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3836,7 +3836,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The lenient decode must swallow type mismatches the same way and must keep the supervised fallback.",
       "verification_method": "decode fixture with missing and mistyped keys.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3859,7 +3859,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The Windows decoder must be equally lenient, or one bad record would empty a user's sidebar.",
       "verification_method": "decode fixture with one corrupt project and one corrupt thread.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

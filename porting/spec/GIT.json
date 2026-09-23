@@ -4002,7 +4002,7 @@
       "cancellation": "not applicable",
       "windows_path": "Keep the exact defaults key name; the settings store itself is a Windows decision but the key is not.",
       "verification_method": "restart test asserting the three values survive a relaunch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
