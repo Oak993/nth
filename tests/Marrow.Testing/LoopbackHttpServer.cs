@@ -4,7 +4,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Channels;
 
-namespace Marrow.Core.Tests.Fixtures;
+namespace Marrow.Testing;
 
 // PORT-ONLY test fixture, no Swift twin: a scripted HTTP/1.1 server on 127.0.0.1 for the HTTP unit
 // (IMPLEMENTING.md 4.3 "First tests: a loopback server"; R-TEST-10: no internet, HTTP is a loopback server).

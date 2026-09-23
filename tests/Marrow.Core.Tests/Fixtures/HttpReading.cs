@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using Marrow.Core.Port;
+using Marrow.Testing;
 
 namespace Marrow.Core.Tests.Fixtures;
 
