@@ -1,11 +1,10 @@
 using System.Globalization;
-using System.IO.Compression;
-using System.Text;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.Port;
 using Marrow.Services.Tests.Fixtures;
 using Marrow.Testing;
+using static Marrow.Services.Tests.Fixtures.HttpReading;
 
 namespace Marrow.Services.Tests.Port;
 
@@ -13,16 +12,31 @@ namespace Marrow.Services.Tests.Port;
 // code, so these tests carry Rule and Decision traits and no Req ids (a foundation unit has no requirement records).
 // Every request goes to LoopbackHttpServer on 127.0.0.1 (R-TEST-10); every timer runs on the manual clock
 // (R-TEST-5, ED-068); LoopbackHttpServer.Guard only stops a broken implementation from hanging the run.
+// This file covers URLSession.shared; HttpSecondTests covers URLSession(configuration:) and the network defaults a
+// server sees (cookies, default request headers, the response cache).
 //
 // Expected values come from the pinned Swift (B2 1fbf81e) and from URLSession's documented behaviour (SEMANTICS),
-// never from a C# implementation. The call sites these tests stand for:
+// never from a C# implementation. Where the Swift behaviour is not documented and no oracle has settled it, the
+// test carries an Oracle trait (R-TEST-6) with a PROPOSED item id, O-26 to O-33 (O-25 is ED-100's); they are not in
+// IMPLEMENTING.md Appendix B yet and are reported to the orchestrator as STOP F.HTTP items:
+//   O-26 bytes.lines (AsyncLineSequence): CR, CRLF, NEL, LS and PS end a line; empty lines are not yielded
+//   O-27 request headers URLSession adds: Accept */*, Accept-Language, Accept-Encoding, a form Content-Type
+//   O-28 cookies: HTTPCookieStorage.shared for URLSession.shared, a per-session store in RAM for .ephemeral
+//   O-29 request headers kept when a same-origin redirect is followed, Authorization included
+//   O-30 a repeated response header is one allHeaderFields entry, its values joined with ", "
+//   O-31 which idle limit applies: a request's default 60 s or its session configuration's timeoutIntervalForRequest
+//   O-32 the error a read of URLSession.AsyncBytes throws when its task is cancelled
+//   O-33 URLCache.shared answering a cacheable GET for URLSession.shared
+//
+// The call sites these tests stand for:
 //   URLSession.shared.data(for:)   MCPHub.swift:455-477, MCPOAuth.swift:250-268, :715-742, :744-797,
 //                                  MCPProbe.swift:309-325, CommandCodeAPI.swift:168-174, ZaiAPI.swift:182-194,
 //                                  PlanLimits.swift:243-249, PiPlanLimits.swift:45-68, MarkdownView.swift:946-952
 //   URLSession.shared.data(from:)  LinkTitles.swift:47-49
 //   URLSession.shared.bytes(for:)  MCPProxy.swift:344-405, OpenAICompatibleSession.swift:623-643, :740-745
+//   AsyncBytes.lines               OpenAICompatibleSession.swift:636 (the error body), :742 (the SSE drain)
+//   URLSession(configuration:)     UpdateChecker.swift:101-110 and :222-228 (HttpSecondTests)
 //   URLError codes                 OpenAICompatibleSession.swift:88-97 (retry by code), MCPProxy.swift:311, :354
-//   expectedContentLength          UpdateChecker.swift:222-228
 //
 // The API these tests fix (namespace Marrow.Services.Port, file src/Marrow.Services/Port/Http.cs). Names follow
 // R-NAME-1 to R-NAME-3; URLRequest is a Swift struct, so it is an immutable sealed record whose mutating
@@ -31,26 +45,38 @@ namespace Marrow.Services.Tests.Port;
 //                                       double TimeoutInterval { get; init; } (seconds); string HttpMethod { get; init; }
 //                                       ("GET" unless set); byte[]? HttpBody { get; init; };
 //                                       URLRequest SetValue(string? value, string forHTTPHeaderField);
-//                                       string? Value(string forHTTPHeaderField)
+//                                       string? Value(string forHTTPHeaderField);
+//                                       nested enum CachePolicy { UseProtocolCachePolicy = 0, ReloadIgnoringLocalCacheData = 1 }
 //   abstract class URLResponse; sealed class HTTPURLResponse : URLResponse
 //                                       int StatusCode; string? Value(string forHTTPHeaderField);
 //                                       IReadOnlyDictionary<string, string> AllHeaderFields; long ExpectedContentLength
-//   sealed class URLSession             static URLSession Shared;
+//   sealed class URLCache               no member is used: nil is the only value the source gives it (UpdateChecker.swift:104)
+//   sealed class URLSessionConfiguration
+//                                       static URLSessionConfiguration Ephemeral { get; } (a new configuration per read);
+//                                       URLRequest.CachePolicy RequestCachePolicy; URLCache? UrlCache;
+//                                       double TimeoutIntervalForRequest; double TimeoutIntervalForResource;
+//                                       bool WaitsForConnectivity; IReadOnlyDictionary<string, string>? HttpAdditionalHeaders
+//                                       (all { get; set; }, as the Swift class's var properties);
+//                                       AppInfo AppInfo { get; set; } PORT-ONLY, AppInfo.Current unless set: the app whose
+//                                       version the default User-Agent names (ED-088), so a test can control it
+//   sealed class URLSession             static URLSession Shared; URLSession(URLSessionConfiguration configuration);
 //                                       Task<(byte[] Data, URLResponse Response)> Data(URLRequest request)   data(for:)
 //                                       Task<(byte[] Data, URLResponse Response)> Data(Uri from)             data(from:)
 //                                       Task<(URLSession.AsyncBytes Bytes, URLResponse Response)> Bytes(URLRequest request)
+//                                       TimeSpan HttpClientTimeout { get; } PORT-ONLY: the Timeout of the HttpClient
+//                                       underneath, which R-NET-1 requires to be infinite
 //                                       nested sealed AsyncBytes : IAsyncEnumerable<byte>                  bytes(for:)
+//                                         IAsyncEnumerable<string> Lines { get; }                          bytes.lines
 //   sealed class URLError : Exception   URLError(URLError.Code code); URLError.Code URLErrorCode (Swift: code, R-NAME-3);
 //                                       nested enum Code with the Foundation raw values below
 // Timer contract the timeout tests rely on: the inactivity timer comes from SwiftClock.Provider as the caller sees it,
 // is armed before the request is written, and is re-armed when the response head arrives and whenever body bytes
 // arrive, before those bytes reach the caller. So "the server received the request" means the timer is armed, and
-// "the caller read a byte" means the timer was re-armed for it.
+// "the caller read a byte" means the timer was re-armed for it. A configuration's resource timer is armed on the same
+// clock when the task starts and is never re-armed.
 public sealed class HttpTests
 {
     private static readonly TimeSpan Guard = LoopbackHttpServer.Guard;
-
-    private static byte[] Ascii(string text) => Encoding.ASCII.GetBytes(text);
 
     // ---- The shared session and URLRequest's defaults ----
 
@@ -60,6 +86,20 @@ public sealed class HttpTests
     {
         // R-NET-1: URLSession.shared (41 sites) is one shared client.
         Assert.Same(URLSession.Shared, URLSession.Shared);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
+    [Trait("Rule", "R-TEST-4")]
+    public void The_client_underneath_has_no_timeout_of_its_own_unlike_a_default_HttpClient()
+    {
+        // R-NET-1: "HttpClient.Timeout is infinite and the unit arms its own timer". A client left at the .NET default
+        // would end every exchange after 100 real seconds, killing MCPProxy's 3,600 s streams (MCPProxy.swift:315)
+        // and the 300 s chat streams (OpenAICompatibleSession.swift:601); the manual clock cannot see that limit, so
+        // the configured value is asserted here. Negative control (R-TEST-4): a default HttpClient has 100 s.
+        using var plain = new HttpClient();
+        Assert.Equal(TimeSpan.FromSeconds(100), plain.Timeout);
+        Assert.Equal(Timeout.InfiniteTimeSpan, URLSession.Shared.HttpClientTimeout);
     }
 
     [Fact]
@@ -141,6 +181,74 @@ public sealed class HttpTests
 
     [Fact]
     [Trait("Rule", "R-NET-1")]
+    public async Task A_request_body_goes_out_with_its_Content_Length_and_is_not_chunked()
+    {
+        // SEMANTICS: httpBody is a Data of known length, and URLSession sends it with Content-Length, never with
+        // Transfer-Encoding: chunked (a port built on a StreamContent would chunk it, and some MCP servers refuse a
+        // chunked request). The bodies: MCPHub.swift:458, ZaiAPI.swift:193, MCPOAuth.swift:754, :778, MCPProbe.swift:311.
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        var body = Ascii("{\"targetType\":\"PERSONAL\",\"resetType\":\"daily\",\"recordId\":7}");
+        var request = new URLRequest(server.Url("/reset"), timeoutInterval: 20) { HttpMethod = "POST", HttpBody = body }
+            .SetValue("application/json", forHTTPHeaderField: "Content-Type");
+        var pending = URLSession.Shared.Data(request);
+        var exchange = await server.NextExchange();
+        Assert.Equal([body.Length.ToString(CultureInfo.InvariantCulture)], exchange.HeaderValues("Content-Length"));
+        Assert.Empty(exchange.HeaderValues("Transfer-Encoding"));
+        Assert.Equal(body, exchange.Body);
+        await exchange.Respond(200, "OK", Ascii("{}"));
+        await pending.WaitAsync(Guard);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
+    public async Task A_streamed_request_body_also_goes_out_with_its_Content_Length_and_is_not_chunked()
+    {
+        // The same for bytes(for:): OpenAICompatibleSession.swift:601-607 (the chat request) and MCPProxy.swift:340-344
+        // (the client's body, forwarded) send httpBody through the streaming call.
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        var body = Ascii("{\"model\":\"m\",\"stream\":true,\"messages\":[]}");
+        var request = new URLRequest(server.Url("/v1/chat/completions"), timeoutInterval: 300) { HttpMethod = "POST", HttpBody = body }
+            .SetValue("application/json", forHTTPHeaderField: "Content-Type");
+        var pending = URLSession.Shared.Bytes(request);
+        var exchange = await server.NextExchange();
+        Assert.Equal([body.Length.ToString(CultureInfo.InvariantCulture)], exchange.HeaderValues("Content-Length"));
+        Assert.Empty(exchange.HeaderValues("Transfer-Encoding"));
+        Assert.Equal(body, exchange.Body);
+        await exchange.Respond(200, "OK", Ascii("data: [DONE]\n"));
+        var (bytes, _) = await pending.WaitAsync(Guard);
+        await using var reader = bytes.GetAsyncEnumerator();
+        Assert.Equal(Ascii("data: [DONE]\n"), await ReadToEnd(reader));
+    }
+
+    [Theory]
+    [Trait("Rule", "R-NET-1")]
+    [InlineData("DELETE")]
+    [InlineData("PUT")]
+    [InlineData("PATCH")]
+    [InlineData("OPTIONS")]
+    public async Task Any_method_the_proxy_forwards_goes_out_as_given(string method)
+    {
+        // MCPProxy.swift:314: `request.httpMethod = method`, the client's own method, whatever it is (an MCP client
+        // ends its session with DELETE and the session id); :336-338 add no body when the client sent none.
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        var request = new URLRequest(server.Url("/mcp")) { HttpMethod = method, TimeoutInterval = 3_600 }
+            .SetValue("abc123", forHTTPHeaderField: "Mcp-Session-Id");
+        var pending = URLSession.Shared.Bytes(request);
+        var exchange = await server.NextExchange();
+        Assert.Equal(method, exchange.Method);
+        Assert.Equal("/mcp", exchange.Target);
+        Assert.Equal(["abc123"], exchange.HeaderValues("Mcp-Session-Id"));
+        Assert.Empty(exchange.Body);
+        await exchange.Respond(200, "OK", []);
+        var (_, response) = await pending.WaitAsync(Guard);
+        Assert.Equal(200, Assert.IsType<HTTPURLResponse>(response).StatusCode);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
     public async Task Data_from_a_URL_sends_one_GET_for_that_path_and_query()
     {
         // LinkTitles.swift:47: URLSession.shared.data(from: url) is a plain GET of the URL.
@@ -157,20 +265,28 @@ public sealed class HttpTests
         Assert.Equal(Ascii("{\"title\":\"t\"}"), data);
     }
 
+    // ---- The User-Agent ----
+
     [Fact]
     [Trait("Rule", "R-NET-1")]
-    public async Task The_default_User_Agent_is_Marrow_slash_the_app_version_sent_once()
+    [Trait("Decision", "ED-088")]
+    public async Task The_default_User_Agent_is_one_header_line_Marrow_slash_the_app_version_and_nothing_else()
     {
-        // R-NET-1: URLSession.shared sends a default User-Agent (the source's is "Droppy%20Code/<build> CFNetwork/...").
-        // DEVIATION OD-0012 F1 (owner_decisions.md, decision_batch_20260922b.md section F): every "Droppy Code" the
-        // app sends out becomes "Marrow", and the sheet names the network User-Agent "Marrow/<version>";
-        // <version> is AppInfo.version (Text.swift:7), as in the source's own "Droppy Code/\(AppInfo.version)"
-        // (UpdateChecker.swift:108, AppUpdater.swift:481).
+        // R-NET-1: URLSession.shared sends a default User-Agent; the source's is "Droppy%20Code/<build> CFNetwork/<v>
+        // Darwin/<v>" (the bundle name, CFBundleVersion, and two more product tokens).
+        // DEVIATION OD-0012|ED-088: OD-0012 F1 (decision_batch_20260922b.md section F) names the network User-Agent
+        // "Marrow/<version>", and ED-088 puts identities sent over the network under F1. So the build number becomes
+        // the version (AppInfo.version, Text.swift:7, as in the source's own "Droppy Code/\(AppInfo.version)",
+        // UpdateChecker.swift:108), and the CFNetwork and Darwin tokens are dropped. The raw header line is compared
+        // byte for byte, so an added product token (a .NET default, a runtime version) fails the test; the version
+        // the test controls is in HttpSecondTests (URLSessionConfiguration.AppInfo).
         using var runtime = new TestRuntime();
         await using var server = new LoopbackHttpServer();
         var pending = URLSession.Shared.Data(new URLRequest(server.Url("/ua")));
         var exchange = await server.NextExchange();
-        Assert.Equal(["Marrow/" + AppInfo.Current.Version], exchange.HeaderValues("User-Agent"));
+        var lines = RawHeaderLines(exchange.RawHead)
+            .Where(line => line.StartsWith("user-agent:", StringComparison.OrdinalIgnoreCase)).ToList();
+        Assert.Equal(["User-Agent: Marrow/" + AppInfo.Current.Version], lines);
         await exchange.Respond(204, "No Content", []);
         await pending.WaitAsync(Guard);
     }
@@ -218,6 +334,32 @@ public sealed class HttpTests
         Assert.Equal(plain, data);
     }
 
+    [Theory]
+    [Trait("Rule", "R-NET-1")]
+    [InlineData("gzip")]
+    [InlineData("deflate")]
+    [InlineData("br")]
+    public async Task A_gzip_deflate_or_br_stream_is_handed_over_decoded_through_the_byte_sequence(string coding)
+    {
+        // R-NET-1 applies to bytes(for:) as well: MCPProxy.swift:344 and :377-396 forward the decoded bytes (the
+        // client never sees Content-Encoding, :360-369 copy only Content-Type, Mcp-Session-Id and Cache-Control), and
+        // OpenAICompatibleSession.swift:626 and :742 read decoded SSE text. The compressed body is sent in two chunks
+        // while the stream is open, so a decoder that needs the whole body first would not hand over the first part.
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        var plain = Ascii(string.Concat(Enumerable.Repeat("data: {\"choices\":[{\"delta\":{\"content\":\"x\"}}]}\n\n", 30)));
+        var encoded = Compress(plain, coding);
+        var pending = URLSession.Shared.Bytes(new URLRequest(server.Url("/sse"), timeoutInterval: 300));
+        var exchange = await server.NextExchange();
+        await exchange.WriteChunkedHead(200, "OK", ("Content-Type", "text/event-stream"), ("Content-Encoding", coding));
+        await exchange.WriteChunk(encoded[..(encoded.Length / 2)]);
+        var (bytes, _) = await pending.WaitAsync(Guard);
+        await using var reader = bytes.GetAsyncEnumerator();
+        await exchange.WriteChunk(encoded[(encoded.Length / 2)..]);
+        await exchange.EndChunks();
+        Assert.Equal(plain, await ReadToEnd(reader));
+    }
+
     // ---- Redirects ----
 
     [Theory]
@@ -229,8 +371,8 @@ public sealed class HttpTests
     [InlineData(308)]
     public async Task A_GET_follows_a_redirect_and_returns_the_final_response(int status)
     {
-        // R-NET-1: redirects are followed; the caller sees only the final response (UpdateChecker.swift:223-228 and
-        // LinkTitles.swift:47-49 read the status and body of wherever the chain ends).
+        // R-NET-1: redirects are followed; the caller sees only the final response (LinkTitles.swift:47-49 and
+        // PlanLimits.swift:247-249 read the status and body of wherever the chain ends).
         using var runtime = new TestRuntime();
         await using var server = new LoopbackHttpServer();
         var pending = URLSession.Shared.Data(new URLRequest(server.Url("/start")));
@@ -288,6 +430,60 @@ public sealed class HttpTests
         await second.Respond(200, "OK", Ascii("ok"));
         var (data, _) = await pending.WaitAsync(Guard);
         Assert.Equal(Ascii("ok"), data);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
+    [Trait("Oracle", "O-29")]
+    public async Task A_same_origin_redirect_keeps_Authorization_Accept_and_custom_headers()
+    {
+        // PlanLimits.swift:243-246 sends Authorization, anthropic-beta and Accept; CommandCodeAPI.swift:169-171 and
+        // MCPProxy.swift:326-339 send Authorization and the route's own headers. URLSession builds the redirected
+        // request from the original one, so its header fields go along to the same origin.
+        // UNVERIFIED (proposed O-29): whether URLSession keeps Authorization on a same-origin redirect is not
+        // documented; the parked choice is that every field is kept. The negative control below shows the .NET
+        // redirect handler drops Authorization, the plausible wrong port.
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        var request = new URLRequest(server.Url("/api/oauth/usage"), timeoutInterval: 15)
+            .SetValue("Bearer token-1", forHTTPHeaderField: "Authorization")
+            .SetValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
+            .SetValue("application/json", forHTTPHeaderField: "Accept");
+        var pending = URLSession.Shared.Data(request);
+        var first = await server.NextExchange();
+        await first.Respond(302, "Found", [], ("Location", "/api/oauth/usage2"));
+        var second = await server.NextExchange();
+        Assert.Equal("/api/oauth/usage2", second.Target);
+        Assert.Equal(["Bearer token-1"], second.HeaderValues("Authorization"));
+        Assert.Equal(["oauth-2025-04-20"], second.HeaderValues("anthropic-beta"));
+        Assert.Equal(["application/json"], second.HeaderValues("Accept"));
+        await second.Respond(200, "OK", Ascii("{}"));
+        await pending.WaitAsync(Guard);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
+    [Trait("Rule", "R-TEST-4")]
+    public async Task Negative_control_the_default_dotnet_redirect_handler_drops_Authorization_on_a_same_origin_redirect()
+    {
+        // R-TEST-4: the obvious .NET API behaves differently, so a port that only turns on AllowAutoRedirect loses the
+        // header A_same_origin_redirect_keeps_Authorization_Accept_and_custom_headers keeps. Observed on this machine
+        // (.NET 10.0.401, scratch run for this unit): the second request carried anthropic-beta and Accept but not
+        // Authorization.
+        await using var server = new LoopbackHttpServer();
+        using var plain = new HttpClient();
+        using var message = new HttpRequestMessage(HttpMethod.Get, server.Url("/start"));
+        message.Headers.TryAddWithoutValidation("Authorization", "Bearer token-1");
+        message.Headers.TryAddWithoutValidation("anthropic-beta", "oauth-2025-04-20");
+        var pending = plain.SendAsync(message);
+        var first = await server.NextExchange();
+        Assert.Equal(["Bearer token-1"], first.HeaderValues("Authorization"));
+        await first.Respond(302, "Found", [], ("Location", "/final"));
+        var second = await server.NextExchange();
+        Assert.Empty(second.HeaderValues("Authorization"));
+        Assert.Equal(["oauth-2025-04-20"], second.HeaderValues("anthropic-beta"));
+        await second.Respond(200, "OK", []);
+        using var response = await pending.WaitAsync(Guard);
     }
 
     // ---- Status handling and the response ----
@@ -373,19 +569,29 @@ public sealed class HttpTests
 
     [Fact]
     [Trait("Rule", "R-NET-1")]
-    public async Task A_HEAD_answer_reports_its_Content_Length_as_the_expected_length()
+    [Trait("Oracle", "O-30")]
+    public async Task Two_challenge_header_lines_become_one_field_with_both_values_joined_by_a_comma_and_space()
     {
-        // UpdateChecker.swift:222-228: HEAD, then expectedContentLength when it is above zero.
+        // MCPOAuth.swift:259-268 collects every WWW-Authenticate entry of allHeaderFields (a String, or a [String]) and
+        // then looks for resource_metadata and scopes in each challenge (:272-280). A port that kept only the first or the last
+        // line would lose a challenge.
+        // UNVERIFIED (proposed O-30): HTTPURLResponse is believed to fold a repeated field into one String entry, its
+        // values joined with ", " in arrival order (the list form RFC 9110 5.3 allows), and value(forHTTPHeaderField:)
+        // to return that same String; this is the parked choice.
         using var runtime = new TestRuntime();
         await using var server = new LoopbackHttpServer();
-        var pending = URLSession.Shared.Data(new URLRequest(server.Url("/Marrow.exe")) { HttpMethod = "HEAD" });
+        var pending = URLSession.Shared.Data(new URLRequest(server.Url("/mcp"), timeoutInterval: 30));
         var exchange = await server.NextExchange();
-        Assert.Equal("HEAD", exchange.Method);
-        await exchange.WriteHead(200, "OK", ("Content-Length", "12345"));
-        exchange.Finish();
-        var (data, response) = await pending.WaitAsync(Guard);
-        Assert.Empty(data);
-        Assert.Equal(12345L, Assert.IsType<HTTPURLResponse>(response).ExpectedContentLength);
+        const string first = "Basic realm=\"mcp\"";
+        const string second = "Bearer resource_metadata=\"http://127.0.0.1/.well-known/oauth-protected-resource\"";
+        await exchange.Respond(401, "Unauthorized", [], ("WWW-Authenticate", first), ("WWW-Authenticate", second));
+        var (_, response) = await pending.WaitAsync(Guard);
+        var http = Assert.IsType<HTTPURLResponse>(response);
+        var found = http.AllHeaderFields
+            .Where(pair => string.Equals(pair.Key, "WWW-Authenticate", StringComparison.OrdinalIgnoreCase))
+            .Select(pair => pair.Value).ToList();
+        Assert.Equal([first + ", " + second], found);
+        Assert.Equal(first + ", " + second, http.Value(forHTTPHeaderField: "www-authenticate"));
     }
 
     [Fact]
@@ -446,6 +652,137 @@ public sealed class HttpTests
         Assert.Equal(Ascii("{\"error\":{\"message\":\"bad key\"}}"), await ReadToEnd(reader));
     }
 
+    // ---- The line sequence (bytes.lines) ----
+
+    [Theory]
+    [Trait("Rule", "R-NET-1")]
+    [InlineData(9)]
+    [InlineData(10)]
+    [InlineData(11)]
+    [InlineData(14)]
+    [InlineData(15)]
+    [InlineData(16)]
+    public async Task A_character_split_across_two_chunks_is_decoded_whole_in_its_line(int split)
+    {
+        // OpenAICompatibleSession.swift:742: `for try await line in bytes.lines`. AsyncBytes is a sequence of UInt8, so
+        // chunk boundaries are invisible to `lines`: a line is decoded from all of its bytes as UTF-8. The body is
+        // "data: it" + U+2019 (E2 80 99 at offsets 8-10) + "s " + U+1F600 (F0 9F 98 80 at offsets 13-16) + "!\nnext\n";
+        // the first chunk holds `split` bytes, so 9, 10 and 14 to 16 cut a character in two and 11 falls between.
+        byte[] body = [.. Ascii("data: it"), 0xE2, 0x80, 0x99, .. Ascii("s "), 0xF0, 0x9F, 0x98, 0x80, .. Ascii("!\nnext\n")];
+        byte[] firstLine = body[..(Array.IndexOf(body, (byte)'\n'))];
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        var pending = URLSession.Shared.Bytes(new URLRequest(server.Url("/sse"), timeoutInterval: 300));
+        var exchange = await server.NextExchange();
+        await exchange.WriteChunkedHead(200, "OK", ("Content-Type", "text/event-stream"));
+        await exchange.WriteChunk(body[..split]);
+        var (bytes, _) = await pending.WaitAsync(Guard);
+        await exchange.WriteChunk(body[split..]);
+        await exchange.EndChunks();
+        var lines = await ReadLines(bytes);
+        Assert.Equal(2, lines.Count);
+        Assert.Equal(firstLine, Utf8(lines[0]));
+        Assert.Equal("next", lines[1]);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
+    public async Task Lines_end_at_a_line_feed_and_a_last_line_without_one_is_still_yielded()
+    {
+        // OpenAICompatibleSession.swift:636-639 appends every line of an error body and a "\n" after each; a body
+        // whose last line has no terminator still gives that line. A terminator at the very end adds no line.
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        var pending = URLSession.Shared.Bytes(new URLRequest(server.Url("/v1/chat/completions"), timeoutInterval: 300));
+        var exchange = await server.NextExchange();
+        await exchange.WriteChunkedHead(400, "Bad Request", ("Content-Type", "text/plain"));
+        await exchange.WriteChunk(Ascii("first\nsec"));
+        var (bytes, _) = await pending.WaitAsync(Guard);
+        await exchange.WriteChunk(Ascii("ond\nthird"));
+        await exchange.EndChunks();
+        Assert.Equal(["first", "second", "third"], await ReadLines(bytes));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
+    [Trait("Oracle", "O-26")]
+    public async Task A_carriage_return_line_feed_pair_and_a_lone_carriage_return_each_end_one_line()
+    {
+        // An SSE server may end its lines with CRLF or CR (the text/event-stream grammar allows all three); the drain
+        // at OpenAICompatibleSession.swift:742-744 trims each line and needs "data:" at its start.
+        // UNVERIFIED (proposed O-26): AsyncLineSequence is believed to end a line at LF, CR or CRLF, a CRLF pair
+        // ending one line; this is the parked choice. The CRLF pair is split across two chunks here.
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        var pending = URLSession.Shared.Bytes(new URLRequest(server.Url("/sse"), timeoutInterval: 300));
+        var exchange = await server.NextExchange();
+        await exchange.WriteChunkedHead(200, "OK", ("Content-Type", "text/event-stream"));
+        await exchange.WriteChunk(Ascii("data: a\r"));
+        var (bytes, _) = await pending.WaitAsync(Guard);
+        await exchange.WriteChunk(Ascii("\ndata: b\rdata: c\n"));
+        await exchange.EndChunks();
+        Assert.Equal(["data: a", "data: b", "data: c"], await ReadLines(bytes));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
+    [Trait("Oracle", "O-26")]
+    public async Task Empty_lines_between_events_are_not_yielded()
+    {
+        // SSE separates events with an empty line. OpenAICompatibleSession.swift:636-637 builds the error body from the
+        // lines it is given (`body += line + "\n"`), so whether empty lines arrive changes that text; :742-744 skips
+        // anything without "data:" either way.
+        // UNVERIFIED (proposed O-26): AsyncLineSequence is widely reported to yield no empty line, whatever the
+        // terminators; this is the parked choice. The negative control below shows the .NET line reader yields them.
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        var pending = URLSession.Shared.Bytes(new URLRequest(server.Url("/sse"), timeoutInterval: 300));
+        var exchange = await server.NextExchange();
+        await exchange.WriteChunkedHead(200, "OK", ("Content-Type", "text/event-stream"));
+        await exchange.WriteChunk(Ascii("data: 1\n\ndata: 2\r\n\r\n\n"));
+        var (bytes, _) = await pending.WaitAsync(Guard);
+        await exchange.WriteChunk(Ascii("\rdata: 3\n\n"));
+        await exchange.EndChunks();
+        Assert.Equal(["data: 1", "data: 2", "data: 3"], await ReadLines(bytes));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
+    [Trait("Rule", "R-TEST-4")]
+    public void Negative_control_a_dotnet_line_reader_yields_the_empty_lines()
+    {
+        // R-TEST-4: StringReader.ReadLine (and StreamReader.ReadLine, R-PROC-2) yields an empty string for every empty
+        // line, so a port that wraps the stream in a reader would hand the error-body loop lines the parked
+        // AsyncLineSequence choice drops. Observed on this machine (.NET 10.0.401): five lines, three of them empty.
+        using var reader = new StringReader("data: 1\n\ndata: 2\r\n\r\n\n");
+        var lines = new List<string>();
+        while (reader.ReadLine() is { } line) lines.Add(line);
+        Assert.Equal(["data: 1", "", "data: 2", "", ""], lines);
+    }
+
+    [Theory]
+    [Trait("Rule", "R-NET-1")]
+    [Trait("Oracle", "O-26")]
+    [InlineData(new byte[] { 0xC2, 0x85 })]
+    [InlineData(new byte[] { 0xE2, 0x80, 0xA8 })]
+    [InlineData(new byte[] { 0xE2, 0x80, 0xA9 })]
+    public async Task A_next_line_line_separator_or_paragraph_separator_also_ends_a_line(byte[] separator)
+    {
+        // A raw U+2028 inside an SSE JSON string is valid JSON (RFC 8259 escapes only controls), so a split there cuts
+        // a "data:" line in two and OpenAICompatibleSession.swift:747 fails to parse either half.
+        // UNVERIFIED (proposed O-26): AsyncLineSequence is believed to end a line at NEL (U+0085), LS (U+2028) and
+        // PS (U+2029) as well as at CR and LF; this is the parked choice.
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        var pending = URLSession.Shared.Bytes(new URLRequest(server.Url("/sse"), timeoutInterval: 300));
+        var exchange = await server.NextExchange();
+        await exchange.WriteChunkedHead(200, "OK", ("Content-Type", "text/event-stream"));
+        await exchange.WriteChunk([.. Ascii("data: a"), .. separator, .. Ascii("b\n")]);
+        var (bytes, _) = await pending.WaitAsync(Guard);
+        await exchange.EndChunks();
+        Assert.Equal(["data: a", "b"], await ReadLines(bytes));
+    }
+
     // ---- The inactivity timeout (timeoutInterval) ----
 
     [Fact]
@@ -496,6 +833,30 @@ public sealed class HttpTests
         var tooLate = URLSession.Shared.Data(new URLRequest(server.Url("/b"), timeoutInterval: 15));
         await server.NextExchange();
         runtime.Advance(TimeSpan.FromSeconds(15));
+        var error = await Assert.ThrowsAsync<URLError>(() => tooLate.WaitAsync(Guard));
+        Assert.Equal(URLError.Code.TimedOut, error.URLErrorCode);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
+    [Trait("Decision", "ED-068")]
+    public async Task The_proxy_s_3600_second_limit_holds_a_silent_upstream_for_3600_seconds_and_no_longer()
+    {
+        // MCPProxy.swift:315: `request.timeoutInterval = 3_600` on the forwarded request. Together with
+        // The_client_underneath_has_no_timeout_of_its_own_unlike_a_default_HttpClient this pins the whole limit: no
+        // real-time cut at 100 s, and the unit's own idle timer at exactly 3,600 s on the manual clock.
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        var inTime = URLSession.Shared.Bytes(new URLRequest(server.Url("/a")) { HttpMethod = "GET", TimeoutInterval = 3_600 });
+        var first = await server.NextExchange();
+        runtime.Advance(TimeSpan.FromMilliseconds(3_599_999));
+        await first.Respond(200, "OK", Ascii("a"));
+        var (bytes, _) = await inTime.WaitAsync(Guard);
+        await using (var reader = bytes.GetAsyncEnumerator()) Assert.Equal(Ascii("a"), await ReadToEnd(reader));
+
+        var tooLate = URLSession.Shared.Bytes(new URLRequest(server.Url("/b")) { HttpMethod = "GET", TimeoutInterval = 3_600 });
+        await server.NextExchange();
+        runtime.Advance(TimeSpan.FromSeconds(3_600));
         var error = await Assert.ThrowsAsync<URLError>(() => tooLate.WaitAsync(Guard));
         Assert.Equal(URLError.Code.TimedOut, error.URLErrorCode);
     }
@@ -567,6 +928,41 @@ public sealed class HttpTests
         var error = await Assert.ThrowsAsync<URLError>(() => handle.Value.WaitAsync(Guard));
         Assert.Equal(URLError.Code.Cancelled, error.URLErrorCode);
         Assert.False(typeof(OperationCanceledException).IsAssignableFrom(typeof(URLError)));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
+    [Trait("Rule", "R-TASK-2")]
+    [Trait("Decision", "ED-066")]
+    [Trait("Oracle", "O-32")]
+    public async Task Cancelling_the_task_while_a_stream_read_is_pending_fails_that_read_with_URLError_cancelled()
+    {
+        // The SSE drain runs in a detached task that a stop cancels directly (OpenAICompatibleSession.swift:652-661);
+        // what the pending read then throws decides the path: `catch is CancellationError` (:781) finishes quietly,
+        // any other error goes to `coalescer.fail(chunkError:)` (:784).
+        // UNVERIFIED (proposed O-32): R-TASK-2 says URLSession throws URLError(.cancelled) for a cancelled task; that
+        // a pending read of URLSession.AsyncBytes throws the same, and not CancellationError, is not documented. It is
+        // the parked choice. The read is started before the cancel: `next` was observed not completed.
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        var url = server.Url("/sse");
+        var readPending = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handle = TaskHandle.DetachedThrowing(async () =>
+        {
+            var (bytes, _) = await URLSession.Shared.Bytes(new URLRequest(url, timeoutInterval: 300));
+            await using var reader = bytes.GetAsyncEnumerator();
+            Assert.True(await reader.MoveNextAsync());
+            var next = reader.MoveNextAsync();
+            readPending.SetResult(next.IsCompleted);
+            return await next;
+        });
+        var exchange = await server.NextExchange();
+        await exchange.WriteChunkedHead(200, "OK", ("Content-Type", "text/event-stream"));
+        await exchange.WriteChunk(Ascii("d"));
+        Assert.False(await readPending.Task.WaitAsync(Guard));
+        handle.Cancel();
+        var error = await Assert.ThrowsAsync<URLError>(() => handle.Value.WaitAsync(Guard));
+        Assert.Equal(URLError.Code.Cancelled, error.URLErrorCode);
     }
 
     [Fact]
@@ -645,41 +1041,5 @@ public sealed class HttpTests
         // R-ERR-2: a Foundation NSError's localized text cannot be reproduced on Windows, so the helper refuses it and
         // each site that shows one (MCPProxy.swift:302, OpenAICompatibleSession.swift:702) needs its own decision.
         Assert.Throws<NotSupportedException>(() => SwiftErrors.LocalizedDescription(new URLError(URLError.Code.TimedOut)));
-    }
-
-    // ---- Helpers ----
-
-    private static async Task<byte[]> ReadExactly(IAsyncEnumerator<byte> reader, int count)
-    {
-        var read = new List<byte>(count);
-        while (read.Count < count)
-        {
-            Assert.True(await reader.MoveNextAsync().AsTask().WaitAsync(Guard), "the stream ended early");
-            read.Add(reader.Current);
-        }
-        return [.. read];
-    }
-
-    private static async Task<byte[]> ReadToEnd(IAsyncEnumerator<byte> reader)
-    {
-        var read = new List<byte>();
-        while (await reader.MoveNextAsync().AsTask().WaitAsync(Guard)) read.Add(reader.Current);
-        return [.. read];
-    }
-
-    private static byte[] Compress(byte[] plain, string coding)
-    {
-        using var output = new MemoryStream();
-        using (Stream compressor = coding switch
-        {
-            "gzip" => new GZipStream(output, CompressionLevel.Optimal, leaveOpen: true),
-            "deflate" => new ZLibStream(output, CompressionLevel.Optimal, leaveOpen: true),
-            "br" => new BrotliStream(output, CompressionLevel.Optimal, leaveOpen: true),
-            _ => throw new ArgumentOutOfRangeException(nameof(coding)),
-        })
-        {
-            compressor.Write(plain);
-        }
-        return output.ToArray();
     }
 }

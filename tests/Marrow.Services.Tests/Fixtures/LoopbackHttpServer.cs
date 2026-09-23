@@ -48,15 +48,23 @@ public sealed class LoopbackHttpServer : IAsyncDisposable
     /// <summary>The next request the client sent, in arrival order.</summary>
     public Task<LoopbackExchange> NextExchange() => exchanges.Reader.ReadAsync(stopping.Token).AsTask().WaitAsync(Guard);
 
-    /// <summary>A loopback URL on a port that was bound and released, so a connection attempt is refused.</summary>
+    /// <summary>
+    /// A loopback URL whose port is held for the whole test run by a socket that is bound with exclusive address use
+    /// and never listens: no other listener in the parallel run can take the port, and every connection attempt to it
+    /// is answered with a reset (refused). A port bound and then released could be reused by another test's server.
+    /// </summary>
     public static Uri RefusedUrl(string pathAndQuery)
     {
-        var probe = new TcpListener(IPAddress.Loopback, 0);
-        probe.Start();
-        var port = ((IPEndPoint)probe.LocalEndpoint).Port;
-        probe.Stop();
+        var port = ((IPEndPoint)RefusedPortHolder.Value.LocalEndPoint!).Port;
         return new Uri(string.Create(CultureInfo.InvariantCulture, $"http://127.0.0.1:{port}{pathAndQuery}"));
     }
+
+    private static readonly Lazy<Socket> RefusedPortHolder = new(() =>
+    {
+        var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { ExclusiveAddressUse = true };
+        socket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+        return socket;
+    });
 
     public async ValueTask DisposeAsync()
     {
