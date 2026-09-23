@@ -162,6 +162,43 @@ public sealed class SwiftColor
         _ => new SwiftColor(Kind.Accent, alpha * opacity, null, null),
     };
 
+    /// <summary>
+    /// <c>Color.mix(with:by:)</c>: linear interpolation between this colour and another by a blend factor.
+    /// Used by RenderBudget.swift:96 to mix the glass tint toward white or black.
+    /// Result = self * (1 - factor) + other * factor.
+    /// For dynamic colors (appearance pairs), recursively mixes both light and dark members.
+    /// </summary>
+    public SwiftColor Mix(SwiftColor other, double factor)
+    {
+        // Handle dynamic colors (appearance pairs) by mixing both light and dark members
+        if (kind == Kind.Pair)
+        {
+            // Mix both light and dark members separately
+            return Dynamic(
+                light: light!.Mix(other, factor),
+                dark: dark!.Mix(other, factor));
+        }
+
+        if (other.kind == Kind.Pair)
+        {
+            // If only the other is dynamic, mix this with both its members
+            return Dynamic(
+                light: Mix(other.light!, factor),
+                dark: Mix(other.dark!, factor));
+        }
+
+        // Both are fixed colors; do the linear interpolation
+        if (kind != Kind.Fixed || other.kind != Kind.Fixed)
+            throw new InvalidOperationException("Mix only supports fixed or dynamic (appearance pair) colors");
+
+        var invFactor = 1.0 - factor;
+        return new SwiftColor(
+            red: red * invFactor + other.red * factor,
+            green: green * invFactor + other.green * factor,
+            blue: blue * invFactor + other.blue * factor,
+            opacity: alpha * invFactor + other.alpha * factor);
+    }
+
     /// <summary>The colour drawn in the given appearance.</summary>
     public Color Resolve(ThemeVariant theme) => Resolve(theme, CurrentAccent);
 
