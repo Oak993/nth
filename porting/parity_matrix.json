@@ -7,10 +7,11 @@
   "counts": {
     "total": 3938,
     "by_status": {
-      "SPECIFIED": 3872,
+      "SPECIFIED": 3863,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
       "DISCOVERED": 34,
-      "RETIRED": 6
+      "RETIRED": 6,
+      "IMPLEMENTED": 9
     },
     "by_area": {
       "CHAT": 193,
@@ -606,7 +607,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0016",
+        "upstream": "DroppyCode/App/Views/Chat/ThreadTimeline.swift:132-135 `if runtime.isLoadingHistory { Color.clear }`",
+        "port": "While history loads the timeline stays empty for 400 ms, then shows the 64 px loading mark centred in it, fading in over 0.2 s (ED-097)."
+      }
     },
     {
       "area": "CHAT",
@@ -15389,7 +15395,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce byte for byte. The porting repository's own lint rules about apostrophes and spelling do not apply to model-visible source strings; add an exemption rather than editing the text.",
       "verification_method": "contract fixture comparing bytes, including the U+2019 codepoint",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 11",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -15399,8 +15405,7 @@
         "upstream": "DroppyCode/Core/Models/AntiSlopPolicy.swift:3 \"[Droppy Code anti-slop guidance]\" and :12 \"[Droppy Code anti-slop guidance: off]\"",
         "port": "The first lines read \"[Marrow anti-slop guidance]\" and \"[Marrow anti-slop guidance: off]\"; every other line, the U+2019 in \"product’s\" and the US spelling \"colors\" are unchanged."
       },
-      "spec_fix": "expected_result said the enabled text contains U+2019 in \"product's\" but wrote the word with an ASCII apostrophe (U+0027), so a worker copying it produced the wrong byte -> DroppyCode/Core/Models/AntiSlopPolicy.swift:6 \"For UI work, follow the product’s components, typography and colors.\" has RIGHT SINGLE QUOTATION MARK U+2019 (bytes E2 80 99); expected_result now carries that character.",
-      "rework": true
+      "spec_fix": "expected_result said the enabled text contains U+2019 in \"product's\" but wrote the word with an ASCII apostrophe (U+0027), so a worker copying it produced the wrong byte -> DroppyCode/Core/Models/AntiSlopPolicy.swift:6 \"For UI work, follow the product’s components, typography and colors.\" has RIGHT SINGLE QUOTATION MARK U+2019 (bytes E2 80 99); expected_result now carries that character."
     },
     {
       "area": "HYDRA",
@@ -24054,7 +24059,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0016",
+        "upstream": "DroppyCode/App/AppDelegate.swift: the main window is shown once the launch prologue has run; nothing is shown before it",
+        "port": "A launch splash with the 96 px loading mark appears if the main window has not been shown 400 ms after process start, and closes when it is (ED-097). The prologue order is unchanged."
+      }
     },
     {
       "area": "LAUNCH",
@@ -77110,7 +77120,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port the generational structure verbatim. An LRU substitute has a different hit rate and a different memory ceiling and would change how often threads and thumbnails are re-decoded.",
       "verification_method": "unit reproducing a known hit and eviction sequence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -77120,8 +77130,7 @@
         "DroppyCode/Core/Support/RecentCache.swift:30-32 - contains(_:) is true when the key is in either generation",
         "porting/port_impacts.md entry 117 - \"Implement the generational cache exactly; an LRU substitute changes hit rate and memory ceiling.\""
       ],
-      "implemented_by_task": "T-M2-066",
-      "rework": true
+      "implemented_by_task": "T-M2-066"
     },
     {
       "area": "STORE",
@@ -77135,7 +77144,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The reader must have write access to the cache. A port that exposes a const read will silently lose the promotion and halve the effective capacity.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -77143,8 +77152,7 @@
       "source_evidence": [
         "DroppyCode/Core/Support/RecentCache.swift:22-28 - mutating func value(for key:) returns current[key] directly, otherwise removes the entry from previous, subtracts its cost from previousCost and re-inserts it into current at the same cost"
       ],
-      "implemented_by_task": "T-M2-066",
-      "rework": true
+      "implemented_by_task": "T-M2-066"
     },
     {
       "area": "STORE",
@@ -77158,7 +77166,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same condition, same wholesale discard, same ordering (rollover, then write).",
       "verification_method": "unit on both arms of the condition",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "44",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -77166,8 +77174,7 @@
       "source_evidence": [
         "DroppyCode/Core/Support/RecentCache.swift:47-55 - if current.count >= limit || currentCost > costLimit - cost { previous = current; previousCost = currentCost; current = [:]; current.reserveCapacity(limit); currentCost = 0 }; current[key] = Entry(value:cost:); currentCost += cost"
       ],
-      "implemented_by_task": "T-M2-066",
-      "rework": true
+      "implemented_by_task": "T-M2-066"
     },
     {
       "area": "STORE",
@@ -77184,7 +77191,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the ordering exactly: remove, clamp, then reject. It is an ordinary quirk under AM-0001 (a cache miss, no lasting harm), so it is the product.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "43",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -77196,8 +77203,7 @@
         "DroppyCode/Services/Store/Storage.swift:264-270 - DocumentPrefetch init(limit: 12, costLimit: 16 * 1_024 * 1_024, ...) builds the ready RecentCache"
       ],
       "implemented_by_task": "T-M2-066",
-      "spec_fix": "Said a thumbnail bitmap over 32 MiB is never cached and that an over-budget insert removes a smaller cached version of it -> there are two bitmap caches, ThumbnailCache.thumbnails at 32 MiB (ThumbnailCache.swift:16) and ThumbnailMemory.images at 16 MiB (:70), and both keys include the pixel size (:25, :73), so no smaller version of the same image shares the key; only a thread document (keyed by thread id, 16 MiB, Storage.swift:264-270) loses an earlier cached version",
-      "rework": true
+      "spec_fix": "Said a thumbnail bitmap over 32 MiB is never cached and that an over-budget insert removes a smaller cached version of it -> there are two bitmap caches, ThumbnailCache.thumbnails at 32 MiB (ThumbnailCache.swift:16) and ThumbnailMemory.images at 16 MiB (:70), and both keys include the pixel size (:25, :73), so no smaller version of the same image shares the key; only a thread document (keyed by thread id, 16 MiB, Storage.swift:264-270) loses an earlier cached version"
     },
     {
       "area": "STORE",
@@ -77213,7 +77219,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three clamps and the same default cost of 1.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -77223,8 +77229,7 @@
         "DroppyCode/Core/Support/RecentCache.swift:44 - let cost = max(0, cost)",
         "DroppyCode/Core/Support/RecentCache.swift:43 - cost defaults to 1"
       ],
-      "implemented_by_task": "T-M2-066",
-      "rework": true
+      "implemented_by_task": "T-M2-066"
     },
     {
       "area": "STORE",
@@ -77238,7 +77243,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same dual removal. The currentCost refund is load-bearing: without it the budget leaks and rollovers come early. previousCost is write-only in the source; keeping it is harmless, and no test can observe it.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -77249,8 +77254,7 @@
         "DroppyCode/Core/Support/RecentCache.swift:43-56 - insert: removeValue(for: key) first; rollover when current.count >= limit || currentCost > costLimit - cost, then previous = current, current = [:]"
       ],
       "implemented_by_task": "T-M2-066",
-      "spec_fix": "Said refunding only one counter leaks budget, and that a key can sit in both generations with the current value winning -> only currentCost is read (RecentCache.swift:47); previousCost is only written (:12, :25, :39, :49), and insert (:44), promotion (:24-26) and rollover (:47-52) keep the two generations disjoint",
-      "rework": true
+      "spec_fix": "Said refunding only one counter leaks budget, and that a key can sit in both generations with the current value winning -> only currentCost is read (RecentCache.swift:47); previousCost is only written (:12, :25, :39, :49), and insert (:44), promotion (:24-26) and rollover (:47-52) keep the two generations disjoint"
     },
     {
       "area": "STORE",
@@ -78946,7 +78950,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Store as an exact string resource, byte for byte, including U+2019 and the American spellings, with the OD-0012 F1 first line \"[Marrow anti-slop guidance]\". Do not reflow, re-wrap, spell-check or localise it. Deliver it at exactly the points and with exactly the once-per-epoch rule the expected result names.",
       "verification_method": "contract fixture: byte-compare the delivered text against the source literal with its first line replaced by \"[Marrow anti-slop guidance]\" (OD-0012 F1), at each delivery point: Claude --append-system-prompt, Codex developerInstructions, Copilot systemMessage, the OpenAI-compatible system prompt, and the user-prompt prefix of another CLI provider (once per session epoch, absent on a slash command)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78964,8 +78968,7 @@
         "upstream": "DroppyCode/Core/Models/AntiSlopPolicy.swift:3 - first line \"[Droppy Code anti-slop guidance]\"",
         "port": "First line \"[Marrow anti-slop guidance]\"; the four guidance lines, including the U+2019 in \"product’s\", are unchanged. OD-0012 F1 names the \"[Marrow]\" notes sent to models."
       },
-      "spec_fix": "Action and expected result said the text is injected into the system prompt when a turn starts -> it goes into the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers (ClaudeSession.swift:121-128, CodexSession.swift:249-257, CopilotSession.swift:147-156, OpenAICompatibleSession.swift:1188-1195), and for every other provider it is prefixed to the user prompt once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367, :1751, :2090)",
-      "rework": true
+      "spec_fix": "Action and expected result said the text is injected into the system prompt when a turn starts -> it goes into the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers (ClaudeSession.swift:121-128, CodexSession.swift:249-257, CopilotSession.swift:147-156, OpenAICompatibleSession.swift:1188-1195), and for every other provider it is prefixed to the user prompt once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367, :1751, :2090)"
     },
     {
       "area": "STORE",
@@ -78983,7 +78986,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte-exact string with the OD-0012 F1 first line \"[Marrow anti-slop guidance: off]\", and the same always-inject-one-of-two selector. The selector takes a Bool and returns one of the two constants; there is no third state.",
       "verification_method": "contract fixture over both branches, at each delivery point PR-STORE-129 names, with the first lines \"[Marrow anti-slop guidance]\" and \"[Marrow anti-slop guidance: off]\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78999,8 +79002,7 @@
         "upstream": "DroppyCode/Core/Models/AntiSlopPolicy.swift:12 - first line \"[Droppy Code anti-slop guidance: off]\"",
         "port": "First line \"[Marrow anti-slop guidance: off]\"; the second line is unchanged. OD-0012 F1 names the \"[Marrow]\" notes sent to models."
       },
-      "spec_fix": "Action said the text is injected when a turn starts -> it is delivered where PR-STORE-129 now says: in the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers, otherwise as a user-prompt prefix once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367)",
-      "rework": true
+      "spec_fix": "Action said the text is injected when a turn starts -> it is delivered where PR-STORE-129 now says: in the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers, otherwise as a user-prompt prefix once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367)"
     },
     {
       "area": "STORE",
