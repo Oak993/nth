@@ -365,6 +365,69 @@ public sealed class SwiftColorTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "ED-051")]
+    [Trait("Decision", "ED-092")]
+    public void Opacity_on_an_already_faded_accent_multiplies_the_factor() => headless.OnUiThread(() =>
+    {
+        // ED-092: .opacity(x) multiplies alpha. App/Views/Chat/HydraProgressBar.swift:350-351 fades a tint that is
+        // Chrome.accent (App/Views/Chat/ThreadTimeline.swift:2127), so the accent's own factor must compose.
+        // Exact: 0.5 * 0.5 = 0.25; for the opaque headless accent 0.25*255 = 63.75, so 64.
+        // Replacing the factor instead would give 0.5*255 = 127.5.
+        var accent = Application.Current!.PlatformSettings!.GetColorValues().AccentColor1;
+        Assert.Equal(255, accent.A);
+        foreach (var theme in new[] { Light, Dark })
+        {
+            Assert.Equal(Color.FromArgb(64, accent.R, accent.G, accent.B), SwiftColor.AccentColor.Opacity(0.5).Opacity(0.5).Resolve(theme));
+            Assert.Equal(Color.FromArgb(64, accent.R, accent.G, accent.B), SwiftColor.ControlAccentColor.Opacity(0.5).Opacity(0.5).Resolve(theme));
+        }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-092")]
+    [Trait("Rule", "R-VIEW-11")]
+    public void An_appearance_pair_resolves_a_derived_variant_through_the_variant_it_inherits()
+    {
+        // UI/Theme/AppTheme.swift:183: isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua, so every
+        // appearance that best matches dark takes the dark member and every one that best matches light the light one.
+        // A custom Avalonia variant inherits from Dark or Light; it resolves as the variant it inherits.
+        var darkish = new ThemeVariant("CustomDark", ThemeVariant.Dark);
+        var darkerStill = new ThemeVariant("CustomDarkChild", darkish);
+        var lightish = new ThemeVariant("CustomLight", ThemeVariant.Light);
+
+        // 0.85*255 = 216.75
+        Assert.Equal(Argb(217, 255, 255, 255), SwiftColor.LabelColor.Resolve(darkish));
+        Assert.Equal(Argb(217, 255, 255, 255), SwiftColor.LabelColor.Resolve(darkerStill));
+        Assert.Equal(Argb(217, 0, 0, 0), SwiftColor.LabelColor.Resolve(lightish));
+
+        // AppTheme.swift:182-187, the System surface pair: dark sRGB 1E 1E 20, light white.
+        var surface = SwiftColor.Dynamic(
+            new SwiftColor(red: 1.0, green: 1.0, blue: 1.0, opacity: 1.0),
+            new SwiftColor(red: 0x1E / 255.0, green: 0x1E / 255.0, blue: 0x20 / 255.0, opacity: 1.0));
+        Assert.Equal(Argb(255, 0x1E, 0x1E, 0x20), surface.Resolve(darkish));
+        Assert.Equal(Argb(255, 0x1E, 0x1E, 0x20), surface.Resolve(darkerStill));
+        Assert.Equal(Argb(255, 255, 255, 255), surface.Resolve(lightish));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-092")]
+    [Trait("Rule", "R-VIEW-11")]
+    public void A_brush_under_a_derived_dark_variant_takes_the_dark_member() => headless.OnUiThread(() =>
+    {
+        // AppTheme.swift:183 as above, through the control's ActualThemeVariant.
+        var target = new Border();
+        var scope = new ThemeVariantScope { RequestedThemeVariant = new ThemeVariant("CustomDark", ThemeVariant.Dark), Child = target };
+        var window = Show(scope);
+
+        var brush = Assert.IsAssignableFrom<ISolidColorBrush>(SwiftColor.LabelColor.Brush(target));
+        Assert.Equal(Argb(217, 255, 255, 255), brush.Color);
+
+        scope.RequestedThemeVariant = new ThemeVariant("CustomLight", ThemeVariant.Light);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(Argb(217, 0, 0, 0), brush.Color);
+        window.Close();
+    });
+
+    [Fact]
     [Trait("Decision", "ED-092")]
     [Trait("Decision", "ED-104")]
     public void Yellow_is_the_documented_system_yellow_pair()
