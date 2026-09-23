@@ -2,6 +2,7 @@ using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
 using Marrow.Core.Port;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
@@ -38,7 +39,7 @@ public enum Edge { Top, Bottom, Leading, Trailing }
 /// <summary>The values and frame-driven application of SwiftUI AnyTransition.</summary>
 public sealed record SwiftTransition
 {
-    private enum Kind { None, Fade, Scale, Offset, Move, Mod, Pair, Asym, Animated }
+    private enum Kind { None, Fade, Scale, Offset, Move, BlurReplace, Mod, Pair, Asym, Animated }
 
     private readonly Kind kind;
     private readonly double scale;
@@ -69,6 +70,8 @@ public sealed record SwiftTransition
 
     public static SwiftTransition Identity { get; } = new(Kind.None);
     public static SwiftTransition Opacity { get; } = new(Kind.Fade);
+    // UNVERIFIED O-51: UsageViews.swift:273,279,352,360,364 use the default downUp blurReplace (ED-159).
+    public static SwiftTransition BlurReplace { get; } = new(Kind.BlurReplace);
     public static SwiftTransition Scale(double scale = 0) => new(Kind.Scale, scale: scale);
     public static SwiftTransition Offset(double x = 0, double y = 0) => new(Kind.Offset, x: x, y: y);
     public static SwiftTransition Move(Edge edge) => new(Kind.Move, edge: edge);
@@ -101,7 +104,7 @@ public sealed record SwiftTransition
             return;
         }
         transition.Apply(child, state.Wrapper, 0, inserting: true);
-        state.Run(animation, p => transition.Apply(child, state.Wrapper, p, inserting: true));
+        state.Run(animation, (p, _) => transition.Apply(child, state.Wrapper, p, inserting: true));
     }
 
     public static void Remove(Panel panel, Control child)
@@ -121,10 +124,10 @@ public sealed record SwiftTransition
             return;
         }
         transition.Apply(child, wrapper, 0, inserting: false);
-        state.Run(animation, p =>
+        state.Run(animation, (p, complete) =>
         {
             transition.Apply(child, wrapper, p, inserting: false);
-            if (p >= 1 && panel.Children.Contains(wrapper)) panel.Children.Remove(wrapper);
+            if (complete && panel.Children.Contains(wrapper)) panel.Children.Remove(wrapper);
         });
     }
 
@@ -135,7 +138,14 @@ public sealed record SwiftTransition
 
     private Control CreateBody(Control child)
     {
-        if (kind == Kind.Mod) return identity!.Body(child);
+        if (kind == Kind.Mod)
+        {
+            var body = identity!.Body(child);
+            // The removal modifier may own the wrapper even when the insertion half is Identity.
+            // Initialize it at identity before any transition-specific frame is applied.
+            identity.Update(body);
+            return body;
+        }
         if (kind == Kind.Animated) return first!.CreateBody(child);
         if (kind == Kind.Asym)
         {
@@ -152,18 +162,53 @@ public sealed record SwiftTransition
 
     private void Apply(Control child, Control body, double progress, bool inserting)
     {
+        // ED-159: gather nested transitions before writing any property, then leave untouched properties alone.
+        var effects = new AppliedEffects();
+        Gather(child, body, progress, inserting, effects);
+        if (effects.OpacityTouched) child.Opacity = effects.Opacity;
+        if (effects.TransformTouched)
+        {
+            child.RenderTransformOrigin = RelativePoint.Center;
+            if (effects.Transforms.Count == 1) child.RenderTransform = effects.Transforms[0];
+            else
+            {
+                var group = new TransformGroup();
+                foreach (var transform in effects.Transforms) group.Children.Add(transform);
+                child.RenderTransform = group;
+            }
+        }
+        if (effects.EffectTouched)
+            child.Effect = effects.BlurRadius > 0 ? new ImmutableBlurEffect(effects.BlurRadius) : null;
+    }
+
+    private sealed class AppliedEffects
+    {
+        public List<Transform> Transforms { get; } = [];
+        public double Opacity { get; set; } = 1;
+        public double BlurRadius { get; set; }
+        public bool OpacityTouched { get; set; }
+        public bool TransformTouched { get; set; }
+        public bool EffectTouched { get; set; }
+    }
+
+    private void Gather(Control child, Control body, double progress, bool inserting, AppliedEffects effects)
+    {
         switch (kind)
         {
             case Kind.None: break;
-            case Kind.Fade: child.Opacity = inserting ? progress : 1 - progress; break;
+            case Kind.Fade:
+                effects.OpacityTouched = true;
+                effects.Opacity *= inserting ? progress : 1 - progress;
+                break;
             case Kind.Scale:
                 var factor = inserting ? scale + (1 - scale) * progress : 1 + (scale - 1) * progress;
-                child.RenderTransformOrigin = RelativePoint.Center;
-                child.RenderTransform = new ScaleTransform(factor, factor);
+                effects.TransformTouched = true;
+                effects.Transforms.Add(new ScaleTransform(factor, factor));
                 break;
             case Kind.Offset:
                 var offset = inserting ? 1 - progress : progress;
-                child.RenderTransform = new TranslateTransform(x * offset, y * offset);
+                effects.TransformTouched = true;
+                effects.Transforms.Add(new TranslateTransform(x * offset, y * offset));
                 break;
             case Kind.Move:
                 var width = child.Bounds.Width > 0 ? child.Bounds.Width : child.Width;
@@ -171,7 +216,19 @@ public sealed record SwiftTransition
                 var distance = inserting ? 1 - progress : progress;
                 var dx = edge == Edge.Leading ? -width : edge == Edge.Trailing ? width : 0;
                 var dy = edge == Edge.Top ? -height : edge == Edge.Bottom ? height : 0;
-                child.RenderTransform = new TranslateTransform(dx * distance, dy * distance);
+                effects.TransformTouched = true;
+                effects.Transforms.Add(new TranslateTransform(dx * distance, dy * distance));
+                break;
+            case Kind.BlurReplace:
+                // UNVERIFIED O-51: active downUp state is opacity 0, radius 7 and centre scale 0.9 (ED-159).
+                var activeProgress = inserting ? 1 - progress : progress;
+                effects.OpacityTouched = true;
+                effects.Opacity *= 1 - activeProgress;
+                effects.EffectTouched = true;
+                effects.BlurRadius = Math.Max(0, 7 * activeProgress);
+                effects.TransformTouched = true;
+                var blurScale = 1 - 0.1 * activeProgress;
+                effects.Transforms.Add(new ScaleTransform(blurScale, blurScale));
                 break;
             case Kind.Mod:
                 var from = inserting ? active! : identity!;
@@ -187,11 +244,12 @@ public sealed record SwiftTransition
                 else to.Update(body);
                 break;
             case Kind.Pair:
-                first!.Apply(child, body, progress, inserting);
-                second!.Apply(child, body, progress, inserting);
+                // UNVERIFIED O-52: combined(with:) nests first inside second (ChatView.swift:1098-1099).
+                first!.Gather(child, body, progress, inserting, effects);
+                second!.Gather(child, body, progress, inserting, effects);
                 break;
-            case Kind.Asym: (inserting ? first! : second!).Apply(child, body, progress, inserting); break;
-            case Kind.Animated: first!.Apply(child, body, progress, inserting); break;
+            case Kind.Asym: (inserting ? first! : second!).Gather(child, body, progress, inserting, effects); break;
+            case Kind.Animated: first!.Gather(child, body, progress, inserting, effects); break;
         }
     }
 
@@ -208,7 +266,7 @@ public sealed record SwiftTransition
             callback = null;
         }
 
-        public void Run(Marrow.UI.Port.Animation animation, Action<double> apply)
+        public void Run(Marrow.UI.Port.Animation animation, Action<double, bool> apply)
         {
             Stop();
             source = FrameClock.Source.Current;
@@ -218,7 +276,7 @@ public sealed record SwiftTransition
             {
                 var seconds = (SwiftClock.Now - start).TotalSeconds;
                 var complete = seconds >= animation.Duration;
-                apply(complete ? 1 : animation.Progress(seconds));
+                apply(complete ? 1 : animation.Progress(seconds), complete);
                 if (complete) callback = null;
                 else source.RequestFrame(frame!);
             };
