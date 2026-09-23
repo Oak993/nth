@@ -10,10 +10,12 @@ namespace Marrow.UI.Tests.Sound;
 // only way to observe their exact values without inventing new public surface on the twin, so this file
 // reads them by the names R-NAME-2 gives the ported members (Notes, Partials, Volume). Notes, Partials
 // and Volume are transcribed byte for byte from SettleChime.swift:24-27,31-35,9-10 (R-TEST-4),
-// independently of any C# implementation. A missing field throws at run time (MissingFieldException),
-// an expected red result before SettleChime.cs exists.
+// independently of any C# implementation. src/Marrow.UI/Sound/SettleChime.cs does not exist yet, so
+// `typeof(SettleChime)` below does not compile: this file, and the whole Marrow.UI.Tests project with
+// it, is red until SettleChime.cs is written. That is the expected state for a tests-only part (see the
+// task instructions: "The tests may not compile yet because the code does not exist").
 //
-// Revised after review. Three changes from the previous version of this file:
+// Revised after a second review. Changes from the previous version of this file:
 // - No "Duration" field test. Swift has no `duration` member: 0.32 is a literal argument at
 //   SettleChime.swift:12, not a stored value. Reading it by reflection would force SettleChime.cs to add
 //   a private const the source does not have (copy, never invent; R-FILE-1 twin shape).
@@ -23,14 +25,21 @@ namespace Marrow.UI.Tests.Sound;
 //   notes, partials and the 0.32 literal) hashes to 403fad7b... against the Swift wave formula. A test
 //   here that just called ToneSynth.Wave on the same reflected fields would restate that result, not add
 //   SettleChime evidence, since it would not observe what SettleChime itself builds the voice from.
-// - The previous "Play does not throw when called more than once" test is gone. It could not fail on a
+// - The former "Play does not throw when called more than once" test is gone. It could not fail on a
 //   wrong port (a no-op Play, a play-without-stop, a stop-after-play, or a port that creates a new
 //   overlapping voice on every call all pass it), so it was not evidence for PR-THEME-082's cancellation
 //   policy ("stop-then-play on one shared voice, not a mix of two overlapping voices",
 //   SettleChime.swift:17-21) and it would have driven the real Windows audio device whenever the
 //   implementation under test actually plays sound (R-TEST-10 forbids that). It is replaced below by a
-//   shape-only test that pins Play as the type's public entry point without calling it, matching the
-//   precedent in tests/Marrow.UI.Tests/Sound/FinishChimeTests.cs for the sibling PR-THEME-081 unit.
+//   shape-only test that pins Play as the type's public entry point without calling it. This file makes
+//   no claim of precedent from a sibling FinishChimeTests.cs: that file does not exist on this branch
+//   (unit/UI.Sound.SettleChime); it exists only on the separate unit/UI.Sound.FinishChime branch.
+// - The shape-only Play test below no longer carries a Req trait. It only checks Play's reflection
+//   shape (public, static, parameterless, void) and passes on a no-op Play, on play without stop, on
+//   stop after play and on a port that makes a new overlapping voice per call, none of which match
+//   SettleChime.swift:19-20 (`sound?.stop()` / `sound?.play()`) or the record's cancellation line. It
+//   cannot fail on a wrong port, so it is not evidence for PR-THEME-082; it now carries only the naming
+//   Rule trait it actually proves (R-NAME-2: `play()` -> `Play()`, member name upper-cased).
 //
 // What this file cannot test, and why (STOP filed for this part; see the unit's report):
 // - The voice construction at SettleChime.swift:12-13 (`NSSound(data: ToneSynth.wave(...))`,
@@ -90,7 +99,7 @@ public sealed class SettleChimeTests
     {
         // Volume is `Float` in Swift (:9), not `Double`: 0.18 does not round-trip through a float cast
         // (0.18f as a double is 0.180000007...), so this checks the field's declared type, not just its
-        // value, the same reasoning FinishChimeTests uses for its own Volume field.
+        // value.
         var field = typeof(SettleChime).GetField("Volume", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new MissingFieldException("Marrow.UI.Sound.SettleChime.Volume (private static) not found; SettleChime.cs is not written yet or does not expose it under this name.");
         Assert.Equal(typeof(float), field.FieldType);
@@ -103,9 +112,14 @@ public sealed class SettleChimeTests
     // Companion to the stop-then-play cancellation policy and the failure-silent-no-op behaviour at
     // :17-21, which are the subject of the STOP filed for this part (no port-only voice seam exists to
     // test them through, and calling Play() here would drive the real Windows audio device). Kept
-    // because it still pins Play's shape as the type's only entry point, matching FinishChimeTests.
+    // because it still pins Play's shape as the type's only entry point. This is a Rule test, not a Req
+    // test: it proves R-NAME-2 (the member name upper-cases from `play()` to `Play()`) and nothing about
+    // PR-THEME-082's behaviour. It passes on a no-op Play, on play without stop, on stop after play and
+    // on a port that makes a new overlapping voice per call, none of which match SettleChime.swift:17-21
+    // (`sound?.stop()` / `sound?.play()`) or the record's cancellation line, so a Req trait here would
+    // let req_verify count PR-THEME-082 as proven by a test that cannot fail on a wrong port.
     [Fact]
-    [Trait("Req", "PR-THEME-082")] // DroppyCode/UI/Sound/SettleChime.swift:17-21
+    [Trait("Rule", "R-NAME-2")] // DroppyCode/UI/Sound/SettleChime.swift:17-21
     public void Play_is_a_public_parameterless_static_method_returning_void()
     {
         var method = typeof(SettleChime).GetMethod(
