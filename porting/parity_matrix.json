@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "SPECIFIED": 3757,
+      "SPECIFIED": 3754,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
       "DISCOVERED": 34,
       "RETIRED": 6,
-      "IMPLEMENTED": 116
+      "IMPLEMENTED": 119
     },
     "by_area": {
       "CHAT": 193,
@@ -76225,7 +76225,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One shared serializer configured for ISO 8601 dates, sorted keys, no pretty printing and slash escaping. Slash escaping is kept because it is the encoder's default output, not because the sweep needs it (the sweep matches both forms, Storage.swift:129). The key comparer, the non-ASCII and control-character escaping and the number format must reproduce Foundation's JSONEncoder; an ordinal key sort and a relaxed escaper are not evidence of parity, and each is pinned only by the macOS-produced fixture.",
       "verification_method": "contract fixture: byte-compare encoded output against a macOS-produced file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003",
@@ -76237,8 +76237,7 @@
       ],
       "implemented_by_task": "T-M2-059",
       "spec_fix": "Said slash escaping is something the orphan sweep depends on and that the sweep matches the escaped form -> the sweep pattern makes the backslash optional and matches both forms (Storage.swift:129); and said only that keys are sorted while demanding a byte-compare -> the order, non-ASCII and control escaping and number format are those of Foundation's JSONEncoder behind .sortedKeys (Coding.swift:23, macOS 26 per project.yml:5), which the record now names and marks UNVERIFIED under UNK-0003",
-      "open_question": "Missing: output of the macOS 26 JSONEncoder with .sortedKeys (or the swift-foundation source of that SDK) for sibling keys that differ in case, contain digit runs and contain \"_\", for non-ASCII and C0/C1 control characters in strings, and for Double values, to pin the collation, escaping and number format this record names.",
-      "rework": true
+      "open_question": "Missing: output of the macOS 26 JSONEncoder with .sortedKeys (or the swift-foundation source of that SDK) for sibling keys that differ in case, contain digit runs and contain \"_\", for non-ASCII and C0/C1 control characters in strings, and for Double values, to pin the collation, escaping and number format this record names."
     },
     {
       "area": "STORE",
@@ -76254,7 +76253,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One shared ISO 8601 deserializer.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -76262,8 +76261,7 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Coding.swift:28-33 - JSONDecoder.storage with dateDecodingStrategy = .iso8601"
       ],
-      "implemented_by_task": "T-M2-059",
-      "rework": true
+      "implemented_by_task": "T-M2-059"
     },
     {
       "area": "STORE",
@@ -76302,7 +76300,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One helper with exactly these three collapse cases, used by every model decoder in this area. A port that only handles the missing-key case will turn a hand-edited file into a decode failure and lose the record.",
       "verification_method": "unit with all three shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -76310,8 +76308,7 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Coding.swift:3-8 - func value<T: Decodable>(_ key: Key, default fallback: @autoclosure () -> T) -> T { ((try? decodeIfPresent(T.self, forKey: key)) ?? nil) ?? fallback() }"
       ],
-      "implemented_by_task": "T-M2-059",
-      "rework": true
+      "implemented_by_task": "T-M2-059"
     },
     {
       "area": "STORE",

@@ -729,23 +729,13 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 3,
-   "records_todo": [
-    "PR-STORE-017",
-    "PR-STORE-018",
-    "PR-STORE-020"
-   ],
-   "parts": [
-    [
-     "PR-STORE-017",
-     "PR-STORE-018",
-     "PR-STORE-020"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-058"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.ISO8601",
