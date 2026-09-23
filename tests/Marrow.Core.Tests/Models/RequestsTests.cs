@@ -23,19 +23,13 @@ namespace Marrow.Core.Tests.Models;
 // Held by other units, not by this file: the plan-state write where only .approve accepts a plan and
 // .approveAlways dismisses it (App/Runtime/ThreadRuntime.swift:1725, PR-RUNTIME-138), and the masked input for
 // isSecret (App/Views/Composer/QuestionTab.swift:231-232).
-// UI-RUNTIME-005 is only partly proven here. The Req traits for it in this file prove its exact_text
-// (Requests.swift:34-42) and its symbol mapping (Requests.swift:44-52), nothing more. Its geometry
-// (RequestCards.swift:8 VStack spacing 10, :9 HStack spacing 8, :14 Spacer, :62 padding 16, :64 continuous
-// rect cornerRadius 20), typography (:13 .font(.headline), 13 pt Inter by ED-059), colours (:11 Chrome.warning,
-// :64 tint Chrome.warning.opacity(0.1)) and states have NO test in this unit or any other: Marrow.Core tests
-// cannot reach the view layer, and no other unit holds the record. The record has to be split or reassigned
-// so that App.Views.Composer.RequestCards covers RequestCards.swift:8-15 and :62-64; until then these traits
-// must not be counted as verifying the whole record.
+// UI-RUNTIME-005 (the card's headline row and container, RequestCards.swift:8-15 and :62-64) is held by
+// App.Views.Composer.RequestCards per the ruling on this stop; the headline strings and symbol names it
+// shows are proven here under PR-RUNTIME-017 and PR-RUNTIME-018.
 public sealed class RequestsTests
 {
     [Theory]
     [Trait("Req", "PR-RUNTIME-017")] // Core/Models/Requests.swift:34-42
-    [Trait("Req", "UI-RUNTIME-005")] // Core/Models/Requests.swift:34-42 (exact_text only), read at RequestCards.swift:12
     [InlineData(Kind.Command, "Run this command?")]
     [InlineData(Kind.FileChange, "Apply these changes?")]
     [InlineData(Kind.Tool, "Allow this action?")]
@@ -54,7 +48,6 @@ public sealed class RequestsTests
 
     [Theory]
     [Trait("Req", "PR-RUNTIME-018")] // Core/Models/Requests.swift:44-52
-    [Trait("Req", "UI-RUNTIME-005")] // Core/Models/Requests.swift:44-52 (symbol mapping only), read at RequestCards.swift:10
     [InlineData(Kind.Command, "terminal")]
     [InlineData(Kind.FileChange, "doc.badge.plus")]
     [InlineData(Kind.Tool, "wrench.and.screwdriver")]
@@ -90,7 +83,6 @@ public sealed class RequestsTests
 
     [Theory]
     [Trait("Req", "PR-RUNTIME-018")] // Core/Models/Requests.swift:44-52, mapped by OD-0010
-    [Trait("Req", "UI-RUNTIME-005")] // Core/Models/Requests.swift:44-52 (symbol mapping only), mapped by OD-0010
     [InlineData(Kind.Command, "square-terminal", 46)]
     [InlineData(Kind.FileChange, "file-plus", 47)]
     [InlineData(Kind.Tool, "wrench", 48)]
