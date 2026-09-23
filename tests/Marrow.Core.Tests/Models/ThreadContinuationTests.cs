@@ -85,7 +85,7 @@ public sealed class ThreadContinuationTests
         var result = ThreadContinuation.Capture(Guid.NewGuid(), "Chat", document);
 
         Assert.Equal("User: \nAttachments: n.txt (C:\\f\\n.txt)", result.Context);
-        Assert.Equal([attachment], result.Attachments);
+        Assert.Equal(new[] { attachment }, result.Attachments);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public sealed class ThreadContinuationTests
     public void Capture_returns_the_previous_snapshot_unchanged_when_no_units_remain()
     {
         var previous = new ThreadContinuation(Guid.NewGuid(), "Old title", "old context",
-            attachments: [new Attachment { Name = "a", Path = "p", MimeType = "text/plain" }], isTruncated: true);
+            attachments: new[] { new Attachment { Name = "a", Path = "p", MimeType = "text/plain" } }, isTruncated: true);
         var document = DocumentOf(HydraUserItem("skipped")) with { Continuation = previous };
 
         var newID = Guid.NewGuid();
@@ -157,12 +157,12 @@ public sealed class ThreadContinuationTests
         var result = ThreadContinuation.Capture(Guid.NewGuid(), "Chat", document);
 
         Assert.True(result.IsTruncated);
-        Assert.StartsWith(TruncationMarker + "\n\n", result.Context);
-        Assert.Contains("User: start", result.Context);
-        Assert.EndsWith(ShortenedMarker, result.Context);
+        Assert.StartsWith(TruncationMarker + "\n\n", result.Context, StringComparison.Ordinal);
+        Assert.Contains("User: start", result.Context, StringComparison.Ordinal);
+        Assert.EndsWith(ShortenedMarker, result.Context, StringComparison.Ordinal);
         // The short assistant message in between never got its turn: the walk broke on the huge
         // block before reaching it.
-        Assert.DoesNotContain("kept-if-reached", result.Context);
+        Assert.DoesNotContain("kept-if-reached", result.Context, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -170,7 +170,7 @@ public sealed class ThreadContinuationTests
     public void Capture_inherits_a_previous_context_whole_when_it_fits_with_two_characters_to_spare()
     {
         var previous = new ThreadContinuation(Guid.NewGuid(), "Old", "earlier conversation",
-            attachments: [new Attachment { Name = "old.txt", Path = "p", MimeType = "text/plain" }]);
+            attachments: new[] { new Attachment { Name = "old.txt", Path = "p", MimeType = "text/plain" } });
         var document = DocumentOf(UserItem("hi")) with { Continuation = previous };
 
         var result = ThreadContinuation.Capture(Guid.NewGuid(), "Chat", document);
@@ -202,7 +202,7 @@ public sealed class ThreadContinuationTests
         // remaining (1,000) > 400: the last remaining - 2 = 998 characters of the previous context
         // are kept, i.e. its suffix, not its prefix.
         var expectedSuffix = new string('w', 998);
-        Assert.StartsWith(TruncationMarker + "\n\n" + expectedSuffix + "\n\nUser: hi\n\nAssistant: ", result.Context);
+        Assert.StartsWith(TruncationMarker + "\n\n" + expectedSuffix + "\n\nUser: hi\n\nAssistant: ", result.Context, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -227,10 +227,10 @@ public sealed class ThreadContinuationTests
         var result = ThreadContinuation.Capture(Guid.NewGuid(), "Chat", document);
 
         Assert.True(result.IsTruncated);
-        Assert.StartsWith(TruncationMarker + "\n\nUser: hi\n\nAssistant: ", result.Context);
+        Assert.StartsWith(TruncationMarker + "\n\nUser: hi\n\nAssistant: ", result.Context, StringComparison.Ordinal);
         // remaining (~200) was not itself > 400, so no suffix of the previous context is kept at all,
         // and no attachments are inherited from it.
-        Assert.DoesNotContain('z', result.Context);
+        Assert.DoesNotContain("zz", result.Context, StringComparison.Ordinal); // no run of the previous context's 'z's survives
         Assert.Empty(result.Attachments);
     }
 
@@ -239,14 +239,14 @@ public sealed class ThreadContinuationTests
     public void Capture_deduplicates_attachments_by_path_keeping_the_first_occurrence()
     {
         var inherited = new Attachment { Name = "Old", Path = "shared", MimeType = "text/plain" };
-        var previous = new ThreadContinuation(Guid.NewGuid(), "Old", "earlier", attachments: [inherited]);
+        var previous = new ThreadContinuation(Guid.NewGuid(), "Old", "earlier", attachments: new[] { inherited });
         var duplicate = new Attachment { Name = "New", Path = "shared", MimeType = "text/plain" };
         var unique = new Attachment { Name = "Q", Path = "q", MimeType = "text/plain" };
         var document = DocumentOf(UserItem("hi", duplicate, unique)) with { Continuation = previous };
 
         var result = ThreadContinuation.Capture(Guid.NewGuid(), "Chat", document);
 
-        Assert.Equal([inherited, unique], result.Attachments);
+        Assert.Equal(new[] { inherited, unique }, result.Attachments);
     }
 
     // ---- PR-RUNTIME-178: rendering of a unit (observed through Capture's context) ----
@@ -286,7 +286,7 @@ public sealed class ThreadContinuationTests
 
         // prefix "User: " (6) + available (4000 - 6 - 20 = 3974) + marker (20) = 4000, no further clip.
         Assert.Equal(4000, result.Context.Length);
-        Assert.EndsWith(ShortenedMarker, result.Context);
+        Assert.EndsWith(ShortenedMarker, result.Context, StringComparison.Ordinal);
         Assert.Equal("User: " + new string('a', 3974) + ShortenedMarker, result.Context);
         Assert.True(result.IsTruncated);
     }
@@ -317,7 +317,7 @@ public sealed class ThreadContinuationTests
     {
         var continuation = new ThreadContinuation(Guid.NewGuid(), "T", "c", isTruncated: true);
 
-        Assert.Contains("Some messages were shortened or omitted to fit a size limit. Do not assume the copied history is complete.", continuation.Prompt);
+        Assert.Contains("Some messages were shortened or omitted to fit a size limit. Do not assume the copied history is complete.", continuation.Prompt, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -325,15 +325,16 @@ public sealed class ThreadContinuationTests
     public void Prompt_says_a_file_for_exactly_one_attachment_and_files_for_more_than_one()
     {
         var oneAttachment = new ThreadContinuation(Guid.NewGuid(), "T", "c",
-            attachments: [new Attachment { Name = "n", Path = "p", MimeType = "text/plain" }]);
+            attachments: new[] { new Attachment { Name = "n", Path = "p", MimeType = "text/plain" } });
         var twoAttachments = new ThreadContinuation(Guid.NewGuid(), "T", "c",
-            attachments: [
+            attachments: new[]
+            {
                 new Attachment { Name = "n1", Path = "p1", MimeType = "text/plain" },
                 new Attachment { Name = "n2", Path = "p2", MimeType = "text/plain" },
-            ]);
+            });
 
-        Assert.Contains("The forwarded chat referenced a file still kept in this app's storage; their names and paths are in the context below.", oneAttachment.Prompt);
-        Assert.Contains("The forwarded chat referenced files still kept in this app's storage; their names and paths are in the context below.", twoAttachments.Prompt);
+        Assert.Contains("The forwarded chat referenced a file still kept in this app's storage; their names and paths are in the context below.", oneAttachment.Prompt, StringComparison.Ordinal);
+        Assert.Contains("The forwarded chat referenced files still kept in this app's storage; their names and paths are in the context below.", twoAttachments.Prompt, StringComparison.Ordinal);
     }
 
     [Fact]
