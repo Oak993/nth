@@ -6052,27 +6052,25 @@
     },
     {
       "id": "PR-RUNTIME-264",
-      "title": "A turn's change summary is stored as FileChangeSummary: per-file path, additions, deletions and isBinary, plus the two totals",
+      "title": "FileChangeSummary is stored with Swift's synthesized keys: per-file path, additions, deletions and isBinary, plus files and the two totals",
       "source_evidence": [
         "DroppyCode/Core/Models/FileChangeSummary.swift:3-15 - the comment \"What a turn changed, file by file, as the timeline and the changes tab show it.\"; struct FileChangeSummary: Codable, Hashable, Sendable { struct File: Codable, Hashable, Sendable { var path: String; var additions: Int; var deletions: Int; var isBinary: Bool }; let files: [File]; let additions: Int; let deletions: Int }",
-        "DroppyCode/Core/Models/Timeline.swift:259-267 struct TurnSummary - turnID, status, duration, filesChanged, additions, deletions, var changes: FileChangeSummary?",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2384-2395 finishTurn - let changes = FileChangeSummary(files: await parsedDiff(selection: turnID, providerFiles: providerFiles)); TurnSummary(..., filesChanged: changes.files.count, additions: changes.additions, deletions: changes.deletions, changes: changes); append(TimelineItem(turnID: turnID, content: .turnEnd(summary)))",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:609 install - a synthetic end marker is built with changes: nil",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:3751-3757 storeLegacyChanges - fills summary.changes only when it is nil"
+        "DroppyCode/Core/Support/Coding.swift:19-25 JSONEncoder.storage - .iso8601 dates, .sortedKeys"
       ],
       "preconditions": "A turn ends, or a stored turn is shown.",
       "action": "The turn-end row's summary is written or read.",
-      "expected_result": "FileChangeSummary uses Swift's synthesized Codable, so it is stored with exactly the keys files, additions and deletions, and each file with path, additions, deletions and isBinary. finishTurn stores the parsed diff's summary as TurnSummary.changes on the turn-end row and copies its file count and totals into filesChanged, additions and deletions. A synthetic end marker written by install carries changes nil; storeLegacyChanges fills changes later, only while it is still nil. The row is part of ThreadDocument.items, so the summary is on disk and a reopened thread reads it instead of running git again.",
+      "expected_result": "FileChangeSummary uses Swift's synthesized Codable and Hashable, so it is stored with exactly the keys files, additions and deletions, and each file with exactly path, additions, deletions and isBinary. Every key is required on decode, and the totals are stored as given (the memberwise init; the summing init(files:) is PR-GIT-092). Where it is stored: TurnSummary.changes on the turn-end row, PR-CHAT-012. Who writes it: finishTurn, PR-RUNTIME-121; install's nil marker, PR-RUNTIME-161; the legacy back-fill, PR-RUNTIME-200. A summary that fails to decode fails its TimelineItem, which ThreadDocument drops through Lenient (Timeline.swift:356-365, PR-CHAT-019); the thread still opens.",
       "side_effects": [],
-      "persistence": "ThreadDocument.items, inside the .turnEnd row's TurnSummary.changes.",
+      "persistence": "Inside ThreadDocument.items as TurnSummary.changes (PR-CHAT-012); this record fixes only the summary's own keys.",
       "failure_cases": [],
       "cancellation": "not cancellable",
       "windows_path": "Keep these key names; the thread file is the compatibility surface for an existing installation. How the summary is computed from a diff is PR-GIT-092.",
-      "verification_method": "contract fixture - round-trip a turn-end row with a two-file summary, one of them binary, and assert the exact keys",
+      "verification_method": "contract fixture - encode a two-file summary, one of them binary, with JSONEncoder.storage, assert the exact bytes and keys, and decode it back equal",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "spec_fix": "Narrowed by the ruling on STOP Core.Models.FileChangeSummary #1 (2026-09-23): the turn-end-row round trip and the nil cases moved to PR-CHAT-012; finishTurn, install's nil marker and storeLegacyChanges are PR-RUNTIME-121, -161 and -200; this record keeps FileChangeSummary.swift:3-15."
     }
   ],
   "ui": [
@@ -6186,11 +6184,12 @@
         "None on the headline itself."
       ],
       "source_evidence": [
-        "DroppyCode/Core/Models/Requests.swift:34-52 headline and symbol",
-        "DroppyCode/App/Views/Composer/RequestCards.swift:3-65 ApprovalCard"
+        "DroppyCode/App/Views/Composer/RequestCards.swift:3-65 ApprovalCard (headline row :8-15, card padding and glass :62-64)",
+        "DroppyCode/Core/Models/Requests.swift:34-52 headline and symbol"
       ],
       "notes": "The five icons are SF Symbols \"terminal\", \"doc.badge.plus\", \"wrench.and.screwdriver\", \"lock.shield\" and \"checklist\"; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table, one for one). Glass: OD-0005 applies (Acrylic where the window shows the desktop; where the app draws its own backdrop, a shader reproducing the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing); an owner-approved deviation, not parity.",
-      "b2_change": "The flagged range RequestCards.swift:3-65 changed only at :28, :37 and :43 (.secondary -> Chrome.secondaryText on the plan body, the detail and the reason; the plan body is UI-RUNTIME-007). The headline, icon, geometry and glass tint this record states are unchanged. The typography note no longer contrasts the headline with a chat-zoomed font, because B2 removed chat zoom (UI/Common/ChatFont.swift:4-10). Owner rulings applied in this refresh: the glass note states OD-0005 in the ruling's words and as an owner-approved deviation, the icons follow OD-0010 (Lucide) in place of the open UNK-0007, and the face follows OD-0009 (Inter)."
+      "b2_change": "The flagged range RequestCards.swift:3-65 changed only at :28, :37 and :43 (.secondary -> Chrome.secondaryText on the plan body, the detail and the reason; the plan body is UI-RUNTIME-007). The headline, icon, geometry and glass tint this record states are unchanged. The typography note no longer contrasts the headline with a chat-zoomed font, because B2 removed chat zoom (UI/Common/ChatFont.swift:4-10). Owner rulings applied in this refresh: the glass note states OD-0005 in the ruling's words and as an owner-approved deviation, the icons follow OD-0010 (Lucide) in place of the open UNK-0007, and the face follows OD-0009 (Inter).",
+      "spec_fix": "The first source_evidence was Requests.swift, so plan_units.py and gen_tasks.mjs assigned this view record to Core.Models.Requests, whose Marrow.Core tests cannot reach the card. RequestCards.swift is now first, which moves the record to App.Views.Composer.RequestCards beside UI-RUNTIME-006..008. The headline strings and symbol names stay proven at the model by PR-RUNTIME-017 and PR-RUNTIME-018."
     },
     {
       "id": "UI-RUNTIME-006",
