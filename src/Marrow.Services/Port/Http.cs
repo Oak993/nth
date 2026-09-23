@@ -873,7 +873,8 @@ public sealed class URLSession
             ended = true;
             idle.Dispose();
             resource.Dispose();
-            taskCancellation.Dispose();
+            // A cancellation callback may already be waiting for gate. Unregister does not wait for it here.
+            taskCancellation.Unregister();
         }
 
         private static TimeSpan Clamp(TimeSpan interval) => interval < TimeSpan.Zero ? TimeSpan.Zero : interval;
