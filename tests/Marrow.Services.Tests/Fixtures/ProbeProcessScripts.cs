@@ -45,11 +45,18 @@ public static class ProbeProcessScripts
     /// server.env layers over LoginEnvironment.current (ED-128).</summary>
     public static string EchoArgsAndEnvAndCwd()
     {
+        // One backslash and one double-quote character, built as single-char literals so the PowerShell
+        // regex/replacement text below is unambiguous to read and verify: JSON-escape a value by first
+        // doubling every backslash (regex pattern "one backslash" = two backslash chars; replacement "two
+        // backslash chars" is written literally, PowerShell's -replace right side has no backslash meta
+        // meaning), then escaping every quote as backslash-quote.
+        const string bs = "\\";
+        const string dq = "\"";
         var body = new StringBuilder();
         body.Append("  if ($msg.method -eq 'initialize') {\n");
-        body.Append("    $joinedArgs = (($args | ForEach-Object { $_ -replace '\\\\', '\\\\\\\\' -replace '\"', '\\\\\"' }) -join '|')\n");
+        body.Append("    $joinedArgs = (($args | ForEach-Object { $_ -replace '" + bs + bs + "', '" + bs + bs + "' -replace '" + dq + "', '" + bs + dq + "' }) -join '|')\n");
         body.Append("    $var = [string]$env:MCP_PROBE_TEST_VAR\n");
-        body.Append("    $cwd = ((Get-Location).Path) -replace '\\\\', '\\\\\\\\'\n");
+        body.Append("    $cwd = ((Get-Location).Path) -replace '" + bs + bs + "', '" + bs + bs + "'\n");
         WriteLine(body, "'{\"jsonrpc\":\"2.0\",\"id\":' + $msg.id + ',\"result\":{\"serverInfo\":{\"name\":\"' + $joinedArgs + '|' + $var + '\",\"version\":\"' + $cwd + '\"}}}'");
         body.Append("  } elseif ($msg.method -eq 'tools/list') {\n");
         WriteLine(body, "'{\"jsonrpc\":\"2.0\",\"id\":' + $msg.id + ',\"result\":{\"tools\":[]}}'");
