@@ -20,6 +20,10 @@ namespace Marrow.Core.Tests.Models;
 // toolItemID is ToolItemID (R-NAME-2), and the memberwise optionals default to null with every call site
 // naming its arguments (ED-095 parameter order).
 // Not Codable in Swift, so there is no decoding path to test; not cancellable, and no error path exists.
+// Held by other units, not by this file: the plan-state write where only .approve accepts a plan and
+// .approveAlways dismisses it (App/Runtime/ThreadRuntime.swift:1725, PR-RUNTIME-138), the masked input for
+// isSecret (App/Views/Composer/QuestionTab.swift:231-232), and the card geometry, colours and glyph drawing of
+// UI-RUNTIME-005 (App/Views/Composer/RequestCards.swift:3-65).
 public sealed class RequestsTests
 {
     [Theory]
@@ -152,7 +156,7 @@ public sealed class RequestsTests
     [Trait("Req", "PR-RUNTIME-016")] // Core/Models/Requests.swift:29-32 optionals; memberwise init defaults them to nil
     public void Approval_request_omitted_optionals_are_nil_as_the_Swift_memberwise_init_gives()
     {
-        // Services/Providers/CopilotSession.swift:866 omits detail, reason and toolItemID.
+        // Services/Providers/CopilotSession.swift:867 omits detail, reason and toolItemID.
         var request = new ApprovalRequest(Id: "", RequestKind: Kind.Tool, Title: "Manage an extension",
             Options: ValueList<Option>.Empty);
 
@@ -327,6 +331,13 @@ public sealed class RequestsTests
         {
             Choices = new ValueList<Choice>([new Choice(Label: "A", Detail: "a"), new Choice(Label: "B", Detail: "b")]),
         });
+
+        // Synthesized Hashable feeds every stored field, choices included, into the hasher (:57, :61).
+        var otherChoices = question with
+        {
+            Choices = new ValueList<Choice>([new Choice(Label: "C", Detail: "c"), new Choice(Label: "D", Detail: null)]),
+        };
+        Assert.NotEqual(question.GetHashCode(), otherChoices.GetHashCode());
     }
 
     [Fact]
