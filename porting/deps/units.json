@@ -2266,23 +2266,13 @@
    ],
    "intra_deps": [],
    "records_total": 3,
-   "records_todo": [
-    "PR-THEME-134",
-    "PR-THEME-135",
-    "PR-THEME-136"
-   ],
-   "parts": [
-    [
-     "PR-THEME-134",
-     "PR-THEME-135",
-     "PR-THEME-136"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-051"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Markdown.MarkdownParser",
@@ -2567,29 +2557,13 @@
    ],
    "intra_deps": [],
    "records_total": 6,
-   "records_todo": [
-    "PR-MCP-193",
-    "PR-MCP-194",
-    "PR-MCP-195",
-    "PR-MCP-196",
-    "PR-MCP-197",
-    "PR-MCP-198"
-   ],
-   "parts": [
-    [
-     "PR-MCP-193",
-     "PR-MCP-194",
-     "PR-MCP-195",
-     "PR-MCP-196",
-     "PR-MCP-197",
-     "PR-MCP-198"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-001"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.CommandCodeKeychain",
@@ -2733,27 +2707,13 @@
    ],
    "intra_deps": [],
    "records_total": 5,
-   "records_todo": [
-    "PR-PROVAPI-187",
-    "PR-PROVAPI-188",
-    "PR-PROVAPI-189",
-    "PR-PROVAPI-190",
-    "PR-PROVAPI-191"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-187",
-     "PR-PROVAPI-188",
-     "PR-PROVAPI-189",
-     "PR-PROVAPI-190",
-     "PR-PROVAPI-191"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-140"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.ZaiKeychain",
@@ -2800,11 +2760,12 @@
     "F.PathIdentity"
    ],
    "intra_deps": [],
-   "records_total": 61,
+   "records_total": 63,
    "records_todo": [
     "PR-COMPOSER-061",
     "PR-COMPOSER-062",
     "PR-LAUNCH-070",
+    "PR-MCP-084",
     "PR-STORE-001",
     "PR-STORE-002",
     "PR-STORE-003",
@@ -2813,6 +2774,7 @@
     "PR-STORE-006",
     "PR-STORE-007",
     "PR-STORE-010",
+    "PR-STORE-011",
     "PR-STORE-012",
     "PR-STORE-013",
     "PR-STORE-019",
@@ -2869,6 +2831,7 @@
      "PR-COMPOSER-061",
      "PR-COMPOSER-062",
      "PR-LAUNCH-070",
+     "PR-MCP-084",
      "PR-STORE-001",
      "PR-STORE-002",
      "PR-STORE-003",
@@ -2877,6 +2840,7 @@
      "PR-STORE-006",
      "PR-STORE-007",
      "PR-STORE-010",
+     "PR-STORE-011",
      "PR-STORE-012",
      "PR-STORE-013",
      "PR-STORE-019",
@@ -2887,11 +2851,11 @@
      "PR-STORE-025",
      "PR-STORE-026",
      "PR-STORE-027",
-     "PR-STORE-030",
-     "PR-STORE-031",
-     "PR-STORE-032"
+     "PR-STORE-030"
     ],
     [
+     "PR-STORE-031",
+     "PR-STORE-032",
      "PR-STORE-033",
      "PR-STORE-035",
      "PR-STORE-036",
@@ -2913,11 +2877,11 @@
      "PR-STORE-060",
      "PR-STORE-061",
      "PR-STORE-062",
-     "PR-STORE-063",
-     "PR-STORE-064",
-     "PR-STORE-065"
+     "PR-STORE-063"
     ],
     [
+     "PR-STORE-064",
+     "PR-STORE-065",
      "PR-STORE-066",
      "PR-STORE-067",
      "PR-STORE-068",
@@ -3695,7 +3659,7 @@
     "F.PathIdentity"
    ],
    "intra_deps": [],
-   "records_total": 14,
+   "records_total": 12,
    "records_todo": [],
    "parts": [],
    "packets": [
@@ -3762,73 +3726,15 @@
     "Services.MCP.MCPKeychain"
    ],
    "records_total": 26,
-   "records_todo": [
-    "PR-MCP-139",
-    "PR-MCP-140",
-    "PR-MCP-141",
-    "PR-MCP-142",
-    "PR-MCP-143",
-    "PR-MCP-144",
-    "PR-MCP-145",
-    "PR-MCP-146",
-    "PR-MCP-147",
-    "PR-MCP-148",
-    "PR-MCP-149",
-    "PR-MCP-150",
-    "PR-MCP-151",
-    "PR-MCP-152",
-    "PR-MCP-153",
-    "PR-MCP-154",
-    "PR-MCP-155",
-    "PR-MCP-156",
-    "PR-MCP-157",
-    "PR-MCP-158",
-    "PR-MCP-159",
-    "PR-MCP-160",
-    "PR-MCP-161",
-    "PR-MCP-162",
-    "PR-MCP-163",
-    "PR-MCP-164"
-   ],
-   "parts": [
-    [
-     "PR-MCP-139",
-     "PR-MCP-140",
-     "PR-MCP-141",
-     "PR-MCP-142",
-     "PR-MCP-143",
-     "PR-MCP-144",
-     "PR-MCP-145",
-     "PR-MCP-146",
-     "PR-MCP-147",
-     "PR-MCP-148",
-     "PR-MCP-149",
-     "PR-MCP-150",
-     "PR-MCP-151",
-     "PR-MCP-152",
-     "PR-MCP-153",
-     "PR-MCP-154",
-     "PR-MCP-155",
-     "PR-MCP-156",
-     "PR-MCP-157",
-     "PR-MCP-158",
-     "PR-MCP-159",
-     "PR-MCP-160",
-     "PR-MCP-161",
-     "PR-MCP-162"
-    ],
-    [
-     "PR-MCP-163",
-     "PR-MCP-164"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-005",
     "T-M4-006",
     "T-M4-007"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.MCP.MCPProxy",
@@ -3850,7 +3756,8 @@
     "F.HTTP",
     "F.HTTPMove",
     "F.PathIdentity",
-    "F.URL"
+    "F.URL",
+    "Services.Store.Storage"
    ],
    "intra_deps": [
     "Core.Models.MCP",
@@ -4765,7 +4672,8 @@
     "F.HTTP",
     "F.HTTPMove",
     "F.ProcessLauncher",
-    "F.URL"
+    "F.URL",
+    "Services.Store.Storage"
    ],
    "intra_deps": [],
    "records_total": 19,
@@ -4909,7 +4817,8 @@
     "Core.Support.JSONValue",
     "Core.Support.Shell",
     "F.FileOps",
-    "F.PathIdentity"
+    "F.PathIdentity",
+    "Services.Store.Storage"
    ],
    "intra_deps": [],
    "records_total": 8,
@@ -5137,7 +5046,8 @@
     "Core.Support.Shell",
     "F.FileOps",
     "F.PathIdentity",
-    "Services.MCP.MCPProviderConfig"
+    "Services.MCP.MCPProviderConfig",
+    "Services.Store.Storage"
    ],
    "intra_deps": [],
    "records_total": 3,
@@ -5181,7 +5091,8 @@
     "Services.MCP.MCPOAuth",
     "Services.MCP.MCPProbe",
     "Services.MCP.MCPProviderConfig",
-    "Services.MCP.MCPProxy"
+    "Services.MCP.MCPProxy",
+    "Services.Store.Storage"
    ],
    "intra_deps": [],
    "records_total": 34,
@@ -7764,6 +7675,7 @@
     "Services.MCP.MCPBridgeSource",
     "Services.Providers.CommandCodeAPI",
     "Services.Providers.ProviderSession",
+    "Services.Store.Storage",
     "Services.Store.TokenLedger"
    ],
    "intra_deps": [],
@@ -7989,7 +7901,8 @@
     "F.PathIdentity",
     "Services.MCP.MCPBridgeSource",
     "Services.Providers.PiCLI",
-    "Services.Providers.ProviderSession"
+    "Services.Providers.ProviderSession",
+    "Services.Store.Storage"
    ],
    "intra_deps": [],
    "records_total": 36,
