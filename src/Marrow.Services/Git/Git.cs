@@ -8,11 +8,10 @@ using Marrow.Services.Port;
 
 // Source: DroppyCode/Services/Git/Git.swift (B2 1fbf81e), :1-722. Ported in part 1 of this unit: :4-119, :131-152,
 // :233-242, :259-265, :293-379, :517-524 and :719-722. Ported in part 2: :154-227, :267-272, :278-291, :381-429,
-// :431-538 and :658-674. Of these, :431-488 (currentTree, both captureTree forms, watch) are part 3's records
-// (PR-GIT-065, PR-GIT-067, PR-GIT-068, PR-GIT-070); they are ported here because captureCheckpoint (PR-GIT-058, part 2)
-// calls them, and part 3 verifies them. Not ported, and why: :274-276, the two-argument updateRef(_:to:), is dead code
-// (porting/dead_code.md entry 48, PR-GIT-036 NOT_APPLICABLE_WITH_EVIDENCE, ED-061). Not yet ported: :121-129, :244-257,
-// :539-657 and :676-716 belong to parts 3 and 4 of the Services.Git.Git unit and are added there.
+// :431-538 and :658-674. Ported in part 3: :121-129, :244-257, :539-657 and :676-716; part 3 also verifies :431-488
+// (PR-GIT-065, PR-GIT-067, PR-GIT-068, PR-GIT-070), where the scratch capture now carries the OD-0008 A3 proof, and
+// previewRestore carries the OD-0008 A4 derivation. Not ported, and why: :274-276, the two-argument updateRef(_:to:), is
+// dead code (porting/dead_code.md entry 48, PR-GIT-036 NOT_APPLICABLE_WITH_EVIDENCE, ED-061).
 
 namespace Marrow.Services.Git;
 
@@ -185,6 +184,22 @@ public sealed partial record Git
 
     /// <summary>:117-119</summary>
     public async Task CreateBranch(string name) => Check(await Run(["switch", "-c", name]));
+
+    /// <summary>
+    /// :121-125 A worktree at <paramref name="at"/> on a new branch, started at <paramref name="base"/> when one is
+    /// given, else at HEAD. The 120 s default budget, not 300 (porting/extracts/git-command-vectors.md section 0.1).
+    /// </summary>
+    public async Task AddWorktree(string at, string branch, string? @base)
+    {
+        // :122-123
+        List<string> arguments = ["worktree", "add", "-b", branch, at];
+        if (@base is { } commit) arguments.Add(commit);
+        // :124
+        Check(await Run(arguments));
+    }
+
+    /// <summary>:127-129 --force: uncommitted changes in that worktree do not stop the removal.</summary>
+    public async Task RemoveWorktree(string at) => Check(await Run(["worktree", "remove", "--force", at]));
 
     /// <summary>:131-134</summary>
     public async Task<string?> RemoteURL()
@@ -392,6 +407,35 @@ public sealed partial record Git
         }
         // :241
         return "main";
+    }
+
+    /// <summary>
+    /// :244-257 A tree of HEAD with only <paramref name="paths"/> taken from the working tree, additions and deletions
+    /// included: what one thread's work amounts to, with nothing else that happens to be uncommitted alongside it.
+    /// </summary>
+    public async Task<string> CaptureTree(IReadOnlyList<string> paths)
+    {
+        // :248-249. The temporary folder and the name shape of captureTree() (PR-GIT-070).
+        var index = TemporaryItem("droppy-code-index-");
+        try
+        {
+            // :251
+            var environment = new Dictionary<string, string> { ["GIT_INDEX_FILE"] = index };
+            // :252 Seeded from HEAD when there is one, never from the real index.
+            if (await HasCommits()) Check(await Run(["read-tree", "HEAD"], environment: environment));
+            // :253. UPSTREAM DEFECT 79, reproduced: --ignore-errors here, and not at the incremental add of :448.
+            Check(await Run(["add", "-A", "--ignore-errors", "--pathspec-from-file=-", "--pathspec-file-nul"],
+                environment: environment, input: NulSeparated(paths), timeout: 300));
+            // :254-256
+            var tree = await Run(["write-tree"], environment: environment);
+            Check(tree);
+            return tree.TrimmedOutput;
+        }
+        finally
+        {
+            // :250
+            SwiftTry.Ignore(() => FileOps.RemoveItem(index));
+        }
     }
 
     /// <summary>:259-261</summary>
@@ -609,29 +653,52 @@ public sealed partial record Git
     public async Task<string> CurrentTree()
     {
         if (await IndexPath() is not { } indexPath || await Watch() is not { } watch) return await CaptureTree();
+        // :435-438. The watch is handed on so the scratch capture can prove it (OD-0008 A3).
         return await watch.CurrentTree(indexPath, async (scratch, paths) =>
         {
             if (scratch is null) return await CaptureTree();
-            return await CaptureTree(scratch, paths);
+            return await CaptureTree(scratch, paths, watch);
         });
     }
 
     /// <summary>
     /// :441-463 captureTree over a scratch index kept between captures: with <paramref name="paths"/>, the directories
     /// the watch saw change since the last capture, only they are walked and the rest of the index stands. A walk that
-    /// fails, as when a path vanished with nothing of it in the index, is redone whole.
+    /// fails, as when a path vanished with nothing of it in the index, is redone whole. Private in Swift; internal so the
+    /// tests reach it (R-NAME-6).
+    /// <para>
+    /// DEVIATION OD-0008 A3 (BLK-0003, PR-GIT-067, PR-GIT-077): a tree is handed back only from a capture that proves it
+    /// covered the whole tree; any other capture throws CocoaError(.fileReadUnknown), the error the watch itself throws
+    /// for a capture with no tree (WorkingTreeWatch.swift:333), so captureCheckpoint records no checkpoint. ENGINEERING
+    /// DECISION, how the proof is made. Route 1 of BLK-0003, the scratch deleted while git writes through it: only the
+    /// watch's teardown deletes the scratch (WorkingTreeWatch.swift:159-170), and it drops the stream before it queues
+    /// the deletion, while a stream never comes back (PR-GIT-078); so a watch that still has its stream after the last
+    /// git process of the capture has deleted nothing under it. The check runs on the fast path and on the rebuild.
+    /// Route 2, a changed-path list released early by a cookie some other writer created (WorkingTreeWatch.swift:191-192):
+    /// cookie names are shared by every writer, so nothing the watch records can rule it out. The fast path's tree is
+    /// therefore compared with a whole-tree add (`add -A -- .`, 300 s, the add of :459) over the same scratch index,
+    /// written with write-tree: equal trees prove that no change lay outside the walked directories; unequal ones throw.
+    /// The scratch keeps git's stat cache, so the extra walk re-hashes only what changed. The rebuild walks the whole
+    /// tree by construction and needs no second walk.
+    /// </para>
     /// </summary>
-    private async Task<string> CaptureTree(string scratch, IReadOnlyList<string>? paths)
+    internal async Task<string> CaptureTree(string scratch, IReadOnlyList<string>? paths, WorkingTreeWatch watch)
     {
         // :446
         var environment = new Dictionary<string, string> { ["GIT_INDEX_FILE"] = scratch };
-        // :447-452
+        // :447-452. UPSTREAM DEFECT 79, reproduced: this add carries no --ignore-errors, unlike :253.
         if (paths is { Count: > 0 } changed && (File.Exists(scratch) || System.IO.Directory.Exists(scratch)) &&
             (await SwiftTry.OptionalAsync<ShellResult>(async () => await Run(["add", "-A", "--pathspec-from-file=-", "--pathspec-file-nul"],
                 environment: environment, input: NulSeparated(changed), timeout: 300)))?.Succeeded == true)
         {
             var incremental = await Run(["write-tree"], environment: environment);
             Check(incremental);
+            // DEVIATION OD-0008 A3: the whole-tree proof of route 2, then the stream check of route 1.
+            Check(await Run(["add", "-A", "--", "."], environment: environment, timeout: 300));
+            var whole = await Run(["write-tree"], environment: environment);
+            Check(whole);
+            if (!string.Equals(whole.TrimmedOutput, incremental.TrimmedOutput, StringComparison.Ordinal) || !watch.HasStream)
+                throw new CocoaError(CocoaError.ErrorCode.FileReadUnknown);
             return incremental.TrimmedOutput;
         }
         // :453
@@ -645,6 +712,8 @@ public sealed partial record Git
         Check(await Run(["add", "-A", "--", "."], environment: environment, timeout: 300));
         var tree = await Run(["write-tree"], environment: environment);
         Check(tree);
+        // DEVIATION OD-0008 A3: the stream check of route 1.
+        if (!watch.HasStream) throw new CocoaError(CocoaError.ErrorCode.FileReadUnknown);
         return tree.TrimmedOutput;
     }
 
@@ -661,10 +730,8 @@ public sealed partial record Git
     /// </summary>
     public async Task<string> CaptureTree()
     {
-        // :474. FileManager.temporaryDirectory is GetTempPathW on Windows (ENGINEERING DECISION: the same folder
-        // swift-corelibs-foundation answers). The name keeps upstream's prefix: it is neither shown nor sent (PR-GIT-070).
-        var index = SwiftPath.AppendingPathComponent(System.IO.Path.GetTempPath(),
-            "droppy-code-index-" + SwiftUUID.UuidString(Guid.NewGuid()));
+        // :474
+        var index = TemporaryItem("droppy-code-index-");
         try
         {
             // :476
@@ -768,6 +835,234 @@ public sealed partial record Git
         return path;
     }
 
+    /// <summary>:540-541 Paths per <c>git diff</c> call when a caller names many: well under the argument limit.</summary>
+    private const int DiffPathChunk = 400;
+
+    /// <summary>
+    /// :543-573 The patch between two trees or refs. <paramref name="binary"/> puts whole binary blobs in it, so a
+    /// picture a head added applies elsewhere. Over <paramref name="paths"/> alone when given: a diff of a tree that
+    /// holds build output runs to hundreds of megabytes, so the caller names the files it wants rather than cutting the
+    /// rest out afterwards.
+    /// </summary>
+    public async Task<string> Diff(string from, string to, bool binary = false, IReadOnlyList<string>? paths = null)
+    {
+        // :548-555. `diff` takes no pathspec file, so the paths go on the command line, and as plain names: a `?` or `[`
+        // in one is a character, not a pattern. --literal-pathspecs is a git option, so it goes before the subcommand,
+        // and only when paths were given, an empty list included (porting/port_impacts.md entry 222).
+        List<string> arguments = paths is null ? [] : ["--literal-pathspecs"];
+        arguments.AddRange(["diff", "--no-ext-diff", "-M"]);
+        if (binary) arguments.Add("--binary");
+        arguments.AddRange([from, to]);
+        // :556-561. Strictly more than 400 goes in chunks. UPSTREAM DEFECT 83, reproduced: an empty but given list is a
+        // bare "--", which git reads as no restriction at all.
+        if (paths is not { Count: > DiffPathChunk } named)
+        {
+            if (paths is { } given) arguments.AddRange(["--", .. given]);
+            var result = await Run(arguments, timeout: 300);
+            Check(result);
+            return result.Output;
+        }
+        // :562-572 Long lists go in chunks: one diff per chunk joins into the same patch.
+        var output = "";
+        var start = 0;
+        while (start < named.Count)
+        {
+            var chunk = named.Skip(start).Take(Math.Min(start + DiffPathChunk, named.Count) - start).ToList();
+            var result = await Run([.. arguments, "--", .. chunk], timeout: 300);
+            Check(result);
+            if (output.Length != 0 && !SwiftString.HasSuffix(output, "\n")) output += "\n";
+            output += result.Output;
+            start += chunk.Count;
+        }
+        return output;
+    }
+
+    /// <summary>
+    /// :575-597 What undoing a thread's file changes would touch: of <paramref name="paths"/> (the files its agent
+    /// changed, relative to this directory), the ones that differ between <paramref name="base"/> and
+    /// <paramref name="end"/>, the tree the thread last left. A file the checkout has changed again since then is
+    /// somebody else's work now, so it is marked kept. Other threads' files never appear: only <paramref name="paths"/>
+    /// are looked at. Without an <paramref name="end"/> tree (no turn finished) the files are compared to the checkout
+    /// as it is, which then counts as what the thread left.
+    /// </summary>
+    public async Task<RevertPreview> PreviewRestore(string @base, string? end, IReadOnlyList<string> paths)
+    {
+        // :582
+        if (paths.Count == 0) return new RevertPreview(new ValueList<RevertPreview.File>(Array.Empty<RevertPreview.File>()));
+        // :583-584
+        var endTree = end is { } known ? known : await CaptureTree(paths: paths);
+        // :585-586 `git diff` takes no pathspec file; a turn touches tens of files, well within the arguments.
+        // DEVIATION OD-0008 A4 (BLK-0004, PR-GIT-097, PR-GIT-098): --no-relative, so the paths numstat prints are
+        // repository-root-relative whatever the user's diff.relative says, and the blob lookups, the kept test and a
+        // later restore all act on exactly the files the turn touched. The pathspecs stay relative to this directory, the
+        // process's working directory, as upstream. In git's default configuration the output is upstream's byte for
+        // byte. ENGINEERING DECISION, the mechanism the ruling names: the command-line option rather than a
+        // `-c diff.relative=false` pair, which porting/port_impacts.md entry 225 (written before the ruling) forbade;
+        // both need git 2.28 or later (UNK-0011 item 4).
+        var preview = new RevertPreview(await Output(
+            ["diff", "--numstat", "-z", "--no-renames", "--no-ext-diff", "--no-relative", @base, endTree, "--", .. paths]));
+        // :587
+        if (preview.Files.Count == 0) return preview;
+        // :588-590
+        var root = await RepositoryRoot();
+        var left = await Blobs(endTree, preview.Files.Select(file => file.Path).ToList(), root);
+        var now = await WorkingBlobs(preview.Files.Select(file => file.Path).ToList(), root);
+        // :591-596
+        return preview with
+        {
+            Files = new ValueList<RevertPreview.File>(preview.Files.Select(file =>
+                file with { IsKept = !SameBlob(Lookup(left, file.Path), Lookup(now, file.Path)) })),
+        };
+    }
+
+    /// <summary>
+    /// :599-621 Puts <paramref name="paths"/> (repository-relative) back as they are in <paramref name="from"/>,
+    /// deleting the ones it lacks. Nothing outside <paramref name="paths"/> is touched. DEVIATION OD-0008 A4 and A3
+    /// (PR-GIT-158): the deletion is upstream's; what reaches it is repository-root-relative paths the turn touched
+    /// (PreviewRestore) against a checkpoint proven whole (the scratch capture), so a path the ref lacks is one the turn
+    /// created.
+    /// </summary>
+    public async Task Restore(IReadOnlyList<string> paths, string from)
+    {
+        // :602
+        if (paths.Count == 0) return;
+        // :603-605
+        var root = await RepositoryRoot();
+        var present = await Blobs(from, paths, root);
+        var restored = paths.Where(path => present.ContainsKey(path)).ToList();
+        // :606-612. Absolute paths joined by NUL with no trailing NUL (PR-GIT-069), unlike nulSeparated.
+        if (restored.Count != 0)
+        {
+            var result = await Run(
+                ["restore", "--source", from, "--worktree", "--staged", "--pathspec-from-file=-", "--pathspec-file-nul"],
+                input: Encoding.UTF8.GetBytes(string.Join("\0", restored.Select(path => Joined(root, path)))));
+            Check(result);
+        }
+        // :613-620. UPSTREAM DEFECT 78, reproduced: the rm result and every removal error are swallowed.
+        var created = paths.Where(path => !present.ContainsKey(path)).ToList();
+        if (created.Count != 0)
+        {
+            await SwiftTry.IgnoreAsync(async () => await Run(
+                ["rm", "-q", "--cached", "--ignore-unmatch", "--pathspec-from-file=-", "--pathspec-file-nul"],
+                input: Encoding.UTF8.GetBytes(string.Join("\0", created.Select(path => Joined(root, path))))));
+            foreach (var path in created) SwiftTry.Ignore(() => FileOps.RemoveItem(Joined(root, path)));
+        }
+    }
+
+    /// <summary>
+    /// :623-636 The blob of each of <paramref name="at"/> (repository-relative) in <paramref name="in"/>, for the ones it
+    /// has. Absolute pathspecs in, the repository-relative names --full-name prints out; no --literal-pathspecs
+    /// (upstream defect 78, reproduced), so a name with a glob character is a pattern.
+    /// </summary>
+    private async Task<Dictionary<string, string>> Blobs(string @in, IReadOnlyList<string> at, string root)
+    {
+        // :625
+        var listing = await Output(["ls-tree", "-r", "-z", "--full-name", @in, "--", .. at.Select(path => Joined(root, path))]);
+        // :626-627
+        var blobs = new Dictionary<string, string>(at.Count, SwiftStringComparer.Instance);
+        // :628-634 "<mode> <type> <hash>\t<path>"
+        foreach (var entry in SwiftString.Split(listing, "\0"))
+        {
+            if (FirstIndex(entry, "\t") is not { } tab) continue;
+            var fields = SwiftString.Split(entry[..tab], " ");
+            if (fields.Count != 3) continue;
+            blobs[entry[(tab + 1)..]] = fields[2];
+        }
+        // :635
+        return blobs;
+    }
+
+    /// <summary>
+    /// :638-648 The blob each of <paramref name="at"/> (repository-relative) would hash to as it is on disk; a missing
+    /// file has none. Unlike presentPaths, the reply count is checked (porting/upstream_defects.md entry 80).
+    /// </summary>
+    private async Task<Dictionary<string, string>> WorkingBlobs(IReadOnlyList<string> at, string root)
+    {
+        // :641. fileExists: a file or a folder (R-FS-1).
+        var existing = at.Where(path =>
+        {
+            var full = Joined(root, path);
+            return File.Exists(full) || System.IO.Directory.Exists(full);
+        }).ToList();
+        // :642
+        if (existing.Count == 0) return new Dictionary<string, string>(SwiftStringComparer.Instance);
+        // :643-644. Absolute paths joined by a newline with no trailing newline (PR-GIT-069).
+        var result = await Run(["hash-object", "--stdin-paths"],
+            input: Encoding.UTF8.GetBytes(string.Join("\n", existing.Select(path => Joined(root, path)))));
+        Check(result);
+        // :645-646
+        var hashes = SplitOnNewlines(result.Output);
+        if (hashes.Count != existing.Count)
+        {
+            throw new ShellError("git hash-object answered for " + hashes.Count.ToString(CultureInfo.InvariantCulture) + " of " +
+                existing.Count.ToString(CultureInfo.InvariantCulture) + " files.");
+        }
+        // :647 Dictionary(uniqueKeysWithValues:) traps on a repeated key (R-COLL-3).
+        var blobs = new Dictionary<string, string>(existing.Count, SwiftStringComparer.Instance);
+        for (var i = 0; i < existing.Count; i++)
+            if (!blobs.TryAdd(existing[i], hashes[i])) throw SwiftTraps.Fatal("Duplicate values for key: '" + existing[i] + "'");
+        return blobs;
+    }
+
+    /// <summary>
+    /// :650-656 Removes every checkpoint ref of <paramref name="thread"/> in one update-ref batch, best-effort: a
+    /// failed listing or batch is reported nowhere (porting/upstream_defects.md entry 85, reproduced).
+    /// </summary>
+    public async Task DeleteCheckpoints(Guid thread)
+    {
+        // :651. Built on its own, not from checkpointRef, with a trailing slash.
+        var prefix = "refs/droppy-code/checkpoints/" + SwiftString.Lowercased(SwiftUUID.UuidString(thread)) + "/";
+        // :652
+        if (await SwiftTry.OptionalAsync<string>(async () => await Output(["for-each-ref", "--format=%(refname)", prefix])) is not { } refs)
+            return;
+        // :653-654. No old value: each delete is unconditional.
+        var commands = string.Concat(SwiftString.Split(refs, "\n").Select(@ref => "delete " + @ref + "\n"));
+        if (commands.Length == 0) return;
+        // :655
+        await SwiftTry.IgnoreAsync(async () => await Run(["update-ref", "--stdin"], input: Encoding.UTF8.GetBytes(commands)));
+    }
+
+    /// <summary><c>dict[key]</c> of the blob maps (R-COLL-3).</summary>
+    private static string? Lookup(Dictionary<string, string> blobs, string path) =>
+        blobs.TryGetValue(path, out var blob) ? blob : null;
+
+    /// <summary>:593 <c>left[path] != now[path]</c>, negated: two optionals are equal when both are nil or both hold
+    /// equal strings.</summary>
+    private static bool SameBlob(string? left, string? right) =>
+        left is null ? right is null : right is not null && SwiftString.Equal(left, right);
+
+    /// <summary><c>root.appendingPathComponent(path).path</c> (:609, :617, :619, :625, :641, :643).</summary>
+    private static string Joined(string root, string path) => SwiftPath.FileURLAppendingPathComponentPath(root, path);
+
+    /// <summary>:645 <c>split(whereSeparator: \.isNewline)</c>: Character by Character, "\r\n" one separator, empty
+    /// pieces dropped.</summary>
+    private static List<string> SplitOnNewlines(string text)
+    {
+        var pieces = new List<string>();
+        var current = new StringBuilder();
+        foreach (var character in SwiftString.Characters(text))
+        {
+            if (character == "\r\n" || (character.Length == 1 && FoundationText.IsNewline(character[0])))
+            {
+                if (current.Length != 0) pieces.Add(current.ToString());
+                current.Clear();
+                continue;
+            }
+            current.Append(character);
+        }
+        if (current.Length != 0) pieces.Add(current.ToString());
+        return pieces;
+    }
+
+    /// <summary>
+    /// <c>FileManager.default.temporaryDirectory.appendingPathComponent(prefix + UUID().uuidString)</c> (:249, :474,
+    /// :699). ENGINEERING DECISION: temporaryDirectory is GetTempPathW on Windows, the folder swift-corelibs-foundation
+    /// answers. The names keep upstream's "droppy-code" prefix, matching the ref namespace: they are neither shown nor
+    /// sent (PR-GIT-070).
+    /// </summary>
+    private static string TemporaryItem(string prefix) =>
+        SwiftPath.AppendingPathComponent(System.IO.Path.GetTempPath(), prefix + SwiftUUID.UuidString(Guid.NewGuid()));
+
     // MARK: - Copies of the checkout
 
     /// <summary>
@@ -791,6 +1086,60 @@ public sealed partial record Git
         var result = await Run(arguments, environment: Identity);
         Check(result);
         return result.TrimmedOutput;
+    }
+
+    /// <summary>
+    /// :676-680 A worktree at <paramref name="at"/> with <paramref name="commit"/> checked out and no branch: a copy of
+    /// the checkout to work in, whose own status shows only what changed in it. 300 s, unlike addWorktree's 120 s.
+    /// </summary>
+    public async Task AddDetachedWorktree(string at, string commit) =>
+        Check(await Run(["worktree", "add", "--detach", at, commit], timeout: 300));
+
+    /// <summary>:682-685 Forgets worktrees whose folders are gone from disk; the result is discarded.</summary>
+    public async Task PruneWorktrees() =>
+        await SwiftTry.IgnoreAsync(async () => await Run(["worktree", "prune"]));
+
+    /// <summary>
+    /// :687-716 Applies <paramref name="patch"/> to the working tree and stages nothing. A hunk that no longer fits is
+    /// merged three-way against the blobs the patch names; a file the merge cannot settle keeps conflict markers, and
+    /// those paths come back. Throws when nothing could be applied at all.
+    /// </summary>
+    public async Task<IReadOnlyList<string>> Apply(string patch)
+    {
+        // :692-694. The same bytes go to each attempt.
+        var data = Encoding.UTF8.GetBytes(patch);
+        var plain = await Run(["apply", "--binary", "--whitespace=nowarn", "-"], input: data);
+        if (plain.Succeeded) return [];
+
+        // :696-701 The three-way merge works through an index that matches the working tree, so it gets a throwaway one
+        // that does, and the real index never changes.
+        var index = TemporaryItem("droppy-code-apply-");
+        try
+        {
+            var environment = new Dictionary<string, string> { ["GIT_INDEX_FILE"] = index };
+            // :702-706
+            if (await IndexPath() is { } indexPath && (File.Exists(indexPath) || System.IO.Directory.Exists(indexPath)))
+                SwiftTry.Ignore(() => File.Copy(indexPath, index));
+            else if (await HasCommits())
+                Check(await Run(["read-tree", "HEAD"], environment: environment));
+            // :707 at 300 s, while the apply after it keeps the 120 s default.
+            Check(await Run(["add", "-A", "--", "."], environment: environment, timeout: 300));
+            // :708-709
+            var merged = await Run(["apply", "--3way", "--binary", "--whitespace=nowarn", "-"], environment: environment, input: data);
+            if (merged.Succeeded) return [];
+            // :710-713 "U path" names each file left with markers; without one, nothing was applied.
+            var conflicts = new List<string>();
+            foreach (var line in SwiftString.Split(merged.ErrorOutput, "\n"))
+                if (SwiftString.HasPrefix(line, "U ")) conflicts.Add(FoundationText.Trim(SwiftString.DropFirst(line, 2)));
+            // :714-715
+            if (conflicts.Count == 0) throw new ShellError(merged.FailureMessage);
+            return conflicts;
+        }
+        finally
+        {
+            // :700
+            SwiftTry.Ignore(() => FileOps.RemoveItem(index));
+        }
     }
 
     /// <summary>:719-722 <c>Substring.value(after:)</c>, a private extension of the file.</summary>
