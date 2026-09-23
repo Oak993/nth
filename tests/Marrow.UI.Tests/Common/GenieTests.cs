@@ -647,6 +647,100 @@ public sealed class GenieTests(HeadlessSession headless)
         window.Close();
     });
 
+    // Every pixel of a 400 by 600 layer, one point apart, against Genie.metal: a flight from `frame` to `target`
+    // (null: the archive corner) at `progress`, whose opacity is :165's. Returns how many pixels of each kind it checked.
+    private (int Red, int Blue, int Nothing) AssertEveryPixelFollowsTheShader(Rect frame, Point? target, bool arriving, double progress)
+    {
+        var windows = new WindowsGeniePlatform();
+        var animator = new GenieAnimator(new FakeGeniePlatform(render: windows.RenderImage));
+        using var shared = GenieAnimator.Shared.Override(animator);
+        Assert.True(animator.Launch(frame: frame, colorScheme: ThemeVariant.Light, ghost: () => GenieBitmaps.RedBlueRow(frame.Size), target: target, arriving: arriving));
+        var layer = new GenieLayer();
+        var window = Show(layer, 400, 600);
+        var view = Assert.Single(VisualQuery.Descendants<GenieFlightView>(layer));
+        view.Present(progress);
+        var neck = view.Target;
+        var opacity = progress > 0.9 ? Math.Max(0, (1 - progress) / 0.1) : 1; // :165
+        var rendered = new RenderTargetBitmap(new PixelSize(400, 600));
+        rendered.Render(layer);
+        var pixels = GenieBitmaps.Pixels(rendered);
+        int Kind(double x, double y)
+        {
+            var s = GenieMetal.Genie((float)x, (float)y, (float)progress, (float)frame.X, (float)frame.Y,
+                (float)frame.Width, (float)frame.Height, (float)neck.X, (float)neck.Y);
+            if (s is not { } source) return 0;
+            return source.X < frame.Center.X ? 1 : 2;
+        }
+        var counts = (Red: 0, Blue: 0, Nothing: 0);
+        var level = (byte)Math.Round(255 * opacity);
+        for (var y = 0; y < 600; y++)
+        {
+            for (var x = 0; x < 400; x++)
+            {
+                var cx = x + 0.5;
+                var cy = y + 0.5;
+                var kind = Kind(cx, cy);
+                if (Kind(cx - 1, cy) != kind || Kind(cx + 1, cy) != kind || Kind(cx, cy - 1) != kind || Kind(cx, cy + 1) != kind) continue;
+                var (b, g, r, a) = GenieBitmaps.At(pixels, 400, x, y);
+                var what = $"({x},{y}) at {progress}: {r},{g},{b},{a}";
+                switch (kind)
+                {
+                    case 0:
+                        Assert.True(a == 0, what + " should sample nothing");
+                        counts.Nothing++;
+                        break;
+                    case 1:
+                        Assert.True(Math.Abs(r - level) <= 1 && g == 0 && b == 0 && Math.Abs(a - level) <= 1, what + " should be red");
+                        counts.Red++;
+                        break;
+                    default:
+                        Assert.True(r == 0 && g == 0 && Math.Abs(b - level) <= 1 && Math.Abs(a - level) <= 1, what + " should be blue");
+                        counts.Blue++;
+                        break;
+                }
+            }
+        }
+        window.Close();
+        return counts;
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(0.2)]
+    [InlineData(0.45)]
+    [InlineData(0.7)]
+    [InlineData(0.85)]
+    [InlineData(0.95)]
+    [Trait("Req", "PR-THEME-175")] // UI/Common/Genie.swift:137, :150-165; UI/Common/Genie.metal:16-54
+    public void Every_pixel_of_a_departure_to_the_archive_corner_follows_the_shader_and_the_last_tenth_fade(double progress) => headless.OnUiThread(() =>
+    {
+        var counts = AssertEveryPixelFollowsTheShader(new Rect(120, 100, 200, 40), target: null, arriving: false, progress);
+        Assert.True(counts.Red > 20 && counts.Blue > 20 && counts.Nothing > 10000, counts.ToString());
+    });
+
+    [Theory]
+    [InlineData(1.0)]
+    [InlineData(0.8)]
+    [InlineData(0.5)]
+    [InlineData(0.15)]
+    [Trait("Req", "PR-THEME-175")] // UI/Common/Genie.swift:139-141, :150-164; UI/Common/Genie.metal:24-30, :53
+    public void Every_pixel_of_an_arrival_out_of_a_target_above_the_row_follows_the_flipped_shader(double progress) => headless.OnUiThread(() =>
+    {
+        var counts = AssertEveryPixelFollowsTheShader(new Rect(60, 420, 260, 50), target: new Point(330, 30), arriving: true, progress);
+        Assert.True(counts.Nothing > 10000 && (progress >= 1 || (counts.Red > 20 && counts.Blue > 20)), counts.ToString());
+    });
+
+    [Theory]
+    [InlineData(0.3)]
+    [InlineData(0.6)]
+    [Trait("Req", "PR-THEME-175")] // UI/Common/Genie.swift:150-164; UI/Common/Genie.metal:31, :38
+    public void Every_pixel_of_a_flight_to_a_target_nearer_than_the_rows_height_follows_the_shader(double progress) => headless.OnUiThread(() =>
+    {
+        // targetY - y0 = 50 is under the row's height 60, so :31's travel is the height.
+        var counts = AssertEveryPixelFollowsTheShader(new Rect(100, 200, 200, 60), target: new Point(150, 250), arriving: false, progress);
+        Assert.True(counts.Red > 20 && counts.Blue > 20 && counts.Nothing > 10000, counts.ToString());
+    });
+
     // ---------------------------------------------------------------------------------------------------------
     // PR-THEME-176 and UI-THEME-051: the layer
     // ---------------------------------------------------------------------------------------------------------
@@ -685,6 +779,7 @@ public sealed class GenieTests(HeadlessSession headless)
         Assert.Equal(new Size(640, 480), morphs[0].Canvas);
         window.Width = 700;
         window.Height = 500;
+        Dispatcher.UIThread.RunJobs(); // the headless window applies a new size on a later dispatcher turn
         window.UpdateLayout();
         Assert.Equal(new Size(700, 500), flights[0].Canvas);
         Assert.Equal(new Point(24, 488), flights[0].Target);
@@ -707,6 +802,8 @@ public sealed class GenieTests(HeadlessSession headless)
         var root = new Panel { Children = { button, layer } };
         var window = Show(root, 400, 300);
         Assert.False(layer.IsHitTestVisible);
+        Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick(); // hit testing reads the last rendered scene
+        Dispatcher.UIThread.RunJobs();
         var hit = window.InputHitTest(new Point(200, 150)) as Visual;
         Assert.NotNull(hit);
         Assert.True(ReferenceEquals(hit, button) || Avalonia.VisualTree.VisualExtensions.GetVisualAncestors(hit!).Contains(button));
