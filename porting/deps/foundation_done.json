@@ -15,6 +15,7 @@
     "F.HTTP",
     "F.ICUFormatters",
     "F.StyledText",
-    "F.URLComponents"
+    "F.URLComponents",
+    "F.SettingsStore"
   ]
 }

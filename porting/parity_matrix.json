@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 471,
+      "IMPLEMENTED": 518,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 3403,
+      "SPECIFIED": 3361,
       "RETIRED": 6,
-      "DISCOVERED": 33
+      "DISCOVERED": 28
     },
     "by_area": {
       "CHAT": 193,
@@ -9845,7 +9845,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: there is no SIGTERM. Use a Job Object per spawn so the kill reaches the whole tree, with the same 1 s gap between the graceful request and the hard kill, and the same 3 s output-drain ceiling.",
       "verification_method": "interaction test: a git shim that sleeps past its budget, asserting a failed result rather than a thrown timeout",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9898,7 +9898,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-step fallback, verbatim wording including the trailing period.",
       "verification_method": "unit: three cases over the fallback chain, asserting the literal",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -11630,7 +11630,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: FSEvents becomes ReadDirectoryChangesW over the root, and the locality test becomes GetDriveType. A remote drive must yield nil exactly as a non-local volume does.",
       "verification_method": "unit over the racing-register case plus an eviction at 33 directories",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0011"
@@ -11656,7 +11656,7 @@
       "cancellation": "The stream is stopped, invalidated and released in teardown, on its own queue, so no callback can be in flight.",
       "windows_path": "Platform boundary: ReadDirectoryChangesW with FILE_NOTIFY_CHANGE_FILE_NAME, DIR_NAME, LAST_WRITE, SIZE and ATTRIBUTES, recursive, on a dedicated thread or IOCP; one FileSystemWatcher (ReadDirectoryChangesW) over the root when the git directory lies under it; when it lies outside (a linked worktree), no watcher is started and the watch holds no stream, as when upstream's stream fails to start (ED-113), because two handles do not order events between them. There is no /private symlink analogue, so the realpath step becomes a full-path canonicalisation.",
       "verification_method": "interaction test observing a write is noticed within the cookie round trip",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0011"
@@ -11683,7 +11683,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: ReadDirectoryChangesW signals loss by an overflow (zero bytes returned), which maps onto the three lost flags as a single 'everything' case. This mapping is one of the open items under UNK-0011 (unknowns.md item 2 names WorkingTreeWatch.swift:180 explicitly).",
       "verification_method": "unit feeding a batch whose second path carries each of the three flags in turn, plus a batch with fewer flags than paths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0011"
@@ -11709,7 +11709,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same prefix literal and same decimal suffix. The prefix is built from the resolved git directory, so on Windows it carries a drive letter and the platform's separator; keep the comparison in the same path space the events arrive in.",
       "verification_method": "unit over a cookie path, a cookie path with a non-numeric suffix, and a cookie path arriving before a git-directory path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -11734,7 +11734,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same rule. Resolve the git directory to its real path once, as the source does with realpath(3), so a junction, a substituted drive or an 8.3 short name cannot make the prefix test miss.",
       "verification_method": "unit over a path inside the git directory, the git directory itself, and a working file with a similar prefix",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -11759,7 +11759,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same rule and the same byte-length comparison. Resolve the working root to its real path once; on Windows the comparison is also case-insensitive in effect, which a prefix test on the raw strings does not give, so normalise case the same way for both the prefix and the incoming path or the branch fires on every event.",
       "verification_method": "unit over the root itself, a path outside the root, and a path one byte longer than the prefix",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -11783,7 +11783,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same derivation with the platform's separator. The contribution is later handed to git as a pathspec, so it must end up forward-slashed at that boundary, not here.",
       "verification_method": "unit over a nested file, a file directly at the root, and two files in one directory",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -11810,7 +11810,7 @@
       "cancellation": "The timeout path (PR-GIT-077) is the other remover of a waiter, and whichever of the two removes it is the one that resumes it.",
       "windows_path": "Same order and the same resume-outside-the-lock rule. Wrapping addition on the generation must be preserved; a trapping add would crash after 2^64 batches where the source wraps.",
       "verification_method": "unit asserting one generation bump for a multi-path batch, no bump for a cookie-only batch, and that a waiter is resumed after the lock is released",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -11837,7 +11837,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Use forward slashes in the relative paths so the top-level split matches; the events must be normalised to the root-relative forward-slash form before insertion.",
       "verification_method": "unit inserting 70 distinct nested directories and asserting the collapse",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -11862,7 +11862,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Use ordinal string comparison for the sort so the result matches Swift's default, and forward slashes throughout.",
       "verification_method": "unit over a nested set such as a, a/b, b",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -11888,7 +11888,7 @@
       "cancellation": "The timer task is cancelled when the event wins.",
       "windows_path": "Platform boundary: the same cookie file trick maps onto ReadDirectoryChangesW, which delivers in order within one directory handle; the cookie is only used when the git directory lies under the root, one handle (ED-113); otherwise the watch has no stream and the answer is nil at once. UNVERIFIED on Windows: whether the event of a write made through a handle still open when the cookie is created arrives before the cookie's event (ReadDirectoryChangesW may report a last write only when the cache is flushed). Windows verification item for the GIT unit: append to a tracked file without closing it, write the cookie, and check which event arrives first. Keep the one second ceiling.",
       "verification_method": "interaction test with a shimmed stream that never delivers, asserting the one second timeout and the teardown",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -11919,7 +11919,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Implement the teardown as upstream, together with the A3 proof check of PR-GIT-067, so a capture that raced the teardown throws instead of returning a tree.",
       "verification_method": "unit: a watch whose cookie does not arrive within one second is torn down and its scratch file removed; a fast-path capture racing that teardown throws and writes no checkpoint ref; reverting that turn shows \"No file checkpoint is available for this message. You can still keep the file changes.\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "81",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -11955,7 +11955,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port. Do not add a restart or a health check; OD-0008 A3 rules only on captures that cannot prove whole-tree coverage.",
       "verification_method": "unit: after a cookie timeout, shared(for:gitDirectory:) returns the same watch, and each following snapshot runs a full add -A -- . on a private index and records its checkpoint",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "82",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -11982,7 +11982,7 @@
       "cancellation": "The capture is detached at utility priority and is not cancelled by a caller going away.",
       "windows_path": "Direct port of the four-state resolution. The index stamp is modification time and size only, with no file identifier.",
       "verification_method": "unit driving two concurrent callers at the same and at different generations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82040,7 +82040,7 @@
       "cancellation": "See PR-TERM-085 and PR-TERM-086.",
       "windows_path": "CreateProcess-equivalent with three pipes and NUL as stdin when there is no input. Platform boundary: Windows has no direct equivalent of inheriting the parent's cwd selectively, and the child must be given an explicit environment block.",
       "verification_method": "contract fixture over a known child",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82062,7 +82062,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three steps and the same sentence, with the Windows exit code rendered as a signed 32-bit integer exactly as the source does.",
       "verification_method": "unit test over the three branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82088,7 +82088,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-times-limit hysteresis; do not trim on every append, and do not trim to exactly the limit at the end.",
       "verification_method": "unit test feeding chunks past the threshold and asserting the retained byte range",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82115,7 +82115,7 @@
       "cancellation": "The deadline itself is cancelled on normal completion.",
       "windows_path": "Same default of 120 seconds and the same silent degradation to a failed result. Platform boundary: the termination mechanism (PR-TERM-085).",
       "verification_method": "contract fixture with a sleeping child and a short timeout",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82141,7 +82141,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY. Windows has no signals and no process groups in this sense. The closest faithful shape is a graceful stop request followed one second later by a forced termination, with the tree-versus-single distinction resolved by a Job Object. Whether the port kills the tree or only the process must be an explicit engineering decision that records the difference from the source, not a silent choice.",
       "verification_method": "contract fixture with a child that spawns a grandchild",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -82171,7 +82171,7 @@
       "cancellation": "This requirement is the cancellation behaviour.",
       "windows_path": "Same three checkpoints and the same mutual exclusion between the cancel handler and the launch.",
       "verification_method": "unit test cancelling at each of the three points",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82196,7 +82196,7 @@
       "cancellation": "Cancelling the surrounding task force-closes both streams immediately.",
       "windows_path": "Same 3-second grace and the same once-only wake.",
       "verification_method": "contract fixture where the child leaves a grandchild holding stdout",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82221,7 +82221,7 @@
       "cancellation": "The write is not cancelled explicitly; the handle closing ends it.",
       "windows_path": "Same background write and close, with the same error suppression.",
       "verification_method": "contract fixture piping a large input to a child that exits early",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82243,7 +82243,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same once-only discipline around whatever promise mechanism is used. As the B2 doc comment at DroppyCode/Core/Support/Shell.swift:220-221 says, the continuation is taken out under the lock and resumed outside it, since a resume runs whatever the awaiting task does next and the lock is non-reentrant.",
       "verification_method": "unit test resuming twice",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82265,7 +82265,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same sentence. Note the word PATH stays, because the Windows equivalent is also called PATH. Platform boundary: resolution must honour PATHEXT (PR-TERM-100).",
       "verification_method": "unit test asserting the exact message",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82288,7 +82288,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the two overloads asymmetric. Do not add an outputLimit parameter to the by-name form.",
       "verification_method": "unit test asserting the forwarded arguments",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82313,7 +82313,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port the lists and rules verbatim, except the three corrections OD-0008 A8 rules for sort, find and git (PR-TERM-119, PR-TERM-118, PR-TERM-098); they classify the text the MODEL produced, not the host platform's tools. OD-0008 C5 settles UNK-0005's interpreter (PowerShell 7 if installed, otherwise Windows PowerShell); no ruling adds Windows tool names to the lists, so none are added. ED-060 fixes the exact write actions of those corrections (find and fd, sort, git config, git tag, git remote); no other rule changes.",
       "verification_method": "unit test corpus over the whole rule set",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -82335,7 +82335,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three literal substring tests, in this order, before anything else.",
       "verification_method": "unit test over each trigger and over the non-matching ${VAR} case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82360,7 +82360,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same six separators in the same replacement order, with no quote awareness.",
       "verification_method": "unit test including the quoted-separator case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82386,7 +82386,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port all 52 entries byte for byte, and take the last path component of the first token using both Windows separators. Do not add or remove entries.",
       "verification_method": "unit test asserting the set has exactly 52 members and each classifies as a reader",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82407,7 +82407,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same rule, unchanged.",
       "verification_method": "unit test over each branch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82432,7 +82432,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port the rule unchanged, including the tools that are not present on Windows: the classifier runs on model-produced text, not on the host's tool inventory.",
       "verification_method": "unit over an awk part with and without the literal, and over /usr/bin/gawk to confirm the last-path-component rule",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82457,7 +82457,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port the seven strings verbatim, case included (-x and -X are distinct members and a case-insensitive set would collapse them), plus the OD-0008 A8 additions ED-060 fixes: -fprint, -fprint0, -fprintf and -fls for find, --exec and --exec-batch for fd, each tested by exact equality like the seven.",
       "verification_method": "unit asserting each of the seven members triggers for both find and fd, -fprint, -fprint0, -fprintf and -fls trigger for find, --exec and --exec-batch trigger for fd, plus negatives for a joined form and for find . -name x",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -82486,7 +82486,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same -o prefix test plus the ruled correction (OD-0008 A8, ED-060): an argument exactly --output, or beginning with --output=.",
       "verification_method": "unit over -o, -ofile, --output=x, --output x and a plain sort, asserting --output=x and --output x are writers and the plain sort reads",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -82515,7 +82515,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port the four strings verbatim with their exact casing, even though xcodebuild does not exist on Windows; the classifier runs on model-produced text.",
       "verification_method": "unit over each of the four flags, a mixed invocation, and a bare xcodebuild",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82538,7 +82538,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same six names and the same whole-array equality. Do not relax it to 'contains a version flag'.",
       "verification_method": "unit over each of the three arrays, an array with one extra element, and an empty array",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82562,7 +82562,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same rule. env does not exist on Windows but the classifier runs on model-produced text, so the case ships.",
       "verification_method": "unit over bare env, env with only flags, env with an assignment, and env with a command",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82588,7 +82588,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All 25 entries verbatim, same first-non-dash rule, same bare-git reads, with the OD-0008 A8 corrections ED-060 fixes for config, tag and remote (add, remove / rm, rename, set-url, set-head, set-branches, prune, update).",
       "verification_method": "unit test asserting the table plus the dash-skipping and bare cases (git --no-pager log reads; git -C /tmp status is a writer because /tmp is taken as the subcommand); that git config user.name x, git tag v1, git tag -d v1, git remote add origin url, git remote remove origin, git remote rm origin, git remote rename a b, git remote set-url origin url, git remote set-head origin -a, git remote set-branches origin main, git remote prune origin and git remote update are writers; and that git config --get user.email, git config --list, git tag, git tag -l, git remote, git remote -v, git remote show origin and git remote get-url origin read",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -82645,7 +82645,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY, tracked as PA-0010 and UNK-0006. Split PATH on semicolons, resolve through PATHEXT, and treat a backslash as well as a forward slash as the path marker. Contract section 11 requires validating the actual executable identity rather than the name for the provider whose command name is cmd, because a bare cmd resolves to the Windows command interpreter long before any provider CLI. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture over path-like names, bare names and a PATHEXT shim",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "open_question": "No ruling is missing: ED-031 (Q84) decides the Windows lookup (PATH split on semicolons, PATHEXT, / or \\ or a drive or UNC prefix as the path marker, first match wins) and PA-0016 the cmd identity check that resolved UNK-0006; the windows_path states PA-0016 and most of ED-031 but neither cites ED-031 nor states its drive-or-UNC path marker. They are outside the decisions this maintenance pass applies (OD-0012 to OD-0014, ED-059 to ED-063), so the record stays DISCOVERED until a pass writes ED-031 into it."
@@ -82672,7 +82672,7 @@
       "cancellation": "not cancellable by the user.",
       "windows_path": "PLATFORM BOUNDARY, unresolved. Windows processes inherit the user environment directly, so the login-shell read has no purpose (porting/platform_adaptations.md:206-207). OD-0008 C5 resolves UNK-0005 only for the interpreter (PowerShell 7 if installed, otherwise Windows PowerShell); it does not say what replaces this read. What replaces it is the engineering decision PA-0009 calls for (porting/platform_adaptations.md:206-214), and none is recorded in porting/engineering_decisions.md. One candidate, not yet decided, is a read of the process environment plus the user and machine Environment registry keys.",
       "verification_method": "contract fixture with a scripted shell emitting markers, plus the no-marker and timeout cases",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -82696,7 +82696,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port all 15 names. Several have no Windows meaning but removing them is harmless, and dropping any entry would be a behaviour change. Platform boundary: Windows environment names are case-insensitive, so the removal must be too.",
       "verification_method": "unit test asserting the set has exactly 15 members",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82722,7 +82722,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY, unresolved. All twelve are Unix paths with no Windows meaning. The intent (find provider CLIs installed by user-level package managers) is a source fact; the Windows locations are not in the source and must come from probing where the supported CLIs actually install, recorded as an engineering decision. Join and split on semicolons and compare case-insensitively. OD-0008 C5 does not settle this: the recorded ruling (porting/owner_decisions_pending.md:141) fixes only the interpreter. The lead's question Q125 (:143) expected the twelve to be dropped or replaced once the interpreter was picked, but that is question text, not the ruling. This stays the open engineering decision PA-0009 (porting/platform_adaptations.md:206-214); none is recorded.",
       "verification_method": "unit test on ordering and deduplication",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -82750,7 +82750,7 @@
       "cancellation": "The task is never cancelled; it always completes or times out.",
       "windows_path": "Same single-flight discipline around whatever the Windows capture becomes.",
       "verification_method": "unit test with concurrent callers counting captures",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82772,7 +82772,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape. Platform boundary: LANG has no standard meaning on Windows; whether to set it at all is an engineering decision, and the source's exact value is the starting point.",
       "verification_method": "unit test with and without a pre-set LANG",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82801,7 +82801,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY. The guard can never be true on Windows, so the probe is unreachable by construction and must not be transliterated. The port's resolution is which(\"git\") with a fallback, and the fallback path itself has to be a Windows decision rather than the literal /usr/bin/git.",
       "verification_method": "unit test asserting no probe runs when PATH git is elsewhere",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -89375,7 +89375,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-way precedence for any child process the Windows install path runs, so the alert text has the same shape.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
