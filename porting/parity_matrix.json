@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "SPECIFIED": 3713,
+      "SPECIFIED": 3699,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
       "DISCOVERED": 34,
       "RETIRED": 6,
-      "IMPLEMENTED": 160
+      "IMPLEMENTED": 174
     },
     "by_area": {
       "CHAT": 193,
@@ -75944,7 +75944,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two literal folder names under %USERPROFILE%, selected by the packaged build channel rather than by a bundle identifier. The identifier string \"iordv.droppycode.dev\" has no Windows equivalent and is replaced by the port build flag that marks a development build; the two resulting folder names are \".marrow\" and \".marrow-dev\" (OD-0012 F1) and must not change.",
       "verification_method": "unit on both branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -75958,8 +75958,7 @@
         "decision": "OD-0012 F1",
         "upstream": "DroppyCode/Core/Support/Text.swift:6 - AppInfo.stateDirectoryName = isDevelopment ? \".droppy-code-dev\" : \".droppy-code\"",
         "port": "\".marrow\" for a shipping build and \".marrow-dev\" for a development build: every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\"; droppy-code.json and DROPPY_CODE_PROJECT_ROOT are the only exceptions"
-      },
-      "rework": true
+      }
     },
     {
       "area": "STORE",
@@ -75975,7 +75974,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Read from the packaged application metadata with the literal fallbacks \"Marrow\" (OD-0012 F1; upstream \"Droppy Code\"), \"1.0.0\" and \"1\". Apart from the name fallback this record's behaviour is parity. On Windows the store folder does not follow AppInfo.name: OD-0008 C7 fixes it as %LOCALAPPDATA%\\Marrow Code, a deviation recorded on PR-STORE-001, so the display name and its fallback no longer move the user's data.",
       "verification_method": "unit on both the present and absent branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -75990,8 +75989,7 @@
         "decision": "OD-0012 F1",
         "upstream": "DroppyCode/Core/Support/Text.swift:4 - name = CFBundleDisplayName as? String ?? \"Droppy Code\"; AppInfo.name is shown as the main window title (WindowManager.swift:63, :77) and as the menu command that shows the main window (AppCommands.swift:22)",
         "port": "The name fallback is \"Marrow\": every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\"; droppy-code.json and DROPPY_CODE_PROJECT_ROOT are the only exceptions. The store folder stays %LOCALAPPDATA%\\Marrow Code under OD-0008 C7."
-      },
-      "rework": true
+      }
     },
     {
       "area": "STORE",
@@ -78354,7 +78352,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One idempotent helper called at all seven sites, exactly as port_impacts.md entry 118 requires: \"One idempotent helper called at all 7 sites; keep the byte prescan and keep the en dash. Do not try to deduplicate the passes.\"",
       "verification_method": "unit over all four scalars, the en dash and a double application",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78366,8 +78364,7 @@
         "DroppyCode/Core/Support/Text.swift:50-65 - mayContainEmDash: the byte prescan for E2 80 94, E2 80 95, E2 B8 BA, E2 B8 BB"
       ],
       "implemented_by_task": "T-M2-075",
-      "spec_fix": "Said exactly four scalars are replaced, and cited Text.swift:36-44 and :68-74 -> the match is per Character (Text.swift:42-43 walks Characters; isEmDash(_ character: Character) at :69-74), so a dash scalar carrying a combining mark, variation selector or ZWJ continuation is not replaced; the doc comment starts at :33 and isEmDash at :69",
-      "rework": true
+      "spec_fix": "Said exactly four scalars are replaced, and cited Text.swift:36-44 and :68-74 -> the match is per Character (Text.swift:42-43 walks Characters; isEmDash(_ character: Character) at :69-74), so a dash scalar carrying a combining mark, variation selector or ZWJ continuation is not replaced; the doc comment starts at :33 and isEmDash at :69"
     },
     {
       "area": "STORE",
@@ -78383,7 +78380,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the prescan. It is on the hot path for every streamed token, and a naive per-character replace measurably changes streaming cost.",
       "verification_method": "unit including the truncated-tail case, plus a throughput benchmark",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78392,8 +78389,7 @@
         "DroppyCode/Core/Support/Text.swift:42 - guard mayContainEmDash(text), text.contains(where: { isEmDash($0) }) else { return text }",
         "DroppyCode/Core/Support/Text.swift:46-65 - doc comment \"Whether any dash scalar is in the bytes, checked without walking graphemes: every streamed delta and every stored message passes through here, and model prose is full of other E2-led scalars (curly quotes, ellipses, en dashes) that made the lead-byte test alone let most of it through to the slow path.\" then the iterator scanning for 0xE2 followed by 0x80 with third byte 0x94 or 0x95, or 0xB8 with third byte 0xBA or 0xBB"
       ],
-      "implemented_by_task": "T-M2-075",
-      "rework": true
+      "implemented_by_task": "T-M2-075"
     },
     {
       "area": "STORE",
@@ -78407,7 +78403,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same pattern. Windows consoles emit the same CSI forms under virtual terminal processing.",
       "verification_method": "unit over a colored git output fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78415,8 +78411,7 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:12-14 - static func stripANSI(_ text: String) -> String { text.replacing(#/\\x1B\\[[0-9;?]*[ -/]*[@-~]/#, with: \"\") }"
       ],
-      "implemented_by_task": "T-M2-075",
-      "rework": true
+      "implemented_by_task": "T-M2-075"
     },
     {
       "area": "STORE",
@@ -78432,7 +78427,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The split follows Swift's Character.isNewline: \"\\r\\n\" is a single Character and a newline, so a CRLF pair is consumed as one separator, and a lone \"\\r\", U+000B, U+000C, U+0085, U+2028 and U+2029 also split. The per-line trim uses .whitespaces (tab and the Zs space separators), which does not contain U+000D, so an implementation that splits on \"\\n\" alone and relies on the trim leaves a trailing carriage return on every CRLF line.",
       "verification_method": "unit including a CRLF fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78441,8 +78436,7 @@
         "DroppyCode/Core/Support/Text.swift:16-24 - doc comment \"The last meaningful lines of process output, for error messages.\" then static func lastLines(_ text: String, count: Int = 4) -> String? { let lines = stripANSI(text).split(whereSeparator: \\.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }; guard !lines.isEmpty else { return nil }; return lines.suffix(count).joined(separator: \"\\n\") }"
       ],
       "implemented_by_task": "T-M2-075",
-      "spec_fix": "windows_path said CRLF is handled because the carriage return is trimmed as whitespace -> .whitespaces (Text.swift:20) does not contain U+000D; CRLF is handled because \"\\r\\n\" is a single Character whose isNewline is true, consumed as one separator by split(whereSeparator: \\.isNewline) (Text.swift:19)",
-      "rework": true
+      "spec_fix": "windows_path said CRLF is handled because the carriage return is trimmed as whitespace -> .whitespaces (Text.swift:20) does not contain U+000D; CRLF is handled because \"\\r\\n\" is a single Character whose isNewline is true, consumed as one separator by split(whereSeparator: \\.isNewline) (Text.swift:19)"
     },
     {
       "area": "STORE",
@@ -78456,7 +78450,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same limit of 120, the same off-by-one prefix of limit - 1, and the single ellipsis character rather than three dots.",
       "verification_method": "unit at lengths 119, 120 and 121",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78464,8 +78458,7 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:26-31 - static func singleLine(_ text: String, limit: Int = 120) -> String { let remaining = text.drop(while: \\.isNewline); let end = remaining.firstIndex(where: \\.isNewline) ?? remaining.endIndex; let line = remaining[..<end].trimmingCharacters(in: .whitespaces); return line.count > limit ? String(line.prefix(limit - 1)) + \"…\" : line }"
       ],
-      "implemented_by_task": "T-M2-075",
-      "rework": true
+      "implemented_by_task": "T-M2-075"
     },
     {
       "area": "STORE",
@@ -78479,7 +78472,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the literal 200000 and keep it on the input sum. Do not unify the two caps just because the comments claim they are the same.",
       "verification_method": "unit just under and just over the cap",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "42",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78489,8 +78482,7 @@
         "DroppyCode/Core/Support/Text.swift:101-103 - guard old.utf8.count + new.utf8.count <= diffLimit else { return FileEdit.Stats(diff: nil, additions: added.count, deletions: removed.count) }",
         "porting/upstream_defects.md entry 42 - the two 200_000 constants bound different operands (input sum here, produced hunk in ThreadRuntime); the comments claiming they are \"the same cap\" are misleading but the value really is the same"
       ],
-      "implemented_by_task": "T-M2-075",
-      "rework": true
+      "implemented_by_task": "T-M2-075"
     },
     {
       "area": "STORE",
@@ -78506,7 +78498,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the ordering. It is an ordinary quirk under AM-0001: slow, not harmful.",
       "verification_method": "unit asserting the counts are still correct for an over-cap pair",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "47",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78515,8 +78507,7 @@
         "DroppyCode/Core/Support/Text.swift:87-101 - the prefix scan, the suffix scan and the four slice constructions all run before the guard at :101",
         "porting/upstream_defects.md entry 47 - \"the input-size guard in SimpleDiff.unified is evaluated AFTER the prefix/suffix scans and slice construction at :87-100, so a multi-megabyte pair is fully line-split and walked before being rejected. A cost defect, not a correctness one.\""
       ],
-      "implemented_by_task": "T-M2-075",
-      "rework": true
+      "implemented_by_task": "T-M2-075"
     },
     {
       "area": "STORE",
@@ -78532,7 +78523,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte-identical hunk text, including the single header, the three-line context on both sides and the removals-before-additions order. The line split is on \"\\n\" only, so a CRLF file keeps its carriage returns inside the line content.",
       "verification_method": "contract fixture comparing produced hunks against macOS output for the same inputs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78541,8 +78532,7 @@
         "DroppyCode/Core/Support/Text.swift:83-111 - doc comment \"A compact unified hunk between two texts, trimming the unchanged head and tail.\" then the prefix and suffix loops, leading = oldLines[max(0, prefix - 3)..<prefix], trailingEnd = min(oldLines.count, oldLines.count - suffix + 3), trailing = oldLines[(oldLines.count - suffix)..<trailingEnd], lines = [\"@@ -\\(oldStart),\\(leading.count + removed.count + trailing.count) +\\(oldStart),\\(leading.count + added.count + trailing.count) @@\"] with oldStart = prefix - leading.count + 1, then leading mapped with \" \", removed with \"-\", added with \"+\", trailing with \" \", joined with \"\\n\""
       ],
       "implemented_by_task": "T-M2-075",
-      "spec_fix": "Failure case said the shared start number is wrong when the two sides diverge earlier -> the prefix is common to both texts, so prefix - leading.count + 1 (Text.swift:104) is the right start on both sides; the real departures from diff -u are the start printed for an empty range and the always-printed \",count\" (Text.swift:105)",
-      "rework": true
+      "spec_fix": "Failure case said the shared start number is wrong when the two sides diverge earlier -> the prefix is common to both texts, so prefix - leading.count + 1 (Text.swift:104) is the right start on both sides; the real departures from diff -u are the start printed for an empty range and the always-printed \",count\" (Text.swift:105)"
     },
     {
       "area": "STORE",
@@ -78556,7 +78546,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same convenience constructor.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78564,8 +78554,7 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:114-125 - extension FileEdit { struct Stats { var diff: String?; var additions: Int; var deletions: Int }; init(path: String, old: String, new: String) { let stats = SimpleDiff.unified(old: old, new: new); self.init(path: path, diff: stats.diff, additions: stats.additions, deletions: stats.deletions) } }"
       ],
-      "implemented_by_task": "T-M2-076",
-      "rework": true
+      "implemented_by_task": "T-M2-076"
     },
     {
       "area": "STORE",
@@ -78579,7 +78568,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, and specifically without trimming.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78587,8 +78576,7 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Text.swift:128 - var nilIfEmpty: String? { isEmpty ? nil : self }, declared in extension String (:127-133), which at B2 also holds `var trimmed` (:130-132, PR-STORE-167)"
       ],
-      "implemented_by_task": "T-M2-076",
-      "rework": true
+      "implemented_by_task": "T-M2-076"
     },
     {
       "area": "STORE",
@@ -79886,7 +79874,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One shared helper whose character set is Foundation's whitespacesAndNewlines. Whether a .NET default trim uses the identical set is not assumed: it is proven by the unit test over the set's members, or the helper trims an explicit table.",
       "verification_method": "unit test over leading and trailing space, tab, CR, LF, U+000B, U+000C, U+0085, U+00A0, U+2028, U+2029 and U+3000, plus inner whitespace that must survive and U+200B that must not be trimmed, with the expected set taken from Foundation's documented whitespacesAndNewlines membership",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -91138,7 +91126,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The Windows build carries the same two values, 1.6.2 and 20, in its own version metadata, and the port's AppInfo readers return them. Where the port's build declares them is an ENGINEERING DECISION not yet made; no port build metadata exists to cite.",
       "verification_method": "unit test that the built app's version and build readers return \"1.6.2\" and \"20\", plus a capture of the About card showing \"Version 1.6.2 (20)\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
