@@ -14,7 +14,9 @@ namespace Marrow.Core.Tests.Models;
 // The Swift parameter is a Foundation URL, so the port takes the F.URL foundation type SwiftURL (R-PATH-1: never
 // System.Uri). Every URL is made by SwiftURL.Create, the port of URL(string:), which on macOS 14 and later accepts
 // every non-empty string (percent-encoding what RFC 3986 does not allow), so Url(text) asserts a URL exists.
-// Decoded path components are the recorded R-PATH-1 fact that url.path is decoded; pathComponents splits that path.
+// Rows under a Req trait give the same result whichever way url.pathComponents (:24) splits and decodes the path.
+// Rows whose result depends on that (an encoded "/", an empty, "." or ".." segment, "\", a relative reference) are
+// in the Oracle-labelled tests at the end (R-TEST-6): no recorded item settles pathComponents yet.
 public sealed class MergeRequestLinkTests
 {
     private static SwiftURL Url(string text)
@@ -41,8 +43,9 @@ public sealed class MergeRequestLinkTests
     // shapes is GitLab); firstIndex (:25) finds a merge_requests at index 0 and stops there, so the pull branch
     // decides; Int's leading "+" (Int("+95") is 95, R-NUM-1), written as is and percent-encoded (%2B decodes to "+");
     // the 64-bit Int maximum; numbers past 999 (the label interpolates \(number) with no grouping, :18); a trailing
-    // "/" (the "/" filter of :24); and a relative reference (URL keeps a path with no leading "/", and init?(url:)
-    // never throws, :23-24).
+    // "/" (the "/" filter of :24); and fall-through rows where merge_requests sits at index 1 or later but
+    // fails the rest of :25-26. :25-26 is one condition list, so any failing condition drops to the else-if at :29 or
+    // :32: number > 0 fails ("/0"), index + 1 < parts.count fails (merge_requests is last), Int fails ("bad").
     [Theory]
     [Trait("Req", "PR-GIT-052")] // Core/Models/MergeRequestLink.swift:23-39
     [Trait("Req", "PR-GIT-053")] // Core/Models/MergeRequestLink.swift:17-18
@@ -61,7 +64,9 @@ public sealed class MergeRequestLinkTests
     [InlineData("https://any.example/merge_requests/bad/pull/5", MergeRequestLink.Forge.Github, 5L, "#5")]
     [InlineData("https://host/o/r/pull/5/merge_requests/7", MergeRequestLink.Forge.Gitlab, 7L, "!7")]
     [InlineData("https://host/o/r/pulls/5/merge_requests/7", MergeRequestLink.Forge.Gitlab, 7L, "!7")]
-    [InlineData("o/r/pull/5", MergeRequestLink.Forge.Github, 5L, "#5")]
+    [InlineData("https://host/o/r/pull/5/merge_requests/0", MergeRequestLink.Forge.Github, 5L, "#5")]
+    [InlineData("https://host/o/r/pulls/5/merge_requests", MergeRequestLink.Forge.Gitea, 5L, "#5")]
+    [InlineData("https://host/o/r/pull/5/merge_requests/bad", MergeRequestLink.Forge.Github, 5L, "#5")]
     public void Recognizes_the_three_path_shapes_on_any_host_with_the_forge_label_and_title(string text, MergeRequestLink.Forge forge, long number, string label)
     {
         var link = Link(text);
@@ -92,6 +97,7 @@ public sealed class MergeRequestLinkTests
     [InlineData("https://host/o/r/pulls/0")] // :32 number > 0
     [InlineData("https://host/o/r/Pull/95")] // :29 parts[2] == "pull" is case-sensitive
     [InlineData("https://host/o/r/PULLS/95")] // :32 parts[2] == "pulls" is case-sensitive
+    [InlineData("https://host/g/p/-/MERGE_REQUESTS/95")] // :25 firstIndex(of: "merge_requests") is exact String equality
     [InlineData("https://host/o/r/pull/abc")] // Int("abc") is nil
     [InlineData("https://host/o/r/pull/1.0")] // Int("1.0") is nil
     [InlineData("https://host/o/r/pull/9223372036854775808")] // Int overflows to nil
@@ -102,6 +108,8 @@ public sealed class MergeRequestLinkTests
     [InlineData("https://host/g/p/-/merge_requests/95%00")] // the same for the GitLab branch
     [InlineData("https://host/o/r/pull/1_000")] // Int("1_000") is nil
     [InlineData("https://host/o/r/pull/1,000")] // Int("1,000") is nil
+    [InlineData("https://host/o/r/pull/%EF%BC%99%EF%BC%95")] // FULLWIDTH DIGIT NINE, FIVE (U+FF19 U+FF15): Int takes ASCII digits only (R-NUM-1)
+    [InlineData("https://host/o/r/pull/%D9%A5")] // ARABIC-INDIC DIGIT FIVE (U+0665): Int is nil (R-NUM-1)
     [InlineData("https://host/o/r/pull")] // :29 parts.count >= 4
     [InlineData("https://host/o/r/issues/95")] // no shape matches
     [InlineData("https://host/prefix/o/r/pull/95")] // :29 the index is fixed at 2
@@ -110,27 +118,11 @@ public sealed class MergeRequestLinkTests
     public void Rejects_other_shapes_and_numbers_that_Swift_Int_refuses_or_that_are_not_positive(string text)
         => Assert.Null(Link(text));
 
-    // URL(string:) does not standardize and URL.pathComponents does not either: "." and ".." stay components
-    // (URL.standardized is the call that removes them), so parts[2] is not "pull" and Swift returns nil.
-    // System.Uri collapses them before any path is read (see the negative control below).
-    [Theory]
-    [Trait("Req", "PR-GIT-052")] // Core/Models/MergeRequestLink.swift:24, :29
-    [InlineData("https://host/x/o/r/../pull/5")]
-    [InlineData("https://host/o/r/./pull/5")]
-    [InlineData("https://host/a/../o/r/pull/95")]
-    public void Dot_segments_stay_path_components_and_move_the_fixed_index(string text)
-        => Assert.Null(Link(text));
-
-    // "\" is not a URL path separator: URL(string:) percent-encodes it and the decoded backslashes stay inside one
-    // component, so there are fewer than four components and the result is nil. System.Uri turns them into "/".
-    [Fact]
-    [Trait("Req", "PR-GIT-052")] // Core/Models/MergeRequestLink.swift:24, :29
-    public void A_backslash_is_not_a_path_separator()
-        => Assert.Null(Link("https://host/o/r\\pull\\5"));
-
     // Byte-for-byte prompt of :47-61. Swift strips the closing delimiter's indentation from the multi-line literal and
     // ends it without a final line break, so the text is: the first line, "\n\n", the landing paragraph, then the
-    // shared tail. The number is interpolated with no grouping (\(number), :50, :52, :54).
+    // shared tail. The pinned file is checked out with CRLF line terminators, but Swift normalizes every line break
+    // inside a multi-line string literal (:56-60) to U+000A, so the separator is "\n\n", never "\r\n\r\n".
+    // The number is interpolated with no grouping (\(number), :50, :52, :54).
     [Theory]
     [Trait("Req", "PR-GIT-055")] // Core/Models/MergeRequestLink.swift:47-61
     [InlineData("https://host/g/p/-/merge_requests/95", MergeRequestLink.Forge.Gitlab, "95", "!95")]
@@ -152,8 +144,8 @@ public sealed class MergeRequestLinkTests
 
     // :57 interpolates url.absoluteString, the URL's own text as stored at :38, not a canonical absolute URI
     // (PR-GIT-055 expected_result and spec_fix): scheme and host case, an explicit default port, the query, the
-    // fragment, a percent-encoded byte and a relative reference are written as given. The number in the landing
-    // paragraph is the parsed Int (+95 and %2B95 both give 95).
+    // fragment and a percent-encoded byte are written as given (a relative reference is in the Oracle tests at the
+    // end). The number in the landing paragraph is the parsed Int (+95 and %2B95 both give 95).
     [Theory]
     [Trait("Req", "PR-GIT-055")] // Core/Models/MergeRequestLink.swift:57
     [InlineData("HTTPS://GitHub.COM:443/o/r/pull/5", MergeRequestLink.Forge.Github, "5", "#5")]
@@ -161,7 +153,6 @@ public sealed class MergeRequestLinkTests
     [InlineData("https://codeberg.org/o/r/pulls/7#issuecomment-3", MergeRequestLink.Forge.Gitea, "7", "#7")]
     [InlineData("https://host/o/r/pull/%2B95", MergeRequestLink.Forge.Github, "95", "#95")]
     [InlineData("https://host/o/r/pull/+95", MergeRequestLink.Forge.Github, "95", "#95")]
-    [InlineData("o/r/pull/5", MergeRequestLink.Forge.Github, "5", "#5")]
     public void Prompt_first_line_carries_the_url_text_as_given(string text, MergeRequestLink.Forge forge, string number, string label)
     {
         var link = Link(text);
@@ -206,14 +197,55 @@ public sealed class MergeRequestLinkTests
     }
 
     // Negative control (R-TEST-4): System.Uri removes dot segments, turns "\" into "/" and canonicalizes the text,
-    // which is why the link takes a SwiftURL and the prompt uses its absolute string.
+    // which is why the link takes a SwiftURL (R-PATH-1) and the prompt uses its absolute string (PR-GIT-055). What
+    // Swift does with dot segments and "\" is the Oracle item of the tests below; this test pins only .NET.
     [Fact]
     [Trait("Rule", "R-PATH-1")] // Core/Models/MergeRequestLink.swift:24, :57
-    public void Dotnet_Uri_rewrites_the_path_and_text_that_Swift_keeps()
+    public void Dotnet_Uri_rewrites_the_path_and_text()
     {
         Assert.Equal("/x/o/pull/5", new Uri("https://host/x/o/r/../pull/5").AbsolutePath);
         Assert.Equal("/o/r/pull/5", new Uri("https://host/o/r/./pull/5").AbsolutePath);
         Assert.Equal("/o/r/pull/5", new Uri("https://host/o/r\\pull\\5").AbsolutePath);
         Assert.Equal("https://github.com/o/r/pull/5", new Uri("HTTPS://GitHub.COM:443/o/r/pull/5").AbsoluteUri);
+    }
+
+    // UNVERIFIED (R-TEST-6). Every row below rests on how url.pathComponents (:24) splits and decodes the path, and
+    // no recorded item settles that: grep pathComponents over engineering_decisions.md, platform_adaptations.md,
+    // unknowns.md and the Appendix B oracle list finds nothing. No O-nn is registered for it yet; the orchestrator
+    // assigns one and this label is replaced by it. No Req trait until then.
+    // Parked expectation, a source reading and not a capture (the macOS 26 transfer question of ED-086 applies):
+    // swift-foundation tag swift-6.2-RELEASE, Sources/FoundationEssentials/URL/URL_Swift.swift:641-647 takes
+    // absolutePath(percentEncoded: true).pathComponents and percent-decodes each component, and
+    // Sources/FoundationEssentials/String/String+Path.swift:53-77 splits on "/", collapsing runs of "/" (no empty
+    // component) and keeping "." and "..". URL(string:) removes no dot segments, and "\" is not a URL path
+    // character, so it is percent-encoded and stays inside one component. Older Foundation split the decoded path
+    // instead, which gives GitHub 5 for both encoded-slash rows.
+    [Theory]
+    [Trait("Oracle", "O-pending-URL.pathComponents")] // Core/Models/MergeRequestLink.swift:24, :25-37
+    [InlineData("https://host/o/r/pull%2F5")] // components o, r, "pull/5": fewer than four
+    [InlineData("https://host/o/r%2Fpull/5")] // components o, "r/pull", 5: fewer than four
+    [InlineData("https://host/x/o/r/../pull/5")] // ".." kept: parts[2] is "r"
+    [InlineData("https://host/o/r/./pull/5")] // "." kept: parts[2] is "r"
+    [InlineData("https://host/a/../o/r/pull/95")] // ".." kept: parts[2] is "o"
+    [InlineData("https://host/o/r\\pull\\5")] // one component "r\pull\5": fewer than four
+    public void Oracle_path_shapes_that_pathComponents_decides_are_rejected(string text)
+        => Assert.Null(Link(text));
+
+    // UNVERIFIED (R-TEST-6), the same open item and parked source reading as above: the empty segment between two
+    // slashes is dropped, and a relative reference (no leading "/") splits into its four components. The prompt row
+    // also pins that :57 writes the relative text as given.
+    [Theory]
+    [Trait("Oracle", "O-pending-URL.pathComponents")] // Core/Models/MergeRequestLink.swift:24, :29, :57
+    [InlineData("https://host/o//r/pull/95", 95L, "95", "#95")]
+    [InlineData("o/r/pull/5", 5L, "5", "#5")]
+    public void Oracle_path_shapes_that_pathComponents_decides_are_github(string text, long number, string digits, string label)
+    {
+        var link = Link(text);
+        Assert.NotNull(link);
+        Assert.Equal(MergeRequestLink.Forge.Github, link.LinkForge);
+        Assert.Equal(number, link.Number);
+        Assert.Equal(Encoding.UTF8.GetBytes(label), Encoding.UTF8.GetBytes(link.Label));
+        var expected = "Merge " + label + " now: " + text + "\n\n" + Landing(MergeRequestLink.Forge.Github, digits) + SyncTail;
+        Assert.Equal(Encoding.UTF8.GetBytes(expected), Encoding.UTF8.GetBytes(link.Prompt));
     }
 }
