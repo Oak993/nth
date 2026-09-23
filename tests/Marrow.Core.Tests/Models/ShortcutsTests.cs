@@ -123,17 +123,8 @@ public sealed class ShortcutsTests
             Utf8(prefix + code + "," + mods + "}}}"),
             Utf8(prefix + mods + "," + code + "}}}"),
         ];
-        Assert.Contains(Stored(runtime), permutations, ByteSequence.Instance);
-    }
-
-    private sealed class ByteSequence : IEqualityComparer<byte[]>
-    {
-        public static readonly ByteSequence Instance = new();
-
-        public bool Equals(byte[]? x, byte[]? y) =>
-            x is not null && y is not null && x.AsSpan().SequenceEqual(y);
-
-        public int GetHashCode(byte[] obj) => obj.Length;
+        var stored = Stored(runtime);
+        Assert.Contains(permutations, p => p.AsSpan().SequenceEqual(stored));
     }
 
     private static (AppShortcut Shortcut, string Raw, AppShortcutSection Section, string Title, string Detail, long? Code, ChordModifiers Mods, string? Rendered, string? Equivalent) Row(AppShortcut shortcut) =>
