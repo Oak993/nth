@@ -4778,7 +4778,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Round the derived sizes; do not use fractional pixel sizes. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it.",
       "verification_method": "capture comparison at lead sizes 16 and 24",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6717,7 +6717,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/HydraPairMark.swift:5-23"
       ],
-      "notes": "Every place a pair is drawn uses this one view, so the proportions are the same everywhere. Round the derived sizes."
+      "notes": "Every place a pair is drawn uses this one view, so the proportions are the same everywhere. Round the derived sizes.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-035",
