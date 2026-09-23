@@ -4003,7 +4003,7 @@
       "cancellation": "not cancellable",
       "windows_path": "48000, 4000, the 32 floor, the 400 floor and the two-character separators are all exact. Count characters, not UTF-16 units.",
       "verification_method": "unit - fixtures at each boundary, plus a re-capture of an already-captured snapshot",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4024,7 +4024,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Attachment paths go into the snapshot verbatim and will carry Windows separators.",
       "verification_method": "unit - exact string comparison, with and without attachments, above and below the limit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4044,7 +4044,7 @@
       "cancellation": "not cancellable",
       "windows_path": "This is a prompt the model reads; the second line is a prompt-injection guard and must not be reworded.",
       "verification_method": "unit - exact string comparison for all four conditional combinations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
