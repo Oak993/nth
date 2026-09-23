@@ -152,7 +152,7 @@ public sealed class StorageTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0008")] // OD-0008 A10 / PR-STORE-013: DEVIATION from Storage.swift:60-63
+    [Trait("Req", "PR-STORE-013")] // OD-0008 A10 deviation from Storage.swift:60-63
     public void LoadLibrary_IsFailedWhenLibraryJsonExistsButIsNotDecodable()
     {
         using var scratch = new StorageScratchFolder();
@@ -163,7 +163,7 @@ public sealed class StorageTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0008")] // OD-0008 A10 / PR-STORE-013: a directory in place of the file is a read failure, not "missing"
+    [Trait("Req", "PR-STORE-013")] // OD-0008 A10 deviation: a directory in place of the file is a read failure, not "missing"
     public void LoadLibrary_IsFailedWhenLibraryJsonCannotBeRead()
     {
         using var scratch = new StorageScratchFolder();
@@ -453,34 +453,31 @@ public sealed class StorageTests
         try
         {
             var current = new ValueList<Attachment>([]);
-            // Room shrinks to 1 by the time the copies land, simulating "more may have been attached meanwhile".
-            var firstCall = true;
             TaskHandle? task = null;
             runtime.Loop.Run(() =>
             {
                 task = Storage.Attach(
                     sources.Select(s => (AttachmentSource)new AttachmentSource.File(s)).ToArray(),
                     () => current,
-                    value =>
-                    {
-                        if (firstCall)
-                        {
-                            firstCall = false;
-                            current = new ValueList<Attachment>(Enumerable.Range(0, Storage.AttachmentLimit - 1)
-                                .Select(_ => new Attachment { Name = "a", Path = "p", MimeType = "text/plain" }));
-                        }
-                        current = value;
-                    });
+                    value => current = value);
                 return Task.CompletedTask;
             });
-
             Assert.NotNull(task);
-            runtime.Loop.RunUntil(() => task!.Completion.IsCompleted);
-            Assert.True(task!.Completion.IsCompletedSuccessfully);
 
-            // Only 1 of the 3 imported copies should have been kept; the other 2 files should have been deleted.
-            var keptCount = current.Count - (Storage.AttachmentLimit - 1);
-            Assert.True(keptCount is >= 0 and <= 1);
+            // Simulate "more may have been attached meanwhile" (:167-171): the loop is single-threaded and the
+            // detached task's recount can only run once the loop is pumped below, so mutating `current` here,
+            // before that pump, deterministically lands before the recount reads it.
+            current = new ValueList<Attachment>(Enumerable.Range(0, Storage.AttachmentLimit - 1)
+                .Select(_ => new Attachment { Name = "a", Path = "p", MimeType = "text/plain" })); // 7 of 8 slots taken
+
+            runtime.Loop.RunUntil(() => task!.Completion.IsCompleted);
+            Assert.Equal(TaskStatus.RanToCompletion, task!.Completion.Status);
+
+            // Room was only 1 by the time the copies landed: exactly 1 of the 3 imported copies is kept, and the
+            // other 2 files' copies must have been deleted (their originals in `sources` are untouched).
+            Assert.Equal(Storage.AttachmentLimit - 1 + 1, current.Count);
+            var keptCopyPath = current[Storage.AttachmentLimit - 1].Path;
+            Assert.True(File.Exists(keptCopyPath));
         }
         finally
         {
