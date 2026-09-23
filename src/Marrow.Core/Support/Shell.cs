@@ -6,10 +6,8 @@ using Marrow.Core.Port;
 // Source: DroppyCode/Core/Support/Shell.swift (B2 1fbf81e), :1-462. Not ported, and why:
 // - :372-385, read()'s login-shell capture (the marker, /usr/bin/env -0 and the parse): no login shell is spawned on
 //   Windows and the capture is the app's own process environment (ED-028 (3), ED-170 (2)).
-// - :389-390, :393-413, the git resolution (LoginEnvironment.git, resolvedGit, developerGit): developerGit's
-//   xcode-select probe can never run on Windows (porting/dead_code.md entry 51) and must not be transliterated, and the
-//   fallback when which("git") finds nothing (upstream's /usr/bin/git, :399 and :405) has no Windows decision
-//   (PR-TERM-106 open question): STOP Core.Support.Shell part 2 #3.
+// - :406-412, developerGit's xcode-select probe and its developer-directory git: dead on Windows
+//   (porting/dead_code.md entry 51), and no shim bypass replaces it (ED-174 (2)).
 // - :429-439, userShell(): its callers are :372 (not ported, above) and TerminalStore.swift:28, which OD-0008 C5 gives
 //   PowerShell 7 if installed, otherwise Windows PowerShell; PR-TERM-039's deviation states that the SHELL,
 //   password-database and /bin/zsh chain is not ported.
@@ -640,9 +638,9 @@ public static class LoginEnvironment
     // ED-171: the extensions which uses when neither the searched environment nor the process has a PATHEXT.
     private const string DefaultPathExt = ".COM;.EXE;.BAT;.CMD";
 
-    // :330-333 and :347: the process's one Loader, made on first use as the Swift statics are.
-    private static readonly Lazy<Loader> shared =
-        new(() => new Loader(Fallback, AugmentedPath), LazyThreadSafetyMode.ExecutionAndPublication);
+    // :330-333, :347 and :402: the process's one Loader, made on first use as the Swift statics are.
+    private static readonly Lazy<Loader> shared = new(() => new Loader(Fallback, AugmentedPath,
+        environment => DeveloperGit(environment, HomeDirectory)), LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>:341-343</summary>
     public static ValueMap<string, string> Current => shared.Value.Current;
@@ -655,6 +653,42 @@ public static class LoginEnvironment
 
     /// <summary>:357-365</summary>
     public static Task Load() => shared.Value.Load();
+
+    /// <summary>
+    /// :393-400 The git binary every Git call runs, found once: the value the load stored, else the lookup over
+    /// current. PATH usually gives Git for Windows' git.exe; without git the value still names Git for Windows' folder,
+    /// so a Git call fails at launch (ED-174).
+    /// </summary>
+    public static string Git => shared.Value.Git;
+
+    /// <summary>
+    /// :404-413 over <paramref name="environment"/>, with <paramref name="home"/> for which. DEVIATION ED-174: which("git")
+    /// in that environment, else the first of %ProgramFiles%\Git\cmd\git.exe, %ProgramFiles(x86)%\Git\cmd\git.exe and
+    /// %LOCALAPPDATA%\Programs\Git\cmd\git.exe that exists as a file, else %ProgramFiles%\Git\cmd\git.exe, where the
+    /// Swift falls back to /usr/bin/git. No xcode-select probe and no shim bypass (ED-174 (2)).
+    /// </summary>
+    internal static string DeveloperGit(IReadOnlyDictionary<string, string> environment, string home)
+    {
+        // :405
+        if (Which("git", environment, home) is { } onPath) return onPath;
+        // :406-412 not ported (ED-174 (2)). The fallback, DEVIATION ED-174 (1):
+        var programFiles = InstallFolder(environment, "ProgramFiles", @"Git\cmd\git.exe");
+        foreach (var candidate in (string?[])[
+                     programFiles,
+                     InstallFolder(environment, "ProgramFiles(x86)", @"Git\cmd\git.exe"),
+                     InstallFolder(environment, "LOCALAPPDATA", @"Programs\Git\cmd\git.exe"),
+                 ])
+        {
+            if (candidate is not null && File.Exists(candidate)) return candidate;
+        }
+        // The never-optional value. With no ProgramFiles in the environment the reference stays unexpanded, as
+        // ExpandEnvironmentStrings leaves an undefined variable.
+        return programFiles ?? @"%ProgramFiles%\Git\cmd\git.exe";
+    }
+
+    /// <summary>ED-174: <paramref name="relative"/> under the folder the variable names, or null when it names none.</summary>
+    private static string? InstallFolder(IReadOnlyDictionary<string, string> environment, string variable, string relative) =>
+        ValueIgnoringCase(environment, variable) is { Length: > 0 } folder ? Path.Join(folder, relative) : null;
 
     /// <summary>:415-427</summary>
     public static string? Which(string name, IReadOnlyDictionary<string, string>? environment = null) =>
@@ -778,11 +812,12 @@ public static class LoginEnvironment
     }
 
     /// <summary>
-    /// The state Swift keeps in the statics <c>cached</c>, <c>loading</c> and <c>fallbackEnvironment</c> (:330-351),
-    /// with the load and read over it (:357-391). The static members use one per process; a test makes its own, so no
-    /// test changes the process's (R-TEST-5).
+    /// The state Swift keeps in the statics <c>cached</c>, <c>loading</c>, <c>fallbackEnvironment</c> and <c>resolvedGit</c>
+    /// (:330-351, :402), with the load, read and git over it (:357-400). The static members use one per process; a test
+    /// makes its own, so no test changes the process's (R-TEST-5).
     /// </summary>
-    internal sealed class Loader(Func<ValueMap<string, string>> fallback, Func<string?, string> augmentedPath)
+    internal sealed class Loader(Func<ValueMap<string, string>> fallback, Func<string?, string> augmentedPath,
+        Func<IReadOnlyDictionary<string, string>, string> developerGit)
     {
         // :330
         private readonly Mutex<ValueMap<string, string>?> cached = new(null);
@@ -801,6 +836,12 @@ public static class LoginEnvironment
 
         // :349-351
         public bool IsLoaded => cached.WithLock((ref ValueMap<string, string>? value) => value is not null);
+
+        // :402
+        private readonly Mutex<string?> resolvedGit = new(null);
+
+        // :398-400. which("git") ?? the fallback is developerGit over current once the probe is gone (ED-174 (1), (3)).
+        public string Git => resolvedGit.WithLock((ref string? value) => value) ?? developerGit(Current);
 
         // :357-365
         public async Task Load() => await Loading().Completion;
@@ -827,7 +868,9 @@ public static class LoginEnvironment
             // :387-388
             var resolved = environment;
             cached.WithLock((ref ValueMap<string, string>? value) => { value = resolved; });
-            // :389-390 not ported: the git resolution, STOP Core.Support.Shell part 2 #3 (see the file header).
+            // :389-390
+            var git = developerGit(resolved);
+            resolvedGit.WithLock((ref string? value) => { value = git; });
             return Task.CompletedTask;
         }
     }
