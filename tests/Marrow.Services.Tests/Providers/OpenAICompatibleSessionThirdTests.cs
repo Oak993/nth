@@ -17,7 +17,11 @@ namespace Marrow.Services.Tests.Providers;
 // Hydra/anti-slop policy, refresh-in-place), user-content shaping for images, the assistant-turn
 // message shape, output truncation, the six tool-definition schemas, and the approval decision
 // and request (RequiresApproval, ApproveIfNeeded). PR-PROVAPI-137 (the streamed-delegation retry
-// guard) is exercised through the real network path against FakeUpstreamServer (R-TEST-10); every
+// guard) is exercised through TransportErrorFailureForTests, extracted from PerformStream's real
+// stream loop so the decision is testable without a live dropped connection: a genuine URLError
+// has no Windows-reproducible Apple localizedDescription and is a separate, pre-existing gap
+// (SwiftErrors.LocalizedDescription throws for it, per R-ERR-2, until a per-site decision is
+// recorded), so a ToolBoomTestError (ISwiftErrorIdentity) stands in as the transport error. Every
 // other record here is exercised through the SetMessagesForTests/CondenseHistoryForTests family
 // of test-only seams (InternalsVisibleTo Marrow.Services.Tests) so this part's self-contained
 // history and message helpers are testable without a live turn.
@@ -108,47 +112,58 @@ public sealed class OpenAICompatibleSessionThirdTests
     }
 
     // ---- PR-PROVAPI-137 ----
+    //
+    // Exercised through TransportErrorFailureForTests, the extracted branch PerformStream's real
+    // stream loop calls (Swift :694-707): a real dropped connection's URLError has no
+    // Windows-reproducible Apple localizedDescription text and is a separate, pre-existing gap
+    // (SwiftErrors.LocalizedDescription throws for any unmapped Foundation-style error per R-ERR-2,
+    // "each such site needs a recorded decision"; URLError itself implements neither ILocalizedError
+    // nor ISwiftErrorIdentity). ToolBoomTestError (ISwiftErrorIdentity, from
+    // OpenAICompatibleSessionTestSeams.cs) stands in as the transport error so this record's own
+    // decision - retry versus fail outright, and the exact suffix - is provable without that gap.
 
     [Fact]
     [Trait("Req", "PR-PROVAPI-137")] // OpenAICompatibleSession.swift:699-707
-    public async Task A_dropped_connection_after_a_streamed_hydra_delegation_is_not_retried()
+    public void A_dropped_connection_after_a_streamed_hydra_delegation_is_not_retried()
     {
-        // Built through JSONValue, not a hand-written literal, so the fenced block's real newlines
-        // land inside the JSON string as \n escapes the way an encoder would produce them, while the
-        // SSE framing itself carries a real newline.
-        var delegationChunk = "```hydra\n{\"task\":\"a\",\"prompt\":\"b\"}\n";
-        var sseData = JSONValue.FromDictionaryLiteral(("choices", JSONValue.FromArrayLiteral(
-            JSONValue.FromDictionaryLiteral(("delta", JSONValue.FromDictionaryLiteral(("content", delegationChunk))))))).CompactString;
-        await using var server = new FakeUpstreamServer
-        {
-            Handler = _ => new FakeResponse(
-                200,
-                [("Content-Type", "text/event-stream")],
-                [],
-                SseChunks: [$"data: {sseData}\n\n"],
-                TruncateChunked: true),
-        };
-        using var runtime = new TestRuntime();
-        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
-        await session.Start();
-        var task = session.Send(new TurnInput
-        {
-            Text = "go",
-            Images = ValueList<Attachment>.Empty,
-            RuntimeMode = RuntimeMode.FullAccess,
-            InteractionMode = InteractionMode.Build,
-        });
-        runtime.Loop.RunUntil(() => task.IsCompleted);
-        await task;
+        var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration());
+        var content = "```hydra\n{\"task\":\"a\",\"prompt\":\"b\"}\n";
 
-        var completed = session.Events.OfType<ProviderEvent.TurnCompleted>().Single();
-        Assert.Equal(TurnStatus.Failed, completed.Status);
-        Assert.NotNull(completed.Error);
-        Assert.EndsWith(
-            " This response was not retried because it had already streamed a head delegation.",
-            completed.Error, StringComparison.Ordinal);
-        // Only one request: retrying is refused, not merely delayed.
-        Assert.Single(server.Received);
+        var failure = session.TransportErrorFailureForTests(new ToolBoomTestError(), streamError: null, content: content);
+
+        var providerError = Assert.IsType<ProviderError>(failure);
+        var failed = Assert.IsType<ProviderError.Case.Failed>(providerError.ErrorCase);
+        Assert.Equal(
+            "The operation couldn’t be completed. (Test.ToolBoom error 1.) This response was not retried because it had already streamed a head delegation.",
+            failed.Message); // U+2019 RIGHT SINGLE QUOTATION MARK
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-137")] // OpenAICompatibleSession.swift:701-702, :707 - no delegation streamed: not this record's guard
+    public void A_dropped_connection_with_no_streamed_delegation_is_a_retryable_StreamAttemptFailure()
+    {
+        var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration());
+        var underlying = new ToolBoomTestError();
+
+        var failure = session.TransportErrorFailureForTests(underlying, streamError: null, content: "plain text, no hydra fence", sawContent: true);
+
+        var attempt = Assert.IsType<OpenAICompatibleSession.StreamAttemptFailure>(failure);
+        Assert.Same(underlying, attempt.Underlying);
+        Assert.True(attempt.EmittedOutput);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-137")] // OpenAICompatibleSession.swift:696-697 - an in-stream error takes priority over the delegation guard
+    public void An_in_stream_error_takes_priority_over_the_delegation_guard()
+    {
+        var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration());
+        var content = "```hydra\n{\"task\":\"a\",\"prompt\":\"b\"}\n";
+
+        var failure = session.TransportErrorFailureForTests(new ToolBoomTestError(), streamError: "server said no", content: content);
+
+        var providerError = Assert.IsType<ProviderError>(failure);
+        var failed = Assert.IsType<ProviderError.Case.Failed>(providerError.ErrorCase);
+        Assert.DoesNotContain("head delegation", failed.Message, StringComparison.Ordinal);
     }
 
     // ---- PR-PROVAPI-138 ----
@@ -357,7 +372,10 @@ public sealed class OpenAICompatibleSessionThirdTests
 
         var prompt = session.SystemPromptForTests();
 
-        Assert.StartsWith("You are Marrow's agent (deepseek-chat), working inside C:\\work on Windows.\n", prompt, StringComparison.Ordinal);
+        // WorkingDirectory is SwiftURL.Create("file:///C:/work")!.Path, which (SwiftURL.cs:121-130,
+        // 151-155, citing URL_Swift.swift:616, 621-624 - posix style, compatibility false) is the
+        // decoded absolute path with no drive-letter translation: "/C:/work".
+        Assert.StartsWith("You are Marrow's agent (deepseek-chat), working inside /C:/work on Windows.\n", prompt, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -627,6 +645,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     [Trait("Req", "PR-PROVAPI-159")] // OpenAICompatibleSession.swift:847-851
     public async Task The_six_tool_definitions_match_their_descriptions_and_schemas_byte_for_byte()
     {
+        using var scratch = new StorageScratchFolder(); // MCPHub.Tools() reads Storage.Locations even with no MCP servers configured
         FakeRequest? seen = null;
         await using var server = new FakeUpstreamServer { Handler = r => { seen = r; return SseResponse("""{"choices":[{"delta":{"content":"ok"}}]}"""); } };
         using var runtime = new TestRuntime();
