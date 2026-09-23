@@ -1,9 +1,9 @@
-using Marrow.Services.Port;
-using Marrow.Services.Tests.Fixtures;
+using Marrow.Core.Port;
+using Marrow.Core.Tests.Fixtures;
 using Marrow.Testing;
-using static Marrow.Services.Tests.Fixtures.HttpReading;
+using static Marrow.Core.Tests.Fixtures.HttpReading;
 
-namespace Marrow.Services.Tests.Port;
+namespace Marrow.Core.Tests.Port;
 
 // Foundation unit F.HTTP, third part of the tests (R-TEST-3 suffix): the two tests that change process-wide state,
 // the cookie store and the response cache of URLSession.Shared (ED-118 item 6). They run in the

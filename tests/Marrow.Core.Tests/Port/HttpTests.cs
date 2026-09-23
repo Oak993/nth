@@ -1,12 +1,11 @@
 using System.Globalization;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
-using Marrow.Services.Port;
-using Marrow.Services.Tests.Fixtures;
+using Marrow.Core.Tests.Fixtures;
 using Marrow.Testing;
-using static Marrow.Services.Tests.Fixtures.HttpReading;
+using static Marrow.Core.Tests.Fixtures.HttpReading;
 
-namespace Marrow.Services.Tests.Port;
+namespace Marrow.Core.Tests.Port;
 
 // Foundation unit F.HTTP (IMPLEMENTING.md 4.3): the HTTP client behind every URLSession site, R-NET-1. PORT-ONLY
 // code, so these tests carry Rule and Decision traits and no Req ids (a foundation unit has no requirement records).
