@@ -493,7 +493,7 @@
    "risk": "HIGH",
    "spec": "Path identity: appendingPathComponent, deletingLastPathComponent, pathExtension, standardizedFileURL, .path, absoluteness, normalization, containment. Implements ED-019, ED-026, ED-036, ED-038, ED-039, ED-045 as one predicate and one normalization; rule R-PATH-1. First tests: the cases each ED lists; drive letters, UNC, \\\\?\\ prefixes, a bare backslash, trailing separators.",
    "extends_existing": true,
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Composer.AttachmentFlight",
