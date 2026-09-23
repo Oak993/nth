@@ -81,41 +81,40 @@ every line, not a sample.
 | [T-M2-042](T-M2-042.md) | Core/Models/Provider.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
 | [T-M2-043](T-M2-043.md) | Core/Models/ProviderSettings.swift | 1 | STANDARD | `src/Marrow.Core/Models/ProviderSettings.cs` |
 | [T-M2-044](T-M2-044.md) | Core/Models/Requests.swift | 5 | STANDARD | `src/Marrow.Core/Models/Requests.cs` |
-| [T-M2-045](T-M2-045.md) | Core/Models/Requests.swift (UI, withdrawn: UI-RUNTIME-005 is T-M7-112's) | 0 | STANDARD | `src/Marrow.Core/Models/Requests.cs` |
-| [T-M2-046](T-M2-046.md) | Core/Models/Shortcuts.swift (1 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-047](T-M2-047.md) | Core/Models/Shortcuts.swift (2 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-048](T-M2-048.md) | Core/Models/Shortcuts.swift (3 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-049](T-M2-049.md) | Core/Models/Shortcuts.swift (4 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-050](T-M2-050.md) | Core/Models/Shortcuts.swift (5 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-051](T-M2-051.md) | Core/Models/Shortcuts.swift (6 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-052](T-M2-052.md) | Core/Models/Shortcuts.swift (7 of 7) | 3 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-053](T-M2-053.md) | Core/Models/Shortcuts.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-054](T-M2-054.md) | Core/Models/ThreadContinuation.swift | 3 | STANDARD | `src/Marrow.Core/Models/ThreadContinuation.cs` |
-| [T-M2-055](T-M2-055.md) | Core/Models/Timeline.swift (1 of 3) | 10 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
-| [T-M2-056](T-M2-056.md) | Core/Models/Timeline.swift (2 of 3) | 10 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
-| [T-M2-057](T-M2-057.md) | Core/Models/Timeline.swift (3 of 3) | 5 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
-| [T-M2-058](T-M2-058.md) | Core/Models/TokenSpend.swift | 3 | STANDARD | `src/Marrow.Core/Models/TokenSpend.cs` |
-| [T-M2-059](T-M2-059.md) | Core/Support/Coding.swift | 3 | STANDARD | `src/Marrow.Core/Support/Coding.cs` |
-| [T-M2-060](T-M2-060.md) | Core/Support/HangWatchdog.swift | 8 | STANDARD | `src/Marrow.Core/Support/HangWatchdog.cs` |
-| [T-M2-061](T-M2-061.md) | Core/Support/HangWatchdog.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Support/HangWatchdog.cs` |
-| [T-M2-062](T-M2-062.md) | Core/Support/ISO8601.swift | 3 | STANDARD | `src/Marrow.Core/Support/ISO8601.cs` |
-| [T-M2-063](T-M2-063.md) | Core/Support/JSONRPC.swift | 9 | HIGH | `src/Marrow.Core/Support/JSONRPC.cs` |
-| [T-M2-064](T-M2-064.md) | Core/Support/JSONRPC.swift (UI) | 0 | HIGH | `src/Marrow.Core/Support/JSONRPC.cs` |
-| [T-M2-065](T-M2-065.md) | Core/Support/JSONValue.swift | 8 | STANDARD | `src/Marrow.Core/Support/JSONValue.cs` |
-| [T-M2-066](T-M2-066.md) | Core/Support/ObservedValue.swift | 1 | STANDARD | `src/Marrow.Core/Support/ObservedValue.cs` |
-| [T-M2-067](T-M2-067.md) | Core/Support/RecentCache.swift | 6 | STANDARD | `src/Marrow.Core/Support/RecentCache.cs` |
-| [T-M2-068](T-M2-068.md) | Core/Support/Shell.swift (1 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
-| [T-M2-069](T-M2-069.md) | Core/Support/Shell.swift (2 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
-| [T-M2-070](T-M2-070.md) | Core/Support/Shell.swift (3 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
-| [T-M2-071](T-M2-071.md) | Core/Support/Shell.swift (4 of 4) | 3 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
-| [T-M2-072](T-M2-072.md) | Core/Support/StdioFramer.swift | 5 | HIGH | `src/Marrow.Core/Support/StdioFramer.cs` |
-| [T-M2-073](T-M2-073.md) | Core/Support/StdioProcess.swift (1 of 2) | 10 | HIGH | `src/Marrow.Core/Support/StdioProcess.cs` |
-| [T-M2-074](T-M2-074.md) | Core/Support/StdioProcess.swift (2 of 2) | 9 | HIGH | `src/Marrow.Core/Support/StdioProcess.cs` |
-| [T-M2-075](T-M2-075.md) | Core/Support/SwitchLatency.swift | 1 | STANDARD | `src/Marrow.Core/Support/SwitchLatency.cs` |
-| [T-M2-076](T-M2-076.md) | Core/Support/Text.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Core/Support/Text.cs` |
-| [T-M2-077](T-M2-077.md) | Core/Support/Text.swift (2 of 2) | 4 | STANDARD | `src/Marrow.Core/Support/Text.cs` |
-| [T-M2-078](T-M2-078.md) | Core/Support/ThumbnailCache.swift | 5 | STANDARD | `src/Marrow.Core/Support/ThumbnailCache.cs` |
-| [T-M2-079](T-M2-079.md) | Core/Support/ThumbnailCache.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Support/ThumbnailCache.cs` |
+| [T-M2-045](T-M2-045.md) | Core/Models/Shortcuts.swift (1 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-046](T-M2-046.md) | Core/Models/Shortcuts.swift (2 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-047](T-M2-047.md) | Core/Models/Shortcuts.swift (3 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-048](T-M2-048.md) | Core/Models/Shortcuts.swift (4 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-049](T-M2-049.md) | Core/Models/Shortcuts.swift (5 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-050](T-M2-050.md) | Core/Models/Shortcuts.swift (6 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-051](T-M2-051.md) | Core/Models/Shortcuts.swift (7 of 7) | 3 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-052](T-M2-052.md) | Core/Models/Shortcuts.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-053](T-M2-053.md) | Core/Models/ThreadContinuation.swift | 3 | STANDARD | `src/Marrow.Core/Models/ThreadContinuation.cs` |
+| [T-M2-054](T-M2-054.md) | Core/Models/Timeline.swift (1 of 3) | 10 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
+| [T-M2-055](T-M2-055.md) | Core/Models/Timeline.swift (2 of 3) | 10 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
+| [T-M2-056](T-M2-056.md) | Core/Models/Timeline.swift (3 of 3) | 5 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
+| [T-M2-057](T-M2-057.md) | Core/Models/TokenSpend.swift | 3 | STANDARD | `src/Marrow.Core/Models/TokenSpend.cs` |
+| [T-M2-058](T-M2-058.md) | Core/Support/Coding.swift | 3 | STANDARD | `src/Marrow.Core/Support/Coding.cs` |
+| [T-M2-059](T-M2-059.md) | Core/Support/HangWatchdog.swift | 8 | STANDARD | `src/Marrow.Core/Support/HangWatchdog.cs` |
+| [T-M2-060](T-M2-060.md) | Core/Support/HangWatchdog.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Support/HangWatchdog.cs` |
+| [T-M2-061](T-M2-061.md) | Core/Support/ISO8601.swift | 3 | STANDARD | `src/Marrow.Core/Support/ISO8601.cs` |
+| [T-M2-062](T-M2-062.md) | Core/Support/JSONRPC.swift | 9 | HIGH | `src/Marrow.Core/Support/JSONRPC.cs` |
+| [T-M2-063](T-M2-063.md) | Core/Support/JSONRPC.swift (UI) | 0 | HIGH | `src/Marrow.Core/Support/JSONRPC.cs` |
+| [T-M2-064](T-M2-064.md) | Core/Support/JSONValue.swift | 8 | STANDARD | `src/Marrow.Core/Support/JSONValue.cs` |
+| [T-M2-065](T-M2-065.md) | Core/Support/ObservedValue.swift | 1 | STANDARD | `src/Marrow.Core/Support/ObservedValue.cs` |
+| [T-M2-066](T-M2-066.md) | Core/Support/RecentCache.swift | 6 | STANDARD | `src/Marrow.Core/Support/RecentCache.cs` |
+| [T-M2-067](T-M2-067.md) | Core/Support/Shell.swift (1 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
+| [T-M2-068](T-M2-068.md) | Core/Support/Shell.swift (2 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
+| [T-M2-069](T-M2-069.md) | Core/Support/Shell.swift (3 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
+| [T-M2-070](T-M2-070.md) | Core/Support/Shell.swift (4 of 4) | 3 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
+| [T-M2-071](T-M2-071.md) | Core/Support/StdioFramer.swift | 5 | HIGH | `src/Marrow.Core/Support/StdioFramer.cs` |
+| [T-M2-072](T-M2-072.md) | Core/Support/StdioProcess.swift (1 of 2) | 10 | HIGH | `src/Marrow.Core/Support/StdioProcess.cs` |
+| [T-M2-073](T-M2-073.md) | Core/Support/StdioProcess.swift (2 of 2) | 9 | HIGH | `src/Marrow.Core/Support/StdioProcess.cs` |
+| [T-M2-074](T-M2-074.md) | Core/Support/SwitchLatency.swift | 1 | STANDARD | `src/Marrow.Core/Support/SwitchLatency.cs` |
+| [T-M2-075](T-M2-075.md) | Core/Support/Text.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Core/Support/Text.cs` |
+| [T-M2-076](T-M2-076.md) | Core/Support/Text.swift (2 of 2) | 4 | STANDARD | `src/Marrow.Core/Support/Text.cs` |
+| [T-M2-077](T-M2-077.md) | Core/Support/ThumbnailCache.swift | 5 | STANDARD | `src/Marrow.Core/Support/ThumbnailCache.cs` |
+| [T-M2-078](T-M2-078.md) | Core/Support/ThumbnailCache.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Support/ThumbnailCache.cs` |
 
 ## M3: Services foundation: store and git
 
