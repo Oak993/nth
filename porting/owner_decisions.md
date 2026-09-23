@@ -299,4 +299,11 @@ instruction may change one.
   mark, the core's first pulse sets the first turn going, and the mark runs until the app is ready, then hands over to
   the main window. The boot splash replaces the 400 ms launch-splash rule of ED-097 (5); the other loading sites keep
   that rule. An owner-requested deviation, listed with OD-0016 in the final report. Reference previews:
-  `porting/design/loading_mark/boot_splash.html` and `loading_premium.html` (card B).
+  `porting/design/loading_mark/boot_sequence.html` and `loading_premium.html` (card B).
+
+- **Amended the same day, verbatim:** "boot animation = particles form the spiral, pulse happens and spiral happens,
+  spiral ends motion, logo disintegrates into particles and forms the app complete window."
+- **Effect of the amendment:** the boot splash no longer fades out. After the first turn comes to rest (more turns,
+  each started by a pulse, while the app is not ready), the mark breaks back into its particles, and they fly out and
+  build the main window: its edge first, then its contents, which appear as the particles land. ED-103 gives the
+  numbers; the reference preview is `porting/design/loading_mark/boot_sequence.html`.
