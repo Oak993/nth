@@ -137,6 +137,66 @@ public sealed class HttpSecondTests
 
     [Fact]
     [Trait("Rule", "R-NET-1")]
+    [Trait("Oracle", "O-29")]
+    [Trait("Decision", "ED-152")]
+    public async Task A_configuration_Authorization_is_not_sent_again_once_the_chain_leaves_its_origin()
+    {
+        // UNVERIFIED O-29: ED-152's safety default keeps the drop sticky across later same-origin hops.
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        await using var other = new LoopbackHttpServer();
+        var configuration = URLSessionConfiguration.Ephemeral;
+        configuration.HttpAdditionalHeaders = new Dictionary<string, string>
+        {
+            ["Authorization"] = "Bearer config-1",
+            ["X-Custom"] = "k",
+        };
+        var pending = new URLSession(configuration).Data(new URLRequest(server.Url("/a")));
+        var first = await server.NextExchange();
+        Assert.Equal("/a", first.Target);
+        Assert.Equal(["Bearer config-1"], first.HeaderValues("Authorization"));
+        await first.Respond(302, "Found", [], ("Location", other.Url("/b").AbsoluteUri));
+        var second = await other.NextExchange();
+        Assert.Equal("/b", second.Target);
+        Assert.Empty(second.HeaderValues("Authorization"));
+        Assert.Equal(["k"], second.HeaderValues("X-Custom"));
+        await second.Respond(302, "Found", [], ("Location", "/c"));
+        var third = await other.NextExchange();
+        Assert.Equal("/c", third.Target);
+        Assert.Empty(third.HeaderValues("Authorization"));
+        Assert.Equal(["k"], third.HeaderValues("X-Custom"));
+        await third.Respond(302, "Found", [], ("Location", server.Url("/d").AbsoluteUri));
+        var fourth = await server.NextExchange();
+        Assert.Equal("/d", fourth.Target);
+        Assert.Empty(fourth.HeaderValues("Authorization"));
+        await fourth.Respond(200, "OK", Ascii("done"));
+        Assert.Equal(Ascii("done"), (await pending.WaitAsync(Guard)).Data);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
+    [Trait("Oracle", "O-29")]
+    [Trait("Decision", "ED-152")]
+    public async Task A_configuration_Authorization_is_kept_on_a_same_origin_redirect()
+    {
+        // UNVERIFIED O-29: no origin change means the configuration field remains available.
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        var configuration = URLSessionConfiguration.Ephemeral;
+        configuration.HttpAdditionalHeaders = new Dictionary<string, string> { ["Authorization"] = "Bearer config-1" };
+        var pending = new URLSession(configuration).Data(new URLRequest(server.Url("/a")));
+        var first = await server.NextExchange();
+        Assert.Equal(["Bearer config-1"], first.HeaderValues("Authorization"));
+        await first.Respond(302, "Found", [], ("Location", "/b"));
+        var second = await server.NextExchange();
+        Assert.Equal("/b", second.Target);
+        Assert.Equal(["Bearer config-1"], second.HeaderValues("Authorization"));
+        await second.Respond(200, "OK", []);
+        await pending.WaitAsync(Guard);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
     [Trait("Decision", "ED-068")]
     public async Task The_resource_timeout_ends_the_whole_task_at_30_seconds_even_while_data_keeps_arriving()
     {

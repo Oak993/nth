@@ -18,7 +18,7 @@ namespace Marrow.Services.Tests.Port;
 //
 // Expected values come from the pinned Swift (B2 1fbf81e) and from URLSession's documented behaviour (SEMANTICS),
 // never from a C# implementation. Where the Swift behaviour is not documented and no oracle has settled it, the
-// test carries an Oracle trait (R-TEST-6) with its item id, O-26 to O-33 (O-25 is ED-100's), registered in
+// test carries an Oracle trait (R-TEST-6) with its item id, O-26 to O-33 and O-48 (O-25 is ED-100's), registered in
 // IMPLEMENTING.md Appendix B with the parked choices these tests assert (network defaults: ED-118):
 //   O-26 bytes.lines (AsyncLineSequence): CR, CRLF, NEL, LS and PS end a line; empty lines are not yielded
 //   O-27 request headers URLSession adds: Accept */*, Accept-Language, Accept-Encoding, a form Content-Type
@@ -29,6 +29,7 @@ namespace Marrow.Services.Tests.Port;
 //   O-31 which idle limit applies: a request's default 60 s or its session configuration's timeoutIntervalForRequest
 //   O-32 the error a read of URLSession.AsyncBytes throws when its task is cancelled
 //   O-33 URLCache.shared answering a cacheable GET for URLSession.shared
+//   O-48 the number of redirects followed: 20; the 21st fails with URLError(.httpTooManyRedirects)
 //
 // The call sites these tests stand for:
 //   URLSession.shared.data(for:)   MCPHub.swift:455-477, MCPOAuth.swift:250-268, :715-742, :744-797,
@@ -373,6 +374,48 @@ public sealed class HttpTests
     }
 
     // ---- Redirects ----
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
+    [Trait("Oracle", "O-48")]
+    public async Task Twenty_redirects_are_followed_and_the_final_response_is_returned()
+    {
+        // UNVERIFIED O-48: corelibs Foundation mirrors Darwin's 20-redirect limit (ED-152).
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        var pending = URLSession.Shared.Data(new URLRequest(server.Url("/r0")));
+        for (var n = 0; n < 20; n++)
+        {
+            var exchange = await server.NextExchange();
+            Assert.Equal("/r" + n, exchange.Target);
+            await exchange.Respond(302, "Found", [], ("Location", "/r" + (n + 1)));
+        }
+        var final = await server.NextExchange();
+        Assert.Equal("/r20", final.Target);
+        await final.Respond(200, "OK", Ascii("done"));
+        var (data, response) = await pending.WaitAsync(Guard);
+        Assert.Equal(200, Assert.IsType<HTTPURLResponse>(response).StatusCode);
+        Assert.Equal(Ascii("done"), data);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
+    [Trait("Oracle", "O-48")]
+    public async Task The_21st_redirect_fails_with_httpTooManyRedirects_and_is_not_followed()
+    {
+        // UNVERIFIED O-48: the 21st redirect response fails before another request is sent (ED-152).
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        var pending = URLSession.Shared.Data(new URLRequest(server.Url("/r0")));
+        for (var n = 0; n <= 20; n++)
+        {
+            var exchange = await server.NextExchange();
+            Assert.Equal("/r" + n, exchange.Target);
+            await exchange.Respond(302, "Found", [], ("Location", "/r" + (n + 1)));
+        }
+        var error = await Assert.ThrowsAsync<URLError>(() => pending.WaitAsync(Guard));
+        Assert.Equal(URLError.Code.HTTPTooManyRedirects, error.URLErrorCode);
+    }
 
     [Theory]
     [Trait("Rule", "R-NET-1")]
