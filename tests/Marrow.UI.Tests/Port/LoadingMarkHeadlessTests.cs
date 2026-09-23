@@ -183,4 +183,88 @@ public sealed class LoadingMarkHeadlessTests(HeadlessSession headless)
         Assert.Equal(0, frames.Pending); // closed: no more frames
         window.Close();
     });
+
+    [Fact]
+    [Trait("Decision", "ED-103")]
+    [Trait("Decision", "ED-102")]
+    public void The_boot_arms_share_the_tile_centre_even_when_the_stage_origin_is_not_the_mark_origin() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var layout = new BootWindowLayout(new Rect(110, 72.5, 780, 480), 14, [new Rect(124, 124.5, 204, 150)]);
+        var stage = new BootStage(new BootSequence(layout, reduceMotion: true)) { Width = 1000, Height = 625 };
+        var window = new Window { Width = 1000, Height = 625, Content = stage };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Frame(time, frames, .5);
+        // icon.svg arm 0 begins at (392.88,217.16). The 210 DIP mark is centred on (500,312.5).
+        var arm = Capture(window, 476, 252);
+        Assert.True(arm.B > 140 && arm.B > arm.R, $"arm pixel {arm}");
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-097")]
+    public void A_nonsquare_mark_centres_its_icon_without_moving_the_tile_into_the_left_gutter() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var gray = Color.FromRgb(0x80, 0x80, 0x80);
+        var mark = new LoadingMark { Width = 180, Height = 128 };
+        var host = new Canvas { Children = { mark } };
+        var window = Show(host, new SolidColorBrush(gray));
+        Frame(time, frames, 1);
+        Assert.Equal(gray, Capture(window, 15, 64));
+        var core = Capture(window, 90, 64);
+        Assert.True(core.R > 225 && core.G > 225 && core.B > 225, $"core pixel {core}");
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-097")]
+    [Trait("Decision", "ED-102")]
+    public void The_tile_keyline_is_bright_at_the_top_and_fades_to_zero_at_the_bottom() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var mark = new LoadingMark { Width = 1024, Height = 1024, ReduceMotion = true };
+        var window = new Window { Width = 1024, Height = 1024, Content = mark };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Frame(time, frames, 1);
+        var topLine = Capture(window, 512, 74);
+        var topInside = Capture(window, 512, 80);
+        var bottomLine = Capture(window, 512, 950);
+        var bottomInside = Capture(window, 512, 944);
+        Assert.True(topLine.R >= topInside.R + 12, $"top line {topLine}, inside {topInside}");
+        Assert.True(Math.Abs(bottomLine.R - bottomInside.R) <= 6, $"bottom line {bottomLine}, inside {bottomInside}");
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-102")]
+    public void The_core_glow_fades_to_transparent_at_its_outer_radius_without_a_hard_disk_edge() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var mark = new LoadingMark { Width = 1024, Height = 1024, ReduceMotion = true };
+        var window = new Window { Width = 1024, Height = 1024, Content = mark };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Frame(time, frames, 1);
+        // The radial glow ends at radius 230; adjacent pixels at r=228 and r=233 remain on the same tile.
+        var inside = Capture(window, 512, 740);
+        var outside = Capture(window, 512, 745);
+        Assert.True(Math.Abs(inside.R - outside.R) <= 6 && Math.Abs(inside.B - outside.B) <= 6,
+            $"glow edge inside {inside}, outside {outside}");
+        window.Close();
+    });
 }
