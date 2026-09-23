@@ -4403,7 +4403,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:78-106",
         "DroppyCode/Services/Providers/ACPSession.swift:169,592-602"
       ],
-      "notes": "These four rows are the user-facing side of the twelve argv rows in this area. Exact titles, in order: \"Supervised\", \"Auto-accept edits\" (one hyphen, lowercase e), \"Auto\", \"Full access\". The symbols are SF Symbol names with no Windows equivalent; substituting icons is a platform boundary handled by UNK-0007, not by PROVACP. A port that relaunches the child when this changes would be inventing behavior the source does not have."
+      "notes": "These four rows are the user-facing side of the twelve argv rows in this area. Exact titles, in order: \"Supervised\", \"Auto-accept edits\" (one hyphen, lowercase e), \"Auto\", \"Full access\". The symbols are SF Symbol names with no Windows equivalent; substituting icons is a platform boundary handled by UNK-0007, not by PROVACP. A port that relaunches the child when this changes would be inventing behavior the source does not have.",
+      "status": "IMPLEMENTED"
     }
   ]
 }
