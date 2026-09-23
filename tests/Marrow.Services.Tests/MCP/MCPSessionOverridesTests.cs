@@ -202,8 +202,8 @@ public sealed class MCPSessionOverridesTests : IDisposable
             ["user-server-1"] = new { },
             ["user-server-2"] = new { }
         };
-        CreateCopilotConfig(servers);
-        using var env = new HomeEnvironmentOverride(tempDir);
+        var configPath = CreateCopilotConfig(servers);
+        using var env = new CopilotConfigOverride(configPath);
 
         var args = MCPSessionOverrides.CopilotArguments(configJson);
 
@@ -270,8 +270,8 @@ public sealed class MCPSessionOverridesTests : IDisposable
             ["github"] = new { },
             ["user-server"] = new { }
         };
-        CreateCopilotConfig(servers);
-        using var env = new HomeEnvironmentOverride(tempDir);
+        var configPath = CreateCopilotConfig(servers);
+        using var env = new CopilotConfigOverride(configPath);
 
         var args = MCPSessionOverrides.CopilotArguments(configJson);
 
@@ -594,14 +594,19 @@ public sealed class MCPSessionOverridesTests : IDisposable
         // :32-71: Non-string values in headers and env are dropped
         var servers = new Dictionary<string, object>
         {
-            ["server"] = new
+            ["http-server"] = new
             {
-                command = "cmd",
+                type = "http",
+                url = "https://example.com",
                 headers = new Dictionary<string, object>
                 {
                     ["string-header"] = "value",
                     ["number-header"] = 123  // Should be dropped
-                },
+                }
+            },
+            ["local-server"] = new
+            {
+                command = "cmd",
                 env = new Dictionary<string, object>
                 {
                     ["STRING_VAR"] = "value",
