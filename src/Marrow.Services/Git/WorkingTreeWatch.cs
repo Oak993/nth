@@ -228,6 +228,7 @@ public sealed class WorkingTreeWatch
     }
 
     // :246-281
+    // A write is counted when its handle closes, on NTFS as on FSEvents (O-55).
     private async Task<ulong?> SettledGeneration()
     {
         ulong cookie;
@@ -239,8 +240,17 @@ public sealed class WorkingTreeWatch
             waiterId = ++waitersAdded;
         }
         var path = cookiePrefix + cookie.ToString(CultureInfo.InvariantCulture);
-        try { using var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete); }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return null; }
+        // :254; ED-161: a cookie file that already exists (a crash leftover, or two watches
+        // reaching the same number) is deleted once and CreateNew retried; any other failure
+        // returns nil as :254 does. Delete-then-create, never FileMode.Create.
+        var created = CreateCookie(path);
+        if (created == false)
+        {
+            try { FileOps.RemoveItem(path); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return null; }
+            created = CreateCookie(path);
+        }
+        if (created != true) return null;
         try
         {
             using var timeout = new CancellationTokenSource();
@@ -261,6 +271,19 @@ public sealed class WorkingTreeWatch
             try { FileOps.RemoveItem(path); }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
         }
+    }
+
+    // ED-161: true when the cookie was created, false when the file already exists
+    // (ERROR_FILE_EXISTS, 0x80070050), null on any other failure.
+    private static bool? CreateCookie(string path)
+    {
+        try
+        {
+            using var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
+            return true;
+        }
+        catch (IOException error) when (error.HResult == unchecked((int)0x80070050)) { return false; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return null; }
     }
 
     private async Task ExpireAfterOneSecond(ulong waiterId, CancellationToken token)
