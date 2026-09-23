@@ -78,6 +78,24 @@ public sealed class ProviderTests
         [ProviderKind.Antigravity, "Antigravity", "provider-antigravity", "PR-PROVCLI-317"],
     ];
 
+    // TraceabilityTests (R-TEST-1) requires every [Fact]-derived method, Theory included, to carry a
+    // Req/Rule/Decision trait; req_verify.mjs (R-TEST-2) cannot read per-row MemberData ids, so the
+    // dedicated Facts below remain each id's source-of-truth citation, and every id this Theory also
+    // exercises is listed here too, matching IdentityCases exactly.
+    [Trait("Req", "PR-PROVREG-002")]
+    [Trait("Req", "PR-PROVREG-003")]
+    [Trait("Req", "PR-PROVREG-004")]
+    [Trait("Req", "PR-PROVREG-005")]
+    [Trait("Req", "PR-PROVREG-006")]
+    [Trait("Req", "PR-PROVREG-007")]
+    [Trait("Req", "PR-PROVREG-008")]
+    [Trait("Req", "PR-PROVREG-009")]
+    [Trait("Req", "PR-PROVREG-010")]
+    [Trait("Req", "PR-PROVREG-011")]
+    [Trait("Req", "PR-PROVREG-012")]
+    [Trait("Req", "PR-PROVCLI-203")]
+    [Trait("Req", "PR-PROVCLI-266")]
+    [Trait("Req", "PR-PROVCLI-317")]
     [Theory]
     [MemberData(nameof(IdentityCases))]
     public void ProviderKind_displayName_and_iconName_are_exact(ProviderKind kind, string displayName, string iconName, string req)
@@ -584,6 +602,21 @@ public sealed class ProviderTests
         [ProviderKind.Pi, "https://pi.dev/docs/latest", "PR-PROVREG-053"],
     ];
 
+    // Same TraceabilityTests requirement as ProviderKind_displayName_and_iconName_are_exact above: every
+    // id this Theory also exercises is listed here, matching InstallURLCases exactly.
+    [Trait("Req", "PR-PROVREG-041")]
+    [Trait("Req", "PR-PROVREG-042")]
+    [Trait("Req", "PR-PROVREG-043")]
+    [Trait("Req", "PR-PROVREG-044")]
+    [Trait("Req", "PR-PROVREG-045")]
+    [Trait("Req", "PR-PROVREG-046")]
+    [Trait("Req", "PR-PROVREG-047")]
+    [Trait("Req", "PR-PROVREG-048")]
+    [Trait("Req", "PR-PROVREG-049")]
+    [Trait("Req", "PR-PROVREG-050")]
+    [Trait("Req", "PR-PROVREG-051")]
+    [Trait("Req", "PR-PROVREG-052")]
+    [Trait("Req", "PR-PROVREG-053")]
     [Theory]
     [MemberData(nameof(InstallURLCases))]
     public void ProviderKind_installURL_is_exact(ProviderKind kind, string url, string req)
