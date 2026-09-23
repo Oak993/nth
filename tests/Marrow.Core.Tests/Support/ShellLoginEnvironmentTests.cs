@@ -20,6 +20,9 @@ public sealed class ShellLoginEnvironmentTests
 
     private static string Joined(params string[] entries) => string.Join(";", entries);
 
+    // For the Loader tests that do not look at git: a fixed answer, so no lookup touches a real folder.
+    private static readonly Func<IReadOnlyDictionary<string, string>, string> UnusedGit = _ => @"X:\not-looked-at\git.exe";
+
     // ---- augmentedPath (:441-453) ----
 
     [Fact]
@@ -155,7 +158,7 @@ public sealed class ShellLoginEnvironmentTests
         var process = LoginEnvironmentSamples.Pairs(("Path", @"C:\a"), ("TERM", "xterm-256color"), ("SHLVL", "2"),
             ("_", "/usr/bin/env"), ("HOME", @"C:\Users\Tester"), ("Keep", "value=with=equals"));
         var loader = new LoginEnvironment.Loader(() => LoginEnvironment.Fallback(process, Home),
-            path => LoginEnvironment.AugmentedPath(path, Home));
+            path => LoginEnvironment.AugmentedPath(path, Home), UnusedGit);
         await loader.Load().WaitAsync(TimeSpan.FromSeconds(30));
         Assert.True(loader.IsLoaded);
         var current = loader.Current;
@@ -204,7 +207,7 @@ public sealed class ShellLoginEnvironmentTests
         {
             Interlocked.Increment(ref reads);
             return LoginEnvironment.AugmentedPath(path, Home);
-        });
+        }, UnusedGit);
         Assert.False(loader.IsLoaded);
         using var start = new ManualResetEventSlim();
         var racers = Enumerable.Range(0, 8).Select(_ => Task.Run(() =>
@@ -234,7 +237,7 @@ public sealed class ShellLoginEnvironmentTests
         {
             Interlocked.Increment(ref builds);
             return LoginEnvironment.Fallback(process, Home);
-        }, path => LoginEnvironment.AugmentedPath(path, Home));
+        }, path => LoginEnvironment.AugmentedPath(path, Home), UnusedGit);
         var before = loader.Current;
         Assert.Same(before, loader.Current);
         Assert.False(loader.IsLoaded);
@@ -261,6 +264,93 @@ public sealed class ShellLoginEnvironmentTests
         Assert.Equal(new[] { "PATH", "lang" }, other.Keys.OrderBy(key => key, StringComparer.Ordinal));
         // `environment["LANG"] == nil` (:459): an empty LANG is present, so it stays empty.
         Assert.Equal("", LoginEnvironment.Fallback(LoginEnvironmentSamples.Pairs(("LANG", "")), Home)["LANG"]);
+    }
+
+    // ---- git (:389-390, :393-413) with ED-174 ----
+
+    [Fact]
+    [Trait("Req", "PR-TERM-106")] // Core/Support/Shell.swift:404-405
+    [Trait("Decision", "ED-174")]
+    public void Git_found_on_the_environments_PATH_wins_over_every_install_folder()
+    {
+        var onPath = LoginEnvironmentSamples.Folder("git on path", "git.exe");
+        var environment = LoginEnvironmentSamples.GitEnvironment(onPath,
+            LoginEnvironmentSamples.Folder("git program files", @"Git\cmd\git.exe"),
+            LoginEnvironmentSamples.Folder("git program files x86", @"Git\cmd\git.exe"),
+            LoginEnvironmentSamples.Folder("git local app data", @"Programs\Git\cmd\git.exe"));
+        Assert.Equal(Path.Join(onPath, "git.exe"), LoginEnvironment.DeveloperGit(environment, Home));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-106")] // Core/Support/Shell.swift:405
+    [Trait("Decision", "ED-174")]
+    public void Without_git_on_PATH_the_first_install_folder_that_holds_git_exe_as_a_file_is_taken_in_order()
+    {
+        var programFiles = LoginEnvironmentSamples.Folder("git program files");
+        var x86 = LoginEnvironmentSamples.Folder("git program files x86");
+        var local = LoginEnvironmentSamples.Folder("git local app data");
+        var environment = LoginEnvironmentSamples.GitEnvironment(LoginEnvironmentSamples.Folder("git empty path"), programFiles, x86, local);
+        var programFilesGit = Path.Join(programFiles, "Git", "cmd", "git.exe");
+        var x86Git = Path.Join(x86, "Git", "cmd", "git.exe");
+        var localGit = Path.Join(local, "Programs", "Git", "cmd", "git.exe");
+        LoginEnvironmentSamples.CreateFile(localGit);
+        Assert.Equal(localGit, LoginEnvironment.DeveloperGit(environment, Home));
+        LoginEnvironmentSamples.CreateFile(x86Git);
+        Assert.Equal(x86Git, LoginEnvironment.DeveloperGit(environment, Home));
+        // A folder named git.exe is not a file, so it does not count.
+        Directory.CreateDirectory(programFilesGit);
+        Assert.Equal(x86Git, LoginEnvironment.DeveloperGit(environment, Home));
+        Directory.Delete(programFilesGit);
+        LoginEnvironmentSamples.CreateFile(programFilesGit);
+        Assert.Equal(programFilesGit, LoginEnvironment.DeveloperGit(environment, Home));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-106")] // Core/Support/Shell.swift:398-400,405
+    [Trait("Decision", "ED-174")]
+    public void With_no_git_anywhere_the_value_is_Program_Files_Git_cmd_git_exe_all_the_same()
+    {
+        var programFiles = LoginEnvironmentSamples.Folder("git program files");
+        var environment = LoginEnvironmentSamples.GitEnvironment(LoginEnvironmentSamples.Folder("git empty path"), programFiles,
+            LoginEnvironmentSamples.Folder("git program files x86"), LoginEnvironmentSamples.Folder("git local app data"));
+        var git = LoginEnvironment.DeveloperGit(environment, Home);
+        Assert.Equal(Path.Join(programFiles, "Git", "cmd", "git.exe"), git);
+        Assert.False(File.Exists(git));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-106")] // Core/Support/Shell.swift:389-390,398-402
+    [Trait("Decision", "ED-174")]
+    public async Task Git_resolves_on_every_read_before_the_load_and_once_for_good_at_the_load()
+    {
+        var onPath = LoginEnvironmentSamples.Folder("git memo path", "git.exe");
+        var programFiles = LoginEnvironmentSamples.Folder("git memo program files");
+        var process = LoginEnvironmentSamples.GitEnvironment(onPath, programFiles,
+            LoginEnvironmentSamples.Folder("git memo program files x86"), LoginEnvironmentSamples.Folder("git memo local app data")).ToList();
+        var resolutions = 0;
+        var loader = new LoginEnvironment.Loader(() => LoginEnvironment.Fallback(process, Home),
+            path => LoginEnvironment.AugmentedPath(path, Home), environment =>
+            {
+                Interlocked.Increment(ref resolutions);
+                return LoginEnvironment.DeveloperGit(environment, Home);
+            });
+        var pathGit = Path.Join(onPath, "git.exe");
+        var fallbackGit = Path.Join(programFiles, "Git", "cmd", "git.exe");
+        // Before the load nothing is stored, so git looks again on each read, over current (:399).
+        Assert.Equal(pathGit, loader.Git);
+        File.Delete(pathGit);
+        Assert.Equal(fallbackGit, loader.Git);
+        LoginEnvironmentSamples.CreateFile(pathGit);
+        Assert.Equal(2, resolutions);
+        // The load resolves once over the loaded environment and stores the answer (:389-390).
+        await loader.Load().WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.Equal(3, resolutions);
+        Assert.Equal(pathGit, loader.Git);
+        File.Delete(pathGit);
+        Assert.Equal(pathGit, loader.Git);
+        await loader.Load().WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.Equal(pathGit, loader.Git);
+        Assert.Equal(3, resolutions);
     }
 
     // ---- which (:415-427) ----

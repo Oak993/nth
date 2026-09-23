@@ -174,17 +174,31 @@ public static class LoginEnvironmentSamples
         variables.Select(variable => new KeyValuePair<string, string>(variable.Name, variable.Value)).ToList();
 
     /// <summary>A folder under MARROW_PORT_DATA_DIR standing in for the home folder, with empty files at the given relative paths.</summary>
-    public static string Home(params string[] files)
+    public static string Home(params string[] files) => Folder("login home", files);
+
+    /// <summary>A folder under MARROW_PORT_DATA_DIR with empty files at the given relative paths.</summary>
+    public static string Folder(string label, params string[] files)
     {
-        var home = ProcessTestFolders.Create("login home");
-        foreach (var file in files)
-        {
-            var path = Path.Join(home, file);
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.WriteAllBytes(path, []);
-        }
-        return home;
+        var folder = ProcessTestFolders.Create(label);
+        foreach (var file in files) CreateFile(Path.Join(folder, file));
+        return folder;
     }
+
+    /// <summary>An empty file at <paramref name="path"/>, with its parent folders.</summary>
+    public static string CreateFile(string path)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllBytes(path, []);
+        return path;
+    }
+
+    /// <summary>
+    /// An environment for LoginEnvironment's git lookup (ED-174): PATH, PATHEXT ".exe" and the three variables that
+    /// name Git for Windows' install folders, each pointing at a folder of the test's own.
+    /// </summary>
+    public static Dictionary<string, string> GitEnvironment(string path, string programFiles, string programFilesX86, string localAppData) =>
+        Environment(("PATH", path), ("PATHEXT", ".exe"), ("ProgramFiles", programFiles), ("ProgramFiles(x86)", programFilesX86),
+            ("LOCALAPPDATA", localAppData));
 }
 
 /// <summary>
