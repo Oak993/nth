@@ -49,8 +49,8 @@
    "packets": [],
    "risk": "HIGH",
    "spec": "The live-resize remedy of OD-0017 exactly as ED-101 gives it: after a window's first frame, resolve PlatformImpl, _glSurface, _window, _shared (SyncRoot, Compositor), _visual and _surfaceBrush by reflection; under lock(SyncRoot) size the content visual to zero with RelativeSizeAdjustment (1,1), set the surface brush Stretch to Fill, park a detached sprite visual in _visual; read both back and, if a member is missing or a read-back differs, log once and leave the window as Avalonia made it; on close put the real visual back under the lock before Avalonia disposes the surface. Evidence: porting/probes/p4b/RESULT.md section How the production chrome should implement it. First tests: a test pinned to Avalonia 12.1.2 that fails if any member is not found; the read-backs on a real window; the restore on close; nothing changes at rest.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.LoadingMark",
