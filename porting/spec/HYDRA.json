@@ -1306,7 +1306,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce byte for byte. The porting repository's own lint rules about apostrophes and spelling do not apply to model-visible source strings; add an exemption rather than editing the text.",
       "verification_method": "contract fixture comparing bytes, including the U+2019 codepoint",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 11",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1316,8 +1316,7 @@
         "upstream": "DroppyCode/Core/Models/AntiSlopPolicy.swift:3 \"[Droppy Code anti-slop guidance]\" and :12 \"[Droppy Code anti-slop guidance: off]\"",
         "port": "The first lines read \"[Marrow anti-slop guidance]\" and \"[Marrow anti-slop guidance: off]\"; every other line, the U+2019 in \"product’s\" and the US spelling \"colors\" are unchanged."
       },
-      "spec_fix": "expected_result said the enabled text contains U+2019 in \"product's\" but wrote the word with an ASCII apostrophe (U+0027), so a worker copying it produced the wrong byte -> DroppyCode/Core/Models/AntiSlopPolicy.swift:6 \"For UI work, follow the product’s components, typography and colors.\" has RIGHT SINGLE QUOTATION MARK U+2019 (bytes E2 80 99); expected_result now carries that character.",
-      "rework": true
+      "spec_fix": "expected_result said the enabled text contains U+2019 in \"product's\" but wrote the word with an ASCII apostrophe (U+0027), so a worker copying it produced the wrong byte -> DroppyCode/Core/Models/AntiSlopPolicy.swift:6 \"For UI work, follow the product’s components, typography and colors.\" has RIGHT SINGLE QUOTATION MARK U+2019 (bytes E2 80 99); expected_result now carries that character."
     },
     {
       "id": "PR-HYDRA-056",
