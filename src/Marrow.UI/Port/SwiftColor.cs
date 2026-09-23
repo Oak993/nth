@@ -125,6 +125,20 @@ public sealed class SwiftColor
     public static SwiftColor Secondary { get; } = LabelColor.Opacity(0.7);
 
     /// <summary>
+    /// <c>ShapeStyle.quaternary</c> (<c>HierarchicalShapeStyle.quaternary</c>) used as a shape <c>.fill</c>: the
+    /// lightest step of SwiftUI's four-level hierarchy (AttachmentPreview.swift:206, :333; pervasive elsewhere,
+    /// porting/spec/CHAT.json e.g. :2531, :2735-2827). No SwiftColor constant for it existed before this unit
+    /// (UI.Common.AttachmentPreview) needed one and none of ED-104 to ED-150 covers it (checked: no "quaternary" hit
+    /// in porting/engineering_decisions.md, porting/owner_decisions.md or the rulings ledgers as of this unit).
+    /// ENGINEERING DECISION, pending an assigned ED number: placed at the label colour's opacity, following this
+    /// file's own hierarchy step from <see cref="Secondary"/> (0.7, ED-062) inward. UNVERIFIED under OD-0001: the
+    /// value SwiftUI actually resolves `.quaternary` to as a fill (distinct from the `.secondary`/`.tertiary`
+    /// foreground styles) is not independently knowable without macOS access; flag for an ED number and, if
+    /// possible, an oracle measurement in the verification wave.
+    /// </summary>
+    public static SwiftColor Quaternary { get; } = LabelColor.Opacity(0.15);
+
+    /// <summary>
     /// <c>NSColor.controlAccentColor</c> (Chrome.swift:80, :87): the Windows personalization accent (ED-051), read
     /// from the platform's <see cref="PlatformColorValues.AccentColor1"/>.
     /// </summary>
@@ -161,6 +175,43 @@ public sealed class SwiftColor
         Kind.Pair => new SwiftColor(Kind.Pair, 1, light!.Opacity(opacity), dark!.Opacity(opacity)),
         _ => new SwiftColor(Kind.Accent, alpha * opacity, null, null),
     };
+
+    /// <summary>
+    /// <c>Color.mix(with:by:)</c>: linear interpolation between this colour and another by a blend factor.
+    /// Used by RenderBudget.swift:96 to mix the glass tint toward white or black.
+    /// Result = self * (1 - factor) + other * factor.
+    /// For dynamic colors (appearance pairs), recursively mixes both light and dark members.
+    /// </summary>
+    public SwiftColor Mix(SwiftColor other, double factor)
+    {
+        // Handle dynamic colors (appearance pairs) by mixing both light and dark members
+        if (kind == Kind.Pair)
+        {
+            // Mix both light and dark members separately
+            return Dynamic(
+                light: light!.Mix(other, factor),
+                dark: dark!.Mix(other, factor));
+        }
+
+        if (other.kind == Kind.Pair)
+        {
+            // If only the other is dynamic, mix this with both its members
+            return Dynamic(
+                light: Mix(other.light!, factor),
+                dark: Mix(other.dark!, factor));
+        }
+
+        // Both are fixed colors; do the linear interpolation
+        if (kind != Kind.Fixed || other.kind != Kind.Fixed)
+            throw new InvalidOperationException("Mix only supports fixed or dynamic (appearance pair) colors");
+
+        var invFactor = 1.0 - factor;
+        return new SwiftColor(
+            red: red * invFactor + other.red * factor,
+            green: green * invFactor + other.green * factor,
+            blue: blue * invFactor + other.blue * factor,
+            opacity: alpha * invFactor + other.alpha * factor);
+    }
 
     /// <summary>The colour drawn in the given appearance.</summary>
     public Color Resolve(ThemeVariant theme) => Resolve(theme, CurrentAccent);
