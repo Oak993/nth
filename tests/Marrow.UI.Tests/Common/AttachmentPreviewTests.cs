@@ -14,7 +14,7 @@ namespace Marrow.UI.Tests.Common;
 public sealed class AttachmentPreviewTests
 {
     private static string NewRoot() =>
-        Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, Guid.NewGuid().ToString("N"))).FullName;
+        Directory.CreateDirectory(Path.Combine(Marrow.Testing.TestDataDirectory.Read()!, Guid.NewGuid().ToString("N"))).FullName;
 
     // PreviewImages.ResolveToolImagePath, .Attachment and .FileSize, and AttachmentLargePreview's video-size cache,
     // are all @MainActor (R-ISO-1): run each call on the manual main loop, as MainActorTests does.

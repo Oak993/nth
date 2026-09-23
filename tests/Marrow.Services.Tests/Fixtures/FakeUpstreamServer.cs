@@ -88,10 +88,20 @@ internal sealed class FakeUpstreamServer : IAsyncDisposable
         var request = new FakeRequest(method, path, headers, body);
         Received.Add(request);
         var response = Handler(request);
+        // Every response closes its own wire-level connection (never part of response.Headers, so it is never one of
+        // the named headers RouteRequestAsync/WriteBackAsync copies back to the real client). Each test's
+        // FakeUpstreamServer binds a fresh ephemeral port (TcpListener(Loopback, 0)); without this, a persistent
+        // HTTP/1.1 connection could sit in URLSession.Shared's one process-wide, statically pooled HttpClient
+        // (Core/Port/Http.cs:552, R-NET-1) after this handler disposes its TcpClient, and a later test whose
+        // ephemeral port the OS happens to reuse could be handed that stale, already-closed connection, surfacing as
+        // a URLError with no request ever reaching its own upstream handler (a real, reproduced test-isolation
+        // failure under full-suite load, not a product bug: MCPProxy.cs correctly reports the transport failure it
+        // was given).
         if (response.SseChunks is not null)
         {
             var head = new StringBuilder("HTTP/1.1 " + response.Status.ToString(CultureInfo.InvariantCulture) + " X\r\n");
             foreach (var (name, value) in response.Headers) head.Append(name).Append(": ").Append(value).Append("\r\n");
+            head.Append("Connection: close\r\n");
             head.Append("\r\n");
             await stream.WriteAsync(Encoding.UTF8.GetBytes(head.ToString()));
             foreach (var text in response.SseChunks)
@@ -104,7 +114,8 @@ internal sealed class FakeUpstreamServer : IAsyncDisposable
         {
             var head = new StringBuilder("HTTP/1.1 " + response.Status.ToString(CultureInfo.InvariantCulture) + " X\r\n");
             foreach (var (name, value) in response.Headers) head.Append(name).Append(": ").Append(value).Append("\r\n");
-            head.Append("Content-Length: ").Append(response.Body.Length.ToString(CultureInfo.InvariantCulture)).Append("\r\n\r\n");
+            head.Append("Content-Length: ").Append(response.Body.Length.ToString(CultureInfo.InvariantCulture)).Append("\r\n");
+            head.Append("Connection: close\r\n\r\n");
             await stream.WriteAsync(Encoding.UTF8.GetBytes(head.ToString()));
             await stream.WriteAsync(response.Body);
         }

@@ -182,9 +182,8 @@ public sealed class TourView : Panel
         glyph.Font(SwiftFont.Title); // :103
         glyph.ForegroundStyle(Chrome.SecondaryText); // :104
         var text = new TextBlock { Text = "No tour pages" }; // :105 Text("No tour pages")
-        // ED-059: .headline resolves semibold, not SwiftFont's own Headline default (Bold, SwiftFont.cs:244); the
-        // explicit weight below keeps this site correct without touching that foundation file.
-        SwiftFont.Headline.FontWeight(SwiftFont.Weight.Semibold).Apply(text); // :106
+        // ED-186: plain .headline is the system style, not the chat font builder's semibold rule; SwiftFont.Headline keeps ED-091's bold (oracle O-64).
+        SwiftFont.Headline.Apply(text); // :106
         text.Foreground = Chrome.PrimaryText.Brush(text); // :107
         var stack = new StackPanel
         {

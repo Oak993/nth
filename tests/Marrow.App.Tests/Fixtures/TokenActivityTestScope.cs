@@ -27,7 +27,7 @@ public sealed class TokenActivityTestScope : IDisposable
     public static TokenActivityTestScope Create()
     {
         var defaultsScope = UserDefaults.Standard.Override(new InMemorySettingsStore());
-        var dataDirectory = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
+        var dataDirectory = Marrow.Testing.TestDataDirectory.Read();
         if (string.IsNullOrEmpty(dataDirectory)) dataDirectory = Path.GetTempPath();
         var baseFolder = Path.Combine(dataDirectory, "TokenActivitySectionTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(baseFolder);

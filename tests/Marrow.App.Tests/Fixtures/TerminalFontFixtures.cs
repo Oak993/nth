@@ -10,7 +10,7 @@ public sealed class ScratchHome : IDisposable
     public ScratchHome()
     {
         // R-TEST-9: the variable is set before anything runs. No fallback folder is invented when it is missing.
-        var root = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
+        var root = Marrow.Testing.TestDataDirectory.Read();
         if (string.IsNullOrEmpty(root))
             throw new InvalidOperationException("MARROW_PORT_DATA_DIR is not set; R-TEST-9 requires it before any test runs");
         Path = System.IO.Path.Combine(root, "TerminalFontTests", Guid.NewGuid().ToString("N"));
