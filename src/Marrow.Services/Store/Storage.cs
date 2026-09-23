@@ -176,41 +176,140 @@ public static class MimeType
     };
 }
 
-/// <summary>:245-335. Only <see cref="Take"/> and <see cref="Forget"/> are needed by this part's records
-/// (PR-STORE-030: deleteDocuments calls forget for every id); <see cref="Warm"/>'s queue and worker are not named
-/// by any record in this part and are left MARROW_STUB for a later part.</summary>
+/// <summary>:245-335. <see cref="Take"/> and <see cref="Forget"/> serve PR-STORE-049/050 (deleteDocuments calls
+/// forget for every id, :92; ThreadRuntime calls take, :324-330); <see cref="Warm"/> and its queue and background
+/// worker are PR-STORE-042 to PR-STORE-048 (:275-322).</summary>
 public sealed class DocumentPrefetch
 {
-    public static DocumentPrefetch Shared { get; } = new();
+    public static DocumentPrefetch Shared { get; } = new(); // :246
 
+    // :248-251. Each request carries a fresh token so a superseded decode (take/forget/a second warm) is
+    // discarded when it lands (PR-STORE-047).
+    private readonly struct Request
+    {
+        public Request(Guid id)
+        {
+            Id = id;
+            Token = Guid.NewGuid(); // :250
+        }
+
+        public Guid Id { get; } // :249
+        public Guid Token { get; } // :250
+    }
+
+    // :253-258
     private struct State
     {
         public RecentCache<Guid, ThreadDocument> Ready;
         public Dictionary<Guid, Guid> Pending;
+        public List<Request> Queue;
+        public TaskHandle? Worker;
     }
 
-    private readonly Mutex<State> state = new(new State
+    private readonly Mutex<State> state;
+    private readonly int pendingLimit; // :261, :271 max(1, pendingLimit)
+    private readonly Func<Guid, (ThreadDocument Document, int Cost)?> load; // :262-263
+
+    // :264-273. Shared (the only production instance, :246) always uses the defaults below.
+    private DocumentPrefetch() : this(limit: 12, costLimit: 16 * 1024 * 1024, pendingLimit: 24, load: Storage.ReadDocument) { }
+
+    // :264-273. Test-only construction (PR-STORE-042 windows_path: "exist only so tests can substitute a loader
+    // and smaller limits"); internal per R-NAME-6, visible to Marrow.Services.Tests (InternalsVisibleTo declared
+    // in Git/WorkingTreeWatch.cs).
+    internal DocumentPrefetch(int limit, long costLimit, int pendingLimit, Func<Guid, (ThreadDocument Document, int Cost)?> load)
     {
-        Ready = new RecentCache<Guid, ThreadDocument>(limit: 12, costLimit: 16 * 1024 * 1024), // :266-267
-        Pending = new Dictionary<Guid, Guid>(),
+        state = new Mutex<State>(new State
+        {
+            Ready = new RecentCache<Guid, ThreadDocument>(limit: limit, costLimit: costLimit), // :270
+            Pending = new Dictionary<Guid, Guid>(),
+            Queue = new List<Request>(),
+            Worker = null,
+        });
+        this.pendingLimit = Math.Max(1, pendingLimit); // :271
+        this.load = load; // :272
+    }
+
+    // :275-308. urgent ids move to (or are inserted at) the front (PR-STORE-045); the queue stops growing at
+    // pendingLimit, dropping the rest of this call's ids (PR-STORE-044); already-ready or already-pending ids are
+    // skipped (PR-STORE-043); at most one background worker drains the queue (PR-STORE-046).
+    public TaskHandle? Warm(IReadOnlyList<Guid> ids, bool urgent = false) => state.WithLock((ref State s) =>
+    {
+        if (urgent)
+        {
+            for (var i = ids.Count - 1; i >= 0; i--) // :281 ids.reversed()
+            {
+                var id = ids[i];
+                if (s.Ready.Contains(id)) continue; // :282
+                var index = s.Queue.FindIndex(r => r.Id == id);
+                if (index < 0) continue; // :282
+                var moved = s.Queue[index];
+                s.Queue.RemoveAt(index);
+                s.Queue.Insert(0, moved); // :283
+            }
+        }
+        foreach (var id in ids) // :285
+        {
+            if (s.Ready.Contains(id) || s.Pending.ContainsKey(id)) continue; // :286
+            if (s.Queue.Count >= pendingLimit) break; // :287, PR-STORE-044: break, not continue
+            var request = new Request(id); // :288
+            if (urgent) s.Queue.Insert(0, request); else s.Queue.Add(request); // :289
+            s.Pending[id] = request.Token; // :290
+        }
+        if (s.Worker is not null || s.Queue.Count == 0) return s.Worker; // :292
+        var worker = TaskHandle.Detached(async () =>
+        {
+            while (Next() is { } request) // :294
+            {
+                var result = load(request.Id); // :295
+                state.WithLock((ref State inner) =>
+                {
+                    if (!inner.Pending.TryGetValue(request.Id, out var token) || token != request.Token) return; // :297
+                    inner.Pending.Remove(request.Id); // :298 state.pending[request.id] = nil
+                    if (result is { } r && !SwiftTask.IsCancelled) // :299
+                        inner.Ready.Insert(r.Document, request.Id, r.Cost); // :300
+                });
+            }
+        }); // :293-304
+        s.Worker = worker; // :305
+        return worker; // :306
     });
 
-    private DocumentPrefetch() { } // :246
+    // :310-322. Cancellation flushes the whole queue and every pending token, keeping the ready cache untouched
+    // (PR-STORE-048); an empty queue clears the worker so the next warm() starts a fresh one (PR-STORE-046).
+    private Request? Next() => state.WithLock((ref State s) =>
+    {
+        if (SwiftTask.IsCancelled) // :312
+        {
+            s.Queue.Clear(); // :313
+            s.Pending.Clear(); // :314
+        }
+        if (s.Queue.Count == 0) // :316
+        {
+            s.Worker = null; // :317
+            return (Request?)null; // :318
+        }
+        var request = s.Queue[0];
+        s.Queue.RemoveAt(0); // :320 removeFirst()
+        return (Request?)request;
+    });
 
-    // :279-308. MARROW_STUB: out of this part's scope (no PR-STORE-01x record here for warm/queue/worker).
-    public TaskHandle? Warm(IReadOnlyList<Guid> ids, bool urgent = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Store/Storage.swift:279-308");
-
-    // :324-330. The queue field itself is not modeled in this part (Warm's scope); nothing is queued yet, so
-    // there is nothing for :327's queue removal to do.
+    // :324-330. A consuming read: also cancels any queued or in-flight work for the id (PR-STORE-049).
     public ThreadDocument? Take(Guid id) => state.WithLock((ref State s) =>
     {
         s.Pending.Remove(id); // :326
+        s.Queue.RemoveAll(r => r.Id == id); // :327
         return s.Ready.RemoveValue(id, out var value) ? value : null; // :328
     });
 
     // :332-334
     public void Forget(Guid id) => Take(id);
+
+    // Test-only observation hooks (R-NAME-6, internal, visible to Marrow.Services.Tests): none of these are
+    // called from production code, which only ever reads DocumentPrefetch through Warm/Take/Forget.
+    internal IReadOnlyList<Guid> QueuedIds => state.WithLock((ref State s) => s.Queue.Select(r => r.Id).ToArray());
+    internal bool IsPending(Guid id) => state.WithLock((ref State s) => s.Pending.ContainsKey(id));
+    internal bool IsReady(Guid id) => state.WithLock((ref State s) => s.Ready.Contains(id));
+    internal bool HasWorker => state.WithLock((ref State s) => s.Worker is not null);
 }
 
 /// <summary>:337-389.</summary>
@@ -224,6 +323,9 @@ public sealed class DiskWriter
     private readonly Mutex<Dictionary<string, object>> pending = new(new Dictionary<string, object>(SwiftStringComparer.Instance)); // :343
 
     private DiskWriter() { }
+
+    // Test-only (PR-STORE-035); internal per R-NAME-6, visible to Marrow.Services.Tests.
+    internal string QueueLabel => queue.Label; // :339
 
     // :345-356
     public void EncodeAndWrite(object value, string url)
