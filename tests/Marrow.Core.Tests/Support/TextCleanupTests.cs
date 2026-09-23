@@ -36,6 +36,7 @@ public sealed class TextCleanupTests
     [InlineData(new byte[] { 0xE2, 0xB8, 0xBB }, true)]
     [InlineData(new byte[] { 0xE2, 0x80, 0x93 }, false)]
     [InlineData(new byte[] { 0xE2, 0xE2, 0x80, 0x94 }, false)]
+    [InlineData(new byte[] { 0xE2, 0x80, 0xE2, 0x80, 0x94 }, false)] // Swift's iterator never re-examines a consumed third byte as a new lead byte.
     public void Byte_prescan_copies_the_exact_iterator_consumption_rules(byte[] bytes, bool expected) =>
         Assert.Equal(expected, TextCleanup.MayContainEmDash(bytes));
 
@@ -49,6 +50,25 @@ public sealed class TextCleanupTests
         Assert.True(timer.Elapsed < TimeSpan.FromSeconds(10), $"Prescan took {timer.Elapsed}.");
     }
 
+    [Fact] // Ratio-based: robust to machine speed, sensitive to a WithoutEmDashes that skips the prescan.
+    [Trait("Req", "PR-STORE-106")]
+    public void Prescan_kept_means_a_dash_free_call_costs_about_what_the_byte_scan_alone_costs()
+    {
+        var text = string.Concat(Enumerable.Repeat("'quoted' prose... lines 10-20\n", 4096));
+        var bytes = Encoding.UTF8.GetBytes(text);
+        const int iterations = 64;
+        var baseline = Stopwatch.StartNew();
+        for (var i = 0; i < iterations; i++) Assert.False(TextCleanup.MayContainEmDash(bytes));
+        baseline.Stop();
+        var actual = Stopwatch.StartNew();
+        for (var i = 0; i < iterations; i++) Assert.Same(text, TextCleanup.WithoutEmDashes(text));
+        actual.Stop();
+        // With the prescan kept, WithoutEmDashes does the byte scan and nothing else when no dash is found.
+        // Skipping it (falling straight to the grapheme walk) measured about 6x the byte-scan-only cost.
+        Assert.True(actual.Elapsed < baseline.Elapsed * 4 + TimeSpan.FromMilliseconds(200),
+            $"WithoutEmDashes took {actual.Elapsed} against a {baseline.Elapsed} byte-scan-only baseline.");
+    }
+
     [Theory]
     [Trait("Req", "PR-STORE-107")]
     [InlineData("\u001B[31mred\u001B[0m", "red")]
@@ -57,6 +77,13 @@ public sealed class TextCleanupTests
     [InlineData("\u001B[31", "\u001B[31")]
     [InlineData("\u001B[1:2mX", "\u001B[1:2mX")]
     [InlineData("\u001B[mX", "X")]
+    // Adjacent CSI sequences (bold, then color) are each removed; the last four cases pin the
+    // pattern's edges: digit '9', intermediate '/', and the final byte's '@' and '~' bounds.
+    [InlineData("\u001B[1m\u001B[31merror\u001B[0m", "error")]
+    [InlineData("\u001B[9mX", "X")]
+    [InlineData("\u001B[/mX", "X")]
+    [InlineData("\u001B[@X", "X")]
+    [InlineData("\u001B[~X", "X")]
     public void ANSI_cleanup_removes_only_the_source_CSI_pattern(string input, string expected) =>
         Assert.Equal(expected, TextCleanup.StripANSI(input));
 
