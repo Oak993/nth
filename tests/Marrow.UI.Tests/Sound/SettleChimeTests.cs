@@ -1,41 +1,59 @@
 using System.Reflection;
-using System.Security.Cryptography;
-using Marrow.Testing;
 using Marrow.UI.Sound;
 
 namespace Marrow.UI.Tests.Sound;
 
 // Source: DroppyCode/UI/Sound/SettleChime.swift (B2 1fbf81e), :1-37. Record PR-THEME-082.
 //
-// SettleChime declares `notes`, `partials`, `volume` and `sound` as file-private (`private static let`),
-// which maps to C# `private` verbatim (R-NAME-6: private/fileprivate -> private). Reflection is therefore
-// the only way to observe their exact values without inventing new public surface on the twin, so this file
-// reads them by the names R-NAME-2 gives the ported members (Notes, Partials, Volume) plus one named constant,
-// Duration, for the literal `duration: 0.32` argument at SettleChime.swift:12 (not itself a Swift member, but
-// the natural, idiomatic place for a magic number here, matching ToneSynth's own private consts SampleRate,
-// Attack and Release). A missing field throws at run time (MissingFieldException), which is an expected red
-// result before SettleChime.cs exists (the type reference itself will not compile either).
+// SettleChime declares `notes`, `partials` and `volume` as file-private (`private static let`), which
+// maps to C# `private` verbatim (R-NAME-6: private/fileprivate -> private). Reflection is therefore the
+// only way to observe their exact values without inventing new public surface on the twin, so this file
+// reads them by the names R-NAME-2 gives the ported members (Notes, Partials, Volume). Notes, Partials
+// and Volume are transcribed byte for byte from SettleChime.swift:24-27,31-35,9-10 (R-TEST-4),
+// independently of any C# implementation. A missing field throws at run time (MissingFieldException),
+// an expected red result before SettleChime.cs exists.
 //
-// How the expected values were obtained (R-TEST-4), independently of any C# implementation:
-// - Notes, Partials and the 0.32 duration are transcribed byte for byte from SettleChime.swift:24-27,31-35,12.
-// - The golden SHA-256 (403fad7b...) is the one tests/Marrow.UI.Tests/Sound/ToneSynthTests.cs already
-//   established for the identical fixture (SettleChime.swift:12,24-35, R-TEST-8) and cites its own derivation
-//   there (an independent Node.js and .NET transcription of ToneSynth.swift:27-68, verified byte for byte, with
-//   a rounding-margin analysis ruling out any faithfully-rounded libm difference). Reusing that literal here
-//   proves SettleChime's own Notes/Partials/Duration combine to the exact same audio ToneSynthTests already
-//   verified against the Swift formula, without re-deriving the digest.
-// - Volume 0.18 is SettleChime.swift:9 `private static let volume: Float = 0.18`.
+// Revised after review. Three changes from the previous version of this file:
+// - No "Duration" field test. Swift has no `duration` member: 0.32 is a literal argument at
+//   SettleChime.swift:12, not a stored value. Reading it by reflection would force SettleChime.cs to add
+//   a private const the source does not have (copy, never invent; R-FILE-1 twin shape).
+// - No combined "renders the golden wav" test. With Duration gone there is nothing left to assemble
+//   Notes/Partials/duration into a `ToneSynth.Wave` call independently of the implementation, and
+//   tests/Marrow.UI.Tests/Sound/ToneSynthTests.cs already proves this exact fixture (SettleChime's
+//   notes, partials and the 0.32 literal) hashes to 403fad7b... against the Swift wave formula. A test
+//   here that just called ToneSynth.Wave on the same reflected fields would restate that result, not add
+//   SettleChime evidence, since it would not observe what SettleChime itself builds the voice from.
+// - The previous "Play does not throw when called more than once" test is gone. It could not fail on a
+//   wrong port (a no-op Play, a play-without-stop, a stop-after-play, or a port that creates a new
+//   overlapping voice on every call all pass it), so it was not evidence for PR-THEME-082's cancellation
+//   policy ("stop-then-play on one shared voice, not a mix of two overlapping voices",
+//   SettleChime.swift:17-21) and it would have driven the real Windows audio device whenever the
+//   implementation under test actually plays sound (R-TEST-10 forbids that). It is replaced below by a
+//   shape-only test that pins Play as the type's public entry point without calling it, matching the
+//   precedent in tests/Marrow.UI.Tests/Sound/FinishChimeTests.cs for the sibling PR-THEME-081 unit.
 //
-// Not automatically testable: the device-level "restarts from the top" behavior (SettleChime.swift:17-21,
-// `sound?.stop(); sound?.play()`) and the "sound cannot be created -> play() is a silent no-op" failure case
-// both describe real OS audio-device behavior. Nothing in this suite has a fake or loopback for the Windows
-// sound backend (none exists yet; R-TEST-10 rules out touching real hardware from a test), so those two facts
-// are covered only as a "Play does not throw" smoke test below, not as a positive assertion that a second
-// play() actually restarts the same voice. This is called out in Play_does_not_throw_when_called_more_than_once_in_a_row.
+// What this file cannot test, and why (STOP filed for this part; see the unit's report):
+// - The voice construction at SettleChime.swift:12-13 (`NSSound(data: ToneSynth.wave(...))`,
+//   `sound?.volume = volume`): that the bytes handed to the voice are exactly the wave SettleChime's own
+//   Notes/Partials/duration produce, and that Volume actually reaches the voice.
+// - The stop-then-play cancellation policy at :17-21 (`sound?.stop(); sound?.play()`) as an exact call
+//   sequence (Stop, Play, Stop, Play) on one shared voice, and that exactly one voice is created across
+//   two Play() calls and none before the first.
+// - The failure case at :11-15/:19-20 (NSSound(data:) is failable; when it returns nil, play() is a
+//   silent no-op through optional chaining).
+// - That reading Notes/Partials/Volume by reflection does not itself create the voice (Swift's
+//   `static let sound` is lazy, :11; a static initializer that runs eagerly would create it at type
+//   load).
+// These all need a way to observe what SettleChime hands to and calls on its voice: a recording NSSound
+// port seam. No such seam exists anywhere in this tree (grep for NSSound, SoundPlayer, ISound in src and
+// tests: no hits) and ED-095, which lists the AppKit port types this port has (NSView, NSImage,
+// NSPopover, ...), does not list one for NSSound. Adding that abstraction's shape here, in a part barred
+// from writing implementation code, would commit the not-yet-written SettleChime.cs (and FinishChime.cs)
+// to an injection pattern no ED or work packet settles. Filed as a STOP (missing dependency,
+// SettleChime.swift:11-21) rather than guessed or shipped as a weaker test with a Req trait it cannot
+// support.
 public sealed class SettleChimeTests
 {
-    private const string SettleGoldenSha256 = "403fad7b4b016bc5ead15b57a1e4ef350f1afbfda7ab403933747195688e5b5f";
-
     private static T GetPrivateStatic<T>(string name)
     {
         var field = typeof(SettleChime).GetField(name, BindingFlags.NonPublic | BindingFlags.Static)
@@ -68,46 +86,32 @@ public sealed class SettleChimeTests
 
     [Fact]
     [Trait("Req", "PR-THEME-082")] // DroppyCode/UI/Sound/SettleChime.swift:9-10
-    public void Volume_is_0_18_barely_there_under_the_sidebars_motion()
+    public void Volume_is_a_private_static_float_field_exactly_0_18_barely_there_under_the_sidebars_motion()
     {
-        Assert.Equal(0.18f, GetPrivateStatic<float>("Volume"));
+        // Volume is `Float` in Swift (:9), not `Double`: 0.18 does not round-trip through a float cast
+        // (0.18f as a double is 0.180000007...), so this checks the field's declared type, not just its
+        // value, the same reasoning FinishChimeTests uses for its own Volume field.
+        var field = typeof(SettleChime).GetField("Volume", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingFieldException("Marrow.UI.Sound.SettleChime.Volume (private static) not found; SettleChime.cs is not written yet or does not expose it under this name.");
+        Assert.Equal(typeof(float), field.FieldType);
+
+        var volume = (float)field.GetValue(null)!;
+
+        Assert.Equal(0.18f, volume);
     }
 
-    [Fact]
-    [Trait("Req", "PR-THEME-082")] // DroppyCode/UI/Sound/SettleChime.swift:12
-    public void Duration_is_0_32_seconds()
-    {
-        Assert.Equal(0.32, GetPrivateStatic<double>("Duration"));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-THEME-082")] // DroppyCode/UI/Sound/SettleChime.swift:9-16
-    public void Notes_Partials_and_Duration_together_render_the_same_golden_wav_ToneSynthTests_verified_against_the_Swift_formula()
-    {
-        var notes = GetPrivateStatic<IReadOnlyList<ToneSynth.Note>>("Notes");
-        var partials = GetPrivateStatic<IReadOnlyList<ToneSynth.Partial>>("Partials");
-        var duration = GetPrivateStatic<double>("Duration");
-
-        var data = ToneSynth.Wave(notes, partials, duration);
-
-        Assert.Equal(44 + 14112 * 2, data.Length); // 0.32 * 44100 = 14112 samples, plus the 44-byte header.
-        Assert.Equal(SettleGoldenSha256, Convert.ToHexStringLower(SHA256.HashData(data)));
-    }
-
+    // Companion to the stop-then-play cancellation policy and the failure-silent-no-op behaviour at
+    // :17-21, which are the subject of the STOP filed for this part (no port-only voice seam exists to
+    // test them through, and calling Play() here would drive the real Windows audio device). Kept
+    // because it still pins Play's shape as the type's only entry point, matching FinishChimeTests.
     [Fact]
     [Trait("Req", "PR-THEME-082")] // DroppyCode/UI/Sound/SettleChime.swift:17-21
-    public void Play_does_not_throw_when_called_more_than_once_in_a_row()
+    public void Play_is_a_public_parameterless_static_method_returning_void()
     {
-        // Proves only that play() tolerates a second call without throwing (the "silent no-op" failure case
-        // and the "stop-then-replay on one shared voice" cancellation policy are device-level OS audio
-        // behavior with no fake or loopback in this tree; see the file header for why they are not otherwise
-        // asserted here).
-        using var runtime = new TestRuntime();
+        var method = typeof(SettleChime).GetMethod(
+            "Play", BindingFlags.Public | BindingFlags.Static, Type.EmptyTypes);
 
-        runtime.OnMain(() =>
-        {
-            SettleChime.Play();
-            SettleChime.Play();
-        });
+        Assert.NotNull(method);
+        Assert.Equal(typeof(void), method!.ReturnType);
     }
 }
