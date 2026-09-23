@@ -627,6 +627,11 @@ public static class CometPainter
         }
     }
 
+    /// <summary>
+    /// The core and its glow (boot_sequence.html:215-225; ED-102 (3)): the glow is a radial gradient of radius 230 * glowS
+    /// with rgba(255,255,255, clamp(.55 glowA)) at 0 and rgba(185,200,255, clamp(.28 glowA)) at .35 (:218-219), glowA and
+    /// glowS being <see cref="CometState.GlowOpacity"/> and <see cref="CometState.GlowScale"/>.
+    /// </summary>
     public static void DrawCore(DrawingContext context, CometState state, double opacity)
     {
         if (opacity <= 0) return;
@@ -876,37 +881,53 @@ public sealed class BootStage : Control
                         CometMotion.RingRadius(age) * BootSequence.MarkSize / 1024);
             }
         }
-        foreach (var p in sequence.GatherParticles)
-        {
-            var icon = p.Position(Elapsed);
-            var at = sequence.IconToStage(icon);
-            if (Elapsed <= p.Delay)
-            {
-                var waitingAlpha = CometEasing.Smooth(0, .18, Elapsed) * .35 *
-                    (.6 + .4 * Math.Sin(p.Twinkle + Elapsed * 9));
-                CometPainter.DrawDot(context, at, p.Size * BootSequence.MarkSize / 1024 * 1.8,
-                    p.Color, waitingAlpha);
-            }
-            else
-            {
-                var landed = p.Landed(Elapsed);
-                var alpha = p.Opacity(Elapsed) * (.55 + .45 * CometEasing.Smooth(0, .25, landed));
-                CometPainter.DrawDot(context, at, p.Radius(Elapsed) * BootSequence.MarkSize / 1024 * 2.2,
-                    p.Color, alpha);
-            }
-        }
+        foreach (var p in sequence.GatherParticles) DrawGatherDot(context, sequence, p, Elapsed);
         if (Frame.Phase is BootPhase.Disintegrating or BootPhase.Closed)
         {
             var dis = readyAt is null ? double.PositiveInfinity : BootSequence.FinalRest(readyAt) + .1;
             var td = Elapsed - dis;
-            foreach (var p in sequence.WindowParticles)
-            {
-                var alpha = p.Opacity(td) * (.6 + .4 * (1 - p.Fly(td)));
-                if (alpha <= 0) continue;
-                CometPainter.DrawDot(context, p.Position(td), p.Radius(td) * 2.2, p.Color, alpha);
-            }
+            foreach (var p in sequence.WindowParticles) DrawWindowDot(context, p, td);
         }
         if (Frame.OutlineOpacity > 0) DrawOutline(context, sequence.WindowLayout, Frame.OutlineOpacity);
+    }
+
+    /// <summary>
+    /// One gather particle at <paramref name="time"/> seconds into the boot, in stage DIP (boot_sequence.html:338-345).
+    /// Before its start it twinkles on its start ring as a dot of 1.8 times its size at alpha
+    /// smooth(0, .18, t) * .35 * (.6 + .4 sin(tw + 9 t)) (:340; ED-102 (4) says nothing of a waiting particle, so the
+    /// reference governs). In flight and after landing it is a dot at alpha fade * (.55 + .45 smooth(0, .25, q)) (:342-344).
+    /// ENGINEERING DECISION (final review finding 2): the flying dot's drawn radius is the particle's size (9 to 20 icon
+    /// units) times (1 - .45 q), as ED-102 (4) states it ("a particle is drawn as a soft dot of radius 9 to 20 shrinking
+    /// to 55 % as it lands"); the reference draws 2.2 times that (:344), and ED-102 says that where its text and the
+    /// preview differ, the text rules. Flagged in the unit report for the orchestrator's confirmation.
+    /// </summary>
+    public static void DrawGatherDot(DrawingContext context, BootSequence sequence, GatherParticle particle, double time)
+    {
+        var at = sequence.IconToStage(particle.Position(time));
+        if (time <= particle.Delay)
+        {
+            var waitingAlpha = CometEasing.Smooth(0, .18, time) * .35 *
+                (.6 + .4 * Math.Sin(particle.Twinkle + time * 9));
+            CometPainter.DrawDot(context, at, particle.Size * BootSequence.MarkSize / 1024 * 1.8,
+                particle.Color, waitingAlpha);
+            return;
+        }
+        var alpha = particle.Opacity(time) * (.55 + .45 * CometEasing.Smooth(0, .25, particle.Landed(time)));
+        if (alpha <= 0) return;
+        CometPainter.DrawDot(context, at, particle.Radius(time) * BootSequence.MarkSize / 1024, particle.Color, alpha);
+    }
+
+    /// <summary>
+    /// One window particle at <paramref name="td"/> seconds after the disintegration starts, in stage DIP
+    /// (boot_sequence.html:355-362): a dot of 2.2 times its size times (1 - .3 fly) (<see cref="WindowParticle.Radius"/>
+    /// carries the size, the 210/1024 scale and the (1 - .3 fly)) at alpha appear * melt * (.6 + .4 (1 - fly)).
+    /// ED-103 (4) gives no dot size, so the reference governs.
+    /// </summary>
+    public static void DrawWindowDot(DrawingContext context, WindowParticle particle, double td)
+    {
+        var alpha = particle.Opacity(td) * (.6 + .4 * (1 - particle.Fly(td)));
+        if (alpha <= 0) return;
+        CometPainter.DrawDot(context, particle.Position(td), particle.Radius(td) * 2.2, particle.Color, alpha);
     }
 
     /// <summary>
