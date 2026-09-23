@@ -47,6 +47,9 @@ public sealed class ACPSessionTests
     private static Task<T> InvokePrivateAsync<T>(ACPSession session, string method, params object?[] args) =>
         (Task<T>)typeof(ACPSession).GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(session, args)!;
 
+    private static Task InvokePrivateVoidAsync(ACPSession session, string method, params object?[] args) =>
+        (Task)typeof(ACPSession).GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(session, args)!;
+
     private static T Resolved<T>(Task<T> task)
     {
         Assert.True(task.IsCompletedSuccessfully, "the request did not resolve");
@@ -76,6 +79,33 @@ public sealed class ACPSessionTests
 
     private static List<string> Lines(string text) =>
         text.Split('\n').Select(l => l.TrimEnd('\r')).Where(l => l.Length > 0).ToList();
+
+    /// <summary>Runs a private async void-returning member (ApplySelection, Interrupt, Send) on main through
+    /// TestRuntime's manual clock and pump, and fails the test if it does not complete.</summary>
+    private static void RunOnMain(TestRuntime runtime, ACPSession session, string method, params object?[] args)
+    {
+        var handle = runtime.OnMain(() => MainActor.SpawnThrowing(async () =>
+        {
+            await InvokePrivateVoidAsync(session, method, args);
+            return true;
+        }));
+        runtime.Loop.RunUntil(() => handle.Value.IsCompleted, Bound);
+        Assert.True(Resolved(handle.Value));
+    }
+
+    /// <summary>A session wired to a live scripted agent with `connection` and `sessionID` already set, as if
+    /// start() had run, so applySelection/setConfigOption/send/interrupt can be exercised directly.</summary>
+    private static (ACPSession Session, JSONRPCConnection Connection, StdioProcess Process) ConnectedSession(
+        TestRuntime runtime, ProviderKind provider, string script, string sessionID = "sess-1")
+    {
+        var process = LiveAgent(script);
+        var connection = new JSONRPCConnection(process, sendsVersion: true);
+        var session = Session(provider, RuntimeMode.Supervised);
+        SetField(session, "connection", connection);
+        SetField(session, "sessionID", sessionID);
+        runtime.OnMain(connection.Start);
+        return (session, connection, process);
+    }
 
     [Fact]
     [Trait("Req", "PR-PROVACP-001")] // Core/Models/Provider.swift:104,25-28,32,44-47,51
@@ -827,5 +857,542 @@ public sealed class ACPSessionTests
         ]));
         Assert.Equal("fast", Private<string?>(session, "fastConfigID", field: true));
         Assert.Equal("true", Private<string?>(session, "currentFast", field: true));
+    }
+
+    // Part 3: PR-PROVACP-050 through PR-PROVACP-073.
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-050")] // ACPSession.swift:385-396
+    public void ApplyConfigOptions_post_pass_touches_only_the_current_model_and_clears_fastTier_on_a_partial_update()
+    {
+        var session = Session(ProviderKind.Cursor, RuntimeMode.Supervised);
+        InvokePrivate(session, "ApplyModels", JSONValue.FromDictionaryLiteral(
+            ("currentModelId", "m1"),
+            ("availableModels", JSONValue.FromArrayLiteral(
+                JSONValue.FromDictionaryLiteral(("modelId", "m1")), JSONValue.FromDictionaryLiteral(("modelId", "m2"))))));
+        InvokePrivate(session, "ApplyConfigOptions", new ValueList<JSONValue>([
+            JSONValue.FromDictionaryLiteral(("id", "eff"), ("category", "effort"), ("currentValue", "high"),
+                ("options", JSONValue.FromArrayLiteral(
+                    JSONValue.FromDictionaryLiteral(("value", "low")), JSONValue.FromDictionaryLiteral(("value", "high"))))),
+            JSONValue.FromDictionaryLiteral(("id", "fast"), ("category", "model_config"), ("currentValue", "true")),
+        ]));
+        var models1 = Private<ValueList<ModelOption>>(session, "models", field: true);
+        Assert.Equal(["low", "high"], models1[0].Efforts);
+        Assert.Equal("true", models1[0].FastTier);
+        Assert.Empty(models1[1].Efforts); // m2 is not the current model: untouched
+        Assert.Null(models1[1].FastTier);
+
+        // A second, partial pass on the same current model with no fast option this time: fastTier is cleared.
+        InvokePrivate(session, "ApplyConfigOptions", new ValueList<JSONValue>([
+            JSONValue.FromDictionaryLiteral(("id", "eff"), ("category", "effort"), ("currentValue", "high"),
+                ("options", JSONValue.FromArrayLiteral(
+                    JSONValue.FromDictionaryLiteral(("value", "low")), JSONValue.FromDictionaryLiteral(("value", "high"))))),
+        ]));
+        var models2 = Private<ValueList<ModelOption>>(session, "models", field: true);
+        Assert.Equal(["low", "high"], models2[0].Efforts);
+        Assert.Null(models2[0].FastTier);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-051")] // ACPSession.swift:397
+    public void ApplyConfigOptions_emits_models_whenever_the_catalog_is_non_empty_but_never_when_it_is_empty()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "ApplyConfigOptions", new ValueList<JSONValue>([
+            JSONValue.FromDictionaryLiteral(("id", "mode-opt"), ("category", "mode"), ("currentValue", "agent"),
+                ("options", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("value", "agent"))))),
+        ]));
+        Assert.Empty(events); // the catalog is still empty: no event
+
+        InvokePrivate(session, "ApplyModels", JSONValue.FromDictionaryLiteral(
+            ("availableModels", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("modelId", "m1"))))));
+        events.Clear();
+        InvokePrivate(session, "ApplyConfigOptions", new ValueList<JSONValue>([
+            JSONValue.FromDictionaryLiteral(("id", "mode-opt"), ("category", "mode"), ("currentValue", "agent"),
+                ("options", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("value", "agent"))))),
+        ]));
+        Assert.IsType<ProviderEvent.Models>(Assert.Single(events)); // non-empty catalog: emits even though nothing changed
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-052")] // ACPSession.swift:432-436
+    public void BaseModelID_strips_everything_from_the_first_opening_bracket_with_no_trimming_and_no_closing_bracket_needed()
+    {
+        Assert.Equal("gpt-5", InvokeStatic<string>("BaseModelID", "gpt-5"));
+        Assert.Equal("gpt-5", InvokeStatic<string>("BaseModelID", "gpt-5[effort=high,fast=true]"));
+        Assert.Equal("gpt-5", InvokeStatic<string>("BaseModelID", "gpt-5[unclosed"));
+        Assert.Equal("model ", InvokeStatic<string>("BaseModelID", "model [x]")); // no trimming of the space before '['
+        Assert.Equal("", InvokeStatic<string>("BaseModelID", "[bracketed]"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-053")] // ACPSession.swift:438-441
+    public void SameModel_compares_base_ids_and_is_false_when_either_side_is_nil()
+    {
+        Assert.False(InvokeStatic<bool>("SameModel", [null, null]));
+        Assert.False(InvokeStatic<bool>("SameModel", ["gpt-5", null]));
+        Assert.False(InvokeStatic<bool>("SameModel", [null, "gpt-5"]));
+        Assert.True(InvokeStatic<bool>("SameModel", ["gpt-5[effort=high]", "gpt-5"]));
+        Assert.False(InvokeStatic<bool>("SameModel", ["gpt-5", "gpt-4"]));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-054")] // ACPSession.swift:443-444
+    public async Task ApplySelection_does_nothing_at_all_without_a_live_connection_and_session_id()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised); // connection and sessionID both nil
+        await InvokePrivateVoidAsync(session, "ApplySelection", "some-model", "high", true, InteractionMode.Build);
+        Assert.Null(Private<string?>(session, "currentModel", field: true));
+        Assert.Null(Private<string?>(session, "currentEffort", field: true));
+        Assert.Null(Private<string?>(session, "currentFast", field: true));
+        Assert.Null(Private<string?>(session, "currentMode", field: true));
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-055")] // ACPSession.swift:445
+    [InlineData(null)]
+    [InlineData("")]
+    public void ApplySelection_skips_a_nil_or_empty_model_and_sends_no_model_request(string? model)
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " + EndOnBye);
+        RunOnMain(runtime, session, "ApplySelection", model, null, false, InteractionMode.Build);
+        Assert.Null(Private<string?>(session, "currentModel", field: true));
+        Assert.Empty(Lines(process.ErrorTail));
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-056")] // ACPSession.swift:446-454
+    public void ApplySelection_model_change_prefers_set_config_option_and_sends_the_base_id_when_parameterized()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Cursor,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " +
+            "if($l.Contains('\"method\":\"session/set_config_option\"')){ $o.WriteLine('{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}'); $o.Flush() } " + EndOnBye);
+        SetField(session, "modelConfigID", "model-opt");
+        RunOnMain(runtime, session, "ApplySelection", "gpt-5[effort=high]", null, false, InteractionMode.Build);
+        Assert.Equal("gpt-5", Private<string?>(session, "currentModel", field: true)); // Cursor: usesParameterizedModels
+        var frame = JSONValue.Parse(Lines(process.ErrorTail)[0])!;
+        Assert.Equal("session/set_config_option", frame["method"]!.JSONValueString);
+        Assert.Equal("model-opt", frame["params"]!["configId"]!.JSONValueString);
+        Assert.Equal("gpt-5", frame["params"]!["value"]!.JSONValueString);
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-056")] // ACPSession.swift:446-454 (fallback to session/set_model, and the optimistic assignment after it is rejected)
+    public void ApplySelection_model_change_falls_back_to_session_set_model_and_still_updates_currentModel_when_rejected()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok, // not usesParameterizedModels: the raw id is sent
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " +
+            "if($l.Contains('\"method\":\"session/set_model\"')){ $o.WriteLine('{\"jsonrpc\":\"2.0\",\"id\":1,\"error\":{\"code\":-32000,\"message\":\"rejected\"}}'); $o.Flush() } " + EndOnBye);
+        RunOnMain(runtime, session, "ApplySelection", "grok-4", null, false, InteractionMode.Build);
+        var frame = JSONValue.Parse(Lines(process.ErrorTail)[0])!;
+        Assert.Equal("session/set_model", frame["method"]!.JSONValueString);
+        Assert.Equal(["modelId", "sessionId"], frame["params"]!.JSONValueObject!.Keys.OrderBy(k => k, StringComparer.Ordinal));
+        Assert.Equal("grok-4", frame["params"]!["modelId"]!.JSONValueString);
+        Assert.Equal("grok-4", Private<string?>(session, "currentModel", field: true)); // set even though the request was rejected
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-056")] // ACPSession.swift:447
+    public void ApplySelection_sends_nothing_when_the_wire_id_already_matches_the_current_model_by_base_id()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Cursor,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " + EndOnBye);
+        SetField(session, "currentModel", "gpt-5");
+        RunOnMain(runtime, session, "ApplySelection", "gpt-5[effort=high]", null, false, InteractionMode.Build);
+        Assert.Empty(Lines(process.ErrorTail));
+        Assert.Equal("gpt-5", Private<string?>(session, "currentModel", field: true));
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-057")] // ACPSession.swift:456-459
+    public void ApplySelection_effort_change_needs_a_config_id_and_an_exact_case_sensitive_string_difference()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " +
+            "if($l.Contains('\"method\":\"session/set_config_option\"')){ $o.WriteLine('{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}'); $o.Flush() } " + EndOnBye);
+        // No effortConfigID discovered: dropped silently, no request, no state change.
+        RunOnMain(runtime, session, "ApplySelection", null, "High", false, InteractionMode.Build);
+        Assert.Empty(Lines(process.ErrorTail));
+        Assert.Null(Private<string?>(session, "currentEffort", field: true));
+
+        SetField(session, "effortConfigID", "eff-opt");
+        SetField(session, "currentEffort", "High"); // same string as the "High" above: exact equality, no change
+        RunOnMain(runtime, session, "ApplySelection", null, "high", false, InteractionMode.Build); // differs only by case
+        var frame = JSONValue.Parse(Lines(process.ErrorTail)[0])!;
+        Assert.Equal("session/set_config_option", frame["method"]!.JSONValueString);
+        Assert.Equal("eff-opt", frame["params"]!["configId"]!.JSONValueString);
+        Assert.Equal("high", frame["params"]!["value"]!.JSONValueString);
+        Assert.Equal("high", Private<string?>(session, "currentEffort", field: true));
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-058")] // ACPSession.swift:460-466
+    public void ApplySelection_writes_the_Fast_toggle_as_literal_true_or_false_strings_on_every_differing_call()
+    {
+        using var runtime = new TestRuntime();
+        // Two requests go out on this one connection, so the reply must echo back the REAL request id, not a
+        // hardcoded one, or the second reply never matches its continuation.
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Cursor,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " +
+            "if($l.Contains('\"method\":\"session/set_config_option\"')){ $rid=[regex]::Match($l,'\"id\":(\\d+)').Groups[1].Value; " +
+            "$o.WriteLine('{\"jsonrpc\":\"2.0\",\"id\":'+$rid+',\"result\":{}}'); $o.Flush() } " + EndOnBye);
+        SetField(session, "fastConfigID", "fast");
+        // currentFast is nil: the first call sends "false" even though fastMode itself was not requested changed.
+        RunOnMain(runtime, session, "ApplySelection", null, null, false, InteractionMode.Build);
+        var frame1 = JSONValue.Parse(Lines(process.ErrorTail)[0])!;
+        Assert.Equal("fast", frame1["params"]!["configId"]!.JSONValueString);
+        Assert.Equal(new JSONValue.String("false"), frame1["params"]!["value"]); // a JSON string, never a boolean
+        Assert.Equal("false", Private<string?>(session, "currentFast", field: true));
+
+        RunOnMain(runtime, session, "ApplySelection", null, null, true, InteractionMode.Build);
+        var frame2 = JSONValue.Parse(Lines(process.ErrorTail)[1])!;
+        Assert.Equal(new JSONValue.String("true"), frame2["params"]!["value"]);
+        Assert.Equal("true", Private<string?>(session, "currentFast", field: true));
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-059")] // ACPSession.swift:467
+    public void ApplySelection_mode_branch_is_skipped_entirely_when_the_chosen_mode_id_is_nil()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " + EndOnBye);
+        SetField(session, "hasModeAPI", true); // a transport is available, but planMode is nil: no fallback either
+        RunOnMain(runtime, session, "ApplySelection", null, null, false, InteractionMode.Plan);
+        Assert.Empty(Lines(process.ErrorTail));
+        Assert.Null(Private<string?>(session, "currentMode", field: true));
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-060")] // ACPSession.swift:468-472
+    [Trait("Req", "PR-PROVACP-061")] // ACPSession.swift:467,473-474 (currentMode is set even with neither transport)
+    public void ApplySelection_mode_change_prefers_set_config_option_falls_back_only_with_hasModeAPI_and_always_updates_currentMode()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " +
+            "if($l.Contains('\"method\":\"session/set_mode\"')){ $o.WriteLine('{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}'); $o.Flush() } " + EndOnBye);
+        SetField(session, "buildMode", "agent");
+        // No modeConfigID and hasModeAPI false: nothing is sent, yet currentMode is still updated (PR-PROVACP-061).
+        RunOnMain(runtime, session, "ApplySelection", null, null, false, InteractionMode.Build);
+        Assert.Empty(Lines(process.ErrorTail));
+        Assert.Equal("agent", Private<string?>(session, "currentMode", field: true));
+
+        SetField(session, "currentMode", (string?)null);
+        SetField(session, "hasModeAPI", true);
+        RunOnMain(runtime, session, "ApplySelection", null, null, false, InteractionMode.Build);
+        var frame = JSONValue.Parse(Lines(process.ErrorTail)[0])!;
+        Assert.Equal("session/set_mode", frame["method"]!.JSONValueString);
+        Assert.Equal(["modeId", "sessionId"], frame["params"]!.JSONValueObject!.Keys.OrderBy(k => k, StringComparer.Ordinal));
+        Assert.Equal("agent", frame["params"]!["modeId"]!.JSONValueString);
+        Assert.Equal("agent", Private<string?>(session, "currentMode", field: true));
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-062")] // ACPSession.swift:477-485
+    public void SetConfigOption_sends_the_exact_three_field_request_and_feeds_the_replys_configOptions_back()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " +
+            "if($l.Contains('\"method\":\"session/set_config_option\"')){ $o.WriteLine('{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"configOptions\":" +
+            "[{\"id\":\"mode-opt\",\"category\":\"mode\",\"currentValue\":\"plan\",\"options\":[{\"value\":\"plan\"}]}]}}'); $o.Flush() } " + EndOnBye);
+        RunOnMain(runtime, session, "SetConfigOption", "cfg-1", "val-1");
+        var frame = JSONValue.Parse(Lines(process.ErrorTail)[0])!;
+        Assert.Equal("session/set_config_option", frame["method"]!.JSONValueString);
+        Assert.Equal(["configId", "sessionId", "value"], frame["params"]!.JSONValueObject!.Keys.OrderBy(k => k, StringComparer.Ordinal));
+        Assert.Equal("cfg-1", frame["params"]!["configId"]!.JSONValueString);
+        Assert.Equal("val-1", frame["params"]!["value"]!.JSONValueString);
+        Assert.Equal("mode-opt", Private<string?>(session, "modeConfigID", field: true)); // the reply's configOptions fed back in
+        Assert.Equal("plan", Private<string?>(session, "currentMode", field: true));
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-062")] // ACPSession.swift:477-485 (a thrown error is swallowed, never propagated)
+    public void SetConfigOption_swallows_a_thrown_error_and_leaves_state_untouched()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " +
+            "if($l.Contains('\"method\":\"session/set_config_option\"')){ $o.WriteLine('{\"jsonrpc\":\"2.0\",\"id\":1,\"error\":{\"code\":-32000,\"message\":\"nope\"}}'); $o.Flush() } " + EndOnBye);
+        RunOnMain(runtime, session, "SetConfigOption", "cfg-1", "val-1"); // must complete without throwing
+        Assert.Null(Private<string?>(session, "modeConfigID", field: true));
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-063")] // ACPSession.swift:168; ProviderSession.swift:170-171
+    public async Task Send_throws_notRunning_with_the_exact_message_when_the_session_is_not_running()
+    {
+        var input = new TurnInput { Text = "hi", Images = ValueList<Attachment>.Empty, RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build };
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised); // no connection, no sessionID
+        var error = await Assert.ThrowsAsync<ProviderError>(() => session.Send(input));
+        Assert.IsType<ProviderError.Case.NotRunning>(error.ErrorCase);
+        Assert.Equal("The agent session is not running.", error.Message);
+
+        using var runtime = new TestRuntime();
+        var (session2, connection2, process2) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ } " + EndOnBye);
+        runtime.OnMain(connection2.Close); // a closed connection with a sessionID still refuses
+        // Close() only terminates the process; IsClosed flips later, once the process's own exit is observed.
+        runtime.Loop.RunUntil(() => connection2.IsClosed, Bound);
+        var error2 = await Assert.ThrowsAsync<ProviderError>(() => session2.Send(input));
+        Assert.Equal("The agent session is not running.", error2.Message);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-064")] // ACPSession.swift:169-175
+    public void Send_refreshes_runtimeMode_and_finishes_applySelections_round_trip_before_returning()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " +
+            "if($l.Contains('\"method\":\"session/set_model\"')){ $o.WriteLine('{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}'); $o.Flush() } " + EndOnBye);
+        var input = new TurnInput
+        {
+            Text = "hi", Images = ValueList<Attachment>.Empty, Model = "grok-4",
+            RuntimeMode = RuntimeMode.FullAccess, InteractionMode = InteractionMode.Build,
+        };
+        var handle = runtime.OnMain(() => MainActor.SpawnThrowing(async () => { await session.Send(input); return true; }));
+        runtime.Loop.RunUntil(() => handle.Value.IsCompleted, Bound);
+        Assert.True(Resolved(handle.Value));
+        Assert.Equal(RuntimeMode.FullAccess, Private<RuntimeMode>(session, "runtimeMode", field: true));
+        Assert.Equal("grok-4", Private<string?>(session, "currentModel", field: true)); // applySelection's round trip finished
+        Assert.Equal("session/set_model", JSONValue.Parse(Lines(process.ErrorTail)[0])!["method"]!.JSONValueString);
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-065")] // ACPSession.swift:176-179
+    public void Send_builds_the_prompt_as_one_text_block_then_one_image_block_per_readable_image_attachment()
+    {
+        var dataDirectory = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
+        Assert.False(string.IsNullOrEmpty(dataDirectory)); // R-TEST-9
+        var folder = Path.Combine(dataDirectory!, "ACPSessionTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            var imageBytes = new byte[] { 0x01, 0x02, 0x03, 0x04 }; // not a real image: kept as its own bytes unchanged
+            var imagePath = Path.Combine(folder, "shot.png");
+            File.WriteAllBytes(imagePath, imageBytes);
+            var docPath = Path.Combine(folder, "notes.txt");
+            File.WriteAllText(docPath, "not an image");
+
+            using var runtime = new TestRuntime();
+            var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+                Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " + EndOnBye);
+            var input = new TurnInput
+            {
+                Text = "look at this",
+                Images = new ValueList<Attachment>([
+                    new Attachment { Name = "shot.png", Path = imagePath, MimeType = "image/png" },
+                    new Attachment { Name = "notes.txt", Path = docPath, MimeType = "text/plain" }, // not an image: dropped
+                ]),
+                RuntimeMode = RuntimeMode.Supervised,
+                InteractionMode = InteractionMode.Build,
+            };
+            var handle = runtime.OnMain(() => MainActor.SpawnThrowing(async () => { await session.Send(input); return true; }));
+            runtime.Loop.RunUntil(() => handle.Value.IsCompleted, Bound);
+            Assert.True(Resolved(handle.Value));
+            // The prompt request is fired from a detached task (PR-PROVACP-067): keep pumping the main loop
+            // (not a bare wall-clock wait) until its enqueued continuation actually runs and writes the frame.
+            runtime.Loop.RunUntil(() => Lines(process.ErrorTail).Any(l => l.Contains("\"method\":\"session/prompt\"", StringComparison.Ordinal)), Bound);
+            var promptFrame = JSONValue.Parse(Lines(process.ErrorTail).Single(l => l.Contains("\"method\":\"session/prompt\"", StringComparison.Ordinal)))!;
+            var prompt = promptFrame["params"]!["prompt"]!.JSONValueArray!;
+            Assert.Equal(2, prompt.Count); // text block, then one image block; the text attachment was dropped
+            Assert.Equal("text", prompt[0]["type"]!.JSONValueString);
+            Assert.Equal("look at this", prompt[0]["text"]!.JSONValueString);
+            Assert.Equal("image", prompt[1]["type"]!.JSONValueString);
+            Assert.Equal("image/png", prompt[1]["mimeType"]!.JSONValueString);
+            Assert.Equal(Convert.ToBase64String(imageBytes), prompt[1]["data"]!.JSONValueString);
+            // session/prompt is deliberately left unanswered (this record is about the fire-and-forget send,
+            // not the reply): closing the connection would resolve it into finishPrompt, which is part 4's
+            // own stub. Leave the process running; it is reaped with the test host.
+        }
+        finally { Directory.Delete(folder, recursive: true); }
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-066")] // ACPSession.swift:180-184
+    public void Send_clears_streaming_ids_arms_promptActive_resets_cancelRequested_and_emits_turnStarted_with_a_nil_id()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " + EndOnBye);
+        SetField(session, "messageID", "stale-message");
+        SetField(session, "thoughtID", "stale-thought");
+        SetField(session, "cancelRequested", true);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        var input = new TurnInput { Text = "hi", Images = ValueList<Attachment>.Empty, RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build };
+        var handle = runtime.OnMain(() => MainActor.SpawnThrowing(async () => { await session.Send(input); return true; }));
+        runtime.Loop.RunUntil(() => handle.Value.IsCompleted, Bound);
+        Assert.True(Resolved(handle.Value));
+        Assert.Null(Private<string?>(session, "messageID", field: true));
+        Assert.Null(Private<string?>(session, "thoughtID", field: true));
+        Assert.True(Private<bool>(session, "promptActive", field: true));
+        Assert.False(Private<bool>(session, "cancelRequested", field: true));
+        var started = Assert.IsType<ProviderEvent.TurnStarted>(Assert.Single(events));
+        Assert.Null(started.ProviderTurnID);
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-067")] // ACPSession.swift:185-195
+    public void Send_fires_session_prompt_in_a_detached_task_with_exact_params_and_returns_before_it_resolves()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok, // session/prompt is never answered
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " + EndOnBye);
+        var input = new TurnInput { Text = "hello there", Images = ValueList<Attachment>.Empty, RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build };
+        var handle = runtime.OnMain(() => MainActor.SpawnThrowing(async () => { await session.Send(input); return true; }));
+        runtime.Loop.RunUntil(() => handle.Value.IsCompleted, Bound); // completes even though session/prompt never replies
+        Assert.True(Resolved(handle.Value));
+        // Keep pumping (not a bare wall-clock wait) until the detached task's continuation runs and writes the frame.
+        runtime.Loop.RunUntil(() => Lines(process.ErrorTail).Any(l => l.Contains("\"method\":\"session/prompt\"", StringComparison.Ordinal)), Bound);
+        var frame = JSONValue.Parse(Lines(process.ErrorTail).Single(l => l.Contains("\"method\":\"session/prompt\"", StringComparison.Ordinal)))!;
+        Assert.Equal(["prompt", "sessionId"], frame["params"]!.JSONValueObject!.Keys.OrderBy(k => k, StringComparer.Ordinal));
+        Assert.Equal("sess-1", frame["params"]!["sessionId"]!.JSONValueString);
+        Assert.Equal("hello there", frame["params"]!["prompt"]!.JSONValueArray![0]["text"]!.JSONValueString);
+        // session/prompt is deliberately left unanswered here (that is the point of this record); closing the
+        // connection would resolve it into finishPrompt, which is part 4's own stub. Leave the process running.
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-068")] // ACPSession.swift:198-199
+    public async Task Interrupt_does_nothing_unless_a_prompt_is_active_on_a_live_session()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " + EndOnBye);
+        // promptActive is false by default.
+        await session.Interrupt();
+        Assert.Empty(Lines(process.ErrorTail));
+        Assert.False(Private<bool>(session, "cancelRequested", field: true));
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-069")] // ACPSession.swift:200-205
+    [Trait("Req", "PR-PROVACP-070")] // ACPSession.swift:206
+    public async Task Interrupt_cancels_every_pending_permission_then_sends_session_cancel_as_a_notification()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " + EndOnBye);
+        SetField(session, "promptActive", true);
+        var pending = Private<Dictionary<string, RPCID>>(session, "pendingPermissions", field: true);
+        pending["req-A"] = new RPCID.Int(1);
+        pending["req-B"] = new RPCID.String("b");
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        await session.Interrupt();
+        Assert.True(Private<bool>(session, "cancelRequested", field: true));
+        // The frames were written to the child's stdin already; give its echo back over stderr time to land.
+        Assert.True(SpinWait.SpinUntil(() => Lines(process.ErrorTail).Count >= 3, Bound), "the two answers and the notify were not all echoed back");
+        var frames = Lines(process.ErrorTail).Select(l => JSONValue.Parse(l)!).ToList();
+        var answers = frames.Where(f => f["id"] is not null).ToList(); // the two responses (a notification carries no "id")
+        Assert.Equal(2, answers.Count);
+        foreach (var answer in answers)
+        {
+            Assert.Equal("cancelled", answer["result"]!["outcome"]!["outcome"]!.JSONValueString);
+            Assert.Null(answer["result"]!["outcome"]!["optionId"]);
+        }
+        var resolvedIDs = events.OfType<ProviderEvent.RequestResolved>().Select(e => e.Id).OrderBy(x => x, StringComparer.Ordinal).ToList();
+        Assert.Equal(["req-A", "req-B"], resolvedIDs);
+        Assert.Empty(Private<Dictionary<string, RPCID>>(session, "pendingPermissions", field: true));
+        var notifyIndex = frames.FindIndex(f => f["method"]?.JSONValueString == "session/cancel");
+        Assert.True(notifyIndex >= 0);
+        Assert.True(frames.Take(notifyIndex).All(f => f["id"] is not null)); // the two answers came first
+        Assert.Equal(["sessionId"], frames[notifyIndex]["params"]!.JSONValueObject!.Keys);
+        Assert.Equal("sess-1", frames[notifyIndex]["params"]!["sessionId"]!.JSONValueString);
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-071")] // ACPSession.swift:209-211; Provider.swift:25-28,32
+    [InlineData(ProviderKind.Cursor, "Cursor compacts its own context.")]
+    [InlineData(ProviderKind.Opencode, "OpenCode Zen compacts its own context.")]
+    [InlineData(ProviderKind.OpencodeGo, "OpenCode Go compacts its own context.")]
+    [InlineData(ProviderKind.Grok, "Grok compacts its own context.")]
+    [InlineData(ProviderKind.Devin, "Devin compacts its own context.")]
+    public async Task Compact_always_throws_with_the_exact_provider_named_message(ProviderKind provider, string message)
+    {
+        var session = Session(provider, RuntimeMode.Supervised);
+        var error = await Assert.ThrowsAsync<ProviderError>(() => session.Compact());
+        Assert.IsType<ProviderError.Case.Failed>(error.ErrorCase);
+        Assert.Equal(message, error.Message);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-072")] // ACPSession.swift:213-217
+    public void ResolveApproval_answers_once_then_a_second_call_for_the_same_id_is_a_silent_no_op()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " + EndOnBye);
+        var pending = Private<Dictionary<string, RPCID>>(session, "pendingPermissions", field: true);
+        pending["req-A"] = new RPCID.Int(7);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        session.ResolveApproval("req-A", "opt-1");
+        var resolved = Assert.IsType<ProviderEvent.RequestResolved>(Assert.Single(events));
+        Assert.Equal("req-A", resolved.Id);
+        Assert.Empty(Private<Dictionary<string, RPCID>>(session, "pendingPermissions", field: true));
+        Assert.True(SpinWait.SpinUntil(() => Lines(process.ErrorTail).Count >= 1, Bound), "the response frame was not echoed back");
+        var frame = JSONValue.Parse(Lines(process.ErrorTail)[0])!;
+        Assert.Equal("selected", frame["result"]!["outcome"]!["outcome"]!.JSONValueString);
+        Assert.Equal("opt-1", frame["result"]!["outcome"]!["optionId"]!.JSONValueString);
+
+        events.Clear();
+        session.ResolveApproval("req-A", "opt-2"); // id was already removed: no-op
+        Assert.Empty(events);
+        Assert.Single(Lines(process.ErrorTail)); // no second response frame
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-072")] // ACPSession.swift:213-217 (a nil connection skips the response but the event is still emitted)
+    public void ResolveApproval_still_emits_requestResolved_when_the_connection_is_nil()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised); // connection is nil
+        var pending = Private<Dictionary<string, RPCID>>(session, "pendingPermissions", field: true);
+        pending["req-A"] = new RPCID.Int(1);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        session.ResolveApproval("req-A", "opt-1"); // must not throw despite the nil connection
+        var resolved = Assert.IsType<ProviderEvent.RequestResolved>(Assert.Single(events));
+        Assert.Equal("req-A", resolved.Id);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-073")] // ACPSession.swift:219
+    public void AnswerQuestion_is_an_intentional_no_op()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        session.AnswerQuestion("req-A", new ValueMap<string, ValueList<string>>(new Dictionary<string, ValueList<string>>
+        {
+            ["choice"] = new ValueList<string>(["a", "b"]),
+        }));
+        Assert.Empty(events);
     }
 }
