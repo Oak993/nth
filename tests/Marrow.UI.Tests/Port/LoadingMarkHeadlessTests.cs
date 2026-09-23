@@ -50,7 +50,10 @@ public sealed class LoadingMarkHeadlessTests(HeadlessSession headless)
     private static Color Capture(Window window, int x, int y)
     {
         using var frame = window.CaptureRenderedFrame()!;
-        using var bitmap = new WriteableBitmap(frame.PixelSize, frame.Dpi, Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Premul);
+        // CopyPixels writes the frame's own pixel format, so the bitmap takes that format and Pixel reads the channels
+        // in that order (review point 2: a Bgra8888 bitmap here read R and B swapped).
+        using var bitmap = new WriteableBitmap(frame.PixelSize, frame.Dpi,
+            frame.Format ?? Avalonia.Platform.PixelFormat.Rgba8888, Avalonia.Platform.AlphaFormat.Premul);
         using (var buffer = bitmap.Lock()) frame.CopyPixels(new PixelRect(frame.PixelSize), buffer.Address, buffer.RowBytes * buffer.Size.Height, buffer.RowBytes);
         return Pixel(bitmap, x, y);
     }
@@ -201,7 +204,8 @@ public sealed class LoadingMarkHeadlessTests(HeadlessSession headless)
         Frame(time, frames, .5);
         // icon.svg arm 0 begins at (392.88,217.16). The 210 DIP mark is centred on (500,312.5).
         var arm = Capture(window, 476, 252);
-        Assert.True(arm.R > 140 && arm.G > 140, $"arm pixel {arm}");
+        // icon.svg arm 0 gradient starts at #9CBBFF (156,187,255): blue leads red. d0d4d27's assertion, restored.
+        Assert.True(arm.B > 140 && arm.B > arm.R, $"arm pixel {arm}");
         window.Close();
     });
 
@@ -309,5 +313,103 @@ public sealed class LoadingMarkHeadlessTests(HeadlessSession headless)
         Assert.True(flashed.R + flashed.G + flashed.B > resting.R + resting.G + resting.B + 10,
             $"resting glow {resting}, flashed glow {flashed}");
         window.Close();
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-7")]
+    public void The_capture_helper_reads_red_as_red_and_blue_as_blue() => headless.OnUiThread(() =>
+    {
+        // Review point 2: the helper once read R and B swapped. A pure red and a pure blue window must read as such.
+        var red = Show(new Border(), new SolidColorBrush(Color.FromRgb(255, 0, 0)));
+        Assert.Equal(Color.FromRgb(255, 0, 0), Capture(red, 10, 10));
+        red.Close();
+        var blue = Show(new Border(), new SolidColorBrush(Color.FromRgb(0, 0, 255)));
+        Assert.Equal(Color.FromRgb(0, 0, 255), Capture(blue, 10, 10));
+        blue.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-103")]
+    [Trait("Decision", "ED-102")]
+    public void Readiness_between_frames_takes_the_moment_of_the_call_not_the_last_frame() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var layout = new BootWindowLayout(new Rect(-262, -112, 780, 480), 14,
+            [new Rect(-248, -60, 204, 150), new Rect(10, -42, 468, 220), new Rect(-242, -104, 740, 28)]);
+        var stage = new BootStage(new BootSequence(layout, reduceMotion: false));
+        var window = Show(stage);
+        for (var i = 0; i < 77; i++) Frame(time, frames, .05); // the frame at 3.85 s, the end of the first turn
+        time.Advance(TimeSpan.FromSeconds(.01));
+        stage.Ready(); // the app is ready at 3.86 s, between frames
+        Frame(time, frames, .006); // 3.866 s
+        // ED-103 (3): the final rest is the end of the first turn that ends at or after 3.86 s: 1.45 + 2 * 2.4 = 6.25 s.
+        // The turn that began with the pulse at 3.85 s keeps running, its ring still out.
+        Assert.Equal(BootPhase.Turning, stage.Frame.Phase);
+        Assert.Equal(3.85, stage.Frame.Comet.LastPulse!.Value, 9);
+        Assert.NotNull(stage.Frame.Comet.RingAge);
+        for (var i = 0; i < 47; i++) Frame(time, frames, .05); // 6.216 s
+        Assert.Equal(BootPhase.Turning, stage.Frame.Phase);
+        Frame(time, frames, .05); // 6.266 s
+        Assert.Equal(BootPhase.AtRest, stage.Frame.Phase);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-103")]
+    public void Readiness_before_the_stage_starts_counts_as_ready_at_zero_and_rests_after_the_first_turn() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var layout = new BootWindowLayout(new Rect(-262, -112, 780, 480), 14,
+            [new Rect(-248, -60, 204, 150), new Rect(10, -42, 468, 220), new Rect(-242, -104, 740, 28)]);
+        var stage = new BootStage(new BootSequence(layout, reduceMotion: false));
+        time.Advance(TimeSpan.FromSeconds(5)); // time passes before the stage is attached
+        stage.Ready();
+        var window = Show(stage);
+        for (var i = 0; i < 76; i++) Frame(time, frames, .05); // 3.8 s
+        Assert.Equal(BootPhase.Turning, stage.Frame.Phase);
+        Frame(time, frames, .06); // 3.86 s: ED-103 (3), the first turn always runs and ends at 3.85 s
+        Assert.Equal(BootPhase.AtRest, stage.Frame.Phase);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-103")]
+    public void The_window_outline_strokes_BED2FF_at_85_percent_over_a_9CBBFF_glow() => headless.OnUiThread(() =>
+    {
+        // ED-103 (5): 1.5 DIP, #BED2FF at .85 with a 14 DIP glow; boot_sequence.html:285-287 gives the glow colour
+        // rgba(156,187,255,.9). The top edge sits at y 50.5, so pixel row 50 lies wholly inside the 1.5 DIP stroke.
+        var layout = new BootWindowLayout(new Rect(50.5, 50.5, 100, 100), 14, [new Rect(60, 60, 80, 80)]);
+        using var bitmap = new RenderTargetBitmap(new PixelSize(200, 200));
+        using (var context = bitmap.CreateDrawingContext())
+        {
+            context.FillRectangle(Brushes.Black, new Rect(0, 0, 200, 200));
+            BootStage.DrawOutline(context, layout, 1);
+        }
+        using var copy = new WriteableBitmap(bitmap.PixelSize, bitmap.Dpi,
+            bitmap.Format ?? Avalonia.Platform.PixelFormat.Rgba8888, Avalonia.Platform.AlphaFormat.Premul);
+        using (var buffer = copy.Lock())
+            bitmap.CopyPixels(new PixelRect(bitmap.PixelSize), buffer.Address, buffer.RowBytes * buffer.Size.Height, buffer.RowBytes);
+        // The stroke: .85 of (190,210,255) over black plus a faint glow, so well short of the full-alpha colour.
+        var line = Pixel(copy, 100, 50);
+        Assert.InRange(line.R, 155, 180);
+        Assert.InRange(line.G, 172, 195);
+        Assert.InRange(line.B, 208, 235);
+        // The glow above the line: its hue is #9CBBFF's (R/B = 156/255 = .61), not the stroke's (190/255 = .75).
+        double sumR = 0, sumB = 0;
+        for (var y = 40; y <= 48; y++)
+            for (var x = 75; x <= 125; x++)
+            {
+                var glow = Pixel(copy, x, y);
+                sumR += glow.R;
+                sumB += glow.B;
+            }
+        Assert.True(sumB > 200, $"glow blue sum {sumB}");
+        Assert.InRange(sumR / sumB, .55, .68);
     });
 }
