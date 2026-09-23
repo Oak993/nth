@@ -24,8 +24,8 @@ using Marrow.UI.Theme;
 // Parts 1 to 3 of 4 are ported: the window backdrop (:201-273), the surfaces (:125-199), the chrome controls
 // (:306-560), the scroll model (:564-577), the search fields and the picker (:775-932), the veil and compact title
 // (:579-647), the sidebar row family (:648-773), the settings card/section/row (:1006-1074), the drag regions
-// (:1083-1140) and the tokens they read. Members that still throw MARROW_STUB (the traffic-light geometry) belong to
-// part 4 of this unit.
+// (:1083-1140) and the tokens they read. Part 4 of 4 finishes the traffic-light geometry (TrafficLightPitch :17,
+// TrafficLightsWidth :20) and proves UI-WIN-055 (the ChromeRowDivider composition rule, :1076-1081).
 // Forms (ED-095, ED-098): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed
 // record with `Control Body(Control content)`, an IAnimatableModifier where a transition animates it; a Layout is a
 // Panel; an NSView is a Control; NSImage is Avalonia.Media.IImage; AnyView is Control; a @ViewBuilder parameter is a
@@ -61,16 +61,14 @@ namespace Marrow.UI.Chrome
         public const double TrafficLightDiameter = 14; // :15
         public const double TrafficLightSpacing = 9; // :16
 
-        // :17
-        public static double TrafficLightPitch =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:17");
+        // :17 `static var trafficLightPitch: CGFloat { trafficLightDiameter + trafficLightSpacing }`
+        public static double TrafficLightPitch => TrafficLightDiameter + TrafficLightSpacing;
 
         public const double TrafficLightLeading = 18; // :18
         public const double TrafficLightTop = 16; // :19
 
-        // :20
-        public static double TrafficLightsWidth =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:20");
+        // :20 `static var trafficLightsWidth: CGFloat { trafficLightDiameter * 3 + trafficLightSpacing * 2 }`
+        public static double TrafficLightsWidth => TrafficLightDiameter * 3 + TrafficLightSpacing * 2;
 
         public const double TrafficLightClearance = 10; // :21
 
@@ -1654,7 +1652,10 @@ namespace Marrow.UI.Chrome
         public ChromeRowDivider()
         {
             var line = new Border { BorderThickness = new Thickness(0, 0, 0, 1), Height = 1 };
-            line.BorderBrush = Chrome.Overlay(0.14).Brush(line); // the hairline colour ChromeDivider (:327) also uses
+            // :1078 `Divider()`: SwiftUI's own separator, drawn in the system divider colour. B2 gives it no
+            // literal (the framework paints it), so it takes the same translucent hairline opacity Chrome uses
+            // for its other system-style rules (WindowBackdrop's edge, :270), UNVERIFIED under OD-0001.
+            line.BorderBrush = Chrome.Overlay(0.14).Brush(line);
             Child = line;
             Margin = new Thickness(16, 0, 0, 0); // :1079 .padding(.leading, 16)
         }
