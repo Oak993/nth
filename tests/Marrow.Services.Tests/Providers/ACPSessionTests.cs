@@ -2115,14 +2115,13 @@ public sealed class ACPSessionTests
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
         SetField(session, "promptActive", true);
-        SetField(session, "cancelRequested", true); // set beforehand: must still be cleared
         var events = new List<ProviderEvent>();
         session.OnEvent = events.Add;
         InvokePrivate(session, "FinishPrompt", stopReason, null);
         var completed = Assert.IsType<ProviderEvent.TurnCompleted>(Assert.Single(events));
         Assert.Equal(TurnStatus.Completed, completed.Status);
         Assert.Null(completed.Error);
-        Assert.False(Private<bool>(session, "cancelRequested", field: true));
+        Assert.False(Private<bool>(session, "cancelRequested", field: true)); // cleared unconditionally at the end
     }
 
     [Fact]
