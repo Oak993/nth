@@ -263,6 +263,16 @@
     "UI.Chrome.WindowChrome",
     "App.Window.WindowManager"
    ]
+  },
+  {
+   "id": "F.Sound",
+   "project": "Marrow.UI",
+   "target": "src/Marrow.UI/Port/SwiftSound.cs",
+   "risk": "STANDARD",
+   "spec": "NSSound as ED-151 gives it: SwiftSound.Create(byte[]) returning null for data that is not a playable PCM WAV; float Volume; Play() returning false and doing nothing while playing; Stop(); IsPlaying; output through the Ambient<ISoundOutput> seam SoundOutput.Current, production on the Windows waveOut API by P/Invoke with Volume applied to the samples, tests on a fake that records plays, stops and volumes and completes on demand. First tests: Create null for bad data; play then play again while playing is declined; stop then play replays; the volume reaches the output; a playback completes and IsPlaying turns false.",
+   "patterns": [
+    "NSSound"
+   ]
   }
  ]
 }
