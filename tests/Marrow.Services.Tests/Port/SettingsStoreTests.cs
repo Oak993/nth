@@ -677,6 +677,56 @@ public sealed class SettingsStoreTests
         Assert.Equal(original, File.ReadAllBytes(path + ".unreadable"));
     }
 
+    // ED-156 (1): "each value a one-member object tagged with the XML property-list element name". A tagged object with
+    // no member or with more than one member is an entry TryRead rejects (never read by its first member), at the top
+    // level or nested; by ED-156 (2) it is skipped, the rest load, the main file is unchanged and its original bytes are
+    // preserved in <path>.unreadable, so the first write cannot silently rewrite it.
+    [Theory]
+    [Trait("Decision", "ED-156")]
+    [InlineData("{\"a\":{\"string\":\"x\",\"bool\":true},\"b\":{\"bool\":true}}")]
+    [InlineData("{\"a\":{\"string\":\"x\",\"string\":\"y\"},\"b\":{\"bool\":true}}")]
+    [InlineData("{\"a\":{},\"b\":{\"bool\":true}}")]
+    [InlineData("{\"a\":{\"array\":[{\"real\":1,\"string\":\"x\"}]},\"b\":{\"bool\":true}}")]
+    [InlineData("{\"a\":{\"array\":[{}]},\"b\":{\"bool\":true}}")]
+    [InlineData("{\"a\":{\"dict\":{\"k\":{\"string\":\"x\",\"bool\":true}}},\"b\":{\"bool\":true}}")]
+    [InlineData("{\"a\":{\"dict\":{\"k\":{}}},\"b\":{\"bool\":true}}")]
+    public void A_tagged_value_without_exactly_one_member_is_skipped_and_the_file_is_preserved(string json)
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var original = Encoding.UTF8.GetBytes(json);
+        File.WriteAllBytes(path, original);
+
+        var store = new SettingsStore(path);
+        Assert.Null(store.Object("a"));
+        Assert.Equal(true, store.Object("b"));
+        Assert.Equal(original, File.ReadAllBytes(path));
+        Assert.Equal(original, File.ReadAllBytes(path + ".unreadable"));
+        store.Set("b", false);
+        Assert.True(store.Synchronize());
+        Assert.Equal(original, File.ReadAllBytes(path + ".unreadable"));
+    }
+
+    // ED-156 (1): "Read skips exactly one leading UTF-8 BOM". A second BOM is not skipped, so the text is not a settings
+    // document: the store opens empty, the main file is unchanged and its original bytes are preserved (ED-156 (2)).
+    [Theory]
+    [Trait("Decision", "ED-156")]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void More_than_one_leading_UTF8_BOM_is_not_skipped_and_the_file_is_preserved(int boms)
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var body = Encoding.UTF8.GetBytes("{\"appTheme\":{\"string\":\"dark\"}}");
+        var original = Enumerable.Repeat(new byte[] { 0xEF, 0xBB, 0xBF }, boms).SelectMany(b => b).Concat(body).ToArray();
+        File.WriteAllBytes(path, original);
+
+        var store = new SettingsStore(path);
+        Assert.Null(store.Object("appTheme"));
+        Assert.Equal(original, File.ReadAllBytes(path));
+        Assert.Equal(original, File.ReadAllBytes(path + ".unreadable"));
+    }
+
     // ED-156 (2): a folder holding a copy's name counts as taken (File.Exists || Directory.Exists); the copy goes to the
     // first free name and the folders are left alone.
     [Fact]
