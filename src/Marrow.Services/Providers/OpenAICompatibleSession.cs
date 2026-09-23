@@ -90,6 +90,14 @@ public class OpenAICompatibleSession : ProviderSession
     private TaskHandle<StreamRound>? roundTask;              // :54
     private TaskHandle? sseDrain;                           // :57
     private readonly Dictionary<string, CheckedContinuation<bool>> pendingApprovals = []; // :58
+    private List<MCPHub.Tool> mcpTools = [];                // :59
+    private bool didLoadMCPTools;                            // :60
+
+    // :61-65
+    private IReadOnlyList<JSONValue> McpToolDefinitions => [.. mcpTools.Select(tool => JSONValue.FromDictionaryLiteral(
+        ("type", "function"),
+        ("function", JSONValue.FromDictionaryLiteral(
+            ("name", tool.CallName), ("description", tool.Description), ("parameters", tool.InputSchema)))))];
 
     // :230-238
     public OpenAICompatibleSession(Config config, SessionConfiguration configuration)
@@ -112,6 +120,22 @@ public class OpenAICompatibleSession : ProviderSession
 
     // Test-only accessor: :48-50.
     internal bool IsInterrupted => interrupted;
+
+    // Test-only seam (InternalsVisibleTo Marrow.Services.Tests): :59-60. Sets the already-loaded
+    // MCP tool list directly so PR-PROVAPI-120's naming can be tested without spawning a real MCP
+    // server process.
+    internal void SeedMcpToolsForTests(IReadOnlyList<MCPHub.Tool> tools)
+    {
+        mcpTools = [.. tools];
+        didLoadMCPTools = true;
+    }
+
+    // Test-only seam (InternalsVisibleTo Marrow.Services.Tests): drives PerformStream directly
+    // against a fake chat endpoint, so SSE draining and tool-call accumulation (:600-735) can be
+    // tested without going through PerformTurn's tool-execution loop, whose bodies (:894-1035)
+    // are a later part of this unit.
+    internal Task<StreamRound> PerformStreamForTests(string model, string? effort = null, bool withTools = true) =>
+        PerformStream(RequestPayload(model, effort, withTools));
 
     private string WorkingDirectory => Configuration.WorkingDirectory.Path; // :242
     private string ApiKey => (Configuration.ApiKey ?? "").Trimmed();       // :243
@@ -426,17 +450,533 @@ public class OpenAICompatibleSession : ProviderSession
 
     // MARK: - Chat round
 
-    // :506-561. Builds the request payload, drains the SSE stream and retries the three
-    // transient transport failures. Not cited in this part's packet (no PR-PROVAPI-089..112
-    // record names these lines) and TokenLedger/requestPayload/performStream/drainSSE are not in
-    // the C# tree yet; exposed as a protected virtual seam so PerformTurn's own orchestration
-    // (the round loop, the Hydra notes, the 401/error/no-tools/tool-call branches) is testable
-    // now. A later part of this unit replaces this default with the real implementation.
-    protected virtual Task<StreamRound> StreamOneRound(string model, string? effort, bool withTools = true) =>
-        throw new NotSupportedException(
-            $"{nameof(OpenAICompatibleSession)}.{nameof(StreamOneRound)}: the request payload and SSE " +
-            "streaming (Swift :506-800) land in a later part of this unit; override this seam in a test " +
-            "or wait for that part.");
+    // :140-148. A chunk from the detached SSE drain to the actor-coalesced stream.
+    private abstract record StreamChunk
+    {
+        public sealed record TextChunk(string Value) : StreamChunk;                                  // :141
+        public sealed record ReasoningChunk(string Value) : StreamChunk;                              // :142
+        public sealed record ToolCallChunk(int Index, string Id, string Name, string Arguments) : StreamChunk; // :143
+        public sealed record UsageChunk(ContextUsage Value) : StreamChunk;                            // :144
+        public sealed record TokenUsageChunk(ReportedTokenUsage Value) : StreamChunk;                 // :145
+        public sealed record StreamErrorChunk(string Value) : StreamChunk;                            // :146
+        public sealed record TransportErrorChunk(Exception Value) : StreamChunk;                      // :147
+    }
+
+    // :152-227. Holds consecutive text off the main actor and yields it as one larger delta, at
+    // most 30 ms after the first piece, so the main actor hops less (R-TASK-6: Actor + Spawn +
+    // TrySleep for this file's flush pattern).
+    private sealed class StreamCoalescer : Actor
+    {
+        private readonly AsyncStream<StreamChunk>.Continuation continuation; // :153
+        private string pendingText = "";                                     // :154
+        private string pendingReasoning = "";                                // :155
+        private bool finished;                                                // :156
+
+        public StreamCoalescer(AsyncStream<StreamChunk>.Continuation continuation) => this.continuation = continuation; // :158-160
+
+        public Task AppendText(string value) => Isolated(() => // :162-167
+        {
+            if (pendingReasoning.Length > 0) Flush();
+            var idle = pendingText.Length == 0;
+            pendingText += value;
+            if (idle) ScheduleFlush();
+        });
+
+        public Task AppendReasoning(string value) => Isolated(() => // :169-174
+        {
+            if (pendingText.Length > 0) Flush();
+            var idle = pendingReasoning.Length == 0;
+            pendingReasoning += value;
+            if (idle) ScheduleFlush();
+        });
+
+        public Task EmitToolCall(int index, string id, string name, string arguments) => Isolated(() => // :176-179
+        {
+            Flush();
+            continuation.Yield(new StreamChunk.ToolCallChunk(index, id, name, arguments));
+        });
+
+        public Task EmitUsage(ContextUsage value) => Isolated(() => // :181-184
+        {
+            Flush();
+            continuation.Yield(new StreamChunk.UsageChunk(value));
+        });
+
+        public Task EmitTokenUsage(ReportedTokenUsage value) => Isolated(() => // :186-189
+        {
+            Flush();
+            continuation.Yield(new StreamChunk.TokenUsageChunk(value));
+        });
+
+        public Task EmitStreamError(string message) => Isolated(() => // :191-194
+        {
+            Flush();
+            continuation.Yield(new StreamChunk.StreamErrorChunk(message));
+        });
+
+        public Task Finish() => Isolated(() => // :196-201
+        {
+            if (finished) return;
+            finished = true;
+            Flush();
+            continuation.Finish();
+        });
+
+        public Task Fail(Exception error) => Isolated(() => // :203-209
+        {
+            if (finished) return;
+            finished = true;
+            Flush();
+            continuation.Yield(new StreamChunk.TransportErrorChunk(error));
+            continuation.Finish();
+        });
+
+        private void Flush() // :211-220
+        {
+            if (pendingText.Length > 0)
+            {
+                continuation.Yield(new StreamChunk.TextChunk(pendingText));
+                pendingText = "";
+            }
+            if (pendingReasoning.Length > 0)
+            {
+                continuation.Yield(new StreamChunk.ReasoningChunk(pendingReasoning));
+                pendingReasoning = "";
+            }
+        }
+
+        private void ScheduleFlush() => Spawn(async () => // :222-227
+        {
+            await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(30));
+            await Isolated(Flush);
+        });
+    }
+
+    // :131-136. Carries the untyped transport error up together with whether the user had
+    // already seen part of an answer, so the retry decision is made on the error's code, not its
+    // wording.
+    private sealed class StreamAttemptFailure(Exception underlying, bool emittedOutput) : Exception
+    {
+        public Exception Underlying { get; } = underlying;
+        public bool EmittedOutput { get; } = emittedOutput;
+    }
+
+    // :86-87
+    private const int MaxTransportRetries = 2;
+    private static readonly TimeSpan[] TransportRetryDelays = [TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2)];
+
+    // :91-97. The transport failures worth another attempt, by code rather than by message.
+    private static bool IsTransientTransportFailure(Exception error) =>
+        error is URLError urlError && urlError.URLErrorCode is
+            URLError.Code.NetworkConnectionLost or URLError.Code.TimedOut or URLError.Code.CannotConnectToHost;
+
+    // :506-557. Repairs the history, loads MCP tools once per session, builds the payload once and
+    // retries a dropped connection at the transport level only, waiting the delay ladder between
+    // attempts. Also the seam PR-PROVAPI-089..112's fixture overrides to keep that part's round-loop
+    // orchestration tests independent of the network.
+    protected virtual async Task<StreamRound> StreamOneRound(string model, string? effort, bool withTools = true)
+    {
+        SanitizeHistory(); // :509
+        if (withTools && !didLoadMCPTools) // :510
+        {
+            mcpTools = [.. await MCPHub.Shared.Tools()];
+            didLoadMCPTools = true;
+        }
+        var payload = RequestPayload(model, effort, withTools); // :511
+        var attempt = 0; // :516
+        while (true) // :517
+        {
+            SwiftTask.CheckCancellation(); // :518
+            if (interrupted || isStopping) throw new CancellationError(); // :521
+            sseDrain?.Cancel(); // :522
+            sseDrain = null; // :523
+            var task = MainActor.SpawnThrowing<StreamRound>(() => PerformStream(payload)); // :524
+            roundTask = task; // :525
+            try
+            {
+                var round = await task.Value; // :527
+                roundTask = null; // :528
+                SwiftTask.CheckCancellation(); // :529
+                if (interrupted || isStopping) throw new CancellationError(); // :530
+                return round; // :531
+            }
+            catch (StreamAttemptFailure failure) // :532
+            {
+                roundTask = null; // :533
+                sseDrain?.Cancel(); // :534
+                sseDrain = null; // :535
+                SwiftTask.CheckCancellation(); // :536
+                if (interrupted || isStopping) throw new CancellationError(); // :537
+                if (!IsTransientTransportFailure(failure.Underlying)) throw failure.Underlying; // :540
+                if (attempt >= MaxTransportRetries) // :541
+                {
+                    throw new ProviderError(new ProviderError.Case.Failed(TerminalTransportMessage(failure.Underlying))); // :542
+                }
+                if (failure.EmittedOutput) // :547
+                {
+                    OnEvent?.Invoke(new ProviderEvent.Notice(new Notice
+                    {
+                        NoticeLevel = Notice.Level.Warning,
+                        Message = $"{OpenAICompatibleSessionConfig.Title} lost the connection while answering. That reply was cut off, and this response is restarting.", // :548
+                    }));
+                }
+                var delay = TransportRetryDelays[Math.Min(attempt, TransportRetryDelays.Length - 1)]; // :550
+                attempt += 1; // :551
+                await SwiftTask.Sleep(delay); // :552
+            }
+            catch (Exception) // :553-556
+            {
+                roundTask = null; // :554
+                throw; // :555
+            }
+        }
+    }
+
+    // :560-567. What is left when the connection keeps dropping: how many times the same request
+    // was tried, and the transport's own reason. STOP-PROVAPI-123 (section 6, kind: unverified):
+    // error.localizedDescription for a URLError has no defined Swift text in this port
+    // (SwiftErrors.LocalizedDescription throws NotSupportedException for it by design - R-ERR-2,
+    // O-14 - confirmed by Marrow.Core.Tests HttpTests "SwiftErrors.LocalizedDescription throws for
+    // a URLError"); no ED or OD records a per-code replacement text. Reproduced literally: this
+    // call surfaces the same unresolved gap loudly instead of inventing wording.
+    private string TerminalTransportMessage(Exception error) // :562
+    {
+        var reason = SwiftErrors.LocalizedDescription(error); // :563
+        var attempts = MaxTransportRetries + 1; // :564
+        var baseMessage = $"{OpenAICompatibleSessionConfig.Title} could not reach the network after {attempts} attempts. Check the connection, then try again."; // :565
+        return reason.Length == 0 ? baseMessage : $"{baseMessage} ({reason})"; // :566-567
+    }
+
+    // A JSON Schema property with a type and an optional description (helper for ToolDefinitions;
+    // not itself cited, only the values it produces are).
+    private static JSONValue SchemaField(string type, string? description = null) =>
+        description is null
+            ? JSONValue.FromDictionaryLiteral(("type", type))
+            : JSONValue.FromDictionaryLiteral(("type", type), ("description", description));
+
+    // An object schema with named properties and optionally a required list (helper for
+    // ToolDefinitions; not itself cited, only the values it produces are).
+    private static JSONValue ObjectSchema(IEnumerable<(string Name, JSONValue Field)> properties, params string[] required)
+    {
+        var propertiesObject = new JSONValue.Object(new ValueMap<string, JSONValue>(
+            properties.Select(p => new KeyValuePair<string, JSONValue>(p.Name, p.Field)), SwiftStringComparer.Instance));
+        return required.Length == 0
+            ? JSONValue.FromDictionaryLiteral(("type", "object"), ("properties", propertiesObject))
+            : JSONValue.FromDictionaryLiteral(
+                ("type", "object"),
+                ("properties", propertiesObject),
+                ("required", JSONValue.FromArrayLiteral([.. required.Select(name => (JSONValue)new JSONValue.String(name))])));
+    }
+
+    // One OpenAI function-tool definition (helper for ToolDefinitions; not itself cited, only the
+    // values it produces are).
+    private static JSONValue ToolDefinition(string name, string description, JSONValue parameters) =>
+        JSONValue.FromDictionaryLiteral(("type", "function"), ("function", JSONValue.FromDictionaryLiteral(
+            ("name", name), ("description", description), ("parameters", parameters))));
+
+    // :817-849. The six built-in tool definitions, transcribed byte for byte from the Swift
+    // literal. Referenced by RequestPayload (PR-PROVAPI-119); the tool bodies these describe
+    // (:894-1035) land in a later part of this unit.
+    private static readonly IReadOnlyList<JSONValue> ToolDefinitions =
+    [
+        ToolDefinition(
+            "read_file",
+            "Read a file inside the project. Path is relative to the project root. The whole file by default; for a big file (hundreds of lines) pass start_line and line_count to read just the part you need, and the result says how many lines the file has.",
+            ObjectSchema(
+                [
+                    ("path", SchemaField("string", "Relative file path")),
+                    ("start_line", SchemaField("integer", "First line to read, counted from 1")),
+                    ("line_count", SchemaField("integer", "How many lines to read from start_line")),
+                ],
+                "path")),
+        ToolDefinition(
+            "list_files",
+            "List files in a directory inside the project.",
+            ObjectSchema(
+                [
+                    ("path", SchemaField("string", "Relative directory, empty for the root")),
+                    ("recursive", SchemaField("boolean")),
+                ])),
+        ToolDefinition(
+            "search_text",
+            "Search file contents for a fixed string or regex.",
+            ObjectSchema(
+                [
+                    ("pattern", SchemaField("string")),
+                    ("path", SchemaField("string", "Relative directory or file")),
+                    ("regex", SchemaField("boolean")),
+                ],
+                "pattern")),
+        ToolDefinition(
+            "write_file",
+            "Create or overwrite a file inside the project with the full new content.",
+            ObjectSchema(
+                [
+                    ("path", SchemaField("string")),
+                    ("content", SchemaField("string")),
+                ],
+                "path", "content")),
+        ToolDefinition(
+            "edit_file",
+            "Replace one exact block of text in a file with new text. old_string must appear exactly once.",
+            ObjectSchema(
+                [
+                    ("path", SchemaField("string")),
+                    ("old_string", SchemaField("string")),
+                    ("new_string", SchemaField("string")),
+                ],
+                "path", "old_string", "new_string")),
+        ToolDefinition(
+            "run_command",
+            "Run a shell command in the project root and capture its output.",
+            ObjectSchema(
+                [
+                    ("command", SchemaField("string")),
+                ],
+                "command")),
+    ];
+
+    // :569-581. PR-PROVAPI-119.
+    private Dictionary<string, JSONValue> RequestPayload(string model, string? effort, bool withTools = true)
+    {
+        var payload = new Dictionary<string, JSONValue>
+        {
+            ["model"] = model,                                  // :571
+            ["messages"] = JSONValue.FromArrayLiteral([.. messages]), // :572
+            ["stream"] = true,                                  // :573
+        };
+        if (withTools) // :575
+        {
+            payload["tools"] = JSONValue.FromArrayLiteral([.. ToolDefinitions, .. McpToolDefinitions]); // :576
+            payload["tool_choice"] = "auto"; // :577
+        }
+        ApplyProviderPayload(payload, model, effort, withTools); // :579
+        return payload; // :580
+    }
+
+    // :588-590. DeepSeek turns thinking on and maps the effort; Meta takes a top-level
+    // reasoning_effort; Z.ai sets clear_thinking, a max_tokens cap and tool_stream (later parts).
+    public virtual void ApplyProviderPayload(Dictionary<string, JSONValue> payload, string model, string? effort, bool withTools)
+    {
+        if (ReasoningEffort(effort, model) is { } mapped) payload["reasoning_effort"] = mapped; // :589
+    }
+
+    // :592-593. The subclass's effort mapping, applied when the payload is built.
+    public virtual string? ReasoningEffort(string? effort, string model) => null;
+
+    // :596-598
+    private static Task<byte[]> Encode(Dictionary<string, JSONValue> payload) =>
+        Task.Run(() => new JSONValue.Object(new ValueMap<string, JSONValue>(payload, SwiftStringComparer.Instance)).Data());
+
+    // :600-735. Issues the POST, reads a non-200 body directly, and otherwise drains the SSE
+    // stream through the coalescer, accumulating text, reasoning, tool calls, usage and any
+    // in-stream error into one StreamRound.
+    private async Task<StreamRound> PerformStream(Dictionary<string, JSONValue> payload)
+    {
+        var request = new URLRequest(OpenAICompatibleSessionConfig.ChatURL, timeoutInterval: 300) { HttpMethod = "POST" } // :601-602
+            .SetValue("application/json", "Content-Type")   // :603
+            .SetValue($"Bearer {ApiKey}", "Authorization")  // :604
+            .SetValue("application/json", "Accept");        // :605
+        request = request with { HttpBody = await Encode(payload) }; // :607
+        if (SwiftTask.IsCancelled || interrupted) throw new CancellationError(); // :608
+
+        var messageID = NextID("message"); // :610
+        var thoughtID = NextID("thought"); // :611
+        var content = "";                  // :612
+        var reasoning = "";                // :613
+        var sawContent = false;            // :614
+        var sawReasoning = false;          // :615
+        var accumulators = new Dictionary<int, (string Id, string Name, string Arguments)>(); // :616-617
+        ContextUsage? usage = null;             // :618
+        ReportedTokenUsage? tokenUsage = null;  // :619
+        string? streamError = null;             // :620
+        const int statusCode = 200;             // :621
+
+        URLSession.AsyncBytes bytes; // :623
+        URLResponse response;         // :624
+        try
+        {
+            (bytes, response) = await URLSession.Shared.Bytes(request); // :626
+        }
+        catch (CancellationError) // :627
+        {
+            throw new CancellationError(); // :628
+        }
+        catch (Exception error) // :629-631
+        {
+            throw new StreamAttemptFailure(error, false);
+        }
+        if (response is HTTPURLResponse { StatusCode: not 200 } http) // :633
+        {
+            var body = ""; // :635
+            await foreach (var line in bytes.Lines) // :636
+            {
+                body += line + "\n"; // :637
+                if (body.Length > 8_000) break; // :638
+            }
+            return new StreamRound { StatusCode = http.StatusCode, RawError = ErrorMessage(body, http.StatusCode) }; // :640-643
+        }
+
+        sseDrain?.Cancel(); // :648
+        var contextWindow = OpenAICompatibleSessionConfig.ContextWindow; // :649
+        var (stream, continuation) = AsyncStream<StreamChunk>.MakeStream(); // :650
+        var coalescer = new StreamCoalescer(continuation); // :651
+        var drain = TaskHandle.Detached(async () => // :652-661
+        {
+            try { await DrainSSE(bytes, coalescer, contextWindow); }
+            catch (CancellationError) { await coalescer.Finish(); }
+        });
+        sseDrain = TaskHandle.Detached(async () => // :663-666
+            await SwiftTask.WithCancellationHandler(() => drain.Completion, () => drain.Cancel()));
+        continuation.OnTermination = _ => drain.Cancel(); // :669
+
+        try
+        {
+            await foreach (var chunk in stream) // :672
+            {
+                if (SwiftTask.IsCancelled || interrupted) throw new CancellationError(); // :673
+                switch (chunk)
+                {
+                    case StreamChunk.TextChunk text: // :675
+                        content += text.Value;
+                        if (!sawContent) sawContent = true;
+                        OnEvent?.Invoke(new ProviderEvent.MessageDelta(messageID, text.Value)); // :678
+                        break;
+                    case StreamChunk.ReasoningChunk think: // :679
+                        reasoning += think.Value;
+                        if (!sawReasoning) sawReasoning = true;
+                        OnEvent?.Invoke(new ProviderEvent.ReasoningDelta(thoughtID, think.Value)); // :682
+                        break;
+                    case StreamChunk.ToolCallChunk toolCall: // :683
+                        (string Id, string Name, string Arguments) acc = accumulators.TryGetValue(toolCall.Index, out var existing) ? existing : ("", "", "");
+                        if (toolCall.Id.Length > 0) acc.Id = toolCall.Id;         // :685
+                        if (toolCall.Name.Length > 0) acc.Name = toolCall.Name;   // :686
+                        acc.Arguments += toolCall.Arguments;                      // :687
+                        accumulators[toolCall.Index] = acc;                       // :688
+                        break;
+                    case StreamChunk.UsageChunk usageChunk: // :690
+                        usage = usageChunk.Value;
+                        break;
+                    case StreamChunk.TokenUsageChunk tokenUsageChunk: // :692
+                        tokenUsage = tokenUsageChunk.Value;
+                        break;
+                    case StreamChunk.StreamErrorChunk streamErrorChunk: // :694
+                        streamError = streamErrorChunk.Value;
+                        break;
+                    case StreamChunk.TransportErrorChunk transportErrorChunk: // :695
+                        if (streamError is { Length: > 0 } nonEmptyStreamError) // :696-697
+                        {
+                            throw new ProviderError(new ProviderError.Case.Failed(FriendlyError(nonEmptyStreamError, statusCode)));
+                        }
+                        if (HydraPrompts.StreamedDelegationsIn(content) is { } delegations && delegations.Delegations.Count > 0) // :701-702
+                        {
+                            throw new ProviderError(new ProviderError.Case.Failed(
+                                $"{SwiftErrors.LocalizedDescription(transportErrorChunk.Value)} This response was not retried because it had already streamed a head delegation."));
+                        }
+                        throw new StreamAttemptFailure(transportErrorChunk.Value, sawContent || sawReasoning); // :707
+                    default:
+                        throw new UnreachableException();
+                }
+            }
+        }
+        finally
+        {
+            sseDrain = null; // :671 defer
+        }
+
+        var round = new StreamRound
+        {
+            Content = content,       // :712
+            Reasoning = reasoning,   // :713
+            Usage = usage,           // :714
+            TokenUsage = tokenUsage, // :715
+            RawError = streamError,  // :716
+            StatusCode = statusCode, // :717
+        };
+        if (sawContent || content.Length > 0) OnEvent?.Invoke(new ProviderEvent.MessageCompleted(messageID, content)); // :718-719
+        if (sawReasoning || reasoning.Length > 0) OnEvent?.Invoke(new ProviderEvent.ReasoningCompleted(thoughtID, reasoning)); // :721-722
+        var toolCalls = new List<PendingToolCall>(); // :711 (declared with round in Swift)
+        foreach (var index in accumulators.Keys.OrderBy(key => key)) // :724-725
+        {
+            var acc = accumulators[index]; // :726
+            if (acc.Name.Length == 0) continue; // :727
+            toolCalls.Add(new PendingToolCall(acc.Id.Length == 0 ? NextID("tool") : acc.Id, acc.Name, acc.Arguments)); // :728-732
+        }
+        return round with { ToolCalls = new ValueList<PendingToolCall>(toolCalls) }; // :734
+    }
+
+    // :740-790. Runs off the main actor: trims, parses and picks apart each SSE line, then feeds
+    // chunks to the coalescer. A transport failure is delivered as a chunk; CancellationError is
+    // rethrown for the stop path.
+    private static async Task DrainSSE(URLSession.AsyncBytes bytes, StreamCoalescer coalescer, int contextWindow)
+    {
+        try
+        {
+            await foreach (var line in bytes.Lines) // :742
+            {
+                if (SwiftTask.IsCancelled) throw new CancellationError(); // :743
+                var trimmed = line.Trimmed(); // :744
+                if (!SwiftString.HasPrefix(trimmed, "data:")) continue; // :745
+                var data = FoundationText.Trim(SwiftString.DropFirst(trimmed, 5)); // :746
+                if (data == "[DONE]") break; // :747
+                if (JSONValue.Parse(data) is not { } json) continue; // :748
+                if (json["error"] is { IsNull: false } err) // :749
+                {
+                    await coalescer.EmitStreamError(err["message"]?.JSONValueString ?? err.DisplayText); // :750
+                    continue; // :751
+                }
+                if (json["usage"] is { IsNull: false } u) // :753
+                {
+                    var input = u["prompt_tokens"]?.JSONValueInt ?? u["input_tokens"]?.JSONValueInt;       // :754
+                    var output = u["completion_tokens"]?.JSONValueInt ?? u["output_tokens"]?.JSONValueInt; // :755
+                    var cached = u["prompt_tokens_details"]?["cached_tokens"]?.JSONValueInt                // :756-758
+                        ?? u["input_tokens_details"]?["cached_tokens"]?.JSONValueInt
+                        ?? u["prompt_cache_hit_tokens"]?.JSONValueInt;
+                    long total = u["total_tokens"]?.JSONValueInt ?? ((input ?? 0) + (output ?? 0)); // :761
+                    if (total > 0) await coalescer.EmitUsage(new ContextUsage { UsedTokens = total, WindowTokens = contextWindow }); // :762-763
+                    await coalescer.EmitTokenUsage(new ReportedTokenUsage { Total = total, Input = input, Output = output, CachedInput = cached }); // :765
+                }
+                if (json["choices"]?.JSONValueArray is not { Count: > 0 } choices) continue; // :767
+                var delta = choices[0]["delta"] ?? new JSONValue.Null(); // :768
+                if (delta["content"]?.JSONValueString is { Length: > 0 } text) await coalescer.AppendText(text); // :769-770
+                if ((delta["reasoning_content"]?.JSONValueString ?? delta["reasoning"]?.JSONValueString) is { Length: > 0 } think) // :772
+                {
+                    await coalescer.AppendReasoning(think); // :773
+                }
+                foreach (var call in delta["tool_calls"]?.JSONValueArray ?? []) // :775
+                {
+                    var index = call["index"]?.JSONValueInt ?? 0;               // :776
+                    var id = call["id"]?.JSONValueString ?? "";                 // :777
+                    var name = call["function"]?["name"]?.JSONValueString ?? ""; // :778
+                    var args = call["function"]?["arguments"]?.JSONValueString ?? ""; // :779
+                    await coalescer.EmitToolCall((int)index, id, name, args); // :780
+                }
+            }
+            await coalescer.Finish(); // :783
+        }
+        catch (CancellationError) // :784
+        {
+            await coalescer.Finish(); // :785
+            throw new CancellationError(); // :786
+        }
+        catch (Exception error) // :787
+        {
+            await coalescer.Fail(error); // :788
+        }
+    }
+
+    // :792-800. PR-PROVAPI-125, PR-PROVAPI-126.
+    private string ErrorMessage(string body, int statusCode)
+    {
+        if (JSONValue.Parse(body) is { } json) // :793
+        {
+            var message = json["error"]?["message"]?.JSONValueString ?? json["message"]?.JSONValueString; // :794
+            if (message is { Length: > 0 }) return message; // :795
+        }
+        var trimmed = body.Trimmed(); // :797
+        if (trimmed.Length > 0) return SwiftString.Prefix(trimmed, 500); // :798
+        return $"{OpenAICompatibleSessionConfig.Title} returned status {statusCode}."; // :799
+    }
 
     // :804-806. The base mapping every subclass overrides; DeepSeek/Meta/Z.ai's own mappings are
     // a later part's concern.
