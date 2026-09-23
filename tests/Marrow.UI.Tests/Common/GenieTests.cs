@@ -601,6 +601,7 @@ public sealed class GenieTests(HeadlessSession headless)
     [InlineData(0.058, true, 0.936)]       // an arrival runs from 1 to 0: 1 - 0.064
     [InlineData(0.29, true, 0.5)]
     [InlineData(0.522, true, 0.064)]       // 1 - 0.936
+    [Trait("Decision", "ED-178")]
     [Trait("Oracle", "O-62")] // UI/Common/Genie.swift:139-141, :155, :165-169; ED-178
     public void A_flight_runs_its_one_cubic_keyframe_from_start_to_end_over_the_duration_once_it_appears(double elapsed, bool arriving, double progress) => headless.OnUiThread(() =>
     {
@@ -623,6 +624,7 @@ public sealed class GenieTests(HeadlessSession headless)
     [Theory]
     [InlineData(false, 1.0, 0.0)]
     [InlineData(true, 0.0, 1.0)]
+    [Trait("Decision", "ED-178")]
     [Trait("Oracle", "O-62")] // UI/Common/Genie.swift:139-141, :155, :165-168; ED-178 (t clamped to [0, 1])
     public void A_flight_kept_past_its_duration_holds_its_end_value(bool arriving, double end, double opacity) => headless.OnUiThread(() =>
     {
