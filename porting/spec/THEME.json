@@ -4445,7 +4445,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not port the B1 chat zoom or its \"chatZoom\" stored value: nothing at B2 reads it and there is no migration. Markdown sizes come from the port's text-style table; scaling is applied once at the window root by the app zoom, never per font. Text size (ED-059): .title2 17 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:49), .title3 15 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .headline 13 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .callout 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .caption 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54) in Inter, monospaced code in Cascadia Mono (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "unit: the font helper has no zoom input and returns the plain text style (semibold for headline by default) for every style; capture comparison: the same reply at app zoom 100 and 150 differs only by the whole-window scale",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
