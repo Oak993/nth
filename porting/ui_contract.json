@@ -21201,7 +21201,8 @@
         "decision": "OD-0005",
         "upstream": "The strip is drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift:39), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
         "port": "Where the window behind the control shows the desktop, an Acrylic-class Windows system material, without lensing, refraction or chromatic fringing; where the app draws its own backdrop (the wallpaper or the solid base), a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -21227,7 +21228,8 @@
         "DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift:8-13"
       ],
       "notes": "A symbol replaces the title visually only; the title stays the accessibility label. SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010). Text is set in the port's text face, Inter (owner ruling OD-0009); where its wrap points differ from the macOS face that is OD-0009's named deviation.",
-      "b2_change": "Font `.system(size: 12, weight: isSelected ? .semibold : .medium)` (B1 ChromeSegmentedPicker.swift:57) -> `.system(.callout, weight: isSelected ? .semibold : .medium)` (B2 :57); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79)."
+      "b2_change": "Font `.system(size: 12, weight: isSelected ? .semibold : .medium)` (B1 ChromeSegmentedPicker.swift:57) -> `.system(.callout, weight: isSelected ? .semibold : .medium)` (B2 :57); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "UPDATE",

@@ -20,10 +20,14 @@ public sealed class RefusingCredentialBackend(InMemoryCredentialBackend inner) :
     /// <summary>When true every read is refused with ERROR_ACCESS_DENIED, as a locked store would refuse it.</summary>
     public bool RefuseReads { get; set; }
 
+    /// <summary>Target names whose write is refused with ERROR_ACCESS_DENIED; nothing is stored.</summary>
+    public HashSet<string> RefuseWriteTargets { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Every refused deletion, in order, with the target name as passed.</summary>
     public List<string> RefusedDeletes { get; } = [];
 
-    public int Write(GenericCredential credential) => Inner.Write(credential);
+    public int Write(GenericCredential credential) =>
+        RefuseWriteTargets.Contains(credential.TargetName) ? InMemoryCredentialBackend.ErrorAccessDenied : Inner.Write(credential);
 
     public int Read(string targetName, out GenericCredential? credential)
     {

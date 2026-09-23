@@ -4587,7 +4587,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A symbol-only segment still needs its title as the accessible name (the Hydra \"No cap\" segment draws the infinity symbol). The strip's capsule is the shared chrome glass capsule. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field. The segment symbol (for example \"infinity\" for \"No cap\") is an SF Symbol. SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010). Text is set in the port's text face, Inter (owner ruling OD-0009); where its wrap points differ from the macOS face that is OD-0009's named deviation. Text size (ED-059): .callout 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "verification_method": "capture comparison: the Hydra head-cap strip with \"No cap\" chosen and with a number chosen, plus a hovered segment, in light and dark themes; unit: segment height 22, minimum width 26, accent fill 0.22 when chosen and label fill 0.08 on hover; accessibility test: the infinity segment is announced as \"No cap\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5851,7 +5851,8 @@
         "decision": "OD-0005",
         "upstream": "The strip is drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift:39), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
         "port": "Where the window behind the control shows the desktop, an Acrylic-class Windows system material, without lensing, refraction or chromatic fringing; where the app draws its own backdrop (the wallpaper or the solid base), a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-055",
@@ -5876,7 +5877,8 @@
         "DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift:8-13"
       ],
       "notes": "A symbol replaces the title visually only; the title stays the accessibility label. SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010). Text is set in the port's text face, Inter (owner ruling OD-0009); where its wrap points differ from the macOS face that is OD-0009's named deviation.",
-      "b2_change": "Font `.system(size: 12, weight: isSelected ? .semibold : .medium)` (B1 ChromeSegmentedPicker.swift:57) -> `.system(.callout, weight: isSelected ? .semibold : .medium)` (B2 :57); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79)."
+      "b2_change": "Font `.system(size: 12, weight: isSelected ? .semibold : .medium)` (B1 ChromeSegmentedPicker.swift:57) -> `.system(.callout, weight: isSelected ? .semibold : .medium)` (B2 :57); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79).",
+      "status": "IMPLEMENTED"
     }
   ]
 }

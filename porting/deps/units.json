@@ -2661,24 +2661,14 @@
    ],
    "intra_deps": [],
    "records_total": 3,
-   "records_todo": [
-    "PR-THEME-184",
-    "UI-THEME-054",
-    "UI-THEME-055"
-   ],
-   "parts": [
-    [
-     "PR-THEME-184",
-     "UI-THEME-054",
-     "UI-THEME-055"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-009",
     "T-M5-010"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Chrome.ChromeVisualPicker",
@@ -3389,82 +3379,8 @@
    ],
    "intra_deps": [],
    "records_total": 34,
-   "records_todo": [
-    "PR-MCP-049",
-    "PR-MCP-050",
-    "PR-MCP-051",
-    "PR-MCP-052",
-    "PR-MCP-053",
-    "PR-MCP-054",
-    "PR-MCP-055",
-    "PR-MCP-056",
-    "PR-MCP-057",
-    "PR-MCP-058",
-    "PR-MCP-059",
-    "PR-MCP-060",
-    "PR-MCP-061",
-    "PR-MCP-062",
-    "PR-MCP-063",
-    "PR-MCP-064",
-    "PR-MCP-065",
-    "PR-MCP-066",
-    "PR-MCP-067",
-    "PR-MCP-068",
-    "PR-MCP-069",
-    "PR-MCP-070",
-    "PR-MCP-071",
-    "PR-MCP-072",
-    "PR-MCP-074",
-    "PR-MCP-075",
-    "PR-MCP-076",
-    "PR-MCP-077",
-    "PR-MCP-078",
-    "PR-MCP-079",
-    "PR-MCP-080",
-    "PR-MCP-081",
-    "PR-MCP-082",
-    "PR-MCP-083"
-   ],
-   "parts": [
-    [
-     "PR-MCP-049",
-     "PR-MCP-050",
-     "PR-MCP-051",
-     "PR-MCP-052",
-     "PR-MCP-053",
-     "PR-MCP-054",
-     "PR-MCP-055",
-     "PR-MCP-056",
-     "PR-MCP-057",
-     "PR-MCP-058",
-     "PR-MCP-059",
-     "PR-MCP-060",
-     "PR-MCP-061",
-     "PR-MCP-062",
-     "PR-MCP-063",
-     "PR-MCP-064",
-     "PR-MCP-065",
-     "PR-MCP-066",
-     "PR-MCP-067",
-     "PR-MCP-068",
-     "PR-MCP-069",
-     "PR-MCP-070",
-     "PR-MCP-071",
-     "PR-MCP-072"
-    ],
-    [
-     "PR-MCP-074",
-     "PR-MCP-075",
-     "PR-MCP-076",
-     "PR-MCP-077",
-     "PR-MCP-078",
-     "PR-MCP-079",
-     "PR-MCP-080",
-     "PR-MCP-081",
-     "PR-MCP-082",
-     "PR-MCP-083"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-014",
     "T-M4-015",
@@ -3472,7 +3388,7 @@
     "T-M4-017"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.ACPSession",
