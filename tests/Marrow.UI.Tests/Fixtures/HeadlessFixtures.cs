@@ -34,7 +34,12 @@ public sealed class HeadlessSession : IDisposable
 public sealed class HeadlessCollection : ICollectionFixture<HeadlessSession>;
 
 /// <summary>A test-only SwiftUI animation value; the real curves come from the Chrome.swift units.</summary>
-public sealed record EaseOutSample(double Duration) : Marrow.UI.Port.Animation;
+public sealed record EaseOutSample : Marrow.UI.Port.Animation
+{
+    public EaseOutSample(double duration) => Duration = duration;
+    public override double Duration { get; }
+    public override double Progress(double seconds) => Marrow.UI.Port.Animation.EaseOut(Duration).Progress(seconds);
+}
 
 /// <summary>A cell like Core/Support/ObservedValue.swift: an unconstrained Value, so every set notifies.</summary>
 public sealed class CellSample<TValue>(TValue value) : ObservableModel
