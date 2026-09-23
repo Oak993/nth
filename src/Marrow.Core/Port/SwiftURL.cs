@@ -2,6 +2,8 @@
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Marrow.Core.Port;
 
@@ -23,6 +25,7 @@ namespace Marrow.Core.Port;
 // becomes U+FFFD as it does when an NSString is bridged.
 
 /// <summary>Foundation <c>URL</c> as <c>URL(string:)</c> builds it (R-PATH-1). Equality is textual.</summary>
+[JsonConverter(typeof(SwiftURL.JsonConverter))]
 public sealed class SwiftURL : IEquatable<SwiftURL>
 {
     private readonly URLParseInfo _parseInfo; // URL_Swift.swift:90; _baseURL is always nil (:91) and _encoding .utf8 (:92)
@@ -202,6 +205,38 @@ public sealed class SwiftURL : IEquatable<SwiftURL>
     public static bool operator ==(SwiftURL? left, SwiftURL? right) => left is null ? right is null : left.Equals(right);
 
     public static bool operator !=(SwiftURL? left, SwiftURL? right) => !(left == right);
+
+    /// <summary>
+    /// Foundation's URL Codable (Codable.swift): a keyed container with an optional "base" (encodeIfPresent /
+    /// decodeIfPresent, omitted when there is no base) and a required "relative" string; the value is
+    /// <c>URL(string: relative, relativeTo: base)</c>. Every <see cref="SwiftURL"/> this port builds has no base
+    /// (Create never takes one), so "base" is never written and, if a stored document somehow carried one, it is
+    /// read and then dropped: URL(string:relativeTo:) only resolves a relative reference against it, and every
+    /// URL this port parses is written absolute.
+    /// </summary>
+    public sealed class JsonConverter : JsonConverter<SwiftURL>
+    {
+        public override SwiftURL Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            using var document = JsonDocument.ParseValue(ref reader);
+            return Decode(document.RootElement);
+        }
+
+        internal static SwiftURL Decode(JsonElement element)
+        {
+            var relative = SwiftDecoding.Decode(element, "relative", SwiftDecoding.ReadString);
+            return Create(relative) ?? throw new DecodingError("dataCorrupted", "Invalid URL string.");
+        }
+
+        public override void Write(Utf8JsonWriter writer, SwiftURL value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+        internal static void WriteMembers(Utf8JsonWriter writer, SwiftURL value)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("relative", value.RelativeString);
+            writer.WriteEndObject();
+        }
+    }
 
     // URLComponents.Component, the cases RFC3986Parser.percentEncode switches on (URLParser.swift:207-226)
     internal enum URLComponent { Scheme, User, Password, Host, Port, Path, Query, QueryItem, Fragment }

@@ -3163,7 +3163,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, per connection.",
       "verification_method": "contract fixture (id sequence)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3185,7 +3185,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same code and string. Keep both near-identical sentences distinct; they identify different layers.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3205,7 +3205,7 @@
       "cancellation": "This is the cancellation path for a single request.",
       "windows_path": "An AbortSignal-style cancellation that deletes the pending entry and rejects. The agent is not told; that matches the source.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3227,7 +3227,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same elision rule, per port_impacts #1.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3249,7 +3249,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three shapes, with the id type round-tripped.",
       "verification_method": "contract fixture (golden frames)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3271,7 +3271,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-way parse including the truncation, which matters because JSON numbers in JS are all doubles: an integral number must map to the integer branch and a fractional one must be truncated, not rejected.",
       "verification_method": "unit (id-parsing table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3291,7 +3291,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same dispatch.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3313,7 +3313,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the two default values.",
       "verification_method": "unit (reply table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3338,7 +3338,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering and the same fallback string.",
       "verification_method": "contract fixture (two in-flight requests, kill the child, assert both reject with the tail)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4377,7 +4377,8 @@
         "DroppyCode/Core/Support/JSONRPC.swift:145",
         "DroppyCode/Core/Support/JSONRPC.swift:133"
       ],
-      "notes": "All three reach the user through turnCompleted's error text, because finishPrompt uses the error's localized description, which for an RPCError is its message."
+      "notes": "All three reach the user through turnCompleted's error text, because finishPrompt uses the error's localized description, which for an RPCError is its message.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-034",
@@ -4402,7 +4403,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:78-106",
         "DroppyCode/Services/Providers/ACPSession.swift:169,592-602"
       ],
-      "notes": "These four rows are the user-facing side of the twelve argv rows in this area. Exact titles, in order: \"Supervised\", \"Auto-accept edits\" (one hyphen, lowercase e), \"Auto\", \"Full access\". The symbols are SF Symbol names with no Windows equivalent; substituting icons is a platform boundary handled by UNK-0007, not by PROVACP. A port that relaunches the child when this changes would be inventing behavior the source does not have."
+      "notes": "These four rows are the user-facing side of the twelve argv rows in this area. Exact titles, in order: \"Supervised\", \"Auto-accept edits\" (one hyphen, lowercase e), \"Auto\", \"Full access\". The symbols are SF Symbol names with no Windows equivalent; substituting icons is a platform boundary handled by UNK-0007, not by PROVACP. A port that relaunches the child when this changes would be inventing behavior the source does not have.",
+      "status": "IMPLEMENTED"
     }
   ]
 }
