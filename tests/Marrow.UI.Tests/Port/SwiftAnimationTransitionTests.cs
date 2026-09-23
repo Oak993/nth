@@ -65,16 +65,16 @@ public sealed class SwiftAnimationTransitionTests(HeadlessSession headless)
         return radius;
     }
 
-    private static void AssertCorners(Control child, Visual panel, Point topLeft, Point bottomRight)
+    private static void AssertCorners(Control child, Visual panel, Point topLeft, Point bottomRight, double tolerance = Tolerance)
     {
         var from = child.TranslatePoint(new Point(0, 0), panel);
         var to = child.TranslatePoint(new Point(child.Bounds.Width, child.Bounds.Height), panel);
         Assert.NotNull(from);
         Assert.NotNull(to);
-        Assert.Equal(topLeft.X, from.Value.X, Tolerance);
-        Assert.Equal(topLeft.Y, from.Value.Y, Tolerance);
-        Assert.Equal(bottomRight.X, to.Value.X, Tolerance);
-        Assert.Equal(bottomRight.Y, to.Value.Y, Tolerance);
+        Assert.Equal(topLeft.X, from.Value.X, tolerance);
+        Assert.Equal(topLeft.Y, from.Value.Y, tolerance);
+        Assert.Equal(bottomRight.X, to.Value.X, tolerance);
+        Assert.Equal(bottomRight.Y, to.Value.Y, tolerance);
     }
 
     private static void InsertAnimated(Window window, Canvas panel, Control child)
@@ -289,6 +289,90 @@ public sealed class SwiftAnimationTransitionTests(HeadlessSession headless)
         window.UpdateLayout();
         Assert.Equal(0, BlurRadius(still, panel), Tolerance);
         Assert.Equal(1, EffectiveOpacity(still, panel), Tolerance);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")]
+    [Trait("Decision", "ED-092")]
+    [Trait("Decision", "ED-159")]
+    [Trait("Oracle", "O-51")]
+    public void Blur_replace_insertion_animates_from_the_parked_active_state() => headless.OnUiThread(() =>
+    {
+        // UNVERIFIED O-51: UsageViews.swift:273 calls blurReplace without configuration.
+        using var clocks = new AnimationClocks();
+        var (window, panel) = Host();
+        var child = Box().Transition(SwiftTransition.BlurReplace);
+        InsertAnimated(window, panel, child);
+        Assert.Equal(0, EffectiveOpacity(child, panel), Tolerance);
+        Assert.Equal(7, BlurRadius(child, panel), Tolerance);
+        AssertCorners(child, panel, new Point(5, 2), new Point(95, 38));
+        clocks.Frame(0.0685);
+        clocks.Frame(0.1315);
+        Assert.Equal(1, EffectiveOpacity(child, panel), Tolerance);
+        Assert.Equal(0, BlurRadius(child, panel), Tolerance);
+        AssertCorners(child, panel, new Point(0, 0), new Point(100, 40));
+        Assert.Equal(0, clocks.Frames.Pending);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")]
+    [Trait("Decision", "ED-092")]
+    [Trait("Decision", "ED-159")]
+    [Trait("Oracle", "O-51")]
+    public void Blur_replace_removal_ends_at_the_parked_active_state() => headless.OnUiThread(() =>
+    {
+        // UNVERIFIED O-51: UsageViews.swift:273 uses blurReplace for removal as well as insertion.
+        using var clocks = new AnimationClocks();
+        var (window, panel) = Host();
+        var child = Box().Transition(SwiftTransition.BlurReplace);
+        SwiftTransition.Insert(panel, 0, child);
+        window.UpdateLayout();
+        Transaction.WithAnimation(Animation.EaseOut(duration: 0.2), () => SwiftTransition.Remove(panel, child));
+        clocks.Frame(0.0685);
+        Assert.True(IsUnder(child, panel));
+        Assert.Equal(0.5, EffectiveOpacity(child, panel), 1e-6);
+        Assert.Equal(3.5, BlurRadius(child, panel), 1e-6);
+        AssertCorners(child, panel, new Point(2.5, 1), new Point(97.5, 39), tolerance: 1e-6);
+        clocks.Frame(0.1315);
+        Assert.False(IsUnder(child, panel));
+        Assert.Empty(panel.Children);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")]
+    [Trait("Decision", "ED-092")]
+    [Trait("Decision", "ED-159")]
+    [Trait("Oracle", "O-52")]
+    public void Combined_transitions_keep_the_inner_scale_then_outer_offset() => headless.OnUiThread(() =>
+    {
+        // UNVERIFIED O-52: ChatView.swift:1098-1099 combines scale, opacity and offset.
+        using var clocks = new AnimationClocks();
+        var (window, panel) = Host();
+        var child = Box().Transition(SwiftTransition.Scale(scale: 0.6)
+            .Combined(SwiftTransition.Opacity).Combined(SwiftTransition.Offset(y: 10)));
+        InsertAnimated(window, panel, child);
+        Assert.Equal(0, EffectiveOpacity(child, panel), Tolerance);
+        AssertCorners(child, panel, new Point(20, 18), new Point(80, 42));
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")]
+    [Trait("Decision", "ED-159")]
+    public void Identity_transition_does_not_clobber_the_controls_own_effects() => headless.OnUiThread(() =>
+    {
+        using var clocks = new AnimationClocks();
+        var (window, panel) = Host();
+        var child = Box();
+        child.Opacity = 0.5;
+        child.RenderTransform = new TranslateTransform(3, 4);
+        child.Transition(SwiftTransition.Identity);
+        InsertAnimated(window, panel, child);
+        Assert.Equal(0.5, EffectiveOpacity(child, panel), Tolerance);
+        AssertCorners(child, panel, new Point(3, 4), new Point(103, 44));
         window.Close();
     });
 
