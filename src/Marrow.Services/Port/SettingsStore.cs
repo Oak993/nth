@@ -320,7 +320,7 @@ public sealed class SettingsStore : ISettingsStore
             var fullyRead = true;
             foreach (var property in document.RootElement.EnumerateObject())
             {
-                if (TryRead(property.Value, out var value)) into[property.Name] = value; // an unreadable entry is skipped
+                if (TryName(property, out var name) && TryRead(property.Value, out var value)) into[name] = value; // an unreadable entry is skipped
                 else fullyRead = false;
             }
             return fullyRead;
@@ -336,7 +336,8 @@ public sealed class SettingsStore : ISettingsStore
         var tagged = members.Current;
         if (members.MoveNext()) return false;
         var body = tagged.Value;
-        switch (tagged.Name)
+        if (!TryName(tagged, out var tag)) return false;
+        switch (tag)
         {
             case TagBool when body.ValueKind is JsonValueKind.True or JsonValueKind.False:
                 value = body.GetBoolean();
@@ -346,14 +347,14 @@ public sealed class SettingsStore : ISettingsStore
                 return true;
             case TagReal:
                 return TryReadReal(body, out value);
-            case TagString when body.ValueKind == JsonValueKind.String:
-                value = body.GetString()!;
+            case TagString when TryText(body, out var text):
+                value = text;
                 return true;
             case TagData when body.ValueKind == JsonValueKind.String && body.TryGetBytesFromBase64(out var data):
                 value = data;
                 return true;
-            case TagDate when body.ValueKind == JsonValueKind.String
-                && DateTimeOffset.TryParseExact(body.GetString(), "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var date):
+            case TagDate when TryText(body, out var dateText)
+                && DateTimeOffset.TryParseExact(dateText, "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var date):
                 value = date.ToUniversalTime();
                 return true;
             case TagArray when body.ValueKind == JsonValueKind.Array:
@@ -372,8 +373,8 @@ public sealed class SettingsStore : ISettingsStore
                 var map = new Dictionary<string, object>(StringComparer.Ordinal);
                 foreach (var entry in body.EnumerateObject())
                 {
-                    if (!TryRead(entry.Value, out var read)) return false;
-                    map[entry.Name] = read;
+                    if (!TryName(entry, out var name) || !TryRead(entry.Value, out var read)) return false;
+                    map[name] = read;
                 }
                 value = map.AsReadOnly();
                 return true;
@@ -386,9 +387,9 @@ public sealed class SettingsStore : ISettingsStore
     private static bool TryReadReal(JsonElement body, out object value)
     {
         value = null!;
-        if (body.ValueKind == JsonValueKind.String)
+        if (TryText(body, out var text))
         {
-            switch (body.GetString())
+            switch (text)
             {
                 case "+infinity": value = double.PositiveInfinity; return true;
                 case "-infinity": value = double.NegativeInfinity; return true;
@@ -402,5 +403,37 @@ public sealed class SettingsStore : ISettingsStore
             return false;
         value = real;
         return true;
+    }
+
+    // ED-156 (2): System.Text.Json checks the UTF-8 inside a name or a string only when it is converted, and then throws
+    // InvalidOperationException. Bytes that are not UTF-8 (an editor saving in an ANSI code page) or an escaped lone
+    // surrogate make an entry TryRead rejects, so the entry is skipped and the file preserved instead of failing the open.
+    private static bool TryName(JsonProperty property, out string name)
+    {
+        try
+        {
+            name = property.Name;
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            name = "";
+            return false;
+        }
+    }
+
+    private static bool TryText(JsonElement element, out string text)
+    {
+        text = "";
+        if (element.ValueKind != JsonValueKind.String) return false;
+        try
+        {
+            text = element.GetString()!;
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
     }
 }
