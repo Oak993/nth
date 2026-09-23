@@ -15,7 +15,9 @@ public sealed class AppTestApp : Application
 {
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<AppTestApp>()
         .UseSkia()
-        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
+        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
+        .WithSwiftFonts(); // ED-107 (5): the one font registration point, matching Marrow.UI.Tests' fixture; without
+                            // it, any control styled with SwiftFont (Inter) throws "Could not create glyphTypeface".
 }
 
 /// <summary>One headless session per test assembly, held by a collection fixture.</summary>
