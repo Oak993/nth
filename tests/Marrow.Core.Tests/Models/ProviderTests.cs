@@ -6,14 +6,20 @@ using Marrow.Testing;
 namespace Marrow.Core.Tests.Models;
 
 // Source-derived tests for DroppyCode/Core/Models/Provider.swift (B2 1fbf81e), unit Core.Models.Provider,
-// part 1 of 5. Every expected value is transcribed from the cited Swift lines or from the record itself,
-// never from the C# under test. This part covers: ProviderKind's fixed 14-case order (PR-PROVREG-001);
+// parts 1 and 2 of 5. Every expected value is transcribed from the cited Swift lines or from the record
+// itself, never from the C# under test. Part 1 covers: ProviderKind's fixed 14-case order (PR-PROVREG-001);
 // displayName and iconName for codex, claude, cursor, opencode, grok, deepseek, meta, zai, devin,
 // antigravity and copilot (PR-PROVREG-002 to 012); the Windows-hazard identities of commandcode, pi and
 // antigravity - executableName, loginCommand, displayName (PR-PROVCLI-203, 266, 317; the PATH/PATHEXT
 // fallback-directory resolution those records also describe lives in ProviderRegistry, a different Swift
 // file and a different unit, and is out of scope here); and SlashCommand.claudeCommands, codexSkills and
-// codexInput (PR-PROVCLI-345 to 353).
+// codexInput (PR-PROVCLI-345 to 353). Part 2 covers: commandcode and pi identity at the PR-PROVREG level
+// (PR-PROVREG-013, 014); executableName for every remaining case (PR-PROVREG-015 to 027); and
+// loginCommand for every remaining case (PR-PROVREG-028 to 036). The PROVREG-020/021/022 and PROVREG-026
+// records also describe ProviderRegistry.executable(for:) behaviour (the isAPIKeyBased guard, the PATHEXT
+// and %SystemRoot% collision check) - that is a different Swift file (Services/Providers/
+// ProviderRegistry.swift) and a different unit; only the ProviderKind.executableName value this file
+// owns is proven here.
 public sealed class ProviderTests
 {
     // PR-PROVREG-001: :3-18. Exactly 14 cases in source declaration order, with these rawValues, and
@@ -161,6 +167,167 @@ public sealed class ProviderTests
         Assert.Equal("agy", ProviderKind.Antigravity.LoginCommand);
         Assert.Equal("Antigravity", ProviderKind.Antigravity.DisplayName);
     }
+
+    // --- Part 2: identity, executableName and loginCommand for the remaining records ---
+
+    // PR-PROVREG-013: commandcode's rawValue is "commandcode" (:16), displayName "Command Code" (:35),
+    // iconName "provider-commandcode" (:60).
+    [Trait("Req", "PR-PROVREG-013")] // Core/Models/Provider.swift:16,:35,:60
+    [Fact]
+    public void Commandcode_rawValue_displayName_and_iconName_are_exact()
+    {
+        Assert.Equal("commandcode", SwiftEnum<ProviderKind>.RawValue(ProviderKind.Commandcode));
+        Assert.Equal("Command Code", ProviderKind.Commandcode.DisplayName);
+        Assert.Equal("provider-commandcode", ProviderKind.Commandcode.IconName);
+    }
+
+    // PR-PROVREG-014: pi's rawValue is "pi" (:17), displayName "Pi" with a capital P (:36), iconName
+    // "provider-pi" (:60).
+    [Trait("Req", "PR-PROVREG-014")] // Core/Models/Provider.swift:17,:36,:60
+    [Fact]
+    public void Pi_rawValue_displayName_and_iconName_are_exact()
+    {
+        Assert.Equal("pi", SwiftEnum<ProviderKind>.RawValue(ProviderKind.Pi));
+        Assert.Equal("Pi", ProviderKind.Pi.DisplayName);
+        Assert.Equal("provider-pi", ProviderKind.Pi.IconName);
+    }
+
+    [Trait("Req", "PR-PROVREG-015")] // Core/Models/Provider.swift:42
+    [Fact]
+    public void Codex_executableName_is_codex() => Assert.Equal("codex", ProviderKind.Codex.ExecutableName);
+
+    [Trait("Req", "PR-PROVREG-016")] // Core/Models/Provider.swift:43
+    [Fact]
+    public void Claude_executableName_is_claude() => Assert.Equal("claude", ProviderKind.Claude.ExecutableName);
+
+    // PR-PROVREG-017: the bare name searched is "cursor-agent", never the display name "Cursor".
+    [Trait("Req", "PR-PROVREG-017")] // Core/Models/Provider.swift:44
+    [Fact]
+    public void Cursor_executableName_is_cursor_agent_not_cursor()
+    {
+        Assert.Equal("cursor-agent", ProviderKind.Cursor.ExecutableName);
+        Assert.NotEqual("cursor", ProviderKind.Cursor.ExecutableName);
+    }
+
+    // PR-PROVREG-018: OpenCode Zen's executableName is "opencode" (:45); OpenCode Go resolves the same
+    // bare name (:46), even though its displayName and iconName differ.
+    [Trait("Req", "PR-PROVREG-018")] // Core/Models/Provider.swift:45-46
+    [Fact]
+    public void Opencode_and_OpencodeGo_executableName_is_the_same_opencode()
+    {
+        Assert.Equal("opencode", ProviderKind.Opencode.ExecutableName);
+        Assert.Equal("opencode", ProviderKind.OpencodeGo.ExecutableName);
+    }
+
+    [Trait("Req", "PR-PROVREG-019")] // Core/Models/Provider.swift:47
+    [Fact]
+    public void Grok_executableName_is_grok() => Assert.Equal("grok", ProviderKind.Grok.ExecutableName);
+
+    // PR-PROVREG-020/021/022: deepseek, meta and zai each have an empty executableName at the model level.
+    // ProviderRegistry.executable(for:) never reaches this string because it returns nil at the
+    // isAPIKeyBased guard first (ProviderRegistry.swift:220) - that guard and its nil result belong to a
+    // different Swift file and unit; only the empty ProviderKind.executableName value is proven here.
+    [Trait("Req", "PR-PROVREG-020")] // Core/Models/Provider.swift:48
+    [Fact]
+    public void Deepseek_executableName_is_empty() => Assert.Equal("", ProviderKind.Deepseek.ExecutableName);
+
+    [Trait("Req", "PR-PROVREG-021")] // Core/Models/Provider.swift:49
+    [Fact]
+    public void Meta_executableName_is_empty() => Assert.Equal("", ProviderKind.Meta.ExecutableName);
+
+    [Trait("Req", "PR-PROVREG-022")] // Core/Models/Provider.swift:50
+    [Fact]
+    public void Zai_executableName_is_empty() => Assert.Equal("", ProviderKind.Zai.ExecutableName);
+
+    [Trait("Req", "PR-PROVREG-023")] // Core/Models/Provider.swift:51
+    [Fact]
+    public void Devin_executableName_is_devin() => Assert.Equal("devin", ProviderKind.Devin.ExecutableName);
+
+    // PR-PROVREG-024: the bare name searched is "agy", never the display name "Antigravity".
+    [Trait("Req", "PR-PROVREG-024")] // Core/Models/Provider.swift:52
+    [Fact]
+    public void Antigravity_executableName_is_agy_not_antigravity()
+    {
+        Assert.Equal("agy", ProviderKind.Antigravity.ExecutableName);
+        Assert.NotEqual("antigravity", ProviderKind.Antigravity.ExecutableName);
+    }
+
+    [Trait("Req", "PR-PROVREG-025")] // Core/Models/Provider.swift:53
+    [Fact]
+    public void Copilot_executableName_is_copilot() => Assert.Equal("copilot", ProviderKind.Copilot.ExecutableName);
+
+    // PR-PROVREG-026: the bare name searched first is "cmd" (:54). Whether that name collides with the
+    // Windows command interpreter, and the PATHEXT/%SystemRoot% rejection that PA-0016/ED-127 resolve, is
+    // ProviderRegistry.executable(for:) behaviour in a different Swift file and unit; only the model-level
+    // ProviderKind.executableName value is proven here.
+    [Trait("Req", "PR-PROVREG-026")] // Core/Models/Provider.swift:54
+    [Fact]
+    public void Commandcode_executableName_is_cmd() => Assert.Equal("cmd", ProviderKind.Commandcode.ExecutableName);
+
+    [Trait("Req", "PR-PROVREG-027")] // Core/Models/Provider.swift:55
+    [Fact]
+    public void Pi_executableName_is_pi() => Assert.Equal("pi", ProviderKind.Pi.ExecutableName);
+
+    [Trait("Req", "PR-PROVREG-028")] // Core/Models/Provider.swift:64
+    [Fact]
+    public void Codex_loginCommand_is_codex_login() => Assert.Equal("codex login", ProviderKind.Codex.LoginCommand);
+
+    [Trait("Req", "PR-PROVREG-029")] // Core/Models/Provider.swift:65
+    [Fact]
+    public void Claude_loginCommand_is_claude_auth_login() => Assert.Equal("claude auth login", ProviderKind.Claude.LoginCommand);
+
+    [Trait("Req", "PR-PROVREG-030")] // Core/Models/Provider.swift:66
+    [Fact]
+    public void Cursor_loginCommand_is_cursor_agent_login() => Assert.Equal("cursor-agent login", ProviderKind.Cursor.LoginCommand);
+
+    // PR-PROVREG-031: OpenCode Zen's loginCommand is "opencode auth login" (:67); OpenCode Go runs the
+    // same string (:68).
+    [Trait("Req", "PR-PROVREG-031")] // Core/Models/Provider.swift:67-68
+    [Fact]
+    public void Opencode_and_OpencodeGo_loginCommand_is_the_same_opencode_auth_login()
+    {
+        Assert.Equal("opencode auth login", ProviderKind.Opencode.LoginCommand);
+        Assert.Equal("opencode auth login", ProviderKind.OpencodeGo.LoginCommand);
+    }
+
+    [Trait("Req", "PR-PROVREG-032")] // Core/Models/Provider.swift:69
+    [Fact]
+    public void Grok_loginCommand_is_grok_login() => Assert.Equal("grok login", ProviderKind.Grok.LoginCommand);
+
+    // PR-PROVREG-033: the literal display string is "DEEPSEEK_API_KEY=sk-..." with three ASCII full stops
+    // (U+002E), never a single ellipsis character (U+2026), and is never executed by this model (the
+    // Settings view never renders a Login button for an API-key provider - App/Views/Settings/
+    // SettingsView.swift:753 - which is view-layer behaviour out of scope for this unit).
+    [Trait("Req", "PR-PROVREG-033")] // Core/Models/Provider.swift:70
+    [Fact]
+    public void Deepseek_loginCommand_is_the_literal_api_key_placeholder_with_three_ascii_dots()
+    {
+        Assert.Equal("DEEPSEEK_API_KEY=sk-...", ProviderKind.Deepseek.LoginCommand);
+        Assert.DoesNotContain('…', ProviderKind.Deepseek.LoginCommand);
+        Assert.Equal(3, ProviderKind.Deepseek.LoginCommand.Count(c => c == '.'));
+    }
+
+    [Trait("Req", "PR-PROVREG-034")] // Core/Models/Provider.swift:71
+    [Fact]
+    public void Meta_loginCommand_is_the_literal_api_key_placeholder_with_three_ascii_dots()
+    {
+        Assert.Equal("MODEL_API_KEY=...", ProviderKind.Meta.LoginCommand);
+        Assert.DoesNotContain('…', ProviderKind.Meta.LoginCommand);
+        Assert.Equal(3, ProviderKind.Meta.LoginCommand.Count(c => c == '.'));
+    }
+
+    [Trait("Req", "PR-PROVREG-035")] // Core/Models/Provider.swift:72
+    [Fact]
+    public void Zai_loginCommand_is_the_literal_api_key_placeholder_with_three_ascii_dots()
+    {
+        Assert.Equal("ZAI_API_KEY=...", ProviderKind.Zai.LoginCommand);
+        Assert.DoesNotContain('…', ProviderKind.Zai.LoginCommand);
+        Assert.Equal(3, ProviderKind.Zai.LoginCommand.Count(c => c == '.'));
+    }
+
+    [Trait("Req", "PR-PROVREG-036")] // Core/Models/Provider.swift:73
+    [Fact]
+    public void Devin_loginCommand_is_devin_auth_login() => Assert.Equal("devin auth login", ProviderKind.Devin.LoginCommand);
 
     // --- SlashCommand ---
 
