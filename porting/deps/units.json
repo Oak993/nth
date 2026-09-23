@@ -138,8 +138,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "SwiftUI Text as a value (ED-092 part 3). StyledText is an immutable list of runs, each a string with optional SwiftFont, SwiftColor, weight, italic, underline, strikethrough, monospacedDigit and baseline offset; modifiers return new values; + concatenates; Render(TextBlock) writes the runs as Avalonia inlines. AttributedString is not part of this unit. First tests: concatenation keeps each run style, modifiers apply to every run of the receiver, and a rendered TextBlock has one Run per run with the resolved font and brush.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.SwiftAnimation",

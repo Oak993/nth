@@ -13,6 +13,7 @@
     "F.ProcessLauncher",
     "F.URL",
     "F.HTTP",
-    "F.ICUFormatters"
+    "F.ICUFormatters",
+    "F.StyledText"
   ]
 }
