@@ -1395,4 +1395,527 @@ public sealed class ACPSessionTests
         }));
         Assert.Empty(events);
     }
+
+    // ===== Part 4 of 8: finishPrompt, handleNotification, handleRequest, handleClose and their static
+    // mapping helpers (PR-PROVACP-074..097). makeToolCall/makeToolUpdate's own title-synthesis records sit in
+    // a later part, but both are implemented now (see the implementation header) so the tool_call event flow
+    // can be exercised here; only their routing (not their exact title synthesis) is asserted below.
+
+    private static T InvokePrivateValue<T>(ACPSession session, string method, params object?[] args) =>
+        (T)typeof(ACPSession).GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(session, args)!;
+
+    private static JSONValue Update(string sessionUpdate, params (string Key, JSONValue Value)[] fields)
+    {
+        var pairs = new List<(string, JSONValue)> { ("sessionUpdate", sessionUpdate) };
+        pairs.AddRange(fields);
+        return JSONValue.FromDictionaryLiteral(("update", JSONValue.FromDictionaryLiteral(pairs.ToArray())));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-074")] // ACPSession.swift:221-224,629
+    public void HandleClose_emits_no_exited_event_once_stop_has_set_isStopping_but_does_when_it_has_not()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        session.Stop(); // sets isStopping before closing the (nil) connection
+        Assert.True(Private<bool>(session, "isStopping", field: true));
+        InvokePrivate(session, "HandleClose", "tail text");
+        Assert.Empty(events); // no .exited for a deliberate stop
+
+        var session2 = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var events2 = new List<ProviderEvent>();
+        session2.OnEvent = events2.Add;
+        InvokePrivate(session2, "HandleClose", "tail text");
+        var exited = Assert.IsType<ProviderEvent.Exited>(Assert.Single(events2));
+        Assert.Equal("tail text", exited.Error);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-075")] // ACPSession.swift:71-74
+    public void IsRunning_is_true_only_between_a_built_connection_and_its_close()
+    {
+        using var runtime = new TestRuntime();
+        Assert.False(Session(ProviderKind.Grok, RuntimeMode.Supervised).IsRunning); // no connection built yet
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " + EndOnBye);
+        Assert.True(session.IsRunning);
+        runtime.OnMain(connection.Close);
+        Assert.False(session.IsRunning);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-076")] // ACPSession.swift:489-491
+    public void HandleNotification_ignores_a_non_session_update_method_a_missing_update_and_an_unknown_sessionUpdate()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "HandleNotification", "session/other", JSONValue.FromDictionaryLiteral(("update", JSONValue.FromDictionaryLiteral(("sessionUpdate", "plan")))));
+        InvokePrivate(session, "HandleNotification", "session/update", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>())));
+        InvokePrivate(session, "HandleNotification", "session/update", Update("not_a_real_kind"));
+        InvokePrivate(session, "HandleNotification", "session/update", JSONValue.FromDictionaryLiteral(("update", JSONValue.FromDictionaryLiteral(("sessionUpdate", 1L)))));
+        Assert.Empty(events);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-076")] // ACPSession.swift:489-491
+    public void HandleNotification_ignores_notifications_while_isReplaying()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        SetField(session, "isReplaying", true);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "HandleNotification", "session/update", Update("session_info_update", ("title", "T")));
+        Assert.Empty(events);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-077")] // ACPSession.swift:492-497
+    public void Agent_message_chunk_drops_without_text_clears_thoughtID_and_keys_by_messageId_prefix()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        SetField(session, "thoughtID", "thought-1-AAAAAAAA");
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "HandleNotification", "session/update", Update("agent_message_chunk", ("content", JSONValue.FromDictionaryLiteral(("noText", true)))));
+        Assert.Empty(events); // no content.text: dropped
+        InvokePrivate(session, "HandleNotification", "session/update", Update("agent_message_chunk",
+            ("messageId", "m1"), ("content", JSONValue.FromDictionaryLiteral(("text", "hi")))));
+        var delta = Assert.IsType<ProviderEvent.MessageDelta>(Assert.Single(events));
+        Assert.Equal("message-m1", delta.Id); // literal "message-" prefix
+        Assert.Equal("hi", delta.Text);
+        Assert.Null(Private<string?>(session, "thoughtID", field: true));
+        Assert.Equal("message-m1", Private<string?>(session, "messageID", field: true));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-077")] // ACPSession.swift:495
+    public void Agent_message_chunk_without_a_messageId_reuses_messageID_then_falls_back_to_a_fresh_id()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        SetField(session, "messageID", "message-existing");
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "HandleNotification", "session/update", Update("agent_message_chunk", ("content", JSONValue.FromDictionaryLiteral(("text", "a")))));
+        Assert.Equal("message-existing", ((ProviderEvent.MessageDelta)events[0]).Id);
+        SetField(session, "messageID", null);
+        events.Clear();
+        InvokePrivate(session, "HandleNotification", "session/update", Update("agent_message_chunk", ("content", JSONValue.FromDictionaryLiteral(("text", "b")))));
+        var id = ((ProviderEvent.MessageDelta)events[0]).Id;
+        Assert.StartsWith("message-1-", id, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-078")] // ACPSession.swift:498-502
+    public void Agent_thought_chunk_drops_without_text_reuses_thoughtID_and_never_clears_messageID()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        SetField(session, "messageID", "message-keep");
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "HandleNotification", "session/update", Update("agent_thought_chunk", ("content", JSONValue.FromDictionaryLiteral(("noText", true)))));
+        Assert.Empty(events);
+        InvokePrivate(session, "HandleNotification", "session/update", Update("agent_thought_chunk", ("content", JSONValue.FromDictionaryLiteral(("text", "t1")))));
+        var first = Assert.IsType<ProviderEvent.ReasoningDelta>(Assert.Single(events));
+        var tid = Private<string?>(session, "thoughtID", field: true);
+        Assert.NotNull(tid);
+        Assert.Equal("message-keep", Private<string?>(session, "messageID", field: true)); // never cleared by a thought
+        events.Clear();
+        InvokePrivate(session, "HandleNotification", "session/update", Update("agent_thought_chunk", ("content", JSONValue.FromDictionaryLiteral(("text", "t2")))));
+        Assert.Equal(tid, ((ProviderEvent.ReasoningDelta)events[0]).Id); // reused, same run
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-079")] // ACPSession.swift:701-704
+    public void NextID_format_is_prefix_dash_counter_dash_eight_uppercase_hex_chars_sharing_one_counter()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var first = InvokePrivateValue<string>(session, "NextID", "message");
+        var second = InvokePrivateValue<string>(session, "NextID", "thought");
+        Assert.Matches("^message-1-[0-9A-F]{8}$", first);
+        Assert.Matches("^thought-2-[0-9A-F]{8}$", second); // counter shared across both prefixes
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-080")] // ACPSession.swift:503-515
+    public void Tool_call_drops_without_toolCallId_clears_both_streaming_ids_and_emits_toolStarted()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        SetField(session, "messageID", "message-x");
+        SetField(session, "thoughtID", "thought-x");
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "HandleNotification", "session/update", Update("tool_call", ("kind", "execute")));
+        Assert.Empty(events); // no toolCallId: dropped
+
+        InvokePrivate(session, "HandleNotification", "session/update", Update("tool_call", ("toolCallId", "t1"), ("kind", "execute")));
+        Assert.Null(Private<string?>(session, "messageID", field: true));
+        Assert.Null(Private<string?>(session, "thoughtID", field: true));
+        var started = Assert.IsType<ProviderEvent.ToolStarted>(Assert.Single(events));
+        Assert.Equal("t1", started.Id);
+        Assert.Equal(ToolCall.Kind.Command, started.Call.ToolCallKind);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-081")] // ACPSession.swift:514-515
+    public void Tool_call_with_output_or_status_also_emits_an_immediate_toolUpdated_otherwise_not()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "HandleNotification", "session/update", Update("tool_call", ("toolCallId", "t1"), ("kind", "execute"), ("title", "ls")));
+        Assert.Single(events); // only .toolStarted: no output, no status
+
+        events.Clear();
+        InvokePrivate(session, "HandleNotification", "session/update", Update("tool_call", ("toolCallId", "t2"), ("kind", "execute"), ("status", "completed")));
+        Assert.Equal(2, events.Count);
+        var updated = Assert.IsType<ProviderEvent.ToolUpdated>(events[1]);
+        Assert.Equal("t2", updated.Id);
+        Assert.Equal(ToolCall.Status.Completed, updated.Update.Status);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-082")] // ACPSession.swift:516-524
+    public void Tool_call_update_drops_without_id_emits_unconditionally_and_never_clears_streaming_ids()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        SetField(session, "messageID", "message-x");
+        SetField(session, "thoughtID", "thought-x");
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "HandleNotification", "session/update", Update("tool_call_update", ("kind", "execute")));
+        Assert.Empty(events);
+
+        InvokePrivate(session, "HandleNotification", "session/update", Update("tool_call_update", ("toolCallId", "t1")));
+        var updated = Assert.IsType<ProviderEvent.ToolUpdated>(Assert.Single(events)); // unconditional, even all-nil
+        Assert.Equal("t1", updated.Id);
+        Assert.Equal("message-x", Private<string?>(session, "messageID", field: true));
+        Assert.Equal("thought-x", Private<string?>(session, "thoughtID", field: true));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-083")] // ACPSession.swift:507-512,518-523
+    public void Todo_tool_calls_are_routed_to_the_checklist_and_never_open_a_tool_row_and_the_id_is_remembered()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        var todos = JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("content", "step 1")));
+        InvokePrivate(session, "HandleNotification", "session/update", Update("tool_call",
+            ("toolCallId", "todo-1"), ("title", "todowrite"), ("rawInput", JSONValue.FromDictionaryLiteral(("todos", todos)))));
+        var started = Assert.Single(events);
+        var list = Assert.IsType<ProviderEvent.Todos>(started).Value;
+        Assert.Equal("step 1", list[0].Text);
+        var ids = Private<HashSet<string>>(session, "todoToolCallIDs", field: true);
+        Assert.Contains("todo-1", ids);
+
+        // An empty parse emits nothing and still opens no tool row.
+        events.Clear();
+        InvokePrivate(session, "HandleNotification", "session/update", Update("tool_call", ("toolCallId", "todo-2"), ("title", "todowrite")));
+        Assert.Empty(events);
+        Assert.Contains("todo-2", ids);
+
+        // A remembered id keeps routing to the checklist even once the update no longer looks like a todo call.
+        events.Clear();
+        InvokePrivate(session, "HandleNotification", "session/update", Update("tool_call_update",
+            ("toolCallId", "todo-1"), ("rawInput", JSONValue.FromDictionaryLiteral(("todos", todos)))));
+        Assert.IsType<ProviderEvent.Todos>(Assert.Single(events));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-084")] // ACPSession.swift:638-642
+    public void IsTodoCall_matches_a_present_rawInput_todos_member_even_null_or_a_recognized_title()
+    {
+        Assert.True(InvokeStatic<bool>("IsTodoCall", JSONValue.FromDictionaryLiteral(("rawInput", JSONValue.FromDictionaryLiteral(("todos", new JSONValue.Null()))))));
+        Assert.True(InvokeStatic<bool>("IsTodoCall", JSONValue.FromDictionaryLiteral(("title", "todowrite"))));
+        Assert.False(InvokeStatic<bool>("IsTodoCall", JSONValue.FromDictionaryLiteral(("title", "read file"))));
+        Assert.False(InvokeStatic<bool>("IsTodoCall", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>()))));
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-085")] // ACPSession.swift:644-659
+    [InlineData("todo", true)]
+    [InlineData("Todos", true)]
+    [InlineData(" TODOWRITE ", true)]
+    [InlineData("todo write", true)]
+    [InlineData("write todos", true)]
+    [InlineData("3 todos", true)]
+    [InlineData("12 todo", true)]
+    [InlineData("my todos", false)]
+    [InlineData(" todos", false)]
+    [InlineData("3.5 todos", false)]
+    [InlineData("todolist", false)]
+    public void IsTodoTitle_matches_five_exact_titles_and_a_numeric_count_suffix(string title, bool expected) =>
+        Assert.Equal(expected, InvokeStatic<bool>("IsTodoTitle", title));
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-086")] // ACPSession.swift:663-683
+    public void TodoSteps_tries_four_sources_in_order_and_stops_at_the_first_with_steps()
+    {
+        var rawInputTodos = JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("content", "from rawInput")));
+        var update1 = JSONValue.FromDictionaryLiteral(("rawInput", JSONValue.FromDictionaryLiteral(("todos", rawInputTodos))),
+            ("rawOutput", JSONValue.FromDictionaryLiteral(("todos", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("content", "from rawOutput")))))));
+        Assert.Equal("from rawInput", InvokeStatic<ValueList<TodoStep>>("TodoSteps", update1)[0].Text);
+
+        var update2 = JSONValue.FromDictionaryLiteral(("rawOutput", JSONValue.FromDictionaryLiteral(("todos", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("content", "from rawOutput")))))));
+        Assert.Equal("from rawOutput", InvokeStatic<ValueList<TodoStep>>("TodoSteps", update2)[0].Text);
+
+        var contentText = new JSONValue.String(JSONValue.FromDictionaryLiteral(("todos", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("content", "from content"))))).CompactString).Value;
+        var update3 = JSONValue.FromDictionaryLiteral(("content", JSONValue.FromArrayLiteral(
+            JSONValue.FromDictionaryLiteral(("type", "content"), ("content", JSONValue.FromDictionaryLiteral(("text", contentText)))))));
+        Assert.Equal("from content", InvokeStatic<ValueList<TodoStep>>("TodoSteps", update3)[0].Text);
+
+        var outputText = JSONValue.FromDictionaryLiteral(("todos", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("content", "from rawOutput output"))))).CompactString;
+        var update4 = JSONValue.FromDictionaryLiteral(("rawOutput", JSONValue.FromDictionaryLiteral(("output", outputText))));
+        Assert.Equal("from rawOutput output", InvokeStatic<ValueList<TodoStep>>("TodoSteps", update4)[0].Text);
+
+        Assert.Empty(InvokeStatic<ValueList<TodoStep>>("TodoSteps", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>()))));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-087")] // ACPSession.swift:688-699
+    public void ParseTodoItems_takes_the_first_of_four_keys_maps_seven_statuses_and_defaults_to_pending()
+    {
+        var items = JSONValue.FromArrayLiteral(
+            JSONValue.FromDictionaryLiteral(("content", "a"), ("status", "completed")),
+            JSONValue.FromDictionaryLiteral(("text", "b"), ("status", "complete")),
+            JSONValue.FromDictionaryLiteral(("step", "c"), ("status", "done")),
+            JSONValue.FromDictionaryLiteral(("title", "d"), ("status", "in_progress")),
+            JSONValue.FromDictionaryLiteral(("content", "e"), ("status", "inProgress")),
+            JSONValue.FromDictionaryLiteral(("content", "f"), ("status", "in-progress")),
+            JSONValue.FromDictionaryLiteral(("content", "g"), ("status", "active")),
+            JSONValue.FromDictionaryLiteral(("content", "h"), ("status", "mystery-status")),
+            JSONValue.FromDictionaryLiteral(("content", "i")), // no status
+            JSONValue.FromDictionaryLiteral(("content", "   ")), // trims to empty: dropped
+            new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>()))); // none of the four keys: dropped
+        var steps = ParseTodoItemsStatic(items);
+        Assert.Equal(["a", "b", "c", "d", "e", "f", "g", "h", "i"], steps.Select(s => s.Text));
+        Assert.All(steps.Take(3), s => Assert.Equal(TodoStep.Status.Done, s.TodoStepStatus));
+        Assert.All(steps.Skip(3).Take(4), s => Assert.Equal(TodoStep.Status.Active, s.TodoStepStatus));
+        Assert.All(steps.Skip(7), s => Assert.Equal(TodoStep.Status.Pending, s.TodoStepStatus)); // unrecognized and missing both stay pending
+    }
+
+    private static ValueList<TodoStep> ParseTodoItemsStatic(JSONValue value) => ACPSession.ParseTodoItems(value);
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-088")] // ACPSession.swift:525-527
+    public void Plan_update_replaces_the_checklist_unconditionally_even_with_an_empty_result()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "HandleNotification", "session/update", Update("plan",
+            ("entries", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("content", "step"))))));
+        Assert.Equal("step", Assert.IsType<ProviderEvent.Todos>(Assert.Single(events)).Value[0].Text);
+
+        events.Clear();
+        InvokePrivate(session, "HandleNotification", "session/update", Update("plan")); // no entries: still emitted, empty
+        var empty = Assert.IsType<ProviderEvent.Todos>(Assert.Single(events));
+        Assert.Empty(empty.Value);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-089")] // ACPSession.swift:528-533
+    public void Available_commands_update_drops_nameless_entries_defaults_detail_to_empty_and_an_empty_list_clears_the_menu()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "HandleNotification", "session/update", Update("available_commands_update",
+            ("availableCommands", JSONValue.FromArrayLiteral(
+                JSONValue.FromDictionaryLiteral(("name", "review"), ("description", "Review the diff")),
+                JSONValue.FromDictionaryLiteral(("name", "bare")), // no description
+                JSONValue.FromDictionaryLiteral(("description", "no name: dropped"))))));
+        var commands = Assert.IsType<ProviderEvent.Commands>(Assert.Single(events)).Value;
+        Assert.Equal(2, commands.Count);
+        Assert.Equal("review", commands[0].Name);
+        Assert.Equal("Review the diff", commands[0].Detail);
+        Assert.Equal("bare", commands[1].Name);
+        Assert.Equal("", commands[1].Detail);
+        Assert.False(commands[0].IsBuiltIn);
+        Assert.Null(commands[0].SkillPath);
+
+        events.Clear();
+        InvokePrivate(session, "HandleNotification", "session/update", Update("available_commands_update"));
+        Assert.Empty(Assert.IsType<ProviderEvent.Commands>(Assert.Single(events)).Value); // missing array clears the menu
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-090")] // ACPSession.swift:534-536
+    public void Current_mode_update_sets_currentMode_but_only_reports_a_change_when_planMode_is_known()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "HandleNotification", "session/update", Update("current_mode_update", ("currentModeId", "agent")));
+        Assert.Empty(events); // planMode unknown: no report
+        Assert.Equal("agent", Private<string?>(session, "currentMode", field: true));
+
+        SetField(session, "planMode", "plan");
+        InvokePrivate(session, "HandleNotification", "session/update", Update("current_mode_update", ("currentModeId", "plan")));
+        Assert.Equal(InteractionMode.Plan, Assert.IsType<ProviderEvent.ModeChanged>(Assert.Single(events)).Value);
+
+        events.Clear();
+        InvokePrivate(session, "HandleNotification", "session/update", new JSONValue.Object(new ValueMap<string, JSONValue>(
+            new Dictionary<string, JSONValue> { ["update"] = JSONValue.FromDictionaryLiteral(("sessionUpdate", "current_mode_update")) })));
+        Assert.Equal(InteractionMode.Build, Assert.IsType<ProviderEvent.ModeChanged>(Assert.Single(events)).Value); // missing currentModeId -> nil -> .build
+        Assert.Null(Private<string?>(session, "currentMode", field: true));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-091")] // ACPSession.swift:537-538
+    public void Config_option_update_routes_a_configOptions_array_through_applyConfigOptions()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        SetField(session, "models", new ValueList<ModelOption>([new ModelOption("m1", "Model 1")]));
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        var options = JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(
+            ("id", "model"), ("category", "model"), ("currentValue", "m1"),
+            ("options", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("value", "m1"), ("name", "Model 1"))))));
+        InvokePrivate(session, "HandleNotification", "session/update", Update("config_option_update", ("configOptions", options)));
+        var models = Assert.IsType<ProviderEvent.Models>(Assert.Single(events));
+        Assert.Equal("m1", models.Value[0].Id);
+        Assert.Equal("model", Private<string?>(session, "modelConfigID", field: true));
+
+        events.Clear();
+        InvokePrivate(session, "HandleNotification", "session/update", Update("config_option_update")); // missing configOptions: ignored
+        Assert.Empty(events);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-092")] // ACPSession.swift:539-540
+    public void Session_info_update_renames_only_on_a_non_empty_title_with_no_trimming()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "HandleNotification", "session/update", Update("session_info_update", ("title", "")));
+        Assert.Empty(events);
+        InvokePrivate(session, "HandleNotification", "session/update", Update("session_info_update")); // missing title
+        Assert.Empty(events);
+        InvokePrivate(session, "HandleNotification", "session/update", Update("session_info_update", ("title", " ")));
+        Assert.Equal(" ", Assert.IsType<ProviderEvent.Title>(Assert.Single(events)).Value); // a single space IS emitted: no trimming
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-093")] // ACPSession.swift:541-549
+    public void Usage_update_feeds_the_context_meter_only_when_used_is_an_integer()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "HandleNotification", "session/update", Update("usage_update")); // no `used`: nothing
+        Assert.Empty(events);
+        InvokePrivate(session, "HandleNotification", "session/update", Update("usage_update", ("used", 400L), ("size", 1000L)));
+        var usage = Assert.IsType<ProviderEvent.Usage>(Assert.Single(events)).Value;
+        Assert.Equal(400, usage.UsedTokens);
+        Assert.Equal(1000, usage.WindowTokens);
+        events.Clear();
+        InvokePrivate(session, "HandleNotification", "session/update", Update("usage_update", ("used", 400L))); // no size: nil window
+        Assert.Null(Assert.IsType<ProviderEvent.Usage>(Assert.Single(events)).Value.WindowTokens);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-094")] // ACPSession.swift:555-559; JSONRPC.swift:97-99
+    public void HandleRequest_answers_every_method_but_session_request_permission_with_method_not_found()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " + EndOnBye);
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(9), "fs/read_text_file", new JSONValue.Null());
+        Assert.True(SpinWait.SpinUntil(() => Lines(process.ErrorTail).Count >= 1, Bound));
+        var frame = JSONValue.Parse(Lines(process.ErrorTail)[0])!;
+        Assert.Equal(-32601L, frame["error"]!["code"]!.JSONValueInt);
+        Assert.Equal("Method not found", frame["error"]!["message"]!.JSONValueString);
+        Assert.Null(frame["result"]);
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-095")] // ACPSession.swift:592-602
+    [InlineData(RuntimeMode.FullAccess, "read", "opt-once")]
+    [InlineData(RuntimeMode.AutoAcceptEdits, "edit", "opt-once")]
+    [InlineData(RuntimeMode.AutoAcceptEdits, "read", null)]
+    [InlineData(RuntimeMode.Supervised, "edit", null)]
+    [InlineData(RuntimeMode.Auto, "edit", null)]
+    public void AutomaticOption_auto_approves_by_mode_and_kind_preferring_allow_once_over_allow_always(RuntimeMode mode, string kindRaw, string? expected)
+    {
+        var session = Session(ProviderKind.Grok, mode);
+        SetField(session, "runtimeMode", mode);
+        var kind = kindRaw switch { "edit" => ToolCall.Kind.Edit, _ => ToolCall.Kind.Read };
+        var options = new JSONValue[]
+        {
+            JSONValue.FromDictionaryLiteral(("kind", "allow_always"), ("optionId", "opt-always")),
+            JSONValue.FromDictionaryLiteral(("kind", "allow_once"), ("optionId", "opt-once")),
+        };
+        var result = InvokePrivateValue<string?>(session, "AutomaticOption", kind, options);
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-095")] // ACPSession.swift:599-601
+    public void AutomaticOption_falls_back_to_allow_always_when_no_allow_once_option_exists()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.FullAccess);
+        SetField(session, "runtimeMode", RuntimeMode.FullAccess);
+        var options = new JSONValue[] { JSONValue.FromDictionaryLiteral(("kind", "allow_always"), ("optionId", "opt-always")) };
+        Assert.Equal("opt-always", InvokePrivateValue<string?>(session, "AutomaticOption", ToolCall.Kind.Other, options));
+        var noneNamed = new JSONValue[] { JSONValue.FromDictionaryLiteral(("kind", "reject_once"), ("optionId", "opt-reject")) };
+        Assert.Null(InvokePrivateValue<string?>(session, "AutomaticOption", ToolCall.Kind.Other, noneNamed));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-096")] // ACPSession.swift:563-566
+    public void An_auto_approved_permission_is_answered_immediately_and_never_reaches_the_UI()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " + EndOnBye);
+        SetField(session, "runtimeMode", RuntimeMode.FullAccess);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        var parameters = JSONValue.FromDictionaryLiteral(
+            ("options", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("kind", "allow_once"), ("optionId", "opt-1")))),
+            ("toolCall", JSONValue.FromDictionaryLiteral(("toolCallId", "t1"), ("kind", "read"))));
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(3), "session/request_permission", parameters);
+        Assert.Empty(events); // no .approval reaches the UI
+        Assert.Empty(Private<Dictionary<string, RPCID>>(session, "pendingPermissions", field: true)); // never recorded
+        Assert.True(SpinWait.SpinUntil(() => Lines(process.ErrorTail).Count >= 1, Bound));
+        var frame = JSONValue.Parse(Lines(process.ErrorTail)[0])!;
+        Assert.Equal("selected", frame["result"]!["outcome"]!["outcome"]!.JSONValueString);
+        Assert.Equal("opt-1", frame["result"]!["outcome"]!["optionId"]!.JSONValueString);
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-097")] // ACPSession.swift:567-575
+    public void Permission_options_map_to_three_roles_dropping_ones_without_an_optionId_labeling_by_name_or_id()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised); // connection is nil: not auto-approved, not required here
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        var parameters = JSONValue.FromDictionaryLiteral(
+            ("options", JSONValue.FromArrayLiteral(
+                JSONValue.FromDictionaryLiteral(("kind", "allow_always"), ("optionId", "opt-a"), ("name", "Always")),
+                JSONValue.FromDictionaryLiteral(("kind", "reject_once"), ("optionId", "opt-b")),
+                JSONValue.FromDictionaryLiteral(("kind", "reject_always"), ("optionId", "opt-c")),
+                JSONValue.FromDictionaryLiteral(("kind", "allow_once"), ("optionId", "opt-d"), ("name", "Once")),
+                JSONValue.FromDictionaryLiteral(("kind", "unknown_kind"), ("optionId", "opt-e")),
+                JSONValue.FromDictionaryLiteral(("name", "no id: dropped")))),
+            ("toolCall", JSONValue.FromDictionaryLiteral(("toolCallId", "t1"), ("kind", "read"))));
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(1), "session/request_permission", parameters);
+        var approval = Assert.IsType<ProviderEvent.Approval>(Assert.Single(events)).Value;
+        Assert.Equal(5, approval.Options.Count);
+        Assert.Equal(ApprovalRequest.Option.Role.ApproveAlways, approval.Options[0].OptionRole);
+        Assert.Equal("Always", approval.Options[0].Title);
+        Assert.Equal(ApprovalRequest.Option.Role.Decline, approval.Options[1].OptionRole);
+        Assert.Equal(ApprovalRequest.Option.Role.Decline, approval.Options[2].OptionRole);
+        Assert.Equal(ApprovalRequest.Option.Role.Approve, approval.Options[3].OptionRole);
+        Assert.Equal("Once", approval.Options[3].Title);
+        Assert.Equal(ApprovalRequest.Option.Role.Approve, approval.Options[4].OptionRole); // unknown kind falls to .approve
+        Assert.Equal("opt-e", approval.Options[4].Title); // no name: label falls back to the raw optionId
+        Assert.DoesNotContain(approval.Options, o => o.OptionRole == ApprovalRequest.Option.Role.Cancel);
+    }
 }
