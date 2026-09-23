@@ -203,18 +203,49 @@ public sealed record SwiftFont
 /// <summary>
 /// ED-107 (3): the bundled Cascadia Mono files (porting/probes/p9/CASCADIA.md), an embedded collection like the
 /// Avalonia.Fonts.Inter package's InterFontCollection, reached as <c>fonts:CascadiaMono#Cascadia Mono</c>.
+/// The folder avares://Marrow.UI/Assets/Fonts also holds the Inter release files (porting/probes/p9/INTER-FILES.md), so
+/// the source names the CascadiaMono-*.ttf files only; the whole folder put those Inter faces under this key
+/// (reviewer finding 1).
 /// </summary>
 public sealed class CascadiaMonoFontCollection : EmbeddedFontCollection
 {
     public CascadiaMonoFontCollection()
-        : base(new Uri("fonts:CascadiaMono", UriKind.Absolute), new Uri("avares://Marrow.UI/Assets/Fonts", UriKind.Absolute))
+        : base(new Uri("fonts:CascadiaMono", UriKind.Absolute), new Uri("avares://Marrow.UI/Assets/Fonts/CascadiaMono-*.ttf", UriKind.Absolute))
     {
+    }
+}
+
+/// <summary>
+/// ED-107 (4), OD-0009 and OD-0020 item 2: the Inter family under the key <c>fonts:Inter</c>. It holds the
+/// Avalonia.Fonts.Inter 12.1.2 package's files (the same key and source as the package's InterFontCollection) and the
+/// rsms/inter v4.1 release files the package lacks, italic at 400 to 700 and weight 800 upright and italic, shipped in
+/// avares://Marrow.UI/Assets/Fonts (porting/probes/p9/INTER-FILES.md, whose line 22 gives this registration to
+/// F.SwiftFont). B2 reaches those faces through the italic trait (UI/Markdown/LinkParagraphView.swift:116, :131) and
+/// .heavy (UI/Common/HydraGlyph.swift:56, UI/Common/MCPGlyph.swift:49).
+/// </summary>
+public sealed class InterFontCollectionWithReleaseFiles : EmbeddedFontCollection
+{
+    private static readonly Uri ReleaseFiles = new("avares://Marrow.UI/Assets/Fonts/Inter-*.ttf", UriKind.Absolute);
+
+    public InterFontCollectionWithReleaseFiles()
+        : base(new Uri("fonts:Inter", UriKind.Absolute), new Uri("avares://Avalonia.Fonts.Inter/Assets", UriKind.Absolute))
+    {
+        // A missing release file must not fall to simulation unseen (PORT_CONTRACT.md:173, silent substitution).
+        if (!TryAddFontSource(ReleaseFiles))
+            throw new InvalidOperationException($"The Inter release files were not found at {ReleaseFiles} (INTER-FILES.md).");
     }
 }
 
 /// <summary>ED-107 (5): the one font registration point; the headless TestApp and the app shell's AppBuilder call it.</summary>
 public static class SwiftFontAppBuilderExtensions
 {
+    // The package's WithInterFont() does only ConfigureFonts(m => m.AddFontCollection(new InterFontCollection())) in
+    // 12.1.2; InterFontCollectionWithReleaseFiles takes its place under the same fonts:Inter key with the release files
+    // added (OD-0020 item 2), so the key is registered once.
     public static AppBuilder WithSwiftFonts(this AppBuilder builder) =>
-        builder.WithInterFont().ConfigureFonts(m => m.AddFontCollection(new CascadiaMonoFontCollection()));
+        builder.ConfigureFonts(m =>
+        {
+            m.AddFontCollection(new InterFontCollectionWithReleaseFiles());
+            m.AddFontCollection(new CascadiaMonoFontCollection());
+        });
 }

@@ -16,7 +16,8 @@ namespace Marrow.UI.Tests.Port;
 public sealed class SwiftFontTests(HeadlessSession headless)
 {
     // OD-0009 and porting/probes/p9/INTER.md "What to ship": Inter comes from Avalonia.Fonts.Inter, reached as
-    // fonts:Inter#Inter through the package's InterFontCollection (key fonts:Inter). A name lookup ("Inter") is not
+    // fonts:Inter#Inter through the key fonts:Inter (the package's files plus the rsms/inter release files of
+    // porting/probes/p9/INTER-FILES.md, OD-0020 item 2). A name lookup ("Inter") is not
     // enough: probes/p9/RESULT.md section 2 finding 1, Avalonia substitutes Segoe UI for a family it cannot find, and on
     // the owner's PC a per-user Inter 4.001 is installed (probes/p9/INTER.md, "Reference only"), so the key is checked too.
     private const string TextFace = "Inter";
