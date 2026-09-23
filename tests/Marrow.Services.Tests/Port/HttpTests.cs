@@ -13,7 +13,8 @@ namespace Marrow.Services.Tests.Port;
 // Every request goes to LoopbackHttpServer on 127.0.0.1 (R-TEST-10); every timer runs on the manual clock
 // (R-TEST-5, ED-068); LoopbackHttpServer.Guard only stops a broken implementation from hanging the run.
 // This file covers URLSession.shared; HttpSecondTests covers URLSession(configuration:) and the network defaults a
-// server sees (cookies, default request headers, the response cache).
+// server sees (cookies, default request headers, the response cache); HttpStoreTests covers the rules of the cookie
+// store and the response cache case by case; HttpProcessStateTests holds the URLSession.shared store tests (R-TEST-5).
 //
 // Expected values come from the pinned Swift (B2 1fbf81e) and from URLSession's documented behaviour (SEMANTICS),
 // never from a C# implementation. Where the Swift behaviour is not documented and no oracle has settled it, the

@@ -69,4 +69,35 @@ public sealed class HttpProcessStateTests
         Assert.Equal(Ascii("{\"v\":1}"), data);
         Assert.Equal(200, Assert.IsType<HTTPURLResponse>(response).StatusCode);
     }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
+    [Trait("Rule", "R-TEST-5")]
+    [Trait("Decision", "ED-118")]
+    [Trait("Oracle", "O-33")]
+    public async Task A_cached_answer_on_the_shared_session_goes_stale_when_its_max_age_elapses_on_SwiftClock()
+    {
+        // ED-118 item 4: a stored answer is returned while fresh, its age measured with SwiftClock.Provider, never
+        // the wall clock. max-age=600: 599 s later on the manual clock it is served from the cache; 600 s later it
+        // is stale (RFC 9111 4.2: fresh while the lifetime is greater than the age) and the server is asked again.
+        // The path is unique so no other test's entry in URLCache.shared can answer it.
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        var arrivals = new Arrivals(server);
+        var url = server.Url("/usage-" + Guid.NewGuid().ToString("N"));
+        var first = URLSession.Shared.Data(url);
+        await (await arrivals.Next()).Respond(200, "OK", Ascii("v1"), ("Cache-Control", "max-age=600"));
+        Assert.Equal(Ascii("v1"), (await first.WaitAsync(Guard)).Data);
+
+        runtime.Advance(TimeSpan.FromSeconds(599));
+        var fresh = URLSession.Shared.Data(url);
+        Assert.False(await arrivals.Reached(fresh));
+        Assert.Equal(Ascii("v1"), (await fresh).Data);
+
+        runtime.Advance(TimeSpan.FromSeconds(1));
+        var stale = URLSession.Shared.Data(url);
+        Assert.True(await arrivals.Reached(stale));
+        await (await arrivals.Next()).Respond(200, "OK", Ascii("v2"), ("Cache-Control", "max-age=600"));
+        Assert.Equal(Ascii("v2"), (await stale.WaitAsync(Guard)).Data);
+    }
 }
