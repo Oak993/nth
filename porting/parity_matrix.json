@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 409,
+      "IMPLEMENTED": 456,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 3465,
+      "SPECIFIED": 3418,
       "RETIRED": 6,
       "DISCOVERED": 33
     },
@@ -25558,7 +25558,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data table in the main process, identical values. The asset name maps to a bundled monochrome SVG named mcp-github. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test comparing the whole catalog table against a frozen fixture derived from source",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25567,8 +25567,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -25590,12 +25589,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical static data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-025",
-      "rework": true
+      "implemented_by_task": "T-M2-025"
     },
     {
       "area": "MCP",
@@ -25617,12 +25615,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. Command resolution must find npx.cmd on Windows (see the LoginEnvironment.which port).",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-025",
-      "rework": true
+      "implemented_by_task": "T-M2-025"
     },
     {
       "area": "MCP",
@@ -25645,12 +25642,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-025",
-      "rework": true
+      "implemented_by_task": "T-M2-025"
     },
     {
       "area": "MCP",
@@ -25673,7 +25669,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture, plus a contract fixture for the resolved header when the key is blank",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25682,8 +25678,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -25706,12 +25701,11 @@
       "cancellation": "not cancellable",
       "windows_path": "defaultValue becomes the Windows user profile directory (the home-directory equivalent). The placeholder string \"/Users/you/Projects\" is a literal and is NOT localized to a Windows path - it is user-visible verbatim text.",
       "verification_method": "unit test against a frozen catalog fixture; the defaultValue is asserted as the resolved home directory, not a literal",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-025",
-      "rework": true
+      "implemented_by_task": "T-M2-025"
     },
     {
       "area": "MCP",
@@ -25734,7 +25728,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. The uvx failure string is the OD-0008 B5 wording, which names winget instead of Homebrew; it is produced by PR-MCP-120.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25743,8 +25737,7 @@
         "decision": "OD-0008 B5",
         "upstream": "Upstream message \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\": DroppyCode/Services/MCP/MCPProbe.swift:22 - :22 case \"uvx\": return \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\"",
         "port": "Marrow message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21 and B2 :22 both have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -25767,12 +25760,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-025",
-      "rework": true
+      "implemented_by_task": "T-M2-025"
     },
     {
       "area": "MCP",
@@ -25795,12 +25787,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-025",
-      "rework": true
+      "implemented_by_task": "T-M2-025"
     },
     {
       "area": "MCP",
@@ -25823,7 +25814,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data; cwd is the Windows user profile directory.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25832,8 +25823,7 @@
         "decision": "OD-0008 B5",
         "upstream": "Upstream message \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\": DroppyCode/Services/MCP/MCPProbe.swift:22 - :22 case \"uvx\": return \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\"",
         "port": "Marrow message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21 and B2 :22 both have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -25860,7 +25850,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data; the key goes to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25869,8 +25859,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -25892,7 +25881,7 @@
       "cancellation": "the probe task is cancelled by a second connect/refresh; the callback listener is cancelled with it",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25901,8 +25890,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -25924,7 +25912,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25933,8 +25921,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -25957,7 +25944,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25966,8 +25953,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -25990,7 +25976,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25999,8 +25985,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26023,7 +26008,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26032,8 +26017,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26055,7 +26039,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26064,8 +26048,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26087,7 +26070,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26096,8 +26079,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26119,7 +26101,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26128,8 +26110,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26151,7 +26132,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26160,8 +26141,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26183,7 +26163,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26192,8 +26172,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26215,7 +26194,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26224,8 +26203,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26247,7 +26225,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26256,8 +26234,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26279,7 +26256,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26288,8 +26265,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26311,7 +26287,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26320,8 +26296,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26343,7 +26318,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture; contract fixture replaying Stripe's bare resource_metadata challenge",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26352,8 +26327,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26375,7 +26349,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26384,8 +26358,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26407,7 +26380,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. Note the DSN reaching argv and the four on-disk provider configs is upstream behavior for every secret field that resolves into args; the Windows port reproduces it. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture; contract fixture for the resolved argv",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26416,8 +26389,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26439,7 +26411,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data; the placeholder \"/path/to/app.db\" stays verbatim.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26448,8 +26420,7 @@
         "decision": "OD-0008 B5",
         "upstream": "Upstream message \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\": DroppyCode/Services/MCP/MCPProbe.swift:22 - :22 case \"uvx\": return \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\"",
         "port": "Marrow message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21 and B2 :22 both have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26472,7 +26443,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data, including the U+2192 arrow in the help string. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture with byte-exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26481,8 +26452,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26504,7 +26474,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26513,8 +26483,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26539,12 +26508,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture; contract fixture asserting the four provider files differ for this server",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-028",
-      "rework": true
+      "implemented_by_task": "T-M2-028"
     },
     {
       "area": "MCP",
@@ -26566,7 +26534,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26575,8 +26543,7 @@
         "decision": "OD-0008 B5",
         "upstream": "Upstream message \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\": DroppyCode/Services/MCP/MCPProbe.swift:22 - :22 case \"uvx\": return \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\"",
         "port": "Marrow message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21 and B2 :22 both have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26599,12 +26566,11 @@
       "cancellation": "not cancellable",
       "windows_path": "One ordered array, not a map, because the order drives the grid within each category section.",
       "verification_method": "unit test on count, order and the OAuth subset",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-028",
-      "rework": true
+      "implemented_by_task": "T-M2-028"
     },
     {
       "area": "MCP",
@@ -26626,12 +26592,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct lookup; must stay case-sensitive.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-028",
-      "rework": true
+      "implemented_by_task": "T-M2-028"
     },
     {
       "area": "MCP",
@@ -26653,12 +26618,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-pass lookup and the same three-rule normalizer. Do not add extra normalization (stripping spaces, removing hyphens): it would change which names resolve.",
       "verification_method": "unit with id and normalized-name lookup, the positive \"Hugging Face\" name fallback, and negative whitespace/punctuation cases; review id-before-name precedence against source",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-028",
-      "rework": true
+      "implemented_by_task": "T-M2-028"
     },
     {
       "area": "MCP",
@@ -26681,12 +26645,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Preserve declaration order explicitly; do not sort alphabetically.",
       "verification_method": "unit asserting the seven-group order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-028",
-      "rework": true
+      "implemented_by_task": "T-M2-028"
     },
     {
       "area": "MCP",
@@ -28050,7 +28013,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same algorithm character by character. Unicode letters and digits count as letters and numbers, so a non-ASCII name produces a non-ASCII id, which then becomes a JSON key and part of a proxy route path. Protected storage is Windows Credential Manager (OD-0008 B3), under the same account strings.",
       "verification_method": "unit with the three examples plus a non-ASCII name",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -28080,7 +28043,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two forms; the stdio prefix is the OD-0008 B4 wording \"Runs on this PC: \" in place of \"Runs on this Mac: \".",
       "verification_method": "unit on both branches plus a capture of the row text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -28110,7 +28073,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same mapping. The isRequired-true-for-every-variable rule is what makes the key panel's save button demand every variable.",
       "verification_method": "unit over both kinds plus the duplicate-key uniquing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28135,7 +28098,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field names and same tolerance at this level exactly.",
       "verification_method": "unit feeding a record with each optional key missing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -28172,7 +28135,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Tell a missing file apart from one that fails to read or decode; after a failure, keep a flag that stops saveCustoms from writing custom-mcp.json, and surface the failure. Named deviation. BLK-0002 is resolved by OD-0008 A2.",
       "verification_method": "integration test: start the store on a custom-mcp.json whose variable lacks isSecret, assert the failure is surfaced, then add a custom server and assert the file's bytes are unchanged; plus a test that a missing file starts empty with no error; the message text is asserted byte for byte against OD-0012 E3",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "17",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -28204,7 +28167,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same selector, and keep both arrays in the persisted record.",
       "verification_method": "unit switching kinds and asserting both arrays survive a round trip",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28229,7 +28192,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order and the same http-only lowercasing. Note the id is recomputed inside validate from the trimmed name, which for an edit differs from the id saveCustom actually uses.",
       "verification_method": "unit over each branch including the http case-collision case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -28255,7 +28218,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same predicate including Unicode letters and digits.",
       "verification_method": "unit with an ASCII and a non-ASCII case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28280,7 +28243,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim, including the curly quotes.",
       "verification_method": "unit with byte-exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28305,7 +28268,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four-host allowlist verbatim, including both bracketed and unbracketed IPv6 loopback spellings.",
       "verification_method": "unit over the four allowed hosts, a rejected http host, and an https host",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
