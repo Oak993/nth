@@ -362,7 +362,9 @@ public sealed partial record Git
         // :213
         for (var attempt = 0; attempt < 6; attempt++)
         {
-            // :214-219
+            // :214-219. :216 passes "--remove-source-branch" last, so GitLab removes the request's source branch on
+            // the remote once it merges; the agent-facing prompt (Core/Models/MergeRequestLink.swift:50) keeps
+            // `glab mr merge <number> --yes` without it at B2, and the port leaves that difference as it is.
             var result = link.LinkForge switch
             {
                 MergeRequestLink.Forge.Gitlab => await Shell.RunTool("glab",
