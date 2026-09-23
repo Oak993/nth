@@ -1,9 +1,13 @@
 // PORT-ONLY: Avalonia and Windows surface for the AppKit attachment ghost in AttachmentFlight.swift.
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
+using Avalonia.Win32;
+
+[assembly: InternalsVisibleTo("Marrow.App.Tests")]
 
 namespace Marrow.App.Port;
 
@@ -60,6 +64,11 @@ public sealed class WindowsAttachmentFlightPlatform : IAttachmentFlightPlatform
 /// <summary>A borderless transparent window at the top of the app's visual stack.</summary>
 internal sealed class AttachmentFlightWindow : Avalonia.Controls.Window, IAttachmentFlightSurface
 {
+    // AttachmentFlight.swift:128-129, :136, :138-139; ED-155: avoid activation, keep layering
+    // and tool-window visibility, and pass pointer input through the flight image.
+    internal const nint FlightExtendedStyle = 0x08000000 | 0x00080000 | 0x00000080 | 0x00000020;
+    internal static nint WithFlightStyle(nint current) => current | FlightExtendedStyle;
+
     private readonly AttachmentFlightLayer layer;
     public AttachmentFlightWindow(Rect frame, Rect screen, IImage image)
     {
@@ -81,6 +90,14 @@ internal sealed class AttachmentFlightWindow : Avalonia.Controls.Window, IAttach
         Position = new PixelPoint((int)Math.Round(frame.X * scale), (int)Math.Round(frame.Y * scale));
         layer = new AttachmentFlightLayer(image);
         Content = layer;
+        Win32Properties.AddWindowStylesCallback(this, (style, extended) =>
+            (style, (uint)WithFlightStyle((nint)extended)));
+        var handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+        if (handle != IntPtr.Zero)
+        {
+            SetWindowLongPtr(handle, -20, WithFlightStyle(GetWindowLongPtr(handle, -20)));
+            SetLayeredWindowAttributes(handle, 0, 255, 0x2);
+        }
     }
 
     public void Apply(Rect frame, double radius)
@@ -93,11 +110,6 @@ internal sealed class AttachmentFlightWindow : Avalonia.Controls.Window, IAttach
     void IAttachmentFlightSurface.Show()
     {
         base.Show();
-        // WS_EX_NOACTIVATE | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW: no key/main role and mouse pass-through.
-        var handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
-        if (handle == IntPtr.Zero) return;
-        var style = GetWindowLongPtr(handle, -20);
-        SetWindowLongPtr(handle, -20, style | 0x08000000 | 0x00000020 | 0x00000080);
     }
 
     public void OrderOut() => Close();
@@ -107,6 +119,10 @@ internal sealed class AttachmentFlightWindow : Avalonia.Controls.Window, IAttach
 
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
     private static extern nint SetWindowLongPtr(nint window, int index, nint value);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetLayeredWindowAttributes(nint window, uint colorKey, byte alpha, uint flags);
 }
 
 internal sealed class AttachmentFlightLayer(IImage image) : Control
