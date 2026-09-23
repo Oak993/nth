@@ -1,5 +1,4 @@
 using System.Globalization;
-using Marrow.Core.Port;
 using Marrow.Services.Port;
 using Marrow.Services.Tests.Fixtures;
 using Marrow.Testing;
@@ -18,20 +17,28 @@ namespace Marrow.Services.Tests.Port;
 //     (DroppyCode/Services/Providers/CommandCodeSession.swift:651-667). Port: FileWatcher.WatchDirectory.
 //
 // The surface these tests fix; the implementation follows it:
-//   static FileWatcher? WatchTree(IReadOnlyList<string> roots, TimeSpan latency, Action<FileWatcherBatch> onEvents, int bufferSize = <default>)
+//   static FileWatcher? WatchTree(IReadOnlyList<string> roots, Action<FileWatcherBatch> onEvents, int bufferSize = <default>)
 //   static FileWatcher? WatchDirectory(string directory, Action onChange)
 //   void Cancel()
 //   FileWatcherBatch(IReadOnlyList<string> Paths, bool Everything)   (a sealed record)
-// A reported path is the root string as given, a backslash, and the name Windows reports relative to that root.
+// There is no latency parameter: the only FSEvents caller passes latency 0 with NoDefer (WorkingTreeWatch.swift:142,
+// :145) and the dispatch source has none (CommandCodeSession.swift:654), so delivery is never held for time and never
+// waits on SwiftClock. The bufferSize default is not pinned here: no engineering decision records it yet (reported
+// with this unit; P8 measured a 4096 minimum, 8192 FileSystemWatcher default and 65536 maximum).
+// A reported path is the root string as given, a backslash, and the name Windows reports relative to that root,
+// unchanged: no case folding, no Unicode normalization (WorkingTreeWatch.swift:175 takes the paths as they arrive;
+// :191, :196 and :200 compare them with hasPrefix; :204-205 slice them).
 // Everything is true when events may have been lost since the last delivery: FileSystemWatcher.Error carrying
 // InternalBufferOverflowException (P8, the Windows form of the three loss flags at WorkingTreeWatch.swift:180-189),
 // and any other Error (P8 "Design consequence", an ENGINEERING DECISION recorded there).
 //
-// Events arrive on FileSystemWatcher's threads. They reach the main executor and the clock that were current where
-// the watch was started (the ExecutionContext is captured then, as MainActor.AsyncAfter and ManualTimeProvider do),
-// which in the app are bound process-wide and in these tests are the TestRuntime's. A zero latency never waits on
-// SwiftClock (Swift passes 0 with NoDefer: delivery is not held for time); a nonzero latency is the port's own
-// coalescing, a TaskHandle re-armed by each event (R-GCD-3), timed by SwiftClock.
+// Events arrive on FileSystemWatcher's threads. They reach the main executor that was current where the watch was
+// started (the ExecutionContext is captured then, as MainActor.AsyncAfter does), which in the app is bound
+// process-wide and in these tests is the TestRuntime's.
+//
+// Order between roots is NOT asserted: WorkingTreeWatch.swift:15-18 relies on it for the cookie, but two
+// FileSystemWatchers (PR-GIT-072 windows_path: two directory handles) do not guarantee it. Reported with this unit
+// against PR-GIT-072 / UNK-0011, pending a decision.
 //
 // Every test waits with ManualMainLoop.RunUntil (condition-driven, bounded), never with a fixed sleep (R-TEST-5).
 public sealed class FileWatcherTests
@@ -45,7 +52,7 @@ public sealed class FileWatcherTests
         using var runtime = new TestRuntime();
         using var folder = new ScratchFolder();
         var log = new WatchLog();
-        var watch = FileWatcher.WatchTree([folder.Root], TimeSpan.Zero, log.Record);
+        var watch = FileWatcher.WatchTree([folder.Root], log.Record);
         Assert.NotNull(watch);
         try
         {
@@ -82,7 +89,7 @@ public sealed class FileWatcherTests
         var attributed = folder.Child("attr.txt");
         foreach (var file in new[] { renamedFrom, written, deleted, attributed }) File.WriteAllBytes(file, [1]);
         var log = new WatchLog();
-        var watch = FileWatcher.WatchTree([folder.Root], TimeSpan.Zero, log.Record);
+        var watch = FileWatcher.WatchTree([folder.Root], log.Record);
         Assert.NotNull(watch);
         try
         {
@@ -114,7 +121,7 @@ public sealed class FileWatcherTests
         using var runtime = new TestRuntime();
         using var folder = new ScratchFolder();
         var log = new WatchLog();
-        var watch = FileWatcher.WatchTree([folder.Root], TimeSpan.Zero, log.Record);
+        var watch = FileWatcher.WatchTree([folder.Root], log.Record);
         Assert.NotNull(watch);
         try
         {
@@ -135,11 +142,12 @@ public sealed class FileWatcherTests
     public void Changes_under_every_root_reach_the_one_handler()
     {
         // WorkingTreeWatch.swift:143: roots = gitRoot inside root ? [root] : [root, gitRoot], one stream, one callback.
+        // Only arrival is asserted here, not the order between the two roots (see the note at the top of the file).
         using var runtime = new TestRuntime();
         using var root = new ScratchFolder();
         using var gitRoot = new ScratchFolder();
         var log = new WatchLog();
-        var watch = FileWatcher.WatchTree([root.Root, gitRoot.Root], TimeSpan.Zero, log.Record);
+        var watch = FileWatcher.WatchTree([root.Root, gitRoot.Root], log.Record);
         Assert.NotNull(watch);
         try
         {
@@ -158,14 +166,87 @@ public sealed class FileWatcherTests
 
     [Fact]
     [Trait("Rule", "R-GCD-3")]
-    public void Events_that_arrive_before_main_runs_are_coalesced_into_fewer_deliveries_and_none_is_lost()
+    public void Names_come_through_exactly_as_the_file_system_holds_them_with_no_case_folding_or_normalization()
     {
-        // R-GCD-3 "coalescing": main is not pumped while 200 files are written, so the events wait for main together.
-        // One delivery per event would make at least 200 calls.
+        // WorkingTreeWatch.swift:175 takes the event paths as they arrive, :191/:196/:200 test them with hasPrefix
+        // and :204-205 slice the relative path: nothing lowercases, normalizes or rebuilds them. Names: mixed case
+        // with a precomposed e-acute (U+00E9), a decomposed e-acute (U+0065 U+0301), CJK (U+6F22 U+5B57), and a
+        // supplementary-plane character (U+20BB7, the surrogate pair D842 DFB7). Escapes keep the bytes unambiguous.
+        using var runtime = new TestRuntime();
+        using var folder = new ScratchFolder();
+        string[] names = ["MiéXeD.TXT", "é.txt", "漢字.txt", "𠮷.txt"];
+        var expected = names.Select(name => folder.Root + "\\" + name).ToArray();
+        var log = new WatchLog();
+        var watch = FileWatcher.WatchTree([folder.Root], log.Record);
+        Assert.NotNull(watch);
+        try
+        {
+            foreach (var path in expected) File.WriteAllBytes(path, [1]);
+            runtime.Loop.RunUntil(() => log.SawAll(expected));
+            runtime.RunUntilIdle();
+            // Every reported path is one of the exact strings (ordinal): no folded or normalized twin was reported.
+            Assert.All(log.Paths, path => Assert.Contains(path, expected, StringComparer.Ordinal));
+            // The last name really is a surrogate pair plus ".txt": 2 + 4 UTF-16 code units.
+            Assert.Equal(6, names[3].Length);
+            Assert.False(log.Everything);
+        }
+        finally
+        {
+            watch.Cancel();
+        }
+    }
+
+    [Fact]
+    [Trait("Rule", "R-GCD-3")]
+    public void Changes_made_before_the_watch_starts_are_not_reported()
+    {
+        // WorkingTreeWatch.swift:145 FSEventStreamEventId(kFSEventStreamEventIdSinceNow); PR-GIT-072: events
+        // "starting from the moment of creation". No replay of history and no initial scan of what exists. A
+        // sentinel created after the watch starts proves the watch is live before the earlier files are judged.
+        using var runtime = new TestRuntime();
+        using var folder = new ScratchFolder();
+        var created = folder.Child("created-before.txt");
+        var written = folder.Child("written-before.txt");
+        var removed = folder.Child("removed-before.txt");
+        var directory = folder.Child("dir-before");
+        File.WriteAllBytes(written, [1]);
+        File.WriteAllBytes(removed, [1]);
+        using (var stream = new FileStream(written, FileMode.Append, FileAccess.Write)) stream.WriteByte(2);
+        File.WriteAllBytes(created, [1]);
+        File.Delete(removed);
+        Directory.CreateDirectory(directory);
+        var log = new WatchLog();
+        var watch = FileWatcher.WatchTree([folder.Root], log.Record);
+        Assert.NotNull(watch);
+        try
+        {
+            var sentinel = folder.Child("sentinel.txt");
+            File.WriteAllBytes(sentinel, [1]);
+            runtime.Loop.RunUntil(() => log.Saw(sentinel));
+            runtime.RunUntilIdle();
+            Assert.False(log.Saw(created));
+            Assert.False(log.Saw(written));
+            Assert.False(log.Saw(removed));
+            Assert.False(log.Saw(directory));
+            Assert.False(log.Everything);
+        }
+        finally
+        {
+            watch.Cancel();
+        }
+    }
+
+    [Fact]
+    [Trait("Rule", "R-GCD-3")]
+    public void Events_that_arrive_before_main_runs_are_batched_into_fewer_deliveries_and_none_is_lost()
+    {
+        // WorkingTreeWatch.swift:172-176: the FSEvents callback `{ _, info, count, eventPaths, eventFlags, _ in ... }`
+        // hands over `count` paths per call, a batch, and :185 walks them in order. Main is not pumped while 200 files
+        // are written, so the events wait for main together; one delivery per event would make at least 200 calls.
         using var runtime = new TestRuntime();
         using var folder = new ScratchFolder();
         var log = new WatchLog();
-        var watch = FileWatcher.WatchTree([folder.Root], TimeSpan.Zero, log.Record);
+        var watch = FileWatcher.WatchTree([folder.Root], log.Record);
         Assert.NotNull(watch);
         try
         {
@@ -191,13 +272,12 @@ public sealed class FileWatcherTests
         // P8 (porting/probes/p8/RESULT.md): with InternalBufferSize at its 4 KB minimum a fast burst overflows and
         // FileSystemWatcher.Error carries InternalBufferOverflowException; that maps to everything = true /
         // changed = nil (WorkingTreeWatch.swift:180-189, :211-212). The overflow is timing dependent (P8: 6 of 18
-        // bursts; this test's shape overflowed about 1 in 3 in a scratch run), so bursts repeat until one does, at
-        // most 40. Each burst also waits until every burst file was reported or the loss was signalled: P8's
+        // bursts of 10,000 files), so bursts repeat until one does, at most 40. Each burst also waits until every burst file was reported or the loss was signalled: P8's
         // "loss implies signal" (C4); a burst that loses events silently times out here.
         using var runtime = new TestRuntime();
         using var folder = new ScratchFolder();
         var log = new WatchLog();
-        var watch = FileWatcher.WatchTree([folder.Root], TimeSpan.Zero, log.Record, bufferSize: 4096);
+        var watch = FileWatcher.WatchTree([folder.Root], log.Record, bufferSize: 4096);
         Assert.NotNull(watch);
         try
         {
@@ -235,16 +315,18 @@ public sealed class FileWatcherTests
     {
         // P8 "Design consequence": every other Error exception type is handled as lost too (an ENGINEERING DECISION
         // recorded there; WorkingTreeWatch.swift:18-21 "anything the stream could have missed ... means a fresh
-        // snapshot"). Deleting the watched root raises Error with Win32Exception 5 (Access is denied): 10 of 10 in a
-        // scratch run on this machine. Swift reaches everything here too: the root's own path fails the
-        // rootPrefix test at :200.
+        // snapshot"). P8 saw no Error of another type; that deleting the watched root raises one comes from this
+        // unit's own check (the F.FSWatcher part 1 report: a scratch console program, FileSystemWatcher with the
+        // PR-GIT-072 filter on <temp>\delN\watched, Directory.Delete(root, true), 10 trials: "10 x Win32Exception 5
+        // Access is denied."). Swift reaches everything here too: the root's own path fails the rootPrefix test at
+        // :200.
         using var runtime = new TestRuntime();
         using var folder = new ScratchFolder();
         var root = folder.Child("watched");
         Directory.CreateDirectory(folder.Child("watched", "sub"));
         File.WriteAllBytes(folder.Child("watched", "sub", "a.txt"), [1]);
         var log = new WatchLog();
-        var watch = FileWatcher.WatchTree([root], TimeSpan.Zero, log.Record);
+        var watch = FileWatcher.WatchTree([root], log.Record);
         Assert.NotNull(watch);
         try
         {
@@ -262,12 +344,14 @@ public sealed class FileWatcherTests
     [Trait("Rule", "R-GCD-3")]
     public void Watching_a_directory_that_does_not_exist_gives_no_watch()
     {
-        // WorkingTreeWatch.swift:144-154: a stream that cannot be created or started leaves no stream (every snapshot
-        // is then taken fresh, :246-247). CommandCodeSession.swift:652-653: open() failing returns with no source.
+        // WorkingTreeWatch.swift:94-95: for a directory that does not exist the volumeIsLocalKey lookup throws, `try?`
+        // makes it nil, and the guard returns nil: no watch, so every snapshot is taken fresh. WatchTree answers null
+        // for such a root. CommandCodeSession.swift:652-653: open() failing returns with no source; WatchDirectory
+        // answers null.
         using var runtime = new TestRuntime();
         using var folder = new ScratchFolder();
         var log = new WatchLog();
-        Assert.Null(FileWatcher.WatchTree([folder.Child("missing")], TimeSpan.Zero, log.Record));
+        Assert.Null(FileWatcher.WatchTree([folder.Child("missing")], log.Record));
         Assert.Null(FileWatcher.WatchDirectory(folder.Child("missing"), log.RecordCall));
         runtime.RunUntilIdle();
         Assert.Equal(0, log.Calls);
@@ -283,7 +367,7 @@ public sealed class FileWatcherTests
         using var runtime = new TestRuntime();
         using var folder = new ScratchFolder();
         var log = new WatchLog();
-        var watch = FileWatcher.WatchTree([folder.Root], TimeSpan.Zero, log.Record);
+        var watch = FileWatcher.WatchTree([folder.Root], log.Record);
         Assert.NotNull(watch);
         try
         {
@@ -314,87 +398,6 @@ public sealed class FileWatcherTests
 
     [Fact]
     [Trait("Rule", "R-GCD-3")]
-    [Trait("Rule", "R-TASK-6")]
-    [Trait("Decision", "ED-068")]
-    public void A_nonzero_latency_delivers_exactly_when_the_latency_has_passed_after_the_event()
-    {
-        // R-GCD-3: "the latency coalescing is the port's own, a TaskHandle re-armed by each event", on SwiftClock.
-        // A new directory at the root raises exactly one event (Created), so one wait is armed.
-        using var runtime = new TestRuntime();
-        var counting = new CountingTimeProvider(runtime.Time);
-        using var clock = SwiftClock.Provider.Override(counting);
-        using var folder = new ScratchFolder();
-        var log = new WatchLog();
-        var latency = TimeSpan.FromMilliseconds(100);
-        var watch = FileWatcher.WatchTree([folder.Root], latency, log.Record);
-        Assert.NotNull(watch);
-        try
-        {
-            var created = folder.Child("a");
-            Directory.CreateDirectory(created);
-            runtime.Loop.RunUntil(() => counting.TimersCreated >= 1);
-            runtime.RunUntilIdle();
-            Assert.Equal(0, log.Calls);
-            runtime.Advance(latency - TimeSpan.FromTicks(1));
-            Assert.Equal(0, log.Calls);
-            runtime.Advance(TimeSpan.FromTicks(1));
-            runtime.Loop.RunUntil(() => log.Calls >= 1);
-            Assert.True(log.Saw(created));
-            Assert.True(log.AllOnMainOutsideAnyTask);
-        }
-        finally
-        {
-            watch.Cancel();
-        }
-    }
-
-    [Fact]
-    [Trait("Rule", "R-GCD-3")]
-    [Trait("Rule", "R-TASK-6")]
-    [Trait("Decision", "ED-068")]
-    public void Each_event_re_arms_the_latency_and_the_held_events_arrive_together_in_order()
-    {
-        // R-GCD-3: a TaskHandle re-armed by each event (the debounce shape of R-TASK-6, tested on both sides of each
-        // boundary). Event a at 0 arms a wait due at L; event b at L - 1 ms re-arms it to 2L - 1 ms.
-        using var runtime = new TestRuntime();
-        var counting = new CountingTimeProvider(runtime.Time);
-        using var clock = SwiftClock.Provider.Override(counting);
-        using var folder = new ScratchFolder();
-        var log = new WatchLog();
-        var latency = TimeSpan.FromMilliseconds(100);
-        var millisecond = TimeSpan.FromMilliseconds(1);
-        var watch = FileWatcher.WatchTree([folder.Root], latency, log.Record);
-        Assert.NotNull(watch);
-        try
-        {
-            var first = folder.Child("a");
-            Directory.CreateDirectory(first);
-            runtime.Loop.RunUntil(() => counting.TimersCreated >= 1);
-            runtime.Advance(latency - millisecond);
-            Assert.Equal(0, log.Calls);
-            var second = folder.Child("b");
-            Directory.CreateDirectory(second);
-            runtime.Loop.RunUntil(() => counting.TimersCreated >= 2);
-            runtime.Advance(millisecond);
-            runtime.RunUntilIdle();
-            Assert.Equal(0, log.Calls);
-            runtime.Advance(latency - millisecond - millisecond);
-            Assert.Equal(0, log.Calls);
-            runtime.Advance(millisecond);
-            runtime.Loop.RunUntil(() => log.Calls >= 1);
-            Assert.Equal(1, log.Calls);
-            Assert.True(log.Saw(first));
-            Assert.True(log.Saw(second));
-            Assert.True(log.FirstIndex(first) < log.FirstIndex(second));
-        }
-        finally
-        {
-            watch.Cancel();
-        }
-    }
-
-    [Fact]
-    [Trait("Rule", "R-GCD-3")]
     public async Task A_cancelled_tree_watch_reports_nothing_more_and_cancel_may_be_repeated_from_any_thread()
     {
         // WorkingTreeWatch.swift:159-170: tearDown runs from whichever thread gives up on the watch (off main at
@@ -404,8 +407,8 @@ public sealed class FileWatcherTests
         using var folder = new ScratchFolder();
         var cancelledLog = new WatchLog();
         var sentinelLog = new WatchLog();
-        var cancelled = FileWatcher.WatchTree([folder.Root], TimeSpan.Zero, cancelledLog.Record);
-        var sentinel = FileWatcher.WatchTree([folder.Root], TimeSpan.Zero, sentinelLog.Record);
+        var cancelled = FileWatcher.WatchTree([folder.Root], cancelledLog.Record);
+        var sentinel = FileWatcher.WatchTree([folder.Root], sentinelLog.Record);
         Assert.NotNull(cancelled);
         Assert.NotNull(sentinel);
         try
@@ -436,10 +439,14 @@ public sealed class FileWatcherTests
     {
         // CommandCodeSession.swift:654-657: eventMask [.write] on the directory, queue .main, handler
         // MainActor.assumeIsolated { scanApprovals() }. For a directory, the vnode write event (NOTE_WRITE) is a
-        // change to its entries: one added, removed or renamed (SEMANTICS, kqueue EVFILT_VNODE).
+        // change to its entries: one added, removed or renamed (SEMANTICS, kqueue EVFILT_VNODE), files and
+        // subdirectories alike: a subdirectory is an entry of the watched directory too.
         AssertDirectoryWatchRuns(folder => File.WriteAllBytes(folder.Child("2.request.json"), [1]));
         AssertDirectoryWatchRuns(folder => File.Move(folder.Child("1.request.json"), folder.Child("3.request.json")));
         AssertDirectoryWatchRuns(folder => File.Delete(folder.Child("1.request.json")));
+        AssertDirectoryWatchRuns(folder => Directory.CreateDirectory(folder.Child("d")));
+        AssertDirectoryWatchRuns(folder => Directory.Move(folder.Child("seed.d"), folder.Child("moved.d")));
+        AssertDirectoryWatchRuns(folder => Directory.Delete(folder.Child("seed.d")));
     }
 
     [Fact]
@@ -458,7 +465,7 @@ public sealed class FileWatcherTests
         var directoryLog = new WatchLog();
         var sentinelLog = new WatchLog();
         var watch = FileWatcher.WatchDirectory(folder.Root, directoryLog.RecordCall);
-        var sentinel = FileWatcher.WatchTree([folder.Root], TimeSpan.Zero, sentinelLog.Record);
+        var sentinel = FileWatcher.WatchTree([folder.Root], sentinelLog.Record);
         Assert.NotNull(watch);
         Assert.NotNull(sentinel);
         try
@@ -482,13 +489,14 @@ public sealed class FileWatcherTests
     public void A_directory_watch_coalesces_changes_that_arrive_before_main_runs()
     {
         // A dispatch source merges events that arrive while its handler is pending into one handler run (SEMANTICS,
-        // GCD); R-GCD-3 "coalescing". Main is not pumped while 100 requests are written.
+        // GCD: a vnode source ORs the flags of pending events into one dispatch_source_get_data). Main is not pumped
+        // while 100 requests are written.
         using var runtime = new TestRuntime();
         using var folder = new ScratchFolder();
         var directoryLog = new WatchLog();
         var sentinelLog = new WatchLog();
         var watch = FileWatcher.WatchDirectory(folder.Root, directoryLog.RecordCall);
-        var sentinel = FileWatcher.WatchTree([folder.Root], TimeSpan.Zero, sentinelLog.Record);
+        var sentinel = FileWatcher.WatchTree([folder.Root], sentinelLog.Record);
         Assert.NotNull(watch);
         Assert.NotNull(sentinel);
         try
@@ -538,6 +546,7 @@ public sealed class FileWatcherTests
         using var runtime = new TestRuntime();
         using var folder = new ScratchFolder();
         File.WriteAllBytes(folder.Child("1.request.json"), [1]);
+        Directory.CreateDirectory(folder.Child("seed.d"));
         var log = new WatchLog();
         var watch = FileWatcher.WatchDirectory(folder.Root, log.RecordCall);
         Assert.NotNull(watch);

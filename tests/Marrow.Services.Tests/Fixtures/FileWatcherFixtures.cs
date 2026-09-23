@@ -121,6 +121,12 @@ public sealed class WatchLog
         lock (gate) return paths.All(seen.Contains);
     }
 
+    /// <summary>Every delivered path so far, in arrival order (a copy).</summary>
+    public IReadOnlyList<string> Paths
+    {
+        get { lock (gate) return [.. order]; }
+    }
+
     /// <summary>Where <paramref name="path"/> first arrived, counting every delivered path; -1 if never.</summary>
     public int FirstIndex(string path)
     {
@@ -135,30 +141,5 @@ public sealed class WatchLog
             order.Clear();
             seen.Clear();
         }
-    }
-}
-
-/// <summary>
-/// Passes everything to <paramref name="inner"/> (the test runtime's manual clock) and counts the timers created
-/// through it, so a test can tell when a watch has armed, or re-armed, its latency wait.
-/// </summary>
-public sealed class CountingTimeProvider(TimeProvider inner) : TimeProvider
-{
-    private int created;
-
-    public int TimersCreated => Volatile.Read(ref created);
-
-    public override DateTimeOffset GetUtcNow() => inner.GetUtcNow();
-
-    public override long GetTimestamp() => inner.GetTimestamp();
-
-    public override long TimestampFrequency => inner.TimestampFrequency;
-
-    public override TimeZoneInfo LocalTimeZone => inner.LocalTimeZone;
-
-    public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
-    {
-        Interlocked.Increment(ref created);
-        return inner.CreateTimer(callback, state, dueTime, period);
     }
 }
