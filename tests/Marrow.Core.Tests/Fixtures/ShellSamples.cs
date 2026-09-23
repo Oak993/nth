@@ -85,8 +85,12 @@ public static class ShellScripts
         $"[IO.File]::WriteAllText('{armedFile.Replace("'", "''", StringComparison.Ordinal)}', 'armed')\n" +
         "Start-Sleep 120\n";
 
-    /// <summary>The argv powershell.exe takes to run <paramref name="script"/>.</summary>
-    public static IReadOnlyList<string> Arguments(string script) => SystemTools.PowerShellEncoded(script);
+    /// <summary>
+    /// The argv powershell.exe takes to run <paramref name="script"/>, with progress records off: powershell.exe writes
+    /// them as "#< CLIXML" text into a redirected stream, which would add bytes the script never wrote.
+    /// </summary>
+    public static IReadOnlyList<string> Arguments(string script) =>
+        SystemTools.PowerShellEncoded("$ProgressPreference='SilentlyContinue'; " + script);
 
     /// <summary>The test host's own environment as a case-insensitive dictionary (ED-128).</summary>
     public static Dictionary<string, string> HostEnvironment() =>

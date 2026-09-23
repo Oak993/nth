@@ -106,7 +106,8 @@ public sealed class ShellTests
         Assert.Equal(Environment.CurrentDirectory, inherited.Output);
         var folder = ProcessTestFolders.Create("shell cwd");
         var given = await ShellScripts.Run(script, directory: folder).WaitAsync(Bound);
-        Assert.Equal(folder, given.Output);
+        // Windows keeps a working directory in its full form, so a '/' in MARROW_PORT_DATA_DIR comes back as '\'.
+        Assert.Equal(Path.GetFullPath(folder), given.Output);
     }
 
     [Fact]
@@ -250,7 +251,7 @@ public sealed class ShellTests
         runtime.Advance(TimeSpan.FromSeconds(120));
         // The graceful step has been sent once the one-second kill is scheduled (Shell.swift:112-113).
         Assert.True(Eventually(() => runtime.Time.ActiveTimers == 1), "the kill was never scheduled");
-        Assert.False(run.Wait(TimeSpan.FromMilliseconds(500)), "the child ended on the stop request");
+        Assert.False(SpinWait.SpinUntil(() => run.IsCompleted, TimeSpan.FromMilliseconds(500)), "the child ended on the stop request");
         runtime.Advance(TimeSpan.FromSeconds(1) - TimeSpan.FromTicks(1));
         Assert.False(run.IsCompleted);
         runtime.Advance(TimeSpan.FromTicks(1));
@@ -307,7 +308,7 @@ public sealed class ShellTests
         handle.Cancel();
         // The deadline sleep is not the kill: the kill is a second timer, one second out.
         Assert.True(Eventually(() => runtime.Time.ActiveTimers == 2), "the kill was never scheduled");
-        Assert.False(handle.Value.Wait(TimeSpan.FromMilliseconds(500)), "the child ended on the stop request");
+        Assert.False(SpinWait.SpinUntil(() => handle.Value.IsCompleted, TimeSpan.FromMilliseconds(500)), "the child ended on the stop request");
         runtime.Advance(TimeSpan.FromSeconds(1));
         await Assert.ThrowsAsync<CancellationError>(() => handle.Value.WaitAsync(Bound));
     }
@@ -403,7 +404,7 @@ public sealed class ShellTests
 
     [Fact]
     [Trait("Req", "PR-TERM-087")] // Core/Support/Shell.swift:290-291
-    public void Finished_returns_at_once_when_both_streams_have_already_ended()
+    public async Task Finished_returns_at_once_when_both_streams_have_already_ended()
     {
         using var runtime = new TestRuntime();
         var collector = new OutputCollector(null);
@@ -412,7 +413,7 @@ public sealed class ShellTests
         collector.Reader(OutputCollector.Stream.Stderr, new ProcessPipe())([]);
         var finished = collector.Finished(within: 3);
         Assert.True(finished.IsCompletedSuccessfully);
-        Assert.Equal(new byte[] { 0x41 }, finished.Result.Stdout);
+        Assert.Equal(new byte[] { 0x41 }, (await finished).Stdout);
         Assert.Equal(0, runtime.Time.ActiveTimers);
     }
 
@@ -450,7 +451,7 @@ public sealed class ShellTests
         var second = collector.Finished(within: 3);
         Assert.True(Eventually(() => runtime.Time.ActiveTimers == 2), "the drain deadlines were not armed");
         stdout([]); // the same stream again: not the second stream, so nobody wakes
-        Assert.False(first.Wait(TimeSpan.FromMilliseconds(200)));
+        Assert.False(SpinWait.SpinUntil(() => first.IsCompleted, TimeSpan.FromMilliseconds(200)));
         Assert.False(second.IsCompleted);
         stderr([0x7A]);
         stderr([]);

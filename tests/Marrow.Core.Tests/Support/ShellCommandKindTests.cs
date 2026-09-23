@@ -9,20 +9,28 @@ namespace Marrow.Core.Tests.Support;
 public sealed class ShellCommandKindTests
 {
     // Shell.swift:144-151, all 52 entries, in source order.
-    public static readonly TheoryData<string> Readers = new(
+    private static readonly string[] ReaderNames =
+    [
         "ls", "cat", "bat", "head", "tail", "wc", "grep", "egrep", "fgrep", "rg", "tree",
         "pwd", "echo", "printf", "which", "command", "type", "stat", "file", "du", "df",
         "ps", "printenv", "date", "whoami", "hostname", "uname", "basename", "dirname",
         "realpath", "readlink", "column", "uniq", "cut", "tr", "nl", "diff", "cmp", "jq",
         "yq", "xxd", "od", "md5", "shasum", "cksum", "man", "true", "false", "sleep",
-        "cd", "pushd", "popd");
+        "cd", "pushd", "popd",
+    ];
+
+    public static TheoryData<string> Readers => new(ReaderNames);
 
     // Shell.swift:154-159, all 25 entries, in source order.
-    public static readonly TheoryData<string> GitReaders = new(
+    private static readonly string[] GitReaderNames =
+    [
         "log", "status", "diff", "show", "branch", "rev-parse", "rev-list", "ls-files",
         "ls-tree", "blame", "remote", "describe", "shortlog", "cat-file", "tag", "config",
         "grep", "whatchanged", "reflog", "for-each-ref", "symbolic-ref", "count-objects",
-        "var", "version", "help");
+        "var", "version", "help",
+    ];
+
+    public static TheoryData<string> GitReaders => new(GitReaderNames);
 
     [Fact]
     [Trait("Req", "PR-TERM-092")] // Core/Support/Shell.swift:164-166
@@ -109,8 +117,8 @@ public sealed class ShellCommandKindTests
     [Trait("Req", "PR-TERM-095")] // Core/Support/Shell.swift:144-151
     public void The_reader_table_has_exactly_52_entries()
     {
-        Assert.Equal(52, Readers.Count());
-        Assert.Equal(52, Readers.Select(row => (string)row[0]).Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(52, ReaderNames.Length);
+        Assert.Equal(52, ReaderNames.Distinct(StringComparer.Ordinal).Count());
     }
 
     [Fact]
@@ -181,8 +189,8 @@ public sealed class ShellCommandKindTests
     [Trait("Req", "PR-TERM-098")] // Core/Support/Shell.swift:153-159
     public void The_git_reader_table_has_exactly_25_entries()
     {
-        Assert.Equal(25, GitReaders.Count());
-        Assert.Equal(25, GitReaders.Select(row => (string)row[0]).Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(25, GitReaderNames.Length);
+        Assert.Equal(25, GitReaderNames.Distinct(StringComparer.Ordinal).Count());
     }
 
     [Fact]
