@@ -109,11 +109,11 @@ public sealed record SwiftTransition
         var animation = state.Transition.ForInsert().OwnAnimation() ?? Transaction.Current;
         if (animation is null)
         {
-            state.Transition.Apply(child, state.Bodies, 1, inserting: true);
+            state.Present(child, 1, inserting: true);
             return;
         }
-        state.Transition.Apply(child, state.Bodies, 0, inserting: true);
-        state.Run(animation, (p, _) => state.Transition.Apply(child, state.Bodies, p, inserting: true));
+        state.Present(child, 0, inserting: true);
+        state.Run(animation, (p, _) => state.Present(child, p, inserting: true));
     }
 
     public static void Remove(Panel panel, Control child)
@@ -133,10 +133,10 @@ public sealed record SwiftTransition
             throw new InvalidOperationException(
                 "A child with a modifier transition can leave with an animation only after SwiftTransition.Insert built its wrappers.");
         state.RemovingFrom = panel;
-        state.Transition.Apply(child, state.Bodies, 0, inserting: false);
+        state.Present(child, 0, inserting: false);
         state.Run(animation, (p, complete) =>
         {
-            state.Transition.Apply(child, state.Bodies, p, inserting: false);
+            state.Present(child, p, inserting: false);
             if (!complete) return;
             if (panel.Children.Contains(wrapper)) panel.Children.Remove(wrapper);
             state.RemovingFrom = null;
@@ -178,7 +178,7 @@ public sealed record SwiftTransition
         }
     }
 
-    private void Apply(Control child, List<Control> bodies, double progress, bool inserting)
+    private bool Apply(Control child, List<Control> bodies, double progress, bool inserting)
     {
         // ED-159: gather nested transitions before writing any property, then leave untouched properties alone.
         var effects = new AppliedEffects();
@@ -198,6 +198,7 @@ public sealed record SwiftTransition
         }
         if (effects.EffectTouched)
             child.Effect = effects.BlurRadius > 0 ? new ImmutableBlurEffect(effects.BlurRadius) : null;
+        return effects.SizePending;
     }
 
     private sealed class AppliedEffects
@@ -208,6 +209,7 @@ public sealed record SwiftTransition
         public bool OpacityTouched { get; set; }
         public bool TransformTouched { get; set; }
         public bool EffectTouched { get; set; }
+        public bool SizePending { get; set; }
     }
 
     private void Gather(Control child, List<Control> bodies, ref int cursor, double progress, bool inserting, AppliedEffects effects)
@@ -230,13 +232,25 @@ public sealed record SwiftTransition
                 effects.Transforms.Add(new TranslateTransform(x * offset, y * offset));
                 break;
             case Kind.Move:
-                var width = child.Bounds.Width > 0 ? child.Bounds.Width : child.Width;
-                var height = child.Bounds.Height > 0 ? child.Bounds.Height : child.Height;
+                // ED-092 (2): the offset is the view's own size towards the edge, times the distance from identity.
+                // Identity is a zero offset whatever the size. A child sized by its content (the B2 sites
+                // App/Views/Chat/ChatView.swift:277-278 and App/Views/Usage/UsageViews.swift:250-251) has no size
+                // before its first layout pass: it sits at zero offset and the caller presents the same state again
+                // once layout gives it bounds (SizePending), so the active state is one laid-out size beyond the edge.
                 var distance = inserting ? 1 - progress : progress;
-                var dx = edge == Edge.Leading ? -width : edge == Edge.Trailing ? width : 0;
-                var dy = edge == Edge.Top ? -height : edge == Edge.Bottom ? height : 0;
+                var horizontal = edge is Edge.Leading or Edge.Trailing;
+                var size = horizontal ? OwnLength(child.Bounds.Width, child.Width) : OwnLength(child.Bounds.Height, child.Height);
+                var length = 0.0;
+                if (distance != 0)
+                {
+                    if (size is { } known) length = known * distance;
+                    else effects.SizePending = true;
+                }
+                var sign = edge is Edge.Leading or Edge.Top ? -1 : 1;
                 effects.TransformTouched = true;
-                effects.Transforms.Add(new TranslateTransform(dx * distance, dy * distance));
+                effects.Transforms.Add(horizontal
+                    ? new TranslateTransform(sign * length, 0)
+                    : new TranslateTransform(0, sign * length));
                 break;
             case Kind.BlurReplace:
                 // UNVERIFIED O-51: active downUp state is opacity 0, radius 7 and centre scale 0.9 (ED-159).
@@ -286,6 +300,11 @@ public sealed record SwiftTransition
         }
     }
 
+    // The laid-out length when layout has run, else a fixed Width/Height, else unknown (a content-sized view before
+    // its first layout pass: Width/Height are NaN there).
+    private static double? OwnLength(double laidOut, double fixedLength) =>
+        laidOut > 0 ? laidOut : double.IsFinite(fixedLength) && fixedLength > 0 ? fixedLength : null;
+
     private sealed class Attachment(SwiftTransition transition)
     {
         public SwiftTransition Transition { get; } = transition;
@@ -294,6 +313,26 @@ public sealed record SwiftTransition
         public Panel? RemovingFrom { get; set; }
         private Action<TimeSpan>? callback;
         private IFrameSource? source;
+        private double lastProgress;
+        private bool lastInserting;
+        private EventHandler<AvaloniaPropertyChangedEventArgs>? awaitingSize;
+
+        // Applies the transition at a progress. When a move could not read the child's size yet, the latest state is
+        // presented again at the child's next bounds change (its first layout pass), before it is rendered.
+        public void Present(Control child, double progress, bool inserting)
+        {
+            lastProgress = progress;
+            lastInserting = inserting;
+            if (!Transition.Apply(child, Bodies, progress, inserting) || awaitingSize is not null) return;
+            awaitingSize = (_, e) =>
+            {
+                if (e.Property != Visual.BoundsProperty) return;
+                child.PropertyChanged -= awaitingSize;
+                awaitingSize = null;
+                Present(child, lastProgress, lastInserting);
+            };
+            child.PropertyChanged += awaitingSize;
+        }
 
         public void Stop()
         {
