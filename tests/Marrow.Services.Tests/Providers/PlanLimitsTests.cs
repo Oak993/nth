@@ -160,6 +160,7 @@ public sealed class PlanLimitsTests
 
     [Theory]
     [Trait("Req", "PR-PROVREG-173")] // PlanLimits.swift:92-102
+    [Trait("Req", "PR-USAGE-078")] // PlanLimits.swift:92-102
     [InlineData(null, "Usage limit")]
     [InlineData(300L, "5-hour limit")]
     [InlineData(1_440L, "Daily")]
@@ -669,6 +670,7 @@ public sealed class PlanLimitsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-185")] // PlanLimits.swift:296 - a row without a numeric percent is dropped
+    [Trait("Req", "PR-USAGE-079")] // PlanLimits.swift:296 - a row without a numeric percent is dropped
     public void ParseClaudeUsage_drops_a_row_with_no_numeric_percent()
     {
         var root = JSONValue.Parse("{}")!;
@@ -678,6 +680,7 @@ public sealed class PlanLimitsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-185")] // PlanLimits.swift:300-303 - the two special titles and the id's original index
+    [Trait("Req", "PR-USAGE-079")] // PlanLimits.swift:300-303 - the two special titles and the id's original index
     public void ParseClaudeUsage_titles_session_and_weekly_all_specially_and_keeps_the_original_index_in_the_id()
     {
         var root = JSONValue.Parse("{}")!;
@@ -698,6 +701,7 @@ public sealed class PlanLimitsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-185")] // PlanLimits.swift:303 - group and scope compose the generic title
+    [Trait("Req", "PR-USAGE-079")] // PlanLimits.swift:303 - group and scope compose the generic title
     public void ParseClaudeUsage_composes_the_generic_title_from_group_and_scope()
     {
         var root = JSONValue.Parse("{}")!;
@@ -711,6 +715,7 @@ public sealed class PlanLimitsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-185")] // PlanLimits.swift:298 - group falls back to the literal "Usage"
+    [Trait("Req", "PR-USAGE-079")] // PlanLimits.swift:298 - group falls back to the literal "Usage"
     public void ParseClaudeUsage_falls_back_to_Usage_when_group_is_absent()
     {
         var root = JSONValue.Parse("{}")!;
@@ -721,6 +726,7 @@ public sealed class PlanLimitsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-186")] // PlanLimits.swift:315-320 - falls back to five_hour then seven_day
+    [Trait("Req", "PR-USAGE-079")] // PlanLimits.swift:315-320 - falls back to five_hour then seven_day
     public void ParseClaudeUsage_falls_back_to_five_hour_and_seven_day_when_limits_is_empty()
     {
         var root = JSONValue.Parse("{\"five_hour\":{\"utilization\":11.0},\"seven_day\":{\"utilization\":22.0}}")!;
@@ -737,6 +743,7 @@ public sealed class PlanLimitsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-186")] // PlanLimits.swift:314 - the fallback only runs when limits produced nothing
+    [Trait("Req", "PR-USAGE-079")] // PlanLimits.swift:314 - the fallback only runs when limits produced nothing
     public void ParseClaudeUsage_does_not_use_the_fallback_when_limits_rows_parsed()
     {
         var root = JSONValue.Parse("{\"five_hour\":{\"utilization\":99.0}}")!;
@@ -748,6 +755,7 @@ public sealed class PlanLimitsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-187")] // PlanLimits.swift:322-325 - an enabled extra_usage block appends a window
+    [Trait("Req", "PR-USAGE-079")] // PlanLimits.swift:322-325 - an enabled extra_usage block appends a window
     public void ParseClaudeUsage_appends_extra_usage_when_enabled()
     {
         var root = JSONValue.Parse("{\"extra_usage\":{\"is_enabled\":true,\"utilization\":33.0}}")!;
@@ -763,6 +771,7 @@ public sealed class PlanLimitsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-187")] // PlanLimits.swift:322 - is_enabled false: no extra usage window
+    [Trait("Req", "PR-USAGE-079")] // PlanLimits.swift:322 - is_enabled false: no extra usage window
     public void ParseClaudeUsage_skips_extra_usage_when_not_enabled()
     {
         var root = JSONValue.Parse("{\"extra_usage\":{\"is_enabled\":false,\"utilization\":33.0}}")!;
@@ -773,6 +782,7 @@ public sealed class PlanLimitsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-187")] // PlanLimits.swift:327-328 - a payload with no windows at all returns nil
+    [Trait("Req", "PR-USAGE-079")] // PlanLimits.swift:327-328 - a payload with no windows at all returns nil
     public void ParseClaudeUsage_returns_null_when_no_windows_result_at_all()
     {
         var root = JSONValue.Parse("{}")!;
@@ -781,6 +791,7 @@ public sealed class PlanLimitsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-188")] // PlanLimits.swift:305-306 - a title prefix composes with U+00B7, id lowercases
+    [Trait("Req", "PR-USAGE-079")] // PlanLimits.swift:305-306 - a title prefix composes with U+00B7, id lowercases
     public void ParseClaudeUsage_titlePrefix_composes_titles_and_lowercases_into_ids()
     {
         var root = JSONValue.Parse("{}")!;
@@ -792,6 +803,7 @@ public sealed class PlanLimitsTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-188")] // PlanLimits.swift:317-318, :323-324 - the prefix also applies to both fallback paths
+    [Trait("Req", "PR-USAGE-079")] // PlanLimits.swift:317-318, :323-324 - the prefix also applies to both fallback paths
     public void ParseClaudeUsage_titlePrefix_applies_to_the_fallback_and_extra_usage_windows()
     {
         var root = JSONValue.Parse("{\"five_hour\":{\"utilization\":1.0},\"extra_usage\":{\"is_enabled\":true,\"utilization\":2.0}}")!;
