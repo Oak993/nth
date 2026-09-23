@@ -121,7 +121,7 @@ public sealed class AppThemeTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0008-B2")] // System theme's detail: "Follows your Mac" upstream (:78) -> "Follows Windows"
+    [Trait("Req", "PR-THEME-003")] // UI/Theme/AppTheme.swift:78, deviation OD-0008 B2: upstream "Follows your Mac"
     public void Detail_of_system_reads_Follows_Windows_by_OD_0008_B2_not_the_upstream_Mac_wording()
     {
         Assert.Equal("Follows Windows", AppTheme.System.Detail());
