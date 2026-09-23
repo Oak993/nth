@@ -1643,7 +1643,10 @@ public sealed class ACPSessionTests
     [InlineData("3 todos", true)]
     [InlineData("12 todo", true)]
     [InlineData("my todos", false)]
-    [InlineData(" todos", false)]
+    // " todos" is trimmed to exactly "todos" by the leading `text = title.trimmed.lowercased()` (:645) before
+    // either check runs, so it hits the five-member exact-match set (:647-648), not the suffix/numeric-prefix
+    // rule the record's prose illustrates with this same string; the cited Swift code is the ground truth.
+    [InlineData(" todos", true)]
     [InlineData("3.5 todos", false)]
     [InlineData("todolist", false)]
     public void IsTodoTitle_matches_five_exact_titles_and_a_numeric_count_suffix(string title, bool expected) =>
