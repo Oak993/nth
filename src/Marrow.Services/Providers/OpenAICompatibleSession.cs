@@ -137,6 +137,42 @@ public class OpenAICompatibleSession : ProviderSession
     internal Task<StreamRound> PerformStreamForTests(string model, string? effort = null, bool withTools = true) =>
         PerformStream(RequestPayload(model, effort, withTools));
 
+    // Test-only seams for this part's self-contained history and message helpers (InternalsVisibleTo
+    // Marrow.Services.Tests): CondenseHistory, TrimHistory and SanitizeHistory read and rewrite
+    // `messages` (:43) directly, so tests seed it here rather than driving a whole turn.
+    internal void SetMessagesForTests(IEnumerable<JSONValue> value) => messages = [.. value];
+    internal void CondenseHistoryForTests() => CondenseHistory();
+    internal void TrimHistoryForTests() => TrimHistory();
+    internal void SanitizeHistoryForTests() => SanitizeHistory();
+    internal static string SummaryForTests(string text, int limit) => Summary(text, limit);
+    internal Task<bool> ApproveIfNeededForTests(ToolCall.Kind kind, string title, string? detail = null, string? toolItemID = null) =>
+        ApproveIfNeeded(kind, title, detail, toolItemID);
+    internal void SetInterruptedForTests(bool value) => interrupted = value;
+    internal void RefreshSystemPromptForTests() => RefreshSystemPrompt();
+    internal string SystemPromptForTests() => SystemPrompt();
+    internal bool RequiresApprovalForTests(ToolCall.Kind kind) => RequiresApproval(kind);
+    internal void SetApproveAllRemainingForTests(bool value) => approveAllRemaining = value;
+
+    // Test-only seam (InternalsVisibleTo Marrow.Services.Tests, PR-PROVAPI-113, PR-PROVAPI-114):
+    // registers a pending approval continuation exactly as ApproveIfNeeded does at :1082, without
+    // going through MainActor.Run's event post, so ResolveApproval and Stop's decline-all sweep are
+    // testable in isolation.
+    internal Task<bool> RegisterPendingApprovalForTests(string id) =>
+        CheckedContinuation<bool>.With(continuation => pendingApprovals[id] = continuation);
+
+    // Test-only seam (InternalsVisibleTo Marrow.Services.Tests, PR-PROVAPI-117): drives ReportUsage
+    // directly with a scripted StreamRound.
+    internal void ReportUsageForTests(StreamRound round) => ReportUsage(round);
+
+    // Test-only seam (InternalsVisibleTo Marrow.Services.Tests, PR-PROVAPI-121, PR-PROVAPI-122,
+    // PR-PROVAPI-123): drives StreamOneRound's transport-retry ladder directly.
+    internal Task<StreamRound> StreamOneRoundForTests(string model, string? effort = null, bool withTools = true) =>
+        StreamOneRound(model, effort, withTools);
+
+    // Test-only seam (InternalsVisibleTo Marrow.Services.Tests, PR-PROVAPI-123): exercises the
+    // terminal-transport-message composition (:562-567) directly.
+    internal string TerminalTransportMessageForTests(Exception error) => TerminalTransportMessage(error);
+
     private string WorkingDirectory => Configuration.WorkingDirectory.Path; // :242
     private string ApiKey => (Configuration.ApiKey ?? "").Trimmed();       // :243
 
@@ -554,8 +590,9 @@ public class OpenAICompatibleSession : ProviderSession
 
     // :131-136. Carries the untyped transport error up together with whether the user had
     // already seen part of an answer, so the retry decision is made on the error's code, not its
-    // wording.
-    private sealed class StreamAttemptFailure(Exception underlying, bool emittedOutput) : Exception
+    // wording. Internal, not private, only so PR-PROVAPI-137's ForTests seam can hand its result
+    // back typed (InternalsVisibleTo Marrow.Services.Tests); nothing outside this file catches it.
+    internal sealed class StreamAttemptFailure(Exception underlying, bool emittedOutput) : Exception
     {
         public Exception Underlying { get; } = underlying;
         public bool EmittedOutput { get; } = emittedOutput;
@@ -569,6 +606,12 @@ public class OpenAICompatibleSession : ProviderSession
     private static bool IsTransientTransportFailure(Exception error) =>
         error is URLError urlError && urlError.URLErrorCode is
             URLError.Code.NetworkConnectionLost or URLError.Code.TimedOut or URLError.Code.CannotConnectToHost;
+
+    // Test-only seam (InternalsVisibleTo Marrow.Services.Tests, PR-PROVAPI-121, PR-PROVAPI-122,
+    // PR-PROVAPI-123): a single stream attempt, so a test can script a failure/success sequence
+    // for StreamOneRound's retry ladder without a live dropped connection. Defaults to the real
+    // PerformStream (:600-735).
+    protected virtual Task<StreamRound> PerformStreamAttempt(Dictionary<string, JSONValue> payload) => PerformStream(payload);
 
     // :506-557. Repairs the history, loads MCP tools once per session, builds the payload once and
     // retries a dropped connection at the transport level only, waiting the delay ladder between
@@ -590,7 +633,7 @@ public class OpenAICompatibleSession : ProviderSession
             if (interrupted || isStopping) throw new CancellationError(); // :521
             sseDrain?.Cancel(); // :522
             sseDrain = null; // :523
-            var task = MainActor.SpawnThrowing<StreamRound>(() => PerformStream(payload)); // :524
+            var task = MainActor.SpawnThrowing<StreamRound>(() => PerformStreamAttempt(payload)); // :524
             roundTask = task; // :525
             try
             {
@@ -864,16 +907,7 @@ public class OpenAICompatibleSession : ProviderSession
                         streamError = streamErrorChunk.Value;
                         break;
                     case StreamChunk.TransportErrorChunk transportErrorChunk: // :695
-                        if (streamError is { Length: > 0 } nonEmptyStreamError) // :696-697
-                        {
-                            throw new ProviderError(new ProviderError.Case.Failed(FriendlyError(nonEmptyStreamError, statusCode)));
-                        }
-                        if (HydraPrompts.StreamedDelegationsIn(content) is { } delegations && delegations.Delegations.Count > 0) // :701-702
-                        {
-                            throw new ProviderError(new ProviderError.Case.Failed(
-                                $"{SwiftErrors.LocalizedDescription(transportErrorChunk.Value)} This response was not retried because it had already streamed a head delegation."));
-                        }
-                        throw new StreamAttemptFailure(transportErrorChunk.Value, sawContent || sawReasoning); // :707
+                        throw TransportErrorFailure(transportErrorChunk.Value, streamError, content, sawContent, sawReasoning, statusCode);
                     default:
                         throw new UnreachableException();
                 }
@@ -904,6 +938,31 @@ public class OpenAICompatibleSession : ProviderSession
         }
         return round with { ToolCalls = new ValueList<PendingToolCall>(toolCalls) }; // :734
     }
+
+    // :694-707. PR-PROVAPI-137. The transport-error branch of PerformStream's stream loop,
+    // extracted so it is testable without a live network failure: an in-stream error takes
+    // priority; otherwise, once HydraPrompts.StreamedDelegationsIn finds at least one delegation
+    // in the content streamed so far, the round fails outright with the transport error's own
+    // description plus the fixed suffix, since replaying the response could dispatch the same
+    // work twice; anything else is a StreamAttemptFailure for StreamOneRound's retry ladder.
+    private Exception TransportErrorFailure(Exception transportError, string? streamError, string content, bool sawContent, bool sawReasoning, int statusCode)
+    {
+        if (streamError is { Length: > 0 } nonEmptyStreamError) // :696-697
+        {
+            return new ProviderError(new ProviderError.Case.Failed(FriendlyError(nonEmptyStreamError, statusCode)));
+        }
+        if (HydraPrompts.StreamedDelegationsIn(content) is { } delegations && delegations.Delegations.Count > 0) // :701-702
+        {
+            return new ProviderError(new ProviderError.Case.Failed(
+                $"{SwiftErrors.LocalizedDescription(transportError)} This response was not retried because it had already streamed a head delegation."));
+        }
+        return new StreamAttemptFailure(transportError, sawContent || sawReasoning); // :707
+    }
+
+    // Test-only seam (InternalsVisibleTo Marrow.Services.Tests): exercises PR-PROVAPI-137's
+    // decision without a live network failure or FriendlyError's provider-specific mapping.
+    internal Exception TransportErrorFailureForTests(Exception transportError, string? streamError, string content, bool sawContent = false, bool sawReasoning = false, int statusCode = 200) =>
+        TransportErrorFailure(transportError, streamError, content, sawContent, sawReasoning, statusCode);
 
     // :740-790. Runs off the main actor: trims, parses and picks apart each SSE line, then feeds
     // chunks to the coalescer. A transport failure is delivered as a chunk; CancellationError is
@@ -1085,11 +1144,55 @@ public class OpenAICompatibleSession : ProviderSession
         };
     }
 
+    // :1058-1089. PR-PROVAPI-161. An interrupted turn declines whatever is still asking, before
+    // anything else. Cancelling the wait (the caller's task cancelled while the dialog is open)
+    // resumes the continuation with false and removes it from pendingApprovals, mirroring the
+    // Swift's withTaskCancellationHandler onCancel hop back to the main actor.
+    private async Task<bool> ApproveIfNeeded(ToolCall.Kind kind, string title, string? detail, string? toolItemID)
+    {
+        if (interrupted) return false; // :1060
+        if (!RequiresApproval(kind)) return true; // :1061
+        var id = NextID("approval"); // :1062
+        var approvalKind = kind switch // :1063-1067
+        {
+            ToolCall.Kind.Command => ApprovalRequest.Kind.Command, // :1064
+            ToolCall.Kind.Edit => ApprovalRequest.Kind.FileChange, // :1065
+            _ => ApprovalRequest.Kind.Tool,                        // :1066
+        };
+        var options = new ValueList<ApprovalRequest.Option>( // :1068-1072
+        [
+            new ApprovalRequest.Option("allow", "Approve", ApprovalRequest.Option.Role.Approve),          // :1069
+            new ApprovalRequest.Option("always", "Approve for turn", ApprovalRequest.Option.Role.ApproveAlways), // :1070
+            new ApprovalRequest.Option("decline", "Decline", ApprovalRequest.Option.Role.Decline),         // :1071
+        ]);
+        await MainActor.Run(() => // :1073-1075
+        {
+            OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest(id, approvalKind, title, options, Detail: detail, ToolItemID: toolItemID)));
+        });
+        return await SwiftTask.WithCancellationHandler( // :1076-1083
+            () => CheckedContinuation<bool>.With(continuation =>
+            {
+                if (SwiftTask.IsCancelled || interrupted) // :1078-1081
+                {
+                    continuation.Resume(false);
+                    return;
+                }
+                pendingApprovals[id] = continuation; // :1082
+            }),
+            () => MainActor.Spawn(async () => // :1084-1087
+            {
+                if (pendingApprovals.Remove(id, out var continuation)) continuation.Resume(false);
+                await Task.CompletedTask;
+            }));
+    }
+
     // :1098-1117. Self-contained; no missing dependency.
     private const long CondenseHistoryAt = 160_000;
     private const long CondenseHistoryTo = 100_000;
     private const int CondenseKeepsRecent = 10;
-    private const string CondensedMarker = "\U00002026[Droppy Code condensed this output"; // U+2026 HORIZONTAL ELLIPSIS
+    // DEVIATION OD-0012 F1 (PR-PROVAPI-138): upstream :80 reads
+    // `"…[Droppy Code condensed this output"`; the product name in the marker becomes Marrow.
+    private const string CondensedMarker = "\U00002026[Marrow condensed this output"; // U+2026 HORIZONTAL ELLIPSIS
 
     private void CondenseHistory()
     {
@@ -1138,13 +1241,17 @@ public class OpenAICompatibleSession : ProviderSession
         var modeLine = (interactionMode, runtimeMode) switch // :1178
         {
             (InteractionMode.Plan, _) =>
-                "You are in PLAN mode: research the project, then write a clear step-by-step plan. Do not edit files or run commands that change anything; reads, lists and searches are fine.", // :1180
+                "You are in PLAN mode: research the project, then write a clear step-by-step plan. Do not edit files or run commands that change anything; reads, lists and searches are fine.", // :1180 PR-PROVAPI-142
+            // DEVIATION OD-0012 F1 (PR-PROVAPI-143): upstream :1182 reads
+            // `"...the user approves each one in Droppy Code."`; the product name becomes Marrow.
             (InteractionMode.Build, RuntimeMode.Supervised) =>
-                "You are in BUILD mode with supervised permissions: use tools freely but the user approves each one in Droppy Code.", // :1182
+                "You are in BUILD mode with supervised permissions: use tools freely but the user approves each one in Marrow.", // :1182
+            // DEVIATION OD-0012 F1 (PR-PROVAPI-144): upstream :1184 reads
+            // `"...the user approves shell commands in Droppy Code."`; the product name becomes Marrow.
             (InteractionMode.Build, RuntimeMode.AutoAcceptEdits) or (InteractionMode.Build, RuntimeMode.Auto) =>
-                "You are in BUILD mode: read and edit files freely; the user approves shell commands in Droppy Code.", // :1184
+                "You are in BUILD mode: read and edit files freely; the user approves shell commands in Marrow.", // :1184
             (InteractionMode.Build, RuntimeMode.FullAccess) =>
-                "You are in BUILD mode with full access: use tools freely without asking.", // :1186
+                "You are in BUILD mode with full access: use tools freely without asking.", // :1186 PR-PROVAPI-145
             _ => throw new UnreachableException(),
         };
         // The optional Hydra policy and the anti-slop guidance go in once each. The off notice
@@ -1161,8 +1268,11 @@ public class OpenAICompatibleSession : ProviderSession
             policy.Length == 0 ? null : policy,
             guidance.SystemPromptBlock(),
         }.Where(value => value is not null));
+        // DEVIATION OD-0012 F1 (PR-PROVAPI-141): upstream :1202 reads
+        // `"You are Droppy Code's \(config.agentIdentity(currentModel)), working inside \(workingDirectory) on macOS."`;
+        // the product name becomes Marrow and the platform word becomes Windows.
         return
-            $"You are Droppy Code's {OpenAICompatibleSessionConfig.AgentIdentity(currentModel)}, working inside {WorkingDirectory} on macOS.\n" +
+            $"You are Marrow's {OpenAICompatibleSessionConfig.AgentIdentity(currentModel)}, working inside {WorkingDirectory} on Windows.\n" +
             $"{modeLine}\n" +
             "Rules:\n" +
             "- Prefer the provided tools over asking the user to run things. Read files before editing them.\n" +
@@ -1312,6 +1422,16 @@ public class OpenAICompatibleSession : ProviderSession
         }
         CloseOpen();    // :1320
         messages = clean; // :1321
+    }
+
+    // :1326-1330. PR-PROVAPI-153. Truncates timeline-shown tool output; the string returned to
+    // the model (executeTool's own return values, a later part of this unit) is never truncated
+    // by this helper. Bytes bound characters, so a short text (measured in bytes) skips the
+    // grapheme count.
+    private static string Summary(string text, int limit)
+    {
+        if (SwiftString.Utf8Count(text) <= limit || SwiftString.Count(text) <= limit) return text; // :1328
+        return $"{SwiftString.Prefix(text, limit)}\n\U00002026(truncated)"; // :1329 U+2026 HORIZONTAL ELLIPSIS
     }
 
     // :1332-1335
