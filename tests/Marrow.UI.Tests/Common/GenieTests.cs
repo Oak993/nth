@@ -588,6 +588,60 @@ public sealed class GenieTests(HeadlessSession headless)
         window.Close();
     });
 
+    // The curve of the flight's one CubicKeyframe (:155, :166-168) rests on open item O-62: ED-178 decides it is a
+    // Catmull-Rom segment with duplicated endpoints, value(t) = start + (end - start) * (-t^3 + 1.5 t^2 + 0.5 t),
+    // t = elapsed / 0.58 clamped to [0, 1]. The expected values below are that formula worked by hand, so these tests
+    // carry the Oracle trait, not a Req trait (R-TEST-6). When O-62 settles, the expectations are replaced.
+    [Theory]
+    [InlineData(0.058, false, 0.064)]      // t = 0.1:  -0.001 + 0.015 + 0.05
+    [InlineData(0.145, false, 0.203125)]   // t = 0.25: -0.015625 + 0.09375 + 0.125
+    [InlineData(0.29, false, 0.5)]         // t = 0.5:  -0.125 + 0.375 + 0.25
+    [InlineData(0.435, false, 0.796875)]   // t = 0.75: -0.421875 + 0.84375 + 0.375
+    [InlineData(0.522, false, 0.936)]      // t = 0.9:  -0.729 + 1.215 + 0.45
+    [InlineData(0.058, true, 0.936)]       // an arrival runs from 1 to 0: 1 - 0.064
+    [InlineData(0.29, true, 0.5)]
+    [InlineData(0.522, true, 0.064)]       // 1 - 0.936
+    [Trait("Oracle", "O-62")] // UI/Common/Genie.swift:139-141, :155, :165-169; ED-178
+    public void A_flight_runs_its_one_cubic_keyframe_from_start_to_end_over_the_duration_once_it_appears(double elapsed, bool arriving, double progress) => headless.OnUiThread(() =>
+    {
+        using var clocks = new AnimationClocks();
+        var animator = new GenieAnimator(new FakeGeniePlatform());
+        using var shared = GenieAnimator.Shared.Override(animator);
+        animator.Launch(frame: RowFrame, colorScheme: ThemeVariant.Light, ghost: () => new Border(), target: arriving ? new Point(24, 588) : null, arriving: arriving);
+        var layer = new GenieLayer();
+        var window = Show(layer);
+        var view = Assert.Single(VisualQuery.Descendants<GenieFlightView>(layer));
+        Assert.Equal(arriving ? 1.0 : 0.0, view.Progress, Tolerance); // t = 0 on appearing
+        Step(clocks, elapsed);
+        Assert.Equal(progress, view.Progress, Tolerance);
+        // :165 the opacity follows the same progress.
+        var opacity = progress > 0.9 ? Math.Max(0, (1 - progress) / 0.1) : 1;
+        Assert.Equal(opacity, EffectiveOpacity(view, layer), Tolerance);
+        window.Close();
+    });
+
+    [Theory]
+    [InlineData(false, 1.0, 0.0)]
+    [InlineData(true, 0.0, 1.0)]
+    [Trait("Oracle", "O-62")] // UI/Common/Genie.swift:139-141, :155, :165-168; ED-178 (t clamped to [0, 1])
+    public void A_flight_kept_past_its_duration_holds_its_end_value(bool arriving, double end, double opacity) => headless.OnUiThread(() =>
+    {
+        using var clocks = new AnimationClocks();
+        // No flight in the shared animator, so the view's removal at 0.55 s (:170-174) finds nothing to remove.
+        using var shared = GenieAnimator.Shared.Override(new GenieAnimator(new FakeGeniePlatform()));
+        var flight = new GenieAnimator.Flight(new StandInImage(), RowFrame, new Point(24, 588), arriving);
+        var view = new GenieFlightView(flight, new Size(800, 600));
+        var window = Show(view);
+        Step(clocks, 0.29);
+        Assert.Equal(0.5, view.Progress, Tolerance);
+        Step(clocks, 0.29); // t = 1
+        Assert.Equal(end, view.Progress, Tolerance);
+        Step(clocks, 0.2); // t = 1.34, clamped to 1
+        Assert.Equal(end, view.Progress, Tolerance);
+        Assert.Equal(opacity, view.Opacity, Tolerance);
+        window.Close();
+    });
+
     [Theory]
     [InlineData(0.0)]
     [InlineData(0.3)]
