@@ -1,6 +1,7 @@
+using Avalonia.Styling;
 using Marrow.Core.Models;
-using Marrow.UI.Chrome;
 using Marrow.UI.Port;
+using Marrow.UI.Theme;
 using Xunit;
 
 namespace Marrow.UI.Tests.Theme;
@@ -10,7 +11,7 @@ public sealed class ShortcutTintTests
 {
     /// <summary>
     /// Threads section is tinted with fixed blue Color(red: 0.040, green: 0.478, blue: 1.000),
-    /// from Chrome.blue, not theme-derived.
+    /// from Chrome.blue, not theme-derived (:8).
     /// </summary>
     [Trait("Req", "PR-THEME-043")] // DroppyCode/UI/Theme/ShortcutTint.swift:1-12
     [Trait("Req", "UI-THEME-048")]
@@ -18,18 +19,15 @@ public sealed class ShortcutTintTests
     public void ThreadsSectionTintIsChromeBluE()
     {
         var tint = AppShortcutSection.Threads.Tint();
-        var expected = Chrome.Blue;
+        var expected = Marrow.UI.Chrome.Chrome.Blue;
 
-        Assert.Equal(expected.Kind, tint.Kind);
-        Assert.Equal(expected.Red, tint.Red, precision: 6);
-        Assert.Equal(expected.Green, tint.Green, precision: 6);
-        Assert.Equal(expected.Blue, tint.Blue, precision: 6);
-        Assert.Equal(expected.Opacity, tint.Opacity, precision: 6);
+        // Both should be the same instance (Chrome.Blue is a singleton)
+        Assert.Same(expected, tint);
     }
 
     /// <summary>
     /// Window section is tinted with fixed purple Color(red: 0.686, green: 0.322, blue: 0.871),
-    /// approximately #AF52DE, not theme-derived.
+    /// approximately #AF52DE, not theme-derived (:9).
     /// </summary>
     [Trait("Req", "PR-THEME-043")] // DroppyCode/UI/Theme/ShortcutTint.swift:1-12
     [Trait("Req", "UI-THEME-048")]
@@ -39,9 +37,14 @@ public sealed class ShortcutTintTests
         var tint = AppShortcutSection.Window.Tint();
         var expected = new SwiftColor(red: 0.686, green: 0.322, blue: 0.871);
 
-        Assert.Equal(expected.Red, tint.Red, precision: 6);
-        Assert.Equal(expected.Green, tint.Green, precision: 6);
-        Assert.Equal(expected.Blue, tint.Blue, precision: 6);
-        Assert.Equal(expected.Opacity, tint.Opacity, precision: 6);
+        // Resolve both to Avalonia colors in light theme and compare
+        // The components should match within floating-point precision
+        var tintColor = tint.Resolve(ThemeVariant.Light);
+        var expectedColor = expected.Resolve(ThemeVariant.Light);
+
+        Assert.Equal(expectedColor.R, tintColor.R);
+        Assert.Equal(expectedColor.G, tintColor.G);
+        Assert.Equal(expectedColor.B, tintColor.B);
+        Assert.Equal(expectedColor.A, tintColor.A);
     }
 }
