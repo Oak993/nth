@@ -3,6 +3,41 @@
 Continuation record. Reread `porting/PORT_CONTRACT.md` before acting on this file.
 This file is a navigation aid; the contract and the source are the authority.
 
+## Current checkpoint: 2026-09-23 04:30, orchestrator Claude Opus 5.5
+
+This section supersedes every checkpoint below it.
+
+**Branches.** `port/windows-exact-parity` (E:\Droppy\port) carries the owner and spec decisions made
+outside a wave; `impl/b2` (worktree E:\Droppy\wt\integration) is where implementation waves merge, one
+unit at a time. The two are merged into each other between waves.
+
+**Owner rulings in force:** OD-0001..OD-0017. New today: OD-0015 the app icon is the owner's finalized
+Marrow icon (assets in `src/Marrow.App/Assets/`); OD-0016 that icon, animated, on loading screens (an
+owner-requested deviation, ED-097); OD-0017 live resize adopts `stretch` from probe P4b and accepts the
+DWM residual as a named deviation (closes OD-0013; ED-101). Engineering decisions ED-001..ED-101.
+
+**Foundation value types added for the UI layer** (ED-091, ED-092, ED-095, ED-098): SwiftFont,
+SwiftColor, SwiftAnimation / SwiftTransition / IAnimatableModifier, StyledText, all as foundation units.
+Rulings for the first wave's stops: ED-093 secret store on Credential Manager, ED-094 Calendar.current,
+ED-096 ICU formatter API, ED-099 chord format (scan codes, Ctrl/Alt/Shift), ED-100 CocoaError (O-25).
+Port types written directly: `src/Marrow.Core/Port/CocoaError.cs`, `src/Marrow.Core/Port/Keyboard.cs`.
+
+**Wave A** (levels -1 to 3: 80 units, 103 parts) runs as workflow run `wf_114c4e01-e0c` from
+`E:\Droppy\work\impl\impl-units.js` with `E:\Droppy\work\impl\waveA.args.json`. It was interrupted once
+by the account's usage limit and resumed; finished agents replay from cache. Two earlier attempts are
+kept in `E:\Droppy\wt\attic-waveA1` and `attic-waveA2` (branches `attic/waveA1/*`, `attic/waveA2/*`).
+
+**Still to add after wave A, on impl/b2:** foundation units F.LoadingMark (ED-097; dependents
+ThreadTimeline, DiffInspector, AttachmentPreview, AppDelegate) and F.ResizeStretch (ED-101; dependents
+the window chrome units), then wave B (levels 4 to 8) and wave C (9 to 11).
+
+**Lessons.** Workflow subagents see the owner's latest chat message; a question or side request made
+some stop. Get an explicit go-ahead before a wave; rerun only the units that stopped. The account's
+usage limit can end a wave mid-flight: resume with the same args so finished agents replay.
+
+**Measured counts** (`node porting/tools/progress.mjs` on impl/b2): source files read 436/436;
+requirements IMPLEMENTED 0/4,955 and VERIFIED 0/4,955 until wave A units merge; test methods 295.
+
 ## Current checkpoint: 2026-09-22 23:45, orchestrator Claude Opus 5.5
 
 This section supersedes every checkpoint below it. Work runs as Claude subagent workflows driven from

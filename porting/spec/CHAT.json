@@ -258,17 +258,19 @@
       "title": "A turn summary records status, duration and the file counts the folded turn shows",
       "source_evidence": [
         "DroppyCode/Core/Models/Timeline.swift:252-257 enum TurnStatus: String - running, completed, interrupted, failed",
-        "DroppyCode/Core/Models/Timeline.swift:259-267 struct TurnSummary - turnID, status, duration: TimeInterval, filesChanged, additions, deletions, changes: FileChangeSummary?"
+        "DroppyCode/Core/Models/Timeline.swift:259-267 struct TurnSummary - turnID, status, duration: TimeInterval, filesChanged, additions, deletions, changes: FileChangeSummary?",
+        "DroppyCode/Core/Models/Timeline.swift:4-26 struct TimelineItem (id, turnID: UUID?, date, content) and enum Content, synthesized, case turnEnd(TurnSummary)",
+        "DroppyCode/Core/Support/Coding.swift:19-25 JSONEncoder.storage - .iso8601 dates, .sortedKeys"
       ],
       "preconditions": "A turn ends.",
       "action": "A turnEnd item is appended.",
-      "expected_result": "The summary names the turn, its final status (one of the four), the elapsed seconds as a floating-point interval, the three integer counts, and optionally the full per-file change summary. changes is null on turns recorded by older builds, which is what drives the legacy back-fill (PR-CHAT-104).",
+      "expected_result": "The summary names the turn, its final status (one of the four), the elapsed seconds as a floating-point interval, the three integer counts, and optionally the full per-file change summary. changes is nil on turns recorded by older builds and on install's synthetic end marker (PR-RUNTIME-161); nil is written by omitting the key (synthesized encodeIfPresent), and an absent key or a stored null both read back as nil (decodeIfPresent), which is what drives the legacy back-fill (PR-CHAT-104). When changes is present it is the FileChangeSummary with the keys of PR-RUNTIME-264.",
       "side_effects": [],
       "persistence": "Stored in the turnEnd item's content.",
       "failure_cases": [],
       "cancellation": "not cancellable",
       "windows_path": "duration is seconds as a double, not milliseconds.",
-      "verification_method": "contract fixture",
+      "verification_method": "contract fixture - (1) round-trip a TimelineItem whose content is .turnEnd(TurnSummary(..., changes: a two-file summary, one of them binary)) through JSONEncoder.storage: assert the exact bytes (content.turnEnd._0 holding additions, changes, deletions, duration, filesChanged, status, turnID in sorted order; changes holding additions, deletions, files; each file holding additions, deletions, isBinary, path) and decode it back equal; (2) the same row with changes nil: assert the changes key is absent and that it decodes back to nil; (3) the same bytes with \"changes\":null decode to changes nil",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -4418,7 +4420,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One text-style table for the whole app; the conversation carries no second scale and no zoom factor. Per ED-059 each text style takes the size of upstream's B1 table, in Inter, and in Cascadia Mono where the design is .monospaced (OD-0009): largeTitle 26 (B1:DroppyCode/UI/Common/ChatZoom.swift:47), title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), title2 17 (B1:DroppyCode/UI/Common/ChatZoom.swift:49), title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), headline and body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), footnote, caption and caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). The sizes are fixed per style and scale only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); no B2 file restates them, so visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "unit over the font helper for every text style with and without an explicit weight, plus a capture comparison showing a chat row and a chrome label at the same text style render at the same size",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6311,7 +6313,8 @@
         "DroppyCode/UI/Common/ChatFont.swift:1-11",
         "DroppyCode/UI/Common/AppZoom.swift:18-26"
       ],
-      "notes": "Replaces the zoom-aware Font.chat of the deleted B1 UI/Common/ChatZoom.swift (PR-CHAT-138, retired). Every chat view that called .chat(style, zoom: zoom) at B1 calls .chat(style) at B2."
+      "notes": "Replaces the zoom-aware Font.chat of the deleted B1 UI/Common/ChatZoom.swift (PR-CHAT-138, retired). Every chat view that called .chat(style, zoom: zoom) at B1 calls .chat(style) at B2.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-083",

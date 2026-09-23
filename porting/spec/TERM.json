@@ -1682,7 +1682,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same section, title and description; the default chord is Ctrl+R (ED-050) and is shown in Windows notation (OD-0008 B7).",
       "verification_method": "unit test on the metadata strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1714,7 +1714,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same section, title and description; the default chord is Ctrl+J (ED-050) and is shown in Windows notation (OD-0008 B7).",
       "verification_method": "unit test on the metadata strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2775,7 +2775,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same configuration. Platform boundary: the working directory and environment block are Windows-shaped, and the child must be launched without a console window.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2799,7 +2799,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering and the same cleanup on a failed launch.",
       "verification_method": "contract fixture with a missing executable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2824,7 +2824,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same framing bytes exactly, and the same single serial write queue. The header must not gain a Content-Type line.",
       "verification_method": "unit test comparing the emitted bytes for both framings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2849,7 +2849,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering guarantee through one serial writer.",
       "verification_method": "contract fixture piping a prompt to a one-shot child",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2873,7 +2873,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order and the same three-second gap, and the same single-process (not tree) scope, so the two ladders stay distinguishable. Platform boundary: graceful stop and forced termination in place of the two signals.",
       "verification_method": "contract fixture with a child that ignores the graceful stop",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2894,7 +2894,7 @@
       "cancellation": "The continuation is not cancellable; it is a non-throwing continuation.",
       "windows_path": "Same two-branch shape.",
       "verification_method": "unit test awaiting before and after exit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2916,7 +2916,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same stripping set and the same silent drops. The CR stripping is what makes CRLF-emitting Windows children work without a separate normalization step.",
       "verification_method": "unit test over CRLF, padded, empty and non-JSON frames",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2940,7 +2940,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two termination paths and the same one-second bound. Platform boundary: handle inheritance on Windows must be restricted so a grandchild does not hold the pipe, or the same bound applied.",
       "verification_method": "contract fixture with a child that leaves a grandchild holding stdout",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2963,7 +2963,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three numbers (4,000, 64,000, 16,000) and the same lossy decode. Do not normalize CRLF in the stderr tail.",
       "verification_method": "unit test over the trimming thresholds",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4110,7 +4110,8 @@
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/Core/Models/Shortcuts.swift:32-34 description is KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode), and :43-50 modifierSymbols concatenates \"⌃\", \"⌥\", \"⇧\", \"⌘\" with no separator; the default reads \"⌘J\"",
         "port": "Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl): the default reads \"Ctrl+J\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-035",
@@ -4139,7 +4140,8 @@
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/Core/Models/Shortcuts.swift:32-34 description is KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode), and :43-50 modifierSymbols concatenates \"⌃\", \"⌥\", \"⇧\", \"⌘\" with no separator; the default reads \"⌘R\"",
         "port": "Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl): the default reads \"Ctrl+R\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     }
   ]
 }

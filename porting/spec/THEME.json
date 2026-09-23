@@ -19,7 +19,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A frozen ordered list of 26 string ids in shared code. The ids are the on-disk contract: renaming or reordering breaks saved settings and the theme picker's section order.",
       "verification_method": "unit: the id list equals the 26 tokens in order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -41,7 +41,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A literal string table beside the id list. No localization exists upstream (dead_code.md entry 45: no .xcstrings, .strings or .lproj in the tree), so these are plain literals, not lookup keys.",
       "verification_method": "unit: display-name table equality, byte for byte including the accented e",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -64,7 +64,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A literal string table, reproduced verbatim except the system theme's detail: by owner ruling OD-0008 B2 it reads \"Follows Windows\" in place of upstream's \"Follows your Mac\".",
       "verification_method": "unit: detail table equality including the U+00B7 separator and system=\"Follows Windows\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -92,7 +92,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: the dynamic surface color must be re-evaluated whenever Windows reports an app-mode change (the immersive light/dark setting), not resolved once at start. The two literals #1E1E20 and #FFFFFF are fixed.",
       "verification_method": "unit: spec(system) returns nil scheme and nil accent; interaction test: toggling the OS light/dark setting repaints the glass tint",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -114,7 +114,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row; the scheme forces the app's own light/dark regardless of the OS setting.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -136,7 +136,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -158,7 +158,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row in shared code.",
       "verification_method": "unit: palette table equality; capture comparison against reference_captures for structure only",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -180,7 +180,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -202,7 +202,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -224,7 +224,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -246,7 +246,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row. Note nord and cursor share the accent #88C0D0 and the detail \"Dark · Frost\" but differ in surface and status hues.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -268,7 +268,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -290,7 +290,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -312,7 +312,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -334,7 +334,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row. Do not deduplicate accent and success: a success badge in this theme really is the accent colour.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -356,7 +356,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -378,7 +378,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row. Accent and danger are the same colour here; destructive controls are not visually distinct from accented ones in this theme. That is the shipped product.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -400,7 +400,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -422,7 +422,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -444,7 +444,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row. githubDark and codex share success, warning and danger but differ in accent and surface.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -466,7 +466,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row. Its surface #FFFFFF equals the light theme's, but githubLight also sets an accent and status hues, so the two are not interchangeable.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -488,7 +488,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -510,7 +510,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -532,7 +532,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row; accent and danger coincide, as in rosePine.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -554,7 +554,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -576,7 +576,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -598,7 +598,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -620,7 +620,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -642,7 +642,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -668,7 +668,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: read the Windows accent colour (the personalization accent) and follow changes to it. The optional must stay an optional in the shared model, because two consumers (PR-THEME-036, PR-THEME-037) deliberately pass the raw nil through.",
       "verification_method": "unit: spec.accent is nil for system/light/dark and non-nil for the other 23; interaction test: changing the OS accent repaints accented controls",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -691,7 +691,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pick one fixed green, orange and red for the three system-hue themes and keep them constant; the asymmetry with the accent (which follows the OS) is deliberate and must be preserved.",
       "verification_method": "unit: spec.success/warning/danger are always non-nil",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -715,7 +715,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Implement the same tolerant parse, including the black-on-garbage behaviour, so a future palette typo degrades identically. Colours must be treated as sRGB, not as the display's colour space.",
       "verification_method": "unit: parse table including \"#CBA6F7\", \"CBA6F7\", \" CBA6F7 \" and a deliberately invalid string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -738,7 +738,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A two-stop hard-edged linear gradient; a naive two-colour gradient that interpolates across the whole circle is wrong.",
       "verification_method": "capture comparison: the System swatch has a visible vertical seam at its centre",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -761,7 +761,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Three-stop diagonal gradient; the 0.42 hold is what makes dark themes read dark, so it is load-bearing, not decoration.",
       "verification_method": "capture comparison against reference_captures for structure; unit: gradient stop list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -784,7 +784,7 @@
       "cancellation": "not cancellable",
       "windows_path": "An inset hairline; at typical Windows scaling 0.5 device-independent points is a sub-pixel stroke and must not be rounded up to 1.",
       "verification_method": "capture comparison; unit: stroke width and opacity",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -814,7 +814,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A process-wide theme broadcaster with the same unconditional post. port_impacts.md entry 174: reproduce the unconditional re-post; an equality short-circuit changes observable behaviour for layer-backed cells.",
       "verification_method": "unit: assigning the same theme twice posts twice and rebuilds the spec twice",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "60",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -838,7 +838,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A resolved token object rebuilt on theme change and read directly by the renderer. Do not resolve palettes inside render functions.",
       "verification_method": "unit: a spy counting hex parses sees zero parses across many reads",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1912,7 +1912,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Synthesize the same PCM and hand it to the Windows audio stack. Shipping a pre-rendered .wav asset produced by this same algorithm is acceptable only if it is bit-identical; the tuning constants stay in code either way.",
       "verification_method": "contract fixture: the generated buffer's bytes for both chimes are checked against a recorded golden buffer",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1936,7 +1936,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure arithmetic; port it directly in double precision. The partial set is shared by every note of a chime, not per note.",
       "verification_method": "unit: sample-by-sample comparison against the formula for a known note and partial list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1961,7 +1961,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The normalization means the declared per-note levels set the balance between notes, not the absolute loudness; the absolute loudness comes only from the per-chime volume (PR-THEME-081, PR-THEME-082).",
       "verification_method": "unit: peak sample equals 29490 for both chimes; the last sample is near zero",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1989,7 +1989,7 @@
       "cancellation": "not cancellable once started",
       "windows_path": "Platform boundary: one shared voice per chime. The swallow-while-playing behaviour must be reproduced deliberately; a Windows API that mixes each request would turn a burst of finished turns into a pile-up, which upstream specifically avoids.",
       "verification_method": "unit: constants; interaction test: two finishes in the same frame produce one chime",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2017,7 +2017,7 @@
       "cancellation": "A later play() cancels the current one by restarting it.",
       "windows_path": "Platform boundary: reproduce stop-then-play on one shared voice, not a mix of two overlapping voices. The declared partial order (3rd harmonic before the octave) does not change the sum but is recorded for fidelity of the constant table.",
       "verification_method": "unit: constants; interaction test: two settles in quick succession are audibly two ticks",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2194,7 +2194,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A hand-written block parser in shared code. Do not substitute a CommonMark library: the grammar below differs from CommonMark in several load-bearing ways and the differences are user-visible in agent output.",
       "verification_method": "contract fixture: a corpus of agent outputs parses to a recorded block tree",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2216,7 +2216,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows agents emit CRLF far more often than macOS ones, so this rule is exercised constantly. A lone CR is deliberately not a break.",
       "verification_method": "unit: the same text with LF and with CRLF produces identical blocks",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2239,7 +2239,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The stable count is not just an optimization: it is the equality key the block views use (PR-THEME-105), so getting it wrong changes what repaints during a stream.",
       "verification_method": "unit: for a growing text, blocks below the reported stable index never change in a later parse",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2261,7 +2261,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Offsets are UTF-8 bytes here, unlike the veil's character offsets. Mixing the two units is the likeliest porting mistake.",
       "verification_method": "unit: incremental parse of a growing text equals a full parse at every step",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2285,7 +2285,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A hard recursion cap protecting against unbounded model output; keep it at 8 so pathological output renders identically.",
       "verification_method": "unit: nine levels of '>' render as eight quotes with the ninth marker visible in the text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2308,7 +2308,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Note the closing test requires only that the line start with the fence and be all fence characters, so a longer closing run closes a shorter opener; and a fence of a different character does not close it.",
       "verification_method": "unit: mixed-marker fences, a longer closing run, an unclosed fence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2331,7 +2331,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The closing-hash strip is a side effect of trimming the character set \"# \" from both ends, so it also removes hashes that were meant as text at the end of a heading. Reproduce it.",
       "verification_method": "unit: \"#Title\", \"####### Title\", \"## Title ##\", \"###\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2354,7 +2354,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The byte-level test also means a tab between the characters disqualifies the line, because only 0x20 is allowed.",
       "verification_method": "unit: \"---\", \"- - -\", \"--\", \"-*-\", \"- \\t -\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2376,7 +2376,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Only one space after the marker is eaten; this matters for code indented inside a quote.",
       "verification_method": "unit: nested quotes, a quote containing a list, a quote split by a blank line",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2401,7 +2401,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Column alignment is parsed away and never applied. Every cell renders leading-aligned regardless of the colons; that is the shipped behaviour.",
       "verification_method": "unit: a table with alignment colons renders leading-aligned; ragged rows; a pipe line with no delimiter",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2424,7 +2424,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Note the asymmetry: an unordered marker accepts a tab after it, an ordered one accepts only a space or nothing.",
       "verification_method": "unit: \"-x\", \"-\\tx\", \"1.x\", \"1234567890. x\", \"1.\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2446,7 +2446,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the three-part condition exactly; simplifying it changes how ordinary prose renders.",
       "verification_method": "unit: a paragraph line followed by \"2. text\" stays one paragraph; the same after a blank line becomes a list starting at 2",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2470,7 +2470,7 @@
       "cancellation": "not cancellable",
       "windows_path": "This is the most intricate part of the grammar and the part a CommonMark library will get differently. It must be ported rule by rule and covered by fixtures.",
       "verification_method": "contract fixture: a list corpus covering loose lists, nested code, mixed markers and blank lines",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2492,7 +2492,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Note the lower-casing is applied to the whole item text just to test the prefix, which is wasteful but harmless; only the prefix test is case-insensitive, the removal is a fixed four characters.",
       "verification_method": "unit: \"[ ] a\", \"[x] a\", \"[X] a\", \"[] a\", \"[ ]a\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2517,7 +2517,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Interior newlines survive into the block text; the inline parse is asked to preserve whitespace (PR-THEME-124), so soft line breaks inside a paragraph are real breaks in the rendered text.",
       "verification_method": "unit: a two-line paragraph keeps its newline; a whitespace-only line produces nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2540,7 +2540,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The fast path is an optimization with no behavioural difference; a port may trim unconditionally, but must trim the full Unicode whitespace set, not just ASCII.",
       "verification_method": "unit: a line surrounded by U+00A0 is trimmed; an ASCII line is returned identically",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4445,7 +4445,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not port the B1 chat zoom or its \"chatZoom\" stored value: nothing at B2 reads it and there is no migration. Markdown sizes come from the port's text-style table; scaling is applied once at the window root by the app zoom, never per font. Text size (ED-059): .title2 17 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:49), .title3 15 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .headline 13 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .callout 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .caption 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54) in Inter, monospaced code in Cascadia Mono (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "unit: the font helper has no zoom input and returns the plain text style (semibold for headline by default) for every style; capture comparison: the same reply at app zoom 100 and 150 differs only by the whole-window scale",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4756,7 +4756,8 @@
       "source_evidence": [
         "DroppyCode/UI/Theme/AppTheme.swift:149-176"
       ],
-      "notes": "The System swatch must show a hard vertical seam at its centre, not a blend. The 0.42 hold on every other swatch is what makes dark themes read dark at a glance."
+      "notes": "The System swatch must show a hard vertical seam at its centre, not a blend. The 0.42 hold on every other swatch is what makes dark themes read dark at a glance.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-008",

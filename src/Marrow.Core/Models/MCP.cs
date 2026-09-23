@@ -6,6 +6,11 @@ using Marrow.Core.Port;
 using Marrow.Core.Support;
 using static Marrow.Core.Port.SwiftDecoding;
 
+// Source: DroppyCode/Core/Models/MCP.swift (B2 1fbf81e), :1-263. Moved up a layer (IMPLEMENTING 2.1): :152-169
+// resolve is Marrow.Services.MCP.MCPResolver (architecture V1, MCPProxy); :236-253 MCPPaths is
+// src/Marrow.Services/Models/MCP.cs (architecture V2, Storage.root); :255-263 Color(rgb:) is SwiftColor.Rgb in
+// Marrow.UI.Port (Core's Color extension becomes a plain RGBA value).
+
 namespace Marrow.Core.Models;
 
 // Source: DroppyCode/Core/Models/MCP.swift (B2 1fbf81e), :1-263.
@@ -238,6 +243,7 @@ public sealed class MCPToolSummaryConverter : JsonConverter<MCPToolSummary>
 public sealed record MCPProbeResult(string? ServerName, string? ServerVersion, ValueList<MCPToolSummary> Tools);
 
 // :188-199 struct MCPConnection: Codable, Sendable, Hashable, Identifiable
+// Construction defaults do not make synthesized Swift Codable fields optional during decoding.
 [JsonConverter(typeof(MCPConnectionConverter))]
 public sealed record MCPConnection(string CatalogID)
 {

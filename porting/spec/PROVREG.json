@@ -2196,7 +2196,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows Credential Manager (OD-0008 B3): one credential per account under the one service name the port uses in place of AppInfo.name, keeping the one-container-many-accounts partitioning and the four account strings verbatim, because MCP secrets share the container and are distinguished only by account string. A refused write stores nothing else (PR-PROVREG-239, OD-0008 A6).",
       "verification_method": "restart test on each of the four accounts plus a contract fixture on the account strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -5342,7 +5342,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five substrings and the same single lowercasing.",
       "verification_method": "unit over each substring plus near misses",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5364,7 +5364,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same pattern, the same nine-digit minimum and the same 1e11 threshold.",
       "verification_method": "unit over second and millisecond timestamps and short digit runs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5387,7 +5387,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same patterns. PLATFORM BOUNDARY: the time zone identifier lookup must resolve IANA names, which Windows does not use natively, so a mapping is required.",
       "verification_method": "unit with a fixed now over the documented examples",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5409,7 +5409,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four branches and the same two literals. Date and time formatting must follow the same styles.",
       "verification_method": "unit with a fixed now across the four branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5435,7 +5435,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two names and the same root-only rule. Name comparison must stay exact even though the Windows filesystem is case-insensitive, so a file named agents.md is found by the OS but the injected section header still reads AGENTS.md.",
       "verification_method": "unit over a synthetic project tree",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5459,7 +5459,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two literals and the same ordering-dependent budget. Byte counts, not character counts.",
       "verification_method": "unit at the boundaries 16000, 16001 and a combined 24001",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5485,7 +5485,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same change detection. Windows file times have different resolution, which makes the same-size-same-time miss slightly more likely; that is upstream behavior.",
       "verification_method": "unit touching the files between calls",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5509,7 +5509,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY: the trailing separator is a backslash and the comparison must account for case-insensitive Windows paths. Windows junctions and reparse points must be resolved as symlinks are here, or the containment check can be bypassed.",
       "verification_method": "unit over an escaping symlink, a directory and a regular file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5532,7 +5532,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Transcribe the sentence verbatim including the parentheses, the semicolon and the tool name read_file.",
       "verification_method": "unit with an oversized file, plus capture comparison of the produced prompt",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5556,7 +5556,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Transcribe verbatim. On Windows an open can also fail because another process holds the file with an exclusive share mode, which reaches this same path.",
       "verification_method": "unit with an unreadable file, plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5579,7 +5579,7 @@
       "cancellation": "not cancellable",
       "windows_path": "OD-0012 F1: the product name in the sentence is \"Marrow\" in place of \"Droppy Code\"; the sentence is otherwise verbatim. The directory is a Windows path.",
       "verification_method": "capture comparison of the produced prompt plus unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5608,7 +5608,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same chunking and the same plus-one allowance.",
       "verification_method": "unit at exactly 16000 and 16001 bytes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5630,7 +5630,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same silent skip. A UTF-8 byte order mark is not stripped anywhere in this file, so it becomes part of the injected text.",
       "verification_method": "unit with a blank file and a non-UTF-8 file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5657,7 +5657,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the per-session ownership rather than introducing a shared cache, which would change when a session picks up an edit.",
       "verification_method": "unit with two instances over one directory",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

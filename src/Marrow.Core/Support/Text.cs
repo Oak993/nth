@@ -1,5 +1,4 @@
 using Marrow.Core.Port;
-using System.Globalization;
 using System.Reflection;
 using System.Text;
 
@@ -14,8 +13,8 @@ public sealed record AppInfo
 #else
     private const bool DevelopmentBuild = false;
 #endif
-    public static AppInfo Current { get; } = FromAssembly(
-        Assembly.GetEntryAssembly() ?? typeof(AppInfo).Assembly, DevelopmentBuild);
+    public static Ambient<AppInfo> Running { get; } = new(() => FromAssembly(Assembly.GetEntryAssembly() ?? typeof(AppInfo).Assembly, DevelopmentBuild));
+    public static AppInfo Current => Running.Current;
 
     public string Name { get; }
     public string Version { get; }
@@ -48,38 +47,48 @@ public static class TextCleanup
 {
     public static string StripANSI(string text)
     {
-        // The exact Swift pattern is \x1B\[[0-9;?]*[ -/]*[@-~]. Swift Regex
-        // compares entire NFC graphemes; .NET Regex would consume a partial one.
+        // The exact Swift pattern is \x1B\[[0-9;?]*[ -/]*[@-~]. Swift Regex compares entire NFC
+        // graphemes; a naive .NET Regex would consume a partial one. Walked over SwiftString.Characters
+        // (R-STR-1) rather than a second hand-rolled grapheme reader.
+        var characters = SwiftString.Characters(text).ToArray();
+        if (characters.Length == 0) return text;
+        var starts = new int[characters.Length + 1];
+        for (var i = 0; i < characters.Length; i++) starts[i + 1] = starts[i] + characters[i].Length;
+
         StringBuilder? output = null;
-        var copiedThrough = 0;
+        var copiedThrough = 0; // a character index into `characters`/`starts`, not a UTF-16 offset
         var search = 0;
-        while (search < text.Length)
+        while (search < characters.Length)
         {
-            var escape = text.IndexOf('\u001B', search);
-            if (escape < 0) break;
-            search = escape + 1;
-            if (!ReadPatternCharacter(text, search, out var character, out var next) || character != '[') continue;
-            var position = next;
-            while (ReadPatternCharacter(text, position, out character, out next) &&
-                   (character is >= '0' and <= '9' or ';' or '?')) position = next;
-            while (ReadPatternCharacter(text, position, out character, out next) &&
-                   character is >= ' ' and <= '/') position = next;
-            if (!ReadPatternCharacter(text, position, out character, out next) || character is < '@' or > '~') continue;
-            (output ??= new StringBuilder(text.Length)).Append(text, copiedThrough, escape - copiedThrough);
-            copiedThrough = next;
-            search = next;
+            if (!IsAsciiPatternCharacter(characters[search], out var character) || character != '\u001B')
+            { search++; continue; }
+            var position = search + 1;
+            if (!TryAsciiPatternCharacter(characters, position, out character) || character != '[') { search++; continue; }
+            position++;
+            while (TryAsciiPatternCharacter(characters, position, out character) &&
+                   (character is >= '0' and <= '9' or ';' or '?')) position++;
+            while (TryAsciiPatternCharacter(characters, position, out character) &&
+                   character is >= ' ' and <= '/') position++;
+            if (!TryAsciiPatternCharacter(characters, position, out character) || character is < '@' or > '~')
+            { search++; continue; }
+            position++;
+            (output ??= new StringBuilder(text.Length)).Append(text, starts[copiedThrough], starts[search] - starts[copiedThrough]);
+            copiedThrough = position;
+            search = position;
         }
-        return output is null ? text : output.Append(text, copiedThrough, text.Length - copiedThrough).ToString();
+        return output is null ? text : output.Append(text, starts[copiedThrough], text.Length - starts[copiedThrough]).ToString();
     }
 
-    private static bool ReadPatternCharacter(string text, int index, out char character, out int next)
+    private static bool TryAsciiPatternCharacter(string[] characters, int index, out char character)
     {
         character = default;
-        next = index;
-        if (index >= text.Length) return false;
-        var element = StringInfo.GetNextTextElement(text, index);
-        next = index + element.Length;
-        var normalized = element.Normalize(NormalizationForm.FormC);
+        return index < characters.Length && IsAsciiPatternCharacter(characters[index], out character);
+    }
+
+    private static bool IsAsciiPatternCharacter(string element, out char character)
+    {
+        character = default;
+        var normalized = SwiftString.Nfc(element);
         if (normalized.Length != 1 || normalized[0] > 0x7F) return false;
         character = normalized[0];
         return true;
@@ -101,27 +110,24 @@ public static class TextCleanup
         var end = start;
         while (end < text.Length && !FoundationText.IsNewline(text[end])) end++;
         var line = FoundationText.Trim(text[start..end]);
-        var characters = StringInfo.ParseCombiningCharacters(line);
-        if (characters.Length <= limit) return line;
+        // Character count and prefix are Swift grapheme semantics (R-STR-1): reuse SwiftString
+        // rather than a second StringInfo-based counter.
+        if (SwiftString.Count(line) <= limit) return line;
         ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
-        return line[..characters[limit - 1]] + "…";
+        return SwiftString.Prefix(line, limit - 1) + "…";
     }
 
     public static string WithoutEmDashes(string text)
     {
         if (!MayContainEmDash(Encoding.UTF8.GetBytes(text))) return text;
-        var characters = StringInfo.GetTextElementEnumerator(text);
+        // Grapheme walk via SwiftString.Characters (R-STR-1), not a second GetTextElementEnumerator use.
         var found = false;
-        while (characters.MoveNext())
-            if (IsEmDash(characters.GetTextElement())) { found = true; break; }
+        foreach (var character in SwiftString.Characters(text))
+            if (IsEmDash(character)) { found = true; break; }
         if (!found) return text;
         var output = new StringBuilder(text.Length);
-        characters.Reset();
-        while (characters.MoveNext())
-        {
-            var character = characters.GetTextElement();
+        foreach (var character in SwiftString.Characters(text))
             output.Append(IsEmDash(character) ? "-" : character);
-        }
         return output.ToString();
     }
 
@@ -187,12 +193,16 @@ public static class SimpleDiff
         return new(string.Join("\n", lines), added.Length, removed.Length);
     }
 
-    private static bool Equal(string left, string right) => left == right ||
-        left.Normalize(NormalizationForm.FormC) == right.Normalize(NormalizationForm.FormC);
+    // Swift line == compares Characters by canonical equivalence (R-STR-2): call SwiftString.Equal
+    // rather than a second NFC-compare here.
+    private static bool Equal(string left, string right) => SwiftString.Equal(left, right);
 }
 
 public static class StringExtensions
 {
     // Text.swift:127-129; whitespace-only strings are present values.
     public static string? NilIfEmpty(this string text) => text.Length == 0 ? null : text;
+
+    // Text.swift:130-132. var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }.
+    public static string Trimmed(this string text) => FoundationText.Trim(text, includeNewlines: true);
 }

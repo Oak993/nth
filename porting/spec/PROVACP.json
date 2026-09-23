@@ -3163,7 +3163,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, per connection.",
       "verification_method": "contract fixture (id sequence)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3185,7 +3185,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same code and string. Keep both near-identical sentences distinct; they identify different layers.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3205,7 +3205,7 @@
       "cancellation": "This is the cancellation path for a single request.",
       "windows_path": "An AbortSignal-style cancellation that deletes the pending entry and rejects. The agent is not told; that matches the source.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3227,7 +3227,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same elision rule, per port_impacts #1.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3249,7 +3249,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three shapes, with the id type round-tripped.",
       "verification_method": "contract fixture (golden frames)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3271,7 +3271,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-way parse including the truncation, which matters because JSON numbers in JS are all doubles: an integral number must map to the integer branch and a fractional one must be truncated, not rejected.",
       "verification_method": "unit (id-parsing table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3291,7 +3291,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same dispatch.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3313,7 +3313,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the two default values.",
       "verification_method": "unit (reply table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3338,7 +3338,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering and the same fallback string.",
       "verification_method": "contract fixture (two in-flight requests, kill the child, assert both reject with the tail)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3359,12 +3359,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same: split on 0x0A only, per port_impacts #18. A CRLF-writing Windows CLI therefore yields messages ending in 0x0D, which the delivery step strips (PR-PROVACP-155) - note that port_impacts #18 says the source does not strip CR, which is true of the framer but NOT of StdioProcess.deliver.",
       "verification_method": "unit (CRLF and LF fixtures, plus a message split across two chunks)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-071",
-      "rework": true
+      "implemented_by_task": "T-M2-071"
     },
     {
       "id": "PR-PROVACP-150",
@@ -3381,12 +3380,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same incremental behavior is required, not just the same result: an agent streaming a multi-megabyte tool output in small chunks must not cost quadratic time.",
       "verification_method": "unit (byte-at-a-time feed of a 1 MB message) plus a performance guard",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-071",
-      "rework": true
+      "implemented_by_task": "T-M2-071"
     },
     {
       "id": "PR-PROVACP-151",
@@ -3405,13 +3403,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. ACP never uses this mode - ACPSession takes the .lines default - but the framer is shared with the Copilot connection, so the mode must exist and behave identically.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-071",
-      "spec_fix": "The record said the search pointer is \"rewound to endIndex minus three\" and covered only a header \"whose Content-Length cannot be parsed\" -> StdioFramer.swift:38 clamps it, `search = max(start, buffer.endIndex - 3)`; StdioFramer.swift:41-44 moves start past the separator before `guard let length = Self.contentLength(in: header) else { continue }`, and contentLength returns nil both for an unparsable value and for a block with no Content-Length line (:71-80), so either block is skipped with no body consumed and the bytes meant as the body are scanned as the next header block.",
-      "rework": true
+      "spec_fix": "The record said the search pointer is \"rewound to endIndex minus three\" and covered only a header \"whose Content-Length cannot be parsed\" -> StdioFramer.swift:38 clamps it, `search = max(start, buffer.endIndex - 3)`; StdioFramer.swift:41-44 moves start past the separator before `guard let length = Self.contentLength(in: header) else { continue }`, and contentLength returns nil both for an unparsable value and for a block with no Content-Length line (:71-80), so either block is skipped with no body consumed and the bytes meant as the body are scanned as the next header block."
     },
     {
       "id": "PR-PROVACP-152",
@@ -3428,13 +3425,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (header table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-071",
-      "spec_fix": "The record (its source_evidence summary and expected_result) said the parser \"splits each line on the first colon\", \"requires two parts\" without the consequence, trims \"spaces\", accepts \"an integer of zero or more\" and splits the header \"on newlines\" -> StdioFramer.swift:72-76: `header.split(whereSeparator: \\.isNewline)` splits on every Character.isNewline (LF, VT, FF, CR, CR LF, NEL, U+2028, U+2029); `line.split(separator: \":\", maxSplits: 1)` omits empty leading pieces and matches only a standalone colon Character; `parts.count == 2` skips \"Content-Length:\" but not \"Content-Length: \", which reaches `Int(...)` with an empty string and returns nil for the block; `.whitespaces` is tab, Zs and U+200B; `Int(...)` accepts '+', \"-0\" and leading zeros and rejects values above Int64.max. source_evidence now quotes :72-79 instead of the summary.",
-      "rework": true
+      "spec_fix": "The record (its source_evidence summary and expected_result) said the parser \"splits each line on the first colon\", \"requires two parts\" without the consequence, trims \"spaces\", accepts \"an integer of zero or more\" and splits the header \"on newlines\" -> StdioFramer.swift:72-76: `header.split(whereSeparator: \\.isNewline)` splits on every Character.isNewline (LF, VT, FF, CR, CR LF, NEL, U+2028, U+2029); `line.split(separator: \":\", maxSplits: 1)` omits empty leading pieces and matches only a standalone colon Character; `parts.count == 2` skips \"Content-Length:\" but not \"Content-Length: \", which reaches `Int(...)` with an empty string and returns nil for the block; `.whitespaces` is tab, Zs and U+200B; `Int(...)` accepts '+', \"-0\" and leading zeros and rejects values above Int64.max. source_evidence now quotes :72-79 instead of the summary."
     },
     {
       "id": "PR-PROVACP-153",
@@ -3451,12 +3447,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same asymmetry.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-071",
-      "rework": true
+      "implemented_by_task": "T-M2-071"
     },
     {
       "id": "PR-PROVACP-154",
@@ -3477,7 +3472,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same: terminate with 0x0A only, and do not let the platform translate it to CRLF - write raw bytes to the stdin stream, not through a text-mode writer. Do not escape forward slashes.",
       "verification_method": "contract fixture (byte-level assertion on a frame containing a URL)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3501,7 +3496,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-byte strip. This is what makes a CRLF-writing Windows CLI work despite the LF-only framer.",
       "verification_method": "unit (CRLF line, padded line, banner line)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3524,7 +3519,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three limits, measured in bytes not characters.",
       "verification_method": "unit (feed 100 KB, assert the trim points)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3549,7 +3544,7 @@
       "cancellation": "This is the teardown path.",
       "windows_path": "Named platform boundary. Windows has no SIGTERM with delivery semantics: per port_impacts #24, TerminateProcess is the practical equivalent and behaves like SIGKILL, so the graceful window collapses. The specification for Windows is: close stdin first, then request termination, then after the same 3 seconds force-kill if still running - preserving the ordering and the 3-second timing even though the first step is already forceful. Do NOT introduce a Job Object group kill here: the source kills the pid only, and killing the group would change observable behavior for mcp-remote grandchildren. PA-0007's Job Object candidate applies to Shell.swift, which is a different code path.",
       "verification_method": "interaction test on Windows (assert stdin closes first, the child dies, and a grandchild survives, matching macOS)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3571,7 +3566,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering: flush the remainder, then end the stream.",
       "verification_method": "contract fixture (final frame with no trailing newline)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3594,7 +3589,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same 1-second forced close. It matters more on Windows, where an mcp-remote npx grandchild inheriting the handle is common and there is no process-group cleanup (see PR-PROVACP-157).",
       "verification_method": "interaction test (agent exits while a grandchild holds stdout; assert the exited event within about a second)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3621,7 +3616,7 @@
       "cancellation": "not cancellable",
       "windows_path": "In Electron this maps to the main process doing the stdio work and the renderer never touching the pipe. Preserve write ordering with a single serial queue per child; Node streams give this, but a naive `await` per write must not reorder frames.",
       "verification_method": "interaction test (interleaved writes arrive in order) plus a performance guard on a 10 MB tool output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3648,7 +3643,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same surface. StdioProcess.isRunning is a real process check, unlike ACPSession.isRunning (PR-PROVACP-075).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3671,7 +3666,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same teardown. On Windows the common causes differ: ENOENT for a bare name that only exists as a .cmd shim, and EACCES for a directory. The error text shown to the user is the platform's, which is an accepted observable difference.",
       "verification_method": "unit (spawn a nonexistent executable, assert the throw and that no reader is left parked)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3691,7 +3686,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4382,7 +4377,8 @@
         "DroppyCode/Core/Support/JSONRPC.swift:145",
         "DroppyCode/Core/Support/JSONRPC.swift:133"
       ],
-      "notes": "All three reach the user through turnCompleted's error text, because finishPrompt uses the error's localized description, which for an RPCError is its message."
+      "notes": "All three reach the user through turnCompleted's error text, because finishPrompt uses the error's localized description, which for an RPCError is its message.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVACP-034",
