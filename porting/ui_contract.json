@@ -11208,7 +11208,8 @@
         "DroppyCode/Core/Support/JSONRPC.swift:145",
         "DroppyCode/Core/Support/JSONRPC.swift:133"
       ],
-      "notes": "All three reach the user through turnCompleted's error text, because finishPrompt uses the error's localized description, which for an RPCError is its message."
+      "notes": "All three reach the user through turnCompleted's error text, because finishPrompt uses the error's localized description, which for an RPCError is its message.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",

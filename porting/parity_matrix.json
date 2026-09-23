@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "SPECIFIED": 3670,
+      "SPECIFIED": 3661,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
       "DISCOVERED": 34,
       "RETIRED": 6,
-      "IMPLEMENTED": 203
+      "IMPLEMENTED": 212
     },
     "by_area": {
       "CHAT": 193,
@@ -35308,7 +35308,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, per connection.",
       "verification_method": "contract fixture (id sequence)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35331,7 +35331,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same code and string. Keep both near-identical sentences distinct; they identify different layers.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35352,7 +35352,7 @@
       "cancellation": "This is the cancellation path for a single request.",
       "windows_path": "An AbortSignal-style cancellation that deletes the pending entry and rejects. The agent is not told; that matches the source.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35375,7 +35375,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same elision rule, per port_impacts #1.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35398,7 +35398,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three shapes, with the id type round-tripped.",
       "verification_method": "contract fixture (golden frames)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35421,7 +35421,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-way parse including the truncation, which matters because JSON numbers in JS are all doubles: an integral number must map to the integer branch and a fractional one must be truncated, not rejected.",
       "verification_method": "unit (id-parsing table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35442,7 +35442,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same dispatch.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35465,7 +35465,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the two default values.",
       "verification_method": "unit (reply table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35491,7 +35491,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering and the same fallback string.",
       "verification_method": "contract fixture (two in-flight requests, kill the child, assert both reject with the tail)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
