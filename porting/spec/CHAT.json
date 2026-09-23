@@ -258,17 +258,19 @@
       "title": "A turn summary records status, duration and the file counts the folded turn shows",
       "source_evidence": [
         "DroppyCode/Core/Models/Timeline.swift:252-257 enum TurnStatus: String - running, completed, interrupted, failed",
-        "DroppyCode/Core/Models/Timeline.swift:259-267 struct TurnSummary - turnID, status, duration: TimeInterval, filesChanged, additions, deletions, changes: FileChangeSummary?"
+        "DroppyCode/Core/Models/Timeline.swift:259-267 struct TurnSummary - turnID, status, duration: TimeInterval, filesChanged, additions, deletions, changes: FileChangeSummary?",
+        "DroppyCode/Core/Models/Timeline.swift:4-26 struct TimelineItem (id, turnID: UUID?, date, content) and enum Content, synthesized, case turnEnd(TurnSummary)",
+        "DroppyCode/Core/Support/Coding.swift:19-25 JSONEncoder.storage - .iso8601 dates, .sortedKeys"
       ],
       "preconditions": "A turn ends.",
       "action": "A turnEnd item is appended.",
-      "expected_result": "The summary names the turn, its final status (one of the four), the elapsed seconds as a floating-point interval, the three integer counts, and optionally the full per-file change summary. changes is null on turns recorded by older builds, which is what drives the legacy back-fill (PR-CHAT-104).",
+      "expected_result": "The summary names the turn, its final status (one of the four), the elapsed seconds as a floating-point interval, the three integer counts, and optionally the full per-file change summary. changes is nil on turns recorded by older builds and on install's synthetic end marker (PR-RUNTIME-161); nil is written by omitting the key (synthesized encodeIfPresent), and an absent key or a stored null both read back as nil (decodeIfPresent), which is what drives the legacy back-fill (PR-CHAT-104). When changes is present it is the FileChangeSummary with the keys of PR-RUNTIME-264.",
       "side_effects": [],
       "persistence": "Stored in the turnEnd item's content.",
       "failure_cases": [],
       "cancellation": "not cancellable",
       "windows_path": "duration is seconds as a double, not milliseconds.",
-      "verification_method": "contract fixture",
+      "verification_method": "contract fixture - (1) round-trip a TimelineItem whose content is .turnEnd(TurnSummary(..., changes: a two-file summary, one of them binary)) through JSONEncoder.storage: assert the exact bytes (content.turnEnd._0 holding additions, changes, deletions, duration, filesChanged, status, turnID in sorted order; changes holding additions, deletions, files; each file holding additions, deletions, isBinary, path) and decode it back equal; (2) the same row with changes nil: assert the changes key is absent and that it decodes back to nil; (3) the same bytes with \"changes\":null decode to changes nil",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
