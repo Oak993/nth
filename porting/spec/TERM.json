@@ -1682,7 +1682,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same section, title and description; the default chord is Ctrl+R (ED-050) and is shown in Windows notation (OD-0008 B7).",
       "verification_method": "unit test on the metadata strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1714,7 +1714,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same section, title and description; the default chord is Ctrl+J (ED-050) and is shown in Windows notation (OD-0008 B7).",
       "verification_method": "unit test on the metadata strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4110,7 +4110,8 @@
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/Core/Models/Shortcuts.swift:32-34 description is KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode), and :43-50 modifierSymbols concatenates \"⌃\", \"⌥\", \"⇧\", \"⌘\" with no separator; the default reads \"⌘J\"",
         "port": "Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl): the default reads \"Ctrl+J\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-035",
@@ -4139,7 +4140,8 @@
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/Core/Models/Shortcuts.swift:32-34 description is KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode), and :43-50 modifierSymbols concatenates \"⌃\", \"⌥\", \"⇧\", \"⌘\" with no separator; the default reads \"⌘R\"",
         "port": "Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl): the default reads \"Ctrl+R\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     }
   ]
 }
