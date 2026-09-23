@@ -18,21 +18,36 @@ namespace Marrow.Core.Tests.Models;
 //   no default values, so every key is the property name, every field is required on decode (R-CODE-1), and the
 //   memberwise initializer stores the totals it is given (nothing in this file computes them; the init(files:) that
 //   sums them is FileChangeSummary+Diff.swift, PR-GIT-092, another unit).
-// - The persisted bytes: the summary lives in ThreadDocument.items (the record's persistence field), which
-//   Storage.swift:381-382 writes with JSONEncoder.storage and reads with JSONDecoder.storage (Coding.swift:19-34):
-//   sorted keys, compact, "/" escaped as "\/", non-ASCII written as raw UTF-8, Int as an integer literal (R-CODE-3,
-//   R-CODE-4, R-CODE-5). Ordinal key order of the fixed keys: additions < deletions < files, and
+// - The persisted bytes: the summary lives in ThreadDocument.items (the record's persistence field). Storage.swift:381
+//   writes it with JSONEncoder.storage (Coding.swift:19-26): sorted keys, compact, "/" escaped as "\/", non-ASCII
+//   written as raw UTF-8, Int as an integer literal (R-CODE-3, R-CODE-4, R-CODE-5). Storage.swift:73-79
+//   (readDocument) reads it back with a local `JSONDecoder()` whose `.dateDecodingStrategy = .iso8601`, the same
+//   configuration as JSONDecoder.storage (Coding.swift:28-34), so Coding.Decode<T> stands for both. The
+//   `cleanedOfEmDashes` pass at Storage.swift:79 rewrites only .assistant, .reasoning and .plan content and leaves a
+//   .turnEnd item untouched (Timeline.swift:39-55, `default: break`), which is why a path with an em dash is expected
+//   to survive a reopen unchanged. Ordinal key order of the fixed keys: additions < deletions < files, and
 //   additions < deletions < isBinary < path.
+// - Decode order: a synthesized init(from:) decodes the properties in declaration order, files, additions, deletions
+//   (:12-14) and path, additions, deletions, isBinary (:6-9), and throws at the first fault, so with several faults
+//   the kind is the one of the first property in that order.
+// - Width: Swift Int is 64-bit (R-NUM-4), so counts and totals above Int32.MaxValue round-trip, and a literal above
+//   Int64.MaxValue is JSONDecoder's "does not fit in Int", kind dataCorrupted.
 // - The port API these tests assume (R-NAME-1, R-NAME-2, R-VAL-1, R-VAL-2, R-CODE-3): the sealed record
 //   FileChangeSummary(ValueList<File> Files, long Additions, long Deletions) with the nested sealed record
 //   File(string Path, long Additions, long Deletions, bool IsBinary), persisted through a System.Text.Json converter
 //   so SwiftJson.Encode(value, Coding.StorageOptions, SwiftJsonStyle.Storage) and Coding.Decode<T> reach it.
 //
-// Scope: these tests prove the part of PR-RUNTIME-264 this file owns: the type, its exact keys, its strict decoding
-// and its value equality. The rest of the record (TurnSummary.changes in Timeline.swift:259-267; finishTurn copying
-// files.count and the totals, ThreadRuntime.swift:2384-2395; the nil changes of install's synthetic end marker,
-// ThreadRuntime.swift:609; storeLegacyChanges filling only a nil, ThreadRuntime.swift:3751-3757) belongs to those
-// files' units and is tested there: none of those types exists in the C# tree yet.
+// Scope: these tests prove only the part of PR-RUNTIME-264 this file owns: the type, its exact keys, its strict
+// decoding and its value equality. They do NOT prove the record's turn-end-row verification (round-trip a turn-end
+// row with a two-file summary, one of them binary). The other clauses of its expected_result are carried by these
+// records, in the units of the files that own them:
+// - PR-CHAT-012: TurnSummary with `var changes: FileChangeSummary?` (Timeline.swift:259-267);
+// - PR-RUNTIME-121: finishTurn copying files.count and the totals (ThreadRuntime.swift:2384-2395);
+// - PR-RUNTIME-161: install's synthetic end marker with nil changes (ThreadRuntime.swift:609);
+// - PR-RUNTIME-200: storeLegacyChanges filling only a nil changes (ThreadRuntime.swift:3751-3757).
+// TurnSummary and TimelineItem do not exist in the C# tree yet, so the turn-end-row fixture for PR-RUNTIME-264 is
+// still owed: a PR-RUNTIME-264 Req test in the Timeline unit once TurnSummary exists, or a recorded ruling that the
+// records above cover it.
 public sealed class FileChangeSummaryTests
 {
     // A two-file summary, one of them binary, as the record's verification method asks.
@@ -60,7 +75,7 @@ public sealed class FileChangeSummaryTests
         Assert.Throws<DecodingError>(() => Decode(json)).Kind;
 
     [Fact]
-    [Trait("Req", "PR-RUNTIME-264")] // Core/Models/FileChangeSummary.swift:4-15; Services/Store/Storage.swift:381-382
+    [Trait("Req", "PR-RUNTIME-264")] // Core/Models/FileChangeSummary.swift:4-15; Services/Store/Storage.swift:381
     public void A_two_file_summary_with_a_binary_file_is_stored_with_exactly_the_synthesized_keys()
     {
         var summary = TwoFileSummary();
@@ -120,19 +135,25 @@ public sealed class FileChangeSummaryTests
     }
 
     [Fact]
-    [Trait("Req", "PR-RUNTIME-264")] // Core/Models/FileChangeSummary.swift:6; Core/Support/Coding.swift:19-26
+    [Trait("Req", "PR-RUNTIME-264")] // Core/Models/FileChangeSummary.swift:6; Coding.swift:19-26; Storage.swift:73-79; Timeline.swift:39-55
     public void A_path_keeps_non_ASCII_as_raw_UTF8_and_escapes_only_the_slash()
     {
         // U+00E9, U+2019, U+2014, U+2026 and U+1F600 are written raw; "/" is "\/" (no .withoutEscapingSlashes).
-        const string path = "Docs/café ’notes—v2… \U0001F600.md";
+        // \U000000E9 U+00E9 LATIN SMALL LETTER E WITH ACUTE, \U00002019 U+2019 RIGHT SINGLE QUOTATION MARK,
+        // \U00002014 U+2014 EM DASH, \U00002026 U+2026 HORIZONTAL ELLIPSIS, \U0001F600 U+1F600 GRINNING FACE.
+        const string path = "Docs/caf\U000000E9 \U00002019notes\U00002014v2\U00002026 \U0001F600.md";
         var summary = new FileChangeSummary(new ValueList<ChangedFile>([new ChangedFile(path, 2, 0, false)]), 2, 0);
         var bytes = SwiftJson.Encode(summary, Coding.StorageOptions, SwiftJsonStyle.Storage);
         var expected = Encoding.UTF8.GetBytes(
             "{\"additions\":2,\"deletions\":0,\"files\":[{\"additions\":2,\"deletions\":0,\"isBinary\":false," +
-            "\"path\":\"Docs\\/café ’notes—v2… \U0001F600.md\"}]}");
+            // U+00E9 LATIN SMALL LETTER E WITH ACUTE, U+2019 RIGHT SINGLE QUOTATION MARK, U+2014 EM DASH,
+            // U+2026 HORIZONTAL ELLIPSIS, U+1F600 GRINNING FACE
+            "\"path\":\"Docs\\/caf\U000000E9 \U00002019notes\U00002014v2\U00002026 \U0001F600.md\"}]}");
         Assert.Equal(expected, bytes);
         // The byte sequences themselves: U+2019 is E2 80 99, U+2014 is E2 80 94, U+2026 is E2 80 A6.
-        Assert.Contains("café ’notes—v2…", Encoding.UTF8.GetString(bytes), StringComparison.Ordinal);
+        // U+00E9 LATIN SMALL LETTER E WITH ACUTE, U+2019 RIGHT SINGLE QUOTATION MARK, U+2014 EM DASH,
+        // U+2026 HORIZONTAL ELLIPSIS
+        Assert.Contains("caf\U000000E9 \U00002019notes\U00002014v2\U00002026", Encoding.UTF8.GetString(bytes), StringComparison.Ordinal);
         ReadOnlySpan<byte> rightQuote = [0xE2, 0x80, 0x99];
         ReadOnlySpan<byte> emDash = [0xE2, 0x80, 0x94];
         ReadOnlySpan<byte> ellipsis = [0xE2, 0x80, 0xA6];
@@ -198,6 +219,57 @@ public sealed class FileChangeSummaryTests
     [InlineData("{\"files\":[{\"path\":\"a\",\"additions\":0,\"deletions\":2.25,\"isBinary\":false}],\"additions\":0,\"deletions\":0}")]
     public void A_fractional_count_is_dataCorrupted(string json) =>
         Assert.Equal("dataCorrupted", DecodingErrorKind(json));
+
+    [Fact]
+    [Trait("Req", "PR-RUNTIME-264")] // Core/Models/FileChangeSummary.swift:7-8,13-14: Swift Int is 64-bit (R-NUM-4)
+    public void Counts_and_totals_above_Int32_round_trip_as_integer_literals()
+    {
+        const long fourGi = 4294967296L;          // 2^32, above Int32.MaxValue
+        const long int64Max = 9223372036854775807L; // Int.max on a 64-bit platform
+        var summary = new FileChangeSummary(
+            new ValueList<ChangedFile>([
+                new ChangedFile("big.bin", fourGi, int64Max, false),
+                new ChangedFile("huge.bin", int64Max, fourGi, true),
+            ]),
+            int64Max,
+            fourGi);
+        const string expected =
+            "{\"additions\":9223372036854775807,\"deletions\":4294967296,\"files\":[" +
+            "{\"additions\":4294967296,\"deletions\":9223372036854775807,\"isBinary\":false,\"path\":\"big.bin\"}," +
+            "{\"additions\":9223372036854775807,\"deletions\":4294967296,\"isBinary\":true,\"path\":\"huge.bin\"}]}";
+        Assert.Equal(expected, Encode(summary));
+
+        var reloaded = Decode(expected);
+        Assert.Equal(summary, reloaded);
+        Assert.Equal(int64Max, reloaded.Additions);
+        Assert.Equal(fourGi, reloaded.Deletions);
+        Assert.Equal(fourGi, reloaded.Files[0].Additions);
+        Assert.Equal(int64Max, reloaded.Files[0].Deletions);
+        Assert.Equal(int64Max, reloaded.Files[1].Additions);
+        Assert.Equal(fourGi, reloaded.Files[1].Deletions);
+    }
+
+    [Theory]
+    [Trait("Req", "PR-RUNTIME-264")] // Core/Models/FileChangeSummary.swift:7-8,13-14: JSONDecoder "does not fit in Int"
+    [InlineData("{\"files\":[],\"additions\":9223372036854775808,\"deletions\":0}")]
+    [InlineData("{\"files\":[],\"additions\":0,\"deletions\":9223372036854775808}")]
+    [InlineData("{\"files\":[{\"path\":\"a\",\"additions\":9223372036854775808,\"deletions\":0,\"isBinary\":false}],\"additions\":0,\"deletions\":0}")]
+    [InlineData("{\"files\":[{\"path\":\"a\",\"additions\":0,\"deletions\":9223372036854775808,\"isBinary\":false}],\"additions\":0,\"deletions\":0}")]
+    public void A_count_above_Int64_is_dataCorrupted(string json) =>
+        Assert.Equal("dataCorrupted", DecodingErrorKind(json));
+
+    [Theory]
+    [Trait("Req", "PR-RUNTIME-264")] // Core/Models/FileChangeSummary.swift:6-9,12-14: synthesized init(from:) reads in declaration order
+    // files (missing) is read before additions (wrong type).
+    [InlineData("{\"additions\":\"3\",\"deletions\":0}", "keyNotFound")]
+    // additions (null) is read before deletions (missing).
+    [InlineData("{\"files\":[],\"additions\":null}", "valueNotFound")]
+    // A file's path (missing) is read before its isBinary (wrong type).
+    [InlineData("{\"files\":[{\"isBinary\":0,\"additions\":0,\"deletions\":0}],\"additions\":0,\"deletions\":0}", "keyNotFound")]
+    // A file's additions (wrong type) is read before its deletions and isBinary (both missing).
+    [InlineData("{\"files\":[{\"path\":\"a\",\"additions\":\"0\"}],\"additions\":0,\"deletions\":0}", "typeMismatch")]
+    public void With_several_faults_the_first_in_declaration_order_decides_the_kind(string json, string kind) =>
+        Assert.Equal(kind, DecodingErrorKind(json));
 
     [Fact]
     [Trait("Req", "PR-RUNTIME-264")] // Core/Models/FileChangeSummary.swift:4-15: synthesized decoding ignores unknown keys
