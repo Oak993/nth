@@ -727,7 +727,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -747,7 +747,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 TESTS_REVIEW: Frozen PR-MCP-001..010 Expected rows reviewed against all source fields. Fixture covers defaults and order, exact glyph text and hex colors, profile-root adaptation, Bearer-space contract. | 2026-09-22 DONE: PR-MCP-001..010 complete frozen Expected fixtures match all catalog fields; 102 tests pass A12 B8 quarantine protected. No servers contacted/launched. Catalog source identical at latest SHA. Actual connect/probe/secret storage remains Services work. Director reviewed generated C# against source and independent test fixture; tests unchanged."
     },
@@ -773,7 +773,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 TESTS_REVIEW: PR-MCP-011..020 complete Expected table independently frozen and reviewed; both new tests red against 10-entry baseline. Exact strings, case, OAuth URLs, fields and env verified against source. | 2026-09-22 DONE: PR-MCP-011..020 complete independent catalog fixtures, Slack literal env behavior. Director diff review passed; approved tests unchanged. 104 tests pass, A12 B8 quarantine protected. Static metadata only; no external connections or messages."
     },
@@ -799,7 +799,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 TESTS_REVIEW: Independent complete Expected table for PR-MCP-021..030 and argument/env fixtures reviewed against Swift; two expected failures before entries exist. | 2026-09-22 DONE: PR-MCP-021..030 exact catalog fixtures and synthetic DB argv/env contracts, 106 tests passed. Director reviewed source diff; approved fixtures unchanged. Stripe challenge-parser integration remains OAuth Services packet; no network/process/database actions."
     },
@@ -825,7 +825,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 TESTS_REVIEW: Reviewed PR-MCP-031..037 corrected against source. Final three complete fixtures, exact33 IDs/14 OAuth, positive name fallback and negative no-trim cases, seven category memberships. Expected missing-API compile failures observed before implementation. | 2026-09-22 DONE: PR-MCP-031..037: all33 frozen rows, ordered IDs,14 OAuth,exact lookup,normalized name fallback,categories;124 tests pass. Source/spec contradiction fixed before tests. Director diff reviewed,approved tests unchanged. Provider config omission behavior remains later Services integration."
     },
@@ -848,7 +848,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -874,7 +874,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 TESTS_REVIEW: PR-GIT-052..055 reviewed against all62 Swift lines at both source-identical snapshots.21 cases cover asymmetric matching, first invalid GitLab marker fallback, Int64 limits and three independent exact prompt fixtures. Red build missing type observed. | 2026-09-22 DONE: Director reviewed all matching branches and all prompt characters against Swift. A12 B8 quarantine pass;48 tests none failed/skipped. No forge commands executed. URI boundary uses .NET Uri; macOS runtime comparison remains part of full acceptance."
     },
@@ -920,7 +920,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -946,7 +946,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -972,7 +972,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -998,7 +998,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1024,7 +1024,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1050,7 +1050,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1076,7 +1076,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1102,7 +1102,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1128,7 +1128,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1151,7 +1151,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1168,7 +1168,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1185,7 +1185,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 DONE: 78 tests pass; five exact headlines and symbol identifiers, provider IDs and fields, four role identities, questions and structural equality. Swift Requests.swift unchanged in 417ab7d3. Runtime plan resolution and masked UI belong to later packets; licensed glyphs await UNK-0007. Director diff review passed, approved tests unchanged."
     },
@@ -1444,7 +1444,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1470,7 +1470,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1491,7 +1491,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1510,7 +1510,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -2646,7 +2646,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4775,7 +4775,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4792,7 +4792,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -4809,7 +4809,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -7326,7 +7326,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
