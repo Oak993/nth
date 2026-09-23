@@ -1,0 +1,471 @@
+using System.Text;
+using Marrow.Core.Port;
+using Marrow.Services.Port;
+using Marrow.Services.Tests.Fixtures;
+using Marrow.Testing;
+
+namespace Marrow.Services.Tests.Port;
+
+// F.SettingsStore (IMPLEMENTING.md 4.3, "Production settings store"; ED-079; R-SET-1). The production store behind
+// UserDefaults.Standard: a per-user JSON file under the "Marrow Code" data folder (OD-0008 C7).
+//
+// Expected values come from the Swift call sites the store stands behind (App/AppSettings.swift,
+// App/UpdateChecker.swift, B2 1fbf81e) and from UserDefaults' own contract as those sites rely on it:
+// - object(forKey:) is nil for an absent key, so `as? Bool ?? true` gives true (AppSettings.swift:708) while a
+//   stored false gives false; bool(forKey:) of an absent key is false (:719);
+// - set(nil, forKey:) removes the key (:516, `lastHydraPairID?.uuidString`), as removeObject(forKey:) does (:265);
+// - a stored value keeps its property-list type across launches: a Bool stays a Bool, an Int an Int (appZoom, :254,
+//   read `as? Int` at :718), a Double a Double (backdropOpacity, :297, read `as? Double` at :722), a [CGFloat] pair an
+//   array (:263, read `as? [Double]`), a [String: String] a dictionary (:497, read at :738), a [String] a string array
+//   (:501, read at :739), a Date a Date (UpdateChecker.swift:238, read `as? Date` at :118), Data a Data;
+// - UserDefaults copies what it stores (property-list values are values), and refuses a non-property-list object
+//   ("Attempt to insert non-property list object"), which the port models as a trap.
+// The file format itself is port-only (ED-079 left it open; this unit's spec fixes a JSON file): the tags are the XML
+// property-list element names, keys are written in ordinal order, and every write is one atomic replace through
+// FileOps (PA-0015, R-FS-1).
+public sealed class SettingsStoreTests
+{
+    [Fact]
+    [Trait("Rule", "R-SET-1")]
+    [Trait("Decision", "ED-079")]
+    public void An_absent_key_reads_nil_while_a_stored_false_or_zero_reads_back_as_present()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var store = new SettingsStore(path);
+
+        // AppSettings.swift:708: notifyWhenFinished = defaults.object(forKey: Key.notify) as? Bool ?? true
+        Assert.Null(store.Object("notifyWhenFinished"));
+        Assert.True(Plist.AsBool(store.Object("notifyWhenFinished")) ?? true);
+        // AppSettings.swift:719: sidebarActivityView = defaults.bool(forKey: Key.sidebarActivityView)
+        Assert.False(store.Bool("sidebarActivityView"));
+        // AppSettings.swift:762: hydraMaxHeads = HydraPair.clampedCap(defaults.object(forKey: Key.hydraMaxHeads) as? Int)
+        Assert.Null(Plist.AsInt(store.Object("hydraMaxHeads")));
+
+        store.Set("notifyWhenFinished", false);
+        store.Set("hydraMaxHeads", 0L);
+
+        Assert.False(Plist.AsBool(store.Object("notifyWhenFinished")) ?? true);
+        Assert.Equal(0L, Plist.AsInt(store.Object("hydraMaxHeads")));
+
+        var reopened = new SettingsStore(path);
+        Assert.False(Plist.AsBool(reopened.Object("notifyWhenFinished")) ?? true);
+        Assert.Equal(0L, Plist.AsInt(reopened.Object("hydraMaxHeads")));
+        Assert.Null(reopened.Object("sidebarActivityView"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SET-1")]
+    [Trait("Decision", "ED-079")]
+    public void A_store_on_a_missing_file_is_empty_and_creates_nothing_until_the_first_write()
+    {
+        using var folder = new SettingsScratchFolder();
+        var dataFolder = folder.PathOf("Marrow Code");
+        var path = Path.Combine(dataFolder, "UserDefaults.json");
+
+        var store = new SettingsStore(path);
+        Assert.Null(store.Object("appTheme"));
+        Assert.False(Directory.Exists(dataFolder));
+
+        // The data folder does not exist on a first launch; the first write makes it (AppSettings.swift:288).
+        store.Set("appTheme", "dark");
+        Assert.True(File.Exists(path));
+        Assert.Equal("dark", new SettingsStore(path).String("appTheme"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SET-1")]
+    [Trait("Decision", "ED-079")]
+    public void Each_value_survives_a_relaunch_with_its_property_list_type()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var checkedAt = new DateTimeOffset(2026, 9, 23, 10, 15, 30, TimeSpan.Zero).AddTicks(1234567);
+        var store = new SettingsStore(path);
+        store.Set("showReasoning", true);                          // AppSettings.swift:231
+        store.Set("appZoom", 100L);                                // :254
+        store.Set("backdropOpacity", 1.0);                         // :297, a Double even when whole
+        store.Set("terminalHeight", 260.5);                        // :310
+        store.Set("commitInstructions", "Don\u2019t \u2026 \u2014 \u00dcber \U0001F600"); // :306
+        store.Set("floatingPanelSize", new object[] { 1320.0, 860.0 }); // :263
+        store.Set("providerBinaryPaths", new Dictionary<string, object> { ["codex"] = "C:\\bin\\codex.exe", ["claude"] = "" }); // :497
+        store.Set("disabledProviders", new object[] { "grok", "pi" }); // :501
+        store.Set("updateChecker_lastChecked", checkedAt);         // UpdateChecker.swift:238
+        store.Set("modelList", new byte[] { 0x5B, 0x00, 0xFF, 0x5D }); // AppSettings.swift:860-861, Data
+
+        var reopened = new SettingsStore(path);
+
+        Assert.IsType<bool>(reopened.Object("showReasoning"));
+        Assert.True((bool)reopened.Object("showReasoning")!);
+        Assert.IsType<long>(reopened.Object("appZoom"));
+        Assert.Equal(100L, (long)reopened.Object("appZoom")!);
+        Assert.IsType<double>(reopened.Object("backdropOpacity"));
+        Assert.Equal(1.0, (double)reopened.Object("backdropOpacity")!);
+        Assert.Equal(260.5, (double)reopened.Object("terminalHeight")!);
+        Assert.Equal(
+            Encoding.UTF8.GetBytes("Don\u2019t \u2026 \u2014 \u00dcber \U0001F600"),
+            Encoding.UTF8.GetBytes(reopened.String("commitInstructions")!));
+        var panel = reopened.Array("floatingPanelSize");
+        Assert.NotNull(panel);
+        Assert.Equal(new object[] { 1320.0, 860.0 }, panel);
+        Assert.All(panel!, item => Assert.IsType<double>(item));
+        var paths = reopened.Dictionary("providerBinaryPaths");
+        Assert.NotNull(paths);
+        Assert.Equal(2, paths!.Count);
+        Assert.Equal("C:\\bin\\codex.exe", paths["codex"]);
+        Assert.Equal("", paths["claude"]);
+        Assert.Equal(new[] { "grok", "pi" }, reopened.StringArray("disabledProviders"));
+        var date = Assert.IsType<DateTimeOffset>(reopened.Object("updateChecker_lastChecked"));
+        Assert.Equal(checkedAt.UtcTicks, date.UtcTicks);
+        Assert.Equal(new byte[] { 0x5B, 0x00, 0xFF, 0x5D }, reopened.Data("modelList"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SET-1")]
+    [Trait("Decision", "ED-079")]
+    public void The_type_conversions_read_the_stored_type_as_Foundation_bridges_it()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var store = new SettingsStore(path);
+        store.Set("hasSeenTour", 1L);          // an integer 1 bridges `as? Bool` to true
+        store.Set("settledCollapsed", 2L);     // an integer 2 is not a Bool
+        store.Set("appZoom", 125.0);           // a whole Double bridges `as? Int` (AppSettings.swift:718)
+        store.Set("usagePanelHeight", 300L);   // an integer bridges `as? Double` (:691, read as? Double)
+        store.Set("lastProjectID", 42L);       // string(forKey:) renders an integer as text
+        store.Set("recentDownloadsPicker", true);
+
+        var reopened = new SettingsStore(path);
+        Assert.True(Plist.AsBool(reopened.Object("hasSeenTour")));
+        Assert.True(reopened.Bool("hasSeenTour"));
+        Assert.Null(Plist.AsBool(reopened.Object("settledCollapsed")));
+        Assert.False(reopened.Bool("settledCollapsed"));
+        Assert.Equal(125L, Plist.AsInt(reopened.Object("appZoom")));
+        Assert.Equal(300.0, Plist.AsDouble(reopened.Object("usagePanelHeight")));
+        Assert.Equal("42", reopened.String("lastProjectID"));
+        Assert.True(reopened.Bool("recentDownloadsPicker"));
+        Assert.Equal(1L, Plist.AsInt(reopened.Object("recentDownloadsPicker")));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SET-1")]
+    [Trait("Decision", "ED-079")]
+    public void Doubles_round_trip_bit_for_bit_including_negative_zero_and_non_finite_values()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var store = new SettingsStore(path);
+        double[] values = [0.1, -0.0, double.NaN, double.PositiveInfinity, double.NegativeInfinity, double.Epsilon, double.MaxValue, 1e-5];
+        for (var i = 0; i < values.Length; i++) store.Set("real" + i, values[i]);
+
+        var reopened = new SettingsStore(path);
+        for (var i = 0; i < values.Length; i++)
+        {
+            var read = Assert.IsType<double>(reopened.Object("real" + i));
+            Assert.Equal(BitConverter.DoubleToInt64Bits(values[i]), BitConverter.DoubleToInt64Bits(read));
+        }
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SET-1")]
+    [Trait("Decision", "ED-079")]
+    public void Keys_are_kept_exactly_as_written_and_are_case_sensitive()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var store = new SettingsStore(path);
+        store.Set("appTheme", "dark");                    // AppSettings.swift:135, :288
+        store.Set("apptheme", "light");
+        store.Set("updateChecker_lastChecked", 1L);       // UpdateChecker.swift:79
+        store.Set("MCP \"quoted\" key \u2019", "x");
+
+        var reopened = new SettingsStore(path);
+        Assert.Equal("dark", reopened.String("appTheme"));
+        Assert.Equal("light", reopened.String("apptheme"));
+        Assert.Null(reopened.Object("APPTHEME"));
+        Assert.Equal(1L, reopened.Object("updateChecker_lastChecked"));
+        Assert.Equal("x", reopened.String("MCP \"quoted\" key \u2019"));
+        var text = Encoding.UTF8.GetString(File.ReadAllBytes(path));
+        Assert.Contains("\"appTheme\"", text, StringComparison.Ordinal);
+        Assert.Contains("\"updateChecker_lastChecked\"", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SET-1")]
+    [Trait("Decision", "ED-079")]
+    public void Setting_nil_removes_the_key_as_set_nil_forKey_does()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var store = new SettingsStore(path);
+        store.Set("lastHydraPairID", "6F9619FF-8B86-D011-B42D-00C04FC964FF");
+        Assert.NotNull(new SettingsStore(path).Object("lastHydraPairID"));
+
+        // AppSettings.swift:516: defaults.set(lastHydraPairID?.uuidString, forKey: Key.lastHydraPair)
+        store.Set("lastHydraPairID", null);
+
+        Assert.Null(store.Object("lastHydraPairID"));
+        Assert.Null(new SettingsStore(path).Object("lastHydraPairID"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SET-1")]
+    [Trait("Decision", "ED-079")]
+    public void RemoveObject_removes_the_key_and_the_removal_survives_a_relaunch()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var store = new SettingsStore(path);
+        store.Set("floatingPanelSize", new object[] { 900.0, 700.0 });
+        store.Set("lastProjectID", "6F9619FF-8B86-D011-B42D-00C04FC964FF");
+
+        store.RemoveObject("floatingPanelSize");  // AppSettings.swift:265
+        store.RemoveObject("neverStored");        // removing an absent key is not an error
+
+        Assert.Null(store.Object("floatingPanelSize"));
+        var reopened = new SettingsStore(path);
+        Assert.Null(reopened.Object("floatingPanelSize"));
+        Assert.Null(reopened.Object("neverStored"));
+        Assert.Equal("6F9619FF-8B86-D011-B42D-00C04FC964FF", reopened.String("lastProjectID"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SET-1")]
+    [Trait("Rule", "R-FS-1")]
+    [Trait("Decision", "ED-079")]
+    public void Writes_apply_in_order_and_each_is_on_disk_when_the_call_returns()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var store = new SettingsStore(path);
+
+        store.Set("appZoom", 90L);
+        Assert.Equal(90L, new SettingsStore(path).Object("appZoom"));
+        store.Set("appZoom", 110L);
+        Assert.Equal(110L, new SettingsStore(path).Object("appZoom"));
+        store.Set("appTheme", "dark");
+        store.RemoveObject("appZoom");
+        store.Set("appTheme", "light");
+        store.Set("appZoom", 125L);
+        store.Set("appTheme", null);
+
+        var reopened = new SettingsStore(path);
+        Assert.Equal(125L, reopened.Object("appZoom"));
+        Assert.Null(reopened.Object("appTheme"));
+        Assert.Equal(125L, store.Object("appZoom"));
+        Assert.Null(store.Object("appTheme"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FS-1")]
+    [Trait("Decision", "ED-079")]
+    public void The_file_is_replaced_atomically_and_leaves_no_temporary_file_behind()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var store = new SettingsStore(path);
+        for (var i = 0; i < 20; i++) store.Set("terminalHeight", 200.0 + i);
+
+        Assert.Equal(new[] { "UserDefaults.json" }, Directory.EnumerateFileSystemEntries(folder.FullPath).Select(entry => Path.GetFileName(entry)).ToArray());
+        Assert.Equal(219.0, new SettingsStore(path).Object("terminalHeight"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-079")]
+    public void The_file_is_compact_JSON_with_property_list_tags_and_keys_in_ordinal_order()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var store = new SettingsStore(path);
+        store.Set("notifyWhenFinished", false);
+        store.Set("appZoom", 100L);
+        store.Set("backdropOpacity", 0.5);
+        store.Set("appTheme", "dark");
+        store.Set("Zed", new object[] { 1.0, "a" });
+        store.Set("modelList", new byte[] { 1, 2, 3 });
+        store.Set("updateChecker_lastChecked", new DateTimeOffset(2026, 9, 23, 12, 0, 0, TimeSpan.FromHours(2)));
+        store.Set("providerBinaryPaths", new Dictionary<string, object> { ["b"] = "2", ["a"] = "1" });
+        store.Set("inf", double.PositiveInfinity);
+
+        var expected =
+            "{\"Zed\":{\"array\":[{\"real\":1},{\"string\":\"a\"}]}," +
+            "\"appTheme\":{\"string\":\"dark\"}," +
+            "\"appZoom\":{\"integer\":100}," +
+            "\"backdropOpacity\":{\"real\":0.5}," +
+            "\"inf\":{\"real\":\"+infinity\"}," +
+            "\"modelList\":{\"data\":\"AQID\"}," +
+            "\"notifyWhenFinished\":{\"bool\":false}," +
+            "\"providerBinaryPaths\":{\"dict\":{\"a\":{\"string\":\"1\"},\"b\":{\"string\":\"2\"}}}," +
+            "\"updateChecker_lastChecked\":{\"date\":\"2026-09-23T10:00:00.0000000+00:00\"}}";
+        Assert.Equal(Encoding.UTF8.GetBytes(expected), File.ReadAllBytes(path));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SET-1")]
+    [Trait("Decision", "ED-079")]
+    public void Stored_values_are_copies_that_later_changes_to_the_argument_do_not_reach()
+    {
+        using var folder = new SettingsScratchFolder();
+        var store = new SettingsStore(folder.PathOf("UserDefaults.json"));
+        var bytes = new byte[] { 1, 2, 3 };
+        var list = new List<object> { "grok" };
+        var map = new Dictionary<string, object> { ["codex"] = "a" };
+        store.Set("modelList", bytes);
+        store.Set("disabledProviders", list);
+        store.Set("providerBinaryPaths", map);
+
+        bytes[0] = 9;
+        list.Add("pi");
+        map["claude"] = "b";
+        store.Data("modelList")![1] = 9;
+
+        Assert.Equal(new byte[] { 1, 2, 3 }, store.Data("modelList"));
+        Assert.Equal(new[] { "grok" }, store.StringArray("disabledProviders"));
+        Assert.Equal(1, store.Dictionary("providerBinaryPaths")!.Count);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SET-1")]
+    [Trait("Decision", "ED-079")]
+    public void Typed_collections_are_stored_as_property_list_arrays_and_dictionaries()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var store = new SettingsStore(path);
+        // AppSettings.swift:497, :501, :263: [String: String], [String] and [CGFloat] values.
+        store.Set("providerBinaryPaths", new Dictionary<string, string> { ["codex"] = "C:\\codex.exe" });
+        store.Set("disabledProviders", new[] { "grok" });
+        store.Set("floatingPanelSize", new[] { 1320.0, 860.0 });
+        store.Set("hydraQueueHeads", 3); // an Int32 is an integer
+
+        foreach (var s in new[] { store, new SettingsStore(path) })
+        {
+            Assert.Equal("C:\\codex.exe", s.Dictionary("providerBinaryPaths")!["codex"]);
+            Assert.Equal(new[] { "grok" }, s.StringArray("disabledProviders"));
+            Assert.Equal(new object[] { 1320.0, 860.0 }, s.Array("floatingPanelSize"));
+            Assert.Equal(3L, Assert.IsType<long>(s.Object("hydraQueueHeads")));
+        }
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SET-1")]
+    [Trait("Decision", "ED-079")]
+    public void A_non_property_list_value_traps_and_stores_nothing()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var store = new SettingsStore(path);
+
+        Assert.Throws<SwiftTrapException>(() => store.Set("lastProjectID", Guid.NewGuid()));
+        Assert.Throws<SwiftTrapException>(() => store.Set("disabledProviders", new object?[] { "grok", null }));
+        Assert.Throws<SwiftTrapException>(() => store.Set("providerBinaryPaths", new Dictionary<int, string> { [1] = "x" }));
+
+        Assert.Null(store.Object("lastProjectID"));
+        Assert.Null(store.Object("disabledProviders"));
+        Assert.Null(store.Object("providerBinaryPaths"));
+        Assert.False(File.Exists(path));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-079")]
+    public void A_file_that_is_not_a_settings_document_reads_as_an_empty_store()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        File.WriteAllBytes(path, Encoding.UTF8.GetBytes("{not json"));
+
+        var store = new SettingsStore(path);
+        Assert.Null(store.Object("appTheme"));
+        store.Set("appTheme", "dark");
+        Assert.Equal("dark", new SettingsStore(path).String("appTheme"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-079")]
+    public void An_entry_the_store_cannot_read_is_skipped_and_the_rest_load()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        File.WriteAllBytes(path, Encoding.UTF8.GetBytes(
+            "{\"appZoom\":{\"integer\":1.5},\"x\":{\"unknown\":1},\"y\":7,\"appTheme\":{\"string\":\"dark\"}}"));
+
+        var store = new SettingsStore(path);
+        Assert.Null(store.Object("appZoom"));
+        Assert.Null(store.Object("x"));
+        Assert.Null(store.Object("y"));
+        Assert.Equal("dark", store.String("appTheme"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-FS-1")]
+    [Trait("Decision", "ED-079")]
+    public void An_existing_file_that_cannot_be_read_fails_the_open_instead_of_starting_empty()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        new SettingsStore(path).Set("appTheme", "dark");
+
+        using (new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            Assert.ThrowsAny<IOException>(() => new SettingsStore(path));
+
+        Assert.Equal("dark", new SettingsStore(path).String("appTheme"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-079")]
+    public void A_failed_write_keeps_the_value_readable_and_records_the_error()
+    {
+        using var folder = new SettingsScratchFolder();
+        var blocker = folder.PathOf("blocker");
+        File.WriteAllBytes(blocker, []);
+        var store = new SettingsStore(Path.Combine(blocker, "UserDefaults.json"));
+        Assert.Null(store.LastWriteError);
+
+        store.Set("appTheme", "dark"); // UserDefaults.set never throws at the call site (AppSettings.swift:288)
+
+        Assert.Equal("dark", store.String("appTheme"));
+        Assert.NotNull(store.LastWriteError);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-079")]
+    public void The_production_file_lives_in_the_Marrow_Code_folder_of_local_app_data()
+    {
+        // OD-0008 C7: the port stores its data under %LOCALAPPDATA%\Marrow Code, never the Electron app's folder.
+        Assert.Equal(
+            "C:\\Users\\someone\\AppData\\Local\\Marrow Code\\UserDefaults.json",
+            SettingsStore.ProductionPath("C:\\Users\\someone\\AppData\\Local"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SET-1")]
+    [Trait("Decision", "ED-079")]
+    public void Bound_as_UserDefaults_Standard_it_serves_the_Swift_reads_and_writes()
+    {
+        using var runtime = new TestRuntime();
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        using (UserDefaults.Standard.Override(new SettingsStore(path)))
+        {
+            var defaults = UserDefaults.Standard.Current;
+            defaults.Set("chimeWhenFinished", false);            // AppSettings.swift:207
+            Assert.False(Plist.AsBool(defaults.Object("chimeWhenFinished")) ?? true); // :709
+        }
+        Assert.False(Plist.AsBool(new SettingsStore(path).Object("chimeWhenFinished")) ?? true);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SET-1")]
+    [Trait("Decision", "ED-079")]
+    public void Concurrent_writers_lose_no_key()
+    {
+        using var folder = new SettingsScratchFolder();
+        var path = folder.PathOf("UserDefaults.json");
+        var store = new SettingsStore(path);
+
+        Parallel.For(0, 16, i => store.Set("key" + i, (long)i));
+
+        var reopened = new SettingsStore(path);
+        for (var i = 0; i < 16; i++) Assert.Equal((long)i, reopened.Object("key" + i));
+    }
+}
