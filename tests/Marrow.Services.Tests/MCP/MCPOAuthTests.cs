@@ -6,6 +6,7 @@ using Marrow.Core.Port;
 using Marrow.Services.MCP;
 using Marrow.Services.Port;
 using Marrow.Services.Tests.Fixtures;
+using Marrow.Testing;
 
 namespace Marrow.Services.Tests.MCP;
 
@@ -155,6 +156,23 @@ public sealed class MCPOAuthTests
         var signedOut = new MCPOAuthError(new MCPOAuthError.Case.SignedOut());
         Assert.Equal("You're signed out. Sign in again to continue.", signedOut.ErrorDescription);
         Assert.Equal("You're signed out. Sign in again to continue.", SwiftErrors.LocalizedDescription(signedOut));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-160")] // Services/MCP/MCPOAuth.swift:7-45
+    [Trait("Rule", "R-ENUM-3")]
+    public void ErrorDescription_is_non_empty_for_every_one_of_the_eleven_cases()
+    {
+        MCPOAuthError.Case[] samples =
+        [
+            new MCPOAuthError.Case.DiscoveryFailed(""), new MCPOAuthError.Case.MetadataFailed(""),
+            new MCPOAuthError.Case.RegistrationUnsupported(), new MCPOAuthError.Case.RegistrationFailed(""),
+            new MCPOAuthError.Case.TokenFailed(""), new MCPOAuthError.Case.CallbackFailed(""),
+            new MCPOAuthError.Case.StateMismatch(), new MCPOAuthError.Case.TimedOut(), new MCPOAuthError.Case.Cancelled(),
+            new MCPOAuthError.Case.SignedOut(), new MCPOAuthError.Case.Network(""),
+        ];
+        foreach (var errorCase in UnionCoverage.AssertCovers(samples))
+            Assert.NotEqual("", new MCPOAuthError(errorCase).ErrorDescription);
     }
 
     // ---- PR-MCP-162: the success and failure pages ----
