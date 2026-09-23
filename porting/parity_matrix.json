@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 1222,
+      "IMPLEMENTED": 1256,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 2667,
+      "SPECIFIED": 2633,
       "RETIRED": 6,
       "DISCOVERED": 18
     },
@@ -26965,7 +26965,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same filter, same drop-on-missing-entry, same ascending id sort. The sort is observable: it fixes key order in the provider config files.",
       "verification_method": "unit plus contract fixture on file ordering",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -26990,7 +26990,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same concatenation order.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27015,7 +27015,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same precedence.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27040,7 +27040,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three helpers, same strict branch on kind. Collapsing the branches would show a DSN stored in mcp.json in a secret field or vice versa.",
       "verification_method": "unit covering the empty-string draft, a secret with only a plaintext value present, and a text field with only a credential-store value present",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -27065,7 +27065,7 @@
       "cancellation": "not cancellable; the draft survives closing the panel and is lost on quit",
       "windows_path": "Same in-memory map in the main process, so the panel and the page agree.",
       "verification_method": "interaction test: type, close the panel, reopen, the text is still there",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27090,7 +27090,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same predicate, including the whitespace-only quirk.",
       "verification_method": "unit plus interaction test on the disabled button",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27115,7 +27115,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same overlay order.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -27139,7 +27139,7 @@
       "cancellation": "this IS the cancellation path for a previous probe",
       "windows_path": "Same. The cancel must actually stop a running stdio probe and kill its child.",
       "verification_method": "unit plus an interaction test pressing Connect twice quickly",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27165,7 +27165,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same comparison of filled URLs, same two deletions from Windows Credential Manager (OD-0008 B3).",
       "verification_method": "unit driving the two oauthURL values, plus an integration test that the token store is empty afterwards",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -27196,7 +27196,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Protected storage is Windows Credential Manager (OD-0008 B3), under the same account strings.",
       "verification_method": "interaction test: fail a sign-in, press Sign in again, assert a fresh browser flow is started",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -27227,7 +27227,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order and the same ignored return value. Do not add error reporting here - saveCustomValues is the only path that surfaces a storage failure. Protected storage is Windows Credential Manager (OD-0008 B3), under the same account strings.",
       "verification_method": "unit plus an integration test with a failing credential store",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "b2_change": "Refactor only, no shift: B1 :31 let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines) -> B2 :31 let trimmed = value.trimmed; `trimmed` is defined at B2 DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, so the result is identical.",
@@ -27257,7 +27257,7 @@
       "cancellation": "the probe started here is the cancellable part",
       "windows_path": "Same order. The absence of an exportAll here is load-bearing: it keeps a half-configured server out of the providers.",
       "verification_method": "unit asserting no provider config is rewritten on connect, only on probe success",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27286,7 +27286,7 @@
       "cancellation": "not cancellable once started",
       "windows_path": "Same order. A stored secret that fails to delete is reported to the user instead of a silent success, and the rest of the sequence still runs, an ENGINEERING DECISION recorded in the deviation (OD-0008 A12, PR-MCP-228). Disconnect is reached from the connected row menu, the custom row menu and a confirmed custom-server Delete (PR-MCP-073). Secrets live in Windows Credential Manager (OD-0008 B3).",
       "verification_method": "integration test asserting the call order and the four config files afterwards; with the store refusing a deletion, the failure is reported to the user and the rest of disconnect still runs, while a missing item is not reported",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -27352,7 +27352,7 @@
       "cancellation": "the new probe task is cancellable by a later connect, refresh or disconnect",
       "windows_path": "Same.",
       "verification_method": "interaction test on Check again keeping the sign-in",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27379,7 +27379,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard and same side-effect set.",
       "verification_method": "integration test toggling the only connected server off and asserting the four files are deleted",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27406,7 +27406,7 @@
       "cancellation": "a cancelled task returns before any of this",
       "windows_path": "Reproduce the guard exactly: do not hoist the three writes out of the if, and do not move the states write into it.",
       "verification_method": "unit reproducing the disconnect-then-refresh race",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "16",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27435,7 +27435,7 @@
       "cancellation": "checkCancellation runs before the sign-out, so a cancelled probe does not destroy a working session",
       "windows_path": "Same two clauses, same single retry, same cancellation check placement. Protected storage is Windows Credential Manager (OD-0008 B3), under the same account strings.",
       "verification_method": "contract fixture: a stub MCP server answering 401 once then succeeding",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -27466,7 +27466,7 @@
       "cancellation": "cancelling the probe task cancels the callback listener through its task-cancellation handler",
       "windows_path": "Same order: sign in, register, probe through the loopback route. Probing the upstream directly would skip the proxy and hide proxy faults. Protected storage is Windows Credential Manager (OD-0008 B3), under the same account strings.",
       "verification_method": "integration test asserting the probe request arrives at the local proxy, not the upstream",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -27496,7 +27496,7 @@
       "cancellation": "this is the cancellation behavior",
       "windows_path": "Same: an aborted probe must leave no trace and show no error.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27521,7 +27521,7 @@
       "cancellation": "a cancelled task returns first",
       "windows_path": "Same, including keeping the session.",
       "verification_method": "contract fixture: a stub answering 403 \"MCP server disabled\" then succeeding on the re-check",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27546,7 +27546,7 @@
       "cancellation": "a cancelled task returns first",
       "windows_path": "Same. The message is whatever the error type produced; do not wrap or re-word it.",
       "verification_method": "unit over every MCPProbeError case plus an interaction test on the card text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27576,7 +27576,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The id-minted-once rule is what keeps a rename from orphaning the secrets stored in Windows Credential Manager (OD-0008 B3).",
       "verification_method": "unit over each validation failure plus a rename test asserting the id and the stored secret are unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -27608,7 +27608,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Replace in place; do not remove-and-append, which would reorder the section.",
       "verification_method": "unit on ordering plus a restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27635,7 +27635,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The window where the server is absent from the providers is intentional: the old command or address must not be handed out after an edit.",
       "verification_method": "integration test asserting the config files lose the server on save and regain it on a successful re-probe",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27702,7 +27702,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same strict branch. Protected storage is Windows Credential Manager (OD-0008 B3), under the same account strings.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -27732,7 +27732,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the partial-write behavior on failure, against Windows Credential Manager. The message is the OD-0008 B3 wording, which says \"Credential Manager\" where upstream says \"Keychain\".",
       "verification_method": "integration test with a failing credential store asserting the popover stays open",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -27761,7 +27761,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, and oldEntry must be the pre-edit entry, not the post-edit one. Protected storage is Windows Credential Manager (OD-0008 B3), under the same account strings.",
       "verification_method": "unit removing a locked and an unlocked variable and asserting both stores",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -27790,7 +27790,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-pass shape: all secrets first, then the per-item reconciliation. Protected storage is Windows Credential Manager (OD-0008 B3), under the same account strings.",
       "verification_method": "unit toggling a variable both ways and asserting the other store is empty",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -27819,7 +27819,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same condition.",
       "verification_method": "unit asserting mcp.json is untouched for an empty new server",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27845,7 +27845,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order and the same ISO-8601 date strategy on mcp.json only. A custom-mcp.json that exists but fails to read or decode is reported and protected from overwrite (OD-0008 A2, PR-MCP-089); a missing one starts empty, as upstream.",
       "verification_method": "restart test plus unit tests feeding corrupt files",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -27875,7 +27875,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same formatting - the file is diffable and user-inspectable, so pretty-printing, key sorting and the id sort are observable. Atomic replace on Windows must handle the case where the target exists.",
       "verification_method": "contract fixture comparing the emitted bytes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27900,7 +27900,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Customs are written in list order while connections are written sorted by id: the two files differ deliberately. After a failed load of custom-mcp.json, saveCustoms does not write the file at all (OD-0008 A2, PR-MCP-089).",
       "verification_method": "contract fixture comparing the emitted bytes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -27933,7 +27933,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same steps in the same order, except MCPExternalSync.sync, which never executes and is not ported (ED-061, porting/dead_code.md entry 11, PR-MCP-176). The hub reload is asynchronous and must not block the caller.",
       "verification_method": "integration test asserting the three ported effects (the proxy route table, the provider configs, the hub reload) and their order, and that mcp/managed.json is never read, written or deleted (MCPExternalSync is not ported, ED-061, PR-MCP-176)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27960,7 +27960,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order and the same synchronous export. Do not await the listener's ready state before exporting: that would change which port the configs carry.",
       "verification_method": "integration test on start-up ordering",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
