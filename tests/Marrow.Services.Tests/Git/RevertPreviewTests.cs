@@ -104,8 +104,11 @@ public sealed class RevertPreviewTests
         Assert.Equal(new[] { "name\r", "line\r\nbreak", "caf\U000000E9 \U0001F600.md" }, preview.Files.Select(f => f.Path)); // U+00E9, U+1F600
         Assert.Equal(new byte[] { 0x6E, 0x61, 0x6D, 0x65, 0x0D }, System.Text.Encoding.UTF8.GetBytes(preview.Files[0].Path));
 
-        // :38 String(fields[2]) keeps the path's scalars as they are: a decomposed path stays decomposed. It becomes a git
-        // pathspec (Git.swift:586), so a normalized path would name a different file.
+        // :38 String(fields[2]) keeps the path's scalars as they are, so a decomposed path stays decomposed. Joined to the
+        // repository root, the path is passed to git as a pathspec (Git.swift:589 -> :625 ls-tree; ThreadRuntime.swift:1909
+        // -> Git.swift:604 ls-tree, :607-609 restore and :615-617 rm, both with --pathspec-from-file) and used as a file
+        // path (Git.swift:590 -> :641 fileExists and :643 hash-object --stdin-paths; :619 removeItem). A normalized path
+        // would name a different file.
         var decomposed = new RevertPreview("4\t4\te\U00000301\0"); // U+0301 COMBINING ACUTE ACCENT
         var path = Assert.Single(decomposed.Files).Path;
         Assert.Equal(new byte[] { 0x65, 0xCC, 0x81 }, System.Text.Encoding.UTF8.GetBytes(path));
@@ -132,7 +135,8 @@ public sealed class RevertPreviewTests
     {
         AssertCorruptFile("12\t3\t\0");
         AssertCorruptFile("-\t-\t\0");
-        // The rename shape git prints under -z (counts, an empty path field, then the two paths) is refused.
+        // A record whose path field is empty is refused at :33, even when more NUL-separated pieces follow it. (The
+        // source never receives git's -z rename shape: its only caller passes --no-renames, Git.swift:586.)
         AssertCorruptFile("1\t1\t\0old.txt\0new.txt\0");
     }
 
@@ -168,6 +172,11 @@ public sealed class RevertPreviewTests
     {
         AssertCorruptFile("-1\t0\tfile.txt\0");
         AssertCorruptFile("0\t-5\tfile.txt\0");
+        // RevertPreview.swift:35: Int("-9223372036854775808") is Int.min, which parses and then fails `added >= 0`.
+        // A thrown CocoaError(.fileReadCorruptFile) (ED-100), never an overflow trap.
+        AssertCorruptFile("-9223372036854775808\t0\tfile.txt\0");
+        // RevertPreview.swift:35: Int("-9223372036854775809") (Int.min - 1) is nil, so the guard throws the same error.
+        AssertCorruptFile("0\t-9223372036854775809\tfile.txt\0");
     }
 
     [Fact]
