@@ -3,6 +3,58 @@
  "part_size": 24,
  "units": [
   {
+   "id": "F.URLComponents",
+   "kind": "foundation",
+   "swift": null,
+   "target": "src/Marrow.Core/Port/URLComponents.cs",
+   "project": "Marrow.Core",
+   "test_project": "tests/Marrow.Core.Tests",
+   "level": -1,
+   "component": null,
+   "component_members": [],
+   "deps": [
+    "F.URL"
+   ],
+   "intra_deps": [],
+   "noMerge": false,
+   "base": null,
+   "records_total": 0,
+   "records_todo": [],
+   "parts": [
+    []
+   ],
+   "packets": [],
+   "risk": "STANDARD",
+   "spec": "ED-169: Foundation URLComponents and URLQueryItem as port types, built on SwiftURL parsing and percent-coding (swift-foundation 6.2), members exactly as the call sites use them; oracle items O-57 to O-60.",
+   "extends_existing": false,
+   "status": "TODO"
+  },
+  {
+   "id": "F.HTTPMove",
+   "kind": "foundation",
+   "swift": null,
+   "target": "src/Marrow.Core/Port/Http.cs",
+   "project": "Marrow.Core",
+   "test_project": "tests/Marrow.Core.Tests",
+   "level": -1,
+   "component": null,
+   "component_members": [],
+   "deps": [],
+   "intra_deps": [],
+   "noMerge": false,
+   "base": null,
+   "records_total": 0,
+   "records_todo": [],
+   "parts": [
+    []
+   ],
+   "packets": [],
+   "risk": "STANDARD",
+   "spec": "ED-168: a pure move of the F.HTTP port types (URLSession and its companions) from Marrow.Services to Marrow.Core, with their tests; code that named them through Marrow.Services.Port gets using Marrow.Core.Port.",
+   "extends_existing": false,
+   "status": "TODO"
+  },
+  {
    "id": "F.Sound",
    "kind": "foundation",
    "swift": null,
@@ -297,9 +349,9 @@
    "id": "F.HTTP",
    "kind": "foundation",
    "swift": null,
-   "target": "src/Marrow.Services/Port/Http.cs",
-   "project": "Marrow.Services",
-   "test_project": "tests/Marrow.Services.Tests",
+   "target": "src/Marrow.Core/Port/Http.cs",
+   "project": "Marrow.Core",
+   "test_project": "tests/Marrow.Core.Tests",
    "level": -1,
    "component": null,
    "component_members": [],
@@ -314,8 +366,8 @@
    ],
    "packets": [],
    "risk": "STANDARD",
-   "spec": "HTTP client matching URLSession as the source uses it (R-NET-1): inactivity timeout, decompression, redirects, status handling, the User-Agent of OD-0012 F1. First tests: a loopback server. URLSessionConfiguration.ephemeral, URLRequest.CachePolicy and URLCache as UpdateChecker.swift:101-110 uses them (ED-119); network defaults per ED-118.",
-   "extends_existing": true,
+   "spec": "HTTP client matching URLSession as the source uses it (R-NET-1): inactivity timeout, decompression, redirects, status handling, the User-Agent of OD-0012 F1. First tests: a loopback server. URLSessionConfiguration.ephemeral, URLRequest.CachePolicy and URLCache as UpdateChecker.swift:101-110 uses them (ED-119); network defaults per ED-118. ED-168 moved the port types to Marrow.Core (UI calls URLSession.shared too: LinkTitles.swift:47, MarkdownView.swift:949).",
+   "extends_existing": false,
    "status": "DONE"
   },
   {
@@ -2198,6 +2250,7 @@
     "Core.Support.JSONValue",
     "Core.Support.Text",
     "F.HTTP",
+    "F.HTTPMove",
     "F.URL"
    ],
    "intra_deps": [],
@@ -2310,7 +2363,10 @@
    "component": null,
    "component_members": [],
    "deps": [
-    "Core.Support.Text"
+    "Core.Support.Text",
+    "F.HTTP",
+    "F.HTTPMove",
+    "F.URLComponents"
    ],
    "intra_deps": [],
    "records_total": 3,
@@ -3835,8 +3891,10 @@
    "deps": [
     "Core.Support.JSONValue",
     "F.HTTP",
+    "F.HTTPMove",
     "F.SecretStore",
-    "F.URL"
+    "F.URL",
+    "F.URLComponents"
    ],
    "intra_deps": [
     "Services.MCP.MCPKeychain"
@@ -3928,6 +3986,7 @@
     "Core.Support.Text",
     "F.FileOps",
     "F.HTTP",
+    "F.HTTPMove",
     "F.PathIdentity",
     "F.URL"
    ],
@@ -4790,7 +4849,8 @@
    "deps": [
     "Core.Models.MCP",
     "Core.Support.Text",
-    "F.URL"
+    "F.URL",
+    "F.URLComponents"
    ],
    "intra_deps": [],
    "records_total": 10,
@@ -4841,6 +4901,7 @@
     "Core.Support.Text",
     "F.FileOps",
     "F.HTTP",
+    "F.HTTPMove",
     "F.ProcessLauncher",
     "F.URL"
    ],
@@ -4913,6 +4974,7 @@
     "Core.Support.Text",
     "F.FileOps",
     "F.HTTP",
+    "F.HTTPMove",
     "F.ProcessLauncher",
     "F.URL"
    ],
@@ -6014,6 +6076,7 @@
     "Core.Support.Shell",
     "Core.Support.Text",
     "F.HTTP",
+    "F.HTTPMove",
     "F.PathIdentity",
     "Services.MCP.MCPHub",
     "Services.Providers.NativeFileTools",
@@ -6677,6 +6740,7 @@
     "Core.Support.Text",
     "F.FileOps",
     "F.HTTP",
+    "F.HTTPMove",
     "F.PathIdentity",
     "F.URL",
     "Services.Providers.ProviderSession"
@@ -7027,6 +7091,7 @@
     "Core.Support.JSONValue",
     "Core.Support.Text",
     "F.HTTP",
+    "F.HTTPMove",
     "F.URL"
    ],
    "intra_deps": [
@@ -7222,6 +7287,7 @@
     "Core.Support.JSONValue",
     "F.FileOps",
     "F.HTTP",
+    "F.HTTPMove",
     "F.PathIdentity",
     "F.URL"
    ],
@@ -7280,6 +7346,7 @@
     "Core.Support.Text",
     "F.FileOps",
     "F.HTTP",
+    "F.HTTPMove",
     "F.PathIdentity",
     "F.SecretStore",
     "F.URL"
@@ -7750,6 +7817,7 @@
     "Core.Support.JSONValue",
     "Core.Support.Text",
     "F.HTTP",
+    "F.HTTPMove",
     "F.ICUFormatters",
     "F.PathIdentity",
     "F.URL"
@@ -8866,6 +8934,7 @@
     "Core.Support.Text",
     "F.FileOps",
     "F.HTTP",
+    "F.HTTPMove",
     "F.PathIdentity",
     "F.ProcessLauncher",
     "F.SettingsStore"
@@ -9975,6 +10044,7 @@
     "Core.Support.ISO8601",
     "Core.Support.Text",
     "F.HTTP",
+    "F.HTTPMove",
     "F.SettingsStore",
     "F.URL"
    ],
@@ -18385,6 +18455,8 @@
     "Core.Models.Hydra",
     "Core.Support.RecentCache",
     "Core.Support.Text",
+    "F.HTTP",
+    "F.HTTPMove",
     "F.StyledText",
     "F.SwiftAnimation",
     "F.SwiftColor",
@@ -19307,6 +19379,7 @@
     "F.FileOps",
     "F.PathIdentity",
     "F.URL",
+    "F.URLComponents",
     "Services.Git.DiffParser",
     "Services.Git.Git",
     "Services.Git.TouchedPaths",
