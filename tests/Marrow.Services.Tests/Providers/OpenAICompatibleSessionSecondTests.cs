@@ -20,6 +20,7 @@ namespace Marrow.Services.Tests.Providers;
 // server, not a mock); the transport-retry ladder (PR-PROVAPI-121, 122, 123) instead uses
 // OpenAICompatibleSessionRetryLadderSeam, which scripts a single attempt's outcome, so the ladder
 // is testable deterministically over TestRuntime's manual clock without a live dropped connection.
+[Collection(OpenAICompatibleSessionCollection.Name)]
 public sealed class OpenAICompatibleSessionSecondTests
 {
     private static OpenAICompatibleSession.Config MakeConfig(Uri chatUrl) => new()

@@ -15,6 +15,7 @@ namespace Marrow.Services.Tests.Providers;
 // cancellation. StreamOneRound and ExecuteTool are protected virtual seams in this part (the
 // request payload/SSE streaming and the built-in tool bodies land in later parts of this unit);
 // OpenAICompatibleSessionTestSeam below overrides them to supply controlled results.
+[Collection(OpenAICompatibleSessionCollection.Name)]
 public sealed class OpenAICompatibleSessionTests
 {
     private static OpenAICompatibleSession.Config MakeConfig() => new()

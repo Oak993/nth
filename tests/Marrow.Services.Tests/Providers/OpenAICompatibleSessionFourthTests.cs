@@ -16,6 +16,7 @@ namespace Marrow.Services.Tests.Providers;
 // dispatch inside ExecuteTool, and the native replacements for grep and the login shell. This part's
 // tests drive the real ExecuteTool body directly (ExecuteToolForTests), not the ToolHandler seam
 // OpenAICompatibleSessionTestSeam supplies for the earlier parts' turn-loop tests.
+[Collection(OpenAICompatibleSessionCollection.Name)]
 public sealed class OpenAICompatibleSessionFourthTests
 {
     private static OpenAICompatibleSession.Config MakeConfig() => new()

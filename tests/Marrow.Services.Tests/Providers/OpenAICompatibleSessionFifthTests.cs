@@ -18,6 +18,7 @@ namespace Marrow.Services.Tests.Providers;
 // ceiling PR-PROVAPI-097, compact PR-PROVAPI-116, MCP dispatch PR-PROVAPI-164, the unknown-tool
 // default case PR-PROVAPI-172) is proven in parts 1, 2 and 4; this part's tests are new and prove the
 // UI records specifically (R-TEST-1: one Req trait per record it proves).
+[Collection(OpenAICompatibleSessionCollection.Name)]
 public sealed class OpenAICompatibleSessionFifthTests
 {
     private static OpenAICompatibleSession.Config MakeConfig() => new()

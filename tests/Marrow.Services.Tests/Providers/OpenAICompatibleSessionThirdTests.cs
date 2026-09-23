@@ -25,6 +25,7 @@ namespace Marrow.Services.Tests.Providers;
 // other record here is exercised through the SetMessagesForTests/CondenseHistoryForTests family
 // of test-only seams (InternalsVisibleTo Marrow.Services.Tests) so this part's self-contained
 // history and message helpers are testable without a live turn.
+[Collection(OpenAICompatibleSessionCollection.Name)]
 public sealed class OpenAICompatibleSessionThirdTests
 {
     private static OpenAICompatibleSession.Config MakeConfig(Uri? chatUrl = null, Func<string, bool>? isVisionModel = null, bool replaysReasoning = false) => new()
