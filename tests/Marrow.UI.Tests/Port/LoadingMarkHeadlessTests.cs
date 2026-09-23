@@ -577,4 +577,158 @@ public sealed class LoadingMarkHeadlessTests(HeadlessSession headless)
         Assert.True(at3 > 500, $"glow 3 DIP off the edge: {at3}");
         Assert.InRange(at10 / at3, .33, .47);
     });
+
+    // ---- final findings 1-2: the rendered core glow follows GlowOpacity; every particle dot is rendered ----
+
+    // Final finding 1 (ED-102 (3), boot_sequence.html:218-219): the glow is a radial gradient of radius 230 * glowS whose
+    // stops are rgba(255,255,255, clamp(.55 glowA)) at 0 and rgba(185,200,255, clamp(.28 glowA)) at .35, falling to
+    // rgba(147,172,255,0) at 1. Drawn alone (core scale 0) on a transparent bitmap at a fixed glow scale, the alpha at
+    // the centre and at .35 of the radius is therefore decided by the glow opacity alone.
+    [Theory]
+    [Trait("Decision", "ED-102")]
+    [InlineData(.3025, 1.0)]
+    [InlineData(.55, 1.0)]
+    [InlineData(1.2, 1.0)]
+    [InlineData(1.65, 1.0)]
+    [InlineData(.55, 1.5)]
+    [InlineData(1.65, 1.5)]
+    public void The_rendered_core_glow_alpha_follows_the_glow_opacity_at_a_fixed_glow_scale(double glowOpacity, double glowScale) => headless.OnUiThread(() =>
+    {
+        using var bitmap = new RenderTargetBitmap(new PixelSize(1024, 1024));
+        using (var context = bitmap.CreateDrawingContext())
+            CometPainter.DrawCore(context, new CometState(0, 0, 0, 0, glowOpacity, glowScale, null, null), 1);
+        using var copy = Copy(bitmap);
+        var centre = Pixel(copy, 512, 512);
+        var centreAlpha = 255 * Math.Min(1, .55 * glowOpacity);
+        Assert.True(Math.Abs(centre.A - centreAlpha) <= 3, $"glow {glowOpacity}: centre alpha {centre.A}, expected {centreAlpha:F1}");
+        // .35 of the radius: row 512 + d with the pixel centre at d + .5 = .35 * 230 * glowScale.
+        var d = (int)Math.Round(.35 * 230 * glowScale - .5);
+        var stop = Pixel(copy, 512, 512 + d);
+        var stopAlpha = 255 * Math.Min(1, .28 * glowOpacity);
+        Assert.True(Math.Abs(stop.A - stopAlpha) <= 4, $"glow {glowOpacity}: alpha at .35 radius {stop.A}, expected {stopAlpha:F1}");
+        Assert.True(Math.Abs(stop.R * 255.0 / stop.A - 185) <= 8 && Math.Abs(stop.G * 255.0 / stop.A - 200) <= 8 &&
+            Math.Abs(stop.B * 255.0 / stop.A - 255) <= 8, $"glow colour at .35 radius {stop}");
+        // Outside 230 * glowScale nothing is drawn.
+        var outside = Pixel(copy, 512, 512 + (int)Math.Ceiling(230 * glowScale) + 1);
+        Assert.Equal(0, outside.A);
+    });
+
+    // A dot of boot_sequence.html:234-238 is a radial gradient of radius r, white at alpha a at 0, the particle colour at
+    // alpha a at .25 and transparent at 1. Its alpha integrates to a * pi * r^2 * .4375 (.0625 over the plateau and .375
+    // over the linear fall), so the radius follows from the summed alpha and the plateau's alpha. The dot is drawn in DIP,
+    // magnified k times about its centre.
+    private static (double Alpha, double Radius, Color Colour) MeasureDot(Action<DrawingContext> draw, Point centre, double k)
+    {
+        using var bitmap = new RenderTargetBitmap(new PixelSize(400, 400));
+        using (var context = bitmap.CreateDrawingContext())
+        using (context.PushTransform(Matrix.CreateTranslation(-centre.X, -centre.Y) * Matrix.CreateScale(k, k) *
+                   Matrix.CreateTranslation(200, 200)))
+            draw(context);
+        using var copy = Copy(bitmap);
+        var alpha = Alpha(copy);
+        double sum = 0;
+        for (var y = 0; y < 400; y++)
+            for (var x = 0; x < 400; x++) sum += alpha[x, y] / 255.0;
+        var peak = alpha[200, 200] / 255.0;
+        var radius = peak <= 0 ? 0 : Math.Sqrt(sum / (.4375 * Math.PI * peak)) / k;
+        var ring = Pixel(copy, 200 + (int)Math.Round(.6 * radius * k), 200);
+        var colour = ring.A == 0 ? ring : Color.FromRgb((byte)Math.Min(255, ring.R * 255 / ring.A),
+            (byte)Math.Min(255, ring.G * 255 / ring.A), (byte)Math.Min(255, ring.B * 255 / ring.A));
+        return (peak, radius, colour);
+    }
+
+    private static void AssertDot((double Alpha, double Radius, Color Colour) dot, double alpha, double radius, Color colour, string what)
+    {
+        Assert.True(Math.Abs(dot.Alpha - alpha) <= 4 / 255.0, $"{what}: alpha {dot.Alpha:F3}, expected {alpha:F3}");
+        Assert.True(Math.Abs(dot.Radius - radius) <= .05 * radius, $"{what}: radius {dot.Radius:F3} DIP, expected {radius:F3}");
+        Assert.True(Math.Abs(dot.Colour.R - colour.R) <= 8 && Math.Abs(dot.Colour.G - colour.G) <= 8 &&
+            Math.Abs(dot.Colour.B - colour.B) <= 8, $"{what}: colour {dot.Colour}, expected {colour}");
+    }
+
+    private static BootSequence ParticleSequence() => new(new BootWindowLayout(new Rect(-262, -112, 780, 480), 14,
+        [new Rect(-248, -60, 204, 150), new Rect(10, -42, 468, 220), new Rect(-242, -104, 740, 28)]), reduceMotion: false);
+
+    // Final finding 2, ED-102 (4) "a particle is drawn as a soft dot of radius 9 to 20 shrinking to 55 % as it lands,
+    // then melts out over .35 of its flight time" and "where this text and the preview differ, this text rules": the
+    // drawn radius is the particle's size (9 to 20 icon units, 210/1024 DIP each) times (1 - .45 q), not the preview's
+    // 2.2 times it (boot_sequence.html:344). The alpha is fade * (.55 + .45 smooth(0, .25, q)) with fade =
+    // 1 - smooth(1, 1.35, raw) after landing (:342-344); the colour is the arm's colour at the target (:120).
+    [Theory]
+    [Trait("Decision", "ED-102")]
+    [InlineData(.1)]
+    [InlineData(.5)]
+    [InlineData(1.0)]
+    [InlineData(1.175)]
+    public void A_gather_particle_is_drawn_as_a_soft_dot_of_its_size_shrinking_to_55_percent_and_melting_after_landing(double raw) => headless.OnUiThread(() =>
+    {
+        var sequence = ParticleSequence();
+        var particle = sequence.GatherParticles[0];
+        var time = particle.Delay + raw * particle.Duration;
+        var q = Math.Clamp(raw, 0, 1);
+        var fade = raw < 1 ? 1 : 1 - CometEasing.Smooth(1, 1.35, raw);
+        var alpha = fade * (.55 + .45 * CometEasing.Smooth(0, .25, q));
+        var radius = particle.Size * (1 - .45 * q) * 210 / 1024;
+        var centre = sequence.IconToStage(particle.Position(time));
+        var dot = MeasureDot(context => BootStage.DrawGatherDot(context, sequence, particle, time), centre, 16);
+        AssertDot(dot, alpha, radius, particle.Color, $"gather dot at raw {raw}");
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-102")]
+    public void A_gather_particle_has_melted_out_at_35_percent_of_its_flight_past_landing() => headless.OnUiThread(() =>
+    {
+        var sequence = ParticleSequence();
+        var particle = sequence.GatherParticles[0];
+        var time = particle.Delay + 1.36 * particle.Duration;
+        var dot = MeasureDot(context => BootStage.DrawGatherDot(context, sequence, particle, time),
+            sequence.IconToStage(particle.Position(time)), 16);
+        Assert.Equal(0, dot.Alpha);
+    });
+
+    // boot_sequence.html:340 (ED-102 (4) says nothing of a particle before its start, so the preview governs): a particle
+    // that has not started twinkles on its start ring as a dot of 1.8 times its size at alpha
+    // smooth(0, .18, t) * .35 * (.6 + .4 sin(tw + 9 t)).
+    [Fact]
+    [Trait("Decision", "ED-102")]
+    public void A_particle_waiting_to_start_twinkles_on_its_start_ring() => headless.OnUiThread(() =>
+    {
+        var sequence = ParticleSequence();
+        foreach (var time in new[] { .09, .2 })
+        {
+            var particle = sequence.GatherParticles.First(p => p.Delay > .3 &&
+                .6 + .4 * Math.Sin(p.Twinkle + time * 9) > .8);
+            var alpha = CometEasing.Smooth(0, .18, time) * .35 * (.6 + .4 * Math.Sin(particle.Twinkle + time * 9));
+            var radius = particle.Size * 1.8 * 210 / 1024;
+            var start = new Point(512 + Math.Cos(particle.StartAngle) * particle.StartRadius,
+                512 + Math.Sin(particle.StartAngle) * particle.StartRadius);
+            var centre = sequence.IconToStage(start);
+            var dot = MeasureDot(context => BootStage.DrawGatherDot(context, sequence, particle, time), centre, 16);
+            Assert.True(Math.Abs(dot.Alpha - alpha) <= 4 / 255.0, $"waiting dot at {time}: alpha {dot.Alpha:F3}, expected {alpha:F3}");
+            Assert.True(Math.Abs(dot.Radius - radius) <= .08 * radius, $"waiting dot at {time}: radius {dot.Radius:F3}, expected {radius:F3}");
+        }
+    });
+
+    // boot_sequence.html:355-362 (ED-103 (4) gives no dot size, so the preview governs): a window particle is a dot of
+    // 2.2 times its size times (1 - .3 fly) at alpha appear * melt * (.6 + .4 (1 - fly)), appear = smooth(0, .2, td),
+    // melt = 1 - smooth(landing, landing + .35, td).
+    [Theory]
+    [Trait("Decision", "ED-103")]
+    [InlineData(-1.0)]
+    [InlineData(.5)]
+    [InlineData(1.175)]
+    public void A_window_particle_is_drawn_with_the_references_radius_and_alpha_ramp(double at) => headless.OnUiThread(() =>
+    {
+        var sequence = ParticleSequence();
+        foreach (var particle in new[] { sequence.WindowParticles[0], sequence.WindowParticles[^1] })
+        {
+            // at -1: td .1 (before its flight); .5: halfway through its flight; 1.175: .175 s after landing.
+            var td = at < 0 ? .1 : at <= 1 ? particle.Delay + at * particle.Duration : particle.LandsAt + .175;
+            var fly = CometEasing.InOutCubic((td - particle.Delay) / particle.Duration);
+            var alpha = CometEasing.Smooth(0, .2, td) *
+                (1 - CometEasing.Smooth(particle.LandsAt, particle.LandsAt + .35, td)) * (.6 + .4 * (1 - fly));
+            var radius = particle.Size * 210 / 1024 * 2.2 * (1 - .3 * fly);
+            var dot = MeasureDot(context => BootStage.DrawWindowDot(context, particle, td), particle.Position(td), 16);
+            AssertDot(dot, alpha, radius, particle.Color, $"window dot at td {td:F3}");
+        }
+    });
 }
