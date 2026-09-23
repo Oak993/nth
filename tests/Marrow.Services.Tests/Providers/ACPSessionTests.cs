@@ -157,6 +157,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-003")] // ACPSession.swift:109; ProviderSession.swift:164-169; Provider.swift:66-69,73,25-28,32
+    [Trait("Req", "UI-PROVACP-031")] // ACPSession.swift:109; ProviderSession.swift:168; Provider.swift:66-69,73,25-28,32
     public async Task Start_without_a_resolved_executable_throws_notInstalled_with_the_exact_per_provider_message()
     {
         var cases = new (ProviderKind Provider, string Message)[]
@@ -614,6 +615,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-037")] // ACPSession.swift:311 (Cursor strips availableModels ids too); :315 name fallback
+    [Trait("Req", "UI-PROVACP-018")] // ACPSession.swift:311 (cursor ids shown base-stripped: one row per model)
     public void ApplyModels_strips_availableModels_ids_only_for_cursor_and_name_falls_back_to_id()
     {
         var session = Session(ProviderKind.Cursor, RuntimeMode.Supervised);
@@ -633,6 +635,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-037")] // ACPSession.swift:322-323 (an empty resulting list leaves the catalog and emits nothing)
+    [Trait("Req", "UI-PROVACP-018")] // ACPSession.swift:322-323 (empty catalog: no .models event, picker keeps what it had)
     public void ApplyModels_an_empty_resulting_list_leaves_the_catalog_in_place_and_emits_nothing()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
@@ -668,6 +671,8 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-039")] // ACPSession.swift:330-331,338,364,484
+    [Trait("Req", "UI-PROVACP-019")] // ACPSession.swift:330-331 (effort disappears for the rest of the session when configOptions omits thought_level, upstream defect 1)
+    [Trait("Req", "UI-PROVACP-020")] // ACPSession.swift:331 (fast disappears for the rest of the session when configOptions omits model_config/fast, upstream defect 1)
     public void ApplyConfigOptions_resets_effort_and_fast_ids_every_call_but_not_model_or_mode_ids()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
@@ -726,6 +731,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-042")] // ACPSession.swift:337-362
+    [Trait("Req", "UI-PROVACP-018")] // ACPSession.swift:337-362 (the row marked default is the one matching the current model id)
     public void Model_config_option_records_its_id_current_model_and_rebuilds_the_list()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
@@ -831,6 +837,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-047")] // ACPSession.swift:418-429
+    [Trait("Req", "UI-PROVACP-019")] // ACPSession.swift:417-430 (tick values always ordered low to high, whatever order the agent listed them in)
     public void OrderedEfforts_sorts_the_eleven_entry_rank_table_low_to_high_stable_on_unknowns()
     {
         Assert.Equal(["low", "medium", "high"], ACPSession.OrderedEfforts(new ValueList<string>(["high", "low", "medium"])));
@@ -845,6 +852,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-049")] // ACPSession.swift:375-380
+    [Trait("Req", "UI-PROVACP-020")] // ACPSession.swift:375-380 (available only when the current model's fastTier is set to the literal string "true")
     public void Model_config_option_only_becomes_the_Fast_toggle_when_its_id_is_exactly_fast()
     {
         var session = Session(ProviderKind.Cursor, RuntimeMode.Supervised);
@@ -967,6 +975,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-056")] // ACPSession.swift:446-454
+    [Trait("Req", "UI-PROVACP-018")] // ACPSession.swift:448-449 (selecting a row sends session/set_config_option)
     public void ApplySelection_model_change_prefers_set_config_option_and_sends_the_base_id_when_parameterized()
     {
         using var runtime = new TestRuntime();
@@ -985,6 +994,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-056")] // ACPSession.swift:446-454 (fallback to session/set_model, and the optimistic assignment after it is rejected)
+    [Trait("Req", "UI-PROVACP-018")] // ACPSession.swift:450-451 (session/set_model when no model config id was advertised)
     public void ApplySelection_model_change_falls_back_to_session_set_model_and_still_updates_currentModel_when_rejected()
     {
         using var runtime = new TestRuntime();
@@ -1016,6 +1026,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-057")] // ACPSession.swift:456-459
+    [Trait("Req", "UI-PROVACP-019")] // ACPSession.swift:456-457 (moving the slider sends session/set_config_option with the chosen value)
     public void ApplySelection_effort_change_needs_a_config_id_and_an_exact_case_sensitive_string_difference()
     {
         using var runtime = new TestRuntime();
@@ -1040,6 +1051,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-058")] // ACPSession.swift:460-466
+    [Trait("Req", "UI-PROVACP-020")] // ACPSession.swift:460-464 (toggling sends session/set_config_option with the string "true" or "false")
     public void ApplySelection_writes_the_Fast_toggle_as_literal_true_or_false_strings_on_every_differing_call()
     {
         using var runtime = new TestRuntime();
@@ -1066,6 +1078,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-059")] // ACPSession.swift:467
+    [Trait("Req", "UI-PROVACP-021")] // ACPSession.swift:300-304,467 (no plan mode: asking for plan silently leaves the session where it was)
     public void ApplySelection_mode_branch_is_skipped_entirely_when_the_chosen_mode_id_is_nil()
     {
         using var runtime = new TestRuntime();
@@ -1081,6 +1094,7 @@ public sealed class ACPSessionTests
     [Fact]
     [Trait("Req", "PR-PROVACP-060")] // ACPSession.swift:468-472
     [Trait("Req", "PR-PROVACP-061")] // ACPSession.swift:467,473-474 (currentMode is set even with neither transport)
+    [Trait("Req", "UI-PROVACP-021")] // ACPSession.swift:467-474 (switching sends set_config_option, or set_mode when the agent advertised a modes object; no transport still records the mode locally)
     public void ApplySelection_mode_change_prefers_set_config_option_falls_back_only_with_hasModeAPI_and_always_updates_currentMode()
     {
         using var runtime = new TestRuntime();
@@ -1328,6 +1342,7 @@ public sealed class ACPSessionTests
 
     [Theory]
     [Trait("Req", "PR-PROVACP-071")] // ACPSession.swift:209-211; Provider.swift:25-28,32
+    [Trait("Req", "UI-PROVACP-029")] // ACPSession.swift:209-211; Provider.swift:25-28,32 (unreachable at B2: no caller reaches session.compact(); if invoked it always throws this)
     [InlineData(ProviderKind.Cursor, "Cursor compacts its own context.")]
     [InlineData(ProviderKind.Opencode, "OpenCode Zen compacts its own context.")]
     [InlineData(ProviderKind.OpencodeGo, "OpenCode Go compacts its own context.")]
@@ -1343,6 +1358,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-072")] // ACPSession.swift:213-217
+    [Trait("Req", "UI-PROVACP-017")] // ACPSession.swift:213-217 (after a click the card is dismissed by requestResolved; a second click does nothing)
     public void ResolveApproval_answers_once_then_a_second_call_for_the_same_id_is_a_silent_no_op()
     {
         using var runtime = new TestRuntime();
@@ -1596,6 +1612,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-083")] // ACPSession.swift:507-512,518-523
+    [Trait("Req", "UI-PROVACP-023")] // ACPSession.swift:507-512,518-523 (an opencode todowrite call is routed to the checklist, never a tool row)
     public void Todo_tool_calls_are_routed_to_the_checklist_and_never_open_a_tool_row_and_the_id_is_remembered()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
@@ -1678,6 +1695,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-087")] // ACPSession.swift:688-699
+    [Trait("Req", "UI-PROVACP-023")] // ACPSession.swift:685-699 (pending/active/done status mapping, unrecognized stays pending)
     public void ParseTodoItems_takes_the_first_of_four_keys_maps_seven_statuses_and_defaults_to_pending()
     {
         var items = JSONValue.FromArrayLiteral(
@@ -1703,6 +1721,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-088")] // ACPSession.swift:525-527
+    [Trait("Req", "UI-PROVACP-023")] // ACPSession.swift:525-527 (a plan update with no entries clears the checklist)
     public void Plan_update_replaces_the_checklist_unconditionally_even_with_an_empty_result()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
@@ -1720,6 +1739,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-089")] // ACPSession.swift:528-533
+    [Trait("Req", "UI-PROVACP-022")] // ACPSession.swift:528-533; Provider.swift:293-299
     public void Available_commands_update_drops_nameless_entries_defaults_detail_to_empty_and_an_empty_list_clears_the_menu()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
@@ -1746,6 +1766,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-090")] // ACPSession.swift:534-536
+    [Trait("Req", "UI-PROVACP-021")] // ACPSession.swift:300-304,534-536 (the agent reports a mode change only when a mode id exactly "plan" exists)
     public void Current_mode_update_sets_currentMode_but_only_reports_a_change_when_planMode_is_known()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
@@ -1789,6 +1810,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-092")] // ACPSession.swift:539-540
+    [Trait("Req", "UI-PROVACP-025")] // ACPSession.swift:539-540
     public void Session_info_update_renames_only_on_a_non_empty_title_with_no_trimming()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
@@ -1804,6 +1826,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-093")] // ACPSession.swift:541-549
+    [Trait("Req", "UI-PROVACP-024")] // ACPSession.swift:541-549; Timeline.swift:331-339
     public void Usage_update_feeds_the_context_meter_only_when_used_is_an_integer()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
@@ -1871,6 +1894,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-096")] // ACPSession.swift:563-566
+    [Trait("Req", "UI-PROVACP-017")] // ACPSession.swift:563-566 (in full-access mode, and for edits in auto-accept-edits mode, the card never appears at all)
     public void An_auto_approved_permission_is_answered_immediately_and_never_reaches_the_UI()
     {
         using var runtime = new TestRuntime();
@@ -1894,6 +1918,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-097")] // ACPSession.swift:567-575
+    [Trait("Req", "UI-PROVACP-017")] // ACPSession.swift:567-575; Requests.swift:13-24 (label is the agent's option.name falling back to optionId; three roles; no optionId not rendered)
     public void Permission_options_map_to_three_roles_dropping_ones_without_an_optionId_labeling_by_name_or_id()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised); // connection is nil: not auto-approved, not required here
@@ -1954,6 +1979,9 @@ public sealed class ACPSessionTests
 
     [Theory]
     [Trait("Req", "PR-PROVACP-099")] // ACPSession.swift:577-581; Core/Models/Requests.swift:34-42
+    [Trait("Req", "UI-PROVACP-013")] // ACPSession.swift:577-581; Requests.swift:36 ("Run this command?" for kind .command, agent kind "execute")
+    [Trait("Req", "UI-PROVACP-014")] // ACPSession.swift:579; Requests.swift:37 ("Apply these changes?" for kind .edit, agent kinds edit/delete/move)
+    [Trait("Req", "UI-PROVACP-015")] // ACPSession.swift:580; Requests.swift:38 ("Allow this action?" for read/search/fetch/unclassified and a missing toolCall)
     [InlineData("execute", ApprovalRequest.Kind.Command, "Run this command?")]
     [InlineData("edit", ApprovalRequest.Kind.FileChange, "Apply these changes?")]
     [InlineData("delete", ApprovalRequest.Kind.FileChange, "Apply these changes?")]
@@ -1980,6 +2008,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-100")] // ACPSession.swift:560-562,582-589
+    [Trait("Req", "UI-PROVACP-016")] // ACPSession.swift:560-562,582-589 (with a toolCall: the same title/detail a tool row carries; without one: title "Tool", no detail)
     public void Approval_event_carries_title_detail_and_toolCallId_with_a_null_toolCall_falling_back_to_a_generic_Tool_card()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
@@ -2093,6 +2122,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-105")] // ACPSession.swift:617-618
+    [Trait("Req", "UI-PROVACP-026")] // ACPSession.swift:617-618
     public void A_refusal_stop_reason_fails_the_turn_with_a_fixed_sentence()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
@@ -2126,6 +2156,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-107")] // ACPSession.swift:625-628; Core/Support/Text.swift:17-24
+    [Trait("Req", "UI-PROVACP-027")] // ACPSession.swift:627; Text.swift:17-24 (stderr's last four ANSI-stripped, trimmed, non-empty lines; else the fixed sentence)
     public void A_close_during_an_active_turn_fails_it_with_the_last_four_non_empty_lines_of_stderr_or_a_fixed_message()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
@@ -2146,6 +2177,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-108")] // ACPSession.swift:629-630
+    [Trait("Req", "UI-PROVACP-028")] // ACPSession.swift:629-630 (suppressed entirely on a deliberate stop; else last four stderr lines or nil)
     public void An_unexpected_close_emits_exited_with_the_stderr_tail_and_nil_when_empty_but_a_deliberate_stop_emits_nothing()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
@@ -2186,6 +2218,7 @@ public sealed class ACPSessionTests
 
     [Theory]
     [Trait("Req", "PR-PROVACP-110")] // ACPSession.swift:889-895
+    [Trait("Req", "UI-PROVACP-012")] // ACPSession.swift:889-895 (running: the status was absent from the recognized set)
     [InlineData("completed", ToolCall.Status.Completed)]
     [InlineData("failed", ToolCall.Status.Failed)]
     [InlineData("pending", ToolCall.Status.Running)]
@@ -2561,6 +2594,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-126")] // ACPSession.swift:840-849
+    [Trait("Req", "UI-PROVACP-011")] // ACPSession.swift:840-849 (a creation shows an empty old side, a deletion an empty new side: missing oldText/newText become "")
     public void Diffs_reads_only_diff_blocks_with_a_path_makes_it_relative_and_empties_missing_text()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
@@ -2653,6 +2687,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-131")] // ACPSession.swift:756-765
+    [Trait("Req", "UI-PROVACP-010")] // ACPSession.swift:756-768 (content blocks joined by single line feeds; rawOutput stdout/stderr/output fallback in that order)
     public void MakeToolUpdate_output_is_joined_from_content_blocks_and_only_falls_back_to_rawOutput_when_empty()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
@@ -2704,6 +2739,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-133")] // ACPSession.swift:768
+    [Trait("Req", "UI-PROVACP-010")] // ACPSession.swift:768 (empty output or the exact literal "(no output)": no pane)
     public void MakeToolUpdate_suppresses_the_exact_literal_no_output_placeholder_but_not_a_padded_variant()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
@@ -2720,6 +2756,7 @@ public sealed class ACPSessionTests
 
     [Theory]
     [Trait("Req", "PR-PROVACP-134")] // ACPSession.swift:769
+    [Trait("Req", "UI-PROVACP-012")] // ACPSession.swift:769,889-895 (completed with a non-zero exit code becomes failed)
     [InlineData("completed", 1L, ToolCall.Status.Failed)]
     [InlineData("completed", 0L, ToolCall.Status.Completed)]
     [InlineData("running", 1L, ToolCall.Status.Running)]
@@ -2744,6 +2781,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-135")] // ACPSession.swift:754-755, contrast with :734
+    [Trait("Req", "UI-PROVACP-011")] // ACPSession.swift:734,754-755 (an update with no diff blocks leaves the row's existing edits alone; a tool call with none starts empty)
     public void MakeToolUpdate_edits_stays_nil_without_a_diff_block_while_MakeToolCall_edits_is_always_assigned()
     {
         var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
@@ -2896,5 +2934,65 @@ public sealed class ACPSessionTests
         Assert.Single(Lines(process.ErrorTail)); // only the one walk request
         Assert.Equal("m1", Private<string?>(session, "currentModel", field: true)); // left on the last model walked
         runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    // ===== Part 7 of 8: UI-PROVACP-008..031. Most of these records describe behaviour whose members were
+    // already implemented (and tested under their PR-PROVACP id) in parts 1-6; this part adds the UI-PROVACP
+    // trait to those existing tests (see the edits above) and supplies dedicated tests only for the states
+    // no earlier test already proved: the unreachable .agent fallback row (008), the "never a detail" side of
+    // the tool-row detail rule (009), and the session-start failure message (030), which needed Start()'s
+    // final guard factored into RequireSessionID so it could be proven without a live agent round trip (see
+    // that method's header comment and the same reasoning already recorded for PR-PROVACP-033 in part 2).
+
+    [Fact]
+    [Trait("Req", "UI-PROVACP-008")] // ACPSession.swift:874; :855-864 (kind() never returns .agent, so this label is defined but unreachable)
+    public void FallbackTitle_for_the_agent_kind_is_the_exact_word_Agent_even_though_kind_never_produces_it()
+    {
+        Assert.Equal("Agent", InvokeStatic<string>("FallbackTitle", ToolCall.Kind.Agent));
+        // Kind() (:855-864) maps every recognized ACP kind string to .read/.edit/.search/.command/.web, and
+        // anything else (including "agent") to .other, never to .agent: the row is specified but unreachable
+        // from a real ACP payload, so it must stay in the table for any other caller of FallbackTitle.
+        foreach (var raw in new[] { "read", "edit", "delete", "move", "search", "execute", "fetch", "agent", "mcp", "unknown", null })
+            Assert.NotEqual(ToolCall.Kind.Agent, InvokeStatic<ToolCall.Kind>("Kind", raw));
+    }
+
+    [Fact]
+    [Trait("Req", "UI-PROVACP-009")] // ACPSession.swift:723-732 (absent for command, read, edit and web rows, which never set a detail)
+    public void MakeToolCall_never_sets_a_detail_for_command_read_edit_or_web_rows_even_with_a_qualifying_path()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        ToolCall Call(string kind, params (string Key, JSONValue Value)[] rawInput) => InvokePrivateValue<ToolCall>(session, "MakeToolCall",
+            JSONValue.FromDictionaryLiteral(("kind", kind), ("title", "Something"), ("rawInput", JSONValue.FromDictionaryLiteral(rawInput))));
+
+        Assert.Null(Call("execute", ("path", "src/other.ts"), ("command", "ls src/other.ts")).Detail);
+        Assert.Null(Call("read", ("path", "src/other.ts")).Detail);
+        Assert.Null(Call("edit", ("path", "src/other.ts")).Detail);
+        Assert.Null(Call("fetch", ("path", "src/other.ts"), ("url", "https://x")).Detail);
+    }
+
+    [Theory]
+    [Trait("Req", "UI-PROVACP-030")] // ACPSession.swift:149; ProviderSession.swift:none; Provider.swift:25-28,32 (shown when the handshake succeeded but no session id came back)
+    [InlineData(ProviderKind.Cursor, "Cursor did not start a session.")]
+    [InlineData(ProviderKind.Opencode, "OpenCode Zen did not start a session.")]
+    [InlineData(ProviderKind.OpencodeGo, "OpenCode Go did not start a session.")]
+    [InlineData(ProviderKind.Grok, "Grok did not start a session.")]
+    [InlineData(ProviderKind.Devin, "Devin did not start a session.")]
+    public void RequireSessionID_throws_the_exact_per_provider_message_when_no_session_id_came_back(ProviderKind provider, string message)
+    {
+        var session = Session(provider, RuntimeMode.Supervised);
+        SetField(session, "sessionID", null);
+        var error = Assert.Throws<TargetInvocationException>(() => InvokePrivateValue<string>(session, "RequireSessionID"));
+        var providerError = Assert.IsType<ProviderError>(error.InnerException);
+        Assert.IsType<ProviderError.Case.Failed>(providerError.ErrorCase);
+        Assert.Equal(message, providerError.Message);
+    }
+
+    [Fact]
+    [Trait("Req", "UI-PROVACP-030")] // ACPSession.swift:151 (a session id present: returned, not thrown)
+    public void RequireSessionID_returns_the_session_id_when_one_is_present()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        SetField(session, "sessionID", "sess-9");
+        Assert.Equal("sess-9", InvokePrivateValue<string>(session, "RequireSessionID"));
     }
 }
