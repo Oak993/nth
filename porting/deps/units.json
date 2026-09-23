@@ -25,7 +25,7 @@
    "risk": "STANDARD",
    "spec": "NSSound as ED-151 gives it: SwiftSound.Create(byte[]) returning null for data that is not a playable PCM WAV; float Volume; Play() returning false and doing nothing while playing; Stop(); IsPlaying; output through the Ambient<ISoundOutput> seam SoundOutput.Current, production on the Windows waveOut API by P/Invoke with Volume applied to the samples, tests on a fake that records plays, stops and volumes and completes on demand. First tests: Create null for bad data; play then play again while playing is declined; stop then play replays; the volume reaches the output; a playback completes and IsPlaying turns false.",
    "extends_existing": true,
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "F.ResizeStretch",
@@ -191,7 +191,7 @@
    "risk": "STANDARD",
    "spec": "SwiftUI Color model (ED-092 part 1, ED-051, ED-062; R-VIEW-11). One immutable SwiftColor: fixed sRGB with alpha (red/green/blue, white, white+alpha, and the Core hex extension), an appearance pair resolved per ActualThemeVariant (NSColor dynamicProvider, the ED-051/ED-062 token pairs), or a named system colour (clear, white, black, primary, secondary, accentColor, yellow, NSColor labelColor, placeholderTextColor, controlAccentColor). Opacity(x) multiplies alpha and returns a new value. Resolve(theme) gives an Avalonia Color; Brush(control) gives a brush that follows the control theme changes. The accent is the Windows personalization accent. System colours with no B2 value use the macOS documented values, UNVERIFIED under OD-0001. First tests: opacity arithmetic, the token pairs in light and dark, a brush updating when the theme flips, hex parsing through the Core extension, and that Opacity does not change the receiver.",
    "extends_existing": true,
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "F.SwiftFont",
@@ -216,7 +216,7 @@
    "risk": "STANDARD",
    "spec": "SwiftUI Font model (ED-091, ED-059, OD-0009, PA-0013; R-VIEW-11). One immutable SwiftFont value: text style or fixed size, optional weight, design default or monospaced, monospacedDigit/italic/bold modifiers returning new values; factories System(style, design), System(size, weight, design) and one static per text style; NSFont.systemFont(ofSize:weight:), monospacedSystemFont(ofSize:weight:) and boldSystemFont(ofSize:) through the same type. Resolve() gives Avalonia FontFamily (Inter, or Cascadia Mono for monospaced), FontSize (ED-059 table from B1:DroppyCode/UI/Common/ChatZoom.swift:44-57, or the fixed size), FontWeight (100..900), FontStyle and font features (tnum for monospacedDigit); plus an Apply helper for TextBlock and TemplatedControl. Headline with no weight resolves bold; every other style regular. No zoom. First tests: the size per style, the weight map, the headline default, the monospaced face, the digits feature, and that modifiers do not change the receiver.",
    "extends_existing": true,
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "F.SourceScan",
@@ -266,7 +266,7 @@
    "risk": "HIGH",
    "spec": "File-system watcher (R-GCD-3): tree watch events on the caller's SerialQueue and directory watch events on main (ED-116); overflow or any Error means rescan (probe P8: FileSystemWatcher.Error with InternalBufferOverflowException maps to everything = true / changed = nil; ED-114); batching of events waiting for the handler, no latency (ED-115); no order between roots (ED-113). First tests: a real temporary folder, including a forced overflow.",
    "extends_existing": true,
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "F.FrameClock",
@@ -291,7 +291,7 @@
    "risk": "STANDARD",
    "spec": "Frame clock (ED-083; R-VIEW-10): frame-driven work runs on Avalonia's frame clock, the system timer resolution is never changed. Every other unit reads time only through this seam (ED-098): a public frame-source interface (request the next frame; the callback gets the frame time), the production source on TopLevel.RequestAnimationFrame, and a public manual source whose Advance(TimeSpan) runs the pending frame callbacks, for headless tests. First tests: a manual frame source.",
    "extends_existing": true,
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "F.HTTP",
@@ -341,7 +341,7 @@
    "risk": "HIGH",
    "spec": "Secret store in Windows Credential Manager (OD-0008 B3, ADR-0002 deviation 8; R-SEC-1): trimming, empty means delete, the Boolean result the Keychain helpers return, never a plain-text fallback (OD-0008 A6). Credential mapping, case-safe target names, 2560-byte chunking, the SecItem status contract and the backend seam per ED-093. First tests: trimming, empty deletes, the Boolean result, a refused write reports false, case-different accounts stay separate, a 2561-byte value round-trips in chunks, the live test only under MARROW_PORT_CREDMAN_LIVE=1.",
    "extends_existing": true,
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "F.SettingsStore",
@@ -393,7 +393,7 @@
    "risk": "HIGH",
    "spec": "File operations: PA-0015 retried replace, rename and delete under Windows sharing violations, read-only clearing, atomic write, verification (R-FS-1). First tests: a handle held open while the helper retries under the manual clock.",
    "extends_existing": true,
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "F.ProcessLauncher",
