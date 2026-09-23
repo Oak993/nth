@@ -552,6 +552,66 @@ public sealed class SwiftURLTests
         Assert.Equal("", port.Host);
     }
 
+    // Oracle O-38: URL(string:) parsing and re-encoding beyond R-PATH-1 (a swift-foundation source reading, not a capture).
+    [Theory]
+    [Trait("Rule", "R-PATH-1")] // MCPProbe.swift:362-363 origin of an MCP server URL that may carry a port
+    [Trait("Oracle", "O-38")]
+    [InlineData("https://example.com:8443/a b", "https://example.com:8443/a%20b")]
+    [InlineData("https://example.com:8443/?q=a b", "https://example.com:8443/?q=a%20b")]
+    [InlineData("https://example.com:0080/a b", "https://example.com:80/a%20b")]
+    [InlineData("https://example.com:/a b", "https://example.com/a%20b")]
+    [InlineData("https://example.com:0080/a", "https://example.com:0080/a")]
+    public void The_rebuilt_string_of_an_invalid_URL_keeps_the_port_as_the_integer_it_parses_to(string text, string absolute)
+    {
+        // Only a URL with an invalid component is rebuilt (URLParser.swift:647-649 keep a valid one as written). The
+        // rebuild appends ":\(port)" (:703-705), where port is Int(portString) (:139-144): "0080" becomes "80", and an
+        // empty port string (kept by allowEmptyScheme, :944-948) is Int("") == nil, so its ":" is dropped.
+        var url = SwiftURL.Create(text);
+        Assert.NotNull(url);
+        Assert.Equal(absolute, url.AbsoluteString);
+        Assert.Equal("example.com", url.Host);
+    }
+
+    // Oracle O-38: URL(string:) parsing and re-encoding beyond R-PATH-1 (a swift-foundation source reading, not a capture).
+    [Theory]
+    [Trait("Rule", "R-PATH-1")] // Git.swift:146 URL(string: remote) of an http remote that may carry user info
+    [Trait("Oracle", "O-38")]
+    [InlineData("https://a@b@host.example/x", "https://a%40b@host.example/x")]
+    [InlineData("https://a:p@ss@host.example/x", "https://a:p%40ss@host.example/x")]
+    public void The_last_at_sign_of_the_authority_ends_the_user_info(string text, string absolute)
+    {
+        // parseAuthority splits at authority.lastIndex(of: "@") (URLParser.swift:919-921, the comment there says the
+        // older parser took the first); the user and password end at the first ":" before it (:922-929). "@" is not in
+        // userinfoAllowed (:1210), so the rebuild encodes it in the user or password (:663-678) and copies the valid
+        // host (:681-683).
+        var url = SwiftURL.Create(text);
+        Assert.NotNull(url);
+        Assert.Equal(absolute, url.AbsoluteString);
+        Assert.Equal("host.example", url.Host);
+        Assert.Equal("host.example", url.HostComponent());
+        Assert.Equal("/x", url.Path);
+    }
+
+    // Oracle O-38: URL(string:) parsing and re-encoding beyond R-PATH-1 (a swift-foundation source reading, not a capture).
+    [Theory]
+    [Trait("Rule", "R-PATH-1")] // MCPOAuth.swift:201 guard URL(string: url) != nil on free text
+    [Trait("Oracle", "O-38")]
+    [InlineData("@a:b c", "@a%3Ab%20c", "@a:b c")]
+    [InlineData("@a:b c/d:e f", "@a%3Ab%20c/d:e%20f", "@a:b c/d:e f")]
+    public void The_first_segment_of_a_rebuilt_relative_path_encodes_its_colon(string text, string absolute, string path)
+    {
+        // "@" before the first ":" makes a relative reference with no scheme (URLParser.swift:805-816). The invalid
+        // path is rebuilt by percentEncodePath (:326-337): the segment before the first "/" uses pathFirstSegmentAllowed,
+        // pathAllowed minus ":" (:1215-1216), so ":" there becomes %3A and the result cannot read as a scheme; the
+        // rest from the "/" on uses pathAllowed (:333-335), which keeps ":".
+        var url = SwiftURL.Create(text);
+        Assert.NotNull(url);
+        Assert.Equal(absolute, url.AbsoluteString);
+        Assert.Null(url.Scheme);
+        Assert.Null(url.Host);
+        Assert.Equal(path, url.Path);
+    }
+
     // Oracle O-44: URL.pathComponents of a non-file URL (a swift-foundation source reading, not a capture; ED-143).
     [Theory]
     [Trait("Rule", "R-PATH-1")] // MergeRequestLink.swift:24 url.pathComponents.filter { $0 != "/" }
