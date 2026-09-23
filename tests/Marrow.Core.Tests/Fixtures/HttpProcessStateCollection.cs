@@ -1,4 +1,4 @@
-namespace Marrow.Services.Tests.Fixtures;
+namespace Marrow.Core.Tests.Fixtures;
 
 // PORT-ONLY test fixture, no Swift twin: the one non-parallel xUnit collection of the HTTP unit (R-TEST-5, ED-118
 // item 6). Tests that change process-wide state (the cookie store and the response cache of URLSession.Shared) run

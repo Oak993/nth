@@ -266,8 +266,17 @@ public static class SwiftPath
     /// A bare leading separator is not absolute. It replaces only <c>hasPrefix("/")</c> (TouchedPaths.swift:24,
     /// TurnDiff.swift:34, :41, AppModel+Hydra.swift:329, AppModel+HydraMerge.swift:498, :537, NativeFileTools.swift:23,
     /// ThreadRuntime.swift:3376); the "~" and "://" clauses stay at those call sites as the Swift writes them.
+    /// ED-173 adds a fourth form, a UNC path spelled with forward slashes, /^\/\/[^\\/]+[\\/][^\\/]+/: TurnDiff.swift:34
+    /// and :41 test <c>hasPrefix("/")</c> on reportedPath's output (TurnDiff.swift:8-9), which TouchedPaths.normalize
+    /// forward-slashes (ED-019 (3)), so a UNC file outside the root arrives as "//srv/share/..."; a lone "//" or
+    /// "//server" without a share stays false, as the backslash form does.
     /// </summary>
-    public static bool IsAbsolute(string path) => IsDriveRooted(path, 0) || HasLongPrefix(path) || IsUncRooted(path);
+    public static bool IsAbsolute(string path) =>
+        IsDriveRooted(path, 0) || HasLongPrefix(path) || IsUncRooted(path) || IsForwardSlashUncRooted(path);
+
+    /// <summary>ED-173: /^\/\/[^\\/]+[\\/][^\\/]+/.</summary>
+    private static bool IsForwardSlashUncRooted(string p) =>
+        p.Length >= 2 && p[0] == '/' && p[1] == '/' && ServerShareLength(p, 2) > 0;
 
     /// <summary>
     /// ED-045 as amended by ED-139: a leading \\?\UNC\ becomes //, any other \\?\ prefix is stripped, backslashes become
