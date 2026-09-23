@@ -1031,30 +1031,14 @@
    ],
    "intra_deps": [],
    "records_total": 6,
-   "records_todo": [
-    "PR-THEME-172",
-    "PR-THEME-173",
-    "PR-THEME-174",
-    "PR-THEME-175",
-    "PR-THEME-176",
-    "UI-THEME-051"
-   ],
-   "parts": [
-    [
-     "PR-THEME-172",
-     "PR-THEME-173",
-     "PR-THEME-174",
-     "PR-THEME-175",
-     "PR-THEME-176",
-     "UI-THEME-051"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-037",
     "T-M5-038"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Sound.ToneSynth",
