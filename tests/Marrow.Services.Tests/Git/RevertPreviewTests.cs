@@ -196,8 +196,10 @@ public sealed class RevertPreviewTests
         }
     }
 
+    // R-TEST-6: the expected text is Foundation's, not RevertPreview.swift's (:33 and :36 only throw
+    // CocoaError(.fileReadCorruptFile)), and it is UNVERIFIED as oracle O-25 (ED-100). This test therefore
+    // carries no Req trait and cannot verify PR-GIT-099 until O-25 is settled.
     [Fact]
-    [Trait("Req", "PR-GIT-099")] // failure_cases: the message editor shows the error's description
     [Trait("Decision", "ED-100")]
     [Trait("Rule", "R-ERR-2")]
     [Trait("Oracle", "O-25")]
