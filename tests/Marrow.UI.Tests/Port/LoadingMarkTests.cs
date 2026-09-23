@@ -256,7 +256,8 @@ public sealed class LoadingMarkTests
         Assert.Equal(3.85, BootSequence.FinalRest(2.5), 9);
         Assert.Equal(3.85, BootSequence.FinalRest(3.85), 9); // at the end counts
         Assert.Equal(6.25, BootSequence.FinalRest(3.86), 9);
-        Assert.Equal(8.65, BootSequence.FinalRest(6), 9);
+        Assert.Equal(6.25, BootSequence.FinalRest(6), 9); // turns end at 3.85, 6.25, 8.65: 6.25 is the first at or after 6
+        Assert.Equal(8.65, BootSequence.FinalRest(7), 9);
     }
 
     [Fact]
@@ -268,19 +269,19 @@ public sealed class LoadingMarkTests
         var pulses = new SortedSet<double>();
         for (var i = 0; i < 9 * 120; i++)
         {
-            if (boot.At(i / 120.0, readyAt: 6).Comet.LastPulse is { } p) pulses.Add(Math.Round(p, 9));
+            if (boot.At(i / 120.0, readyAt: 7).Comet.LastPulse is { } p) pulses.Add(Math.Round(p, 9));
         }
         Assert.Equal([1.45, 3.85, 6.25], pulses);
-        Assert.Null(boot.At(1.44, 6).Comet.LastPulse);
-        var rest = boot.At(8.7, 6).Comet;
+        Assert.Null(boot.At(1.44, 7).Comet.LastPulse);
+        var rest = boot.At(8.7, 7).Comet;
         Assert.Equal(6.25, rest.LastPulse!.Value, 9);
         Assert.Null(rest.RingAge);
         Assert.Equal(0, Wrap(rest.Angle), 9);
         Assert.Equal(0, rest.Speed);
         // no draw-in before the final rest, where the mark breaks up instead
-        Assert.Equal(1 + .14 * Math.Exp(-7 * 2.35), boot.At(8.6, 6).Comet.CoreScale, 9);
+        Assert.Equal(1 + .14 * Math.Exp(-7 * 2.35), boot.At(8.6, 7).Comet.CoreScale, 9);
         // but a draw-in before an extra turn's pulse
-        Assert.Equal((1 + .14 * Math.Exp(-7 * 2.35)) * (1 - .1 * Smooth(5.97, 6.25, 6.2)), boot.At(6.2, 6).Comet.CoreScale, 9);
+        Assert.Equal((1 + .14 * Math.Exp(-7 * 2.35)) * (1 - .1 * Smooth(5.97, 6.25, 6.2)), boot.At(6.2, 7).Comet.CoreScale, 9);
         // while the app is not ready the turns go on
         var waiting = new SortedSet<double>();
         for (var i = 0; i < 12 * 30; i++)
