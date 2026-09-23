@@ -60,6 +60,8 @@ public sealed class LibrarySecondTests
     [Fact]
     public void IsSettled_and_settledAt_both_round_trip()
     {
+        using var runtime = new TestRuntime();
+
         var settledAt = DateTimeOffset.Parse("2024-05-01T12:00:00Z", System.Globalization.CultureInfo.InvariantCulture);
         var thread = new ChatThread(Guid.NewGuid(), ProviderKind.Claude, null, null, RuntimeMode.Supervised) with
         {

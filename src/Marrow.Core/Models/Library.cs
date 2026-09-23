@@ -421,7 +421,10 @@ internal sealed class ChatThreadConverter : JsonConverter<ChatThread>
         var isSettled = Coding.Value(element, "isSettled", SwiftDecoding.ReadBool, () => false);   // :245
         var settledAt = Coding.Value<DateTimeOffset?>(element, "settledAt", field => SwiftDecoding.ReadStorageDate(field), () => null); // :246
         var hasUnread = Coding.Value(element, "hasUnread", SwiftDecoding.ReadBool, () => false);         // :247
-        var hasCustomTitle = Coding.Value(element, "hasCustomTitle", SwiftDecoding.ReadBool, () => false); // :248
+        // DEVIATION OD-0008 A11 (BLK-0011 FIX): upstream (:248) defaults an unreadable hasCustomTitle to
+        // false; the port defaults it to true so a typed name is never overwritten by the auto-titler. A
+        // stored true or false is still read as stored; only the absent/null/wrong-type fallback differs.
+        var hasCustomTitle = Coding.Value(element, "hasCustomTitle", SwiftDecoding.ReadBool, () => true); // :248, DEVIATION OD-0008 A11
         var sortOrder = Coding.Value<double?>(element, "sortOrder", field => SwiftDecoding.ReadDouble(field), () => null); // :249
         var activityOrder = Coding.Value<double?>(element, "activityOrder", field => SwiftDecoding.ReadDouble(field), () => null); // :250
         var activityOrderDay = Coding.Value<DateTimeOffset?>(element, "activityOrderDay", field => SwiftDecoding.ReadStorageDate(field), () => null); // :251
