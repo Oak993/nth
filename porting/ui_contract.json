@@ -11607,7 +11607,8 @@
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1068-1075",
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:448-453"
       ],
-      "notes": "The option id 'allow' is the wire value and must not change; the title is the visible label."
+      "notes": "The option id 'allow' is the wire value and must not change; the title is the visible label.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",
@@ -11632,7 +11633,8 @@
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:292",
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1044-1050"
       ],
-      "notes": "In plan mode this button never unlocks edits or commands, because plan mode is decided before the blanket approval is consulted."
+      "notes": "In plan mode this button never unlocks edits or commands, because plan mode is decided before the blanket approval is consulted.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",
@@ -11654,7 +11656,8 @@
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1071",
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1035-1038"
       ],
-      "notes": "Any option id that is neither 'allow' nor 'always' declines, so an unknown id is safe by default."
+      "notes": "Any option id that is neither 'allow' nor 'always' declines, so an unknown id is safe by default.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",
@@ -11681,7 +11684,8 @@
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:900",
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1062-1067"
       ],
-      "notes": "list_files is the odd one out: its approval title is the row title (a bare folder name) rather than a verb phrase. search_text wraps the pattern in U+201C and U+201D. The MCP title uses plain spaces, 'Call <server> <tool>', while the timeline row for the same call uses a middle dot."
+      "notes": "list_files is the odd one out: its approval title is the row title (a bare folder name) rather than a verb phrase. search_text wraps the pattern in U+201C and U+201D. The MCP title uses plain spaces, 'Call <server> <tool>', while the timeline row for the same call uses a middle dot.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",
@@ -11703,7 +11707,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:919-935"
       ],
-      "notes": "An empty path argument renders as the full working directory, because displayPath falls back to it."
+      "notes": "An empty path argument renders as the full working directory, because displayPath falls back to it.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",
@@ -11725,7 +11730,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:936-953"
       ],
-      "notes": "Deliberately the same shape as Claude's LS row, with the folder as the subject."
+      "notes": "Deliberately the same shape as Claude's LS row, with the folder as the subject.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",
@@ -11746,7 +11752,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:954-965"
       ],
-      "notes": "This row never shows a failed status, even when the search errored; the failure is carried in the text. That is source behavior."
+      "notes": "This row never shows a failed status, even when the search errored; the failure is carried in the text. That is source behavior.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",
@@ -11768,7 +11775,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:966-987"
       ],
-      "notes": "The diff is attached twice, once on start and once on completion, with the same content."
+      "notes": "The diff is attached twice, once on start and once on completion, with the same content.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",
@@ -11790,7 +11798,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:988-1010"
       ],
-      "notes": "The old and new text come from old_string and new_string, or from old_text and new_text when the model used those spellings."
+      "notes": "The old and new text come from old_string and new_string, or from old_text and new_text when the model used those spellings.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",
@@ -11813,7 +11822,8 @@
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1011-1026",
         "DroppyCode/Services/Providers/ProviderSession.swift:180-192"
       ],
-      "notes": "The row carries the real exit code, so a non-zero exit is visibly a failure rather than a silent completion."
+      "notes": "The row carries the real exit code, so a non-zero exit is visibly a failure rather than a silent completion.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",
@@ -11835,7 +11845,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:898-917"
       ],
-      "notes": "The separator is U+00B7 with a space either side, unlike the approval title for the same call which uses plain spaces."
+      "notes": "The separator is U+00B7 with a space either side, unlike the approval title for the same call which uses plain spaces.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",
@@ -11854,7 +11865,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1027-1032"
       ],
-      "notes": "The row text and the string returned to the model differ: the row says 'Unknown tool.' and the model is told 'Error: unknown tool <name>.'"
+      "notes": "The row text and the string returned to the model differ: the row says 'Unknown tool.' and the model is told 'Error: unknown tool <name>.'",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",
@@ -11874,7 +11886,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:547-549"
       ],
-      "notes": "The provider title is interpolated, so the same sentence appears with Meta or Z.ai in place of DeepSeek."
+      "notes": "The provider title is interpolated, so the same sentence appears with Meta or Z.ai in place of DeepSeek.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",
@@ -11894,7 +11907,8 @@
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:425-429",
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:72"
       ],
-      "notes": "The number is interpolated from maxRoundsPerTurn, and the word continue is wrapped in U+201C and U+201D."
+      "notes": "The number is interpolated from maxRoundsPerTurn, and the word continue is wrapped in U+201C and U+201D.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",
@@ -11916,7 +11930,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/OpenAICompatibleSession.swift:457-468"
       ],
-      "notes": "Both are info level, not warning, and both end with a full stop."
+      "notes": "Both are info level, not warning, and both end with a full stop.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",
