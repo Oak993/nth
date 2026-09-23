@@ -5681,7 +5681,7 @@
       "cancellation": "not cancellable once the terminal opens; the app does not track the shell.",
       "windows_path": "PLATFORM BOUNDARY: the zsh shebang, the .command extension, the POSIX permission bits and the workspace open verb all have no Windows equivalent. The Windows build must launch the command in a Windows terminal, and the per-CLI file naming rule should be preserved if a script file is used at all. The token derivation rule is a source fact and must be kept if file names are kept. OD-0012 F1: the temporary folder is named \"marrow-login\" in place of \"droppy-code-login\".",
       "verification_method": "interaction test asserting the derived file name and the launched command",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

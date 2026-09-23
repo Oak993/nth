@@ -985,7 +985,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two literal colours. These are the only colours in the theme area declared in floating-point components; they are declared without an explicit colour space and so take the framework default, which is sRGB, the same space AppTheme's hex colours use.",
       "verification_method": "unit: the two component triples",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5695,7 +5695,8 @@
         "DroppyCode/UI/Theme/ShortcutTint.swift:1-12",
         "DroppyCode/UI/Chrome/Chrome.swift:119"
       ],
-      "notes": "Exactly two sections exist at this commit. These are the only colours in the theme area declared as floating-point components rather than hex, and they take the framework's default colour space, which is sRGB."
+      "notes": "Exactly two sections exist at this commit. These are the only colours in the theme area declared as floating-point components rather than hex, and they take the framework's default colour space, which is sRGB.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-049",

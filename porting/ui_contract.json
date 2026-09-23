@@ -2462,7 +2462,8 @@
         "DroppyCode/App/Views/Composer/ComposerWorkingDots.swift:12-190",
         "DroppyCode/App/Views/Composer/ComposerView.swift:661-675"
       ],
-      "notes": "Once on screen the render server plays it alone: no timer, no view update and no main-thread drawing, however long a turn runs. A Windows port must match that."
+      "notes": "Once on screen the render server plays it alone: no timer, no view update and no main-thread drawing, however long a turn runs. A Windows port must match that.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -4143,7 +4144,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:91-93",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "The deletion marker is the Unicode minus sign, not a hyphen. This one component is reused by the popover header, every file card, the turn file card and the message editor. ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001."
+      "notes": "The deletion marker is the Unicode minus sign, not a hyphen. This one component is reused by the popover header, every file card, the turn file card and the message editor. ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -15626,7 +15628,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 chatBaseSize - .callout 12 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "The help string doubles as the accessibility label. SF Symbol \"info.circle\".",
-      "b2_change": "DroppyCode/UI/Chrome/InfoHoverButton.swift:17 `.system(size: 12, weight: .medium)` -> `.system(.callout, weight: .medium)` at 1fbf81e6. Chrome.secondaryText is `primaryText.opacity(0.7)` at 1fbf81e6 (DroppyCode/UI/Chrome/Chrome.swift:79), the label colour at 70% opacity; at dd2b86ef it was `Color(nsColor: .secondaryLabelColor)` (DroppyCode/UI/Chrome/Chrome.swift:77 at dd2b86ef)."
+      "b2_change": "DroppyCode/UI/Chrome/InfoHoverButton.swift:17 `.system(size: 12, weight: .medium)` -> `.system(.callout, weight: .medium)` at 1fbf81e6. Chrome.secondaryText is `primaryText.opacity(0.7)` at 1fbf81e6 (DroppyCode/UI/Chrome/Chrome.swift:79), the label colour at 70% opacity; at dd2b86ef it was `Color(nsColor: .secondaryLabelColor)` (DroppyCode/UI/Chrome/Chrome.swift:77 at dd2b86ef).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -18211,7 +18214,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Sidebar/RowGlide.swift:139-234"
       ],
-      "notes": "Only the reopen direction runs today; the settle branches are kept for the flight's shape. Progress is driven by a single spring keyframe with response 0.6 and damping ratio 0.86."
+      "notes": "Only the reopen direction runs today; the settle branches are kept for the flight's shape. Progress is driven by a single spring keyframe with response 0.6 and damping ratio 0.86.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SIDEBAR",
@@ -18235,7 +18239,8 @@
         "DroppyCode/App/Views/Sidebar/RowGlide.swift:186-220"
       ],
       "notes": "These insets (36 and 16) are NOT the row's own check insets (26 and 6). Unifying them shifts the check visibly at the handover.",
-      "b2_change": "Chrome.inlineIconFont: B1 Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 Chrome.swift:29 `.system(.subheadline, weight: .semibold)`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Nothing else changed."
+      "b2_change": "Chrome.inlineIconFont: B1 Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 Chrome.swift:29 `.system(.subheadline, weight: .semibold)`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Nothing else changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SIDEBAR",
@@ -20993,7 +20998,8 @@
         "DroppyCode/UI/Theme/ShortcutTint.swift:1-12",
         "DroppyCode/UI/Chrome/Chrome.swift:119"
       ],
-      "notes": "Exactly two sections exist at this commit. These are the only colours in the theme area declared as floating-point components rather than hex, and they take the framework's default colour space, which is sRGB."
+      "notes": "Exactly two sections exist at this commit. These are the only colours in the theme area declared as floating-point components rather than hex, and they take the framework's default colour space, which is sRGB.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",

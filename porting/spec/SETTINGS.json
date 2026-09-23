@@ -7833,7 +7833,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 chatBaseSize - .callout 12 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "The help string doubles as the accessibility label. SF Symbol \"info.circle\".",
-      "b2_change": "DroppyCode/UI/Chrome/InfoHoverButton.swift:17 `.system(size: 12, weight: .medium)` -> `.system(.callout, weight: .medium)` at 1fbf81e6. Chrome.secondaryText is `primaryText.opacity(0.7)` at 1fbf81e6 (DroppyCode/UI/Chrome/Chrome.swift:79), the label colour at 70% opacity; at dd2b86ef it was `Color(nsColor: .secondaryLabelColor)` (DroppyCode/UI/Chrome/Chrome.swift:77 at dd2b86ef)."
+      "b2_change": "DroppyCode/UI/Chrome/InfoHoverButton.swift:17 `.system(size: 12, weight: .medium)` -> `.system(.callout, weight: .medium)` at 1fbf81e6. Chrome.secondaryText is `primaryText.opacity(0.7)` at 1fbf81e6 (DroppyCode/UI/Chrome/Chrome.swift:79), the label colour at 70% opacity; at dd2b86ef it was `Color(nsColor: .secondaryLabelColor)` (DroppyCode/UI/Chrome/Chrome.swift:77 at dd2b86ef).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-031",
