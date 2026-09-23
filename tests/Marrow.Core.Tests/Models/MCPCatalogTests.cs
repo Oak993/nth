@@ -53,16 +53,16 @@ public sealed class MCPCatalogTests
 
     private static object?[] Project(MCPCatalogEntry entry)
     {
-        var (kind, address, args, headers) = entry.Transport switch
+        (string kind, string address, IReadOnlyList<string> args, IReadOnlyDictionary<string, string> headers) = entry.Transport switch
         {
-            MCPTransport.Stdio stdio => ("stdio", stdio.Command, stdio.Args, (IReadOnlyDictionary<string,string>)new Dictionary<string,string>()),
+            MCPTransport.Stdio stdio => ("stdio", stdio.Command, stdio.Args, (IReadOnlyDictionary<string, string>)new Dictionary<string, string>()),
             MCPTransport.Http http => ("http", http.Url, (IReadOnlyList<string>)Array.Empty<string>(), http.Headers),
-            MCPTransport.OAuth oauth => ("oauth", oauth.Url, (IReadOnlyList<string>)Array.Empty<string>(), (IReadOnlyDictionary<string,string>)new Dictionary<string,string>()),
+            MCPTransport.Oauth oauth => ("oauth", oauth.Url, (IReadOnlyList<string>)Array.Empty<string>(), (IReadOnlyDictionary<string, string>)new Dictionary<string, string>()),
             _ => throw new InvalidOperationException()
         };
         return [entry.Id, entry.Name, entry.Vendor, entry.Summary, entry.Category.Id(), entry.Asset,
             entry.ColorValue.ToString("X6", System.Globalization.CultureInfo.InvariantCulture), entry.IsMonochrome, kind, address, args, headers,
             entry.Fields.Select(f => new object?[] { f.Key, f.Label, f.Placeholder, f.FieldKind.ToString(), f.Help, f.DefaultValue, f.IsRequired }).ToArray(),
-            entry.Env, entry.DocsUrl, entry.SampleTools, entry.KeysUrl, entry.NeedsInput, entry.IsOAuth];
+            entry.Env, entry.DocsURL, entry.SampleTools, entry.KeysURL, entry.NeedsInput, entry.IsOAuth];
     }
 }
