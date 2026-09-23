@@ -7,6 +7,7 @@ namespace Marrow.Core.Tests.Support;
 public sealed class StdioFramerWhitespaceTests
 {
     // CFUniChar.c isWhitespace includes U+200B despite its Unicode Cf category.
+    // R-TEST-4 negative control (string.Trim() keeps U+200B): tests/Marrow.Core.Tests/Port/SwiftStringTests.cs:172-180.
     [Fact]
     [Trait("Req", "PR-PROVACP-152")] // StdioFramer.swift:75-76
     public void Foundation_whitespace_includes_zero_width_space_around_the_name_and_value()

@@ -26,6 +26,103 @@ public sealed class StdioFramerTests
         };
     }
 
+    // Byte storage the framer retains (ED-147). Swift keeps `private var buffer = Data()` (StdioFramer.swift:10),
+    // replaces it at :59 with `Data(buffer[start...])`, storage sized to the unconsumed slice, and at :65 with Data().
+    // Every non-public instance field must have one of the listed types, so no other store can hide bytes; the
+    // result is the total Length of the byte[] fields, one of which must be named buffer.
+    private static long RetainedBytes(StdioFramer framer)
+    {
+        var fields = typeof(StdioFramer).GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
+        Type[] allowed = [typeof(byte[]), typeof(int), typeof(long), typeof(int?), typeof(long?), typeof(StdioFramer.Framing)];
+        foreach (var field in fields)
+        {
+            if (!allowed.Contains(field.FieldType))
+                throw new InvalidOperationException($"Field {field.Name} has type {field.FieldType}, which is not an allowed framer field type.");
+        }
+        var bufferFields = fields.Count(f => f.FieldType == typeof(byte[]) && f.Name.TrimStart('_') is "buffer" or "Buffer");
+        if (bufferFields != 1)
+            throw new InvalidOperationException($"Expected one byte[] field named buffer, found {bufferFields}.");
+        long total = 0;
+        foreach (var field in fields)
+        {
+            if (field.FieldType == typeof(byte[])) total += ((byte[]?)field.GetValue(framer))?.Length ?? 0;
+        }
+        return total;
+    }
+
+    // ED-147. Every expected value, derived from StdioFramer.swift:
+    // Lines, each append of A = 1,048,576 x 0x61, 0x0A, "xyz" (the same array every time):
+    //   :20 buffer = remainder + A. :23 search = start + scanned. :27 finds the 0x0A after the 0x61 run; :31 emits
+    //   buffer[start..<newline] (1 MiB of 'a' the first time, then "xyz" + 1 MiB of 'a'); :32-33 start = search =
+    //   newline + 1. :27-28 finds no further 0x0A, so search = endIndex. :58 scanned = endIndex - start = 3 ("xyz").
+    //   :59 buffer = Data(buffer[start...]), storage sized to the 3-byte slice, so at most 3 bytes are retained.
+    //   The next append resumes the search at :23 start + 3, past "xyz", so it emits exactly one message again.
+    //   :64 finish() returns "xyz" (line framing, non-empty buffer) and :65 buffer = Data() retains nothing.
+    // ContentLength:
+    //   Append("Content-Le"), 10 bytes: :36 bodyLength is nil; :37 finds no separator, so :38 search =
+    //   max(0, 10 - 3) = 7; :58 scanned = 7 - 0 = 7; :59 start == startIndex, nothing consumed and no reallocation,
+    //   so no storage assertion is made here.
+    //   Each append of "ngth: 1048576\r\n\r\n" + 1 MiB of 'a' + "Content-Le": :23 search = 0 + 7; :37 finds the
+    //   separator after "Content-Length: 1048576"; :41-45 the header parses to 1048576 and start moves past the
+    //   separator; :47-53 the body is complete, is emitted, and start = its end; :36-38 "Content-Le" holds no
+    //   separator, so search = max(start, endIndex - 3) = start + 7; :58 scanned = 7; :59 buffer = the 10-byte
+    //   slice "Content-Le", so at most 10 bytes are retained.
+    //   Append("ngth: 1\r\n\r\nZ"): :37-45 header "Content-Length: 1", length 1; :47-53 emits "Z", start = endIndex;
+    //   :36-38 no separator, search = max(start, endIndex - 3) = start; :58 scanned = 0; :59 buffer =
+    //   Data(buffer[endIndex...]), empty, so nothing is retained.
+    [Theory]
+    [Trait("Req", "PR-PROVACP-150")] // StdioFramer.swift:10, :58-59, :65
+    [InlineData(StdioFramer.Framing.Lines)]
+    [InlineData(StdioFramer.Framing.ContentLength)]
+    public void Each_consuming_append_keeps_only_the_unconsumed_remainder_as_storage(StdioFramer.Framing framing)
+    {
+        const int mib = 1024 * 1024;
+        var framer = new StdioFramer(framing);
+        if (framing == StdioFramer.Framing.Lines)
+        {
+            var chunk = new byte[mib + 4];
+            Array.Fill(chunk, (byte)0x61, 0, mib);
+            chunk[mib] = 0x0A;
+            Bytes("xyz").CopyTo(chunk, mib + 1);
+            for (var i = 0; i < 64; i++)
+            {
+                var message = Assert.Single(framer.Append(chunk));
+                var prefix = i == 0 ? 0 : 3;
+                Assert.Equal(prefix + mib, message.Length);
+                if (i != 0) Assert.Equal(Bytes("xyz"), message[..3]);
+                Assert.True(message.AsSpan(prefix).IndexOfAnyExcept((byte)0x61) < 0, $"Append {i}: the message is not 'a' after its prefix.");
+                var retained = RetainedBytes(framer);
+                Assert.True(retained <= 3, $"Append {i}: {retained} bytes retained.");
+                Assert.Equal(3, Scanned(framer));
+            }
+            Assert.Equal(Bytes("xyz"), framer.Finish());
+            Assert.Equal(0, RetainedBytes(framer));
+        }
+        else
+        {
+            Assert.Empty(framer.Append(Bytes("Content-Le")));
+            Assert.Equal(7, Scanned(framer));
+            var head = Bytes("ngth: 1048576\r\n\r\n");
+            var tail = Bytes("Content-Le");
+            var chunk = new byte[head.Length + mib + tail.Length];
+            head.CopyTo(chunk, 0);
+            Array.Fill(chunk, (byte)0x61, head.Length, mib);
+            tail.CopyTo(chunk, head.Length + mib);
+            for (var i = 0; i < 64; i++)
+            {
+                var message = Assert.Single(framer.Append(chunk));
+                Assert.Equal(mib, message.Length);
+                Assert.True(message.AsSpan().IndexOfAnyExcept((byte)0x61) < 0, $"Append {i}: the body is not all 'a'.");
+                var retained = RetainedBytes(framer);
+                Assert.True(retained <= 10, $"Append {i}: {retained} bytes retained.");
+                Assert.Equal(7, Scanned(framer));
+            }
+            Assert.Equal(Bytes("Z"), Assert.Single(framer.Append(Bytes("ngth: 1\r\n\r\nZ"))));
+            Assert.Equal(0, RetainedBytes(framer));
+            Assert.Equal(0, Scanned(framer));
+        }
+    }
+
     [Fact]
     [Trait("Req", "PR-PROVACP-149")] // StdioFramer.swift:26-34, :64
     public void Lines_split_only_on_LF_preserving_CR_empty_messages_and_arbitrary_bytes()
@@ -172,6 +269,7 @@ public sealed class StdioFramerTests
         Assert.Null(framer.Finish());
     }
 
+    // ED-148: this test is the one sanctioned R-TEST-5 exception (it keeps its Stopwatch); no other test uses one.
     // Performance guard named by the record's verification_method. The budget is relative to a baseline measured
     // in the same run (a run of complete lines, whose buffer is emptied on every append), not a product timeout.
     // A framer that rescans its whole remainder on every append (search from 0 or from start, instead of
@@ -179,6 +277,7 @@ public sealed class StdioFramerTests
     // the incremental scan searches 8 (or 8 + 3) bytes per call.
     [Theory]
     [Trait("Req", "PR-PROVACP-150")] // StdioFramer.swift:23, :27-28, :37-38, :58
+    [Trait("Decision", "ED-148")]
     [InlineData(StdioFramer.Framing.Lines)]
     [InlineData(StdioFramer.Framing.ContentLength)]
     public void Sixteen_MiB_unterminated_in_8_byte_chunks_costs_about_as_much_as_complete_lines(StdioFramer.Framing framing)
