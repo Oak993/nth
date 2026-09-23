@@ -3835,7 +3835,12 @@
         "DroppyCode/UI/Common/AttachmentPreviewPanel.swift:78-235"
       ],
       "notes": "The panel never resizes once shown; content taller than measured is clipped at the bottom, never at the header.",
-      "b2_change": "Colours: B1 name :341 `.foregroundStyle(.secondary)` and size :347 `.foregroundStyle(.tertiary)` -> B2 DroppyCode/UI/Common/AttachmentPreview.swift:351 and :357 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal. Geometry: B1 :264-275 read the movie track synchronously when the panel opened; B2 :283-285 uses only the cached size, else 480 by 360. The range moves from B1 230-386 to B2 231-396. States, typography and the other geometry unchanged."
+      "b2_change": "Colours: B1 name :341 `.foregroundStyle(.secondary)` and size :347 `.foregroundStyle(.tertiary)` -> B2 DroppyCode/UI/Common/AttachmentPreview.swift:351 and :357 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal. Geometry: B1 :264-275 read the movie track synchronously when the panel opened; B2 :283-285 uses only the cached size, else 480 by 360. The range moves from B1 230-386 to B2 231-396. States, typography and the other geometry unchanged.",
+      "deviation": {
+        "decision": "OD-0016",
+        "upstream": "DroppyCode/UI/Common/AttachmentPreview.swift:299 and :319 `ProgressView()` in the image and video slots",
+        "port": "The 48 px loading mark replaces the spinner in the slot, after 400 ms (ED-097)."
+      }
     },
     {
       "area": "COMPOSER",
@@ -4240,7 +4245,12 @@
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:71-85"
       ],
-      "notes": "The label is deliberate: an unnamed spinner in an otherwise empty 640 by 540 pane says nothing. The ellipsis is the single character U+2026."
+      "notes": "The label is deliberate: an unnamed spinner in an otherwise empty 640 by 540 pane says nothing. The ellipsis is the single character U+2026.",
+      "deviation": {
+        "decision": "OD-0016",
+        "upstream": "DroppyCode/App/Views/Diff/DiffInspector.swift:76 `ProgressView(\"Reading the diff…\")`",
+        "port": "The 64 px loading mark replaces the spinner above the same label \"Reading the diff…\", after 400 ms (ED-097)."
+      }
     },
     {
       "area": "GIT",

@@ -3100,7 +3100,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Store as an exact string resource, byte for byte, including U+2019 and the American spellings, with the OD-0012 F1 first line \"[Marrow anti-slop guidance]\". Do not reflow, re-wrap, spell-check or localise it. Deliver it at exactly the points and with exactly the once-per-epoch rule the expected result names.",
       "verification_method": "contract fixture: byte-compare the delivered text against the source literal with its first line replaced by \"[Marrow anti-slop guidance]\" (OD-0012 F1), at each delivery point: Claude --append-system-prompt, Codex developerInstructions, Copilot systemMessage, the OpenAI-compatible system prompt, and the user-prompt prefix of another CLI provider (once per session epoch, absent on a slash command)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3118,8 +3118,7 @@
         "upstream": "DroppyCode/Core/Models/AntiSlopPolicy.swift:3 - first line \"[Droppy Code anti-slop guidance]\"",
         "port": "First line \"[Marrow anti-slop guidance]\"; the four guidance lines, including the U+2019 in \"product’s\", are unchanged. OD-0012 F1 names the \"[Marrow]\" notes sent to models."
       },
-      "spec_fix": "Action and expected result said the text is injected into the system prompt when a turn starts -> it goes into the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers (ClaudeSession.swift:121-128, CodexSession.swift:249-257, CopilotSession.swift:147-156, OpenAICompatibleSession.swift:1188-1195), and for every other provider it is prefixed to the user prompt once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367, :1751, :2090)",
-      "rework": true
+      "spec_fix": "Action and expected result said the text is injected into the system prompt when a turn starts -> it goes into the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers (ClaudeSession.swift:121-128, CodexSession.swift:249-257, CopilotSession.swift:147-156, OpenAICompatibleSession.swift:1188-1195), and for every other provider it is prefixed to the user prompt once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367, :1751, :2090)"
     },
     {
       "id": "PR-STORE-130",
@@ -3136,7 +3135,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte-exact string with the OD-0012 F1 first line \"[Marrow anti-slop guidance: off]\", and the same always-inject-one-of-two selector. The selector takes a Bool and returns one of the two constants; there is no third state.",
       "verification_method": "contract fixture over both branches, at each delivery point PR-STORE-129 names, with the first lines \"[Marrow anti-slop guidance]\" and \"[Marrow anti-slop guidance: off]\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3152,8 +3151,7 @@
         "upstream": "DroppyCode/Core/Models/AntiSlopPolicy.swift:12 - first line \"[Droppy Code anti-slop guidance: off]\"",
         "port": "First line \"[Marrow anti-slop guidance: off]\"; the second line is unchanged. OD-0012 F1 names the \"[Marrow]\" notes sent to models."
       },
-      "spec_fix": "Action said the text is injected when a turn starts -> it is delivered where PR-STORE-129 now says: in the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers, otherwise as a user-prompt prefix once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367)",
-      "rework": true
+      "spec_fix": "Action said the text is injected when a turn starts -> it is delivered where PR-STORE-129 now says: in the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers, otherwise as a user-prompt prefix once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367)"
     },
     {
       "id": "PR-STORE-131",

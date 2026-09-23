@@ -7,10 +7,11 @@
   "counts": {
     "total": 3938,
     "by_status": {
-      "SPECIFIED": 3872,
+      "SPECIFIED": 3869,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
       "DISCOVERED": 34,
-      "RETIRED": 6
+      "RETIRED": 6,
+      "IMPLEMENTED": 3
     },
     "by_area": {
       "CHAT": 193,
@@ -606,7 +607,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0016",
+        "upstream": "DroppyCode/App/Views/Chat/ThreadTimeline.swift:132-135 `if runtime.isLoadingHistory { Color.clear }`",
+        "port": "While history loads the timeline stays empty for 400 ms, then shows the 64 px loading mark centred in it, fading in over 0.2 s (ED-097)."
+      }
     },
     {
       "area": "CHAT",
@@ -15389,7 +15395,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce byte for byte. The porting repository's own lint rules about apostrophes and spelling do not apply to model-visible source strings; add an exemption rather than editing the text.",
       "verification_method": "contract fixture comparing bytes, including the U+2019 codepoint",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 11",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -15399,8 +15405,7 @@
         "upstream": "DroppyCode/Core/Models/AntiSlopPolicy.swift:3 \"[Droppy Code anti-slop guidance]\" and :12 \"[Droppy Code anti-slop guidance: off]\"",
         "port": "The first lines read \"[Marrow anti-slop guidance]\" and \"[Marrow anti-slop guidance: off]\"; every other line, the U+2019 in \"product’s\" and the US spelling \"colors\" are unchanged."
       },
-      "spec_fix": "expected_result said the enabled text contains U+2019 in \"product's\" but wrote the word with an ASCII apostrophe (U+0027), so a worker copying it produced the wrong byte -> DroppyCode/Core/Models/AntiSlopPolicy.swift:6 \"For UI work, follow the product’s components, typography and colors.\" has RIGHT SINGLE QUOTATION MARK U+2019 (bytes E2 80 99); expected_result now carries that character.",
-      "rework": true
+      "spec_fix": "expected_result said the enabled text contains U+2019 in \"product's\" but wrote the word with an ASCII apostrophe (U+0027), so a worker copying it produced the wrong byte -> DroppyCode/Core/Models/AntiSlopPolicy.swift:6 \"For UI work, follow the product’s components, typography and colors.\" has RIGHT SINGLE QUOTATION MARK U+2019 (bytes E2 80 99); expected_result now carries that character."
     },
     {
       "area": "HYDRA",
@@ -24054,7 +24059,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0016",
+        "upstream": "DroppyCode/App/AppDelegate.swift: the main window is shown once the launch prologue has run; nothing is shown before it",
+        "port": "A launch splash with the 96 px loading mark appears if the main window has not been shown 400 ms after process start, and closes when it is (ED-097). The prologue order is unchanged."
+      }
     },
     {
       "area": "LAUNCH",
@@ -78946,7 +78956,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Store as an exact string resource, byte for byte, including U+2019 and the American spellings, with the OD-0012 F1 first line \"[Marrow anti-slop guidance]\". Do not reflow, re-wrap, spell-check or localise it. Deliver it at exactly the points and with exactly the once-per-epoch rule the expected result names.",
       "verification_method": "contract fixture: byte-compare the delivered text against the source literal with its first line replaced by \"[Marrow anti-slop guidance]\" (OD-0012 F1), at each delivery point: Claude --append-system-prompt, Codex developerInstructions, Copilot systemMessage, the OpenAI-compatible system prompt, and the user-prompt prefix of another CLI provider (once per session epoch, absent on a slash command)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78964,8 +78974,7 @@
         "upstream": "DroppyCode/Core/Models/AntiSlopPolicy.swift:3 - first line \"[Droppy Code anti-slop guidance]\"",
         "port": "First line \"[Marrow anti-slop guidance]\"; the four guidance lines, including the U+2019 in \"product’s\", are unchanged. OD-0012 F1 names the \"[Marrow]\" notes sent to models."
       },
-      "spec_fix": "Action and expected result said the text is injected into the system prompt when a turn starts -> it goes into the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers (ClaudeSession.swift:121-128, CodexSession.swift:249-257, CopilotSession.swift:147-156, OpenAICompatibleSession.swift:1188-1195), and for every other provider it is prefixed to the user prompt once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367, :1751, :2090)",
-      "rework": true
+      "spec_fix": "Action and expected result said the text is injected into the system prompt when a turn starts -> it goes into the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers (ClaudeSession.swift:121-128, CodexSession.swift:249-257, CopilotSession.swift:147-156, OpenAICompatibleSession.swift:1188-1195), and for every other provider it is prefixed to the user prompt once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367, :1751, :2090)"
     },
     {
       "area": "STORE",
@@ -78983,7 +78992,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte-exact string with the OD-0012 F1 first line \"[Marrow anti-slop guidance: off]\", and the same always-inject-one-of-two selector. The selector takes a Bool and returns one of the two constants; there is no third state.",
       "verification_method": "contract fixture over both branches, at each delivery point PR-STORE-129 names, with the first lines \"[Marrow anti-slop guidance]\" and \"[Marrow anti-slop guidance: off]\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78999,8 +79008,7 @@
         "upstream": "DroppyCode/Core/Models/AntiSlopPolicy.swift:12 - first line \"[Droppy Code anti-slop guidance: off]\"",
         "port": "First line \"[Marrow anti-slop guidance: off]\"; the second line is unchanged. OD-0012 F1 names the \"[Marrow]\" notes sent to models."
       },
-      "spec_fix": "Action said the text is injected when a turn starts -> it is delivered where PR-STORE-129 now says: in the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers, otherwise as a user-prompt prefix once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367)",
-      "rework": true
+      "spec_fix": "Action said the text is injected when a turn starts -> it is delivered where PR-STORE-129 now says: in the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers, otherwise as a user-prompt prefix once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367)"
     },
     {
       "area": "STORE",
