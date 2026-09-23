@@ -573,7 +573,8 @@ public sealed class LoadingMark : Control
     }
 }
 
-internal static class CometPainter
+/// <summary>The drawing of the mark (ED-102 (7)); public so the headless tests can render its passes.</summary>
+public static class CometPainter
 {
     public static void DrawTile(DrawingContext context, double opacity, double scale)
     {
@@ -693,6 +694,17 @@ internal static class CometPainter
         using (context.PushOpacity(alpha)) context.DrawEllipse(brush, null, at, radius, radius);
     }
 
+    /// <summary>
+    /// A Gaussian blur of standard deviation <paramref name="sigma"/> in the drawing units of the pushed transform.
+    /// The reference blurs with CSS blur() (boot_sequence.html:188, trails, ED-102 (2)) and a canvas shadowBlur
+    /// (:284, window glow, ED-103 (5)); a CSS blur() length is the standard deviation, a shadowBlur is twice it.
+    /// ENGINEERING DECISION (review point 1): Avalonia.Skia 12.1.2 turns BlurEffect.Radius r into a Skia sigma of
+    /// .288675 r + .5 (its SkBlurRadiusToSigma; the ldc.r4 0.288675 is in Avalonia.Skia.dll), in the units of the
+    /// pushed transform, so the radius for a standard deviation s is (s - .5) / .288675. Measured by
+    /// LoadingMarkHeadlessTests.The_blur_is_a_gaussian_whose_standard_deviation_is_the_blur_value_in_drawing_units_at_every_scale.
+    /// </summary>
+    public static BlurEffect GaussianBlur(double sigma) => new() { Radius = Math.Max(0, (sigma - .5) / .288675) };
+
     public static void DrawArms(DrawingContext context, IReadOnlyList<double> reveals, CometState state, bool main)
     {
         var arms = new[]
@@ -710,7 +722,7 @@ internal static class CometPainter
             var amount = trail ? CometMotion.Trails[pass].Opacity * state.TrailFactor : 1;
             if (trail)
             {
-                using (context.PushEffect(new BlurEffect { Radius = blur }, new Rect(0, 0, 1024, 1024))) DrawPass();
+                using (context.PushEffect(GaussianBlur(blur), new Rect(0, 0, 1024, 1024))) DrawPass();
             }
             else DrawPass();
 
@@ -914,8 +926,10 @@ public sealed class BootStage : Control
             BootSequence.OutlineColor.R, BootSequence.OutlineColor.G, BootSequence.OutlineColor.B);
         using (context.PushOpacity(share))
         {
-            using (context.PushEffect(new BlurEffect { Radius = BootSequence.OutlineGlow },
-                       new Rect(outline.X - 14, outline.Y - 14, outline.Width + 28, outline.Height + 28)))
+            // The glow is ctx.shadowBlur = px(14) (boot_sequence.html:284): a Gaussian of standard deviation 7 DIP. The
+            // effect bounds reach 4 sigma past the outline so the glow is not cut off.
+            var sigma = BootSequence.OutlineGlow / 2;
+            using (context.PushEffect(CometPainter.GaussianBlur(sigma), outline.Inflate(4 * sigma)))
                 context.DrawRectangle(null, new Pen(new SolidColorBrush(glow), BootSequence.OutlineWidth),
                     outline, radius, radius);
             context.DrawRectangle(null, new Pen(new SolidColorBrush(stroke), BootSequence.OutlineWidth),
