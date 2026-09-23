@@ -18465,7 +18465,8 @@
         "DroppyCode/UI/Chrome/ProjectIconPicker.swift:174-186",
         "DroppyCode/UI/Chrome/ProjectIconPicker.swift:232-239"
       ],
-      "notes": "Tiles per section: Communication 88, Maps 20, Objects & Tools 283, Devices 140, Camera & Photos 45, Gaming 90, Connectivity 35, Transportation 15, Automotive 278, Accessibility 37, Privacy & Security 16, Human 87, Home 126, Fitness 120, Nature 109, Editing 34, Text Formatting 5, Media 31, Keyboard 17, Commerce 141, Time 1, Health 45, Shapes 17, Arrows 186, Indices 176, Math 24, Other 464 (2,630 in all). Every name is a `.fill` mark except `apple.logo`, `curlybraces`, `swift` and `terminal` in Other. The behaviour is PR-SIDEBAR-164."
+      "notes": "Tiles per section: Communication 88, Maps 20, Objects & Tools 283, Devices 140, Camera & Photos 45, Gaming 90, Connectivity 35, Transportation 15, Automotive 278, Accessibility 37, Privacy & Security 16, Human 87, Home 126, Fitness 120, Nature 109, Editing 34, Text Formatting 5, Media 31, Keyboard 17, Commerce 141, Time 1, Health 45, Shapes 17, Arrows 186, Indices 176, Math 24, Other 464 (2,630 in all). Every name is a `.fill` mark except `apple.logo`, `curlybraces`, `swift` and `terminal` in Other. The behaviour is PR-SIDEBAR-164.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
