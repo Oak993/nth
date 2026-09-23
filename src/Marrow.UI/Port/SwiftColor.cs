@@ -125,6 +125,20 @@ public sealed class SwiftColor
     public static SwiftColor Secondary { get; } = LabelColor.Opacity(0.7);
 
     /// <summary>
+    /// <c>ShapeStyle.quaternary</c> (<c>HierarchicalShapeStyle.quaternary</c>) used as a shape <c>.fill</c>: the
+    /// lightest step of SwiftUI's four-level hierarchy (AttachmentPreview.swift:206, :333; pervasive elsewhere,
+    /// porting/spec/CHAT.json e.g. :2531, :2735-2827). No SwiftColor constant for it existed before this unit
+    /// (UI.Common.AttachmentPreview) needed one and none of ED-104 to ED-150 covers it (checked: no "quaternary" hit
+    /// in porting/engineering_decisions.md, porting/owner_decisions.md or the rulings ledgers as of this unit).
+    /// ENGINEERING DECISION, pending an assigned ED number: placed at the label colour's opacity, following this
+    /// file's own hierarchy step from <see cref="Secondary"/> (0.7, ED-062) inward. UNVERIFIED under OD-0001: the
+    /// value SwiftUI actually resolves `.quaternary` to as a fill (distinct from the `.secondary`/`.tertiary`
+    /// foreground styles) is not independently knowable without macOS access; flag for an ED number and, if
+    /// possible, an oracle measurement in the verification wave.
+    /// </summary>
+    public static SwiftColor Quaternary { get; } = LabelColor.Opacity(0.15);
+
+    /// <summary>
     /// <c>NSColor.controlAccentColor</c> (Chrome.swift:80, :87): the Windows personalization accent (ED-051), read
     /// from the platform's <see cref="PlatformColorValues.AccentColor1"/>.
     /// </summary>
