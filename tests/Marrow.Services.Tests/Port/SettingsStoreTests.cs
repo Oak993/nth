@@ -523,7 +523,7 @@ public sealed class SettingsStoreTests
     [Fact]
     [Trait("Rule", "R-FS-1")]
     [Trait("Decision", "ED-156")]
-    public void Set_returns_and_reads_the_new_value_while_the_file_is_held()
+    public async Task Set_returns_and_reads_the_new_value_while_the_file_is_held()
     {
         using var runtime = new TestRuntime();
         using var folder = new SettingsScratchFolder();
@@ -543,7 +543,7 @@ public sealed class SettingsStoreTests
             Assert.Equal(1, runtime.Time.ActiveTimers);
             held.Dispose();
             runtime.Time.Advance(FileOps.RetryDelays[0]);
-            Assert.True(flush.GetAwaiter().GetResult());
+            Assert.True(await flush);
         }
         Assert.Equal("light", new SettingsStore(path).String("appTheme"));
     }
