@@ -10,10 +10,8 @@ using SkiaSharp;
 
 namespace Marrow.UI.Common;
 
-// Source: DroppyCode/UI/Common/Genie.swift (B2 1fbf81e), :1-214. Partial port: the flight's keyframes (:155, :166-168,
-// `keyframeAnimator(initialValue:trigger:)` with one `CubicKeyframe(end, duration: GenieAnimator.duration)`) are not
-// written. The value a lone cubic keyframe takes between its ends is unsettled SwiftUI behaviour with no port type
-// (STOP UI.Common.Genie #1), so a flight shows its starting progress until it is removed. The shader it calls,
+// Source: DroppyCode/UI/Common/Genie.swift (B2 1fbf81e), :1-214. The flight's one `CubicKeyframe` (:155, :166-168)
+// follows ED-178 (oracle O-62), in a private helper on GenieFlightView. The shader it calls,
 // UI/Common/Genie.metal:16-54, is Port/ShaderLibrary.cs.
 
 /// <summary>
@@ -254,8 +252,14 @@ internal sealed class GenieFlightView : Control
         image = ShaderLibrary.RasterImage(flight.Image);
         // :155 keyframeAnimator(initialValue: start, ...): the value before the keyframes run.
         Present(Start);
-        // :169 .onAppear { hasStarted = true } is the keyframes' trigger (:155); the keyframes are unwritten, see the
-        // file header (STOP UI.Common.Genie #1).
+        // :169 .onAppear { hasStarted = true }: hasStarted is the keyframes' trigger (:155), so they run once it flips.
+        AttachedToVisualTree += (_, _) =>
+        {
+            if (hasStarted) return;
+            hasStarted = true;
+            RunKeyframes();
+        };
+        DetachedFromVisualTree += (_, _) => StopKeyframes();
         // :170-174
         this.Task(() => 0, async _ =>
         {
@@ -297,6 +301,49 @@ internal sealed class GenieFlightView : Control
         if (Canvas == canvas) return;
         Canvas = canvas;
         InvalidateVisual();
+    }
+
+    // :134 @State private var hasStarted = false
+    private bool hasStarted;
+    private IFrameSource? frames;
+    private Action<TimeSpan>? pendingFrame;
+
+    // :155 keyframeAnimator(initialValue: start, trigger: hasStarted) with the :166-168 keyframes
+    // `CubicKeyframe(end, duration: GenieAnimator.duration)`: from the start value to `end` over the duration, on the
+    // frame clock (R-VIEW-4), reading SwiftClock.
+    private void RunKeyframes()
+    {
+        StopKeyframes();
+        var from = Start;
+        var to = End;
+        var began = SwiftClock.Now;
+        var source = FrameClock.Source.Current;
+        frames = source;
+        Action<TimeSpan>? frame = null;
+        frame = _ =>
+        {
+            var elapsed = (SwiftClock.Now - began).TotalSeconds;
+            Present(LoneCubicKeyframe(from, to, elapsed, GenieAnimator.Duration));
+            if (elapsed >= GenieAnimator.Duration) pendingFrame = null;
+            else source.RequestFrame(frame!);
+        };
+        pendingFrame = frame;
+        source.RequestFrame(frame);
+    }
+
+    private void StopKeyframes()
+    {
+        if (pendingFrame is not null) frames?.CancelFrame(pendingFrame);
+        pendingFrame = null;
+    }
+
+    // :166-168 the value of one CubicKeyframe with no velocities and no neighbours, ED-178 (oracle O-62): a Catmull-Rom
+    // segment with its endpoints duplicated, value(t) = start + (end - start) * (-t^3 + 1.5 t^2 + 0.5 t),
+    // t = elapsed / duration clamped to [0, 1].
+    private static double LoneCubicKeyframe(double start, double end, double elapsed, double duration)
+    {
+        var t = Math.Clamp(elapsed / duration, 0, 1);
+        return start + (end - start) * (-t * t * t + 1.5 * t * t + 0.5 * t);
     }
 
     // :155-165 the keyframes' content closure for one value of progress.

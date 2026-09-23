@@ -649,6 +649,8 @@ public sealed class GenieTests(HeadlessSession headless)
     [Trait("Req", "PR-THEME-175")] // UI/Common/Genie.swift:150-164; UI/Common/Genie.metal:16-54
     public void Each_pixel_of_a_flight_shows_the_row_pixel_the_genie_shader_maps_it_to_or_nothing(double progress) => headless.OnUiThread(() =>
     {
+        // Binds the frame clock the flight's keyframes (:155) run on; no frame is delivered, so Present(progress) holds.
+        using var clocks = new AnimationClocks();
         var windows = new WindowsGeniePlatform();
         var animator = new GenieAnimator(new FakeGeniePlatform(render: windows.RenderImage));
         using var shared = GenieAnimator.Shared.Override(animator);
@@ -705,6 +707,8 @@ public sealed class GenieTests(HeadlessSession headless)
     // (null: the archive corner) at `progress`, whose opacity is :165's. Returns how many pixels of each kind it checked.
     private (int Red, int Blue, int Nothing) AssertEveryPixelFollowsTheShader(Rect frame, Point? target, bool arriving, double progress)
     {
+        // Binds the frame clock the flight's keyframes (:155) run on; no frame is delivered, so Present(progress) holds.
+        using var clocks = new AnimationClocks();
         var windows = new WindowsGeniePlatform();
         var animator = new GenieAnimator(new FakeGeniePlatform(render: windows.RenderImage));
         using var shared = GenieAnimator.Shared.Override(animator);
