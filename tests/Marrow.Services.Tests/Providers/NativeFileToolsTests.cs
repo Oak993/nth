@@ -133,8 +133,9 @@ public sealed class NativeFileToolsTests
         var tools = new NativeFileTools(folder.Root);
         var text = await tools.ReadFile("exact.txt");
         // Over the 60000-character truncation threshold, so the truncated form is expected here.
-        Assert.StartsWith(new string('a', 60_000), text);
-        Assert.EndsWith($"…(truncated, {1_000_000} chars total; read the rest with start_line and line_count)", text);
+        Assert.StartsWith(new string('a', 60_000), text, StringComparison.Ordinal);
+        // U+2026 HORIZONTAL ELLIPSIS.
+        Assert.EndsWith($"\U00002026(truncated, {1_000_000} chars total; read the rest with start_line and line_count)", text, StringComparison.Ordinal);
     }
 
     // ---- PR-PROVAPI-179: UTF-8 then Latin-1 decode ----
@@ -149,7 +150,7 @@ public sealed class NativeFileToolsTests
         await File.WriteAllBytesAsync(path, [0x48, 0x65, 0x6C, 0x6C, 0x6F, 0xFF]);
         var tools = new NativeFileTools(folder.Root);
         var text = await tools.ReadFile("legacy.txt");
-        Assert.Equal("Helloÿ", text);
+        Assert.Equal("Hello\U000000FF", text); // U+00FF LATIN SMALL LETTER Y WITH DIAERESIS
     }
 
     [Fact]
@@ -158,10 +159,11 @@ public sealed class NativeFileToolsTests
     {
         using var folder = new ScratchFolder();
         var path = folder.Child("utf8.txt");
-        await File.WriteAllTextAsync(path, "café", System.Text.Encoding.UTF8);
+        // U+00E9 LATIN SMALL LETTER E WITH ACUTE. UTF8Encoding(false) omits the BOM Encoding.UTF8 would add.
+        await File.WriteAllBytesAsync(path, new System.Text.UTF8Encoding(false).GetBytes("caf\U000000E9"));
         var tools = new NativeFileTools(folder.Root);
         var text = await tools.ReadFile("utf8.txt");
-        Assert.Equal("café", text);
+        Assert.Equal("caf\U000000E9", text);
     }
 
     // ---- PR-PROVAPI-180: start_line / line_count slicing ----
@@ -176,10 +178,10 @@ public sealed class NativeFileToolsTests
         await File.WriteAllTextAsync(path, string.Join("\n", lines));
         var tools = new NativeFileTools(folder.Root);
         var text = await tools.ReadFile("lines.txt", startLine: 41, lineCount: 200);
-        Assert.StartsWith("(lines 41-240 of 900)\n", text);
-        Assert.Contains("line41", text);
-        Assert.Contains("line240", text);
-        Assert.DoesNotContain("line241", text);
+        Assert.StartsWith("(lines 41-240 of 900)\n", text, StringComparison.Ordinal);
+        Assert.Contains("line41", text, StringComparison.Ordinal);
+        Assert.Contains("line240", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("line241", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -215,19 +217,22 @@ public sealed class NativeFileToolsTests
         await File.WriteAllTextAsync(path, string.Join("\n", Enumerable.Range(1, 300).Select(i => $"line{i}")));
         var tools = new NativeFileTools(folder.Root);
         var text = await tools.ReadFile("lines.txt", startLine: 1);
-        Assert.StartsWith("(lines 1-200 of 300)\n", text);
+        Assert.StartsWith("(lines 1-200 of 300)\n", text, StringComparison.Ordinal);
     }
 
     [Fact]
     [Trait("Req", "PR-PROVAPI-180")] // NativeFileTools.swift:64
-    public async Task ReadFile_slicing_keeps_carriage_returns_from_a_CRLF_file()
+    public async Task ReadFile_slicing_splits_on_the_newline_character_only_so_CRLF_pairs_stay_one_line()
     {
+        // Splitting on "\n" is a Character (extended grapheme cluster) split: "\r\n" is itself one Character,
+        // distinct from "\n", so a bare "\n" never occurs and the whole CRLF file counts as a single line, its
+        // carriage returns kept inside it, exactly as record PR-PROVAPI-180's windows_path note requires.
         using var folder = new ScratchFolder();
         var path = folder.Child("crlf.txt");
         await File.WriteAllTextAsync(path, "one\r\ntwo\r\nthree");
         var tools = new NativeFileTools(folder.Root);
         var text = await tools.ReadFile("crlf.txt", startLine: 1, lineCount: 1);
-        Assert.Equal("(lines 1-1 of 3)\none\r", text);
+        Assert.Equal("(lines 1-1 of 1)\none\r\ntwo\r\nthree", text);
     }
 
     // ---- PR-PROVAPI-181: 60000-character truncation ----
@@ -242,7 +247,8 @@ public sealed class NativeFileToolsTests
         await File.WriteAllTextAsync(path, content);
         var tools = new NativeFileTools(folder.Root);
         var text = await tools.ReadFile("long.txt");
-        Assert.Equal(new string('x', 60_000) + $"\n…(truncated, 91234 chars total; read the rest with start_line and line_count)", text);
+        // U+2026 HORIZONTAL ELLIPSIS.
+        Assert.Equal(new string('x', 60_000) + "\n\U00002026(truncated, 91234 chars total; read the rest with start_line and line_count)", text);
     }
 
     [Fact]
@@ -385,8 +391,8 @@ public sealed class NativeFileToolsTests
         var text = await tools.ListFiles("", recursive: true);
         var results = text.Split('\n');
         Assert.Contains("src\\app.ts", results);
-        Assert.DoesNotContain(results, r => r.Contains("node_modules"));
-        Assert.DoesNotContain(results, r => r.Contains(".hidden"));
+        Assert.DoesNotContain(results, r => r.Contains("node_modules", StringComparison.Ordinal));
+        Assert.DoesNotContain(results, r => r.Contains(".hidden", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -398,7 +404,7 @@ public sealed class NativeFileToolsTests
         var tools = new NativeFileTools(folder.Root);
         var results = (await tools.ListFiles("", recursive: true)).Split('\n');
         Assert.Equal(301, results.Length);
-        Assert.Equal("…(truncated)", results[^1]);
+        Assert.Equal("\U00002026(truncated)", results[^1]); // U+2026 HORIZONTAL ELLIPSIS
     }
 
     // ---- PR-PROVAPI-186: non-recursive listing ----
@@ -440,6 +446,6 @@ public sealed class NativeFileToolsTests
         var tools = new NativeFileTools(folder.Root);
         var results = (await tools.ListFiles("", recursive: false)).Split('\n');
         Assert.Equal(301, results.Length);
-        Assert.Equal("…(truncated)", results[^1]);
+        Assert.Equal("\U00002026(truncated)", results[^1]); // U+2026 HORIZONTAL ELLIPSIS
     }
 }
