@@ -11,6 +11,7 @@
     "F.PathIdentity",
     "F.ResizeStretch",
     "F.ProcessLauncher",
-    "F.URL"
+    "F.URL",
+    "F.HTTP"
   ]
 }

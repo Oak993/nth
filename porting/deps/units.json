@@ -315,8 +315,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "HTTP client matching URLSession as the source uses it (R-NET-1): inactivity timeout, decompression, redirects, status handling, the User-Agent of OD-0012 F1. First tests: a loopback server. URLSessionConfiguration.ephemeral, URLRequest.CachePolicy and URLCache as UpdateChecker.swift:101-110 uses them (ED-119); network defaults per ED-118.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.SecretStore",
