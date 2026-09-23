@@ -1,0 +1,644 @@
+using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
+using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.Controls.Shapes;
+using Avalonia.Headless;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Styling;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Marrow.Core.Port;
+using Marrow.Testing;
+using Marrow.UI.Chrome;
+using Marrow.UI.Port;
+using Marrow.UI.Tests.Fixtures;
+using Marrow.UI.Theme;
+
+namespace Marrow.UI.Tests.Chrome;
+
+using Chrome = Marrow.UI.Chrome.Chrome; // ED-095: the Swift type Chrome, not this test namespace
+
+// Source under test: DroppyCode/UI/Chrome/Chrome.swift (B2 1fbf81e), part 2 of 4 (R-TEST-3: a new file for this part):
+// PaneTopVeil :579-628, ChromeCompactTitle :630-647, SidebarSymbol :651-668, SidebarIconBadge :670-679,
+// SidebarRow :681-757, RowAccessoryIcon :759-773, SoftAppearModifier/settleGlide/settleFlight :934-1002,
+// ChromeCard :1006-1021, ChromeSection :1023-1047, ChromeRow :1049-1074, ChromeRowDivider :1076-1081,
+// ChromeQuietButtonStyle :275-280, ChromeRevealLayout :282-304 and the colour/motion/token block :36-120.
+// Expected values are transcribed from the Swift and the records, never from the C# under test:
+//   :41 veilHeight = 72; :48-67 the sidebar and card token literals; :76 primaryText = labelColor (ED-051,
+//   SwiftColor.LabelColor); :79 secondaryText = primaryText.opacity(0.7) (ED-062); :98 hover 0.1s ease-out;
+//   :100-104 panelSlide spring(0.32, 0.9) or 0.18s ease-out under Reduce Motion; :108 glideSpring
+//   Spring(0.6, 0.86); :112-116 settleFlight = glideSpring or 0.2s ease-out under Reduce Motion;
+//   :118-120 gray/blue/orange literals; :937-944 SoftAppearModifier opacity/offset; :958-961 softAppear
+//   0.32s smooth; :963-988 SettleGlideModifier opacity/offset/scale/smoothstep.
+// Port shape read (R-VIEW-1, R-VIEW-9, ED-095, ED-098): a ViewModifier is Body(content)/Update(body); a Layout is a
+// Panel; the reduce-motion read is Chrome.ReduceMotionPlatform, overridden per test. `.accessibilityHidden(x)` is
+// AccessibilityView.Raw when x, Content otherwise. Not asserted here (dependency not in the tree, see the unit
+// report): SF Symbol glyphs as Lucide icons, glass, `.continuous` corner curvature and the in-flight frames of an
+// animated change beyond the token-level curve each animation resolves to.
+[Collection("Headless")]
+public sealed class ChromeFifthTests(HeadlessSession headless)
+{
+    private static Window Show(Control content, ThemeVariant? theme = null, double width = 400, double height = 300)
+    {
+        var window = new Window { Width = width, Height = height, Content = content };
+        if (theme is not null) window.RequestedThemeVariant = theme;
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+        return window;
+    }
+
+    private static IEnumerable<Control> SelfAndDescendants(Control root) =>
+        new[] { root }.Concat(VisualQuery.Descendants<Control>(root));
+
+    private static Color Effective(IBrush? brush)
+    {
+        if (brush is null) return Color.FromArgb(0, 0, 0, 0);
+        var solid = Assert.IsAssignableFrom<ISolidColorBrush>(brush);
+        return Color.FromArgb((byte)Math.Round(solid.Color.A * solid.Opacity), solid.Color.R, solid.Color.G, solid.Color.B);
+    }
+
+    private static void AssertColor(Color expected, Color actual)
+    {
+        Assert.Equal((expected.R, expected.G, expected.B), (actual.R, actual.G, actual.B));
+        Assert.InRange((int)actual.A, expected.A - 1, expected.A + 1);
+    }
+
+    private static Color Label(double opacity, ThemeVariant theme) => SwiftColor.LabelColor.Opacity(opacity).Resolve(theme);
+
+    private static void Near(double expected, double actual) => Assert.InRange(actual, expected - 1e-9, expected + 1e-9);
+
+    /// <summary>Overrides Chrome.ReduceMotionPlatform for one call.</summary>
+    private static void WithReduceMotion(bool enabled, Action body)
+    {
+        using var _ = Chrome.ReduceMotionPlatform.Override(new FakePlatform(enabled));
+        body();
+    }
+
+    private sealed class FakePlatform(bool reduceMotion) : IGeniePlatform
+    {
+        public bool AccessibilityDisplayShouldReduceMotion => reduceMotion;
+        public double? MainScreenBackingScaleFactor => null;
+        public Avalonia.Media.IImage? RenderImage(Control content, double scale) => null;
+    }
+
+    // ---- Tokens, :36-120 (PR-WIN-211) ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-211")] // Chrome.swift:48-67
+    public void The_sidebar_and_card_tokens_match_the_source_literals()
+    {
+        Assert.Equal(28, Chrome.RowHeight);
+        Assert.Equal(7, Chrome.RowCornerRadius);
+        Assert.Equal(8, Chrome.RowHorizontalPadding);
+        Assert.Equal(20, Chrome.IconSize);
+        Assert.Equal(14, Chrome.SymbolSize);
+        Assert.Equal(10, Chrome.GroupGap);
+        Assert.Equal(10, Chrome.ListInset);
+        Assert.Equal(16, Chrome.CardCornerRadius);
+        Assert.Equal(20, Chrome.SectionSpacing);
+        Assert.Equal(10, Chrome.SectionHeaderSpacing);
+        Assert.Equal(16, Chrome.ContentHorizontalPadding);
+        Assert.Equal(10, Chrome.RowControlTrailingPadding);
+        Assert.Equal(16, Chrome.RowButtonLabelHeight);
+    }
+
+    // ---- PR-WIN-212: contentTopInset is 72 through an independent declaration from veilHeight ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-212")] // Chrome.swift:32, :38-41
+    public void ContentTopInset_is_72_and_independent_of_VeilHeight()
+    {
+        Assert.Equal(72, Chrome.ContentTopInset);
+        Assert.Equal(72, Chrome.VeilHeight);
+        Assert.Equal(Chrome.ChromeTopPadding + Chrome.CapsuleHeight + Chrome.ContentBreathBelowChrome, Chrome.ContentTopInset);
+    }
+
+    // ---- PR-WIN-209, PR-WIN-230: derived colours ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-209")] // Chrome.swift:85-96
+    public void Accent_falls_back_to_the_system_control_accent_when_the_theme_has_none()
+    {
+        var original = ThemeManager.Current;
+        try
+        {
+            ThemeManager.Current = AppTheme.System;
+            Assert.Equal(SwiftColor.ControlAccentColor.Resolve(ThemeVariant.Light), Chrome.Accent.Resolve(ThemeVariant.Light));
+            Assert.Equal(SwiftColor.ControlAccentColor.Resolve(ThemeVariant.Light), Chrome.AccentNSColor.Resolve(ThemeVariant.Light));
+        }
+        finally { ThemeManager.Current = original; }
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-209")] // Chrome.swift:91-92, re-read from ThemeManager.Spec on every access
+    public void Success_and_warning_re_read_the_theme_spec()
+    {
+        Assert.Equal(ThemeManager.Spec.Success, Chrome.Success);
+        Assert.Equal(ThemeManager.Spec.Warning, Chrome.Warning);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-230")] // Chrome.swift:79, ED-062
+    public void SecondaryText_is_primaryText_at_0_7_and_further_opacities_multiply()
+    {
+        AssertColor(Label(0.7, ThemeVariant.Light), Chrome.SecondaryText.Resolve(ThemeVariant.Light));
+        AssertColor(Label(0.7 * 0.85, ThemeVariant.Light), Chrome.SecondaryText.Opacity(0.85).Resolve(ThemeVariant.Light));
+        AssertColor(Label(0.7 * 0.75, ThemeVariant.Dark), Chrome.SecondaryText.Opacity(0.75).Resolve(ThemeVariant.Dark));
+        AssertColor(Label(0.7 * 0.8, ThemeVariant.Dark), Chrome.SecondaryText.Opacity(0.8).Resolve(ThemeVariant.Dark));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-210")] // Chrome.swift:118-120
+    public void The_three_fixed_hues_are_the_source_literals_and_do_not_vary_by_theme()
+    {
+        AssertColor(new Color(255, 142, 142, 147), Chrome.Gray.Resolve(ThemeVariant.Light));
+        AssertColor(new Color(255, 142, 142, 147), Chrome.Gray.Resolve(ThemeVariant.Dark));
+        AssertColor(new Color(255, 10, 122, 255), Chrome.Blue.Resolve(ThemeVariant.Light));
+        AssertColor(new Color(255, 10, 122, 255), Chrome.Blue.Resolve(ThemeVariant.Dark));
+        AssertColor(new Color(255, 255, 149, 0), Chrome.Orange.Resolve(ThemeVariant.Light));
+        AssertColor(new Color(255, 255, 149, 0), Chrome.Orange.Resolve(ThemeVariant.Dark));
+    }
+
+    // ---- PR-WIN-208: the five motion tokens ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-208")] // Chrome.swift:98
+    public void Hover_is_a_0_1_second_ease_out_with_no_branch()
+    {
+        Near(0.1, Chrome.Hover.Duration);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-208")] // Chrome.swift:100-104
+    public void PanelSlide_is_a_spring_normally_and_a_0_18_second_ease_out_under_reduce_motion()
+    {
+        var expectedSpring = Marrow.UI.Port.Animation.Spring(response: 0.32, dampingFraction: 0.9);
+        WithReduceMotion(false, () => Near(expectedSpring.Duration, Chrome.PanelSlide.Duration));
+        WithReduceMotion(true, () => Near(0.18, Chrome.PanelSlide.Duration));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-208")] // Chrome.swift:108
+    public void GlideSpring_is_response_0_6_damping_0_86()
+    {
+        Assert.Equal(0.6, Chrome.GlideSpring.Response);
+        Assert.Equal(0.86, Chrome.GlideSpring.DampingRatio);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-208")] // Chrome.swift:112-116
+    public void SettleFlight_is_the_glide_spring_normally_and_a_0_2_second_ease_out_under_reduce_motion()
+    {
+        WithReduceMotion(true, () => Near(0.2, Chrome.SettleFlight.Duration));
+        WithReduceMotion(false, () => Near(Chrome.GlideSpring.SettlingDuration, Chrome.SettleFlight.Duration));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-208")] // Chrome.swift:958-961
+    public void SoftAppear_is_a_0_32_second_smooth_curve_with_no_branch()
+    {
+        Near(0.32, Marrow.UI.Port.Animation.SoftAppear.Duration);
+    }
+
+    // ---- PR-WIN-206: SoftAppearModifier and the .softAppear transition ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-206")] // Chrome.swift:940-944
+    public void SoftAppearModifier_sets_opacity_and_a_4_point_offset_by_visibility()
+    {
+        var probe = new LayoutProbe(new Size(10, 10));
+        var visible = new SoftAppearModifier(true);
+        visible.Update(probe);
+        Assert.Equal(1, probe.Opacity);
+        Assert.Equal(0, ((TranslateTransform)probe.RenderTransform!).Y);
+
+        var hidden = new SoftAppearModifier(false);
+        hidden.Update(probe);
+        Assert.Equal(0, probe.Opacity);
+        Assert.Equal(4, ((TranslateTransform)probe.RenderTransform!).Y);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-206")] // Chrome.swift:947-955: insertion animates on softAppear, removal is a plain 0.12s ease-out fade
+    public void SoftAppear_transition_arrives_softly_and_leaves_with_a_quick_fade() => headless.OnUiThread(() =>
+    {
+        var host = new Canvas();
+        var window = Show(host);
+        var child = new LayoutProbe(new Size(20, 20)).Transition(Marrow.UI.Chrome.Chrome.SoftAppear);
+        SwiftTransition.Insert(host, 0, child);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Contains(child, host.Children);
+        window.Close();
+    });
+
+    // ---- PR-WIN-207: SettleGlideModifier and the .settleGlide transition ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-207")] // Chrome.swift:975-982: holds through the first half, smoothstep(0.45, 0.92) over the second, 22pt drop, 4% shrink
+    public void SettleGlideModifier_holds_then_fades_and_glides_down_while_shrinking() => WithReduceMotion(false, () =>
+    {
+        var probe = new LayoutProbe(new Size(10, 10));
+        new SettleGlideModifier(0).Update(probe);
+        Assert.Equal(1, probe.Opacity); // fully present at rest
+        new SettleGlideModifier(0.45).Update(probe);
+        Assert.Equal(1, probe.Opacity); // the face holds through the first half
+        new SettleGlideModifier(1).Update(probe);
+        Assert.Equal(0, probe.Opacity); // gone at the end
+        var group = Assert.IsType<TransformGroup>(probe.RenderTransform);
+        var translate = Assert.IsType<TranslateTransform>(group.Children[0]);
+        Near(22, translate.Y);
+        var scale = Assert.IsType<ScaleTransform>(group.Children[1]);
+        Near(0.96, scale.ScaleX);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-207")] // Chrome.swift:976-982: with Reduce Motion, a linear fade in place, no movement, no scaling
+    public void SettleGlideModifier_fades_linearly_in_place_under_reduce_motion() => WithReduceMotion(true, () =>
+    {
+        var probe = new LayoutProbe(new Size(10, 10));
+        new SettleGlideModifier(0.3).Update(probe);
+        Near(0.7, probe.Opacity);
+        var group = Assert.IsType<TransformGroup>(probe.RenderTransform);
+        Near(0, ((TranslateTransform)group.Children[0]).Y);
+        Near(1, ((ScaleTransform)group.Children[1]).ScaleX);
+    });
+
+    // ---- PR-WIN-227: ChromeQuietButtonStyle ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-227")] // Chrome.swift:277-279
+    public void ChromeQuietButtonStyle_returns_the_label_unchanged()
+    {
+        var label = new TextBlock { Text = "x" };
+        var style = new ChromeQuietButtonStyle();
+        Assert.Same(label, style.MakeBody(label));
+    }
+
+    // ---- PR-WIN-228, PR-WIN-229: ChromeRevealLayout ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-228")] // Chrome.swift:294-298: the slot height is the child's natural height times fraction clamped to 0...1
+    public void ChromeRevealLayout_measures_the_slot_to_the_childs_natural_height_times_fraction() => headless.OnUiThread(() =>
+    {
+        var child = new LayoutProbe(new Size(120, 80));
+        var layout = new ChromeRevealLayout(0.25) { Children = { child } };
+        var window = Show(layout);
+        Assert.Equal(80 * 0.25, layout.Bounds.Height, 3);
+        Assert.Equal(120, layout.Bounds.Width, 3);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-228")] // Chrome.swift:296: min(max(fraction, 0), 1)
+    public void ChromeRevealLayout_clamps_fraction_outside_0_1() => headless.OnUiThread(() =>
+    {
+        var child = new LayoutProbe(new Size(50, 40));
+        var over = new ChromeRevealLayout(2) { Children = { child } };
+        Show(over);
+        Assert.Equal(40, over.Bounds.Height, 3);
+
+        var under = new ChromeRevealLayout(-1) { Children = { new LayoutProbe(new Size(50, 40)) } };
+        Show(under);
+        Assert.Equal(0, under.Bounds.Height, 3);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-229")] // Chrome.swift:300-303: the child is always placed at the origin, full natural height, never moves
+    public void ChromeRevealLayout_keeps_the_child_mounted_at_full_height_whatever_the_fraction() => headless.OnUiThread(() =>
+    {
+        var child = new LayoutProbe(new Size(60, 50));
+        var layout = new ChromeRevealLayout(0) { Children = { child } };
+        var window = Show(layout);
+        Assert.Contains(child, layout.Children);
+        Assert.Equal(new Size(layout.Bounds.Width, 50), child.Arranged[^1]);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-229")] // Chrome.swift:289-292: fraction is the layout's animatable value
+    public void ChromeRevealLayout_exposes_fraction_as_animatable_data()
+    {
+        var layout = new ChromeRevealLayout(0.5);
+        Assert.Equal(0.5, layout.AnimatableData);
+        layout.AnimatableData = 0.9;
+        Assert.Equal(0.9, layout.Fraction);
+    }
+
+    // ---- PR-WIN-196, UI-CHAT-058: PaneTopVeil ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-196")] // Chrome.swift:590: `if progress > 0`
+    [Trait("Req", "UI-CHAT-058")]
+    public void PaneTopVeil_draws_nothing_at_zero_progress() => headless.OnUiThread(() =>
+    {
+        var model = new ChromeScrollModel();
+        var veil = new PaneTopVeil(model);
+        var window = Show(veil);
+        Assert.Empty(VisualQuery.Descendants<Border>(veil));
+        Assert.True(veil.IsHitTestVisible == false); // :624 .allowsHitTesting(false)
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-196")] // Chrome.swift:41, :622-623
+    [Trait("Req", "UI-CHAT-058")]
+    public void PaneTopVeil_is_72_points_tall_and_its_opacity_tracks_progress() => headless.OnUiThread(() =>
+    {
+        var model = new ChromeScrollModel();
+        model.Update(travel: 44); // progress 1 (quantized)
+        var veil = new PaneTopVeil(model);
+        var window = Show(veil);
+        Assert.Equal(72, veil.Bounds.Height, 3);
+        var host = Assert.IsAssignableFrom<Panel>(veil.GetVisualDescendants().First(v => v is Panel));
+        Assert.Equal(0.08 + 0.92 * 1, host.Opacity, 3);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-196")] // Chrome.swift:587-588, :596: dark scrim = 0.14 + 0.18*progress over black
+    public void PaneTopVeil_dark_base_gradient_starts_at_the_scrim_alpha_over_black() => headless.OnUiThread(() =>
+    {
+        var model = new ChromeScrollModel();
+        model.Update(travel: 44); // progress 1
+        var veil = new PaneTopVeil(model);
+        var window = Show(veil, ThemeVariant.Dark);
+        var layers = VisualQuery.Descendants<Border>(veil).ToList();
+        Assert.Equal(2, layers.Count);
+        var brush = Assert.IsType<LinearGradientBrush>(layers[0].Background);
+        var expected = SwiftColor.Black.Opacity(0.14 + 0.18 * 1).Resolve(ThemeVariant.Dark);
+        AssertColor(expected, brush.GradientStops[0].Color);
+        Assert.Equal(0, brush.GradientStops[0].Offset);
+        Assert.Equal(0.28, brush.GradientStops[1].Offset);
+        Assert.Equal(0.62, brush.GradientStops[2].Offset);
+        Assert.Equal(1, brush.GradientStops[3].Offset);
+        Assert.Equal(0, brush.GradientStops[3].Color.A); // fully clear at the bottom
+        window.Close();
+    });
+
+    // ---- PR-WIN-197, PR-WIN-231 (partial): ChromeCompactTitle ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-197")] // Chrome.swift:638-644
+    [Trait("Req", "PR-WIN-231")]
+    public void ChromeCompactTitle_opacity_equals_progress_and_offset_runs_from_5_to_0() => headless.OnUiThread(() =>
+    {
+        var model = new ChromeScrollModel();
+        var title = new ChromeCompactTitle("Thread", model);
+        var window = Show(title);
+        var text = Assert.IsType<TextBlock>(title.Child);
+        Assert.Equal("Thread", text.Text);
+        Assert.Equal(1, text.MaxLines);
+        Assert.Equal(0, text.Opacity);
+        Assert.Equal(5, ((TranslateTransform)text.RenderTransform!).Y, 3);
+        Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(title));
+
+        model.Update(travel: 44); // progress 1
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(1, text.Opacity);
+        Assert.Equal(0, ((TranslateTransform)text.RenderTransform!).Y, 3);
+        Assert.Equal(AccessibilityView.Content, AutomationProperties.GetAccessibilityView(title));
+        window.Close();
+    });
+
+    // ---- PR-WIN-198: SidebarSymbol ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-198")] // Chrome.swift:661-667: fitted into symbolSize * scale, monochrome
+    public void SidebarSymbol_is_fitted_into_symbolSize_times_scale_monochrome() => headless.OnUiThread(() =>
+    {
+        var normal = new SidebarSymbol("gearshape");
+        var image = Assert.IsType<SwiftImage>(normal.Child);
+        Assert.Equal(Chrome.SymbolSize, image.Width);
+        Assert.Equal(Chrome.SymbolSize, image.Height);
+        Assert.Equal(Marrow.UI.Port.SymbolRenderingMode.Monochrome, image.SymbolRendering);
+        Assert.Equal(ContentMode.Fit, image.AspectContentMode);
+        Assert.True(image.IsResizable);
+
+        var scaled = new SidebarSymbol("gearshape", scale: 1.15);
+        var scaledImage = Assert.IsType<SwiftImage>(scaled.Child);
+        Near(Chrome.SymbolSize * 1.15, scaledImage.Width);
+        Near(Chrome.SymbolSize * 1.15, scaledImage.Height);
+    });
+
+    // ---- PR-WIN-199: SidebarIconBadge ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-199")] // Chrome.swift:674-678: a 20-point box at 0.85 of the label colour, nothing behind it
+    public void SidebarIconBadge_is_a_20_point_box_at_0_85_opacity_with_no_background() => headless.OnUiThread(() =>
+    {
+        var glyph = new TextBlock { Text = "x" };
+        var badge = new SidebarIconBadge(() => glyph);
+        var window = Show(badge, ThemeVariant.Light);
+        var box = Assert.IsType<Panel>(badge.Child);
+        Assert.Equal(Chrome.IconSize, box.Width);
+        Assert.Equal(Chrome.IconSize, box.Height);
+        Assert.Null(box.Background);
+        AssertColor(Label(0.85, ThemeVariant.Light), Effective(TextElement.GetForeground(glyph)));
+        window.Close();
+    });
+
+    // ---- PR-WIN-200: SidebarRow ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-200")] // Chrome.swift:722-728: 28pt row, radius 7, three fills, trailing padding reserves the accessory
+    public void SidebarRow_is_28_points_tall_with_the_three_fill_states() => headless.OnUiThread(() =>
+    {
+        var row = new SidebarRow("Chat", () => { }, () => new TextBlock { Text = "i" }, _ => new TextBlock(), isSelected: false, accessoryWidth: 10);
+        var window = Show(row, ThemeVariant.Light);
+        Assert.Equal(28, row.Bounds.Height, 3);
+        var shape = Assert.IsAssignableFrom<Border>(row.GetVisualDescendants().OfType<Border>().First(b => b.CornerRadius.TopLeft == Chrome.RowCornerRadius));
+        AssertColor(Color.FromArgb(0, 0, 0, 0), Effective(shape.Background)); // clear at rest, unselected
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-200")] // Chrome.swift:742: fill = overlay(0.12) when selected
+    public void SidebarRow_selected_fill_is_the_label_colour_at_0_12() => headless.OnUiThread(() =>
+    {
+        var row = new SidebarRow("Chat", () => { }, () => new TextBlock(), isSelected: true);
+        var window = Show(row, ThemeVariant.Light);
+        var shape = row.GetVisualDescendants().OfType<Border>().First(b => b.CornerRadius.TopLeft == Chrome.RowCornerRadius);
+        AssertColor(Label(0.12, ThemeVariant.Light), Effective(shape.Background));
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-200")] // Chrome.swift:717-718: medium and full opacity when selected, regular and 0.92 otherwise
+    public void SidebarRow_title_weight_and_opacity_follow_selection() => headless.OnUiThread(() =>
+    {
+        var selected = new SidebarRow("Chat", () => { }, () => new TextBlock(), isSelected: true);
+        Show(selected, ThemeVariant.Light);
+        var selectedText = selected.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text == "Chat");
+        Assert.Equal(FontWeight.Medium, TextElement.GetFontWeight(selectedText));
+        AssertColor(Label(1, ThemeVariant.Light), Effective(selectedText.Foreground));
+
+        var unselected = new SidebarRow("Chat", () => { }, () => new TextBlock(), isSelected: false);
+        Show(unselected, ThemeVariant.Light);
+        var unselectedText = unselected.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text == "Chat");
+        Assert.Equal(FontWeight.Regular, TextElement.GetFontWeight(unselectedText));
+        AssertColor(Label(0.92, ThemeVariant.Light), Effective(unselectedText.Foreground));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-200")] // Chrome.swift:709, :729-730: the row is a Button and answers its action
+    public void SidebarRow_is_a_button_that_runs_its_action() => headless.OnUiThread(() =>
+    {
+        var ran = false;
+        var row = new SidebarRow("Chat", () => ran = true, () => new TextBlock());
+        var window = Show(row);
+        var button = row.GetVisualDescendants().OfType<Button>().First();
+        button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Assert.True(ran);
+        var peer = ControlAutomationPeer.CreatePeerForElement(button);
+        Assert.Equal(AutomationControlType.Button, peer.GetAutomationControlType());
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-200")] // Chrome.swift:738: AddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+    public void SidebarRow_reports_isSelected_through_the_selection_item_provider() => headless.OnUiThread(() =>
+    {
+        var selected = new SidebarRow("Chat", () => { }, () => new TextBlock(), isSelected: true);
+        Show(selected);
+        var selectedButton = selected.GetVisualDescendants().OfType<Button>().First();
+        var selectedPeer = ControlAutomationPeer.CreatePeerForElement(selectedButton);
+        var selectedProvider = Assert.IsAssignableFrom<ISelectionItemProvider>(selectedPeer.GetProvider<ISelectionItemProvider>());
+        Assert.True(selectedProvider.IsSelected);
+
+        var unselected = new SidebarRow("Chat", () => { }, () => new TextBlock(), isSelected: false);
+        Show(unselected);
+        var unselectedButton = unselected.GetVisualDescendants().OfType<Button>().First();
+        var unselectedPeer = ControlAutomationPeer.CreatePeerForElement(unselectedButton);
+        var unselectedProvider = Assert.IsAssignableFrom<ISelectionItemProvider>(unselectedPeer.GetProvider<ISelectionItemProvider>());
+        Assert.False(unselectedProvider.IsSelected);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-200")] // Chrome.swift:748-757: SidebarRow(title:isSelected:action:icon:) with an empty accessory
+    public void SidebarRow_shorthand_init_omits_the_accessory() => headless.OnUiThread(() =>
+    {
+        var row = new SidebarRow("Chat", () => { }, () => new TextBlock());
+        var window = Show(row);
+        Assert.NotEmpty(row.GetVisualDescendants().OfType<Button>());
+        window.Close();
+    });
+
+    // ---- PR-WIN-201: RowAccessoryIcon ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-201")] // Chrome.swift:767-771: a semibold subheadline glyph in Chrome.secondaryText, in a 20x20 hit box
+    public void RowAccessoryIcon_is_20_by_20_with_secondaryText_glyph() => headless.OnUiThread(() =>
+    {
+        var icon = new RowAccessoryIcon("chevron.right");
+        var window = Show(icon, ThemeVariant.Light);
+        var box = Assert.IsType<Panel>(icon.Child);
+        Assert.Equal(20, box.Width);
+        Assert.Equal(20, box.Height);
+        var image = Assert.IsType<SwiftImage>(box.Children[0]);
+        AssertColor(Label(0.7, ThemeVariant.Light), Effective(image.Foreground));
+        window.Close();
+    });
+
+    // ---- PR-WIN-202: ChromeCard ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-202")] // Chrome.swift:1014-1020: continuous rounded-16 fill at overlay(0.03)
+    public void ChromeCard_is_a_16_radius_fill_at_0_03() => headless.OnUiThread(() =>
+    {
+        var row = new TextBlock { Text = "row" };
+        var card = new ChromeCard(() => row);
+        var window = Show(card, ThemeVariant.Light);
+        var border = Assert.IsType<Border>(card.Child);
+        Assert.Equal(16, border.CornerRadius.TopLeft);
+        AssertColor(Label(0.03, ThemeVariant.Light), Effective(border.Background));
+        Assert.Contains(row, VisualQuery.Descendants<TextBlock>(border));
+        window.Close();
+    });
+
+    // ---- PR-WIN-203, PR-WIN-231 (partial): ChromeSection ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-203")] // Chrome.swift:1034-1036: semibold body heading in secondaryText
+    [Trait("Req", "PR-WIN-231")]
+    public void ChromeSection_heading_is_semibold_body_in_secondaryText() => headless.OnUiThread(() =>
+    {
+        var section = new ChromeSection("General", () => new TextBlock { Text = "content" });
+        var window = Show(section, ThemeVariant.Light);
+        var heading = section.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text == "General");
+        Assert.Equal(FontWeight.SemiBold, TextElement.GetFontWeight(heading));
+        AssertColor(Label(0.7, ThemeVariant.Light), Effective(heading.Foreground));
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-203")] // Chrome.swift:1037-1041: accessory after the title, trailing pushed to the far right with 8pt before it
+    public void ChromeSection_places_an_accessory_and_a_trailing_control() => headless.OnUiThread(() =>
+    {
+        var accessory = new TextBlock { Text = "info" };
+        var trailing = new TextBlock { Text = "clear" };
+        var section = new ChromeSection("General", () => new TextBlock { Text = "content" }, accessory, trailing);
+        var window = Show(section);
+        Assert.Contains(accessory, VisualQuery.Descendants<TextBlock>(section));
+        Assert.Contains(trailing, VisualQuery.Descendants<TextBlock>(section));
+        Assert.Equal(8, trailing.Margin.Left);
+        window.Close();
+    });
+
+    // ---- PR-WIN-204, PR-WIN-231 (partial): ChromeRow ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-204")] // Chrome.swift:1058-1064: body title, subheadline detail only when non-nil and non-empty
+    [Trait("Req", "PR-WIN-231")]
+    public void ChromeRow_shows_the_detail_only_when_present_and_non_empty() => headless.OnUiThread(() =>
+    {
+        var withDetail = new ChromeRow("Title", () => new TextBlock { Text = "ctl" }, "Detail");
+        Show(withDetail, ThemeVariant.Light);
+        var detailText = withDetail.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Text == "Detail");
+        Assert.NotNull(detailText);
+        AssertColor(Label(0.7, ThemeVariant.Light), Effective(detailText!.Foreground));
+
+        var withEmptyDetail = new ChromeRow("Title", () => new TextBlock { Text = "ctl" }, "");
+        Show(withEmptyDetail);
+        Assert.DoesNotContain(withEmptyDetail.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "");
+
+        var withNullDetail = new ChromeRow("Title", () => new TextBlock { Text = "ctl" });
+        Show(withNullDetail);
+        Assert.Single(withNullDetail.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Title");
+    });
+
+    // ---- PR-WIN-205: ChromeRowDivider ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-205")] // Chrome.swift:1077-1080: a hairline inset 16pt from the leading edge only
+    public void ChromeRowDivider_is_inset_16_points_leading_only() => headless.OnUiThread(() =>
+    {
+        var divider = new ChromeRowDivider();
+        Show(divider);
+        Assert.Equal(16, divider.Margin.Left);
+        Assert.Equal(0, divider.Margin.Right);
+        Assert.Equal(0, divider.Margin.Top);
+        Assert.Equal(0, divider.Margin.Bottom);
+    });
+
+    // ---- PR-WIN-213: the field capsule takes the glass without the press response ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-213")] // Chrome.swift:137-139, :179-183: the same 0.3 tint, no .interactive()
+    public void ChromeGlassFieldCapsule_carries_the_tint_without_the_interactive_flag() => headless.OnUiThread(() =>
+    {
+        var field = new TextBlock { Text = "field" };
+        var surface = field.ChromeGlassFieldCapsule();
+        var window = Show(surface);
+        var fill = Assert.Single(VisualQuery.Descendants<Border>(surface).Where(b => SwiftGlass.GetEffect(b) is not null));
+        var glass = SwiftGlass.GetEffect(fill)!;
+        Assert.False(glass.IsInteractive);
+        Assert.Equal(0.3, glass.TintOpacity);
+        window.Close();
+    });
+}
