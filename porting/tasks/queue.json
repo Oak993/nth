@@ -874,7 +874,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 TESTS_REVIEW: PR-GIT-052..055 reviewed against all62 Swift lines at both source-identical snapshots.21 cases cover asymmetric matching, first invalid GitLab marker fallback, Int64 limits and three independent exact prompt fixtures. Red build missing type observed. | 2026-09-22 DONE: Director reviewed all matching branches and all prompt characters against Swift. A12 B8 quarantine pass;48 tests none failed/skipped. No forge commands executed. URI boundary uses .NET Uri; macOS runtime comparison remains part of full acceptance."
     },
