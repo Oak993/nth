@@ -22,6 +22,7 @@ namespace Marrow.Core.Tests.Port;
 public sealed class SwiftURLTests
 {
     private const string EAcute = "\U000000E9"; // U+00E9 LATIN SMALL LETTER E WITH ACUTE
+    private const string UUmlaut = "\U000000FC"; // U+00FC LATIN SMALL LETTER U WITH DIAERESIS
 
     [Fact]
     [Trait("Rule", "R-PATH-1")] // MCPOAuth.swift:201 guard URL(string: url) != nil; survey 20 "foo bar" gives foo%20bar
@@ -50,6 +51,33 @@ public sealed class SwiftURLTests
         // parse(buffer:) validates the port of an authority: only ASCII digits, unless the scheme is "addressbook".
         // A failed buffer parse returns nil before any encoding (URLParser.swift:635-637).
         Assert.Null(SwiftURL.Create("http://example.com:abc/"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // MCPOAuth.swift:201-203 guard URL(string: url) != nil keeps a live nil branch
+    public void Text_before_the_first_colon_that_is_not_a_valid_scheme_gives_nil()
+    {
+        // Everything before the first ":" is the scheme unless "/", "?", "#", "[", "]" or "@" comes first
+        // (URLParser.swift:787-816). "my server" holds a space, which schemeAllowed (ALPHA, DIGIT and "+-.",
+        // URLParser.swift:1209) does not contain, so validate(schemeBuffer:) fails (:409-416) and parse returns nil
+        // (:821-824). Nothing falls back to a percent-encoded relative path such as "my%20server:8080".
+        Assert.Null(SwiftURL.Create("my server:8080"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // MCPCustom.swift:85, MCPSettingsPage.swift:1063 host() ?? url; MCPOAuth.swift:201
+    public void An_at_sign_before_the_first_colon_makes_a_relative_reference_with_no_scheme_and_no_host()
+    {
+        // "@" before any ":" is the authority heuristic of URLParser.swift:811-816: no scheme, and with no leading "//"
+        // no authority either (:834-838), so the whole text is the path. ":" and "@" are pchar (:1206, :1215), so the
+        // path is valid and the string is kept as written (URLParser.swift:647-649).
+        var url = SwiftURL.Create("user@example.com:22");
+        Assert.NotNull(url);
+        Assert.Null(url.Scheme);
+        Assert.Null(url.Host);
+        Assert.Null(url.HostComponent());
+        Assert.Equal("user@example.com:22", url.AbsoluteString);
+        Assert.Equal("user@example.com:22", url.Path);
     }
 
     [Fact]
@@ -135,6 +163,41 @@ public sealed class SwiftURLTests
         Assert.Equal("/caf" + EAcute, url.Path);
     }
 
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // R-PATH-1 leniency; MarkdownView.swift:677 decodes url.path once more
+    public void An_invalid_path_is_encoded_whole_so_an_existing_escape_becomes_percent_25()
+    {
+        // URL(string:) takes the non-compatibility parse (URL_Swift.swift:75-76, :83-87). An invalid path is rebuilt
+        // with percentEncode(path, component: .path) (URLParser.swift:709), whose skipAlreadyEncoded defaults to false
+        // (:204, :326-335). "%" is not in pathAllowed (:1205, :1215), so the escape-emitting branch of
+        // addingPercentEncoding (:1073-1074) turns "%" into "%25". URLParser.swift:1336-1337 contrasts this with
+        // CFURL, which left an existing escape alone.
+        var mixed = SwiftURL.Create("https://example.com/a%20b c");
+        Assert.NotNull(mixed);
+        Assert.Equal("https://example.com/a%2520b%20c", mixed.AbsoluteString);
+        Assert.Equal("/a%20b c", mixed.Path);
+
+        // A "%" without two hex digits after it fails validation (URLParser.swift:385-405), so the path is encoded.
+        var bare = SwiftURL.Create("https://example.com/100%");
+        Assert.NotNull(bare);
+        Assert.Equal("https://example.com/100%25", bare.AbsoluteString);
+        Assert.Equal("/100%", bare.Path);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // MarkdownView.swift:677 url.path.removingPercentEncoding ?? url.path, :680 host alone
+    public void A_path_whose_escapes_are_not_UTF8_decodes_to_an_empty_path()
+    {
+        // "%E9" is valid percent-encoding, so the string is kept as written. path is
+        // Parser.percentDecode(path)?._droppingTrailingSlashes ?? "" (URL_Swift.swift:527-530), and the decoder ends in
+        // String(bytes:encoding: .utf8) (URLParser.swift:1130), which is nil for the lone byte 0xE9. No U+FFFD, and the
+        // escape is not kept: the path is empty, so prettyTitle shows the host alone.
+        var url = SwiftURL.Create("https://example.com/caf%E9");
+        Assert.NotNull(url);
+        Assert.Equal("https://example.com/caf%E9", url.AbsoluteString);
+        Assert.Equal("", url.Path);
+    }
+
     [Theory]
     [Trait("Rule", "R-PATH-1")] // MCPProbe.swift:362-363 origin from url.scheme and url.host; MarkdownView.swift:673 lowercases itself
     [InlineData("https://GitLab.Example.COM/api/v4/mcp", "GitLab.Example.COM")]
@@ -163,6 +226,24 @@ public sealed class SwiftURLTests
         Assert.Equal("a-b.example", url.HostComponent(percentEncoded: false));
         Assert.Equal("a-b.example", url.Host);
         Assert.Equal("https://a%2Db.example/", url.AbsoluteString);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // MarkdownView.swift:673 url.host?.lowercased(); MCPCustom.swift:85, MCPSettingsPage.swift:1063 host() ?? url
+    public void A_non_ASCII_host_is_IDNA_encoded_and_host_component_percent_encodes_the_decoded_name()
+    {
+        // The host is invalid, not an IP literal, and "https" is not on schemesToPercentEncodeHost
+        // (URLParser.swift:235-253, :264-277), so it is IDNA-encoded (:695-697). url.host then returns the IDNA text
+        // ("Return IDNA-encoded host", URL_Swift.swift:473-475); host() IDNA-decodes and then percent-encodes
+        // (URL_Swift.swift:465-469), UTF-8 bytes in upper-case hex. The IDNA hook exists because the Darwin framework
+        // build returns UIDNAHookICU (URLParser.swift:190-193); without it the host would be percent-encoded (:265-268).
+        var url = SwiftURL.Create("https://b" + UUmlaut + "cher.de/");
+        Assert.NotNull(url);
+        Assert.Equal("https://xn--bcher-kva.de/", url.AbsoluteString);
+        Assert.Equal("xn--bcher-kva.de", url.Host);
+        Assert.Equal("b%C3%BCcher.de", url.HostComponent());
+        Assert.Equal("b%C3%BCcher.de", url.HostComponent(percentEncoded: true));
+        Assert.Equal("xn--bcher-kva.de", url.HostComponent(percentEncoded: false));
     }
 
     [Theory]
@@ -242,18 +323,24 @@ public sealed class SwiftURLTests
         Assert.Equal("https://example.com/%2541", url.AbsoluteString);
     }
 
-    [Fact]
+    [Theory]
     [Trait("Rule", "R-PATH-1")] // AttachmentPreview.swift:66-67 absolute = URL(string: trimmed)?.path ?? trimmed; survey 20
-    public void A_file_URL_path_is_percent_decoded()
+    [InlineData("file:///Users/me/shot%201.png", "/Users/me/shot 1.png")]
+    [InlineData("file:///Users/me/a%2Fb.png", "/Users/me/a%2Fb.png")]
+    [InlineData("file:///tmp/a%00b", "/tmp/a%00b")]
+    [InlineData("file:///Users/me/dir%2F", "/Users/me/dir%2F")]
+    [InlineData("file:///Users/me/dir//", "/Users/me/dir")]
+    public void A_file_URL_path_drops_trailing_slashes_then_decodes_all_but_slash_and_NUL(string text, string path)
     {
-        // For a file URL, path is the file-system path: trailing slashes dropped, then decoded (URL_Swift.swift:524-525,
-        // :609-617, :574-578). Only the POSIX shape the Swift sees is pinned here; the Windows shape of a
+        // For a file URL, path is the file-system path (URL_Swift.swift:525): all trailing slashes dropped first
+        // (_droppingTrailingSlashes, not the compatibility singular, :609-614), then decoded with "%2F" and "%00" left
+        // encoded (:574-578, :616). Only the POSIX shape the Swift sees is pinned here; the Windows shape of a
         // file:///C:/... candidate has no engineering decision yet and is not chosen by this test.
-        var url = SwiftURL.Create("file:///Users/me/shot%201.png");
+        var url = SwiftURL.Create(text);
         Assert.NotNull(url);
         Assert.Equal("file", url.Scheme);
-        Assert.Equal("/Users/me/shot 1.png", url.Path);
-        Assert.Equal("file:///Users/me/shot%201.png", url.AbsoluteString);
+        Assert.Equal(path, url.Path);
+        Assert.Equal(text, url.AbsoluteString);
     }
 
     [Theory]
@@ -263,9 +350,16 @@ public sealed class SwiftURLTests
     [InlineData("https://example.com/", "/")]
     [InlineData("https://example.com", "")]
     [InlineData("https://example.com?x=1", "")]
+    [InlineData("https://example.com/api/v4/mcp//", "/api/v4/mcp")]
+    [InlineData("https://example.com//", "/")]
+    [InlineData("https://example.com/docs%2F", "/docs")]
     public void Path_drops_a_trailing_slash_keeps_a_lone_root_and_is_empty_without_one(string text, string path)
     {
-        // Survey 20: url.path "loses its trailing slash"; a lone "/" stays (String+Path.swift:420-427).
+        // Survey 20: url.path "loses its trailing slash". For a non-file URL the path is decoded first and then every
+        // trailing slash is dropped (URL_Swift.swift:528, _droppingTrailingSlashes at String+Path.swift:420-428); an
+        // all-slash path becomes "/". The singular _droppingTrailingSlash (String+Path.swift:413-418) belongs only to
+        // compatibility mode (URL_Swift.swift:610-611), so "/api/v4/mcp//" loses both slashes, and "%2F" is decoded
+        // before the drop, so "/docs%2F" gives "/docs".
         var url = SwiftURL.Create(text);
         Assert.NotNull(url);
         Assert.Equal(path, url.Path);
