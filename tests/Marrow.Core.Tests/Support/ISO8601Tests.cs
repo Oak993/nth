@@ -9,10 +9,10 @@ namespace Marrow.Core.Tests.Support;
 // Expected values are transcribed from the Swift and from PR-STORE-168, PR-STORE-169 and PR-STORE-170.
 // Date.ISO8601FormatStyle is swift-foundation, which the swift.org Windows toolchain settles (IMPLEMENTING.md ED-086;
 // O-17 is marked "Windows toolchain: yes"); installing that toolchain is the orchestrator's decision. Until such a
-// fixture exists, the time zone of the date-only style (PR-STORE-169 failure case) and the handling of a dropped
-// sub-second part, truncated or rounded (PR-STORE-170 failure case), are UNVERIFIED: they are asserted only under
-// the parked rule's Rule trait (R-TIME-3), as offsets are under Oracle O-17, never under a Req trait. When a
-// fixture lands, those two Rule-trait tests are replaced and may take their Req traits (R-TEST-6).
+// fixture exists, the time zone of the date-only style (PR-STORE-169 failure case, Oracle O-45) and the handling of
+// a dropped sub-second part, truncated or rounded (PR-STORE-170 failure case, Oracle O-46), are UNVERIFIED: they are
+// asserted only under the parked rule's Rule trait (R-TIME-3), as offsets are under Oracle O-17, never under a Req
+// trait. When a fixture lands, those two Rule-trait tests are replaced and may take their Req traits (R-TEST-6).
 public sealed class ISO8601Tests
 {
     [Fact]
@@ -65,6 +65,7 @@ public sealed class ISO8601Tests
     }
 
     [Fact]
+    [Trait("Rule", "R-TIME-3")]
     [Trait("Oracle", "O-17")]
     public void A_numeric_offset_is_read_as_the_parked_rule_says()
     {
@@ -173,6 +174,7 @@ public sealed class ISO8601Tests
 
     [Fact]
     [Trait("Rule", "R-TIME-3")]
+    [Trait("Oracle", "O-45")]
     public void A_bare_date_is_midnight_UTC_as_the_parked_rule_says()
     {
         // UNVERIFIED until a swift-foundation fixture exists (PR-STORE-169 failure case, ED-086): the default
@@ -229,6 +231,7 @@ public sealed class ISO8601Tests
 
     [Fact]
     [Trait("Rule", "R-TIME-3")]
+    [Trait("Oracle", "O-46")]
     public void A_sub_second_part_is_dropped_as_the_parked_rule_says()
     {
         // UNVERIFIED until a swift-foundation fixture exists (PR-STORE-170 failure case, ED-086): truncation or
