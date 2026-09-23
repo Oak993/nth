@@ -318,3 +318,21 @@ instruction may change one.
   does every review, every merge and every ruling. Agents work from compact per-part work packets
   (`porting/tools/make_packets.mjs`) instead of the whole guide and spec. This is a process decision: it does not change
   what the port must match or how it is verified.
+
+## OD-0020 Decision batch 3: every recommendation accepted (wave A rulings)
+
+- **Asked:** 2026-09-23, as the nine questions in `E:/Droppy/work/rulings/owner_questions.md`, raised by the rulings for
+  the units that stopped in implementation wave A (ED-104 to ED-150).
+- **Answer, verbatim (selected option):** "Accept all (Recommended)"
+- **Effect:** (1) Cascadia Mono ships inside the app; the owner approved downloading CascadiaCode-2407.24.zip (150,454,761
+  bytes) from Microsoft's release (done; porting/probes/p9/CASCADIA.md). (2) Italic and weight-800 Inter come from the
+  official rsms/inter release; the exact file and size are confirmed with the owner before it is downloaded. (3) Cookies
+  and the URL cache persist across restarts as on the Mac, the cookie store encrypted with DPAPI under
+  %LOCALAPPDATA%\Marrow Code. (4) An npm `.cmd` shim is resolved to the program it starts, which is launched directly with
+  no command interpreter; any other `.cmd` or `.bat` target is refused; proven first on this PC with a fake npm tool.
+  (5) A forced stop reports termination by signal 9 and a polite stop signal 15, as on macOS. (6) Command Code is
+  looked up in the Mac order, "cmd" first, with the PA-0016 check that skips the Windows command interpreter.
+  (7) Frame-timed waits may pause while the window is minimized; the effect is measured on the owner's PC.
+  (8) Dates follow the Windows custom short and long date formats and first day of the week, as the Mac follows its
+  own settings. (9) The agent file-access containment check compares case-sensitively (drive letter aside), as on the
+  Mac. Where a ruling differs from the Mac this is a named deviation.
