@@ -3145,7 +3145,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same table as static data, same best-first ordering on both lists, same omit-when-unavailable rule. The doc comment says \"this Mac\"; the rule is about installed providers, not about the platform.",
       "verification_method": "contract fixture over a synthetic catalog, plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3169,7 +3169,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3191,7 +3191,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3213,7 +3213,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3235,7 +3235,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3257,7 +3257,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3279,7 +3279,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3301,7 +3301,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3323,7 +3323,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3345,7 +3345,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3367,7 +3367,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
       "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3389,7 +3389,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same exact-match rule with no normalisation.",
       "verification_method": "unit over a model with and without the wanted effort",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3411,7 +3411,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Compare exactly these four fields and no more.",
       "verification_method": "unit with two pairs differing only in effort",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4343,7 +4343,8 @@
       "notes": "Tagline, verbatim: \"The deepest lead over the strongest builders: Fable plans and checks, Opus heads build. Set the thinking effort of each side yourself.\". Stable id \"claude-fable-opus\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort nil. Heads: providers [.claude, .commandcode], models [\"Opus\"], effort nil. maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 1 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-011",
@@ -4365,7 +4366,8 @@
       "notes": "Tagline, verbatim: \"A careful lead and a wide, fast team: Opus writes the briefs, six Gemini Flash heads sprint through them.\". Stable id \"claude-opus-gemini-flash\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.antigravity, .commandcode], models [\"Gemini 3.8 Flash\", \"Gemini\", \"Flash\"], effort \"medium\". maxHeads: 6 - the only capped recipe in the table. The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 2 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-012",
@@ -4387,7 +4389,8 @@
       "notes": "Tagline, verbatim: \"Opus keeps the plan tight; DeepSeek V4.1 Flash heads keep the bill small on the routine parts.\". Stable id \"claude-opus-deepseek\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.deepseek, .commandcode], models [\"V4.1 Flash\", \"V4.1\", \"DeepSeek\"], effort \"high\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 3 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-013",
@@ -4409,7 +4412,8 @@
       "notes": "Tagline, verbatim: \"Opus keeps the plan tight; GLM-5.3 Flash heads on a Z.ai Coding Plan keep the bill flat.\". Stable id \"claude-opus-glm\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.zai, .commandcode], models [\"5.3 Flash\", \"GLM\"], effort \"high\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 4 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-014",
@@ -4431,7 +4435,8 @@
       "notes": "Tagline, verbatim: \"Fable thinks; Cursor's Composer heads type at the speed Composer is known for.\". Stable id \"claude-fable-composer\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort \"high\". Heads: providers [.cursor], models [\"Composer\"], effort nil - the only single-provider side in the table. maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 5 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-015",
@@ -4453,7 +4458,8 @@
       "notes": "Tagline, verbatim: \"GPT-6 Astra orchestrates at high; Muse Spark Contributor heads build at medium.\". Stable id \"astra-spark\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.meta, .commandcode], models [\"Contributor\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 6 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-016",
@@ -4475,7 +4481,8 @@
       "notes": "Tagline, verbatim: \"OpenAI top to bottom: Astra plans and reviews, Terra does the work at medium.\". Stable id \"astra-terra\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.codex, .commandcode], models [\"Terra\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 7 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-017",
@@ -4497,7 +4504,8 @@
       "notes": "Tagline, verbatim: \"One model, two efforts: Astra thinks hard about the plan and the review, and Astra heads build at a working effort.\". Stable id \"astra-astra\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.codex, .commandcode], models [\"Astra\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 8 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-018",
@@ -4519,7 +4527,8 @@
       "notes": "Tagline, verbatim: \"Opus thinks as hard as it can where it counts; Opus heads at medium do the building.\". Stable id \"claude-opus-opus\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"max\". Heads: providers [.claude, .commandcode], models [\"Opus\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 9 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-019",
@@ -4541,7 +4550,8 @@
       "notes": "Tagline, verbatim: \"For the hardest, longest jobs: every seat on the most capable model, the lead at high and the heads at medium.\". Stable id \"claude-fable-fable\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort \"high\". Heads: providers [.claude, .commandcode], models [\"Fable\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
       "element": "Ready-made pair row 10 of 10",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     }
   ]
 }

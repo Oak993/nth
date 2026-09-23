@@ -1193,23 +1193,13 @@
     "Core.Support.Text"
    ],
    "records_total": 3,
-   "records_todo": [
-    "PR-RUNTIME-177",
-    "PR-RUNTIME-178",
-    "PR-RUNTIME-179"
-   ],
-   "parts": [
-    [
-     "PR-RUNTIME-177",
-     "PR-RUNTIME-178",
-     "PR-RUNTIME-179"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-053"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.Timeline",
@@ -1490,75 +1480,15 @@
    ],
    "intra_deps": [],
    "records_total": 27,
-   "records_todo": [
-    "PR-HYDRA-152",
-    "PR-HYDRA-153",
-    "PR-HYDRA-154",
-    "PR-HYDRA-155",
-    "PR-STORE-131",
-    "PR-STORE-132",
-    "PR-STORE-133",
-    "PR-STORE-134",
-    "PR-STORE-135",
-    "PR-STORE-136",
-    "PR-STORE-137",
-    "PR-STORE-138",
-    "PR-STORE-139",
-    "PR-STORE-140",
-    "PR-STORE-141",
-    "PR-STORE-142",
-    "PR-STORE-143",
-    "UI-STORE-010",
-    "UI-STORE-011",
-    "UI-STORE-012",
-    "UI-STORE-013",
-    "UI-STORE-014",
-    "UI-STORE-015",
-    "UI-STORE-016",
-    "UI-STORE-017",
-    "UI-STORE-018",
-    "UI-STORE-019"
-   ],
-   "parts": [
-    [
-     "PR-HYDRA-152",
-     "PR-HYDRA-153",
-     "PR-HYDRA-154",
-     "PR-HYDRA-155",
-     "PR-STORE-131",
-     "PR-STORE-132",
-     "PR-STORE-133",
-     "PR-STORE-134",
-     "PR-STORE-135",
-     "PR-STORE-136",
-     "PR-STORE-137",
-     "PR-STORE-138",
-     "PR-STORE-139",
-     "PR-STORE-140",
-     "PR-STORE-141",
-     "PR-STORE-142",
-     "PR-STORE-143",
-     "UI-STORE-010",
-     "UI-STORE-011",
-     "UI-STORE-012",
-     "UI-STORE-013",
-     "UI-STORE-014",
-     "UI-STORE-015",
-     "UI-STORE-016"
-    ],
-    [
-     "UI-STORE-017",
-     "UI-STORE-018",
-     "UI-STORE-019"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-013",
     "T-M2-014",
     "T-M2-015"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.HydraDelegationStream",
@@ -1576,29 +1506,13 @@
    ],
    "intra_deps": [],
    "records_total": 6,
-   "records_todo": [
-    "PR-HYDRA-081",
-    "PR-HYDRA-086",
-    "PR-HYDRA-087",
-    "PR-HYDRA-094",
-    "PR-HYDRA-095",
-    "PR-HYDRA-096"
-   ],
-   "parts": [
-    [
-     "PR-HYDRA-081",
-     "PR-HYDRA-086",
-     "PR-HYDRA-087",
-     "PR-HYDRA-094",
-     "PR-HYDRA-095",
-     "PR-HYDRA-096"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-016"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.Library",
@@ -1974,48 +1888,14 @@
    ],
    "intra_deps": [],
    "records_total": 15,
-   "records_todo": [
-    "PR-RUNTIME-001",
-    "PR-RUNTIME-002",
-    "PR-RUNTIME-003",
-    "PR-RUNTIME-004",
-    "PR-RUNTIME-005",
-    "PR-RUNTIME-006",
-    "PR-RUNTIME-007",
-    "PR-RUNTIME-008",
-    "PR-RUNTIME-009",
-    "PR-RUNTIME-010",
-    "PR-RUNTIME-011",
-    "PR-RUNTIME-012",
-    "PR-RUNTIME-013",
-    "PR-RUNTIME-014",
-    "PR-RUNTIME-015"
-   ],
-   "parts": [
-    [
-     "PR-RUNTIME-001",
-     "PR-RUNTIME-002",
-     "PR-RUNTIME-003",
-     "PR-RUNTIME-004",
-     "PR-RUNTIME-005",
-     "PR-RUNTIME-006",
-     "PR-RUNTIME-007",
-     "PR-RUNTIME-008",
-     "PR-RUNTIME-009",
-     "PR-RUNTIME-010",
-     "PR-RUNTIME-011",
-     "PR-RUNTIME-012",
-     "PR-RUNTIME-013",
-     "PR-RUNTIME-014",
-     "PR-RUNTIME-015"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-138",
     "T-M4-139"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Markdown.LinkTitles",
