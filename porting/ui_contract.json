@@ -19789,7 +19789,8 @@
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/Core/Models/Shortcuts.swift:32-34 description is KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode), and :43-50 modifierSymbols concatenates \"⌃\", \"⌥\", \"⇧\", \"⌘\" with no separator; the default reads \"⌘J\"",
         "port": "Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl): the default reads \"Ctrl+J\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -19819,7 +19820,8 @@
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/Core/Models/Shortcuts.swift:32-34 description is KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode), and :43-50 modifierSymbols concatenates \"⌃\", \"⌥\", \"⇧\", \"⌘\" with no separator; the default reads \"⌘R\"",
         "port": "Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl): the default reads \"Ctrl+R\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -25651,7 +25653,8 @@
         "DroppyCode/UI/Common/AppZoom.swift:18-51",
         "DroppyCode/App/Window/WindowManager.swift:173-175",
         "DroppyCode/App/Views/RootView.swift:276-282"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     }
   ]
 }
