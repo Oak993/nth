@@ -1989,7 +1989,7 @@
       "cancellation": "not cancellable once started",
       "windows_path": "Platform boundary: one shared voice per chime. The swallow-while-playing behaviour must be reproduced deliberately; a Windows API that mixes each request would turn a burst of finished turns into a pile-up, which upstream specifically avoids.",
       "verification_method": "unit: constants; interaction test: two finishes in the same frame produce one chime",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

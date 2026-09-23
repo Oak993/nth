@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "SPECIFIED": 3766,
+      "SPECIFIED": 3765,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
       "DISCOVERED": 34,
       "RETIRED": 6,
-      "IMPLEMENTED": 107
+      "IMPLEMENTED": 108
     },
     "by_area": {
       "CHAT": 193,
@@ -85486,7 +85486,7 @@
       "cancellation": "not cancellable once started",
       "windows_path": "Platform boundary: one shared voice per chime. The swallow-while-playing behaviour must be reproduced deliberately; a Windows API that mixes each request would turn a burst of finished turns into a pile-up, which upstream specifically avoids.",
       "verification_method": "unit: constants; interaction test: two finishes in the same frame produce one chime",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
