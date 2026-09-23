@@ -17,6 +17,8 @@
     "F.StyledText",
     "F.URLComponents",
     "F.SettingsStore",
-    "F.SwiftAnimation"
+    "F.SwiftAnimation",
+    "F.HTTPMove",
+    "F.LoadingMark"
   ]
 }

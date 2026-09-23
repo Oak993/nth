@@ -60,15 +60,22 @@ def primary(rec):
     return None
 
 
+# Orchestrator overrides (porting/deps/overrides.json): a record assigned to another file's unit ("assign", record id ->
+# Swift file) and extra edges the Swift import graph cannot see ("extra_deps", Swift file -> [Swift files]), each
+# backed by an engineering decision named in the file's "note".
+OV = J('porting/deps/overrides.json') if os.path.exists(os.path.join(ROOT, 'porting', 'deps', 'overrides.json')) else {}
+OV_ASSIGN = OV.get('assign', {})
+OV_DEPS = OV.get('extra_deps', {})
+
 recs = defaultdict(list)
 for r in matrix['requirements']:
     if r.get('status') in OUT_OF_SCOPE:
         continue
-    recs[primary(r)].append({'id': r['id'], 'status': r.get('status'), 'rework': bool(r.get('rework')), 'kind': 'req'})
+    recs[OV_ASSIGN.get(r['id']) or primary(r)].append({'id': r['id'], 'status': r.get('status'), 'rework': bool(r.get('rework')), 'kind': 'req'})
 for u in ui['records']:
     if u.get('status') in OUT_OF_SCOPE:
         continue
-    recs[primary(u)].append({'id': u['id'], 'status': u.get('status', 'SPECIFIED'), 'rework': bool(u.get('rework')), 'kind': 'ui'})
+    recs[OV_ASSIGN.get(u['id']) or primary(u)].append({'id': u['id'], 'status': u.get('status', 'SPECIFIED'), 'rework': bool(u.get('rework')), 'kind': 'ui'})
 
 packets = defaultdict(list)
 risk = {}
@@ -105,6 +112,7 @@ for f in sorted(files, key=lambda x: (deps['files'][x]['level'], x)):
     members = sorted(comp_members[comp])
     d = [x for x in deps['files'][f]['depends_on']
          if x not in EXCLUDED and (f, x) not in LAYER_EDGES_DROPPED and x in deps['files']]
+    d += [x for x in OV_DEPS.get(f, []) if x in deps['files'] and x not in d]
     parts = [[x['id'] for x in todo[i:i + PART_SIZE]] for i in range(0, len(todo), PART_SIZE)]
     units.append({
         'id': uid(f),
