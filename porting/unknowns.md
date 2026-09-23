@@ -127,6 +127,8 @@ carries that dependency in `porting/parity_matrix.json`.
 
 - **2026-09-22:** RESOLVED by OD-0009 (text face: Inter if it measures closer than Segoe UI Variable; mono Cascadia Mono) and OD-0010 (icons: Lucide).
 
+- **2026-09-23 correction:** Cascadia Mono is not an inbox font: it resolves by name only while Windows Terminal is installed (probe P9 RESULT.md section 2). The port ships the unmodified static Cascadia Mono files of Microsoft's official release inside the app (ED-107), once the owner confirms the download.
+
 - **Status:** BLOCKED_ON_OWNER for the substitution decision. Does not block reading or
   specification. Blocks any claim of visual parity for icons and text metrics.
 - **Evidence:** `porting/platform_adaptations.md` PA-0012 and PA-0013;
@@ -254,6 +256,9 @@ Both remain open options for the owner alone.
      `requiredInterfaceType` with a set `requiredLocalEndpoint` can bind a non-loopback interface
      (`MCPOAuth.swift:408-409`); the exact FSEvents-to-Windows mapping for the three event-loss
      flags in `WorkingTreeWatch.swift:180`.
+     2026-09-23: cross-root ordering is settled by ED-113 (a watch whose git directory lies outside the root holds no
+     stream); the loss-flag mapping is settled by probe P8 and ED-114 (Error with InternalBufferOverflowException,
+     and every other Error, means everything). See PA-0017.
   3. **Build and deployment facts not in the repository** - whether Xcode's Icon Composer
      compilation emits the `AppIcon.icns` that `scripts/package_dmg.sh:46-47` requires; whether
      `scripts/website_captures.py` completes inside its 330 s budget against a 600 s expectation;

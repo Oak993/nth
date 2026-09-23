@@ -1,0 +1,50 @@
+[
+  {
+    "file": "src/Marrow.Core/Support/Coding.cs",
+    "pattern": "WriteNumberValue(",
+    "text": "public override void Write(Utf8JsonWriter writer, long value, JsonSerializerOptions options) => writer.WriteNumberValue(value);",
+    "swift": "DroppyCode/Core/Support/Coding.swift:19-26"
+  },
+  {
+    "file": "src/Marrow.App/Window/ThreadWindow.cs",
+    "pattern": "_ =>",
+    "text": "_ => null,",
+    "swift": "DroppyCode/App/Window/ThreadWindow.swift:13-59"
+  },
+  {
+    "file": "src/Marrow.Core/Models/Timeline.cs",
+    "pattern": "WriteNumberValue(",
+    "text": "foreach (var head in heads) writer.WriteNumberValue(head);",
+    "swift": "DroppyCode/Core/Models/Timeline.swift:58-63"
+  },
+  {
+    "file": "src/Marrow.Core/Support/JSONValue.cs",
+    "pattern": "WriteNumberValue(",
+    "text": "case Int i: writer.WriteNumberValue(i.Value); break;",
+    "swift": "DroppyCode/Core/Support/JSONValue.swift:51-62"
+  },
+  {
+    "file": "src/Marrow.Core/Models/Timeline.cs",
+    "pattern": "Convert.To",
+    "text": "results.Add((sent, Convert.ToBase64String(downscaled ?? data))); // :109",
+    "swift": "DroppyCode/Core/Models/Timeline.swift:109"
+  },
+  {
+    "file": "src/Marrow.Core/Support/Shell.cs",
+    "pattern": "IgnoreCase",
+    "text": "if (string.Equals(key, name, StringComparison.OrdinalIgnoreCase)) return candidate;",
+    "swift": "DroppyCode/Core/Support/Shell.swift:376-386"
+  },
+  {
+    "file": "src/Marrow.Core/Support/Shell.cs",
+    "pattern": "IgnoreCase",
+    "text": "var environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);",
+    "swift": "DroppyCode/Core/Support/Shell.swift:456"
+  },
+  {
+    "file": "src/Marrow.Core/Support/Shell.cs",
+    "pattern": "IgnoreCase",
+    "text": "return new ValueMap<string, string>(environment, StringComparer.OrdinalIgnoreCase);",
+    "swift": "DroppyCode/Core/Support/Shell.swift:460"
+  }
+]

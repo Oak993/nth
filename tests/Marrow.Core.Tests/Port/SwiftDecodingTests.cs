@@ -77,6 +77,52 @@ public sealed class SwiftDecodingTests
     }
 
     [Fact]
+    [Trait("Rule", "R-CODE-2")]
+    [Trait("Rule", "R-ERR-1")]
+    public void Value_swallows_every_thrown_error_and_propagates_traps()
+    {
+        var root = Json("{\"x\":1}");
+        foreach (var error in new Exception[]
+        {
+            new DecodingError("dataCorrupted", "bad"), new EncodingError("thrown"),
+            new FormatException("thrown"), new InvalidOperationException("thrown"),
+            new ArgumentException("thrown"), new System.IO.IOException("thrown"),
+            new Exception("thrown"), new CancellationError(),
+        })
+            Assert.Equal(5L, Value<long>(root, "x", _ => throw error, () => 5L));
+
+        Assert.Throws<SwiftTrapException>(() => Value<long>(root, "x", _ => throw SwiftTraps.Fatal("trap"), () => 5L));
+        Assert.Throws<OverflowException>(() => Value<long>(root, "x", _ => throw new OverflowException(), () => 5L));
+        Assert.Throws<IndexOutOfRangeException>(() => Value<long>(root, "x", _ => throw new IndexOutOfRangeException(), () => 5L));
+        Assert.Throws<InvalidCastException>(() => Value<long>(root, "x", _ => throw new InvalidCastException(), () => 5L));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-CODE-2")]
+    [Trait("Rule", "R-ERR-1")]
+    public void LenientList_drops_each_thrown_error_and_keeps_the_other_elements()
+    {
+        var root = Json("{\"items\":[1,2,3]}");
+        foreach (var error in new Exception[]
+        {
+            new DecodingError("dataCorrupted", "bad"), new EncodingError("thrown"),
+            new FormatException("thrown"), new InvalidOperationException("thrown"),
+            new ArgumentException("thrown"), new System.IO.IOException("thrown"),
+            new Exception("thrown"), new CancellationError(),
+        })
+        {
+            var values = LenientList(root, "items", element => element.GetInt32() == 2 ? throw error : ReadInt(element),
+                () => ValueList<long>.Empty);
+            Assert.Equal([1L, 3L], values);
+        }
+
+        Assert.Throws<SwiftTrapException>(() => LenientList(root, "items", _ => throw SwiftTraps.Fatal("trap"), () => ValueList<long>.Empty));
+        Assert.Throws<OverflowException>(() => LenientList(root, "items", _ => throw new OverflowException(), () => ValueList<long>.Empty));
+        Assert.Throws<IndexOutOfRangeException>(() => LenientList(root, "items", _ => throw new IndexOutOfRangeException(), () => ValueList<long>.Empty));
+        Assert.Throws<InvalidCastException>(() => LenientList(root, "items", _ => throw new InvalidCastException(), () => ValueList<long>.Empty));
+    }
+
+    [Fact]
     [Trait("Rule", "R-CODE-1")]
     public void Int_decoding_follows_JSONDecoder()
     {
