@@ -215,7 +215,7 @@ incomplete until the reading gate closes.
 ## PA-0010 Executable lookup
 
 - **Status:** IDENTIFIED.
-- **Original:** `Core/Support/Shell.swift:411-423`. A name containing a slash is treated as a path
+- **Original:** `Core/Support/Shell.swift:415-427`. A name containing a slash is treated as a path
   with a leading tilde expanded and tested with `isExecutableFile`; otherwise PATH is split on colons
   and each directory is joined with the bare name and tested with `isExecutableFile`.
 - **Windows difference that must be handled deliberately:** Windows resolves executables through
@@ -292,6 +292,10 @@ incomplete until the reading gate closes.
 
 ## PA-0013 Typography is the macOS system font
 
+- **2026-09-23 correction:** Cascadia Mono is not an inbox font. It exists only as a shared font of the
+  Windows Terminal package, so it resolves by name only while Terminal is installed (probe P9 RESULT.md section 2).
+  The port ships the unmodified static Cascadia Mono files of Microsoft's official release inside the app
+  (ED-107), once the owner confirms the download.
 - **Status:** IDENTIFIED.
 - **Original:** 430 `.font(.system...)` sites plus `.font(.caption)` (17), `.font(.callout)` (11),
   `.font(.title...)` (2), `.font(.headline)` (2), `.font(.body)` (2), and AppKit
@@ -420,8 +424,8 @@ nor repaired until the owner rules.
   PORT_CONTRACT section 11 names explicitly: "where a provider uses the command name cmd,
   establish how to distinguish that provider from the Windows command interpreter and validate the
   actual executable identity."
-- **The hazard, confirmed:** `Core/Models/Provider.swift:51` gives Command Code the
-  `executableName` `"cmd"`. `Services/Providers/ProviderRegistry.swift:220` resolves a provider by
+- **The hazard, confirmed:** `Core/Models/Provider.swift:54` gives Command Code the
+  `executableName` `"cmd"`. `Services/Providers/ProviderRegistry.swift:223` resolves a provider by
   `LoginEnvironment.which(...)`, which walks PATH and takes the first executable match. On this
   Windows 11 machine, `where cmd` returns `C:\Windows\System32\cmd.exe`. So a naive port would
   report Command Code as INSTALLED on every Windows machine in existence, then launch the Windows
@@ -429,7 +433,7 @@ nor repaired until the owner rules.
   (`--output-format json --skip-onboarding --no-auto-update --trust --tools-enable todo_write
   --max-turns 400 ...`), which it cannot parse.
 - **Source-defined escape hatch, found rather than invented:**
-  `ProviderRegistry.swift:218` reads `settings.binaryPath(for: provider)` and, when it is non-empty,
+  `ProviderRegistry.swift:221` reads `settings.binaryPath(for: provider)` and, when it is non-empty,
   resolves that instead of the bare name, and returns nil rather than falling back if the custom
   path does not resolve. So the source already supports pointing a provider at an explicit
   executable, and the Windows port inherits that without adding anything.
@@ -474,3 +478,27 @@ nor repaired until the owner rules.
   must not then reject it for being a `.cmd` file. The rule keys on version-resource identity and
   the two canonical interpreter paths, not on the extension. Unverified against a real Command Code
   Windows install, because none is available here; recorded as a live-verification item.
+
+## PA-0017 File-system change notification: FSEvents and a vnode dispatch source become FileSystemWatcher
+
+- **Status:** DECIDED 2026-09-23 (ED-113 to ED-116), with probe evidence (P8).
+- **Original:** `WorkingTreeWatch.swift:139-155` runs one FSEvents stream over the working root and, for a linked
+  worktree, over the git directory too, at latency 0 with kFSEventStreamCreateFlagNoDefer, on its own serial queue
+  (`:121`, `:147`). `CommandCodeSession.swift:650-661` watches the tool-approval directory with a vnode dispatch
+  source on main.
+- **What this means:** Windows has neither API. `FileSystemWatcher` (ReadDirectoryChangesW) is the counterpart. It
+  delivers in order within one handle but promises no order between two handles, and it reports lost events through
+  its Error event instead of per-event flags.
+- **Decision:** one watcher over the working root when the git directory lies under it; no watcher when it lies
+  outside, so every snapshot of that watch is a fresh one, as when upstream's stream fails to start (ED-113). A 64 KB
+  buffer for the tree watch and the 8 KB default for the directory watch; every Error means "everything" for the tree
+  watch and one handler run for the directory watch (ED-114). No latency and no timer coalescing (ED-115). Each watch
+  delivers on the queue its source names: the tree watch's serial queue, and main for the directory watch (ED-116).
+- **Named divergence, performance only:** every app-created worktree thread (worktree and Hydra sessions) keeps its
+  git directory outside its working root (`Storage.swift:38`), so each of its snapshots is a full `git add -A`
+  (46 ms at 4k files, 200 ms at 60k, `WorkingTreeWatch.swift:10-11`), off main. Outputs are identical to upstream;
+  only time differs. A faster route with a real global order (for example the NTFS USN journal) would be a separate
+  proposal.
+- **Unverified:** whether the event of a write made through a handle still open when the cookie is created arrives
+  before the cookie's event within one handle (PR-GIT-076). A Windows verification item for the GIT unit.
+- **Evidence:** probe P8; ED-113 to ED-116; UNK-0011 item 2.
