@@ -145,8 +145,7 @@ public sealed class MCPCustomTests
         };
         var entry = server.CatalogEntry();
         var http = Assert.IsType<MCPTransport.Http>(entry.Transport);
-        Assert.Equal(1, http.Headers.Count);
-        Assert.Equal("{K}", http.Headers["K"]);
+        Assert.Equal("{K}", Assert.Single(http.Headers).Value);
         // The fields list itself is NOT deduplicated: both variables still map to fields (:94-96).
         Assert.Equal(2, entry.Fields.Count);
     }
