@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    P4b (follow-up to P4, owner ruling OD-0013): remedies for the one-frame edge lag during live resize.
+    A throwaway probe, never production code.
+
+    Built the way P4, P10, P3 and P7 are built: this folder sits under the repo root, so Directory.Build.props
+    (TreatWarningsAsErrors, Nullable, ManagePackageVersionsCentrally) and Directory.Packages.props
+    (Avalonia 12.1.2) apply, and no PackageReference carries a Version attribute.
+    Avalonia.Desktop is the real Win32 platform backend. The ildump folder is a separate reading aid and is
+    excluded from this project's compile items.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>P4b</RootNamespace>
+    <AssemblyName>p4b</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="ildump/**" />
+    <None Remove="ildump/**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Skia" />
+  </ItemGroup>
+
+</Project>

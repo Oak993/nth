@@ -1912,7 +1912,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Synthesize the same PCM and hand it to the Windows audio stack. Shipping a pre-rendered .wav asset produced by this same algorithm is acceptable only if it is bit-identical; the tuning constants stay in code either way.",
       "verification_method": "contract fixture: the generated buffer's bytes for both chimes are checked against a recorded golden buffer",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1936,7 +1936,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure arithmetic; port it directly in double precision. The partial set is shared by every note of a chime, not per note.",
       "verification_method": "unit: sample-by-sample comparison against the formula for a known note and partial list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1961,7 +1961,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The normalization means the declared per-note levels set the balance between notes, not the absolute loudness; the absolute loudness comes only from the per-chime volume (PR-THEME-081, PR-THEME-082).",
       "verification_method": "unit: peak sample equals 29490 for both chimes; the last sample is near zero",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

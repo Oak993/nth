@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marrow loading mark, round 2</title>
+<style>
+  :root {
+    --page: #0B0C10; --ink: #F3F5F9; --muted: #8B92A5; --line: #22252E;
+    --dark-a: #1B1E26; --dark-b: #101216; --light-a: #F6F7FA; --light-b: #E6E9EF;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font-family: "Segoe UI Variable Text", "Segoe UI", Inter, sans-serif; padding: 32px 16px 48px; }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 26px; }
+  h1 { font-size: 26px; font-weight: 650; margin: 0 0 6px; letter-spacing: -0.01em; }
+  p.lead { margin: 0; color: var(--muted); font-size: 15px; max-width: 640px; line-height: 1.5; }
+  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: #12141A; }
+  .toggle button { font: inherit; font-size: 13px; color: var(--muted); background: none; border: 0; padding: 7px 14px; border-radius: 999px; cursor: pointer; }
+  .toggle button[aria-pressed="true"] { background: #262A35; color: var(--ink); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 22px; }
+  .card { border: 1px solid var(--line); border-radius: 18px; overflow: hidden; background: #0F1116; }
+  .stage { display: grid; grid-template-columns: 1fr 1fr; }
+  .pane { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 34px 10px 26px; min-height: 300px; }
+  .pane.dark { background: radial-gradient(120% 90% at 30% 0%, var(--dark-a), var(--dark-b)); }
+  .pane.light { background: radial-gradient(120% 90% at 30% 0%, var(--light-a), var(--light-b)); }
+  .row { display: flex; align-items: center; gap: 16px; }
+  .caption { font-size: 12px; color: #8B92A5; }
+  .pane.light .caption { color: #6A7080; }
+  .meta { padding: 16px 18px 18px; border-top: 1px solid var(--line); }
+  .meta b { font-size: 17px; font-weight: 650; }
+  .meta p { margin: 6px 0 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .mark { position: relative; width: var(--s); height: var(--s); flex: none; }
+  .mark svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  body.markonly .tileLayer { display: none; }
+  .sheen { transform: translateX(-760px); }
+  svg .spin, svg .arm, svg .core, svg .coreglow, svg .ghost, svg .ripple, svg .sheen { transform-box: view-box; transform-origin: 512px 512px; }
+
+  /* ---------- A. Tide: the arms breathe from their middles while the mark turns a third, light sweeps the glass ---------- */
+  .vA .spin { animation: aTurn 1.9s cubic-bezier(.65,0,.25,1) infinite; }
+  @keyframes aTurn { to { transform: rotate(120deg); } }
+  .vA .arm { stroke-dasharray: 100 200; animation: aBreath 1.9s cubic-bezier(.45,0,.2,1) infinite; }
+  .vA .a1 { animation-delay: .1s; } .vA .a2 { animation-delay: .2s; }
+  @keyframes aBreath {
+    0%, 100% { stroke-dasharray: 36 200; stroke-dashoffset: -32; }
+    50%      { stroke-dasharray: 100 200; stroke-dashoffset: 0; }
+  }
+  .vA .core { animation: aCore 1.9s cubic-bezier(.45,0,.2,1) infinite; }
+  @keyframes aCore { 0%, 100% { transform: scale(1.05); } 50% { transform: scale(.9); } }
+  .vA .coreglow { animation: aGlow 1.9s cubic-bezier(.45,0,.2,1) infinite; }
+  @keyframes aGlow { 0%, 100% { opacity: .95; transform: scale(1.12); } 50% { opacity: .3; transform: scale(.8); } }
+  .vA .sheen, .vC .sheen { animation: sweep 3.8s cubic-bezier(.45,0,.2,1) infinite; }
+  @keyframes sweep { 0% { transform: translateX(-760px); } 48%, 100% { transform: translateX(1560px); } }
+
+  /* ---------- B. Comet: one turn with a living speed, motion trails that appear with speed, rings released from the core ---------- */
+  .vB .spin { animation: bTurn 2.4s cubic-bezier(.45,.05,.55,.95) infinite; }
+  @keyframes bTurn { to { transform: rotate(360deg); } }
+  .vB .ghost { opacity: 0; animation: bGhost 2.4s cubic-bezier(.45,.05,.55,.95) infinite; }
+  .vB .g2 { animation-name: bGhost2; }
+  @keyframes bGhost  { 0%, 100% { opacity: 0; } 50% { opacity: .42; } }
+  @keyframes bGhost2 { 0%, 100% { opacity: 0; } 50% { opacity: .2; } }
+  /* One pulse per turn: the turn comes to rest at 0 % / 100 %, the core draws in over the last 12 %, then releases a
+     flash and one ring at the loop point, and that pulse starts the next turn. */
+  .vB .ripple { opacity: 0; animation: bRing 2.4s linear infinite; }
+  .vB .r2 { display: none; }
+  @keyframes bRing { 0% { opacity: .6; transform: scale(1); animation-timing-function: cubic-bezier(.2,.6,.3,1); } 79% { opacity: 0; transform: scale(3.6); } 100% { opacity: 0; transform: scale(3.6); } }
+  .vB .core { animation: bCore 2.4s linear infinite; }
+  @keyframes bCore {
+    0%   { transform: scale(.9);   animation-timing-function: cubic-bezier(.2,.8,.3,1); }
+    2.5% { transform: scale(1.14); animation-timing-function: cubic-bezier(.3,0,.2,1); }
+    30%  { transform: scale(1); }
+    88%  { transform: scale(1);    animation-timing-function: cubic-bezier(.5,0,.5,1); }
+    100% { transform: scale(.9); }
+  }
+  .vB .coreglow { animation: bGlow 2.4s linear infinite; }
+  @keyframes bGlow {
+    0%   { opacity: .3;  transform: scale(1);   animation-timing-function: cubic-bezier(.2,.8,.3,1); }
+    2.5% { opacity: 1;   transform: scale(1.5); animation-timing-function: cubic-bezier(.3,0,.2,1); }
+    35%  { opacity: .55; transform: scale(1); }
+    88%  { opacity: .55; transform: scale(1);   animation-timing-function: cubic-bezier(.5,0,.5,1); }
+    100% { opacity: .3;  transform: scale(1); }
+  }
+
+  /* ---------- C. Glass: the tile floats in depth, the layers part in parallax, the highlight answers the tilt ---------- */
+  .vC .mark { perspective: calc(var(--s) * 5.5); }
+  .vC .float { position: absolute; inset: 0; transform-style: preserve-3d; animation: cTilt 5.2s ease-in-out infinite; }
+  @keyframes cTilt {
+    0%, 100% { transform: rotateX(8deg) rotateY(-10deg); }
+    25%      { transform: rotateX(-5deg) rotateY(-4deg); }
+    50%      { transform: rotateX(-8deg) rotateY(10deg); }
+    75%      { transform: rotateX(5deg) rotateY(4deg); }
+  }
+  .vC .zArms { transform: translateZ(calc(var(--s) * .09)); }
+  .vC .zCore { transform: translateZ(calc(var(--s) * .16)); }
+  .vC .tileLayer { filter: drop-shadow(0 calc(var(--s) * .06) calc(var(--s) * .09) rgba(4, 8, 30, .45)); }
+  .pane.light.vC .tileLayer, .vC .pane.light .tileLayer { filter: drop-shadow(0 calc(var(--s) * .06) calc(var(--s) * .09) rgba(20, 30, 70, .28)); }
+  .vC .spin { animation: cTurn 8.4s linear infinite; }
+  @keyframes cTurn { to { transform: rotate(360deg); } }
+  .vC .core { animation: cCore 2.6s ease-in-out infinite; }
+  @keyframes cCore { 0%, 100% { transform: scale(1); } 50% { transform: scale(.9); } }
+  .vC .coreglow { animation: cGlow 2.6s ease-in-out infinite; }
+  @keyframes cGlow { 0%, 100% { opacity: .85; transform: scale(1.08); } 50% { opacity: .4; transform: scale(.86); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spin, .arm, .core, .coreglow, .ghost, .ripple, .sheen, .float { animation: none !important; }
+    .vB .ghost, .vB .ripple { opacity: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Marrow loading mark, round 2</h1>
+      <p class="lead">Three premium treatments of your finalized icon. Each layers several coordinated motions (light, depth, glow, timing) instead of one spin. Shown on the dark and light themes at 144 px, and at 64, 40 and 24 px with a real loading label.</p>
+    </div>
+    <div class="toggle" role="group" aria-label="Show">
+      <button type="button" data-mode="tile" aria-pressed="true">With tile</button>
+      <button type="button" data-mode="markonly" aria-pressed="false">Mark only</button>
+    </div>
+  </header>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="tile" x1="0.1" y1="0" x2="0.9" y2="1"><stop offset="0" stop-color="#1D2147"/><stop offset="0.55" stop-color="#121529"/><stop offset="1" stop-color="#0A0C18"/></linearGradient>
+      <radialGradient id="tglow" cx="0.3" cy="0.16" r="0.82"><stop offset="0" stop-color="#93ACFF" stop-opacity="0.22"/><stop offset="1" stop-color="#93ACFF" stop-opacity="0"/></radialGradient>
+      <linearGradient id="keyline" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.24"/><stop offset="0.6" stop-color="#FFFFFF" stop-opacity="0.03"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+      <radialGradient id="corefill" cx="0.38" cy="0.32" r="0.8"><stop offset="0" stop-color="#FFFFFF"/><stop offset="0.72" stop-color="#F2F5FF"/><stop offset="1" stop-color="#D6DEFB"/></radialGradient>
+      <radialGradient id="coreGlow"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"/><stop offset="0.35" stop-color="#B9C8FF" stop-opacity="0.28"/><stop offset="1" stop-color="#93ACFF" stop-opacity="0"/></radialGradient>
+      <linearGradient id="sheenGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.13"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+      <linearGradient id="arm0" gradientUnits="userSpaceOnUse" x1="392.88" y1="217.16" x2="654.59" y2="415.82"><stop offset="0" stop-color="#9CBBFF"/><stop offset="1" stop-color="#4F7DFF"/></linearGradient>
+      <linearGradient id="arm1" gradientUnits="userSpaceOnUse" x1="826.91" y1="556.26" x2="524" y2="683.58"><stop offset="0" stop-color="#CBA6FF"/><stop offset="1" stop-color="#8A5CF6"/></linearGradient>
+      <linearGradient id="arm2" gradientUnits="userSpaceOnUse" x1="316.22" y1="762.59" x2="357.41" y2="436.6"><stop offset="0" stop-color="#74F2D0"/><stop offset="1" stop-color="#2FC6A0"/></linearGradient>
+      <clipPath id="round"><rect x="72" y="72" width="880" height="880" rx="204"/></clipPath>
+      <filter id="blurS" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="10"/></filter>
+      <filter id="blurL" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="20"/></filter>
+      <g id="armset" fill="none" stroke-width="92" stroke-linecap="round">
+        <path d="M 392.88 217.16 A 236.58 236.58 0 0 1 654.59 415.82" stroke="url(#arm0)"/>
+        <path d="M 826.91 556.26 A 236.58 236.58 0 0 1 524 683.58" stroke="url(#arm1)"/>
+        <path d="M 316.22 762.59 A 236.58 236.58 0 0 1 357.41 436.6" stroke="url(#arm2)"/>
+      </g>
+    </defs>
+  </svg>
+
+  <!-- the tile layer, shared by all three -->
+  <template id="tileSvg">
+    <svg class="tileLayer" viewBox="0 0 1024 1024" aria-hidden="true">
+      <g clip-path="url(#round)">
+        <rect x="72" y="72" width="880" height="880" fill="url(#tile)"/>
+        <rect x="72" y="72" width="880" height="880" fill="url(#tglow)"/>
+        <g transform="rotate(24 512 512)"><rect class="sheen" x="0" y="-300" width="300" height="1624" fill="url(#sheenGrad)"/></g>
+      </g>
+      <rect x="73.5" y="73.5" width="877" height="877" rx="202.5" fill="none" stroke="url(#keyline)" stroke-width="3"/>
+    </svg>
+  </template>
+
+  <template id="markA">
+    <div class="mark"><svg viewBox="0 0 1024 1024" aria-hidden="true">
+      <circle class="coreglow" cx="512" cy="512" r="230" fill="url(#coreGlow)"/>
+      <g class="spin" fill="none" stroke-width="92" stroke-linecap="round">
+        <path class="arm a0" pathLength="100" d="M 392.88 217.16 A 236.58 236.58 0 0 1 654.59 415.82" stroke="url(#arm0)"/>
+        <path class="arm a1" pathLength="100" d="M 826.91 556.26 A 236.58 236.58 0 0 1 524 683.58" stroke="url(#arm1)"/>
+        <path class="arm a2" pathLength="100" d="M 316.22 762.59 A 236.58 236.58 0 0 1 357.41 436.6" stroke="url(#arm2)"/>
+      </g>
+      <circle class="core" cx="512" cy="512" r="82" fill="url(#corefill)"/>
+    </svg></div>
+  </template>
+
+  <template id="markB">
+    <div class="mark"><svg viewBox="0 0 1024 1024" aria-hidden="true">
+      <circle class="ripple r1" cx="512" cy="512" r="96" fill="none" stroke="#DCE6FF" stroke-width="3" vector-effect="non-scaling-stroke"/>
+      <circle class="ripple r2" cx="512" cy="512" r="96" fill="none" stroke="#DCE6FF" stroke-width="3" vector-effect="non-scaling-stroke"/>
+      <circle class="coreglow" cx="512" cy="512" r="230" fill="url(#coreGlow)"/>
+      <g class="spin">
+        <g class="ghost g2" filter="url(#blurL)"><use href="#armset" transform="rotate(-30 512 512)"/></g>
+        <g class="ghost g1" filter="url(#blurS)"><use href="#armset" transform="rotate(-14 512 512)"/></g>
+        <use href="#armset"/>
+      </g>
+      <circle class="core" cx="512" cy="512" r="82" fill="url(#corefill)"/>
+    </svg></div>
+  </template>
+
+  <template id="markC">
+    <div class="mark"><div class="float">
+      <svg class="zArms" viewBox="0 0 1024 1024" aria-hidden="true"><g class="spin"><use href="#armset"/></g></svg>
+      <svg class="zCore" viewBox="0 0 1024 1024" aria-hidden="true">
+        <circle class="coreglow" cx="512" cy="512" r="230" fill="url(#coreGlow)"/>
+        <circle class="core" cx="512" cy="512" r="82" fill="url(#corefill)"/>
+      </svg>
+    </div></div>
+  </template>
+
+  <div class="grid">
+    <section class="card vA" data-kind="A">
+      <div class="stage"><div class="pane dark"></div><div class="pane light"></div></div>
+      <div class="meta"><b>A. Tide</b><p>The arms breathe out from their middles and back, one after another, while the mark turns a third with an eased settle. The core gathers light as the arms draw in, and a soft highlight sweeps the glass every few seconds.</p></div>
+    </section>
+    <section class="card vB" data-kind="B">
+      <div class="stage"><div class="pane dark"></div><div class="pane light"></div></div>
+      <div class="meta"><b>B. Comet</b><p>One full turn with a living speed, from rest to rest. Motion trails appear only while the arms move fastest. Each time the turn comes to a stop, the core draws in and pulses once, releasing one ring of light, and that pulse sets the next turn going.</p></div>
+    </section>
+    <section class="card vC" data-kind="C">
+      <div class="stage"><div class="pane dark"></div><div class="pane light"></div></div>
+      <div class="meta"><b>C. Glass</b><p>The tile floats in depth. The arms and the core sit on their own layers and part in parallax as it tilts, the highlight answers the tilt, and the arms turn slowly underneath.</p></div>
+    </section>
+  </div>
+</div>
+
+<script>
+  const tileTpl = document.getElementById('tileSvg');
+  function makeMark(kind, size) {
+    const node = document.getElementById('mark' + kind).content.firstElementChild.cloneNode(true);
+    node.style.setProperty('--s', size + 'px');
+    const tile = tileTpl.content.firstElementChild.cloneNode(true);
+    if (kind === 'C') node.querySelector('.float').prepend(tile); else node.prepend(tile);
+    return node;
+  }
+  document.querySelectorAll('.card').forEach(card => {
+    const kind = card.dataset.kind;
+    card.querySelectorAll('.pane').forEach(pane => {
+      pane.appendChild(makeMark(kind, 144));
+      const row = document.createElement('div');
+      row.className = 'row';
+      for (const s of [64, 40, 24]) row.appendChild(makeMark(kind, s));
+      pane.appendChild(row);
+      const cap = document.createElement('div');
+      cap.className = 'caption';
+      cap.textContent = 'Reading the diff…';
+      pane.appendChild(cap);
+    });
+  });
+  document.querySelectorAll('.toggle button').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.toggle button').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+    document.body.classList.toggle('markonly', btn.dataset.mode === 'markonly');
+  }));
+  // Preview aid: ?t=<seconds> freezes every animation at that moment (used to check frames headlessly).
+  const t = new URLSearchParams(location.search).get('t');
+  if (t !== null) requestAnimationFrame(() => document.getAnimations().forEach(a => { a.pause(); a.currentTime = parseFloat(t) * 1000; }));
+</script>
+</body>
+</html>

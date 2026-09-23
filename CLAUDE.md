@@ -85,6 +85,15 @@ See `porting/STATE.md`. At B2, Gate A passes (436/436 files read with evidence) 
 re-earned for the 1.6.0 to 1.6.2 delta by the spec refresh. Implementation runs unit by unit (one
 Swift file per unit) under `porting/IMPLEMENTING.md`: tests first, adversarial review, then code.
 
+## Implementation runs (how a unit agent is set up)
+
+The orchestrator session runs workflows that hand each unit to agents. A unit agent works in its own git worktree
+under `E:\Droppy\wt\u\` on a branch `unit/<unit id>`, created from the integration worktree `E:\Droppy\wt\integration`
+(branch `impl/b2`); its session starts elsewhere, so it changes into that worktree first. Its context is a work packet
+under `E:\Droppy\work\packets\<unit id>\part<n>.md` (the records, the Swift source, the rules that apply, the decisions
+that name the file). Only merge agents write to `impl/b2`. Agents never push, and never touch the reference checkout,
+the installed apps or their data folders.
+
 ## Label every claim
 
 SOURCE FACT (pinned source or matching reference runtime) / ENGINEERING DECISION (internal
