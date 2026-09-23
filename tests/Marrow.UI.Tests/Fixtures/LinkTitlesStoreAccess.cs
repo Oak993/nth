@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Reflection;
 using Marrow.UI.Markdown;
 
@@ -45,7 +46,7 @@ public static class LinkTitlesStoreAccess
         var state = valueField.GetValue(mutex)!;
         var stateType = state.GetType();
         var titles = (System.Collections.IDictionary)stateType.GetField("Titles")!.GetValue(state)!;
-        var claimed = (System.Collections.ICollection)stateType.GetField("Claimed")!.GetValue(state)!;
+        var claimed = (ICollection<string>)stateType.GetField("Claimed")!.GetValue(state)!;
         return (titles.Count, claimed.Count);
     }
 }
