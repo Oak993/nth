@@ -19991,7 +19991,8 @@
       "source_evidence": [
         "DroppyCode/UI/Theme/AppTheme.swift:149-176"
       ],
-      "notes": "The System swatch must show a hard vertical seam at its centre, not a blend. The 0.42 hold on every other swatch is what makes dark themes read dark at a glance."
+      "notes": "The System swatch must show a hard vertical seam at its centre, not a blend. The 0.42 hold on every other swatch is what makes dark themes read dark at a glance.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
