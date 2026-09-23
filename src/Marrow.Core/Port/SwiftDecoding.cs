@@ -55,24 +55,23 @@ public static class SwiftDecoding
 
     /// <summary>
     /// The machinery behind <c>container.value(key, default:)</c> (Coding.swift:4-7): missing, null, a wrong type
-    /// or any nested decoding failure gives the fallback, evaluated lazily and afresh on each call. A trap is
-    /// not a decoding failure and propagates.
+    /// or every thrown error (any exception SwiftTry.IsThrownError accepts, CancellationError included) gives
+    /// the fallback, evaluated lazily and afresh on each call; a trap propagates.
     /// </summary>
     public static T Value<T>(JsonElement container, string key, Reader<T> read, Func<T> fallback)
     {
         if (container.ValueKind == JsonValueKind.Object && container.TryGetProperty(key, out var field) && field.ValueKind != JsonValueKind.Null)
         {
             try { return read(field); }
-            catch (JsonException) { }
-            catch (FormatException) { }
-            catch (InvalidOperationException) { }
+            catch (Exception error) when (SwiftTry.IsThrownError(error)) { }
         }
         return fallback();
     }
 
     /// <summary>
     /// <c>container.value(key, default: [Lenient&lt;T&gt;]()).compactMap(\.value)</c>: a non-array gives the fallback;
-    /// inside an array each element that fails (a null included) is dropped and the rest survive.
+    /// inside an array every thrown error (any exception SwiftTry.IsThrownError accepts, CancellationError
+    /// included) drops that element and keeps the rest; a trap propagates. A null element is dropped too.
     /// </summary>
     public static ValueList<T> LenientList<T>(JsonElement container, string key, Reader<T> read, Func<ValueList<T>> fallback) =>
         Value(container, key, field =>
@@ -82,9 +81,7 @@ public static class SwiftDecoding
             foreach (var element in field.EnumerateArray())
             {
                 try { items.Add(read(element)); }
-                catch (JsonException) { }
-                catch (FormatException) { }
-                catch (InvalidOperationException) { }
+                catch (Exception error) when (SwiftTry.IsThrownError(error)) { }
             }
             return new ValueList<T>(items);
         }, fallback);
@@ -138,7 +135,8 @@ public static class SwiftDecoding
 
     /// <summary>Any JSON number.</summary>
     public static double ReadDouble(JsonElement element) =>
-        element.ValueKind == JsonValueKind.Number && element.TryGetDouble(out var value) ? value : throw Mismatch("Double", element);
+        element.ValueKind == JsonValueKind.Number && element.TryGetDouble(out var value) && double.IsFinite(value)
+            ? value : throw Mismatch("Double", element);
 
     /// <summary>Codable <c>UUID</c>: a string in <c>UUID(uuidString:)</c> form, either case.</summary>
     public static Guid ReadUUID(JsonElement element) =>

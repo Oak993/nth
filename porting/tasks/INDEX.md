@@ -121,7 +121,7 @@ every line, not a sample.
 | Task | Source | Reqs | Risk | Target |
 | --- | --- | --- | --- | --- |
 | [T-M3-001](T-M3-001.md) | Services/Git/DiffParser.swift | 6 | STANDARD | `src/Marrow.Services/Git/DiffParser.cs` |
-| [T-M3-002](T-M3-002.md) | Services/Git/FileChangeSummary+Diff.swift | 1 | STANDARD | `src/Marrow.Services/Git/FileChangeSummary.Diff.cs` |
+| [T-M3-002](T-M3-002.md) | Services/Git/FileChangeSummary+Diff.swift | 1 | STANDARD | `src/Marrow.Services/Git/FileChangeSummary+Diff.cs` |
 | [T-M3-003](T-M3-003.md) | Services/Git/Git.swift (1 of 8) | 10 | HIGH | `src/Marrow.Services/Git/Git.cs` |
 | [T-M3-004](T-M3-004.md) | Services/Git/Git.swift (2 of 8) | 10 | HIGH | `src/Marrow.Services/Git/Git.cs` |
 | [T-M3-005](T-M3-005.md) | Services/Git/Git.swift (3 of 8) | 10 | HIGH | `src/Marrow.Services/Git/Git.cs` |
@@ -397,23 +397,23 @@ every line, not a sample.
 | [T-M6-011](T-M6-011.md) | App/AppDelegate.swift (3 of 4) | 10 | STANDARD | `src/Marrow.App/AppDelegate.cs` |
 | [T-M6-012](T-M6-012.md) | App/AppDelegate.swift (4 of 4) | 3 | STANDARD | `src/Marrow.App/AppDelegate.cs` |
 | [T-M6-013](T-M6-013.md) | App/AppDelegate.swift (UI) | 0 | STANDARD | `src/Marrow.App/AppDelegate.cs` |
-| [T-M6-014](T-M6-014.md) | App/AppModel+Hydra.swift (1 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel.Hydra.cs` |
-| [T-M6-015](T-M6-015.md) | App/AppModel+Hydra.swift (2 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel.Hydra.cs` |
-| [T-M6-016](T-M6-016.md) | App/AppModel+Hydra.swift (3 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel.Hydra.cs` |
-| [T-M6-017](T-M6-017.md) | App/AppModel+Hydra.swift (4 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel.Hydra.cs` |
-| [T-M6-018](T-M6-018.md) | App/AppModel+Hydra.swift (5 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel.Hydra.cs` |
-| [T-M6-019](T-M6-019.md) | App/AppModel+Hydra.swift (6 of 6) | 2 | STANDARD | `src/Marrow.App/AppModel.Hydra.cs` |
-| [T-M6-020](T-M6-020.md) | App/AppModel+HydraMerge.swift (1 of 9) | 10 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-021](T-M6-021.md) | App/AppModel+HydraMerge.swift (2 of 9) | 10 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-022](T-M6-022.md) | App/AppModel+HydraMerge.swift (3 of 9) | 10 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-023](T-M6-023.md) | App/AppModel+HydraMerge.swift (4 of 9) | 10 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-024](T-M6-024.md) | App/AppModel+HydraMerge.swift (5 of 9) | 10 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-025](T-M6-025.md) | App/AppModel+HydraMerge.swift (6 of 9) | 10 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-026](T-M6-026.md) | App/AppModel+HydraMerge.swift (7 of 9) | 10 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-027](T-M6-027.md) | App/AppModel+HydraMerge.swift (8 of 9) | 10 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-028](T-M6-028.md) | App/AppModel+HydraMerge.swift (9 of 9) | 9 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-029](T-M6-029.md) | App/AppModel+HydraMerge.swift (UI) | 0 | HIGH | `src/Marrow.App/AppModel.HydraMerge.cs` |
-| [T-M6-030](T-M6-030.md) | App/AppModel+HydraPairs.swift | 8 | STANDARD | `src/Marrow.App/AppModel.HydraPairs.cs` |
+| [T-M6-014](T-M6-014.md) | App/AppModel+Hydra.swift (1 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel+Hydra.cs` |
+| [T-M6-015](T-M6-015.md) | App/AppModel+Hydra.swift (2 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel+Hydra.cs` |
+| [T-M6-016](T-M6-016.md) | App/AppModel+Hydra.swift (3 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel+Hydra.cs` |
+| [T-M6-017](T-M6-017.md) | App/AppModel+Hydra.swift (4 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel+Hydra.cs` |
+| [T-M6-018](T-M6-018.md) | App/AppModel+Hydra.swift (5 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel+Hydra.cs` |
+| [T-M6-019](T-M6-019.md) | App/AppModel+Hydra.swift (6 of 6) | 2 | STANDARD | `src/Marrow.App/AppModel+Hydra.cs` |
+| [T-M6-020](T-M6-020.md) | App/AppModel+HydraMerge.swift (1 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-021](T-M6-021.md) | App/AppModel+HydraMerge.swift (2 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-022](T-M6-022.md) | App/AppModel+HydraMerge.swift (3 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-023](T-M6-023.md) | App/AppModel+HydraMerge.swift (4 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-024](T-M6-024.md) | App/AppModel+HydraMerge.swift (5 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-025](T-M6-025.md) | App/AppModel+HydraMerge.swift (6 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-026](T-M6-026.md) | App/AppModel+HydraMerge.swift (7 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-027](T-M6-027.md) | App/AppModel+HydraMerge.swift (8 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-028](T-M6-028.md) | App/AppModel+HydraMerge.swift (9 of 9) | 9 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-029](T-M6-029.md) | App/AppModel+HydraMerge.swift (UI) | 0 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-030](T-M6-030.md) | App/AppModel+HydraPairs.swift | 8 | STANDARD | `src/Marrow.App/AppModel+HydraPairs.cs` |
 | [T-M6-031](T-M6-031.md) | App/AppModel.swift (1 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
 | [T-M6-032](T-M6-032.md) | App/AppModel.swift (2 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
 | [T-M6-033](T-M6-033.md) | App/AppModel.swift (3 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
@@ -436,7 +436,7 @@ every line, not a sample.
 | [T-M6-050](T-M6-050.md) | App/DroppyCodeApp.swift (1 of 2) | 10 | STANDARD | `src/Marrow.App/DroppyCodeApp.cs` |
 | [T-M6-051](T-M6-051.md) | App/DroppyCodeApp.swift (2 of 2) | 3 | STANDARD | `src/Marrow.App/DroppyCodeApp.cs` |
 | [T-M6-052](T-M6-052.md) | App/DroppyCodeApp.swift (UI) | 0 | STANDARD | `src/Marrow.App/DroppyCodeApp.cs` |
-| [T-M6-053](T-M6-053.md) | App/HydraCookbook+Resolve.swift | 2 | STANDARD | `src/Marrow.App/HydraCookbook.Resolve.cs` |
+| [T-M6-053](T-M6-053.md) | App/HydraCookbook+Resolve.swift | 2 | STANDARD | `src/Marrow.App/HydraCookbook+Resolve.cs` |
 | [T-M6-054](T-M6-054.md) | App/Runtime/AutoContinue.swift (1 of 2) | 10 | STANDARD | `src/Marrow.App/Runtime/AutoContinue.cs` |
 | [T-M6-055](T-M6-055.md) | App/Runtime/AutoContinue.swift (2 of 2) | 3 | STANDARD | `src/Marrow.App/Runtime/AutoContinue.cs` |
 | [T-M6-056](T-M6-056.md) | App/Runtime/AutoContinue.swift (UI) | 0 | STANDARD | `src/Marrow.App/Runtime/AutoContinue.cs` |
