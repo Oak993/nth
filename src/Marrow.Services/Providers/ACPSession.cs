@@ -2,11 +2,15 @@ using System.Diagnostics;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
+using Marrow.Services.MCP;
 
 // Source: DroppyCode/Services/Providers/ACPSession.swift (B2 1fbf81e), :1-921. Part 1 of 8: the launch gate,
-// launchArguments, and start() through the initialize reply (PR-PROVACP-001..024). Members reached only past
-// that point (openSession onward) depend on Services.MCP.MCPProviderConfig, not yet in the tree, and on later
-// parts' own records; they are MARROW_STUB pending those parts (R-FILE-1: one file per Swift file).
+// launchArguments, and start() through the initialize reply (PR-PROVACP-001..024). Part 2 of 8 (this change):
+// openSession, applySessionState, resolveModes, applyModels, applyConfigOptions and its static helpers
+// (flatten, isEffortScale, orderedEfforts, baseModelID, sameModel) (PR-PROVACP-025..047, 049). applySelection,
+// setConfigOption, probeModelEfforts, probeModels, send, interrupt, resolveApproval and the update/request/close
+// handlers belong to later parts' own records; they stay MARROW_STUB pending those parts (R-FILE-1: one file
+// per Swift file, but a function whose OWN records sit in a later part is left unimplemented until that part).
 
 namespace Marrow.Services.Providers;
 
@@ -41,7 +45,7 @@ public sealed class ACPSession : ProviderSession
     private bool canLoadSessions; // :34
     private bool supportsHTTPMCP; // :35
     private ValueList<string> authMethods = ValueList<string>.Empty; // :33
-#pragma warning disable CS0169, CS0414, CS0649 // set/read by OpenSession, Send, Interrupt, HandleClose: part 2+
+#pragma warning disable CS0169, CS0414, CS0649 // set/read by Send, Interrupt, HandleClose: part 3+
     private string? sessionID; // :32
     private bool isReplaying; // :36
     private bool isStopping; // :37
@@ -49,6 +53,22 @@ public sealed class ACPSession : ProviderSession
     private bool cancelRequested; // :44
 #pragma warning restore CS0169, CS0414, CS0649
     private RuntimeMode runtimeMode; // :38
+
+    // :50-62. Model/mode/effort state discovered from the session reply and config options.
+    private ValueList<ModelOption> models = ValueList<ModelOption>.Empty; // :50
+    private string? modelConfigID; // :51
+    private string? modeConfigID; // :52
+    private string? effortConfigID; // :53
+    private string? fastConfigID; // :55, Cursor's Fast toggle (model_config / fast)
+#pragma warning disable CS0414 // read by ApplySelection: part 3+
+    private bool hasModeAPI; // :56
+#pragma warning restore CS0414
+    private string? planMode; // :57
+    private string? buildMode; // :58
+    private string? currentMode; // :59
+    private string? currentModel; // :60
+    private string? currentEffort; // :61
+    private string? currentFast; // :62
 
     public ACPSession(SessionConfiguration configuration) // :66-69
     {
@@ -165,14 +185,14 @@ public sealed class ACPSession : ProviderSession
         }
     }
 
-    public Task Send(TurnInput input) => throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:167-196, part 2+"); // :167
+    public Task Send(TurnInput input) => throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:167-196, part 3+"); // :167
 
-    public Task Interrupt() => throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:198-207, part 2+"); // :198
+    public Task Interrupt() => throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:198-207, part 3+"); // :198
 
     public Task Compact() => throw new ProviderError(new ProviderError.Case.Failed($"{configuration.Provider.DisplayName} compacts its own context.")); // :209-211
 
     public void ResolveApproval(string requestID, string optionID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:213-217, part 2+"); // :213
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:213-217, part 3+"); // :213
 
     public void AnswerQuestion(string requestID, ValueMap<string, ValueList<string>> answers) { } // :219
 
@@ -182,30 +202,251 @@ public sealed class ACPSession : ProviderSession
         connection?.Close();
     }
 
-    // MARK: - Catalog (part 2+: uses OpenSession/ApplySelection/ProbeModelEfforts)
+    // MARK: - Catalog (part 6+: uses ApplySelection/ProbeModelEfforts)
     public static Task<ValueList<ModelOption>> ProbeModels(ProviderKind provider, SwiftURL executable, ValueMap<string, string> environment) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:228-247, part 2+"); // :228
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:228-247, part 6+"); // :228
 
-    // MARK: - Session state (part 2+: depends on Services.MCP.MCPProviderConfig, not yet in the tree)
-    private Task<JSONValue> OpenSession(JSONRPCConnection connection) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:251-269, part 2+: depends on Services.MCP.MCPProviderConfig"); // :251
+    // MARK: - Session state
 
-    private void ApplySessionState(JSONValue state) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:271-279, part 2+"); // :271
+    // :251-269. Part 2 of 8 (PR-PROVACP-026, 028-031).
+    private async Task<JSONValue> OpenSession(JSONRPCConnection connection)
+    {
+        // :252-253. The connected servers ride into every new session through ACP's own field, HTTP ones
+        // directly where the agent says it speaks HTTP MCP, else through mcp-remote.
+        var baseParams = new Dictionary<string, JSONValue>
+        {
+            ["cwd"] = WorkingDirectory, // :254
+            ["mcpServers"] = MCPProviderConfig.AcpServers(supportsHTTPMCP), // :254
+        };
+        if (configuration.ResumeID is { } resumeID && canLoadSessions) // :255
+        {
+            var parameters = new Dictionary<string, JSONValue>(baseParams) { ["sessionId"] = resumeID }; // :256-257
+            isReplaying = true; // :258
+            var result = await SwiftTry.OptionalAsync<JSONValue>(async () =>
+                await connection.Request("session/load", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters)))); // :259
+            isReplaying = false; // :260
+            if (result is { } r) // :261
+            {
+                sessionID = resumeID; // :262
+                return r; // :263
+            }
+        }
+        var newResult = await connection.Request("session/new", new JSONValue.Object(new ValueMap<string, JSONValue>(baseParams))); // :266
+        sessionID = newResult["sessionId"]?.JSONValueString; // :267
+        return newResult; // :268
+    }
 
-    private void ApplyModels(JSONValue state) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:306-325, part 2+"); // :306
+    // :271-279. Part 2 of 8 (PR-PROVACP-034).
+    private void ApplySessionState(JSONValue state)
+    {
+        if (state["modes"] is { } modes && !modes.IsNull) // :272
+        {
+            hasModeAPI = true; // :273
+            currentMode = modes["currentModeId"]?.JSONValueString; // :274
+            ResolveModes(new ValueList<string>((modes["availableModes"]?.JSONValueArray ?? [])
+                .Select(m => m["id"]?.JSONValueString).OfType<string>())); // :275
+        }
+        if (state["models"] is { } modelState && !modelState.IsNull) ApplyModels(modelState); // :277
+        if (state["configOptions"]?.JSONValueArray is { } options) ApplyConfigOptions(new ValueList<JSONValue>(options)); // :278
+    }
 
+    /// <summary>Cursor and OpenCode report the effort scale of the current model only (the thought_level
+    /// config option in each reply), so the catalog probe walks the list: each model without a scale yet is
+    /// made current in turn and its scale read off the reply, and the model the session started on is put
+    /// back. Models that arrived with a scale (Grok lists them in _meta.reasoningEfforts) are skipped by the
+    /// where filter. :281-286. Part 6 of 8.</summary>
+    private Task ProbeModelEfforts() =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:287-298, part 6+"); // :287
+
+    // :300-304. Part 2 of 8 (PR-PROVACP-035, PR-PROVACP-036).
+    private void ResolveModes(IReadOnlyList<string> ids)
+    {
+        planMode = ids.FirstOrDefault(id => id == "plan"); // :301
+        buildMode = ids.FirstOrDefault(id => id is "agent" or "build" or "code" or "default") // :302
+            ?? ids.FirstOrDefault(id => id != "plan" && id != "ask"); // :303
+    }
+
+    // :306-325. Part 2 of 8 (PR-PROVACP-025, 037, 038).
+    private void ApplyModels(JSONValue state)
+    {
+        var current = state["currentModelId"]?.JSONValueString is { } rawCurrent ? BaseModelID(rawCurrent) : null; // :307
+        currentModel = current ?? currentModel; // :308
+        var list = new ValueList<ModelOption>((state["availableModels"]?.JSONValueArray ?? [])
+            .Select(entry =>
+            {
+                if (entry["modelId"]?.JSONValueString is not { } rawID) return null; // :310
+                var id = UsesParameterizedModels ? BaseModelID(rawID) : rawID; // :311
+                var efforts = entry["_meta"]?["reasoningEfforts"]?.JSONValueArray ?? []; // :312
+                return (ModelOption?)new ModelOption( // :313-320
+                    id: id,
+                    name: entry["name"]?.JSONValueString ?? id,
+                    detail: entry["description"]?.JSONValueString,
+                    efforts: OrderedEfforts(new ValueList<string>(efforts.Select(e => e["value"]?.JSONValueString).OfType<string>())),
+                    defaultEffort: efforts.FirstOrDefault(e => e["default"]?.JSONValueBool == true)?["value"]?.JSONValueString,
+                    isDefault: current is { } cur && SwiftString.Equal(id, cur));
+            })
+            .OfType<ModelOption>());
+        if (list.Count == 0) return; // :322
+        models = list; // :323
+        OnEvent?.Invoke(new ProviderEvent.Models(list, currentModel)); // :324
+    }
+
+    // :327-398. Part 2 of 8 (PR-PROVACP-039..047, 049).
+    private void ApplyConfigOptions(IReadOnlyList<JSONValue> options)
+    {
+        var efforts = ValueList<string>.Empty; // :328
+        var hasFast = false; // :329
+        effortConfigID = null; // :330
+        fastConfigID = null; // :331
+        foreach (var option in options) // :332
+        {
+            if (option["id"]?.JSONValueString is not { } id) continue; // :333
+            var values = Flatten(new ValueList<JSONValue>(option["options"]?.JSONValueArray ?? [])); // :334
+            var current = option["currentValue"]?.JSONValueString; // :335
+            switch (option["category"]?.JSONValueString ?? id) // :336
+            {
+                case "model": // :337
+                    modelConfigID = id; // :338
+                    currentModel = current is { } cur ? (UsesParameterizedModels ? BaseModelID(cur) : cur) : currentModel; // :339
+                    // :340-343. One lookup per value: the walk over OpenCode's four hundred models replies
+                    // four hundred times, and a linear search per value on each reply stalled the main actor.
+                    var knownByID = new Dictionary<string, ModelOption>();
+                    foreach (var known in models)
+                    {
+                        var baseID = BaseModelID(known.Id);
+                        if (!knownByID.ContainsKey(baseID)) knownByID[baseID] = known; // first wins on a duplicate
+                    }
+                    var list = new ValueList<ModelOption>(values.Select(value =>
+                    {
+                        if (value["value"]?.JSONValueString is not { } rawID) return null; // :345
+                        var valueID = UsesParameterizedModels ? BaseModelID(rawID) : rawID; // :346
+                        // :347-349. A rebuilt list keeps what earlier passes learned about each model (its
+                        // scale, its Fast tier): Cursor reports them for the current model only, one pass at a time.
+                        knownByID.TryGetValue(BaseModelID(valueID), out var knownOption); // :350
+                        var built = new ModelOption( // :351-358
+                            id: valueID,
+                            name: value["name"]?.JSONValueString ?? valueID,
+                            detail: value["description"]?.JSONValueString,
+                            efforts: knownOption?.Efforts ?? ValueList<string>.Empty,
+                            defaultEffort: knownOption?.DefaultEffort,
+                            isDefault: currentModel is { } cm && SwiftString.Equal(valueID, cm));
+                        built = built with { FastTier = knownOption?.FastTier }; // :359
+                        return (ModelOption?)built;
+                    }).OfType<ModelOption>());
+                    if (list.Count > 0) models = list; // :362
+                    break;
+                case "mode": // :363
+                    modeConfigID = id; // :364
+                    currentMode = current ?? currentMode; // :365
+                    ResolveModes(new ValueList<string>(values.Select(v => v["value"]?.JSONValueString).OfType<string>())); // :366
+                    break;
+                case "thought_level" or "effort": // :367
+                    // :368-369. Cursor also advertises a boolean `thinking` thought_level; only the scale
+                    // (low/medium/high/...) drives Marrow's effort slider.
+                    var scale = new ValueList<string>(values.Select(v => v["value"]?.JSONValueString).OfType<string>()); // :370
+                    if (!IsEffortScale(scale)) break; // :371
+                    effortConfigID = id; // :372
+                    currentEffort = current; // :373
+                    efforts = OrderedEfforts(scale); // :374
+                    break;
+                case "model_config": // :375
+                    if (SwiftString.Equal(id, "fast")) // :376
+                    {
+                        fastConfigID = id; // :377
+                        currentFast = current; // :378
+                        hasFast = true; // :379
+                    }
+                    break;
+                default: break; // :381-382
+            }
+        }
+        models = new ValueList<ModelOption>(models.Select(model => // :385-396
+        {
+            var isCurrent = SameModel(model.Id, currentModel); // :387
+            if (isCurrent && efforts.Count > 0) // :388
+                model = model with { Efforts = efforts, DefaultEffort = currentEffort ?? model.DefaultEffort }; // :389-390
+            if (isCurrent) model = model with { FastTier = hasFast ? "true" : null }; // :392-393
+            return model;
+        }));
+        if (models.Count > 0) OnEvent?.Invoke(new ProviderEvent.Models(models, currentModel)); // :397
+    }
+
+    // :400-405. Part 2 of 8 (PR-PROVACP-041). Exactly ONE level of nesting is unwrapped.
+    private static ValueList<JSONValue> Flatten(IReadOnlyList<JSONValue> values) =>
+        new(values.SelectMany(value => value["options"]?.JSONValueArray is { } nested ? nested : new[] { value })); // :401-403
+
+    /// <summary>Values that belong on the effort slider, as opposed to a boolean thinking toggle. :408-411.
+    /// Part 2 of 8 (PR-PROVACP-046).</summary>
+    private static readonly ValueSet<string> KnownEffortScale =
+        new(["none", "low", "medium", "high", "xhigh", "max", "extra-high"], SwiftStringComparer.Instance); // :409
+
+    private static bool IsEffortScale(IReadOnlyList<string> values) =>
+        values.Any(v => KnownEffortScale.Contains(SwiftString.Lowercased(v))); // :410
+
+    /// <summary>The scale low to high, whatever order the agent lists it in: Grok's ACP advertises its levels
+    /// from extra high down to low, and the slider reads the list left to right as low to high, so its knob
+    /// sat at Low for the highest. A level the ranks do not know keeps its place among its neighbours.
+    /// :417-430. Part 2 of 8 (PR-PROVACP-047). Exported (not duplicated) for ProviderRegistry's reuse
+    /// (PR-PROVACP-048, a different unit).</summary>
+    private static readonly ValueMap<string, int> EffortRanks = new(new Dictionary<string, int> // :419-421
+    {
+        ["none"] = 0, ["minimal"] = 1, ["low"] = 2, ["medium"] = 3, ["high"] = 4,
+        ["xhigh"] = 5, ["extra-high"] = 5, ["extra_high"] = 5, ["extra high"] = 5, ["max"] = 6, ["ultra"] = 6,
+    }, SwiftStringComparer.Instance);
+
+    public static ValueList<string> OrderedEfforts(IReadOnlyList<string> values)
+    {
+        var ranked = values.Select((value, offset) => (Offset: offset, Value: value, // :422
+            Rank: EffortRanks.TryGetValue(SwiftString.Lowercased(value), out var r) ? (int?)r : null)).ToList();
+        if (ranked.Count(x => x.Rank is not null) <= 1) return new ValueList<string>(values); // :423
+        return new ValueList<string>(ranked
+            .OrderBy(x => x, Comparer<(int Offset, string Value, int? Rank)>.Create((lhs, rhs) =>
+                lhs.Rank is { } l && rhs.Rank is { } r && l != r ? l.CompareTo(r) : lhs.Offset.CompareTo(rhs.Offset))) // :425-428
+            .Select(x => x.Value)); // :429
+    }
+
+    /// <summary>R-STR-10: firstIndex(of:) is a UTF-16 offset over Characters, not Length arithmetic.</summary>
+    private static int? FirstIndexOfOpenBracket(string text)
+    {
+        var offset = 0;
+        foreach (var character in SwiftString.Characters(text))
+        {
+            if (SwiftString.Equal(character, "[")) return offset;
+            offset += character.Length;
+        }
+        return null;
+    }
+
+    /// <summary>Cursor's parameterized IDs are `model[effort=high,...]`; the picker stores the base name.
+    /// :432-436. Part 2 of 8 (used by PR-PROVACP-042, 043; PR-PROVACP-052 is a different unit's own record).</summary>
+    private static string BaseModelID(string id)
+    {
+        if (FirstIndexOfOpenBracket(id) is not { } bracket) return id; // :434
+        return id[..bracket]; // :435
+    }
+
+    // :438-441. Part 2 of 8 (used by PR-PROVACP-043; PR-PROVACP-053 is a different unit's own record).
+    private static bool SameModel(string? lhs, string? rhs)
+    {
+        if (lhs is null || rhs is null) return false; // :439
+        return SwiftString.Equal(BaseModelID(lhs), BaseModelID(rhs)); // :440
+    }
+
+    // :443-475. Part 3 of 8 (PR-PROVACP-053..061, 064).
     private Task ApplySelection(string? model, string? effort, bool fastMode, InteractionMode interaction) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:443-475, part 2+"); // :443
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:443-475, part 3+"); // :443
 
-    // MARK: - Updates (part 2+)
+    // :477-485. Part 3 of 8 (PR-PROVACP-062).
+    private Task SetConfigOption(string configID, string value) =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:477-485, part 3+"); // :477
+
+    // MARK: - Updates (part 3+)
     private void HandleNotification(string method, JSONValue parameters) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:489-553, part 2+"); // :489
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:489-553, part 3+"); // :489
 
     private void HandleRequest(RPCID id, string method, JSONValue parameters) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:555-590, part 2+"); // :555
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:555-590, part 3+"); // :555
 
     private void HandleClose(string tail) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:625-631, part 2+"); // :625
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:625-631, part 3+"); // :625
 }
