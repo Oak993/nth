@@ -1153,6 +1153,7 @@ public sealed class ACPSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVACP-063")] // ACPSession.swift:168; ProviderSession.swift:170-171
+    [Trait("Req", "UI-PROVACP-032")] // ACPSession.swift:168; ProviderSession.swift:170-171 (the exact sentence, shown for all three not-running states)
     public async Task Send_throws_notRunning_with_the_exact_message_when_the_session_is_not_running()
     {
         var input = new TurnInput { Text = "hi", Images = ValueList<Attachment>.Empty, RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build };
@@ -1168,7 +1169,17 @@ public sealed class ACPSessionTests
         // Close() only terminates the process; IsClosed flips later, once the process's own exit is observed.
         runtime.Loop.RunUntil(() => connection2.IsClosed, Bound);
         var error2 = await Assert.ThrowsAsync<ProviderError>(() => session2.Send(input));
+        Assert.IsType<ProviderError.Case.NotRunning>(error2.ErrorCase);
         Assert.Equal("The agent session is not running.", error2.Message);
+
+        using var runtime3 = new TestRuntime();
+        var (session3, connection3, process3) = ConnectedSession(runtime3, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ } " + EndOnBye);
+        SetField(session3, "sessionID", null); // an open connection but no session id still refuses
+        var error3 = await Assert.ThrowsAsync<ProviderError>(() => session3.Send(input));
+        Assert.IsType<ProviderError.Case.NotRunning>(error3.ErrorCase);
+        Assert.Equal("The agent session is not running.", error3.Message);
+        runtime3.OnMain(() => connection3.Notify("bye"));
     }
 
     [Fact]
