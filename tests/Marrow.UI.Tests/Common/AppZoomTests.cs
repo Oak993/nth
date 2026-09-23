@@ -163,7 +163,7 @@ public sealed class AppZoomTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-219")] // UI/Common/AppZoom.swift:22 (100 / 100 is exactly 1)
-    [Trait("Req", "UI-WIN-078")] // state "100: drawn at the stock size"
+    [Trait("Req", "UI-WIN-078")] // UI/Common/AppZoom.swift:8-10, :22; state "100: drawn at the stock size"
     public void At_100_the_content_is_laid_out_and_drawn_at_the_stock_size() => headless.OnUiThread(() =>
     {
         var content = new LayoutProbe(ContentWants);
@@ -187,7 +187,7 @@ public sealed class AppZoomTests(HeadlessSession headless)
     [InlineData(-100)]
     [Trait("Req", "PR-WIN-219")] // UI/Common/AppZoom.swift:22 (the scale goes through normalized)
     [Trait("Req", "PR-WIN-217")] // UI/Common/AppZoom.swift:8-10
-    [Trait("Req", "UI-WIN-078")] // state "any other stored value draws at 100"
+    [Trait("Req", "UI-WIN-078")] // UI/Common/AppZoom.swift:8-10, :22; state "any other stored value draws at 100"
     public void An_off_table_percent_draws_at_the_stock_size(int percent) => headless.OnUiThread(() =>
     {
         var content = new LayoutProbe(ContentWants);
@@ -204,7 +204,7 @@ public sealed class AppZoomTests(HeadlessSession headless)
     [Theory]
     [MemberData(nameof(Levels))]
     [Trait("Req", "PR-WIN-220")] // UI/Common/AppZoom.swift:34-38, :48-50
-    [Trait("Req", "UI-WIN-078")] // geometry: laid out in the host's size divided by the scale
+    [Trait("Req", "UI-WIN-078")] // UI/Common/AppZoom.swift:34-38, :48-50; laid out in the host's size divided by the scale
     public void Measuring_proposes_the_host_size_divided_by_the_scale_and_reports_the_content_size_times_the_scale(int level) => headless.OnUiThread(() =>
     {
         var scale = ScaleOf(level);
@@ -216,6 +216,29 @@ public sealed class AppZoomTests(HeadlessSession headless)
 
         Assert.Equal(new Size(HostWidth / scale, HostHeight / scale), content.Measured[^1]);
         Assert.Equal(new Size(ContentWants.Width * scale, ContentWants.Height * scale), zoomed.DesiredSize);
+    });
+
+    [Theory]
+    [InlineData(200, 700, 500, 1400, 1000)]
+    [InlineData(75, 1500, 1200, 1125, 900)]
+    [Trait("Req", "PR-WIN-220")] // UI/Common/AppZoom.swift:34-38 (:37 multiplies the content's size, no clamp)
+    public void Content_that_wants_more_than_the_unscaled_proposal_is_reported_at_its_size_times_the_scale_unclamped(
+        int level, double wantsWidth, double wantsHeight, double reportedWidth, double reportedHeight) => headless.OnUiThread(() =>
+    {
+        // :36 asks the content for its size under the unscaled proposal; :37 returns that size times the scale
+        // with no min against the proposal, so a report bigger than the host is kept as it is. If Avalonia's
+        // Layoutable clamps DesiredSize itself, this test exposes that as a platform divergence to report.
+        var scale = ScaleOf(level);
+        var content = new LayoutProbe(new Size(wantsWidth, wantsHeight));
+        var zoomed = new AppZoomModifier(level).Body(content);
+        zoomed.UseLayoutRounding = false;
+
+        zoomed.Measure(new Size(HostWidth, HostHeight));
+
+        Assert.True(wantsWidth > HostWidth / scale && wantsHeight > HostHeight / scale);
+        Assert.Equal(new Size(HostWidth / scale, HostHeight / scale), content.Measured[^1]);
+        Assert.Equal(new Size(wantsWidth * scale, wantsHeight * scale), zoomed.DesiredSize);
+        Assert.Equal(new Size(reportedWidth, reportedHeight), zoomed.DesiredSize);
     });
 
     [Fact]
@@ -245,7 +268,7 @@ public sealed class AppZoomTests(HeadlessSession headless)
     [Theory]
     [MemberData(nameof(Levels))]
     [Trait("Req", "PR-WIN-220")] // UI/Common/AppZoom.swift:40-46, :48-50
-    [Trait("Req", "UI-WIN-078")] // geometry: drawn scaled back up, filling the host without clipping
+    [Trait("Req", "UI-WIN-078")] // UI/Common/AppZoom.swift:24, :40-46; drawn scaled back up, filling the host
     public void Placing_puts_the_content_at_the_origin_with_the_host_size_divided_by_the_scale_so_it_fills_the_host(int level) => headless.OnUiThread(() =>
     {
         var scale = ScaleOf(level);
@@ -266,7 +289,7 @@ public sealed class AppZoomTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-220")] // UI/Common/AppZoom.swift:29-51; the record's 200% example
-    [Trait("Req", "UI-WIN-078")] // notes: a bigger zoom shows less at once instead of clipping
+    [Trait("Req", "UI-WIN-078")] // UI/Common/AppZoom.swift:3-4, :29-51; a bigger zoom shows less at once
     public void At_200_a_host_1000_points_wide_lays_the_content_out_500_wide_and_draws_it_twice_as_large() => headless.OnUiThread(() =>
     {
         var content = new LayoutProbe(ContentWants);
@@ -282,8 +305,8 @@ public sealed class AppZoomTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-WIN-220")] // UI/Common/AppZoom.swift:35 (guard let content = subviews.first else { return .zero })
-    public void With_no_child_the_zoom_layout_is_zero_by_zero() => headless.OnUiThread(() =>
+    [Trait("Req", "PR-WIN-220")] // UI/Common/AppZoom.swift:35 (guard let content = subviews.first else { return .zero }), :40-46
+    public void With_no_child_the_zoom_layout_is_zero_by_zero_and_placing_does_nothing() => headless.OnUiThread(() =>
     {
         // ED-095: the modifier's body is the ZoomLayout itself (:23), and a Layout is a Panel.
         var layout = Assert.IsAssignableFrom<Panel>(new AppZoomModifier(150).Body(new LayoutProbe(ContentWants)));
@@ -293,6 +316,22 @@ public sealed class AppZoomTests(HeadlessSession headless)
         layout.Measure(new Size(HostWidth, HostHeight));
 
         Assert.Equal(new Size(0, 0), layout.DesiredSize);
+        // :41 `subviews.first?.place(...)` is optional chaining: with no subview nothing is placed and nothing traps.
+        Assert.Null(Record.Exception(() => layout.Arrange(new Rect(0, 0, HostWidth, HostHeight))));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-220")] // UI/Common/AppZoom.swift:35 (.zero whatever the proposal), :40-46
+    public void With_no_child_an_unspecified_proposal_also_gives_zero_by_zero() => headless.OnUiThread(() =>
+    {
+        var layout = Assert.IsAssignableFrom<Panel>(new AppZoomModifier(75).Body(new LayoutProbe(ContentWants)));
+        layout.UseLayoutRounding = false;
+        layout.Children.Clear();
+
+        layout.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+
+        Assert.Equal(new Size(0, 0), layout.DesiredSize);
+        Assert.Null(Record.Exception(() => layout.Arrange(new Rect(0, 0, HostWidth, HostHeight))));
     });
 
     // Measures and arranges the modifier's body as a host of HostWidth by HostHeight would, with layout
