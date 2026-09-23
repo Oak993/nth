@@ -1,4 +1,6 @@
+using System.Globalization;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Layout;
@@ -113,11 +115,13 @@ public sealed class ChromeVisualPickerTests(HeadlessSession headless)
             ), value => new TextBlock { Text = value == "x" ? "x-symbol" : "y-symbol" });
 
             var window = Show(picker);
-            var tiles = VisualQuery.Descendants<Button>(picker).ToList();
-            Assert.True(tiles.Count >= 2);
+            var tiles = VisualQuery.Descendants<ChromeVisualTile>(picker).ToList();
+            Assert.Equal(2, tiles.Count);
 
-            // Click the second tile (value "y")
-            tiles[1].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            // Click the second tile ("y"): :61-74 the tile is a Button(action:), so raising Click
+            // runs the same action a real pointer click would.
+            var button = VisualQuery.Descendants<Button>(tiles[1]).First();
+            button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal("y", selection);
@@ -260,7 +264,7 @@ public sealed class ChromeVisualPickerTests(HeadlessSession headless)
             var intPicker = new ChromeVisualPicker<int, TextBlock>(intOptions, new(
                 () => intSelection,
                 v => intSelection = v
-            ), value => new TextBlock { Text = value.ToString() });
+            ), value => new TextBlock { Text = value.ToString(CultureInfo.InvariantCulture) });
 
             var window2 = Show(intPicker);
             window2.Close();
@@ -275,24 +279,25 @@ public sealed class ChromeVisualPickerTests(HeadlessSession headless)
                 (Value: 'a', Title: "A"),
                 (Value: 'b', Title: "B"),
             };
-            var selection = 'a';
+            // Binding.Value reads must be tracked on the source (ViewSupport.cs:172-174), so the source
+            // is an ObservableModel cell (Fixtures/HeadlessFixtures.cs CellSample), not a plain local.
+            var cell = new CellSample<char>('a');
             var picker = new ChromeVisualPicker<char, TextBlock>(options, new(
-                () => selection,
-                v => selection = v
-            ), value => new TextBlock { Text = value.ToString() });
+                () => cell.Value,
+                v => cell.Value = v
+            ), value => new TextBlock { Text = value.ToString(CultureInfo.InvariantCulture) });
 
             var window = Show(picker);
             var tiles = VisualQuery.Descendants<ChromeVisualTile>(picker).ToList();
 
-            // First tile should be selected
+            // First tile should be selected (matches 'a')
             Assert.True(tiles[0].IsSelected);
             Assert.False(tiles[1].IsSelected);
 
-            // Change selection
-            selection = 'b';
+            // Change selection on the source: exactly the tile whose value equals selection is chosen.
+            cell.Value = 'b';
             Dispatcher.UIThread.RunJobs();
 
-            // Second tile should now be selected
             Assert.False(tiles[0].IsSelected);
             Assert.True(tiles[1].IsSelected);
 
@@ -355,7 +360,7 @@ public sealed class ChromeVisualPickerTests(HeadlessSession headless)
 
             var window = Show(tile);
             // Accessibility label should be set to the title
-            var label = AutomationProperties.GetName(tile);
+            var label = Avalonia.Automation.AutomationProperties.GetName(tile);
             Assert.Equal("MyTitle", label);
             window.Close();
         });
@@ -375,7 +380,7 @@ public sealed class ChromeVisualPickerTests(HeadlessSession headless)
 
             var window = Show(tile);
             // The selected trait should be present on the selected tile
-            var automationClass = AutomationProperties.GetAutomationId(tile);
+            var automationId = Avalonia.Automation.AutomationProperties.GetAutomationId(tile);
             Assert.NotNull(tile); // Placeholder for accessibility trait verification
             window.Close();
         });
@@ -465,7 +470,7 @@ public sealed class ChromeVisualPickerTests(HeadlessSession headless)
             var picker2 = new ChromeVisualPicker<int, TextBlock>(twoOptions, new(
                 () => selection2,
                 v => selection2 = v
-            ), value => new TextBlock { Text = value.ToString() });
+            ), value => new TextBlock { Text = value.ToString(CultureInfo.InvariantCulture) });
 
             var window2 = Show(picker2);
             var tiles2 = VisualQuery.Descendants<ChromeVisualTile>(picker2).ToList();
@@ -483,7 +488,7 @@ public sealed class ChromeVisualPickerTests(HeadlessSession headless)
             var picker3 = new ChromeVisualPicker<int, TextBlock>(threeOptions, new(
                 () => selection3,
                 v => selection3 = v
-            ), value => new TextBlock { Text = value.ToString() });
+            ), value => new TextBlock { Text = value.ToString(CultureInfo.InvariantCulture) });
 
             var window3 = Show(picker3);
             var tiles3 = VisualQuery.Descendants<ChromeVisualTile>(picker3).ToList();
