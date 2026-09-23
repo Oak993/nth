@@ -11,7 +11,7 @@ using Marrow.Testing;
 namespace Marrow.Services.Tests.MCP;
 
 // Tests for src/Marrow.Services/MCP/MCPOAuth.cs, the port of DroppyCode/Services/MCP/MCPOAuth.swift (B2 1fbf81e),
-// part 1: PR-MCP-139 to PR-MCP-162. Every expectation is transcribed from that file and those records, never from the
+// part 1: PR-MCP-139 to PR-MCP-162, part 2: PR-MCP-163 and PR-MCP-164. Every expectation is transcribed from that file and those records, never from the
 // C# implementation.
 //
 // The whole OAuth flow runs for real against a scripted loopback HTTP server (LoopbackHttpServer), which stands for the
@@ -1459,5 +1459,268 @@ public sealed class MCPOAuthTests
         // :348 keeps the caught error's whole errorDescription as lastError and :351 wraps it in metadataFailed again, so
         // fetchJSON's own "The server's sign-in details didn't make sense." prefix (:739) appears twice.
         Assert.Equal("The server's sign-in details didn't make sense. The server's sign-in details didn't make sense. The server answered 404.", error.ErrorDescription);
+    }
+
+    // ---- Part 2, PR-MCP-163: the callback page document ----
+    //
+    // The expected document is transcribed from the multi-line literal at MCPOAuth.swift:855-912: Swift strips the
+    // closing delimiter's eight-space indentation from every line, joins the lines with "\n" and ends the string at
+    // "</html>" with no newline after it. Each line below cites the Swift line it copies.
+
+    // MCPOAuth.swift:904, verbatim: the logo, one line. Its UTF-8 bytes (1,448) hash to the SHA-256 of that Swift line
+    // with its eight-space indentation removed, f6a4a2f8b88336526475f9d59dedb1c73c515ced89456e2485514bbac303272d.
+    private const string Logo = "<svg width=\"56\" height=\"56\" viewBox=\"0 0 100 100\" opacity=\"0.9\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"#FFFFFF\" fill-rule=\"nonzero\" d=\"M16.00 94.00 C16.00 94.00 16.17 80.33 17.00 74.00 C17.83 67.67 19.50 61.00 21.00 56.00 C22.50 51.00 25.50 47.33 26.00 44.00 C26.50 40.67 26.17 38.83 24.00 36.00 C21.83 33.17 15.83 30.17 13.00 27.00 C10.17 23.83 7.00 17.00 7.00 17.00 C7.00 17.00 16.50 24.50 20.00 27.00 C23.50 29.50 27.50 33.17 28.00 32.00 C28.50 30.83 24.33 24.50 23.00 20.00 C21.67 15.50 20.00 5.00 20.00 5.00 C20.00 5.00 27.50 12.67 31.00 16.00 C34.50 19.33 37.17 23.67 41.00 25.00 C44.83 26.33 50.17 23.33 54.00 24.00 C57.83 24.67 61.00 26.67 64.00 29.00 C67.00 31.33 68.67 34.50 72.00 38.00 C75.33 41.50 80.33 46.33 84.00 50.00 C87.67 53.67 92.17 57.33 94.00 60.00 C95.83 62.67 95.33 64.33 95.00 66.00 C94.67 67.67 93.83 69.00 92.00 70.00 C90.17 71.00 87.33 71.67 84.00 72.00 C80.67 72.33 75.33 71.50 72.00 72.00 C68.67 72.50 67.33 72.67 64.00 75.00 C60.67 77.33 55.33 83.17 52.00 86.00 C48.67 88.83 46.00 90.67 44.00 92.00 C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z M63.00 38.00 C60.24 38.00 58.00 40.24 58.00 43.00 C58.00 45.76 60.24 48.00 63.00 48.00 C65.76 48.00 68.00 45.76 68.00 43.00 C68.00 40.24 65.76 38.00 63.00 38.00 Z M86.00 61.20 C85.01 61.20 84.20 62.01 84.20 63.00 C84.20 63.99 85.01 64.80 86.00 64.80 C86.99 64.80 87.80 63.99 87.80 63.00 C87.80 62.01 86.99 61.20 86.00 61.20 Z\"/></svg>";
+
+    private const string LogoSha256 = "f6a4a2f8b88336526475f9d59dedb1c73c515ced89456e2485514bbac303272d";
+
+    private static string Document(string headTitle, string heading, string message) => string.Join("\n",
+    [
+        "<!DOCTYPE html>", // :856
+        "<html lang=\"en\">", // :857
+        "<head>", // :858
+        "<meta charset=\"utf-8\">", // :859
+        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">", // :860
+        "<meta name=\"color-scheme\" content=\"dark\">", // :861
+        "<title>" + headTitle + "</title>", // :862
+        "<style>", // :863
+        "* { box-sizing: border-box; }", // :864
+        "html, body { margin: 0; padding: 0; }", // :865
+        "body {", // :866
+        "  background: #0B0B0F;", // :867
+        "  color: #F5F5F7;", // :868
+        "  font-family: -apple-system, \"SF Pro Text\", \"Helvetica Neue\", Helvetica, sans-serif;", // :869
+        "  min-height: 100vh;", // :870
+        "  display: flex;", // :871
+        "  align-items: center;", // :872
+        "  justify-content: center;", // :873
+        "}", // :874
+        ".card {", // :875
+        "  width: 420px;", // :876
+        "  max-width: calc(100vw - 48px);", // :877
+        "  padding: 40px;", // :878
+        "  border-radius: 22px;", // :879
+        "  background: rgba(255, 255, 255, 0.06);", // :880
+        "  text-align: center;", // :881
+        "}", // :882
+        "h1 {", // :883
+        "  font-size: 22px;", // :884
+        "  font-weight: 600;", // :885
+        "  color: #F5F5F7;", // :886
+        "  margin: 20px 0 8px;", // :887
+        "}", // :888
+        "p {", // :889
+        "  font-size: 14px;", // :890
+        "  color: rgba(255, 255, 255, 0.62);", // :891
+        "  line-height: 1.5;", // :892
+        "  margin: 0 0 24px;", // :893
+        "}", // :894
+        ".wordmark {", // :895
+        "  font-size: 12px;", // :896
+        "  color: rgba(255, 255, 255, 0.4);", // :897
+        "  letter-spacing: 0.04em;", // :898
+        "}", // :899
+        "</style>", // :900
+        "</head>", // :901
+        "<body>", // :902
+        "<div class=\"card\">", // :903
+        Logo, // :904
+        "<h1>" + heading + "</h1>", // :905
+        "<p>" + message + "</p>", // :906
+        "<div class=\"wordmark\">Marrow</div>", // :907 DEVIATION OD-0012 F1: upstream reads "Droppy Code"
+        "</div>", // :908
+        "<script>setTimeout(() => window.close(), 1500);</script>", // :909
+        "</body>", // :910
+        "</html>", // :911
+    ]);
+
+    [Fact]
+    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:838-844, :854-913
+    public void SuccessPage_is_the_whole_fixed_document_with_the_Marrow_wordmark()
+    {
+        Assert.Equal(
+            Document("Signed in to Linear", "Signed in to Linear", "You can close this tab and head back to Marrow."),
+            MCPOAuth.SuccessPage("Linear"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:846-852, :854-913
+    public void FailurePage_is_the_whole_fixed_document_with_the_Marrow_wordmark()
+    {
+        Assert.Equal(
+            Document("Sign-in didn't finish \U00002014 Linear", "Sign-in didn't finish", "The token expired."), // U+2014 EM DASH
+            MCPOAuth.FailurePage("Linear", "The token expired."));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:855-912
+    public void The_page_starts_at_the_doctype_ends_at_the_closing_html_tag_and_uses_bare_line_feeds()
+    {
+        foreach (var page in new[] { MCPOAuth.SuccessPage("Linear"), MCPOAuth.FailurePage("Linear", "Why") })
+        {
+            Assert.StartsWith("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n", page, StringComparison.Ordinal);
+            Assert.EndsWith("\n</div>\n<script>setTimeout(() => window.close(), 1500);</script>\n</body>\n</html>", page, StringComparison.Ordinal);
+            Assert.DoesNotContain("\r", page, StringComparison.Ordinal);
+            Assert.DoesNotContain("\t", page, StringComparison.Ordinal);
+            // Only the CSS declarations are indented, by exactly two spaces (:867-898).
+            Assert.DoesNotContain("\n ", page.Replace("\n  ", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
+            Assert.Equal(56, page.Split('\n').Length); // :856-911
+            Assert.Contains("\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<meta name=\"color-scheme\" content=\"dark\">\n", page, StringComparison.Ordinal);
+            Assert.Contains("\n<div class=\"wordmark\">Marrow</div>\n", page, StringComparison.Ordinal); // DEVIATION OD-0012 F1
+            Assert.DoesNotContain("Droppy", page, StringComparison.Ordinal);
+            Assert.Equal(2, page.Split("<script>").Length);
+            Assert.Contains("\n<script>setTimeout(() => window.close(), 1500);</script>\n", page, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:863-903
+    public void The_stylesheet_is_the_exact_dark_card_rules()
+    {
+        var page = MCPOAuth.SuccessPage("Linear");
+        const string css =
+            "\n<style>\n"
+            + "* { box-sizing: border-box; }\n"
+            + "html, body { margin: 0; padding: 0; }\n"
+            + "body {\n  background: #0B0B0F;\n  color: #F5F5F7;\n"
+            + "  font-family: -apple-system, \"SF Pro Text\", \"Helvetica Neue\", Helvetica, sans-serif;\n"
+            + "  min-height: 100vh;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n"
+            + ".card {\n  width: 420px;\n  max-width: calc(100vw - 48px);\n  padding: 40px;\n  border-radius: 22px;\n"
+            + "  background: rgba(255, 255, 255, 0.06);\n  text-align: center;\n}\n"
+            + "h1 {\n  font-size: 22px;\n  font-weight: 600;\n  color: #F5F5F7;\n  margin: 20px 0 8px;\n}\n"
+            + "p {\n  font-size: 14px;\n  color: rgba(255, 255, 255, 0.62);\n  line-height: 1.5;\n  margin: 0 0 24px;\n}\n"
+            + ".wordmark {\n  font-size: 12px;\n  color: rgba(255, 255, 255, 0.4);\n  letter-spacing: 0.04em;\n}\n"
+            + "</style>\n</head>\n<body>\n<div class=\"card\">\n";
+        Assert.Contains(css, page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:903-908
+    public void The_card_holds_the_logo_line_then_the_heading_then_the_message_then_the_wordmark()
+    {
+        var lines = MCPOAuth.FailurePage("Linear", "Why").Split('\n');
+        Assert.Equal(
+            ["<div class=\"card\">", Logo, "<h1>Sign-in didn't finish</h1>", "<p>Why</p>", "<div class=\"wordmark\">Marrow</div>", "</div>"],
+            lines[47..53]);
+        Assert.Equal(1448, Encoding.UTF8.GetByteCount(Logo));
+        Assert.Equal(LogoSha256, Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(Logo))));
+        Assert.Equal(LogoSha256, Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(lines[48]))));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:904
+    public void The_logo_is_one_svg_with_a_single_white_path_of_three_closed_two_decimal_subpaths()
+    {
+        var logo = MCPOAuth.SuccessPage("Linear").Split('\n')[48];
+        Assert.StartsWith("<svg width=\"56\" height=\"56\" viewBox=\"0 0 100 100\" opacity=\"0.9\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"#FFFFFF\" fill-rule=\"nonzero\" d=\"", logo, StringComparison.Ordinal);
+        Assert.EndsWith(" Z\"/></svg>", logo, StringComparison.Ordinal);
+        Assert.Equal(2, logo.Split("<svg").Length);
+        Assert.Equal(2, logo.Split("<path").Length);
+        var start = logo.IndexOf(" d=\"", StringComparison.Ordinal) + 4;
+        var d = logo[start..logo.LastIndexOf("\"/></svg>", StringComparison.Ordinal)];
+        Assert.EndsWith(" Z", d, StringComparison.Ordinal);
+        var subpaths = d.Split(" Z", StringSplitOptions.RemoveEmptyEntries).Select(part => part.Trim()).ToArray();
+        Assert.Equal(3, subpaths.Length);
+        Assert.StartsWith("M16.00 94.00 C16.00 94.00 16.17 80.33 17.00 74.00 ", subpaths[0], StringComparison.Ordinal);
+        Assert.StartsWith("M63.00 38.00 C60.24 38.00 58.00 40.24 58.00 43.00 ", subpaths[1], StringComparison.Ordinal);
+        Assert.StartsWith("M86.00 61.20 C85.01 61.20 84.20 62.01 84.20 63.00 ", subpaths[2], StringComparison.Ordinal);
+        Assert.EndsWith(" C87.80 62.01 86.99 61.20 86.00 61.20", subpaths[2], StringComparison.Ordinal);
+        foreach (var token in d.Split(' '))
+        {
+            if (token == "Z") continue;
+            Assert.Matches("^[MC]?[0-9]+\\.[0-9]{2}$", token);
+        }
+        Assert.Equal(Logo, logo);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-163")] // Services/MCP/MCPOAuth.swift:546-551, :854-913
+    public async Task The_page_the_callback_listener_serves_is_the_document()
+    {
+        using var h = new OAuthHarness();
+        await using var server = new LoopbackHttpServer();
+        var flow = StartSignIn(server);
+        await Discover(server, flow);
+        await Register(server, flow);
+        var url = h.AwaitBrowser(flow);
+        var answer = await CallbackClient.Get(CallbackPort(url), "/callback?code=c&state=wrong");
+        Assert.Equal(
+            Document("Sign-in didn't finish \U00002014 Linear &amp; Co", "Sign-in didn't finish", "Sign-in didn&#39;t finish. Try again."), // U+2014 EM DASH
+            Page(answer));
+        await Fails(flow);
+    }
+
+    // ---- Part 2, PR-MCP-164: escapeHTML ----
+
+    [Theory]
+    [Trait("Req", "PR-MCP-164")] // Services/MCP/MCPOAuth.swift:915-929
+    [InlineData("&", "&amp;")]
+    [InlineData("<", "&lt;")]
+    [InlineData(">", "&gt;")]
+    [InlineData("\"", "&quot;")]
+    [InlineData("'", "&#39;")]
+    public void Each_of_the_five_characters_is_replaced_in_the_server_name_of_both_pages_and_in_the_failure_message(string character, string entity)
+    {
+        var name = "a" + character + "b" + character;
+        var escaped = "a" + entity + "b" + entity;
+        Assert.Equal(Document("Signed in to " + escaped, "Signed in to " + escaped, "You can close this tab and head back to Marrow."), MCPOAuth.SuccessPage(name));
+        Assert.Equal(Document("Sign-in didn't finish \U00002014 " + escaped, "Sign-in didn't finish", escaped), MCPOAuth.FailurePage(name, name)); // U+2014 EM DASH
+    }
+
+    [Theory]
+    [Trait("Req", "PR-MCP-164")] // Services/MCP/MCPOAuth.swift:918-926
+    [InlineData("")]
+    [InlineData("Linear")]
+    [InlineData("a/b=c;d#e`f%g")]
+    [InlineData("Café \U0001F642 é")]
+    [InlineData("line\nbreak\ttab")]
+    [InlineData("<́>́")] // two Characters, "<" and ">" each with a combining acute, so neither equals "<" or ">"
+    public void Every_other_character_is_copied_unchanged(string text)
+    {
+        Assert.Equal(Document("Signed in to " + text, "Signed in to " + text, "You can close this tab and head back to Marrow."), MCPOAuth.SuccessPage(text));
+        Assert.Equal(Document("Sign-in didn't finish \U00002014 " + text, "Sign-in didn't finish", text), MCPOAuth.FailurePage(text, text)); // U+2014 EM DASH
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-164")] // Services/MCP/MCPOAuth.swift:915-929
+    public void Escaping_is_one_pass_so_an_existing_entity_is_escaped_again()
+    {
+        Assert.Equal(
+            Document("Sign-in didn't finish \U00002014 &amp;amp; &amp;#39;", "Sign-in didn't finish", "&amp;lt;b&amp;gt;"), // U+2014 EM DASH
+            MCPOAuth.FailurePage("&amp; &#39;", "&lt;b&gt;"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-164")] // Services/MCP/MCPOAuth.swift:846-852, :915-929
+    public void A_hostile_message_cannot_add_markup_to_the_failure_page()
+    {
+        var page = MCPOAuth.FailurePage("x\"><script>", "<script>alert('x')</script><img src=\"y\" onerror=\"z\">");
+        Assert.Equal(
+            Document(
+                "Sign-in didn't finish \U00002014 x&quot;&gt;&lt;script&gt;", // U+2014 EM DASH
+                "Sign-in didn't finish",
+                "&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;&lt;img src=&quot;y&quot; onerror=&quot;z&quot;&gt;"),
+            page);
+        Assert.Equal(2, page.Split("<script>").Length); // only the page's own close script (:909)
+        Assert.DoesNotContain("<img", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-164")] // Services/MCP/MCPOAuth.swift:530-545, :915-929
+    public async Task A_hostile_error_description_from_the_browser_is_escaped_on_the_served_page()
+    {
+        using var h = new OAuthHarness();
+        await using var server = new LoopbackHttpServer();
+        var flow = StartSignIn(server);
+        await Discover(server, flow);
+        await Register(server, flow);
+        var url = h.AwaitBrowser(flow);
+        var answer = await CallbackClient.Get(
+            CallbackPort(url),
+            "/callback?error=access_denied&error_description=%3Cb%20onclick%3D%22a%27%22%3E%26&state=" + StateOf(url));
+        Assert.Equal(
+            Document("Sign-in didn't finish \U00002014 Linear &amp; Co", "Sign-in didn't finish", "&lt;b onclick=&quot;a&#39;&quot;&gt;&amp;"), // U+2014 EM DASH
+            Page(answer));
+        var error = await Fails(flow);
+        Assert.Equal("<b onclick=\"a'\">&", error.ErrorDescription);
     }
 }
