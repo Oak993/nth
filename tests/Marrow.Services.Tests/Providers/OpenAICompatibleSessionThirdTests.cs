@@ -775,8 +775,21 @@ public sealed class OpenAICompatibleSessionThirdTests
         using var runtime = new TestRuntime();
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration(RuntimeMode.Supervised, InteractionMode.Build)).Wired();
 
-        var allowTask = session.ApproveIfNeededForTests(ToolCall.Kind.Command, "run", null, null);
-        runtime.Loop.RunUntilIdle();
+        // Started through runtime.OnMain (not called directly on the xUnit test thread): ApproveIfNeeded's
+        // first suspension is `await MainActor.Run(...)` (OpenAICompatibleSession.cs:1377), and an await
+        // captures whatever SynchronizationContext.Current is at the call site. Called directly, that is
+        // xUnit's own AsyncTestSyncContext, not runtime.Loop's - so the continuation that registers the
+        // pending approval (:1389, `pendingApprovals[id] = continuation`) resumes on an arbitrary thread
+        // pool thread, racing the very next line here (ResolveApproval) instead of being ordered by
+        // runtime.Loop.RunUntilIdle() as ManualMainLoop's contract requires ("every await in main-actor
+        // code resumes back into the loop", ManualMainLoop.cs:6-9). Losing that race drops ResolveApproval
+        // before the continuation is registered, so nothing ever resumes it and `await allowTask` hangs
+        // forever - reproduced deterministically (5/5 isolated runs) before this fix. Driving the call
+        // through runtime.OnMain runs ApproveIfNeeded's synchronous prefix inside Loop.Pump, where
+        // MainActor.Run's executor.CheckAccess() is true (ManualMainLoop.CheckAccess :29), so it completes
+        // inline (MainActor.cs:94-98) and every await, including the later approval wait, correctly
+        // captures the loop's own SynchronizationContext.
+        var allowTask = runtime.OnMain(() => session.ApproveIfNeededForTests(ToolCall.Kind.Command, "run", null, null));
         var allowId = session.Events.OfType<ProviderEvent.Approval>().Single().Value.Id;
         session.ResolveApproval(allowId, "allow");
         runtime.Loop.RunUntilIdle();
