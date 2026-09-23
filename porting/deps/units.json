@@ -4918,37 +4918,13 @@
    ],
    "intra_deps": [],
    "records_total": 10,
-   "records_todo": [
-    "PR-MCP-085",
-    "PR-MCP-086",
-    "PR-MCP-087",
-    "PR-MCP-088",
-    "PR-MCP-089",
-    "PR-MCP-090",
-    "PR-MCP-091",
-    "PR-MCP-092",
-    "PR-MCP-093",
-    "PR-MCP-094"
-   ],
-   "parts": [
-    [
-     "PR-MCP-085",
-     "PR-MCP-086",
-     "PR-MCP-087",
-     "PR-MCP-088",
-     "PR-MCP-089",
-     "PR-MCP-090",
-     "PR-MCP-091",
-     "PR-MCP-092",
-     "PR-MCP-093",
-     "PR-MCP-094"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-030"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.MCP.MCPExternalSync",
