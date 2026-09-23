@@ -217,6 +217,7 @@ public sealed class MergeRequestLinkTests
     // character, so it is percent-encoded and stays inside one component. Older Foundation split the decoded path
     // instead, which gives GitHub 5 for both encoded-slash rows.
     [Theory]
+    [Trait("Decision", "ED-143")]
     [Trait("Oracle", "O-44")] // Core/Models/MergeRequestLink.swift:24, :25-37
     [InlineData("https://host/o/r/pull%2F5")] // components o, r, "pull/5": fewer than four
     [InlineData("https://host/o/r%2Fpull/5")] // components o, "r/pull", 5: fewer than four
@@ -231,6 +232,7 @@ public sealed class MergeRequestLinkTests
     // slashes is dropped, and a relative reference (no leading "/") splits into its four components. The prompt row
     // also pins that :57 writes the relative text as given.
     [Theory]
+    [Trait("Decision", "ED-143")]
     [Trait("Oracle", "O-44")] // Core/Models/MergeRequestLink.swift:24, :29, :57
     [InlineData("https://host/o//r/pull/95", 95L, "95", "#95")]
     [InlineData("o/r/pull/5", 5L, "5", "#5")]
