@@ -4265,7 +4265,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The greater-than-1 test guards against a zero or degenerate frame captured before layout; reproduce it rather than testing for non-empty. The boolean return is a contract with the caller and must not be discarded at the call sites that branch on it.",
       "verification_method": "unit test over a degenerate rectangle, a reduced-motion run and a normal run, asserting the return value and whether anything was queued",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4290,7 +4290,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The frame and the radius must be interpolated by a single animation, not two: independently animated they desynchronise and the corner visibly lags the edge. The 0.05-second grace after the fade is what keeps the stand-in from being torn out a frame early.",
       "verification_method": "capture comparison over the morph's timeline at the hold, at landing minus 0.12 and at landing; unit test of the two sleep durations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4317,7 +4317,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Capturing at the display's own scale factor is what keeps the ghost from looking soft on a high-DPI monitor; the fallback of 2 applies only when no display can be queried. The no-fill wrapper is load-bearing: adding a background here makes every archived transparent row flash.",
       "verification_method": "unit test over a degenerate frame, a reduced-motion run and a failed render, asserting the return value; capture comparison of a transparent row's ghost",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4345,7 +4345,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: the genie shader itself has no cross-platform form and must be reimplemented against the Windows rendering stack, keeping the same three inputs and the same progress semantics. The reach calculation is not an optimisation to skip: padding the offscreen pass by the whole window is the cost the comment records. The early removal at duration minus 0.03 and the last-tenth opacity ramp are both observable.",
       "verification_method": "capture comparison at progress 0, 0.5, 0.9 and 0.95 for both a departure and an arrival; unit test of the reach formula, the default landing point and the removal delay",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4369,7 +4369,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A single click-through overlay above the content and below the command palette (PR-WIN-067). Per-row overlays are not equivalent: a ghost must be able to fly out of the row that spawned it and across the whole window.",
       "verification_method": "interaction test that a click lands on the control under a flight in progress; structural test that flights draw under morphs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5766,7 +5766,8 @@
         "DroppyCode/UI/Common/Genie.swift:130-176",
         "DroppyCode/UI/Common/Genie.swift:182-213"
       ],
-      "notes": "The default landing point for a flight with no target is x 24, y canvas height minus 12: the archive corner at the bottom left. The command palette sits above this layer (PR-WIN-067)."
+      "notes": "The default landing point for a flight with no target is x 24, y canvas height minus 12: the archive corner at the bottom left. The command palette sits above this layer (PR-WIN-067).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-052",
