@@ -19,12 +19,14 @@ namespace Marrow.App.Tests.Views.Chat;
 // nil for every other event; rightMouseDown records the point in the flipped view; rightMouseUp is swallowed).
 // The view is driven through real Avalonia headless input (window.MouseDown/MouseMove/MouseUp), so a left click, a
 // drag and a text selection must reach the content through the real hit test and routing.
-// Not covered here, reported as STOP items (see the unit report): the control-click trigger :65, :74-76 against the
-// record's windows_path ("the trigger is the right mouse button and the context-menu key"); the context-menu key
-// itself (no Swift line, no anchor point); arrowEdge: .top :16 (no recorded mapping from a SwiftUI arrow edge to an
-// Avalonia Popup placement); dismissal clearing the anchor :14 (the R-VIEW-9 seam cannot simulate a user dismissal
-// while a headless Popup cannot open); acceptsFirstMouse :60 and mouseDownCanMoveWindow :58 (AppKit window
-// behaviour with no headless equivalent).
+// ED-183 (after git merge impl/b2): RightClickCatcher is implemented as a tunnel-phase PointerPressed handler on
+// the wrapped content, not as an overlay. The handler calls onRightClick and sets e.Handled = true only for right-
+// button or Ctrl+left-button presses inside content bounds; all other presses pass through unhandled.
+// Not covered here, reported as STOP items (see the unit report): the context-menu key itself (no Swift line, no
+// anchor point); arrowEdge: .top :16 (no recorded mapping from a SwiftUI arrow edge to an Avalonia Popup placement);
+// dismissal clearing the anchor :14 (the R-VIEW-9 seam cannot simulate a user dismissal while a headless Popup
+// cannot open); acceptsFirstMouse :60 and mouseDownCanMoveWindow :58 (AppKit window behaviour with no headless
+// equivalent).
 [Collection("Headless")]
 public sealed class MessagePopoverMenuTests(HeadlessSession headless)
 {
@@ -85,6 +87,13 @@ public sealed class MessagePopoverMenuTests(HeadlessSession headless)
     {
         window.MouseDown(at, MouseButton.Left, RawInputModifiers.None);
         window.MouseUp(at, MouseButton.Left, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static void ControlLeftClick(Avalonia.Controls.Window window, Point at)
+    {
+        window.MouseDown(at, MouseButton.Left, RawInputModifiers.Control);
+        window.MouseUp(at, MouseButton.Left, RawInputModifiers.Control);
         Dispatcher.UIThread.RunJobs();
     }
 
@@ -262,6 +271,104 @@ public sealed class MessagePopoverMenuTests(HeadlessSession headless)
 
         Assert.DoesNotContain(presenter.Calls, call => call.Presented);
         Assert.Equal(1, siblingPresses);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-087")] // App/Views/Chat/MessagePopoverMenu.swift:62-67,69-71,74-76; ED-183: Ctrl+left presents the popover
+    public void A_control_left_click_on_the_message_presents_a_PopoverMenu_at_the_pointer() => headless.OnUiThread(() =>
+    {
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var view = Message().RightClickPopover(actions: () => MessageActionsSample.Make(canRevert: false, []));
+        var window = Show(Column(view));
+
+        ControlLeftClick(window, new Point(40, 45));
+
+        var popup = Assert.Single(presenter.Calls, call => call.Presented).Popup;
+        Assert.NotNull(popup.PlacementRect);
+        var rect = popup.PlacementRect.Value;
+        Assert.Equal(new Size(1, 1), rect.Size);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-087")] // App/Views/Chat/MessagePopoverMenu.swift:62-67,74-76; ED-183: Ctrl+left press is claimed
+    public void A_control_left_press_is_claimed_and_never_reaches_the_content() => headless.OnUiThread(() =>
+    {
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var link = Link();
+        var log = new List<string>();
+        link.PointerPressed += (_, _) => log.Add("pressed");
+        var view = Message(link).RightClickPopover(actions: () => MessageActionsSample.Make(canRevert: false, []));
+        var window = Show(Column(view));
+
+        ControlLeftClick(window, new Point(40, 45));
+
+        Assert.Empty(log);
+        Assert.Single(presenter.Calls, call => call.Presented);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-087")] // App/Views/Chat/MessagePopoverMenu.swift:62-67,90-95; ED-183: plain left press reaches content
+    public void A_plain_left_click_reaches_content_and_presents_nothing() => headless.OnUiThread(() =>
+    {
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var link = Link();
+        var log = new List<string>();
+        link.PointerPressed += (_, _) => log.Add("pressed");
+        var view = Message(link).RightClickPopover(actions: () => MessageActionsSample.Make(canRevert: false, []));
+        var window = Show(Column(view));
+
+        LeftClick(window, new Point(40, 45));
+
+        Assert.Contains("pressed", log);
+        Assert.DoesNotContain(presenter.Calls, call => call.Presented);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-087")] // App/Views/Chat/MessagePopoverMenu.swift:62-67; ED-183: shift+left passes through
+    public void A_shift_left_click_reaches_content_and_presents_nothing() => headless.OnUiThread(() =>
+    {
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var link = Link();
+        var log = new List<string>();
+        link.PointerPressed += (_, _) => log.Add("pressed");
+        var view = Message(link).RightClickPopover(actions: () => MessageActionsSample.Make(canRevert: false, []));
+        var window = Show(Column(view));
+
+        window.MouseDown(new Point(40, 45), MouseButton.Left, RawInputModifiers.Shift);
+        window.MouseUp(new Point(40, 45), MouseButton.Left, RawInputModifiers.Shift);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Contains("pressed", log);
+        Assert.DoesNotContain(presenter.Calls, call => call.Presented);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-087")] // App/Views/Chat/MessagePopoverMenu.swift:62-67; ED-183: middle click passes through
+    public void A_middle_click_reaches_content_and_presents_nothing() => headless.OnUiThread(() =>
+    {
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var link = Link();
+        var log = new List<string>();
+        link.PointerPressed += (_, _) => log.Add("pressed");
+        var view = Message(link).RightClickPopover(actions: () => MessageActionsSample.Make(canRevert: false, []));
+        var window = Show(Column(view));
+
+        window.MouseDown(new Point(40, 45), MouseButton.Middle, RawInputModifiers.None);
+        window.MouseUp(new Point(40, 45), MouseButton.Middle, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Contains("pressed", log);
+        Assert.DoesNotContain(presenter.Calls, call => call.Presented);
         window.Close();
     });
 }
