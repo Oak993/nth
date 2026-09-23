@@ -150,6 +150,15 @@ public sealed class ACPSession : ProviderSession
         ApplySessionState(session); // :141
         await ApplySelection( // :142-147
             configuration.Model, configuration.Effort, configuration.FastMode, configuration.InteractionMode);
+        return RequireSessionID(); // :148-151
+    }
+
+    // :148-150. Factored out of Start() (behaviourally identical) so the exact per-provider guard and message
+    // can be proven (UI-PROVACP-030) without a live agent round trip, the same technique InitializeParams and
+    // ApplyInitializeReply already use (part 1's header note): a real provider's launchArguments cannot drive
+    // a scripted stand-in agent through Start() itself (part 1 header, part 2's PR-PROVACP-033 note).
+    private string RequireSessionID()
+    {
         if (sessionID is not { } id) throw new ProviderError(new ProviderError.Case.Failed($"{configuration.Provider.DisplayName} did not start a session.")); // :148-150
         return id; // :151
     }
