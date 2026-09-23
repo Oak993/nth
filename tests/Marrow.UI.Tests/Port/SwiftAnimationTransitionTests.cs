@@ -761,4 +761,95 @@ public sealed class SwiftAnimationTransitionTests(HeadlessSession headless)
         Assert.False(IsUnder(child, panel));
         window.Close();
     });
+
+    // Review point (ED-092 (2), R-VIEW-4): both B2 move sites are sized by their content, with no fixed frame
+    // (App/Views/Chat/ChatView.swift:277-278 `TerminalPanel(...).transition(.move(edge: .bottom).combined(with: .opacity))`,
+    // App/Views/Usage/UsageViews.swift:250-251 `.padding(.top, 12).transition(.opacity.combined(with: .move(edge: .top)))`).
+    // Such a child has no size until its first layout pass. Move's identity state is a zero offset whatever the size;
+    // its active state is one own size towards the edge, the size the layout gives the child.
+    private static Border ContentSized() => new() { Child = new Border { Width = 100, Height = 40 } };
+
+    [Theory]
+    [Trait("Rule", "R-VIEW-4")]
+    [Trait("Decision", "ED-092")]
+    [InlineData(Edge.Top)]
+    [InlineData(Edge.Bottom)]
+    [InlineData(Edge.Leading)]
+    [InlineData(Edge.Trailing)]
+    public void Without_an_animation_a_content_sized_move_child_is_inserted_at_identity(Edge edge) => headless.OnUiThread(() =>
+    {
+        using var clocks = new AnimationClocks();
+        var (window, panel) = Host();
+        var child = ContentSized().Transition(SwiftTransition.Move(edge: edge));
+        Assert.Null(Transaction.Current);
+        SwiftTransition.Insert(panel, 0, child);
+        window.UpdateLayout();
+        Assert.Equal(new Size(100, 40), child.Bounds.Size);
+        AssertCorners(child, panel, new Point(0, 0), new Point(100, 40));
+        Assert.Equal(0, clocks.Frames.Pending);
+        window.Close();
+    });
+
+    [Theory]
+    [Trait("Rule", "R-VIEW-4")]
+    [Trait("Decision", "ED-092")]
+    [InlineData(Edge.Top, 0, -40)]
+    [InlineData(Edge.Bottom, 0, 40)]
+    [InlineData(Edge.Leading, -100, 0)]
+    [InlineData(Edge.Trailing, 100, 0)]
+    public void A_content_sized_move_insertion_starts_one_own_laid_out_size_beyond_its_edge(Edge edge, double x, double y) => headless.OnUiThread(() =>
+    {
+        using var clocks = new AnimationClocks();
+        var (window, panel) = Host();
+        var child = ContentSized().Transition(SwiftTransition.Move(edge: edge));
+        InsertAnimated(window, panel, child);
+        AssertCorners(child, panel, new Point(x, y), new Point(x + 100, y + 40));
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")]
+    [Trait("Decision", "ED-092")]
+    [Trait("Decision", "ED-098")]
+    public void A_content_sized_move_and_opacity_insertion_follows_its_curve_from_below_and_settles_at_identity() => headless.OnUiThread(() =>
+    {
+        using var clocks = new AnimationClocks();
+        // App/Views/Chat/ChatView.swift:278 `.transition(.move(edge: .bottom).combined(with: .opacity))`
+        var (window, panel) = Host();
+        var child = ContentSized().Transition(SwiftTransition.Move(edge: Edge.Bottom).Combined(SwiftTransition.Opacity));
+        InsertAnimated(window, panel, child);
+        Assert.Equal(0, EffectiveOpacity(child, panel), Tolerance);
+        AssertCorners(child, panel, new Point(0, 40), new Point(100, 80));
+        clocks.Frame(0.0685);
+        Assert.Equal(0.5, EffectiveOpacity(child, panel), 1e-6);
+        AssertCorners(child, panel, new Point(0, 20), new Point(100, 60), 1e-4);
+        clocks.Frame(0.1315);
+        Assert.Equal(1, EffectiveOpacity(child, panel), Tolerance);
+        AssertCorners(child, panel, new Point(0, 0), new Point(100, 40));
+        Assert.Equal(0, clocks.Frames.Pending);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")]
+    [Trait("Decision", "ED-092")]
+    [Trait("Decision", "ED-098")]
+    public void A_content_sized_opacity_and_move_removal_leaves_towards_its_edge() => headless.OnUiThread(() =>
+    {
+        using var clocks = new AnimationClocks();
+        // App/Views/Usage/UsageViews.swift:251 `.transition(.opacity.combined(with: .move(edge: .top)))`
+        var (window, panel) = Host();
+        var child = ContentSized().Transition(SwiftTransition.Opacity.Combined(SwiftTransition.Move(edge: Edge.Top)));
+        SwiftTransition.Insert(panel, 0, child);
+        window.UpdateLayout();
+        AssertCorners(child, panel, new Point(0, 0), new Point(100, 40));
+        Transaction.WithAnimation(Animation.EaseOut(duration: 0.2), () => SwiftTransition.Remove(panel, child));
+        AssertCorners(child, panel, new Point(0, 0), new Point(100, 40));
+        clocks.Frame(0.0685);
+        Assert.Equal(0.5, EffectiveOpacity(child, panel), 1e-6);
+        AssertCorners(child, panel, new Point(0, -20), new Point(100, 20), 1e-4);
+        clocks.Frame(0.1315);
+        Assert.False(IsUnder(child, panel));
+        window.Close();
+    });
 }
