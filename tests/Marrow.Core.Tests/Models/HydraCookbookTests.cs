@@ -4,7 +4,7 @@ using Marrow.Core.Port;
 namespace Marrow.Core.Tests.Models;
 
 // Source-derived tests for DroppyCode/Core/Models/HydraCookbook.swift (B2 1fbf81e), unit
-// Core.Models.HydraCookbook, part 1 of 2. Every expected value is transcribed from the cited Swift lines or
+// Core.Models.HydraCookbook, parts 1-2 of 2. Every expected value is transcribed from the cited Swift lines or
 // the records themselves, never from the C# under test (R-TEST-4).
 //
 // UI-STORE-010 to UI-STORE-016 describe the ready-made pair rows the Hydra settings page draws; that page
@@ -317,6 +317,143 @@ public sealed class HydraCookbookTests
         Assert.Equal(
             "OpenAI top to bottom: Astra plans and reviews, Terra does the work at medium.",
             recipe.Tagline);
+    }
+
+    // ---- UI-STORE-017 to UI-STORE-019: the ready-made row data for rows 8-10 ----
+
+    [Trait("Req", "UI-STORE-017")] // DroppyCode/Core/Models/HydraCookbook.swift:37
+    [Fact]
+    public void Row_8_data_matches_the_recorded_exact_text_and_notes()
+    {
+        var recipe = HydraCookbook.Recipes[7];
+        Assert.Equal("astra-astra", recipe.Id);
+        Assert.Equal("Astra 6 high, Astra 6 medium", recipe.Title);
+        Assert.Equal(
+            "One model, two efforts: Astra thinks hard about the plan and the review, and Astra heads build at a working effort.",
+            recipe.Tagline);
+        Assert.Equal(new[] { ProviderKind.Codex, ProviderKind.Commandcode }, recipe.Lead.Providers);
+        Assert.Equal(new[] { "Astra" }, recipe.Lead.Models);
+        Assert.Equal("high", recipe.Lead.Effort);
+        Assert.Equal(new[] { ProviderKind.Codex, ProviderKind.Commandcode }, recipe.Heads.Providers);
+        Assert.Equal(new[] { "Astra" }, recipe.Heads.Models);
+        Assert.Equal("medium", recipe.Heads.Effort);
+        Assert.Null(recipe.MaxHeads);
+    }
+
+    [Trait("Req", "UI-STORE-017")] // DroppyCode/Core/Models/HydraCookbook.swift:48-51
+    [Fact]
+    public void Row_8_is_marked_added_only_when_provider_headsProvider_orchestratorModel_and_workerModel_match_ignoring_effort()
+    {
+        var recipe = HydraCookbook.Recipes[7];
+        var matchingDifferentEffort = new HydraPair(recipe.Lead.Providers[0])
+        {
+            OrchestratorModel = recipe.Lead.Models[0],
+            OrchestratorEffort = "low",
+            WorkerProvider = recipe.Heads.Providers[0],
+            WorkerModel = recipe.Heads.Models[0],
+            WorkerEffort = "low",
+        };
+        var pair = new HydraPair(recipe.Lead.Providers[0])
+        {
+            OrchestratorModel = recipe.Lead.Models[0],
+            OrchestratorEffort = recipe.Lead.Effort,
+            WorkerProvider = recipe.Heads.Providers[0],
+            WorkerModel = recipe.Heads.Models[0],
+            WorkerEffort = recipe.Heads.Effort,
+        };
+
+        Assert.True(HydraCookbook.IsAdded(pair, new ValueList<HydraPair>(new[] { matchingDifferentEffort })));
+        Assert.False(HydraCookbook.IsAdded(pair, ValueList<HydraPair>.Empty));
+    }
+
+    [Trait("Req", "UI-STORE-018")] // DroppyCode/Core/Models/HydraCookbook.swift:38
+    [Fact]
+    public void Row_9_data_matches_the_recorded_exact_text_and_notes()
+    {
+        var recipe = HydraCookbook.Recipes[8];
+        Assert.Equal("claude-opus-opus", recipe.Id);
+        Assert.Equal("Opus 5 max, Opus 5 medium", recipe.Title);
+        Assert.Equal(
+            "Opus thinks as hard as it can where it counts; Opus heads at medium do the building.",
+            recipe.Tagline);
+        Assert.Equal(new[] { ProviderKind.Claude, ProviderKind.Commandcode }, recipe.Lead.Providers);
+        Assert.Equal(new[] { "Opus" }, recipe.Lead.Models);
+        Assert.Equal("max", recipe.Lead.Effort);
+        Assert.Equal(new[] { ProviderKind.Claude, ProviderKind.Commandcode }, recipe.Heads.Providers);
+        Assert.Equal(new[] { "Opus" }, recipe.Heads.Models);
+        Assert.Equal("medium", recipe.Heads.Effort);
+        Assert.Null(recipe.MaxHeads);
+    }
+
+    [Trait("Req", "UI-STORE-018")] // DroppyCode/Core/Models/HydraCookbook.swift:48-51
+    [Fact]
+    public void Row_9_is_marked_added_only_when_provider_headsProvider_orchestratorModel_and_workerModel_match_ignoring_effort()
+    {
+        var recipe = HydraCookbook.Recipes[8];
+        var matchingDifferentEffort = new HydraPair(recipe.Lead.Providers[0])
+        {
+            OrchestratorModel = recipe.Lead.Models[0],
+            OrchestratorEffort = "low",
+            WorkerProvider = recipe.Heads.Providers[0],
+            WorkerModel = recipe.Heads.Models[0],
+            WorkerEffort = "low",
+        };
+        var pair = new HydraPair(recipe.Lead.Providers[0])
+        {
+            OrchestratorModel = recipe.Lead.Models[0],
+            OrchestratorEffort = recipe.Lead.Effort,
+            WorkerProvider = recipe.Heads.Providers[0],
+            WorkerModel = recipe.Heads.Models[0],
+            WorkerEffort = recipe.Heads.Effort,
+        };
+
+        Assert.True(HydraCookbook.IsAdded(pair, new ValueList<HydraPair>(new[] { matchingDifferentEffort })));
+        Assert.False(HydraCookbook.IsAdded(pair, ValueList<HydraPair>.Empty));
+    }
+
+    [Trait("Req", "UI-STORE-019")] // DroppyCode/Core/Models/HydraCookbook.swift:39
+    [Fact]
+    public void Row_10_data_matches_the_recorded_exact_text_and_notes()
+    {
+        var recipe = HydraCookbook.Recipes[9];
+        Assert.Equal("claude-fable-fable", recipe.Id);
+        Assert.Equal("Fable 5.1 high, Fable 5.1 medium", recipe.Title);
+        Assert.Equal(
+            "For the hardest, longest jobs: every seat on the most capable model, the lead at high and the heads at medium.",
+            recipe.Tagline);
+        Assert.Equal(new[] { ProviderKind.Claude, ProviderKind.Commandcode }, recipe.Lead.Providers);
+        Assert.Equal(new[] { "Fable" }, recipe.Lead.Models);
+        Assert.Equal("high", recipe.Lead.Effort);
+        Assert.Equal(new[] { ProviderKind.Claude, ProviderKind.Commandcode }, recipe.Heads.Providers);
+        Assert.Equal(new[] { "Fable" }, recipe.Heads.Models);
+        Assert.Equal("medium", recipe.Heads.Effort);
+        Assert.Null(recipe.MaxHeads);
+    }
+
+    [Trait("Req", "UI-STORE-019")] // DroppyCode/Core/Models/HydraCookbook.swift:48-51
+    [Fact]
+    public void Row_10_is_marked_added_only_when_provider_headsProvider_orchestratorModel_and_workerModel_match_ignoring_effort()
+    {
+        var recipe = HydraCookbook.Recipes[9];
+        var matchingDifferentEffort = new HydraPair(recipe.Lead.Providers[0])
+        {
+            OrchestratorModel = recipe.Lead.Models[0],
+            OrchestratorEffort = "low",
+            WorkerProvider = recipe.Heads.Providers[0],
+            WorkerModel = recipe.Heads.Models[0],
+            WorkerEffort = "low",
+        };
+        var pair = new HydraPair(recipe.Lead.Providers[0])
+        {
+            OrchestratorModel = recipe.Lead.Models[0],
+            OrchestratorEffort = recipe.Lead.Effort,
+            WorkerProvider = recipe.Heads.Providers[0],
+            WorkerModel = recipe.Heads.Models[0],
+            WorkerEffort = recipe.Heads.Effort,
+        };
+
+        Assert.True(HydraCookbook.IsAdded(pair, new ValueList<HydraPair>(new[] { matchingDifferentEffort })));
+        Assert.False(HydraCookbook.IsAdded(pair, ValueList<HydraPair>.Empty));
     }
 
     // ---- PR-HYDRA-154 / PR-STORE-142: Effort keeps the asked-for effort only when the resolved model offers it ----
