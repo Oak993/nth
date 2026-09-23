@@ -1,11 +1,18 @@
+using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
+using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
+using Marrow.Services.Port;
 
 // Source: DroppyCode/Services/Git/Git.swift (B2 1fbf81e), :1-722. Ported in part 1 of this unit: :4-119, :131-152,
-// :233-242, :259-265, :293-379, :517-524 (the fast path; the rest of indexPath is part 2, PR-GIT-027) and :719-722.
-// Not yet ported, and why: :121-129, :154-231, :244-257, :267-291, :381-516, :525-715 belong to parts 2 to 4 of the
-// Services.Git.Git unit (their records are PR-GIT-027 onward), and are added there.
+// :233-242, :259-265, :293-379, :517-524 and :719-722. Ported in part 2: :154-227, :267-272, :278-291, :381-429,
+// :431-538 and :658-674. Of these, :431-488 (currentTree, both captureTree forms, watch) are part 3's records
+// (PR-GIT-065, PR-GIT-067, PR-GIT-068, PR-GIT-070); they are ported here because captureCheckpoint (PR-GIT-058, part 2)
+// calls them, and part 3 verifies them. Not ported, and why: :274-276, the two-argument updateRef(_:to:), is dead code
+// (porting/dead_code.md entry 48, PR-GIT-036 NOT_APPLICABLE_WITH_EVIDENCE, ED-061). Not yet ported: :121-129, :244-257,
+// :539-657 and :676-716 belong to parts 3 and 4 of the Services.Git.Git unit and are added there.
 
 namespace Marrow.Services.Git;
 
@@ -27,7 +34,7 @@ public sealed record GitBranch(string Name, bool IsCurrent, string? Upstream)
 }
 
 /// <summary>Git.swift:20-717. A thin wrapper around the git command line. Every call runs off the main actor.</summary>
-public sealed record Git
+public sealed partial record Git
 {
     /// <summary>
     /// :22 <c>let directory: URL</c>, held as the file URL's path. ENGINEERING DECISION (as Timeline.swift:95's port):
@@ -220,6 +227,149 @@ public sealed record Git
         return SwiftString.Split(text, "\n");
     }
 
+    // MARK: - Commit and publish
+
+    /// <summary>:156-161</summary>
+    public async Task<(string Summary, string Patch)> WorkingChanges()
+    {
+        // :157-158
+        var summary = await SwiftTry.OptionalAsync<string>(async () => await Output(["status", "--short"])) ?? "";
+        var patch = await SwiftTry.OptionalAsync<string>(async () => await Output(["diff", "HEAD", "--no-ext-diff"])) ?? "";
+        // :159. UPSTREAM DEFECT 75, reproduced: the test counts UTF-8 bytes, the cut keeps 40,000 Characters.
+        if (SwiftString.Utf8Count(patch) > 40_000) patch = SwiftString.Prefix(patch, 40_000);
+        // :160
+        return (summary, patch);
+    }
+
+    /// <summary>:163-166. Both steps at run's 120 s default; no identity is passed, so the user's own signs it.</summary>
+    public async Task CommitAll(string message)
+    {
+        Check(await Run(["add", "-A"]));
+        Check(await Run(["commit", "-F", "-"], input: Encoding.UTF8.GetBytes(message)));
+    }
+
+    /// <summary>:168-170</summary>
+    public async Task Push() => Check(await Run(["push", "-u", "origin", "HEAD"], timeout: 300));
+
+    /// <summary>
+    /// :172-197 Opens a pull request (GitHub) or merge request (GitLab) for the current branch, or for
+    /// <paramref name="source"/> into <paramref name="target"/> when those are given.
+    /// </summary>
+    public async Task<SwiftURL?> CreatePullRequest(string title, string body, string? source = null, string? target = null)
+    {
+        // :175-192. Shell.run(tool:) resolves the name on the login PATH per call, adds no -c prefix and no git
+        // variables, and leaves stdin at the null device (PR-GIT-050).
+        // A switch expression over the three cases, with no discard arm (ED-075, R-ENUM-1); each case is a local
+        // function holding that case's Swift lines.
+        var result = await (await Forge() switch
+        {
+            MergeRequestLink.Forge.Gitlab => Gitlab(),
+            MergeRequestLink.Forge.Github => Github(),
+            MergeRequestLink.Forge.Gitea => Gitea(),
+        });
+
+        // :177-181
+        Task<ShellResult> Gitlab()
+        {
+            List<string> arguments = ["mr", "create", "--title", title, "--description", body, "--yes"];
+            if (source is { } sourceBranch) arguments.AddRange(["--source-branch", sourceBranch]);
+            if (target is { } targetBranch) arguments.AddRange(["--target-branch", targetBranch]);
+            return Shell.RunTool("glab", arguments, @in: Directory, timeout: 300);
+        }
+
+        // :182-186
+        Task<ShellResult> Github()
+        {
+            List<string> arguments = ["pr", "create", "--title", title, "--body", body];
+            if (source is { } sourceBranch) arguments.AddRange(["--head", sourceBranch]);
+            if (target is { } targetBranch) arguments.AddRange(["--base", targetBranch]);
+            return Shell.RunTool("gh", arguments, @in: Directory, timeout: 300);
+        }
+
+        // :187-191
+        Task<ShellResult> Gitea()
+        {
+            List<string> arguments = ["pulls", "create", "--title", title, "--description", body];
+            if (source is { } sourceBranch) arguments.AddRange(["--head", sourceBranch]);
+            if (target is { } targetBranch) arguments.AddRange(["--base", targetBranch]);
+            return Shell.RunTool("tea", arguments, @in: Directory, timeout: 300);
+        }
+
+        // :193
+        Check(result);
+        // :194-196. stdout, one "\n", then stderr; the first https run of non-whitespace, parsed; no match or a parse
+        // failure is nil.
+        var text = result.Output + "\n" + result.ErrorOutput;
+        return FirstAddress(text) is { } match ? SwiftURL.Create(match) : null;
+    }
+
+    /// <summary>
+    /// :195 <c>text.firstMatch(of: #/https://\S+/#)</c>. Swift's regex walks Characters; this walks scalars, so a match
+    /// whose edge would split a Character is no match (R-RE-2). .NET's \s is Swift's White_Space set.
+    /// </summary>
+    private static string? FirstAddress(string text)
+    {
+        for (var match = Address().Match(text); match.Success; match = match.NextMatch())
+        {
+            if (SwiftString.IsCharacterBoundary(text, match.Index) && SwiftString.IsCharacterBoundary(text, match.Index + match.Length))
+                return match.Value;
+        }
+        return null;
+    }
+
+    [GeneratedRegex(@"https://\S+", RegexOptions.CultureInvariant)]
+    private static partial Regex Address();
+
+    /// <summary>
+    /// :199-206 Which forge the origin remote is on, by its host: GitLab and GitHub by name, and Gitea's family (tea
+    /// serves them all) for anything else.
+    /// </summary>
+    public async Task<MergeRequestLink.Forge> Forge()
+    {
+        var remote = SwiftString.Lowercased(await RemoteURL() ?? "");
+        // :203-205. ASCII needles: an ordinal search finds what String.contains finds.
+        if (remote.Contains("gitlab", StringComparison.Ordinal)) return MergeRequestLink.Forge.Gitlab;
+        if (remote.Contains("github", StringComparison.Ordinal)) return MergeRequestLink.Forge.Github;
+        return MergeRequestLink.Forge.Gitea;
+    }
+
+    /// <summary>
+    /// :208-227 Lands a request with the forge's own CLI. GitLab answers 405 while it is still checking a fresh request,
+    /// so that is tried again a few times.
+    /// </summary>
+    public async Task MergePullRequest(MergeRequestLink link)
+    {
+        // :211
+        var number = link.Number.ToString(CultureInfo.InvariantCulture);
+        // :212's initial "The request could not be merged." is never read (porting/dead_code.md entry 49, PR-GIT-049
+        // NOT_APPLICABLE_WITH_EVIDENCE, ED-061): every way to :226 assigns lastFailure at :221 first.
+        string? lastFailure = null;
+        // :213
+        for (var attempt = 0; attempt < 6; attempt++)
+        {
+            // :214-219
+            var result = link.LinkForge switch
+            {
+                MergeRequestLink.Forge.Gitlab => await Shell.RunTool("glab",
+                    ["mr", "merge", number, "--yes", "--squash", "--remove-source-branch"], @in: Directory, timeout: 300),
+                MergeRequestLink.Forge.Github => await Shell.RunTool("gh", ["pr", "merge", number, "--merge"], @in: Directory, timeout: 300),
+                MergeRequestLink.Forge.Gitea => await Shell.RunTool("tea", ["pulls", "merge", number], @in: Directory, timeout: 300),
+            };
+            // :220-222. No separator between the two streams.
+            if (result.Succeeded) return;
+            lastFailure = result.FailureMessage;
+            var text = SwiftString.Lowercased(result.Output + result.ErrorOutput);
+            // :223. UPSTREAM DEFECT 77, reproduced: "405" matches those digits anywhere. ASCII needles, ordinal search.
+            if (!(link.LinkForge == MergeRequestLink.Forge.Gitlab && (text.Contains("405", StringComparison.Ordinal) ||
+                    text.Contains("not allowed", StringComparison.Ordinal) || text.Contains("checking", StringComparison.Ordinal))))
+                break;
+            // :224. UPSTREAM DEFECT 76, reproduced: the sixth failure still sleeps 13 s. A cancelled sleep is swallowed.
+            await SwiftTask.TrySleep(TimeSpan.FromSeconds(checked(3 + attempt * 2)));
+        }
+        // :226
+        throw new ShellError(SwiftTraps.Unwrap(lastFailure));
+    }
+
     // MARK: - Landing a team's work
 
     /// <summary>:231-242 The branch the remote treats as its default: what origin's HEAD points at, else main or master
@@ -249,6 +399,32 @@ public sealed record Git
 
     /// <summary>:263-265</summary>
     public async Task<string> CommitHash(string of = "HEAD") => (await Output(["rev-parse", "--verify", of])).Trimmed();
+
+    /// <summary>
+    /// :267-272 A commit of <paramref name="tree"/> on <paramref name="parent"/> in the user's own name, for a branch to
+    /// carry. No environment is passed: the user's configured identity signs it (porting/port_impacts.md entry 232).
+    /// </summary>
+    public async Task<string> CommitWork(string tree, string parent, string message)
+    {
+        var result = await Run(["commit-tree", tree, "-p", parent, "-F", "-"], input: Encoding.UTF8.GetBytes(message));
+        Check(result);
+        return result.TrimmedOutput;
+    }
+
+    /// <summary>
+    /// :278-283 Moves <paramref name="ref"/> only while it still points at <paramref name="expecting"/>, so a branch
+    /// someone else moved in the meantime is left where it is rather than run over. <paramref name="expecting"/> nil
+    /// means the ref must not exist yet: it is passed as an empty fourth argument.
+    /// </summary>
+    public async Task UpdateRef(string @ref, string to, string? expecting) =>
+        Check(await Run(["update-ref", @ref, to, expecting ?? ""]));
+
+    /// <summary>:285-287. The refspec is one argument.</summary>
+    public async Task PushBranch(string name) =>
+        Check(await Run(["push", "-u", "origin", "refs/heads/" + name + ":refs/heads/" + name], timeout: 300));
+
+    /// <summary>:289-291</summary>
+    public async Task Fetch() => Check(await Run(["fetch", "--quiet", "origin"], timeout: 300));
 
     /// <summary>:293-295</summary>
     public async Task<bool> IsAncestor(string commit, string of) =>
@@ -357,10 +533,208 @@ public sealed record Git
         return false;
     }
 
+    /// <summary>:381-384 Moves the current branch to <paramref name="to"/>; index and working tree stay as they are.</summary>
+    public async Task ResetSoft(string to) => Check(await Run(["reset", "--soft", "--quiet", to]));
+
+    /// <summary>:386-390 The index takes HEAD's version of <paramref name="paths"/>; the working tree stays as it is.</summary>
+    public async Task ResetIndex(IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0) return;
+        Check(await Run(["reset", "--quiet", "--pathspec-from-file=-", "--pathspec-file-nul"], input: NulSeparated(paths)));
+    }
+
+    /// <summary>
+    /// :392-396 Index and working tree take <paramref name="from"/>'s version of <paramref name="paths"/>. UPSTREAM
+    /// DEFECT 78, reproduced: no --literal-pathspecs, so the paths are patterns.
+    /// </summary>
+    public async Task CheckoutPaths(string from, IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0) return;
+        Check(await Run(["checkout", "--quiet", from, "--", .. paths]));
+    }
+
+    /// <summary>:398-401. UPSTREAM DEFECT 78, reproduced: no --literal-pathspecs, so the paths are patterns.</summary>
+    public async Task RemovePaths(IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0) return;
+        Check(await Run(["rm", "--quiet", "--", .. paths]));
+    }
+
+    /// <summary>:403-405</summary>
+    public async Task PullFastForward() => Check(await Run(["pull", "--ff-only", "--quiet"], timeout: 300));
+
+    // MARK: - Checkpoints
+
+    /// <summary>
+    /// :409-411. The namespace keeps the upstream product name (porting/port_impacts.md entry 220): renaming it would
+    /// orphan every existing checkpoint. uuidString is uppercase (R-UUID-1), lowercased as the Swift writes.
+    /// </summary>
+    public static string CheckpointRef(Guid thread, long turn, string phase) =>
+        "refs/droppy-code/checkpoints/" + SwiftString.Lowercased(SwiftUUID.UuidString(thread)) + "/" +
+        turn.ToString(CultureInfo.InvariantCulture) + "-" + phase;
+
+    /// <summary>
+    /// :413-429 Snapshots the working tree into a hidden ref without touching the user's index or branch. A tree
+    /// already checkpointed since anything changed reuses its commit, so a turn starting on an untouched tree costs the
+    /// update-ref alone.
+    /// </summary>
+    public async Task CaptureCheckpoint(string @ref)
+    {
+        // :417-418
+        var tree = await CurrentTree();
+        var watch = await Watch();
+        // :419-427
+        string commit;
+        if (watch?.CommitOf(tree) is { } known)
+        {
+            commit = known;
+        }
+        else
+        {
+            // DEVIATION OD-0012 F1: the message is "Marrow checkpoint" (upstream "Droppy Code checkpoint"), in the
+            // Marrow identity. No -p anywhere: the commit is parentless (porting/port_impacts.md entry 233).
+            var result = await Run(["commit-tree", tree, "-m", "Marrow checkpoint"], environment: Identity);
+            Check(result);
+            commit = result.TrimmedOutput;
+            watch?.Remember(commit, tree);
+        }
+        // :428
+        Check(await Run(["update-ref", @ref, commit]));
+    }
+
+    /// <summary>
+    /// :431-439 The working tree as a tree object, from the directory's watch when it can vouch that nothing changed
+    /// since the last capture, else captured now.
+    /// </summary>
+    public async Task<string> CurrentTree()
+    {
+        if (await IndexPath() is not { } indexPath || await Watch() is not { } watch) return await CaptureTree();
+        return await watch.CurrentTree(indexPath, async (scratch, paths) =>
+        {
+            if (scratch is null) return await CaptureTree();
+            return await CaptureTree(scratch, paths);
+        });
+    }
+
+    /// <summary>
+    /// :441-463 captureTree over a scratch index kept between captures: with <paramref name="paths"/>, the directories
+    /// the watch saw change since the last capture, only they are walked and the rest of the index stands. A walk that
+    /// fails, as when a path vanished with nothing of it in the index, is redone whole.
+    /// </summary>
+    private async Task<string> CaptureTree(string scratch, IReadOnlyList<string>? paths)
+    {
+        // :446
+        var environment = new Dictionary<string, string> { ["GIT_INDEX_FILE"] = scratch };
+        // :447-452
+        if (paths is { Count: > 0 } changed && (File.Exists(scratch) || System.IO.Directory.Exists(scratch)) &&
+            (await SwiftTry.OptionalAsync<ShellResult>(async () => await Run(["add", "-A", "--pathspec-from-file=-", "--pathspec-file-nul"],
+                environment: environment, input: NulSeparated(changed), timeout: 300)))?.Succeeded == true)
+        {
+            var incremental = await Run(["write-tree"], environment: environment);
+            Check(incremental);
+            return incremental.TrimmedOutput;
+        }
+        // :453
+        SwiftTry.Ignore(() => FileOps.RemoveItem(scratch));
+        // :454-458
+        if (await IndexPath() is { } indexPath && (File.Exists(indexPath) || System.IO.Directory.Exists(indexPath)))
+            SwiftTry.Ignore(() => File.Copy(indexPath, scratch));
+        else if (await HasCommits())
+            Check(await Run(["read-tree", "HEAD"], environment: environment));
+        // :459-462
+        Check(await Run(["add", "-A", "--", "."], environment: environment, timeout: 300));
+        var tree = await Run(["write-tree"], environment: environment);
+        Check(tree);
+        return tree.TrimmedOutput;
+    }
+
+    /// <summary>:465-468</summary>
+    private async Task<WorkingTreeWatch?> Watch()
+    {
+        if (await IndexPath() is not { } indexPath) return null;
+        return WorkingTreeWatch.Shared(Directory, SwiftPath.DeletingLastPathComponent(indexPath));
+    }
+
+    /// <summary>
+    /// :470-488 The working tree as a tree object: a cheap before/after marker for a diff, with no commit and nothing
+    /// referenced. Respects .gitignore.
+    /// </summary>
+    public async Task<string> CaptureTree()
+    {
+        // :474. FileManager.temporaryDirectory is GetTempPathW on Windows (ENGINEERING DECISION: the same folder
+        // swift-corelibs-foundation answers). The name keeps upstream's prefix: it is neither shown nor sent (PR-GIT-070).
+        var index = SwiftPath.AppendingPathComponent(System.IO.Path.GetTempPath(),
+            "droppy-code-index-" + SwiftUUID.UuidString(Guid.NewGuid()));
+        try
+        {
+            // :476
+            var environment = new Dictionary<string, string> { ["GIT_INDEX_FILE"] = index };
+            // :478-483 Starting from the real index keeps git's stat cache, so unchanged files are not re-hashed.
+            if (await IndexPath() is { } indexPath && (File.Exists(indexPath) || System.IO.Directory.Exists(indexPath)))
+                SwiftTry.Ignore(() => File.Copy(indexPath, index));
+            else if (await HasCommits())
+                Check(await Run(["read-tree", "HEAD"], environment: environment));
+            // :484-487
+            Check(await Run(["add", "-A", "--", "."], environment: environment, timeout: 300));
+            var tree = await Run(["write-tree"], environment: environment);
+            Check(tree);
+            return tree.TrimmedOutput;
+        }
+        finally
+        {
+            // :475
+            SwiftTry.Ignore(() => FileOps.RemoveItem(index));
+        }
+    }
+
+    /// <summary>
+    /// :490-505 What a worktree's index path was resolved from: its <c>.git</c> file, which names the git directory,
+    /// and the environment overrides git would honour over it.
+    /// </summary>
+    internal sealed record GitFileStamp
+    {
+        /// <summary>
+        /// :493 <c>systemFileNumber</c>. ED-044: the (volume serial, NTFS file index) pair from GetFileInformationByHandle,
+        /// nil when the file cannot be asked or its index is 0.
+        /// </summary>
+        public (uint VolumeSerial, ulong FileIndex)? Identifier { get; }
+
+        public DateTimeOffset? Modified { get; } // :494
+        public long? Size { get; } // :495
+        public string Overrides { get; } // :496
+
+        /// <summary>:498-504</summary>
+        public GitFileStamp(string gitFile, IReadOnlyDictionary<string, string> environment)
+        {
+            var attributes = FileInformation.Read(gitFile);
+            Identifier = attributes is { FileIndex: not 0 } known ? (known.VolumeSerial, known.FileIndex) : null;
+            Modified = attributes?.Modified;
+            Size = attributes?.Size;
+            Overrides = (environment.TryGetValue("GIT_DIR", out var gitDirectory) ? gitDirectory : "") + "\0" +
+                (environment.TryGetValue("GIT_INDEX_FILE", out var indexFile) ? indexFile : "");
+        }
+
+        /// <summary>:492 Equatable, member by member; the String member by Swift's ==.</summary>
+        public bool Equals(GitFileStamp? other) =>
+            other is not null && Identifier == other.Identifier && Modified == other.Modified && Size == other.Size &&
+            SwiftString.Equal(Overrides, other.Overrides);
+
+        public override int GetHashCode() =>
+            HashCode.Combine(Identifier, Modified, Size, SwiftStringComparer.Instance.GetHashCode(Overrides));
+    }
+
+    /// <summary>
+    /// :507-509 Resolved index paths of worktrees by working directory. A session works in a handful of directories;
+    /// past the bound the cache is simply dropped.
+    /// </summary>
+    internal static readonly Mutex<Dictionary<string, (GitFileStamp Stamp, string? Path)>> WorktreeIndexPaths =
+        new(new Dictionary<string, (GitFileStamp Stamp, string? Path)>(SwiftStringComparer.Instance));
+
     /// <summary>
     /// :511-538 The repository's index file. A checkout with its own <c>.git</c> directory keeps it right there, which
-    /// saves the git process that asking would cost on every snapshot. Private in Swift; internal so the tests reach it
-    /// (R-NAME-6).
+    /// saves the git process that asking would cost on every snapshot. A worktree (<c>.git</c> is a file naming the git
+    /// directory) asks once and keeps the answer while that file stands unchanged. A directory inside a repository, with
+    /// no <c>.git</c> of its own, still asks every time. Private in Swift; internal so the tests reach it (R-NAME-6).
     /// </summary>
     internal async Task<string?> IndexPath()
     {
@@ -372,8 +746,51 @@ public sealed record Git
         // :522-524
         if (exists && isDirectory && !environment.ContainsKey("GIT_DIR") && !environment.ContainsKey("GIT_INDEX_FILE"))
             return dotGit + "/index";
-        await Task.CompletedTask;
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Git/Git.swift:525-537");
+        // :525-528
+        var stamp = exists ? new GitFileStamp(dotGit, environment) : null;
+        if (stamp is not null && WorktreeIndexPaths.WithLock((ref Dictionary<string, (GitFileStamp Stamp, string? Path)> paths) =>
+                paths.TryGetValue(Directory, out var entry) ? entry : ((GitFileStamp Stamp, string? Path)?)null) is { } cached
+            && cached.Stamp == stamp)
+            return cached.Path;
+        // :529-530
+        var path = await SwiftTry.OptionalAsync<string>(async () =>
+            (await Output(["rev-parse", "--path-format=absolute", "--git-path", "index"])).Trimmed());
+        // :531-536
+        if (stamp is not null)
+        {
+            WorktreeIndexPaths.WithLock((ref Dictionary<string, (GitFileStamp Stamp, string? Path)> paths) =>
+            {
+                if (paths.Count >= 64) paths.Clear();
+                paths[Directory] = (stamp, path);
+            });
+        }
+        // :537
+        return path;
+    }
+
+    // MARK: - Copies of the checkout
+
+    /// <summary>
+    /// :660-663. DEVIATION OD-0012 F1: "Marrow" / "marrow@localhost" (upstream "Droppy Code" /
+    /// "droppy-code@localhost").
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, string> Identity = new Dictionary<string, string>
+    {
+        ["GIT_AUTHOR_NAME"] = "Marrow", ["GIT_AUTHOR_EMAIL"] = "marrow@localhost",
+        ["GIT_COMMITTER_NAME"] = "Marrow", ["GIT_COMMITTER_EMAIL"] = "marrow@localhost",
+    };
+
+    /// <summary>
+    /// :665-674 A commit of <paramref name="tree"/> on top of HEAD that no ref points at: the checkout as it is,
+    /// uncommitted work included, with the history behind it. Something a worktree can start from.
+    /// </summary>
+    public async Task<string> CommitTree(string tree, string message)
+    {
+        List<string> arguments = ["commit-tree", tree, "-m", message];
+        if (await HasCommits()) arguments.AddRange(["-p", "HEAD"]);
+        var result = await Run(arguments, environment: Identity);
+        Check(result);
+        return result.TrimmedOutput;
     }
 
     /// <summary>:719-722 <c>Substring.value(after:)</c>, a private extension of the file.</summary>
