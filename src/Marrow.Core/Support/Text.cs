@@ -14,8 +14,8 @@ public sealed record AppInfo
 #else
     private const bool DevelopmentBuild = false;
 #endif
-    public static AppInfo Current { get; } = FromAssembly(
-        Assembly.GetEntryAssembly() ?? typeof(AppInfo).Assembly, DevelopmentBuild);
+    public static Ambient<AppInfo> Running { get; } = new(() => FromAssembly(Assembly.GetEntryAssembly() ?? typeof(AppInfo).Assembly, DevelopmentBuild));
+    public static AppInfo Current => Running.Current;
 
     public string Name { get; }
     public string Version { get; }
