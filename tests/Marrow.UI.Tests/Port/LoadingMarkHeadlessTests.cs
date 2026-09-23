@@ -201,7 +201,7 @@ public sealed class LoadingMarkHeadlessTests(HeadlessSession headless)
         Frame(time, frames, .5);
         // icon.svg arm 0 begins at (392.88,217.16). The 210 DIP mark is centred on (500,312.5).
         var arm = Capture(window, 476, 252);
-        Assert.True(arm.B > 140 && arm.B > arm.R, $"arm pixel {arm}");
+        Assert.True(arm.R > 140 && arm.G > 140, $"arm pixel {arm}");
         window.Close();
     });
 
@@ -265,6 +265,49 @@ public sealed class LoadingMarkHeadlessTests(HeadlessSession headless)
         var outside = Capture(window, 512, 745);
         Assert.True(Math.Abs(inside.R - outside.R) <= 6 && Math.Abs(inside.B - outside.B) <= 6,
             $"glow edge inside {inside}, outside {outside}");
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-097")]
+    public void The_tile_has_a_radial_glow_over_its_linear_base_gradient() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var mark = new LoadingMark { Width = 1024, Height = 1024, ReduceMotion = true };
+        var window = new Window { Width = 1024, Height = 1024, Content = mark };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Frame(time, frames, 1);
+        // These points have equal projection on the tile gradient (.8,1) but different distance to the glow centre.
+        var near = Capture(window, 336, 213);
+        var far = Capture(window, 477, 100);
+        var nearLight = near.R + near.G + near.B;
+        var farLight = far.R + far.G + far.B;
+        Assert.True(nearLight > farLight + 6, $"glow near {near}, far {far}");
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-102")]
+    public void The_core_glow_brightens_in_the_frame_after_the_turn_pulse() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var mark = new LoadingMark { Width = 1024, Height = 1024 };
+        var window = new Window { Width = 1024, Height = 1024, Content = mark };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Frame(time, frames, 2.8); // .4 s appearance delay + one 2.4 s turn
+        var resting = Capture(window, 512, 620);
+        Frame(time, frames, .06); // the rise is complete and the glow flashes
+        var flashed = Capture(window, 512, 620);
+        Assert.True(flashed.R + flashed.G + flashed.B > resting.R + resting.G + resting.B + 10,
+            $"resting glow {resting}, flashed glow {flashed}");
         window.Close();
     });
 }
