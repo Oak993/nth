@@ -1197,6 +1197,7 @@ public sealed class CommandCodeAPITests
         // A directory where the file must go: reading it fails (so the bytes "differ") and the atomic write fails.
         Directory.CreateDirectory(Path.Combine(localAppData, "Marrow Code", "CommandCode", "marrow-approvals.ts"));
 
-        Assert.ThrowsAny<Exception>(() => CommandCodeAPI.InstallMod(localAppData));
+        var error = Assert.ThrowsAny<Exception>(() => CommandCodeAPI.InstallMod(localAppData));
+        Assert.IsNotType<NotImplementedException>(error);
     }
 }
