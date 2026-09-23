@@ -5,18 +5,23 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Tests.Fixtures;
 
+// PORT-ONLY test fixture: the headless Avalonia session of R-TEST-7 (ED-082) for Marrow.App.Tests, the same shape as
+// tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs (one HeadlessUnitTestSession per test assembly, held by a
+// collection fixture; xunit 2.9.3, no Avalonia.Headless.XUnit). Skia drawing is on, so a test can read the pixels of
+// a rendered frame (Window.CaptureRenderedFrame).
+
 /// <summary>Headless Avalonia entry point, for HeadlessUnitTestSession.StartNew (R-TEST-7).</summary>
-public sealed class TestApp : Application
+public sealed class AppTestApp : Application
 {
-    public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<TestApp>()
+    public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<AppTestApp>()
         .UseSkia()
         .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
 }
 
-/// <summary>One headless session per test assembly, held by a collection fixture (xunit 2, no Avalonia.Headless.XUnit).</summary>
+/// <summary>One headless session per test assembly, held by a collection fixture.</summary>
 public sealed class HeadlessSession : IDisposable
 {
-    public HeadlessUnitTestSession Session { get; } = HeadlessUnitTestSession.StartNew(typeof(TestApp));
+    public HeadlessUnitTestSession Session { get; } = HeadlessUnitTestSession.StartNew(typeof(AppTestApp));
 
     /// <summary>Runs a test body on the headless UI thread with MainActor bound to Avalonia, and waits for it.</summary>
     public void OnUiThread(Action body) => Session.Dispatch(() =>
