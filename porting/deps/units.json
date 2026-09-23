@@ -3334,23 +3334,13 @@
    ],
    "intra_deps": [],
    "records_total": 3,
-   "records_todo": [
-    "PR-MCP-173",
-    "PR-MCP-174",
-    "PR-PROVCLI-136"
-   ],
-   "parts": [
-    [
-     "PR-MCP-173",
-     "PR-MCP-174",
-     "PR-PROVCLI-136"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-013"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.MCP.MCPStore",
