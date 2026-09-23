@@ -284,3 +284,19 @@ instruction may change one.
   once that is in and verified. The DWM type B frame (one frame, 3 to 9 px of what is behind the window, about 1 resize
   step in 150 to 250 at P4's drag speed) and the one-frame scaled frames are a named deviation in the final report.
   OD-0013 is closed by this decision.
+
+## OD-0018 Loading mark: "Comet", a large boot animation, one pulse per turn
+
+- **Asked:** 2026-09-23, after the owner found the first three motions not premium enough and was shown round 2
+  (`porting/design/loading_mark/loading_premium.html`: A Tide, B Comet, C Glass).
+- **Answers, verbatim:** "I like B. Ship it! I also want the animation to show up large when starting the app, but the
+  animation must come to life in a highly premium way at boot up, like particles flying to form the animation and the
+  animation must smoothly initiate a running state." Then: "although the pulse the central white dot releases must be
+  controlled to trigger once when the spiral comes to a stop. To make it seem that the pulse initiates the spiral."
+- **Effect:** the loading mark of OD-0016 moves as "Comet" (ED-102): one eased turn from rest to rest, trails only at
+  speed, and the core pulses once per turn, exactly when the turn comes to rest, releasing one ring, so the pulse starts
+  the next turn. Every launch opens with a large boot splash: particles in the arms' colours spiral in and form the
+  mark, the core's first pulse sets the first turn going, and the mark runs until the app is ready, then hands over to
+  the main window. The boot splash replaces the 400 ms launch-splash rule of ED-097 (5); the other loading sites keep
+  that rule. An owner-requested deviation, listed with OD-0016 in the final report. Reference previews:
+  `porting/design/loading_mark/boot_splash.html` and `loading_premium.html` (card B).

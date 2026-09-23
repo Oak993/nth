@@ -734,9 +734,9 @@
       "blocked_by": null,
       "depends_on_unknown": null,
       "deviation": {
-        "decision": "OD-0016",
+        "decision": "OD-0018",
         "upstream": "DroppyCode/App/AppDelegate.swift: the main window is shown once the launch prologue has run; nothing is shown before it",
-        "port": "A launch splash with the 96 px loading mark appears if the main window has not been shown 400 ms after process start, and closes when it is (ED-097). The prologue order is unchanged."
+        "port": "Every launch opens with the boot splash of ED-102 (4): particles gather into the loading mark, its first pulse starts the Comet turn, and at the later of \"the app is ready\" and 1.8 s the mark hands over to the main window, which is shown then. The launch prologue keeps its order (PR-LAUNCH-001)."
       }
     },
     {

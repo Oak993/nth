@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marrow boot splash</title>
+<style>
+  :root { --page: #0B0C10; --ink: #F3F5F9; --muted: #8B92A5; --line: #23262F; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: var(--page); color: var(--ink); font-family: "Segoe UI Variable Text", "Segoe UI", Inter, sans-serif; padding: 28px 16px 40px; }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 26px; font-weight: 650; margin: 0 0 6px; letter-spacing: -0.01em; }
+  p.lead { margin: 0 0 20px; color: var(--muted); font-size: 15px; line-height: 1.5; max-width: 700px; }
+  .desk { position: relative; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); height: 560px;
+          display: flex; align-items: center; justify-content: center; transition: background .4s;
+          background: radial-gradient(90% 80% at 20% 10%, #2B2F52 0%, transparent 60%), radial-gradient(80% 70% at 85% 90%, #123C3A 0%, transparent 55%), #0E1016; }
+  .desk.light { background: radial-gradient(90% 80% at 20% 10%, #DCE3FF 0%, transparent 60%), radial-gradient(80% 70% at 85% 90%, #D2F2EA 0%, transparent 55%), #EEF0F5; }
+  canvas { width: 420px; height: 420px; max-width: 100%; aspect-ratio: 1; display: block; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; align-items: center; }
+  button { font: inherit; font-size: 14px; color: var(--ink); background: #1A1D25; border: 1px solid #2C303B; border-radius: 10px; padding: 9px 16px; cursor: pointer; }
+  button:hover { background: #222632; }
+  button:disabled { opacity: .45; cursor: default; }
+  .state { color: var(--muted); font-size: 14px; margin-left: 4px; }
+  ol { color: var(--muted); font-size: 14px; line-height: 1.6; padding-left: 20px; margin: 18px 0 0; }
+  ol b { color: var(--ink); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Marrow boot splash</h1>
+  <p class="lead">The Comet mark, large, at start-up. Particles in the arms' own colours spiral in and settle into the mark, and the core's pulse ignites the first turn. From then on the core pulses once each time a turn comes to rest, as if each pulse drives the next turn. It stays in that loop until the app is ready, then hands over to the main window.</p>
+
+  <div class="desk" id="desk"><canvas id="c" width="840" height="840" aria-label="Marrow is starting"></canvas></div>
+
+  <div class="controls">
+    <button id="replay" type="button">Replay</button>
+    <button id="ready" type="button">App is ready</button>
+    <button id="theme" type="button">Light desktop</button>
+    <span class="state" id="state"></span>
+  </div>
+
+  <ol>
+    <li><b>0 to 1.45 s, gather.</b> 216 particles start around the edge of the splash and spiral inward on eased paths, arm by arm. Each arm fades in as its particles land, and the particles melt into it.</li>
+    <li><b>1.2 to 1.45 s, ignite.</b> The core's particles land and the core draws in for a moment. At 1.45 s it pulses: a flash and one ring of light, and that pulse sets the first turn going. The tile rises in behind from 94 % scale.</li>
+    <li><b>From 1.45 s, running.</b> One eased turn every 2.4 s, from rest to rest. Each time the turn comes to a stop the core draws in and pulses once, releasing one ring, and the pulse starts the next turn. Trails show only at speed.</li>
+    <li><b>Ready.</b> Once the app is ready and the gather has finished, the mark grows 6 % and fades over 0.45 s while the main window appears.</li>
+  </ol>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;                 // backing pixels (2x for crispness)
+  const MARK = 0.5 * W;                   // the mark is half the splash wide
+  const S = MARK / 1024;                  // icon units -> backing pixels
+  const O = (W - MARK) / 2;               // offset of the icon's 1024 box
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---- geometry of the finalized icon (src/Marrow.App/Assets/icon.svg) ----
+  const ARMS = [
+    { p1: [392.88, 217.16], p2: [654.59, 415.82], c0: [0x9C, 0xBB, 0xFF], c1: [0x4F, 0x7D, 0xFF] },
+    { p1: [826.91, 556.26], p2: [524, 683.58],    c0: [0xCB, 0xA6, 0xFF], c1: [0x8A, 0x5C, 0xF6] },
+    { p1: [316.22, 762.59], p2: [357.41, 436.6],  c0: [0x74, 0xF2, 0xD0], c1: [0x2F, 0xC6, 0xA0] },
+  ];
+  const R = 236.58, STROKE = 92, CORE_R = 82, C = 512;
+  // SVG "A r r 0 0 1": the small arc, drawn with positive (clockwise on screen) sweep.
+  for (const a of ARMS) {
+    const [x1, y1] = a.p1, [x2, y2] = a.p2;
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, half = Math.hypot(dx, dy) / 2;
+    const h = Math.sqrt(R * R - half * half), nx = -dy / (2 * half), ny = dx / (2 * half);
+    for (const sgn of [1, -1]) {
+      const cx = mx + sgn * h * nx, cy = my + sgn * h * ny;
+      const s = Math.atan2(y1 - cy, x1 - cx);
+      let d = Math.atan2(y2 - cy, x2 - cx) - s;
+      while (d < 0) d += 2 * Math.PI;
+      if (d < Math.PI) { a.cx = cx; a.cy = cy; a.a0 = s; a.sweep = d; break; }
+    }
+  }
+
+  // ---- easing ----
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const smooth = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0)); return t * t * (3 - 2 * t); };
+  const outCubic = t => 1 - Math.pow(1 - t, 3);
+  const outQuart = t => 1 - Math.pow(1 - t, 4);
+  const outBack = t => { const k = 1.4; return 1 + (k + 1) * Math.pow(t - 1, 3) + k * Math.pow(t - 1, 2); };
+  function bezier(x1, y1, x2, y2) {       // CSS cubic-bezier, solved for x by Newton then bisection
+    const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx, cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+    const X = t => ((ax * t + bx) * t + cx) * t, Y = t => ((ay * t + by) * t + cy) * t, dX = t => (3 * ax * t + 2 * bx) * t + cx;
+    return x => { let t = x; for (let i = 0; i < 6; i++) { const e = X(t) - x, d = dX(t); if (Math.abs(e) < 1e-6 || Math.abs(d) < 1e-6) break; t -= e / d; }
+      let lo = 0, hi = 1; if (Math.abs(X(t) - x) > 1e-4 || t < 0 || t > 1) { t = x; for (let i = 0; i < 30; i++) { if (X(t) < x) lo = t; else hi = t; t = (lo + hi) / 2; } }
+      return Y(t); };
+  }
+  const turnEase = bezier(.45, .05, .55, .95);  // the Comet turn
+  const ringEase = bezier(.2, .6, .3, 1);
+  const beatEase = bezier(.3, 0, .2, 1);
+
+  // ---- timeline (seconds) ----
+  // The core pulses once per turn, at the instant the turn comes to rest, and that pulse starts the next turn.
+  // The first pulse is the ignition: it fires when the gathered mark is complete and sets the first turn going.
+  const IGNITE = 1.45, TURN = 2.4, RING = 1.9, EXIT = 0.45, WIND = 0.28;
+  // ---- particles: sampled along each arm across its stroke, and inside the core ----
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const P = [];
+  ARMS.forEach((a, k) => {
+    for (let i = 0; i < 60; i++) {
+      const u = (i + rnd()) / 60, ang = a.a0 + a.sweep * u, across = (rnd() - .5) * STROKE * .8;
+      const tx = a.cx + Math.cos(ang) * (R + across), ty = a.cy + Math.sin(ang) * (R + across);
+      const col = a.c0.map((v, j) => Math.round(v + (a.c1[j] - v) * u));
+      P.push(makeParticle(tx, ty, col, k, .06 + k * .09 + rnd() * .34, .7 + rnd() * .28));
+    }
+  });
+  for (let i = 0; i < 36; i++) {
+    const r = Math.sqrt(rnd()) * CORE_R * .9, ang = rnd() * Math.PI * 2;
+    P.push(makeParticle(C + Math.cos(ang) * r, C + Math.sin(ang) * r, [236, 242, 255], 3, .5 + rnd() * .22, .6 + rnd() * .15));
+  }
+  function makeParticle(tx, ty, col, group, delay, dur) {
+    const rt = Math.hypot(tx - C, ty - C), at = Math.atan2(ty - C, tx - C);
+    return { tx, ty, col, group, delay, dur, rt, at,
+             rs: 820 + rnd() * 260, as: at - (1.3 + rnd() * .9), size: 9 + rnd() * 11, tw: rnd() * 6.28 };
+  }
+  const landed = (p, t) => clamp((t - p.delay) / p.dur);
+
+  // ---- drawing ----
+  function armPath(a) { ctx.beginPath(); ctx.arc(a.cx, a.cy, R, a.a0, a.a0 + a.sweep); }
+  function drawArms(alphaPerArm, rot, blurPx, alphaMul) {
+    ctx.save();
+    ctx.translate(C, C); ctx.rotate(rot); ctx.translate(-C, -C);
+    if (blurPx) ctx.filter = `blur(${blurPx}px)`;
+    ctx.lineWidth = STROKE; ctx.lineCap = 'round';
+    ARMS.forEach((a, k) => {
+      const al = alphaPerArm[k] * alphaMul; if (al <= 0.001) return;
+      const g = ctx.createLinearGradient(a.p1[0], a.p1[1], a.p2[0], a.p2[1]);
+      g.addColorStop(0, `rgb(${a.c0})`); g.addColorStop(1, `rgb(${a.c1})`);
+      ctx.globalAlpha = al; ctx.strokeStyle = g; armPath(a); ctx.stroke();
+    });
+    ctx.restore();
+  }
+  function drawTile(alpha, scale) {
+    if (alpha <= 0) return;
+    ctx.save(); ctx.globalAlpha = alpha;
+    ctx.translate(C, C); ctx.scale(scale, scale); ctx.translate(-C, -C);
+    ctx.shadowColor = 'rgba(4,8,30,.45)'; ctx.shadowBlur = 110 * S; ctx.shadowOffsetY = 44 * S;
+    ctx.beginPath(); ctx.roundRect(72, 72, 880, 880, 204);
+    const g = ctx.createLinearGradient(72 + 88, 72, 72 + 792, 952);
+    g.addColorStop(0, '#1D2147'); g.addColorStop(.55, '#121529'); g.addColorStop(1, '#0A0C18');
+    ctx.fillStyle = g; ctx.fill();
+    ctx.shadowColor = 'transparent';
+    const rg = ctx.createRadialGradient(72 + 264, 72 + 141, 0, 72 + 264, 72 + 141, 880 * .82);
+    rg.addColorStop(0, 'rgba(147,172,255,.22)'); rg.addColorStop(1, 'rgba(147,172,255,0)');
+    ctx.fillStyle = rg; ctx.fill();
+    const kl = ctx.createLinearGradient(0, 72, 0, 952);
+    kl.addColorStop(0, 'rgba(255,255,255,.22)'); kl.addColorStop(.6, 'rgba(255,255,255,.03)'); kl.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.beginPath(); ctx.roundRect(73.5, 73.5, 877, 877, 202.5); ctx.lineWidth = 3; ctx.strokeStyle = kl; ctx.stroke();
+    ctx.restore();
+  }
+  function drawCore(scale, glowAlpha, glowScale) {
+    const gr = 230 * glowScale;
+    const gg = ctx.createRadialGradient(C, C, 0, C, C, gr);
+    gg.addColorStop(0, `rgba(255,255,255,${clamp(.55 * glowAlpha)})`); gg.addColorStop(.35, `rgba(185,200,255,${clamp(.28 * glowAlpha)})`); gg.addColorStop(1, 'rgba(147,172,255,0)');
+    ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(C, C, gr, 0, Math.PI * 2); ctx.fill();
+    if (scale <= 0.001) return;
+    // icon.svg's core gradient: centre (0.38, 0.32) of the core's box, radius 0.8 of the box, stops 0 / 0.72 / 1.
+    const r = CORE_R * scale, fx = C - r * .24, fy = C - r * .36;
+    const cg = ctx.createRadialGradient(fx, fy, 0, fx, fy, r * 1.6);
+    cg.addColorStop(0, '#FFFFFF'); cg.addColorStop(.72, '#F2F5FF'); cg.addColorStop(1, '#D6DEFB');
+    ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(C, C, r, 0, Math.PI * 2); ctx.fill();
+  }
+  function drawRing(age) {                 // seconds since the pulse that released it
+    if (age < 0 || age >= RING) return;
+    const e = ringEase(age / RING), r = 96 * (1 + 2.6 * e);
+    ctx.save(); ctx.globalAlpha *= .6 * (1 - e); ctx.strokeStyle = '#DCE6FF'; ctx.lineWidth = 6 / S;
+    ctx.beginPath(); ctx.arc(C, C, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  }
+  function drawParticles(t) {
+    for (const p of P) {
+      const raw = (t - p.delay) / p.dur;
+      if (raw <= 0) {                      // waiting at the edge: a faint twinkle
+        const a = smooth(0, .18, t) * .35 * (.6 + .4 * Math.sin(p.tw + t * 9));
+        dot(C + Math.cos(p.as) * p.rs, C + Math.sin(p.as) * p.rs, p.size * .8, p.col, a);
+        continue;
+      }
+      const q = clamp(raw), rr = p.rs + (p.rt - p.rs) * outCubic(q), aa = p.as + (p.at - p.as) * outQuart(q);
+      const fade = raw < 1 ? 1 : 1 - smooth(1, 1.35, raw);   // melt into the stroke after landing
+      if (fade <= 0) continue;
+      dot(C + Math.cos(aa) * rr, C + Math.sin(aa) * rr, p.size * (1 - .45 * q), p.col, fade * (.55 + .45 * smooth(0, .25, q)));
+    }
+  }
+  function dot(x, y, size, col, a) {
+    if (a <= .005) return;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, size * 2.2);
+    g.addColorStop(0, `rgba(255,255,255,${a})`); g.addColorStop(.25, `rgba(${col},${a})`); g.addColorStop(1, `rgba(${col},0)`);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, size * 2.2, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // ---- the running state ----
+  // Pulses fall at IGNITE, IGNITE + TURN, IGNITE + 2 TURN, ... A turn runs from one pulse to the next and eases in and
+  // out, so the mark is at rest exactly when the core pulses, and the pulse is what sets the next turn going.
+  function turnState(t) {
+    if (t < IGNITE) return { rot: 0, speed: 0, last: null, next: IGNITE };
+    const n = Math.floor((t - IGNITE) / TURN), k = (t - IGNITE - n * TURN) / TURN, e = turnEase(k);
+    const speed = (turnEase(Math.min(1, k + .005)) - e) / .005;   // relative angular speed, 0 at each pulse, about 2 mid-turn
+    return { rot: 2 * Math.PI * (n + e), speed, last: IGNITE + n * TURN, next: IGNITE + (n + 1) * TURN };
+  }
+  const landedShare = (group, t) => { const ps = P.filter(p => p.group === group); return ps.reduce((s, p) => s + smooth(.7, 1, landed(p, t)), 0) / ps.length; };
+
+  // ---- the frame ----
+  let start = performance.now(), readyAt = null, frozen = null;
+  function frame(tMs) {
+    const t = frozen ?? (tMs - start) / 1000;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, W);
+    const exitK = readyAt === null ? 0 : clamp((t - readyAt) / EXIT);
+    const master = 1 - smooth(0, 1, exitK), grow = 1 + .06 * outCubic(exitK);
+    ctx.setTransform(S * grow, 0, 0, S * grow, O + (1 - grow) * C * S, O + (1 - grow) * C * S);
+    ctx.globalAlpha = master;
+
+    if (reduce) {                           // reduce motion: the still mark fades in; nothing moves or pulses
+      const a = smooth(0, .3, t) * master;
+      drawTile(a, 1); ctx.globalAlpha = a; drawArms([1, 1, 1], 0, 0, 1); drawCore(1, .6, 1);
+      finish(t, exitK); return;
+    }
+
+    // the tile rises in behind the gathering
+    drawTile(smooth(.55, 1.2, t) * master, .94 + .06 * outBack(clamp((t - .55) / .65)));
+
+    const ts = turnState(t);
+
+    // the ring the last pulse released (a turn is longer than a ring, so only one is ever in the air)
+    ctx.globalAlpha = master;
+    if (ts.last !== null) drawRing(t - ts.last);
+
+    // arms: revealed as their particles land, then turned; trails only at speed
+    const reveal = [0, 1, 2].map(k => smooth(0, 1, landedShare(k, t)));
+    const trail = clamp((ts.speed - .35) / 1.4);
+    if (trail > 0) {
+      drawArms(reveal, ts.rot - 30 * Math.PI / 180, 40 * S, .2 * trail * master);
+      drawArms(reveal, ts.rot - 14 * Math.PI / 180, 20 * S, .42 * trail * master);
+    }
+    drawArms(reveal, ts.rot, 0, master);
+
+    // core: forms as its particles land, draws in before each pulse, and releases on the pulse
+    const base = smooth(0, 1, landedShare(3, t)), wind = smooth(ts.next - WIND, ts.next, t);
+    let scale, glowA, glowS = 1;
+    if (ts.last === null) { scale = base * (1 - .1 * wind); glowA = (.25 + .3 * base) * (1 - .45 * wind); }
+    else {
+      const since = t - ts.last, flash = Math.exp(-since * 7), rise = smooth(0, .06, since);
+      scale = ((1 - rise) * .9 + rise * (1 + .14 * flash)) * (1 - .1 * wind);
+      glowA = .55 * (1 - .45 * wind) + 1.1 * flash * rise; glowS = 1 + .5 * flash * rise;
+    }
+    ctx.globalAlpha = master; drawCore(scale, glowA, glowS);
+
+    // particles on top, melting into the mark
+    ctx.globalAlpha = master; drawParticles(t);
+    finish(t, exitK);
+  }
+  function finish(t, exitK) {
+    document.getElementById('state').textContent = readyAt !== null
+      ? (exitK >= 1 ? 'Handed over to the main window.' : 'Handing over...')
+      : t < IGNITE ? 'Gathering...' : 'Running, waiting for the app.';
+    document.getElementById('ready').disabled = readyAt !== null;
+    if (frozen === null && !(readyAt !== null && exitK >= 1)) requestAnimationFrame(frame);
+  }
+
+  document.getElementById('replay').onclick = () => { start = performance.now(); readyAt = null; requestAnimationFrame(frame); };
+  document.getElementById('ready').onclick = () => {
+    const t = (performance.now() - start) / 1000;
+    readyAt = Math.max(t, IGNITE + .35);    // never cut the gather or the ignition short
+  };
+  document.getElementById('theme').onclick = e => {
+    const d = document.getElementById('desk'); d.classList.toggle('light');
+    e.target.textContent = d.classList.contains('light') ? 'Dark desktop' : 'Light desktop';
+  };
+  // Preview aid: ?t=<seconds> draws that single moment (for checking frames headlessly).
+  const q = new URLSearchParams(location.search).get('t');
+  if (q !== null) frozen = parseFloat(q);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
