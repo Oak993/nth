@@ -4397,7 +4397,12 @@
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:71-85"
       ],
-      "notes": "The label is deliberate: an unnamed spinner in an otherwise empty 640 by 540 pane says nothing. The ellipsis is the single character U+2026."
+      "notes": "The label is deliberate: an unnamed spinner in an otherwise empty 640 by 540 pane says nothing. The ellipsis is the single character U+2026.",
+      "deviation": {
+        "decision": "OD-0016",
+        "upstream": "DroppyCode/App/Views/Diff/DiffInspector.swift:76 `ProgressView(\"Reading the diff…\")`",
+        "port": "The 64 px loading mark replaces the spinner above the same label \"Reading the diff…\", after 400 ms (ED-097)."
+      }
     },
     {
       "id": "UI-GIT-013",
