@@ -13,12 +13,13 @@ namespace Marrow.Services.Tests.Providers;
 // Source: DroppyCode/Services/Providers/OpenAICompatibleSession.swift (B2 1fbf81e), :61-65, :86-97,
 // :114-148, :152-227, :506-800.
 //
-// Part 2 of 5 (PR-PROVAPI-113 to 136): request payload, MCP tool naming, the transport-retry
-// ladder, SSE draining, in-stream error and usage parsing, and tool-call accumulation. Drives the
-// real, non-seamed StreamOneRound/PerformStream against FakeUpstreamServer (R-TEST-10: a loopback
-// server, not a mock). PR-PROVAPI-113..117 (Stop, ResolveApproval, AnswerQuestion, Compact,
-// ReportUsage) were already implemented and are not retested here: see
-// OpenAICompatibleSessionTests for those and for the seam this part's tests do not use.
+// Part 2 of 5 (PR-PROVAPI-113 to 136): Stop/ResolveApproval/AnswerQuestion/Compact/ReportUsage
+// (:437-502), request payload, MCP tool naming, the transport-retry ladder, SSE draining, in-stream
+// error and usage parsing, and tool-call accumulation. Most of this part drives the real,
+// non-seamed StreamOneRound/PerformStream against FakeUpstreamServer (R-TEST-10: a loopback
+// server, not a mock); the transport-retry ladder (PR-PROVAPI-121, 122, 123) instead uses
+// OpenAICompatibleSessionRetryLadderSeam, which scripts a single attempt's outcome, so the ladder
+// is testable deterministically over TestRuntime's manual clock without a live dropped connection.
 public sealed class OpenAICompatibleSessionSecondTests
 {
     private static OpenAICompatibleSession.Config MakeConfig(Uri chatUrl) => new()
@@ -32,12 +33,12 @@ public sealed class OpenAICompatibleSessionSecondTests
         IsVisionModel = _ => false,
     };
 
-    private static SessionConfiguration MakeSessionConfiguration(string? apiKey = "sk-test") => new()
+    private static SessionConfiguration MakeSessionConfiguration(string? apiKey = "sk-test", RuntimeMode runtimeMode = RuntimeMode.FullAccess) => new()
     {
         Provider = ProviderKind.Deepseek,
         WorkingDirectory = SwiftURL.Create("file:///C:/work")!,
         Environment = ValueMap<string, string>.Empty,
-        RuntimeMode = RuntimeMode.FullAccess,
+        RuntimeMode = runtimeMode,
         InteractionMode = InteractionMode.Build,
         ApiKey = apiKey,
         Transcript = ValueList<TranscriptMessage>.Empty,
@@ -434,5 +435,305 @@ public sealed class OpenAICompatibleSessionSecondTests
         var body = JSONValue.Parse(seen!.Body)!;
         var roles = body["messages"]!.JSONValueArray!.Select(m => m["role"]!.JSONValueString).ToList();
         Assert.DoesNotContain("tool", roles); // the orphan was dropped by SanitizeHistory, never sent
+    }
+
+    // ---- PR-PROVAPI-113 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-113")] // OpenAICompatibleSession.swift:471-482
+    public async Task Stop_declines_every_pending_approval_and_clears_the_session_id()
+    {
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri("http://127.0.0.1:1/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        await session.Start();
+        Assert.True(session.IsRunning);
+        var pendingA = session.RegisterPendingApprovalForTests("a");
+        var pendingB = session.RegisterPendingApprovalForTests("b");
+
+        session.Stop();
+
+        Assert.False(await pendingA); // :479 every pending approval resumes false
+        Assert.False(await pendingB);
+        Assert.False(session.IsRunning); // :481 sessionID cleared
+        var error = await Assert.ThrowsAsync<ProviderError>(() => session.Send(MakeTurn()));
+        Assert.Equal("The agent session is not running.", error.Message); // :286
+    }
+
+    // ---- PR-PROVAPI-114 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-114")] // OpenAICompatibleSession.swift:448-453
+    public async Task ResolveApproval_maps_allow_and_always_to_true_and_anything_else_to_false()
+    {
+        var session = new OpenAICompatibleSessionCapturingSeam(
+            MakeConfig(new Uri("http://127.0.0.1:1/v1/chat/completions")),
+            MakeSessionConfiguration(runtimeMode: RuntimeMode.Supervised)).Wired();
+
+        var allow = session.RegisterPendingApprovalForTests("req-allow");
+        session.ResolveApproval("req-allow", "allow");
+        Assert.True(await allow);
+        Assert.Contains(session.Events, e => e is ProviderEvent.RequestResolved r && r.Id == "req-allow"); // :452
+
+        var decline = session.RegisterPendingApprovalForTests("req-decline");
+        session.ResolveApproval("req-decline", "decline");
+        Assert.False(await decline);
+
+        // "always" approves this call and sets approveAllRemaining, :450, so a later requiresApproval
+        // check (already proven elsewhere) flips from true to false.
+        Assert.True(session.RequiresApprovalForTests(ToolCall.Kind.Command));
+        var always = session.RegisterPendingApprovalForTests("req-always");
+        session.ResolveApproval("req-always", "always");
+        Assert.True(await always);
+        Assert.False(session.RequiresApprovalForTests(ToolCall.Kind.Command)); // :450 approveAllRemaining now true
+
+        // An unknown request id: no continuation to resume, no event, no throw. :449
+        var eventsBefore = session.Events.Count;
+        session.ResolveApproval("no-such-id", "allow");
+        Assert.Equal(eventsBefore, session.Events.Count);
+    }
+
+    // ---- PR-PROVAPI-115 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-115")] // OpenAICompatibleSession.swift:455
+    public void AnswerQuestion_does_nothing()
+    {
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri("http://127.0.0.1:1/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        session.AnswerQuestion("whatever", ValueMap<string, ValueList<string>>.Empty); // :455, empty body
+        Assert.Empty(session.Events);
+    }
+
+    // ---- PR-PROVAPI-116 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-116")] // OpenAICompatibleSession.swift:457-462 - 12 or fewer messages: nothing to compact
+    public async Task Compact_with_12_or_fewer_messages_emits_nothing_to_compact_yet_and_leaves_history_untouched()
+    {
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri("http://127.0.0.1:1/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var seeded = Enumerable.Range(0, 12).Select(i => JSONValue.FromDictionaryLiteral(("role", "user"), ("content", $"m{i}"))).ToList();
+        session.SetMessagesForTests(seeded);
+
+        await session.Compact();
+
+        var notice = Assert.Single(session.Events.OfType<ProviderEvent.Notice>());
+        Assert.Equal(Notice.Level.Info, notice.Value.NoticeLevel);
+        Assert.Equal("Nothing to compact yet.", notice.Value.Message); // :460
+        Assert.Equal(12, session.Messages.Count); // unchanged
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-116")] // OpenAICompatibleSession.swift:463-468 - more than 12: system message plus the last 10
+    public async Task Compact_with_more_than_12_messages_keeps_the_system_message_and_the_last_ten()
+    {
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri("http://127.0.0.1:1/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var system = JSONValue.FromDictionaryLiteral(("role", "system"), ("content", "sys"));
+        var body = Enumerable.Range(0, 15).Select(i => JSONValue.FromDictionaryLiteral(("role", "user"), ("content", $"m{i}"))).ToList();
+        session.SetMessagesForTests(new List<JSONValue> { system }.Concat(body));
+
+        await session.Compact();
+
+        Assert.Equal(11, session.Messages.Count); // :464-465 system + last 10
+        Assert.Equal("sys", session.Messages[0]["content"]!.JSONValueString);
+        for (var i = 0; i < 10; i++)
+            Assert.Equal($"m{5 + i}", session.Messages[i + 1]["content"]!.JSONValueString);
+        var notice = Assert.Single(session.Events.OfType<ProviderEvent.Notice>());
+        Assert.Equal(Notice.Level.Info, notice.Value.NoticeLevel);
+        Assert.Equal("Context compacted.", notice.Value.Message); // :468
+    }
+
+    // ---- PR-PROVAPI-117 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-117")] // OpenAICompatibleSession.swift:488-493 - usage reports the context event and records the ledger
+    public void ReportUsage_with_a_usage_object_emits_a_usage_event()
+    {
+        using var runtime = new TestRuntime();
+        // TokenLedger.Shared is a process-wide lazy singleton (Store/TokenLedger.cs:56) whose
+        // constructor reads Storage.Locations; bind it first so a run where this is the very first
+        // touch of the ledger in the process does not poison the singleton for every later test.
+        using var scratch = new StorageScratchFolder();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri("http://127.0.0.1:1/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var round = new OpenAICompatibleSession.StreamRound { Usage = new ContextUsage { UsedTokens = 500, WindowTokens = 64_000 } };
+
+        runtime.OnMain(() => session.ReportUsageForTests(round));
+
+        var usage = Assert.Single(session.Events.OfType<ProviderEvent.Usage>());
+        Assert.Equal(500, usage.Value.UsedTokens); // :490
+        Assert.Equal(64_000, usage.Value.WindowTokens);
+        Assert.Empty(session.Events.OfType<ProviderEvent.TokenSpend>()); // no reported token usage: nothing to spend
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-117")] // OpenAICompatibleSession.swift:493-501 - a reported usage with spend emits tokenSpend
+    public void ReportUsage_with_spend_emits_a_tokenSpend_event_carrying_provider_and_all_four_counts()
+    {
+        using var runtime = new TestRuntime();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri("http://127.0.0.1:1/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var round = new OpenAICompatibleSession.StreamRound
+        {
+            TokenUsage = new OpenAICompatibleSession.ReportedTokenUsage { Total = 100, Input = 60, Output = 40, CachedInput = 10 },
+        };
+
+        runtime.OnMain(() => session.ReportUsageForTests(round));
+
+        var spend = Assert.Single(session.Events.OfType<ProviderEvent.TokenSpend>());
+        Assert.Equal(ProviderKind.Deepseek, spend.Value.Provider); // :495
+        Assert.Equal(100, spend.Value.TotalTokens);
+        Assert.Equal(60, spend.Value.InputTokens);
+        Assert.Equal(40, spend.Value.OutputTokens);
+        Assert.Equal(10, spend.Value.CachedInputTokens);
+        Assert.Equal("deepseek-chat", spend.Value.Model); // :500, currentModel defaults to config.DefaultModel
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-117")] // OpenAICompatibleSession.swift:122 - an all-zero usage object produces no tokenSpend event
+    public void ReportUsage_with_an_all_zero_token_usage_emits_no_tokenSpend_event()
+    {
+        using var runtime = new TestRuntime();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri("http://127.0.0.1:1/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var round = new OpenAICompatibleSession.StreamRound
+        {
+            TokenUsage = new OpenAICompatibleSession.ReportedTokenUsage { Total = 0, Input = 0, Output = 0, CachedInput = 0 },
+        };
+
+        runtime.OnMain(() => session.ReportUsageForTests(round));
+
+        Assert.Empty(session.Events.OfType<ProviderEvent.TokenSpend>()); // hasSpend false
+        Assert.Empty(session.Events.OfType<ProviderEvent.Usage>()); // round.Usage was null
+    }
+
+    // ---- PR-PROVAPI-121, PR-PROVAPI-122, PR-PROVAPI-123 ----
+
+    private static OpenAICompatibleSessionRetryLadderSeam MakeRetrySession() =>
+        new OpenAICompatibleSessionRetryLadderSeam(MakeConfig(new Uri("http://127.0.0.1:1/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-121")] // OpenAICompatibleSession.swift:86-97, :516-552 - retried twice, after exactly 1s then 2s
+    [Trait("Req", "PR-PROVAPI-123")] // OpenAICompatibleSession.swift:541-543 - retries exhausted after 3 attempts
+    public void Transport_retries_are_spaced_exactly_1s_then_2s_and_stop_after_the_third_attempt()
+    {
+        using var runtime = new TestRuntime();
+        var session = MakeRetrySession();
+        session.Results.Enqueue(() => throw new OpenAICompatibleSession.StreamAttemptFailure(new URLError(URLError.Code.NetworkConnectionLost), false));
+        session.Results.Enqueue(() => throw new OpenAICompatibleSession.StreamAttemptFailure(new URLError(URLError.Code.TimedOut), false));
+        session.Results.Enqueue(() => throw new OpenAICompatibleSession.StreamAttemptFailure(new URLError(URLError.Code.CannotConnectToHost), false));
+
+        Task<OpenAICompatibleSession.StreamRound>? task = null;
+        runtime.Loop.Enqueue(() => task = session.StreamOneRoundForTests("deepseek-chat", null, false));
+        runtime.Loop.RunUntilIdle();
+        Assert.Equal(1, session.AttemptCount);
+
+        runtime.Advance(TimeSpan.FromMilliseconds(999));
+        Assert.Equal(1, session.AttemptCount); // not yet a full second
+        runtime.Advance(TimeSpan.FromMilliseconds(1));
+        Assert.Equal(2, session.AttemptCount); // retried after exactly 1s, :550-551
+
+        runtime.Advance(TimeSpan.FromMilliseconds(1999));
+        Assert.Equal(2, session.AttemptCount); // not yet two more seconds
+        runtime.Advance(TimeSpan.FromMilliseconds(1));
+        Assert.Equal(3, session.AttemptCount); // retried after exactly 2 more seconds
+
+        runtime.Advance(TimeSpan.FromSeconds(10));
+        Assert.Equal(3, session.AttemptCount); // :541 attempt >= maxTransportRetries(2): no fourth attempt
+        Assert.True(task!.IsCompleted);
+        Assert.True(task.IsFaulted); // exhausted after 3 attempts total, :542
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-121")] // OpenAICompatibleSession.swift:91-97 - only the three named transport codes are retried
+    public void A_non_transient_failure_is_never_retried()
+    {
+        using var runtime = new TestRuntime();
+        var session = MakeRetrySession();
+        session.Results.Enqueue(() => throw new OpenAICompatibleSession.StreamAttemptFailure(new URLError(URLError.Code.BadServerResponse), false));
+
+        Task<OpenAICompatibleSession.StreamRound>? task = null;
+        runtime.Loop.Enqueue(() => task = session.StreamOneRoundForTests("deepseek-chat", null, false));
+        runtime.Loop.RunUntilIdle();
+
+        Assert.Equal(1, session.AttemptCount); // :540 rethrown as-is, no retry spent
+        Assert.True(task!.IsCompleted);
+        Assert.True(task.IsFaulted);
+        var thrown = Assert.IsType<AggregateException>(task.Exception).InnerException;
+        var urlError = Assert.IsType<URLError>(thrown);
+        Assert.Equal(URLError.Code.BadServerResponse, urlError.URLErrorCode);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-122")] // OpenAICompatibleSession.swift:544-549
+    public async Task A_retry_after_partial_output_warns_that_the_reply_was_cut_off()
+    {
+        using var runtime = new TestRuntime();
+        var session = MakeRetrySession();
+        session.Results.Enqueue(() => throw new OpenAICompatibleSession.StreamAttemptFailure(new URLError(URLError.Code.NetworkConnectionLost), true)); // emittedOutput
+        session.Results.Enqueue(() => new OpenAICompatibleSession.StreamRound { Content = "resumed" });
+
+        Task<OpenAICompatibleSession.StreamRound>? task = null;
+        runtime.Loop.Enqueue(() => task = session.StreamOneRoundForTests("deepseek-chat", null, false));
+        runtime.Loop.RunUntilIdle();
+        runtime.Advance(TimeSpan.FromSeconds(1));
+
+        var notice = Assert.Single(session.Events.OfType<ProviderEvent.Notice>());
+        Assert.Equal(Notice.Level.Warning, notice.Value.NoticeLevel); // :548
+        Assert.Equal("DeepSeek lost the connection while answering. That reply was cut off, and this response is restarting.", notice.Value.Message);
+        Assert.True(task!.IsCompletedSuccessfully);
+        Assert.Equal("resumed", (await task).Content);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-122")] // OpenAICompatibleSession.swift:547 - no output shown yet: no warning
+    public void A_retry_before_any_output_was_shown_emits_no_warning()
+    {
+        using var runtime = new TestRuntime();
+        var session = MakeRetrySession();
+        session.Results.Enqueue(() => throw new OpenAICompatibleSession.StreamAttemptFailure(new URLError(URLError.Code.NetworkConnectionLost), false)); // not emittedOutput
+        session.Results.Enqueue(() => new OpenAICompatibleSession.StreamRound { Content = "ok" });
+
+        Task<OpenAICompatibleSession.StreamRound>? task = null;
+        runtime.Loop.Enqueue(() => task = session.StreamOneRoundForTests("deepseek-chat", null, false));
+        runtime.Loop.RunUntilIdle();
+        runtime.Advance(TimeSpan.FromSeconds(1));
+
+        Assert.Empty(session.Events.OfType<ProviderEvent.Notice>());
+        Assert.True(task!.IsCompletedSuccessfully);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-123")] // OpenAICompatibleSession.swift:562-567 - attempt count and the transport's own reason in parentheses
+    public void TerminalTransportMessage_reports_the_attempt_count_and_the_reason_in_parentheses()
+    {
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri("http://127.0.0.1:1/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+
+        var message = session.TerminalTransportMessageForTests(new FakeTransportReasonError("The Internet connection appears to be offline."));
+
+        Assert.Equal(
+            "DeepSeek could not reach the network after 3 attempts. Check the connection, then try again. (The Internet connection appears to be offline.)",
+            message); // :565-567, attempts = maxTransportRetries(2) + 1
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-123")] // OpenAICompatibleSession.swift:566 - an empty reason omits the parenthesis entirely
+    public void TerminalTransportMessage_omits_the_parenthesis_when_the_reason_is_empty()
+    {
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri("http://127.0.0.1:1/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+
+        var message = session.TerminalTransportMessageForTests(new FakeTransportReasonError(""));
+
+        Assert.Equal("DeepSeek could not reach the network after 3 attempts. Check the connection, then try again.", message);
+    }
+
+    // ---- PR-PROVAPI-136 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-136")] // OpenAICompatibleSession.swift:695-698
+    public void A_transport_failure_that_follows_an_in_stream_error_reports_the_stream_error_instead()
+    {
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri("http://127.0.0.1:1/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+
+        var result = session.TransportErrorFailureForTests(
+            new URLError(URLError.Code.NetworkConnectionLost), streamError: "rate limited", content: "", sawContent: false, sawReasoning: false, statusCode: 200);
+
+        var providerError = Assert.IsType<ProviderError>(result); // :697, not a StreamAttemptFailure: not retried
+        var failed = Assert.IsType<ProviderError.Case.Failed>(providerError.ErrorCase);
+        Assert.Equal(session.FriendlyError("rate limited", 200), failed.Message);
     }
 }
