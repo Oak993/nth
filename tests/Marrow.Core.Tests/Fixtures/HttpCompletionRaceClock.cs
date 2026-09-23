@@ -1,4 +1,4 @@
-namespace Marrow.Services.Tests.Fixtures;
+namespace Marrow.Core.Tests.Fixtures;
 
 /// <summary>Holds the first timer's disposal so a cancellation callback can contend for Exchange's gate.</summary>
 internal sealed class HttpCompletionRaceClock : TimeProvider
