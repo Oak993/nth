@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using Marrow.Core.Port;
 using Marrow.Core.Tests.Fixtures;
 
@@ -20,7 +22,10 @@ namespace Marrow.Core.Tests.Port;
 //       QuoteArgument; tokens are joined by one space.
 //   static string ProcessLauncher.BuildEnvironmentBlock(IReadOnlyDictionary<string, string> environment)
 //       "KEY=VALUE" + NUL per entry, sorted by name as CreateProcessW requires, then one more NUL.
-//   static string? ProcessLauncher.Which(string name, string path, string pathExt)       ED-031
+//   static string? ProcessLauncher.Which(string name, string path, string pathExt, string? home = null)   ED-031
+//       Shell.swift:415-427 with ED-031's Windows rules. `home` is the folder `(name as NSString)
+//       .expandingTildeInPath` (Shell.swift:418) puts in place of a leading "~"; null means the user's own home
+//       folder. The seam exists so a test never touches the user's profile (R-TEST-9).
 //   static bool ProcessLauncher.IsWindowsCommandInterpreter(string path)                  PA-0016, ED-020
 //   sealed class CommandLineTooLongException : Exception, with int Length                 ED-024 (3)
 // The rest of the surface (the launcher instance, ProcessPipe, IProcessControl, TerminationLadder) is described in
@@ -149,6 +154,65 @@ public sealed class ProcessLauncherTests
         Assert.Equal(32_767, Assert.Throws<CommandLineTooLongException>(launcher.Run).Length);
     }
 
+    [Fact]
+    [Trait("Rule", "R-PROC-3")]
+    [Trait("Decision", "ED-024")]
+    public void The_limit_counts_UTF16_code_units_not_UTF8_bytes_so_32766_accented_letters_still_spawn()
+    {
+        // U+00E9 is one UTF-16 unit but two UTF-8 bytes: a port that measures UTF-8 bytes would refuse this line.
+        var folder = ProcessTestFolders.Create("limit bmp");
+        var arguments = ArgumentsFilling(SystemTools.Where, 32_766, astralCharacters: 0, filler: (char)0x00E9); // U+00E9 LATIN SMALL LETTER E WITH ACUTE
+        var line = ProcessLauncher.BuildCommandLine(SystemTools.Where, arguments);
+        Assert.Equal(32_766, line.Length);
+        Assert.True(System.Text.Encoding.UTF8.GetByteCount(line) > 32_767); // the control: bytes would exceed the limit
+        var launcher = new ProcessLauncher { ExecutableURL = SystemTools.Where, Arguments = arguments, CurrentDirectoryURL = folder };
+        launcher.Run();
+        launcher.WaitUntilExit();
+        Assert.False(launcher.IsRunning);
+    }
+
+    // ED-024 (3) and R-PROC-3: "the ASSEMBLED command line is measured". The two cases below carry a JSON token shaped
+    // like the real one (ClaudeSession.swift:108 `arguments += ["--agents", HydraPrompts.claudeAgents(hydra)
+    // .compactString]`: compact JSONSerialization output, JSONValue.swift:60, so quotes, spaces, `\"` and `\n`
+    // inside strings). Quoting adds characters, so the quoted line reaches the limit while the raw argv, summed with
+    // one separator per token, is 16 characters shorter: a port that measures the raw argv lets the first case
+    // through to CreateProcessW (error 206) instead of failing with its own error.
+
+    [Fact]
+    [Trait("Rule", "R-PROC-3")]
+    [Trait("Decision", "ED-024")]
+    public void A_JSON_token_whose_quoted_command_line_is_32767_characters_fails_although_its_raw_argv_is_shorter()
+    {
+        var folder = ProcessTestFolders.Create("limit json over");
+        var arguments = AgentsArgumentsFilling(SystemTools.Where, 32_767);
+        Assert.Equal(32_767, ProcessLauncher.BuildCommandLine(SystemTools.Where, arguments).Length);
+        Assert.Equal(32_751, string.Join(' ', [SystemTools.Where, .. arguments]).Length);
+        var launcher = new ProcessLauncher { ExecutableURL = SystemTools.Where, Arguments = arguments, CurrentDirectoryURL = folder };
+        var handled = 0;
+        launcher.TerminationHandler = _ => Interlocked.Increment(ref handled);
+        var error = Assert.Throws<CommandLineTooLongException>(launcher.Run);
+        Assert.Equal(32_767, error.Length);
+        Assert.False(launcher.IsRunning);
+        Assert.Equal(0, Volatile.Read(ref handled));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PROC-3")]
+    [Trait("Decision", "ED-024")]
+    public void A_JSON_token_whose_quoted_command_line_is_32766_characters_is_spawned_whole()
+    {
+        var folder = ProcessTestFolders.Create("limit json at");
+        var arguments = AgentsArgumentsFilling(SystemTools.Where, 32_766);
+        var line = ProcessLauncher.BuildCommandLine(SystemTools.Where, arguments);
+        Assert.Equal(32_766, line.Length);
+        string[] expected = [SystemTools.Where, .. arguments];
+        Assert.Equal(expected, WindowsCommandLine.Parse(line)); // and it is the argv, byte for byte
+        var launcher = new ProcessLauncher { ExecutableURL = SystemTools.Where, Arguments = arguments, CurrentDirectoryURL = folder };
+        launcher.Run();
+        launcher.WaitUntilExit();
+        Assert.False(launcher.IsRunning);
+    }
+
     // ---- The environment block (R-PROC-1, PA-0009) --------------------------------------------------------------
     // `process.environment = env` replaces the whole environment (Shell.swift:49, StdioProcess.swift:41). The block
     // is sorted by NAME, case-insensitively in ordinal (upper-cased) order, as CreateProcessW documents; each entry is
@@ -189,11 +253,30 @@ public sealed class ProcessLauncherTests
     public void Names_that_differ_only_in_case_give_one_entry_in_the_block()
     {
         // Windows names are case-insensitive; a Swift [String: String] can hold both spellings. R-PROC-1: keys are
-        // compared OrdinalIgnoreCase. Which spelling and value survive is not asserted here (reported as open).
+        // compared OrdinalIgnoreCase. This test holds only what every reading agrees on: one entry. Which spelling
+        // and which value survive is the open item of the next test.
         var environment = new Dictionary<string, string>(StringComparer.Ordinal) { ["Path"] = "C:\\one", ["PATH"] = "C:\\two", ["X"] = "1" };
         var entries = ProcessLauncher.BuildEnvironmentBlock(environment).Split('\0');
         Assert.Single(entries, e => e.StartsWith("path=", StringComparison.OrdinalIgnoreCase));
         Assert.Contains("X=1", entries);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PROC-1")]
+    [Trait("Oracle", "O-25")]
+    public void A_name_set_again_in_another_case_keeps_the_inherited_spelling_and_takes_the_later_value()
+    {
+        // UNVERIFIED O-25 (proposed here, STOP F.ProcessLauncher #3; the orchestrator records or renumbers it).
+        // MCPHub.swift:329-330: `var environment = LoginEnvironment.current; for (key, value) in env
+        // { environment[key] = value }`. On macOS a user's `PATH` beside an inherited `Path` are two variables and
+        // the child sees both; on Windows one must go. R-PROC-1 says "keeping the first spelling", but "first" has
+        // no meaning for an unordered Swift Dictionary, and no rule says whose VALUE survives. Parked choice: the
+        // spelling that entered the dictionary first (the inherited one, as Windows keeps the existing spelling when
+        // SetEnvironmentVariable sets a name again in another case) and the value assigned later (the override,
+        // which is what the loop at MCPHub.swift:330 is for). The dictionary is built in that order here.
+        var environment = new Dictionary<string, string>(StringComparer.Ordinal) { ["Path"] = "C:\\inherited", ["X"] = "1" };
+        environment["PATH"] = "C:\\override";
+        Assert.Equal("Path=C:\\override\0X=1\0\0", ProcessLauncher.BuildEnvironmentBlock(environment));
     }
 
     // ---- Executable lookup (ED-031, PA-0010) -----------------------------------------------------------------
@@ -277,15 +360,132 @@ public sealed class ProcessLauncherTests
         Assert.Null(ProcessLauncher.Which(Path.Join(elsewhere, "absent.exe"), onPath, ".exe"));
     }
 
+    [Fact]
+    [Trait("Rule", "R-PROC-1")]
+    [Trait("Decision", "ED-031")]
+    public void Which_skips_a_directory_that_carries_the_tools_name_and_takes_the_file_in_a_later_PATH_entry()
+    {
+        // ED-031 (2): "the file exists and its extension is in PATHEXT"; R-FS-1: fileExists(atPath:) is also true
+        // for a directory, so a bare existence test would stop at the first entry. (Reported: Darwin's
+        // isExecutableFile, Shell.swift:424, is true for a searchable directory; this follows ED-031's wording.)
+        var first = ProcessTestFolders.Create("which dir first");
+        var second = ProcessTestFolders.Create("which dir second");
+        Directory.CreateDirectory(Path.Join(first, "tool.exe"));
+        var file = ProcessTestFolders.Touch(second, "tool.exe");
+        Assert.Equal(file, ProcessLauncher.Which("tool", first + ";" + second, ".exe"));
+        Assert.Equal(file, ProcessLauncher.Which("tool.exe", first + ";" + second, ".exe"));
+        Assert.Null(ProcessLauncher.Which("tool", first, ".exe"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PROC-1")]
+    [Trait("Decision", "ED-031")]
+    public void Which_given_a_path_rejects_a_file_whose_extension_is_not_in_PATHEXT()
+    {
+        // Shell.swift:419 `isExecutableFile(atPath: path) ? ... : nil`; ED-031 (2) replaces the execute bit with
+        // the PATHEXT test on this branch too. Only files without a PATHEXT extension exist here.
+        var folder = ProcessTestFolders.Create("which direct ext");
+        var bare = ProcessTestFolders.Touch(folder, "tool");
+        var text = ProcessTestFolders.Touch(folder, "tool.txt");
+        Assert.Null(ProcessLauncher.Which(bare, folder, ".com;.exe;.bat;.cmd"));
+        Assert.Null(ProcessLauncher.Which(text, folder, ".com;.exe;.bat;.cmd"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PROC-1")]
+    [Trait("Decision", "ED-031")]
+    public void Which_expands_a_leading_tilde_to_the_home_folder_and_never_searches_PATH_for_it()
+    {
+        // Shell.swift:417-419: a name with "/" is `(name as NSString).expandingTildeInPath`, then tested itself.
+        // The home folder comes through the seam (R-TEST-9: never the user's profile).
+        var home = ProcessTestFolders.Create("which home");
+        var onPath = ProcessTestFolders.Create("which tilde path");
+        ProcessTestFolders.Touch(onPath, "tool.exe");
+        Directory.CreateDirectory(Path.Join(home, "bin"));
+        var inHome = ProcessTestFolders.Touch(Path.Join(home, "bin"), "tool.exe");
+        var found = ProcessLauncher.Which("~/bin/tool.exe", onPath, ".exe", home);
+        Assert.NotNull(found);
+        Assert.Equal(inHome, Path.GetFullPath(found));
+        Assert.Null(ProcessLauncher.Which("~/bin/absent.exe", onPath, ".exe", home));
+        Assert.Null(ProcessLauncher.Which("~/tool.exe", onPath, ".exe", home)); // PATH has tool.exe; it is not asked
+    }
+
+    [Fact]
+    [Trait("Rule", "R-PROC-1")]
+    [Trait("Decision", "ED-031")]
+    public void Which_takes_a_drive_qualified_or_UNC_name_as_a_path_and_never_searches_PATH_for_it()
+    {
+        // ED-031 (3): "contains / or \, or is drive-qualified or UNC", so it bypasses PATH. `X:name` is relative to
+        // the current folder of drive X; no such file exists there (the name is unique), while PATH has it.
+        var onPath = ProcessTestFolders.Create("which drive");
+        var name = "marrow-which-" + Guid.NewGuid().ToString("N") + ".exe";
+        ProcessTestFolders.Touch(onPath, name);
+        Assert.Equal(Path.Join(onPath, name), ProcessLauncher.Which(name, onPath, ".exe")); // the control: PATH has it
+        var drive = Path.GetPathRoot(onPath)![..2]; // "C:"
+        Assert.Null(ProcessLauncher.Which(drive + name, onPath, ".exe"));
+        Assert.Null(ProcessLauncher.Which("\\\\localhost\\marrow-no-share-" + Guid.NewGuid().ToString("N") + "\\" + name, onPath, ".exe"));
+    }
+
     // ---- The Windows command interpreter is never a provider (PA-0016, ED-020) --------------------------------
 
     [Fact]
     [Trait("Decision", "ED-020")]
     public void The_system_command_interpreter_is_recognised_so_Command_Code_is_not_reported_installed()
     {
-        // Provider.swift:51 executableName "cmd"; on Windows PATH finds %SystemRoot%\System32\cmd.exe first. Both
-        // PA-0016 (step 3, the canonical path) and ED-020 (a directory under %SystemRoot%) reject it.
+        // Provider.swift:54 executableName "cmd", resolved by ProviderRegistry.swift:243 `for name in
+        // ["command-code", "commandcode", "cmd"] { if let found = LoginEnvironment.which(name) ... }`; on Windows
+        // PATH finds %SystemRoot%\System32\cmd.exe. Both PA-0016 (step 3, the canonical path) and ED-020 (a
+        // directory under %SystemRoot%) reject it. (ED-020 and PA-0016 cite the B1 lines :51 and :240.)
         Assert.True(ProcessLauncher.IsWindowsCommandInterpreter(SystemTools.Interpreter));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-020")]
+    public void The_32_bit_interpreter_in_SysWOW64_is_recognised_too()
+    {
+        // PA-0016 step 3: "%SystemRoot%\System32\cmd.exe and %SystemRoot%\SysWOW64\cmd.exe outright"; ED-020:
+        // "under %SystemRoot% (System32 or SysWOW64)".
+        Assert.True(File.Exists(SystemTools.InterpreterWow64));
+        Assert.True(ProcessLauncher.IsWindowsCommandInterpreter(SystemTools.InterpreterWow64));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-020")]
+    public void The_canonical_path_is_recognised_in_any_letter_case()
+    {
+        // Windows paths are case-insensitive; PATH entries come in any case (this machine's SystemDirectory is
+        // "C:\WINDOWS\system32").
+        Assert.True(ProcessLauncher.IsWindowsCommandInterpreter(SystemTools.Interpreter.ToUpperInvariant()));
+        Assert.True(ProcessLauncher.IsWindowsCommandInterpreter(SystemTools.Interpreter.ToLowerInvariant()));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-020")]
+    public void A_byte_copy_of_the_interpreter_placed_outside_the_system_folder_is_still_recognised()
+    {
+        // PA-0016 step 2 rejects on the version resource: "Rejecting on the version resource rather than on the
+        // literal path also covers a copy of cmd.exe placed elsewhere on PATH." Measured on this machine
+        // 2026-09-23 (FileVersionInfo): the copy reads CompanyName "Microsoft Corporation", FileDescription
+        // "Windows Command Processor", OriginalFilename "Cmd.Exe" (the System32 original reads "Cmd.Exe.MUI").
+        // A port that checks only paths fails here.
+        var folder = ProcessTestFolders.Create("cmd copy");
+        var copy = Path.Join(folder, "cmd.exe");
+        File.Copy(SystemTools.Interpreter, copy);
+        Assert.True(ProcessLauncher.IsWindowsCommandInterpreter(copy));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-020")]
+    public void Another_Microsoft_program_named_cmd_outside_the_system_folder_is_accepted()
+    {
+        // PA-0016 step 2 needs CompanyName "Microsoft Corporation" TOGETHER WITH OriginalFilename "Cmd.Exe" or
+        // "Cmd.Exe.MUI", or FileDescription "Windows Command Processor". where.exe renamed cmd.exe has the company
+        // but neither of the others (measured 2026-09-23: FileDescription "Where - Lists location of files",
+        // OriginalFilename "where.exe"). A port that checks only CompanyName fails here.
+        var folder = ProcessTestFolders.Create("where as cmd");
+        var impostor = Path.Join(folder, "cmd.exe");
+        File.Copy(SystemTools.Where, impostor);
+        Assert.False(ProcessLauncher.IsWindowsCommandInterpreter(impostor));
     }
 
     [Fact]
@@ -300,17 +500,79 @@ public sealed class ProcessLauncherTests
         Assert.False(ProcessLauncher.IsWindowsCommandInterpreter(ProcessTestFolders.Touch(folder, "cmd.cmd")));
     }
 
+    // ---- The job is set at creation, never afterwards (ADR-0002, probe P5 A3) -----------------------------------
+
+    [Fact]
+    [Trait("Rule", "R-PROC-1")]
+    [Trait("Decision", "ED-047")]
+    public void The_child_joins_its_job_through_the_attribute_list_at_creation_and_is_never_assigned_afterwards()
+    {
+        // ADR-0002: "PROC_THREAD_ATTRIBUTE_JOB_LIST sits beside PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE in one attribute
+        // list", so the child is in the job from its first instruction (P5 A3: IsProcessInJob true on the first
+        // call after CreateProcessW). A port that calls AssignProcessToJobObject after an ordinary CreateProcessW,
+        // with or without CREATE_SUSPENDED and ResumeThread, passes every kill test (its grandchildren start much
+        // later) and still leaves a window in which the child runs outside the job. No runtime check can see that
+        // window reliably, so this is the scan P5's own RESULT used ("No CREATE_SUSPENDED / ResumeThread anywhere
+        // in the path"), plus R-PROC-1's "Process.Start and UseShellExecute never appear".
+        var root = RepositoryRoot();
+        var port = Path.Join(root, "src", "Marrow.Core", "Port");
+        var launcherFiles = Directory.GetFiles(port, "ProcessLauncher*.cs");
+        Assert.Contains(launcherFiles, f => Path.GetFileName(f) == "ProcessLauncher.cs");
+        var launcher = string.Concat(launcherFiles.Select(File.ReadAllText));
+        Assert.Contains("PROC_THREAD_ATTRIBUTE_JOB_LIST", launcher, StringComparison.Ordinal);
+        Assert.Contains("PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE", launcher, StringComparison.Ordinal);
+        foreach (var forbidden in (string[])["Process.Start", "ProcessStartInfo", "UseShellExecute"])
+            Assert.DoesNotContain(forbidden, launcher, StringComparison.Ordinal);
+        var separator = Path.DirectorySeparatorChar;
+        foreach (var file in Directory.EnumerateFiles(Path.Join(root, "src"), "*.cs", SearchOption.AllDirectories)
+                     .Where(f => !f.Contains($"{separator}obj{separator}", StringComparison.Ordinal)
+                              && !f.Contains($"{separator}bin{separator}", StringComparison.Ordinal)))
+        {
+            var text = File.ReadAllText(file);
+            foreach (var forbidden in (string[])["AssignProcessToJobObject", "CREATE_SUSPENDED", "ResumeThread"])
+                Assert.False(text.Contains(forbidden, StringComparison.Ordinal), $"{file} contains {forbidden}");
+        }
+    }
+
+    /// <summary>The repository root: this file is tests/Marrow.Core.Tests/Port/ProcessLauncherTests.cs.</summary>
+    private static string RepositoryRoot([CallerFilePath] string path = "")
+    {
+        var root = Path.GetFullPath(Path.Join(Path.GetDirectoryName(path)!, "..", "..", ".."));
+        Assert.True(File.Exists(Path.Join(root, "Marrow.sln")), root);
+        return root;
+    }
+
     /// <summary>
     /// Arguments for <paramref name="executable"/> that make the command line exactly <paramref name="total"/> UTF-16
     /// units long: "/Q" then one token of 'a' (with <paramref name="astralCharacters"/> of them replaced by U+1F600,
     /// two units each). No token needs quoting, so the length is plain arithmetic: executable, space, "/Q", space,
-    /// token. /Q makes where.exe quiet.
+    /// token. /Q makes where.exe quiet. <paramref name="filler"/> replaces 'a' (any character that needs no quoting).
     /// </summary>
-    private static IReadOnlyList<string> ArgumentsFilling(string executable, int total, int astralCharacters)
+    private static IReadOnlyList<string> ArgumentsFilling(string executable, int total, int astralCharacters, char filler = 'a')
     {
         Assert.DoesNotContain(' ', executable);
         var tokenLength = total - executable.Length - 1 - 2 - 1;
         var astral = string.Concat(Enumerable.Repeat("\U0001F600", astralCharacters)); // U+1F600 GRINNING FACE
-        return ["/Q", astral + new string('a', tokenLength - astral.Length)];
+        return ["/Q", astral + new string(filler, tokenLength - astral.Length)];
+    }
+
+    /// <summary>
+    /// Arguments "/Q", "--agents", then one compact JSON token, sized so the QUOTED command line is exactly
+    /// <paramref name="total"/> UTF-16 units. The token is
+    /// <c>{"reviewer":{"description":"Reviews code &amp; more","prompt":"Say \"done\" when finished.\n</c> + filler +
+    /// <c>"}}</c>: 12 quotes, two of them preceded by one backslash, no trailing backslash. By the MSVCRT rules
+    /// (the libuv quote_cmd_arg form) its quoted form is the token plus 16 characters: 2 enclosing quotes, one
+    /// backslash before each of the 12 quotes, and one more for each of the 2 backslashes that precede a quote.
+    /// </summary>
+    private static IReadOnlyList<string> AgentsArgumentsFilling(string executable, int total)
+    {
+        Assert.DoesNotContain(' ', executable);
+        const string Head = "{\"reviewer\":{\"description\":\"Reviews code & more\",\"prompt\":\"Say \\\"done\\\" when finished.\\n";
+        const string Tail = "\"}}";
+        Assert.Equal(12, (Head + Tail).Count(c => c == '"'));
+        Assert.Equal(2, Regex.Count(Head + Tail, "\\\\\""));
+        Assert.Equal(0, Regex.Count(Head + Tail, "\\\\\\\\\""));
+        var tokenLength = total - executable.Length - " /Q --agents ".Length - 16;
+        return ["/Q", "--agents", Head + new string('x', tokenLength - Head.Length - Tail.Length) + Tail];
     }
 }

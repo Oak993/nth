@@ -31,6 +31,17 @@ namespace Marrow.Core.Tests.Port;
 // TerminateProcess on that pid alone. R-PROC-1: the delays go through GlobalQueue.AsyncAfter, so SwiftClock drives
 // them and a test moves time with TestRuntime.Advance.
 //
+// CONFLICT, reported to the orchestrator (STOP F.ProcessLauncher #1): for the Stdio graceful step ED-027 says
+// "Step 2 becomes Node's subprocess.kill(), which on Windows is TerminateProcess with exit code 1", while ED-047 (b)
+// says "graceful step = CTRL_BREAK_EVENT to that child only". These tests follow ED-047 because (1) ED-047 is the
+// decision on the termination ladders themselves (Q127 [TERM]) and names StdioProcess.terminate line by line;
+// (2) ED-027 predates ADR-0002 and names a Node API, and IMPLEMENTING.md 1.6 keeps only the intent of such
+// decisions: ED-027's stated intent is "preserve all three steps and the 3-second timing", which a
+// TerminateProcess step 2 defeats (step 3 becomes a no-op); (3) probe P6 measured CTRL_BREAK ending a cooperating
+// pipe child (M3) and the callers depend on the graceful step being graceful (CommandCodeSession.swift:232-234).
+// The orchestrator is asked to confirm, or to amend one of the two decisions. The fake here cannot tell the two
+// readings apart (its Terminate is one call); ProcessLauncherSpawnTests and ProcessLauncherSignalTests can.
+//
 // The surface these tests assume, in namespace Marrow.Core.Port:
 //   interface IProcessControl { bool IsRunning { get; } void Terminate(); void KillTree(); void KillProcess(); }
 //       (ProcessLauncher implements it; FakeProcessControl in Fixtures/ProcessSamples.cs stands in here)
@@ -69,6 +80,9 @@ public sealed class ProcessLauncherLadderTests
         Assert.Equal(["isRunning", "terminate"], process.Calls);
         Assert.Equal(1, runtime.Time.ActiveTimers);
         runtime.Advance(TimeSpan.FromMilliseconds(999));
+        // ManualTimeProvider drops a timer synchronously when it fires, so a count of one proves the kill timer has
+        // not fired at 999 ms, even though a fired timer's work might still be queued on the pool (Shell.swift:113).
+        Assert.Equal(1, runtime.Time.ActiveTimers);
         Assert.Equal(["isRunning", "terminate"], process.Calls);
         runtime.Advance(TimeSpan.FromMilliseconds(1));
         Assert.True(process.WaitFor("killTree", 1, PoolWait));
@@ -87,6 +101,7 @@ public sealed class ProcessLauncherLadderTests
         var process = new FakeProcessControl();
         TerminationLadder.Shell(process);
         runtime.Advance(TimeSpan.FromMilliseconds(400));
+        Assert.Equal(1, runtime.Time.ActiveTimers);
         process.Exit();
         runtime.Advance(TimeSpan.FromMilliseconds(600));
         Assert.True(process.WaitFor("isRunning", 2, PoolWait)); // the guard at Shell.swift:114 ran
@@ -134,6 +149,7 @@ public sealed class ProcessLauncherLadderTests
         Assert.Equal(["closeInput", "isRunning", "terminate"], process.Calls); // ED-027: in that order
         Assert.Equal(1, runtime.Time.ActiveTimers);
         runtime.Advance(TimeSpan.FromMilliseconds(2_999));
+        Assert.Equal(1, runtime.Time.ActiveTimers); // not fired at 2,999 ms (StdioProcess.swift:125 is .now() + 3)
         Assert.Equal(["closeInput", "isRunning", "terminate"], process.Calls);
         runtime.Advance(TimeSpan.FromMilliseconds(1));
         Assert.True(process.WaitFor("killProcess", 1, PoolWait));
@@ -151,6 +167,7 @@ public sealed class ProcessLauncherLadderTests
         var process = new FakeProcessControl();
         TerminationLadder.Stdio(process, () => process.Note("closeInput"));
         runtime.Advance(TimeSpan.FromMilliseconds(1_000)); // past the Shell gap: the Stdio gap is 3 s, not 1 s
+        Assert.Equal(1, runtime.Time.ActiveTimers);         // so the timer has not fired: a 1 s gap would have
         Assert.Equal(["closeInput", "isRunning", "terminate"], process.Calls);
         process.Exit();
         runtime.Advance(TimeSpan.FromMilliseconds(2_000));

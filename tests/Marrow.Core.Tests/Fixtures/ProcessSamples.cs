@@ -193,8 +193,93 @@ public static class SystemTools
     /// <summary>The argv for powershell.exe running one script, with no profile and no prompts.</summary>
     public static IReadOnlyList<string> PowerShellScript(string script) => ["-NoProfile", "-NonInteractive", "-Command", script];
 
+    /// <summary>
+    /// The same, with the script passed as -EncodedCommand (base64 of its UTF-16LE text), so a script holding double
+    /// quotes, paths with spaces or several lines needs no quoting at all.
+    /// </summary>
+    public static IReadOnlyList<string> PowerShellEncoded(string script) => ["-NoProfile", "-NonInteractive", "-EncodedCommand", Encode(script)];
+
+    /// <summary>The base64 UTF-16LE form powershell.exe -EncodedCommand takes.</summary>
+    public static string Encode(string script) => Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
+
     public static string Interpreter => Path.Join(Environment.SystemDirectory, "cmd.exe");
+
+    /// <summary>%SystemRoot%\SysWOW64\cmd.exe, the 32-bit interpreter PA-0016 step 3 also names.</summary>
+    public static string InterpreterWow64 => Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.SystemX86), "cmd.exe");
 }
+
+/// <summary>PowerShell scripts for the child processes of the launcher tests (system binaries only, R-TEST-10).</summary>
+public static class ProcessScripts
+{
+    /// <summary>What the Ctrl+Break child prints once its handler is in place.</summary>
+    public const string Armed = "BREAK-ARMED";
+
+    /// <summary>What the Ctrl+Break child prints from its handler, before it exits with <see cref="BreakExitCode"/>.</summary>
+    public const string BreakSeen = "BREAK-SEEN";
+
+    /// <summary>
+    /// The exit code the Ctrl+Break child leaves with: 131, the marker probe P6 used for "left on CTRL_BREAK_EVENT"
+    /// (porting/probes/p6/Fixtures.cs, ExitOnBreak). Nothing else in these tests exits with it.
+    /// </summary>
+    public const int BreakExitCode = 131;
+
+    /// <summary>
+    /// A cooperating child, the shape of P6's "coop" fixture: it registers a console control handler that, on
+    /// CTRL_BREAK_EVENT (1), prints <see cref="BreakSeen"/> and calls ExitProcess(131); then prints
+    /// <see cref="Armed"/> and sleeps 60 s. It never reads stdin, so closing stdin alone cannot end it (P6 control
+    /// C2). Handlers run last-registered first, so this one runs before powershell.exe's own (which would enter the
+    /// debugger and keep the process alive). Checked on this machine 2026-09-23 through a CREATE_NEW_PROCESS_GROUP |
+    /// CREATE_NO_WINDOW pipe child and P6's AttachConsole helper: exit 131, output "BREAK-SEEN", 114 ms after the event.
+    /// </summary>
+    public static string CtrlBreakCooperating() =>
+        """
+        Add-Type -TypeDefinition @'
+        using System;
+        using System.Runtime.InteropServices;
+        public static class MarrowBreakFixture
+        {
+            public delegate bool Handler(uint type);
+            [DllImport("kernel32.dll")] private static extern bool SetConsoleCtrlHandler(Handler handler, bool add);
+            [DllImport("kernel32.dll")] private static extern void ExitProcess(uint code);
+            private static Handler keep;
+            public static void Arm()
+            {
+                keep = OnSignal;
+                SetConsoleCtrlHandler(keep, true);
+            }
+            private static bool OnSignal(uint type)
+            {
+                if (type != 1) return false;
+                Console.Out.WriteLine("BREAK-SEEN");
+                Console.Out.Flush();
+                ExitProcess(131);
+                return true;
+            }
+        }
+        '@
+        [MarrowBreakFixture]::Arm()
+        [Console]::Out.WriteLine('BREAK-ARMED')
+        [Console]::Out.Flush()
+        Start-Sleep 60
+        """;
+}
+
+/// <summary>The test host's own console attachment, to show the launcher never trades it away (probe P6 deviation 4).</summary>
+public static class HostConsole
+{
+    [DllImport("kernel32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern IntPtr GetConsoleWindow();
+
+    public static IntPtr Window => GetConsoleWindow();
+}
+
+/// <summary>
+/// Tests that register process-wide console signal handlers in the test host (PosixSignalRegistration) run alone:
+/// R-TEST-5 allows a process-global change only inside one non-parallel collection.
+/// </summary>
+[CollectionDefinition("Process signals", DisableParallelization = true)]
+public sealed class ProcessSignalsCollection;
 
 /// <summary>Real temporary folders under MARROW_PORT_DATA_DIR (R-TEST-9); never the user's profile.</summary>
 public static class ProcessTestFolders
