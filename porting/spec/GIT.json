@@ -3796,7 +3796,7 @@
       "cancellation": "not applicable",
       "windows_path": "Platform boundary: Command becomes Control, so the default is Control-D, and the label rendering uses Windows modifier names. The action identity and the two strings are unchanged.",
       "verification_method": "interaction test pressing the chord and reading the three tooltips",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
