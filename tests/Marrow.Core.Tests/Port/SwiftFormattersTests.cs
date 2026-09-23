@@ -754,14 +754,15 @@ public sealed class SwiftFormattersTests
     [Trait("Rule", "R-FMT-2")]
     [Trait("Decision", "ED-134")]
     [Trait("Decision", "ED-135")]
+    [Trait("Decision", "ED-153")]
     [Trait("Oracle", "O-23")]
     [Trait("Oracle", "O-37")]
     public void A_12_hour_short_time_in_a_24_hour_region_gives_the_default_locale_a_day_period()
     {
         // AppleICUForce12HourTime -> h12 (Locale_Preferences.swift:193-198); ED-134 reads it from "h:mm tt". The day
-        // period follows U+202F in the en family (ED-135).
+        // period follows U+202F in the en family (ED-135). en_GB takes lowercase am/pm from en_001 (ED-153).
         using var culture = CultureScope.Of(WithShortTime("en-GB", "h:mm tt"));
-        Assert.Equal("10:03" + NarrowNoBreakSpace + "PM", SwiftFormatters.Formatted(Birthday, Shortened, zone: TimeZoneInfo.Utc));
+        Assert.Equal("10:03" + NarrowNoBreakSpace + "pm", SwiftFormatters.Formatted(Birthday, Shortened, zone: TimeZoneInfo.Utc));
     }
 
     // ---- ED-135: U+202F before the day period in the en family ------------------------------------------------------
