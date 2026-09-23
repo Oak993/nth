@@ -4538,73 +4538,15 @@
     "Services.Providers.ZaiAPI"
    ],
    "records_total": 26,
-   "records_todo": [
-    "PR-PROVREG-162",
-    "PR-PROVREG-171",
-    "PR-PROVREG-172",
-    "PR-PROVREG-173",
-    "PR-PROVREG-174",
-    "PR-PROVREG-175",
-    "PR-PROVREG-176",
-    "PR-PROVREG-177",
-    "PR-PROVREG-178",
-    "PR-PROVREG-179",
-    "PR-PROVREG-180",
-    "PR-PROVREG-181",
-    "PR-PROVREG-182",
-    "PR-PROVREG-183",
-    "PR-PROVREG-184",
-    "PR-PROVREG-185",
-    "PR-PROVREG-186",
-    "PR-PROVREG-187",
-    "PR-PROVREG-188",
-    "PR-PROVREG-189",
-    "PR-PROVREG-190",
-    "PR-PROVREG-191",
-    "PR-PROVREG-192",
-    "PR-USAGE-022",
-    "PR-USAGE-078",
-    "PR-USAGE-079"
-   ],
-   "parts": [
-    [
-     "PR-PROVREG-162",
-     "PR-PROVREG-171",
-     "PR-PROVREG-172",
-     "PR-PROVREG-173",
-     "PR-PROVREG-174",
-     "PR-PROVREG-175",
-     "PR-PROVREG-176",
-     "PR-PROVREG-177",
-     "PR-PROVREG-178",
-     "PR-PROVREG-179",
-     "PR-PROVREG-180",
-     "PR-PROVREG-181",
-     "PR-PROVREG-182",
-     "PR-PROVREG-183",
-     "PR-PROVREG-184",
-     "PR-PROVREG-185",
-     "PR-PROVREG-186",
-     "PR-PROVREG-187",
-     "PR-PROVREG-188",
-     "PR-PROVREG-189",
-     "PR-PROVREG-190",
-     "PR-PROVREG-191",
-     "PR-PROVREG-192",
-     "PR-USAGE-022"
-    ],
-    [
-     "PR-USAGE-078",
-     "PR-USAGE-079"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-120",
     "T-M4-121",
     "T-M4-122"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.ProviderCredits",

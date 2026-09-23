@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 1575,
+      "IMPLEMENTED": 1601,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 2314,
+      "SPECIFIED": 2288,
       "RETIRED": 6,
       "DISCOVERED": 18
     },
@@ -55512,7 +55512,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure predicate.",
       "verification_method": "unit over all 14 providers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -55740,7 +55740,7 @@
       "cancellation": "not cancellable at this level.",
       "windows_path": "Same dispatch table and the same two-signature split.",
       "verification_method": "unit on the dispatch with stubbed readers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -55765,7 +55765,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same record shape. Do not invent detail strings for providers other than Z.ai.",
       "verification_method": "unit plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -55788,7 +55788,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One pure function with these five literals, the inclusive range and the clamp, called from exactly the readers that use it.",
       "verification_method": "unit over the boundary values 300, 1439, 1440, 10080, 40319, 40320, 44640, 44641 and nil",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -55811,7 +55811,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same single-character capitalisation.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -55834,7 +55834,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Transcribe the mapping verbatim, including the trim-then-lowercase order.",
       "verification_method": "unit over all eleven raw spellings plus an unknown one",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -55859,7 +55859,7 @@
       "cancellation": "not cancellable at this level.",
       "windows_path": "Same ordering.",
       "verification_method": "contract fixture exercising both paths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -55888,7 +55888,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduced as upstream under OD-0008 A7 (BLK-0007, parity, owner-approved). The file reads are kept in exactly this order: CLAUDE_CONFIG_DIR when non-empty, then <home>\\.claude with the home directory the Windows user profile, each looking for the file named exactly \".credentials.json\" and parsed the same way. Platform boundary: /usr/bin/security does not exist on Windows. In the source an attempt that cannot run is skipped by the `try? ... else { continue }` at :202-203, and when every attempt is skipped claudeLogin returns nil (:210); the port reaches that same nil without spawning anything, and no Keychain or Credential Manager lookup takes the branch's place.",
       "verification_method": "contract fixture with a synthetic credentials file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null
@@ -55912,7 +55912,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field names, the same millisecond division and the same tier regex.",
       "verification_method": "unit over sample credential blobs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -55934,7 +55934,7 @@
       "cancellation": "not cancellable",
       "windows_path": "No Windows caller. The decoder's only call is PlanLimits.swift:205, inside the /usr/bin/security branch, which has no Windows analogue (PR-PROVREG-177), so the Windows build carries no hex decode. The rule is recorded so that branch is fully accounted for.",
       "verification_method": "control-flow review: the ported claudeLogin has no Keychain branch and so no hex decode",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -55960,7 +55960,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same argv, timeout and five minute threshold. The re-read is the credential-file read of PR-PROVREG-177, reproduced under OD-0008 A7 (BLK-0007); on Windows it has no Keychain branch.",
       "verification_method": "contract fixture with an about-to-expire token",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -55986,7 +55986,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same URL, headers and timeout.",
       "verification_method": "contract fixture against a mock endpoint asserting the exact headers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56013,7 +56013,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same single-retry rule including the token-changed guard.",
       "verification_method": "contract fixture driving 401 then 200, and 401 then an unchanged token",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56042,7 +56042,7 @@
       "cancellation": "Bounded by the 20 second watchdog which terminates the process; ending the process is what closes the message stream.",
       "windows_path": "Same argv, watchdog and double terminate. The two request ids are \"marrow-init\" and \"marrow-usage\" (OD-0012 F1), sent and matched as one pair. The working directory becomes the Windows temporary directory. TerminateProcess is the practical equivalent of the termination call.",
       "verification_method": "contract fixture with a scripted stream-json stand-in",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -56070,7 +56070,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key paths.",
       "verification_method": "contract fixture over recorded responses",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56093,7 +56093,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field names, the same title literals and the same original-index ids.",
       "verification_method": "contract fixture over recorded usage payloads",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56116,7 +56116,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two keys, same order, same two id literals.",
       "verification_method": "contract fixture over a payload with no limits array",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56140,7 +56140,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same condition, title and id.",
       "verification_method": "contract fixture over a payload with extra usage on and off",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56164,7 +56164,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same prefixing on both title and id, with the same lowercasing on the id only.",
       "verification_method": "unit with and without a prefix",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56188,7 +56188,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same strip-then-parse, accepting exactly what Date.ISO8601FormatStyle() accepts. UNVERIFIED: whether that set equals the B1 ISO8601DateFormatter default for offsets such as +00:00. It cannot be probed here: OD-0001 rules out any macOS access, so it ships UNVERIFIED and is named in the final report; it must not be settled by assumption.",
       "verification_method": "unit over timestamps with and without fractions, with Z and with a numeric offset",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -56213,7 +56213,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same record shape.",
       "verification_method": "unit over count and array permutations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56236,7 +56236,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Transcribe all four messages verbatim including punctuation.",
       "verification_method": "unit plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -56259,7 +56259,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Transcribe verbatim, including that a Z.ai failure can surface a message that says Codex.",
       "verification_method": "unit plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -91670,7 +91670,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two frozen sets keyed by the provider literal; no per-provider capability flag is invented.",
       "verification_method": "unit test asserting both sets member by member across all fourteen providers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -93160,7 +93160,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One pure function shared by the three provider readers; do not duplicate the table per reader.",
       "verification_method": "unit test at nil, 30, 300, 1440, 2880, 10080, 40319, 40320, 44640, 44641",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -93190,7 +93190,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure parse function; the exact title strings are a user-visible contract and the window ids are used as list keys. Reset dates go through the shared parser of PR-USAGE-105 after the fraction is stripped; which time-zone forms it accepts is UNVERIFIED (UNK-0003).",
       "verification_method": "contract fixture over a recorded Claude usage payload, asserting titles, ids and order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003",
