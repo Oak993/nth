@@ -1781,36 +1781,14 @@
    ],
    "intra_deps": [],
    "records_total": 9,
-   "records_todo": [
-    "PR-LAUNCH-015",
-    "PR-LAUNCH-016",
-    "PR-LAUNCH-017",
-    "PR-LAUNCH-018",
-    "PR-LAUNCH-019",
-    "PR-LAUNCH-020",
-    "PR-LAUNCH-021",
-    "PR-LAUNCH-080",
-    "UI-LAUNCH-008"
-   ],
-   "parts": [
-    [
-     "PR-LAUNCH-015",
-     "PR-LAUNCH-016",
-     "PR-LAUNCH-017",
-     "PR-LAUNCH-018",
-     "PR-LAUNCH-019",
-     "PR-LAUNCH-020",
-     "PR-LAUNCH-021",
-     "PR-LAUNCH-080",
-     "UI-LAUNCH-008"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-059",
     "T-M2-060"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.StdioProcess",
@@ -2307,38 +2285,14 @@
    ],
    "intra_deps": [],
    "records_total": 10,
-   "records_todo": [
-    "PR-PROVACP-140",
-    "PR-PROVACP-141",
-    "PR-PROVACP-142",
-    "PR-PROVACP-143",
-    "PR-PROVACP-144",
-    "PR-PROVACP-145",
-    "PR-PROVACP-146",
-    "PR-PROVACP-147",
-    "PR-PROVACP-148",
-    "UI-PROVACP-033"
-   ],
-   "parts": [
-    [
-     "PR-PROVACP-140",
-     "PR-PROVACP-141",
-     "PR-PROVACP-142",
-     "PR-PROVACP-143",
-     "PR-PROVACP-144",
-     "PR-PROVACP-145",
-     "PR-PROVACP-146",
-     "PR-PROVACP-147",
-     "PR-PROVACP-148",
-     "UI-PROVACP-033"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-062",
     "T-M2-063"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.Shell",
@@ -2454,19 +2408,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-LAUNCH-024"
-   ],
-   "parts": [
-    [
-     "PR-LAUNCH-024"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-074"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Git.TouchedPaths",
@@ -2484,25 +2432,13 @@
    ],
    "intra_deps": [],
    "records_total": 4,
-   "records_todo": [
-    "PR-GIT-093",
-    "PR-GIT-094",
-    "PR-GIT-095",
-    "PR-GIT-096"
-   ],
-   "parts": [
-    [
-     "PR-GIT-093",
-     "PR-GIT-094",
-     "PR-GIT-095",
-     "PR-GIT-096"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M3-012"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.APIKeychain",
@@ -2520,27 +2456,13 @@
    ],
    "intra_deps": [],
    "records_total": 5,
-   "records_todo": [
-    "PR-PROVAPI-001",
-    "PR-PROVAPI-002",
-    "PR-PROVAPI-003",
-    "PR-PROVAPI-004",
-    "PR-PROVREG-088"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-001",
-     "PR-PROVAPI-002",
-     "PR-PROVAPI-003",
-     "PR-PROVAPI-004",
-     "PR-PROVREG-088"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-036"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.MetaAPI",
@@ -2615,40 +2537,14 @@
    ],
    "intra_deps": [],
    "records_total": 11,
-   "records_todo": [
-    "PR-PROVAPI-148",
-    "PR-PROVREG-223",
-    "PR-PROVREG-224",
-    "PR-PROVREG-225",
-    "PR-PROVREG-226",
-    "PR-PROVREG-227",
-    "PR-PROVREG-228",
-    "PR-PROVREG-229",
-    "PR-PROVREG-230",
-    "PR-PROVREG-231",
-    "PR-PROVREG-232"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-148",
-     "PR-PROVREG-223",
-     "PR-PROVREG-224",
-     "PR-PROVREG-225",
-     "PR-PROVREG-226",
-     "PR-PROVREG-227",
-     "PR-PROVREG-228",
-     "PR-PROVREG-229",
-     "PR-PROVREG-230",
-     "PR-PROVREG-231",
-     "PR-PROVREG-232"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-123",
     "T-M4-124"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.ProviderSession",

@@ -2507,7 +2507,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: the absolute test is a leading slash on macOS. On Windows the equivalent is a drive-letter or UNC root, and the upward walk must terminate at the drive or share root. TurnDiff's hasPrefix(\"/\") test must be re-expressed against the same rule.",
       "verification_method": "unit over an in-root relative path, an in-root absolute path and an out-of-root absolute path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2532,7 +2532,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: the absolute test must accept a drive-letter or UNC root, tilde expansion maps to the user profile, and the standardisation must resolve .. without touching the filesystem. Note a Windows path such as C:/x contains no \"://\" so the URL rejection still behaves.",
       "verification_method": "unit over a URL, a ../ climb, a tilde path, an in-root path and the root itself",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2558,7 +2558,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the comparison ordinal and case-sensitive despite NTFS being case-insensitive; folding would silently drop a user's Build directory. The macOS-specific entries stay in the set for parity.",
       "verification_method": "unit over each of the seventeen rules plus a negative case for Build and dist",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2583,7 +2583,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Normalise agent-reported paths to forward slashes before calling, since the rule literally concatenates \"/\".",
       "verification_method": "unit over exact, forward-suffix and reverse-suffix matches, and an oldPath-only match",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
