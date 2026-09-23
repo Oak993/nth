@@ -1,32 +1,82 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
+using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Marrow.Core.Port;
 using Marrow.UI.Port;
+using Marrow.UI.Theme;
 
 namespace Marrow.UI.Chrome;
 
 // Source: DroppyCode/UI/Chrome/Popovers.swift (B2 1fbf81e), :1-401.
-// SKELETON (cycle c35). Every member with behaviour throws MARROW_STUB until its unit ports it.
+// Records: PR-SIDEBAR-104, PR-SIDEBAR-105, PR-SIDEBAR-106, PR-THEME-041, UI-SIDEBAR-011, UI-SIDEBAR-012, UI-SIDEBAR-013.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; NSPopover is an Avalonia Popup,
 // NSSize is Avalonia.Size, NSImage is Avalonia.Media.IImage, AnyView is Control, a styled Text is StyledText
 // (ED-092), a @ViewBuilder parameter is a Func<Control>, a `@MainActor () -> Void` is an Action. A parameter without
 // a default that follows one with a default moves before it (ED-095). The static class Popovers keeps the Swift
 // file's name (R-NAME-4); the port's presenter seam is Marrow.UI.Port.Presentation (ED-095).
-// Not declared yet, private in Swift and read by no other file: the @State and @Environment storage
-// (PopoverScroll :59, :64; PopoverItem :208-211), which the implementing unit adds with the bodies.
+//
+// ENGINEERING DECISION: Swift's `@Environment(\.dismiss)` (:208, read by PopoverItem at :266, :271) has no port
+// counterpart: SwiftUI auto-injects a dismiss action for anything shown through `.popover`/`.sheet`, but this tree
+// has no such automatic per-presentation environment value yet. Every popover this file itself presents
+// (RowActionsButton :389-400) therefore sets `closePopoverBox` (:179) on its content explicitly, so
+// `PopoverItem`'s `closePopoverBox?.close() ?? dismiss()` (:266, :271) always resolves the box and the `dismiss()`
+// arm is unreachable from this file; it is kept in the read (a no-op close) only for a future presenter that opens
+// a PopoverItem without setting the box.
 
 /// <summary>The file's extensions of library types (R-NAME-4): <c>extension View</c> (:4-13),
 /// <c>extension NSPopover</c> (:15-41) and <c>extension EnvironmentValues</c> (:176-187).</summary>
 public static class Popovers
 {
+    /// <summary>:10 <c>.buttonBorderShape(.capsule)</c>, an inherited SwiftUI environment key restated on every
+    /// presented tree; no button template in this tree yet reads it, so it is recorded verbatim as an inherited
+    /// attached property (R-VIEW-6) for a later unit to consume.</summary>
+    public static readonly AttachedProperty<bool> IsCapsuleButtonBorderShapeProperty =
+        AvaloniaProperty.RegisterAttached<Control, bool>("IsCapsuleButtonBorderShape", typeof(Popovers), inherits: true);
+
+    /// <summary>:11 <c>.tint(ThemeManager.spec.accent)</c> (PR-THEME-041): the raw optional, not <c>Chrome.accent</c>,
+    /// so System/Light/Dark themes (whose <see cref="ThemeSpec.Accent"/> is null) tint with nothing, an upstream
+    /// inconsistency reproduced as UPSTREAM DEFECT 66.</summary>
+    public static readonly AttachedProperty<SwiftColor?> TintProperty =
+        AvaloniaProperty.RegisterAttached<Control, SwiftColor?>("Tint", typeof(Popovers), inherits: true);
+
+    public static bool GetIsCapsuleButtonBorderShape(Control control) => control.GetValue(IsCapsuleButtonBorderShapeProperty);
+
+    public static void SetIsCapsuleButtonBorderShape(Control control, bool value) => control.SetValue(IsCapsuleButtonBorderShapeProperty, value);
+
+    public static SwiftColor? GetTint(Control control) => control.GetValue(TintProperty);
+
+    public static void SetTint(Control control, SwiftColor? value) => control.SetValue(TintProperty, value);
+
     // :8-12 func presentedChrome()
-    public static Control PresentedChrome(this Control view) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Popovers.swift:8");
+    public static Control PresentedChrome(this Control view)
+    {
+        view.SetValue(IsCapsuleButtonBorderShapeProperty, true); // :10
+        view.SetValue(TintProperty, ThemeManager.Spec.Accent); // :11 UPSTREAM DEFECT 66, reproduced
+        return view;
+    }
 
     // :28-40 @MainActor func setFixedContent(_:size:) on NSPopover
-    public static void SetFixedContent(this Popup popover, Control content, Size size) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Popovers.swift:29");
+    public static void SetFixedContent(this Popup popover, Control content, Size size)
+    {
+        content.HorizontalAlignment = HorizontalAlignment.Stretch; // :33 .frame(width:height:alignment: .top)
+        content.VerticalAlignment = VerticalAlignment.Top;
+        var frame = new Border
+        {
+            Width = size.Width,
+            Height = size.Height,
+            ClipToBounds = true, // :34 .clipped()
+            Child = content,
+        };
+        popover.Child = frame.PresentedChrome(); // :35
+    }
 
     // :179 @Entry var closePopoverBox: PopoverCloseBox?, an inherited environment value (R-VIEW-6, ED-095).
     public static readonly AttachedProperty<PopoverCloseBox?> ClosePopoverBoxProperty =
@@ -37,26 +87,53 @@ public static class Popovers
     public static void SetClosePopoverBox(Control control, PopoverCloseBox? value) => control.SetValue(ClosePopoverBoxProperty, value);
 
     // :183-184 var closePopover: (@MainActor () -> Void)? { get }
-    public static Action? GetClosePopover(Control control) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Popovers.swift:184");
+    public static Action? GetClosePopover(Control control) => GetClosePopoverBox(control)?.Close;
 
     // :185 var closePopover { set }
     public static void SetClosePopover(Control control, Action? value) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Popovers.swift:185");
+        SetClosePopoverBox(control, value is null ? null : new PopoverCloseBox(value));
 }
 
 // :43-92 struct PopoverScroll<Content: View>: View
 public sealed class PopoverScroll : Decorator
 {
+    private readonly bool isPremeasured; // :64
+    private double contentHeight; // :59 @State private var contentHeight: CGFloat
+    private readonly ScrollViewer scroll;
+
     /// <summary>:66-73 <c>@MainActor init(maxHeight:minHeight:width:content:)</c>; content has no default, so it
     /// moves first (ED-095) and callers name the labels.</summary>
     // :82-91 body
-    public PopoverScroll(Func<Control> content, double maxHeight = 460, double minHeight = 80, double? width = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Popovers.swift:67");
+    public PopoverScroll(Func<Control> content, double maxHeight = 460, double minHeight = 80, double? width = null)
+    {
+        isPremeasured = width is not null; // :71
+        var body = content();
+        contentHeight = width is { } known ? MeasuredHeight(body, known) : 0; // :72
+        scroll = new ScrollViewer
+        {
+            Content = body,
+            Height = Math.Min(Math.Max(contentHeight, minHeight), maxHeight), // :90
+        };
+        if (!isPremeasured)
+        {
+            body.LayoutUpdated += (_, _) => // :85-87 onGeometryChange(for: height)
+            {
+                var height = body.Bounds.Height;
+                if (height == contentHeight) return;
+                contentHeight = height;
+                scroll.Height = Math.Min(Math.Max(contentHeight, minHeight), maxHeight); // :90
+            };
+        }
+        Child = scroll;
+    }
 
-    // :77-80 @MainActor static func measuredHeight(of:width:)
-    public static double MeasuredHeight(Control of, double width) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Popovers.swift:78");
+    /// <summary>:77-80 <c>@MainActor static func measuredHeight(of:width:)</c>: the height <paramref name="of"/>
+    /// takes at <paramref name="width"/>, one unconstrained layout off screen.</summary>
+    public static double MeasuredHeight(Control of, double width)
+    {
+        of.Measure(new Size(width, double.PositiveInfinity));
+        return Math.Ceiling(of.DesiredSize.Height); // :79 .rounded(.up)
+    }
 }
 
 // :94-115 struct PopoverMenu<Content: View>: View
@@ -66,32 +143,72 @@ public sealed class PopoverMenu : Decorator
     /// <param name="maxHeight">:96 <c>var maxHeight: CGFloat = 460</c>.</param>
     /// <param name="idealHeight">:99 <c>var idealHeight: CGFloat?</c>.</param>
     // :102-114 body
-    public PopoverMenu(Func<Control> content, double maxHeight = 460, double? idealHeight = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Popovers.swift:102");
+    public PopoverMenu(Func<Control> content, double maxHeight = 460, double? idealHeight = null)
+    {
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, HorizontalAlignment = HorizontalAlignment.Left }; // :104
+        stack.Children.Add(content());
+        var padded = new Border
+        {
+            Padding = new Thickness(6), // :107
+            Child = stack,
+            MinWidth = 210, // :108
+            MaxWidth = 360,
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        var scroll = new ScrollViewer
+        {
+            Content = padded,
+            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto, // :111 .scrollIndicators(.automatic)
+            MaxHeight = maxHeight, // :112
+        };
+        if (idealHeight is { } ideal) scroll.Height = ideal; // :112 idealHeight
+        Child = scroll.PresentedChrome(); // :113
+    }
 }
 
 // :117-133 struct PopoverSectionHeader: View
 public sealed class PopoverSectionHeader : Decorator
 {
     // :120-122 init(_ title: String); :124-132 body
-    public PopoverSectionHeader(string title) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Popovers.swift:120");
+    public PopoverSectionHeader(string title)
+    {
+        var text = new TextBlock { Text = title }; // :125 Text(verbatim: title)
+        SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Semibold).Apply(text); // :126
+        text.Foreground = Chrome.SecondaryText.Brush(text); // :127
+        text.Margin = new Thickness(8, 6, 8, 3); // :128-130
+        text.HorizontalAlignment = HorizontalAlignment.Left; // :131 frame(maxWidth: .infinity, alignment: .leading)
+        Child = text;
+    }
 }
 
 // :135-150 struct PopoverNote: View
 public sealed class PopoverNote : Decorator
 {
     // :138-140 init(_ text: String); :142-149 body
-    public PopoverNote(string text) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Popovers.swift:138");
+    public PopoverNote(string text)
+    {
+        var block = new TextBlock { Text = text }; // :143 Text(verbatim: text)
+        SwiftFont.Callout.Apply(block); // :144
+        block.Foreground = Chrome.SecondaryText.Brush(block); // :145
+        block.Margin = new Thickness(8, 5); // :146-147
+        block.HorizontalAlignment = HorizontalAlignment.Left; // :148
+        Child = block;
+    }
 }
 
 // :152-158 struct PopoverDivider: View
 public sealed class PopoverDivider : Decorator
 {
-    // :153-157 body
-    public PopoverDivider() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Popovers.swift:153");
+    // :153-157 body. ENGINEERING DECISION: plain SwiftUI `Divider()` draws the system separator colour, which has no
+    // port counterpart; reused here is the same hairline colour ChromeDivider (Chrome.swift:324-331) already
+    // establishes for this tree, Chrome.primaryText at 0.22.
+    public PopoverDivider()
+    {
+        var bar = new Border { Height = 1, Margin = new Thickness(8, 5) }; // :155-156
+        bar.Background = Chrome.PrimaryText.Opacity(0.22).Brush(bar);
+        Child = bar;
+    }
 }
 
 /// <summary>:160-174 <c>final class PopoverCloseBox: Equatable</c>. Swift's <c>==</c> is identity (<c>===</c>,
@@ -108,11 +225,31 @@ public sealed class PopoverCloseBox
     public Action Close { get; }
 }
 
-// :189-337 struct PopoverItem: View
+/// <summary>
+/// :189-337 <c>struct PopoverItem: View</c>. One row. Pass <paramref name="isChecked"/> (true or false) for choice
+/// lists so every row keeps the checkmark column.
+/// </summary>
 public sealed class PopoverItem : Decorator
 {
     // :214 private static let confirmationHold: Duration = .milliseconds(650)
     private static TimeSpan ConfirmationHold => TimeSpan.FromMilliseconds(650);
+
+    // :210-211 @State private var isHovering = false, isConfirmed = false
+    private sealed class ViewState : MainActorModel
+    {
+        private bool isHovering;
+        private bool isConfirmed;
+
+        public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+
+        public bool IsConfirmed { get => Read(isConfirmed); set => Set(ref isConfirmed, value); }
+    }
+
+    private readonly ViewState state = new();
+
+    /// <summary>The confirmation acknowledgement the row is currently showing, for tests: null until the row is
+    /// clicked with a <c>confirmation</c>.</summary>
+    public bool IsConfirmed => state.IsConfirmed;
 
     /// <summary>:216-240 <c>init(_:detail:symbol:image:asset:leading:isChecked:isEnabled:isDestructive:confirmation:action:)</c>;
     /// action has no default, so it moves after the title (ED-095) and callers name the labels.</summary>
@@ -128,13 +265,232 @@ public sealed class PopoverItem : Decorator
         bool? isChecked = null,
         bool isEnabled = true,
         bool isDestructive = false,
-        string? confirmation = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Popovers.swift:216");
+        string? confirmation = null)
+        : this(title, null, action, detail, symbol, image, asset, leading, isChecked, isEnabled, isDestructive, confirmation)
+    {
+    }
 
     /// <summary>:242-255 <c>init(_:text:symbol:image:action:)</c>, a row whose title is styled text (<c>titleText</c>,
     /// :193); action has no default, so it moves before the defaulted ones (ED-095).</summary>
-    public PopoverItem(string title, StyledText text, Action action, string? symbol = null, IImage? image = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Popovers.swift:243");
+    public PopoverItem(string title, StyledText text, Action action, string? symbol = null, IImage? image = null)
+        : this(title, text, action, null, symbol, image, null, null, null, true, false, null)
+    {
+    }
+
+    private PopoverItem(
+        string title,
+        StyledText? titleText,
+        Action action,
+        string? detail,
+        string? symbol,
+        IImage? image,
+        string? asset,
+        Control? leading,
+        bool? isChecked,
+        bool isEnabled,
+        bool isDestructive,
+        string? confirmation)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 }; // :275 HStack(spacing: 8)
+
+        if (isChecked is { } isCheckedValue) // :276-281
+        {
+            var check = SwiftImage.SystemName("checkmark").Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Semibold));
+            check.Opacity = isCheckedValue ? 1 : 0; // :279
+            check.Width = 14; // :280
+            row.Children.Add(check);
+        }
+
+        var leadingSlot = new Panel { Width = 16, Height = 16 }; // :284, :289, :294, :299, :304 the leading 16pt column
+        row.Children.Add(leadingSlot);
+        void UpdateLeading()
+        {
+            leadingSlot.Children.Clear();
+            if (leading is not null) // :282-284
+            {
+                leading.Width = 16;
+                leading.Height = 16;
+                leadingSlot.Children.Add(leading);
+            }
+            else if (asset is not null) // :285-289
+            {
+                var assetImage = SwiftImage.Named(asset).Resizable().AspectRatio(ContentMode.Fit);
+                assetImage.Width = 16;
+                assetImage.Height = 16;
+                leadingSlot.Children.Add(assetImage);
+            }
+            else if (image is not null) // :290-294
+            {
+                var imageControl = new Image { Source = image, Width = 16, Height = 16, Stretch = Stretch.Uniform };
+                RenderOptions.SetBitmapInterpolationMode(imageControl, BitmapInterpolationMode.HighQuality);
+                leadingSlot.Children.Add(imageControl);
+            }
+            else if (state.IsConfirmed) // :295-300
+            {
+                var confirmed = SwiftImage.SystemName("checkmark").Font(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold))
+                    .ForegroundStyle(Chrome.Success);
+                confirmed.Width = 16;
+                leadingSlot.Children.Add(confirmed);
+            }
+            else if (symbol is not null) // :301-305
+            {
+                var glyph = SwiftImage.SystemName(symbol).Font(SwiftFont.Callout);
+                glyph.Width = 16;
+                leadingSlot.Children.Add(glyph);
+            }
+        }
+        UpdateLeading();
+        leadingSlot.Track(() => state.IsConfirmed, _ => UpdateLeading());
+
+        var titleBlock = new MiddleTruncatingText(); // :307-311 .lineLimit(1).truncationMode(.middle)
+        SwiftFont.Body.Apply(titleBlock); // :308
+        void UpdateTitle()
+        {
+            if (state.IsConfirmed || titleText is null)
+            {
+                titleBlock.FullText = state.IsConfirmed ? confirmation ?? title : title; // :307
+            }
+            else
+            {
+                // A styled title (:242-255) is rare and unused by any record in this part; the middle-truncation
+                // stand-in below only understands plain text, so a styled title renders unclipped.
+                titleText.Render(titleBlock);
+            }
+        }
+        UpdateTitle();
+        titleBlock.Track(() => state.IsConfirmed, _ => UpdateTitle());
+        row.Children.Add(titleBlock);
+
+        row.Children.Add(new Control { Width = 16, HorizontalAlignment = HorizontalAlignment.Stretch }); // :312 Spacer(minLength: 16)
+
+        if (detail is not null) // :313-318
+        {
+            var detailBlock = new TextBlock { Text = detail, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis };
+            SwiftFont.Callout.Apply(detailBlock); // :315
+            detailBlock.Foreground = Chrome.SecondaryText.Brush(detailBlock); // :316
+            row.Children.Add(detailBlock);
+        }
+
+        row.HorizontalAlignment = HorizontalAlignment.Stretch;
+        var foreground = new AnimatedColor(row);
+        row.SetValue(Avalonia.Controls.Documents.TextElement.ForegroundProperty, foreground.Brush); // :320
+        foreground.Set(isDestructive ? Chrome.Danger : Chrome.PrimaryText, null);
+        row.Margin = new Thickness(8, 0); // :321 .padding(.horizontal, 8)
+        row.Height = 26; // :322 .frame(height: 26)
+
+        var fill = new AnimatedColor(row);
+        var background = new Border
+        {
+            Child = row,
+            Background = fill.Brush, // :323-326
+        }.RoundedRectangle(6, RoundedCornerStyle.Continuous);
+        fill.Set(SwiftColor.Clear, null);
+        background.Background = fill.Brush;
+
+        var button = PlainControls.Button(background, () => Activate(action, confirmation));
+        button.IsEnabled = isEnabled; // :330 .disabled(!isEnabled)
+        button.Opacity = isEnabled ? 1 : 0.4; // :331
+        AutomationProperties.SetName(button, detail is not null ? $"{title}, {detail}" : title); // :332
+        button.PointerEntered += (_, _) => SetHovering(true, isEnabled, fill);
+        button.PointerExited += (_, _) => SetHovering(false, isEnabled, fill);
+
+        Child = button;
+    }
+
+    private void SetHovering(bool hovering, bool isEnabled, AnimatedColor fill)
+    {
+        Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering); // :334-335
+        fill.Set(hovering && isEnabled ? Chrome.Overlay(0.1) : SwiftColor.Clear, Chrome.Hover); // :325
+    }
+
+    // :258-273 Button { ... }
+    private void Activate(Action action, string? confirmation)
+    {
+        if (confirmation is not null && !state.IsConfirmed) // :259
+        {
+            action(); // :262
+            Transaction.WithAnimation(Animation.Snappy(duration: 0.22), () => state.IsConfirmed = true); // :263
+            MainActor.Spawn(async () =>
+            {
+                await SwiftTask.TrySleep(ConfirmationHold); // :265
+                var close = Popovers.GetClosePopover(this);
+                close?.Invoke(); // :266
+            });
+            return; // :268
+        }
+        if (state.IsConfirmed) return; // :270
+        var closeNow = Popovers.GetClosePopover(this);
+        closeNow?.Invoke(); // :271
+        MainActor.Spawn(() => // :273 Task { @MainActor in action() }
+        {
+            action();
+            return Task.CompletedTask;
+        });
+    }
+}
+
+/// <summary>
+/// PORT-ONLY (R-FILE-2 exception noted at header): the port's stand-in for `.lineLimit(1).truncationMode(.middle)`
+/// (PR-SIDEBAR-106, UI-SIDEBAR-013). Avalonia's TextBlock has no middle-truncation mode, so this measures the full
+/// text and, when it does not fit, replaces the centre with U+2026 HORIZONTAL ELLIPSIS, widening from an empty
+/// centre until the candidate no longer fits. Exact truncation points are UNVERIFIED (OD-0001: no macOS reference
+/// to compare against).
+/// </summary>
+public sealed class MiddleTruncatingText : TextBlock
+{
+    private const char Ellipsis = '…'; // U+2026 HORIZONTAL ELLIPSIS
+    private string full = "";
+
+    public string FullText
+    {
+        get => full;
+        set
+        {
+            full = value;
+            InvalidateMeasure();
+        }
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        Text = full;
+        if (full.Length == 0 || double.IsInfinity(availableSize.Width))
+            return base.MeasureOverride(availableSize);
+        var natural = base.MeasureOverride(availableSize);
+        if (natural.Width <= availableSize.Width)
+            return natural;
+        Text = Truncate(full, availableSize.Width);
+        return base.MeasureOverride(availableSize);
+    }
+
+    private string Truncate(string text, double maxWidth)
+    {
+        var lo = 0;
+        var hi = text.Length;
+        var best = Ellipsis.ToString();
+        var unconstrained = new Size(double.PositiveInfinity, double.PositiveInfinity);
+        while (lo <= hi)
+        {
+            var mid = (lo + hi) / 2;
+            var head = mid / 2;
+            var tail = mid - head;
+            var candidate = tail == 0
+                ? text.Substring(0, head) + Ellipsis
+                : text.Substring(0, head) + Ellipsis + text.Substring(text.Length - tail);
+            Text = candidate;
+            var width = base.MeasureOverride(unconstrained).Width;
+            if (width <= maxWidth)
+            {
+                best = candidate;
+                lo = mid + 1;
+            }
+            else
+            {
+                hi = mid - 1;
+            }
+        }
+        return best;
+    }
 }
 
 // MARK: - Row actions
@@ -151,7 +507,7 @@ public sealed record RowAction
     public required Action Action { get; init; } // :349
 
     // :351 var id: String
-    public string Id => throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Popovers.swift:351");
+    public string Id => Title;
 }
 
 // :354-363 struct RowActionItems: View
@@ -159,17 +515,54 @@ public sealed class RowActionItems : Decorator
 {
     /// <param name="actions">:355 <c>let actions: [RowAction]</c>.</param>
     // :357-362 body
-    public RowActionItems(IReadOnlyList<RowAction> actions) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Popovers.swift:357");
+    public RowActionItems(IReadOnlyList<RowAction> actions)
+    {
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
+        foreach (var item in actions)
+        {
+            if (item.StartsGroup) stack.Children.Add(new PopoverDivider()); // :359
+            stack.Children.Add(new PopoverItem(item.Title, item.Action, symbol: item.Symbol, isDestructive: item.IsDestructive, confirmation: item.Confirms)); // :360
+        }
+        Child = stack;
+    }
 }
 
 // :365-382 struct RowActionMenuButtons: View
+//
+// ENGINEERING DECISION: this view is `Menu { RowActionMenuButtons(actions:) }`'s content at every call site outside
+// this file, hosted by AppKit as an NSMenu; a Decorator (one Child) cannot hold that native menu itself, so this
+// exposes the built MenuItem/Separator controls for a caller to install on an Avalonia ContextMenu.Items (its own
+// native menu host), the direct counterpart of an NSMenu.
 public sealed class RowActionMenuButtons : Decorator
 {
     /// <param name="actions">:366 <c>let actions: [RowAction]</c>.</param>
+    /// <summary>The rows this produces, in order, for a caller's <c>ContextMenu.Items</c>.</summary>
+    public IReadOnlyList<Control> Items { get; }
+
     // :368-381 body
-    public RowActionMenuButtons(IReadOnlyList<RowAction> actions) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Popovers.swift:368");
+    public RowActionMenuButtons(IReadOnlyList<RowAction> actions)
+    {
+        var items = new List<Control>();
+        foreach (var item in actions)
+        {
+            if (item.StartsGroup) items.Add(new Separator()); // :370 Divider()
+            var menuItem = new MenuItem
+            {
+                Header = item.Symbol is { } symbol
+                    ? new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Spacing = 6,
+                        Children = { SwiftImage.SystemName(symbol).Font(Chrome.IconFont), new TextBlock { Text = item.Title } },
+                    } // :374-375 Label(item.title, systemImage: symbol)
+                    : new TextBlock { Text = item.Title }, // :376-377 Text(item.title)
+            };
+            if (item.IsDestructive) menuItem.Foreground = Chrome.Danger.Brush(menuItem); // :371 Button(role: .destructive)
+            menuItem.Click += (_, _) => item.Action(); // :372 item.action(), synchronous inside the AppKit menu callback
+            items.Add(menuItem);
+        }
+        Items = items;
+    }
 }
 
 // :384-401 struct RowActionsButton: View
@@ -178,6 +571,18 @@ public sealed class RowActionsButton : Decorator
     /// <param name="actions">:386 <c>let actions: [RowAction]</c>.</param>
     /// <param name="isPresented">:387 <c>@Binding var isPresented: Bool</c>.</param>
     // :389-400 body
-    public RowActionsButton(IReadOnlyList<RowAction> actions, Binding<bool> isPresented) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Popovers.swift:389");
+    public RowActionsButton(IReadOnlyList<RowAction> actions, Binding<bool> isPresented)
+    {
+        var icon = new RowAccessoryIcon("ellipsis"); // :393
+        var button = PlainControls.Button(icon, () => isPresented.Value = !isPresented.Value); // :390-392, :395 .buttonStyle(.plain)
+        ToolTip.SetTip(button, "More"); // :396 .help("More")
+        var popover = PlainControls.Popover(button, isPresented, () => // :397-399, arrowEdge .bottom is Popover's default placement
+        {
+            var menu = new PopoverMenu(() => new RowActionItems(actions));
+            // See the file header ENGINEERING DECISION: supplies dismiss()'s port counterpart.
+            Popovers.SetClosePopover(menu, () => isPresented.Value = false);
+            return menu;
+        });
+        Child = new Panel { Children = { button, popover } };
+    }
 }

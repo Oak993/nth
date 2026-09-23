@@ -96,14 +96,18 @@ public sealed class SwiftImage : Control
 
     private sealed record Asset(SvgIcon? Icon, Bitmap? Bitmap, Bitmap? Bitmap2x, ImageRenderingMode Intent);
 
-    // DroppyCode/Resources/Assets.xcassets: the three images app code names (ED-179 (3)), with each imageset's
-    // "template-rendering-intent" (droppy-logo "original"; hydra-mark and badge-edit "template").
+    // DroppyCode/Resources/Assets.xcassets: the images app code names (ED-179 (3)), with each imageset's
+    // "template-rendering-intent" (droppy-logo "original"; every other asset here "template"). The 25
+    // hydra-head-NN marks (UI/Common/HydraGlyph.swift, HydraPersona.asset, Core/Models/Hydra.swift:231-257) are
+    // first-party app artwork, not SF Symbols (PA-0012): reusable, per platform_adaptations.md PA-0012.
     private static readonly Lazy<IReadOnlyDictionary<string, Asset>> Assets = new(() => new Dictionary<string, Asset>(StringComparer.Ordinal)
     {
         ["droppy-logo"] = new(null, LoadBitmap("droppy-logo.png"), LoadBitmap("droppy-logo@2x.png"), ImageRenderingMode.Original),
         ["hydra-mark"] = new(LoadSvg("hydra-mark.svg"), null, null, ImageRenderingMode.Template),
         ["badge-edit"] = new(LoadSvg("badge-edit.svg"), null, null, ImageRenderingMode.Template),
-    });
+    }.Concat(Enumerable.Range(1, 25).Select(i => new KeyValuePair<string, Asset>(
+        $"hydra-head-{i:D2}", new(LoadSvg($"hydra-head-{i:D2}.svg"), null, null, ImageRenderingMode.Template))))
+        .ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal));
 
     // ED-182 (Q4, Q5): the drawing of each SF name, built on its first render and shared.
     private static readonly ConcurrentDictionary<string, SymbolDrawing> Drawings = new(StringComparer.Ordinal);

@@ -4293,7 +4293,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:91-93",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:54 - `case .footnote, .caption, .caption2: 10` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
-      "notes": "The deletion marker is the Unicode minus sign, not a hyphen. This one component is reused by the popover header, every file card, the turn file card and the message editor. ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001."
+      "notes": "The deletion marker is the Unicode minus sign, not a hyphen. This one component is reused by the popover header, every file card, the turn file card and the message editor. ED-059: .caption at 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-008",
