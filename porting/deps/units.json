@@ -2661,24 +2661,14 @@
    ],
    "intra_deps": [],
    "records_total": 3,
-   "records_todo": [
-    "PR-THEME-184",
-    "UI-THEME-054",
-    "UI-THEME-055"
-   ],
-   "parts": [
-    [
-     "PR-THEME-184",
-     "UI-THEME-054",
-     "UI-THEME-055"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-009",
     "T-M5-010"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Chrome.ChromeVisualPicker",

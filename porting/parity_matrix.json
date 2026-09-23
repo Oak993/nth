@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 1221,
+      "IMPLEMENTED": 1222,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 2668,
+      "SPECIFIED": 2667,
       "RETIRED": 6,
       "DISCOVERED": 18
     },
@@ -88121,7 +88121,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A symbol-only segment still needs its title as the accessible name (the Hydra \"No cap\" segment draws the infinity symbol). The strip's capsule is the shared chrome glass capsule. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field. The segment symbol (for example \"infinity\" for \"No cap\") is an SF Symbol. SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010). Text is set in the port's text face, Inter (owner ruling OD-0009); where its wrap points differ from the macOS face that is OD-0009's named deviation. Text size (ED-059): .callout 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "verification_method": "capture comparison: the Hydra head-cap strip with \"No cap\" chosen and with a number chosen, plus a hovered segment, in light and dark themes; unit: segment height 22, minimum width 26, accent fill 0.22 when chosen and label fill 0.08 on hover; accessibility test: the infinity segment is announced as \"No cap\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
