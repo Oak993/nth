@@ -1295,8 +1295,18 @@ public sealed class ShortcutsTests
 
     [Fact]
     [Trait("Req", "PR-TERM-069")] // Core/Models/Shortcuts.swift:124, :161-162, :139, :182, :206, :230 (ED-099, OD-0008 B7)
-    public void Toggle_terminal_sits_in_Window_and_panels_titled_and_described_verbatim_and_ships_Ctrl_J() =>
+    public void Toggle_terminal_sits_in_Window_and_panels_titled_and_described_verbatim_and_ships_Ctrl_J()
+    {
         AssertShortcut(AppShortcut.ToggleTerminal, AppShortcut.CommandPalette);
+
+        // AssertShortcut only checks the section by enum (row.Section == shortcut.Section()); the record's
+        // expected_result names the section by its title, "Window and panels". Check the title itself so a port
+        // with the wrong section title (for example "Window & panels") cannot pass this record's test while
+        // PR-WIN-122 (which does check titles, but only for its own two sections' Table rows) catches it late or
+        // not at all for this shortcut specifically. :139 `case .window: "Window and panels"`; :161-162 places
+        // .toggleTerminal in .window.
+        Assert.Equal(Utf8("Window and panels"), Utf8(AppShortcut.ToggleTerminal.Section().Title()));
+    }
 
     [Fact]
     [Trait("Req", "PR-WIN-116")] // Core/Models/Shortcuts.swift:5-18 (ED-099 (2), (3))
@@ -1563,6 +1573,21 @@ public sealed class ShortcutsTests
             Assert.Equal(modifierSet.Contains(code), KeyNames.IsModifierKey(code));
         for (long code = 0xE000; code <= 0xE07F; code++)
             Assert.Equal(modifierSet.Contains(code), KeyNames.IsModifierKey(code));
+
+        // The record's expected_result also names the refusal: "A chord whose key is one of them is refused"
+        // (:324 `if KeyNames.isModifierKey(chord.keyCode) { return "Add a key to the modifiers." }`). Prove it here
+        // directly, not only through PR-WIN-129, so a Refusal that skipped this check cannot pass this record's
+        // test.
+        using var runtime = new TestRuntime();
+        var store = Load(runtime);
+        OnMain(runtime, store, () =>
+        {
+            foreach (var code in ModifierKeyCodes)
+                Assert.Equal(Utf8(ModifierRefusal), Utf8(store.Refusal(new KeyChord(code, ChordModifiers.None), AppShortcut.NewThread)!));
+
+            // A non-modifier key with the same (absent) flags is not caught by this check: bare F5 is accepted.
+            Assert.Null(store.Refusal(new KeyChord(0x3F, ChordModifiers.None), AppShortcut.NewThread));
+        });
     }
 
     [Fact]
@@ -1601,6 +1626,21 @@ public sealed class ShortcutsTests
             Assert.Null(store.Refusal(new KeyChord(0x3F, ChordModifiers.None), AppShortcut.NewThread)); // bare F5
             Assert.Null(store.Refusal(new KeyChord(0xE047, ChordModifiers.None), AppShortcut.NewThread)); // bare Home
             Assert.Null(store.Refusal(new KeyChord(0xE051, Shift), AppShortcut.NewThread)); // bare Shift+PgDn
+
+            // The record's central rule (OD-0008 B7 / ED-099 (4), :325-327): such a chord is refused unless it
+            // carries Ctrl, Alt or (upstream) Command; Shift alone is not enough. Prove it here directly, on a
+            // typing key (0x1E, A) and a caret key (0xE04B, Left arrow), both bare and Shift-only.
+            Assert.Equal(Utf8(TypingRefusal), Utf8(store.Refusal(new KeyChord(0x1E, ChordModifiers.None), AppShortcut.NewThread)!));
+            Assert.Equal(Utf8(TypingRefusal), Utf8(store.Refusal(new KeyChord(0x1E, Shift), AppShortcut.NewThread)!));
+            Assert.Equal(Utf8(TypingRefusal), Utf8(store.Refusal(new KeyChord(0xE04B, ChordModifiers.None), AppShortcut.NewThread)!));
+            Assert.Equal(Utf8(TypingRefusal), Utf8(store.Refusal(new KeyChord(0xE04B, Shift), AppShortcut.NewThread)!));
+
+            // Ctrl or Alt qualifies the same keys; Ctrl+Shift also qualifies (flags.subtracting(.shift) leaves
+            // Control, not empty). 0xE04B (Left arrow) is not reserved and not any command's default (Table,
+            // Reserved above), so a bare-Ctrl Refusal call on it can only pass through the typing check.
+            Assert.Null(store.Refusal(new KeyChord(0x1E, Alt), AppShortcut.NewThread));
+            Assert.Null(store.Refusal(new KeyChord(0x39, Ctrl | Shift), AppShortcut.NewThread));
+            Assert.Null(store.Refusal(new KeyChord(0xE04B, Ctrl), AppShortcut.NewThread));
         });
     }
 
