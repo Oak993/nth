@@ -503,22 +503,10 @@ public sealed class LoadingMark : Control
         var left = (Bounds.Width - size) / 2;
         var top = (Bounds.Height - size) / 2;
         var state = State;
-        using (context.PushTransform(Matrix.CreateTranslation(left, top) * Matrix.CreateScale(scale, scale)))
+        using (context.PushTransform(Matrix.CreateScale(scale, scale) * Matrix.CreateTranslation(left, top)))
         using (context.PushOpacity(alpha))
         {
-            var tileBrush = new LinearGradientBrush
-            {
-                StartPoint = new RelativePoint(.1, 0, RelativeUnit.Relative),
-                EndPoint = new RelativePoint(.9, 1, RelativeUnit.Relative),
-                GradientStops = new GradientStops
-                {
-                    new(Color.Parse("#1D2147"), 0), new(Color.Parse("#121529"), .55), new(Color.Parse("#0A0C18"), 1)
-                }
-            };
-            context.DrawRectangle(tileBrush, null,
-                new Rect(72, 72, 880, 880), 204, 204);
-            context.DrawRectangle(null, new Pen(new SolidColorBrush(Color.FromArgb(56, 255, 255, 255)), 3),
-                new Rect(73.5, 73.5, 877, 877), 202.5, 202.5);
+            CometPainter.DrawTile(context, 1, 1);
             if (state.RingAge is { } age)
             {
                 using (context.PushOpacity(CometMotion.RingOpacity(age)))
@@ -558,23 +546,7 @@ public sealed class LoadingMark : Control
                 };
                 context.DrawGeometry(null, new Pen(brush, 92, lineCap: PenLineCap.Round), geometry);
             }
-            using (context.PushOpacity(Math.Clamp(state.GlowOpacity, 0, 1)))
-                context.DrawEllipse(new SolidColorBrush(Color.FromArgb(44, 147, 172, 255)), null,
-                    new Point(512, 512), 230 * state.GlowScale, 230 * state.GlowScale);
-            var coreBrush = new RadialGradientBrush
-            {
-                Center = new RelativePoint(.38, .32, RelativeUnit.Relative),
-                GradientOrigin = new RelativePoint(.38, .32, RelativeUnit.Relative),
-                RadiusX = new RelativeScalar(.8, RelativeUnit.Relative),
-                RadiusY = new RelativeScalar(.8, RelativeUnit.Relative),
-                GradientStops = new GradientStops
-                {
-                    new(Color.Parse("#FFFFFF"), 0), new(Color.Parse("#F2F5FF"), .72),
-                    new(Color.Parse("#D6DEFB"), 1)
-                }
-            };
-            context.DrawEllipse(coreBrush, null,
-                new Point(512, 512), 82 * state.CoreScale, 82 * state.CoreScale);
+            CometPainter.DrawCore(context, state, 1);
         }
     }
 
@@ -600,6 +572,97 @@ public sealed class LoadingMark : Control
 
 internal static class CometPainter
 {
+    public static void DrawTile(DrawingContext context, double opacity, double scale)
+    {
+        if (opacity <= 0) return;
+        var width = 880 * scale;
+        var tile = new Rect(512 - width / 2, 512 - width / 2, width, width);
+        var corner = 204 * scale;
+        using (context.PushOpacity(opacity))
+        {
+            var background = new LinearGradientBrush
+            {
+                StartPoint = new RelativePoint(.1, 0, RelativeUnit.Relative),
+                EndPoint = new RelativePoint(.9, 1, RelativeUnit.Relative),
+                GradientStops = new GradientStops
+                {
+                    new(Color.Parse("#1D2147"), 0), new(Color.Parse("#121529"), .55),
+                    new(Color.Parse("#0A0C18"), 1)
+                }
+            };
+            context.DrawRectangle(background, null, tile, corner, corner);
+            var glow = new RadialGradientBrush
+            {
+                Center = new RelativePoint(.3, .16, RelativeUnit.Relative),
+                GradientOrigin = new RelativePoint(.3, .16, RelativeUnit.Relative),
+                RadiusX = new RelativeScalar(722.0 / 880, RelativeUnit.Relative),
+                RadiusY = new RelativeScalar(722.0 / 880, RelativeUnit.Relative),
+                GradientStops = new GradientStops
+                {
+                    new(Color.FromArgb(56, 147, 172, 255), 0),
+                    new(Color.FromArgb(0, 147, 172, 255), 1)
+                }
+            };
+            using (context.PushClip(new RoundedRect(tile, corner)))
+                context.DrawRectangle(glow, null, tile);
+            var keyline = new LinearGradientBrush
+            {
+                StartPoint = new RelativePoint(.5, 0, RelativeUnit.Relative),
+                EndPoint = new RelativePoint(.5, 1, RelativeUnit.Relative),
+                GradientStops = new GradientStops
+                {
+                    new(Color.FromArgb(56, 255, 255, 255), 0),
+                    new(Color.FromArgb(8, 255, 255, 255), .6),
+                    new(Color.FromArgb(0, 255, 255, 255), 1)
+                }
+            };
+            var inset = 1.5 * scale;
+            context.DrawRectangle(null, new Pen(keyline, 3 * scale),
+                new Rect(tile.X + inset, tile.Y + inset, tile.Width - 2 * inset, tile.Height - 2 * inset),
+                202.5 * scale, 202.5 * scale);
+        }
+    }
+
+    public static void DrawCore(DrawingContext context, CometState state, double opacity)
+    {
+        if (opacity <= 0) return;
+        using (context.PushOpacity(opacity))
+        {
+            var glow = new RadialGradientBrush
+            {
+                Center = new RelativePoint(.5, .5, RelativeUnit.Relative),
+                GradientOrigin = new RelativePoint(.5, .5, RelativeUnit.Relative),
+                RadiusX = new RelativeScalar(.5, RelativeUnit.Relative),
+                RadiusY = new RelativeScalar(.5, RelativeUnit.Relative),
+                GradientStops = new GradientStops
+                {
+                    new(Color.FromArgb(ToByte(.55 * state.GlowOpacity), 255, 255, 255), 0),
+                    new(Color.FromArgb(ToByte(.28 * state.GlowOpacity), 185, 200, 255), .35),
+                    new(Color.FromArgb(0, 147, 172, 255), 1)
+                }
+            };
+            context.DrawEllipse(glow, null, new Point(512, 512),
+                230 * state.GlowScale, 230 * state.GlowScale);
+            if (state.CoreScale <= .001) return;
+            var core = new RadialGradientBrush
+            {
+                Center = new RelativePoint(.38, .32, RelativeUnit.Relative),
+                GradientOrigin = new RelativePoint(.38, .32, RelativeUnit.Relative),
+                RadiusX = new RelativeScalar(.8, RelativeUnit.Relative),
+                RadiusY = new RelativeScalar(.8, RelativeUnit.Relative),
+                GradientStops = new GradientStops
+                {
+                    new(Color.Parse("#FFFFFF"), 0), new(Color.Parse("#F2F5FF"), .72),
+                    new(Color.Parse("#D6DEFB"), 1)
+                }
+            };
+            context.DrawEllipse(core, null, new Point(512, 512),
+                82 * state.CoreScale, 82 * state.CoreScale);
+        }
+    }
+
+    private static byte ToByte(double opacity) => (byte)Math.Round(255 * Math.Clamp(opacity, 0, 1));
+
     public static Point Rotate(Point point, double radians)
     {
         var x = point.X - 512;
@@ -777,54 +840,21 @@ public sealed class BootStage : Control
         var centre = sequence.Centre;
         if (Frame.MarkOpacity > 0)
         {
-            using (context.PushOpacity(Frame.TileOpacity))
+            var scale = BootSequence.MarkSize / 1024;
+            using (context.PushTransform(Matrix.CreateScale(scale, scale) *
+                   Matrix.CreateTranslation(centre.X - BootSequence.MarkSize / 2,
+                       centre.Y - BootSequence.MarkSize / 2)))
             {
-                var tileSize = 880 * BootSequence.MarkSize / 1024 * Frame.TileScale;
-                var tile = new Rect(centre.X - tileSize / 2, centre.Y - tileSize / 2, tileSize, tileSize);
-                var radius = 204 * BootSequence.MarkSize / 1024 * Frame.TileScale;
-                var tileBrush = new LinearGradientBrush
-                {
-                    StartPoint = new RelativePoint(.1, 0, RelativeUnit.Relative),
-                    EndPoint = new RelativePoint(.9, 1, RelativeUnit.Relative),
-                    GradientStops = new GradientStops
-                    {
-                        new(Color.Parse("#1D2147"), 0), new(Color.Parse("#121529"), .55), new(Color.Parse("#0A0C18"), 1)
-                    }
-                };
-                context.DrawRectangle(tileBrush, null, tile, radius, radius);
-            }
-            using (context.PushTransform(Matrix.CreateTranslation(centre.X - BootSequence.MarkSize / 2,
-                       centre.Y - BootSequence.MarkSize / 2) *
-                   Matrix.CreateScale(BootSequence.MarkSize / 1024, BootSequence.MarkSize / 1024)))
+                CometPainter.DrawTile(context, Frame.TileOpacity, Frame.TileScale);
                 CometPainter.DrawArms(context, Frame.ArmReveal, Frame.Comet, main: true);
+                CometPainter.DrawCore(context, Frame.Comet, Frame.MarkOpacity);
+            }
             if (Frame.Comet.RingAge is { } age)
             {
                 using (context.PushOpacity(Frame.MarkOpacity * CometMotion.RingOpacity(age)))
                     context.DrawEllipse(null, new Pen(new SolidColorBrush(CometMotion.RingColor), CometMotion.RingWidth),
                         centre, CometMotion.RingRadius(age) * BootSequence.MarkSize / 1024,
                         CometMotion.RingRadius(age) * BootSequence.MarkSize / 1024);
-            }
-            using (context.PushOpacity(Frame.MarkOpacity * Math.Clamp(Frame.Comet.GlowOpacity, 0, 1)))
-                context.DrawEllipse(new SolidColorBrush(Color.FromArgb(44, 147, 172, 255)), null,
-                    centre, 230 * BootSequence.MarkSize / 1024 * Frame.Comet.GlowScale,
-                    230 * BootSequence.MarkSize / 1024 * Frame.Comet.GlowScale);
-            using (context.PushOpacity(Frame.MarkOpacity))
-            {
-                var coreBrush = new RadialGradientBrush
-                {
-                    Center = new RelativePoint(.38, .32, RelativeUnit.Relative),
-                    GradientOrigin = new RelativePoint(.38, .32, RelativeUnit.Relative),
-                    RadiusX = new RelativeScalar(.8, RelativeUnit.Relative),
-                    RadiusY = new RelativeScalar(.8, RelativeUnit.Relative),
-                    GradientStops = new GradientStops
-                    {
-                        new(Color.Parse("#FFFFFF"), 0), new(Color.Parse("#F2F5FF"), .72),
-                        new(Color.Parse("#D6DEFB"), 1)
-                    }
-                };
-                context.DrawEllipse(coreBrush, null, centre,
-                    82 * BootSequence.MarkSize / 1024 * Frame.Comet.CoreScale,
-                    82 * BootSequence.MarkSize / 1024 * Frame.Comet.CoreScale);
             }
         }
         foreach (var p in sequence.GatherParticles)
