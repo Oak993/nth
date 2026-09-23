@@ -14,8 +14,14 @@ namespace Marrow.Core.Models;
 // ClaudeCommands, CodexSkills and CodexInput (PR-PROVCLI-345 to 353). Part 1's switch statements already
 // covered every ProviderKind case, so part 2 of 5 (PR-PROVREG-013 to 036: commandcode and pi identity, and
 // executableName/loginCommand for every remaining case) adds no new arms, only proves the remaining record
-// ids against DisplayName, ExecutableName, IconName and LoginCommand as part 1 wrote them. Every other
-// member in this file stays MARROW_STUB for a later part.
+// ids against DisplayName, ExecutableName, IconName and LoginCommand as part 1 wrote them. Part 3 (PR-
+// PROVREG-037 to 060) and part 4 (PR-PROVREG-061 to 074, 157 to 161, 240 to 244) implemented InstallURL,
+// IsAPIKeyBased, UsesACP, AcceptsAPIKey, ApiHost, ApiKeySource, ApiKeyEnvVar, SupportsRewind,
+// SupportsCompact, SupportsImages and ModelOption in full. Part 5 of 5 (PR-PROVREG-245, UI-PROVACP-034)
+// added no new SupportsCompact arms (already covered by part 4) and implemented RuntimeMode's Id, Title,
+// Summary and Symbol. SlashCommand.Id and Suggestions, and WorkspaceMode.Id and Title, are not named by
+// any record in this unit's five work packets and stay MARROW_STUB; a later unit that is given a record
+// covering them ports them then.
 
 // :3-18
 public enum ProviderKind
@@ -198,10 +204,39 @@ public static class RuntimeModeExtensions
 {
     extension(RuntimeMode mode)
     {
-        public string Id => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:167");
-        public string Title => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:169");
-        public string Summary => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:178");
-        public string Symbol => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Provider.swift:187");
+        // :167 `var id: String { rawValue }`.
+        public string Id => SwiftEnum<RuntimeMode>.RawValue(mode);
+
+        // :169-176. UI-PROVACP-034: exact row titles, one hyphen and lowercase "e" in "Auto-accept edits".
+        public string Title => mode switch
+        {
+            RuntimeMode.Supervised => "Supervised", // :171
+            RuntimeMode.AutoAcceptEdits => "Auto-accept edits", // :172
+            RuntimeMode.Auto => "Auto", // :173
+            RuntimeMode.FullAccess => "Full access", // :174
+            _ => throw new UnreachableException(),
+        };
+
+        // :178-185. UI-PROVACP-034: exact row summaries.
+        public string Summary => mode switch
+        {
+            RuntimeMode.Supervised => "Asks before commands and file changes", // :180
+            RuntimeMode.AutoAcceptEdits => "Edits files freely, asks before other actions", // :181
+            RuntimeMode.Auto => "The provider's reviewer approves routine actions", // :182
+            RuntimeMode.FullAccess => "Runs commands and edits without asking", // :183
+            _ => throw new UnreachableException(),
+        };
+
+        // :187-194. UI-PROVACP-034: SF Symbol names, ported as data (never drawn as literal text); the
+        // Windows icon substitution for each is a platform boundary handled elsewhere (UNK-0007/PA-0012).
+        public string Symbol => mode switch
+        {
+            RuntimeMode.Supervised => "hand.raised", // :189
+            RuntimeMode.AutoAcceptEdits => "pencil.line", // :190
+            RuntimeMode.Auto => "wand.and.sparkles", // :191
+            RuntimeMode.FullAccess => "lock.open", // :192
+            _ => throw new UnreachableException(),
+        };
     }
 }
 
