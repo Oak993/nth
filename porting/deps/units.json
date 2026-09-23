@@ -128,8 +128,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "The loading mark and boot sequence of OD-0016 and OD-0018, exactly as ED-097, ED-102 and ED-103 give them in numbers; the reference implementation is porting/design/loading_mark/boot_sequence.html (canvas, frame by frame) and loading_premium.html card B, and where they differ from the EDs the EDs rule. LoadingMark draws the Marrow icon (src/Marrow.App/Assets/icon.svg geometry) with the Comet motion of ED-102 (1) to (3) from the F.FrameClock seam, still under reduce motion, with the 400 ms no-flash rule for in-app sites (ED-097). A BootSequence type drives the ED-103 phases (gather, pulse, turns until ready, disintegration, window formation) as pure functions of time, so tests pin particle positions, reveal shares, pulse times and phase boundaries at fixed times with the manual frame source. First tests: the turn angle and speed at fixed times, one pulse exactly at each rest, the ring radius and opacity curve, the gather reveal share, the final rest after readiness, disintegration pairing by angle without crossings, and reduce motion.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "Core.Repair.ScanClean",
@@ -2543,23 +2543,13 @@
    ],
    "intra_deps": [],
    "records_total": 3,
-   "records_todo": [
-    "PR-GIT-089",
-    "PR-GIT-090",
-    "PR-GIT-091"
-   ],
-   "parts": [
-    [
-     "PR-GIT-089",
-     "PR-GIT-090",
-     "PR-GIT-091"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M3-013"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.MCP.MCPBridgeSource",
@@ -2617,19 +2607,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-SETTINGS-272"
-   ],
-   "parts": [
-    [
-     "PR-SETTINGS-272"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-067"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.DeepSeekKeychain",
@@ -2647,19 +2631,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-PROVAPI-005"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-005"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-090"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.MetaKeychain",
@@ -2677,19 +2655,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-PROVAPI-006"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-006"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-095"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.NativeFileTools",
@@ -2799,19 +2771,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-PROVAPI-007"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-007"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-145"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Store.Storage",
