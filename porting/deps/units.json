@@ -4668,58 +4668,14 @@
    ],
    "intra_deps": [],
    "records_total": 20,
-   "records_todo": [
-    "PR-MCP-100",
-    "PR-MCP-101",
-    "PR-MCP-102",
-    "PR-MCP-103",
-    "PR-MCP-104",
-    "PR-MCP-105",
-    "PR-MCP-106",
-    "PR-MCP-107",
-    "PR-MCP-108",
-    "PR-MCP-109",
-    "PR-MCP-110",
-    "PR-MCP-111",
-    "PR-MCP-112",
-    "PR-MCP-113",
-    "PR-MCP-114",
-    "PR-MCP-115",
-    "PR-MCP-116",
-    "PR-MCP-117",
-    "PR-MCP-118",
-    "PR-MCP-120"
-   ],
-   "parts": [
-    [
-     "PR-MCP-100",
-     "PR-MCP-101",
-     "PR-MCP-102",
-     "PR-MCP-103",
-     "PR-MCP-104",
-     "PR-MCP-105",
-     "PR-MCP-106",
-     "PR-MCP-107",
-     "PR-MCP-108",
-     "PR-MCP-109",
-     "PR-MCP-110",
-     "PR-MCP-111",
-     "PR-MCP-112",
-     "PR-MCP-113",
-     "PR-MCP-114",
-     "PR-MCP-115",
-     "PR-MCP-116",
-     "PR-MCP-117",
-     "PR-MCP-118",
-     "PR-MCP-120"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-008",
     "T-M4-009"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.MCP.MCPProviderConfig",
