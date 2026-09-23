@@ -91,6 +91,21 @@ public sealed class ThumbnailCacheTests
     }
 
     [Fact]
+    [Trait("Decision", "ED-160")]
+    [Trait("Oracle", "O-54")]
+    public async Task An_svg_file_yields_no_thumbnail_and_is_decoded_again_next_time()
+    {
+        // Rests on open item O-54: the macOS value for SVG is unsettled; parked nil.
+        var root = Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, Guid.NewGuid().ToString("N"))).FullName;
+        var path = Path.Combine(root, "red.svg");
+        File.WriteAllText(path, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><rect width=\"16\" height=\"16\" fill=\"red\"/></svg>");
+        var cache = new ThumbnailCache();
+        Assert.Null(await cache.ThumbnailFor(path, 16));
+        Assert.Null(await cache.ThumbnailFor(path, 16));
+        Assert.Equal(2, await cache.Decodes());
+    }
+
+    [Fact]
     [Trait("Req", "PR-STORE-126")] // DroppyCode/Core/Support/ThumbnailCache.swift:46-53
     public async Task Square_fill_multiplies_by_aspect_ratio_and_caps_the_long_edge_at_2048()
     {
