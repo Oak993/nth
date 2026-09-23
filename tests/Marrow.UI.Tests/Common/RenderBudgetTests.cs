@@ -7,6 +7,7 @@ using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Tests.Fixtures;
 using Xunit;
 using Chrome = Marrow.UI.Chrome.Chrome; // ED-095: the Swift type Chrome, not this test namespace
 
@@ -18,11 +19,6 @@ namespace Marrow.UI.Tests.Common;
 
 public sealed class RenderBudgetTests
 {
-    private class MockReporter : ScrollActivityReporter
-    {
-        public bool IsScrollingNow { get; set; }
-    }
-
     [Fact]
     [Trait("Req", "PR-CHAT-184")] // Union of timelines
     [Trait("Req", "PR-SETTINGS-260")] // Scrolling is the union over reporting timelines
@@ -46,7 +42,7 @@ public sealed class RenderBudgetTests
         {
             var activity = new ScrollActivity();
             var timeline = Guid.NewGuid();
-            var reporter = new MockReporter { IsScrollingNow = true };
+            var reporter = new MockScrollActivityReporter { IsScrollingNow = true };
 
             activity.SetScrolling(true, timeline, reporter);
 
@@ -64,7 +60,7 @@ public sealed class RenderBudgetTests
         {
             var activity = new ScrollActivity();
             var timeline = Guid.NewGuid();
-            var reporter = new MockReporter { IsScrollingNow = true };
+            var reporter = new MockScrollActivityReporter { IsScrollingNow = true };
 
             activity.SetScrolling(true, timeline, reporter);
             Assert.True(activity.IsScrolling);
@@ -85,8 +81,8 @@ public sealed class RenderBudgetTests
             var activity = new ScrollActivity();
             var timeline1 = Guid.NewGuid();
             var timeline2 = Guid.NewGuid();
-            var reporter1 = new MockReporter { IsScrollingNow = true };
-            var reporter2 = new MockReporter { IsScrollingNow = true };
+            var reporter1 = new MockScrollActivityReporter { IsScrollingNow = true };
+            var reporter2 = new MockScrollActivityReporter { IsScrollingNow = true };
 
             activity.SetScrolling(true, timeline1, reporter1);
             activity.SetScrolling(true, timeline2, reporter2);
@@ -111,7 +107,7 @@ public sealed class RenderBudgetTests
         {
             var activity = new ScrollActivity();
             var timeline = Guid.NewGuid();
-            var reporter = new MockReporter { IsScrollingNow = true };
+            var reporter = new MockScrollActivityReporter { IsScrollingNow = true };
 
             activity.SetScrolling(true, timeline, reporter);
 
@@ -128,7 +124,7 @@ public sealed class RenderBudgetTests
         {
             var activity = new ScrollActivity();
             var timeline = Guid.NewGuid();
-            var reporter = new MockReporter { IsScrollingNow = true };
+            var reporter = new MockScrollActivityReporter { IsScrollingNow = true };
 
             activity.SetScrolling(true, timeline, reporter);
             Assert.True(activity.IsScrolling);
@@ -147,7 +143,7 @@ public sealed class RenderBudgetTests
         {
             var activity = new ScrollActivity();
             var timeline = Guid.NewGuid();
-            var reporter = new MockReporter { IsScrollingNow = true };
+            var reporter = new MockScrollActivityReporter { IsScrollingNow = true };
 
             activity.SetScrolling(true, timeline, reporter);
             activity.SetScrolling(false, timeline); // No reporter parameter
@@ -183,7 +179,7 @@ public sealed class RenderBudgetTests
 
             // Create reporter in a scope so it can be garbage collected
             {
-                var reporter = new MockReporter { IsScrollingNow = true };
+                var reporter = new MockScrollActivityReporter { IsScrollingNow = true };
                 activity.SetScrolling(true, timeline, reporter);
                 Assert.True(activity.IsScrolling);
             }
@@ -206,12 +202,12 @@ public sealed class RenderBudgetTests
         {
             var activity = new ScrollActivity();
             var timeline = Guid.NewGuid();
-            var reporter1 = new MockReporter { IsScrollingNow = true };
+            var reporter1 = new MockScrollActivityReporter { IsScrollingNow = true };
 
             activity.SetScrolling(true, timeline, reporter1);
             Assert.True(activity.IsScrolling);
 
-            var reporter2 = new MockReporter { IsScrollingNow = true };
+            var reporter2 = new MockScrollActivityReporter { IsScrollingNow = true };
             activity.SetScrolling(true, timeline, reporter2); // Replace reporter
 
             // The first reporter is replaced; if it wasn't weakly held it would be a leak
@@ -229,7 +225,7 @@ public sealed class RenderBudgetTests
         {
             var activity = new ScrollActivity();
             var timeline = Guid.NewGuid();
-            var reporter = new MockReporter { IsScrollingNow = true };
+            var reporter = new MockScrollActivityReporter { IsScrollingNow = true };
 
             activity.SetScrolling(true, timeline, reporter);
             Assert.True(activity.IsScrolling);
@@ -265,7 +261,7 @@ public sealed class RenderBudgetTests
         {
             var activity = new ScrollActivity();
             var timeline = Guid.NewGuid();
-            var reporter = new MockReporter { IsScrollingNow = true };
+            var reporter = new MockScrollActivityReporter { IsScrollingNow = true };
 
             activity.SetScrolling(true, timeline, reporter);
             Assert.True(activity.IsScrolling);
@@ -289,7 +285,7 @@ public sealed class RenderBudgetTests
         {
             var activity = new ScrollActivity();
             var timeline = Guid.NewGuid();
-            var reporter = new MockReporter { IsScrollingNow = true };
+            var reporter = new MockScrollActivityReporter { IsScrollingNow = true };
 
             activity.SetScrolling(true, timeline, reporter);
             Assert.True(activity.IsScrolling);
@@ -320,7 +316,7 @@ public sealed class RenderBudgetTests
 
             // Reporter without explicit reference (it goes away)
             {
-                var reporter = new MockReporter { IsScrollingNow = false };
+                var reporter = new MockScrollActivityReporter { IsScrollingNow = false };
                 activity.SetScrolling(true, timeline, reporter);
                 Assert.True(activity.IsScrolling);
             }
@@ -350,7 +346,7 @@ public sealed class RenderBudgetTests
         {
             var activity = new ScrollActivity();
             var timeline = Guid.NewGuid();
-            var reporter = new MockReporter { IsScrollingNow = true };
+            var reporter = new MockScrollActivityReporter { IsScrollingNow = true };
 
             activity.SetScrolling(true, timeline, reporter);
             Assert.True(activity.IsScrolling);
@@ -373,7 +369,7 @@ public sealed class RenderBudgetTests
         {
             var activity = new ScrollActivity();
             var timeline = Guid.NewGuid();
-            var reporter = new MockReporter { IsScrollingNow = true };
+            var reporter = new MockScrollActivityReporter { IsScrollingNow = true };
 
             activity.SetScrolling(true, timeline, reporter);
             Assert.True(activity.IsScrolling);
@@ -522,7 +518,7 @@ public sealed class RenderBudgetTests
 
             // Simulate a view closing mid-flick without reporting stop
             {
-                var reporter = new MockReporter { IsScrollingNow = true };
+                var reporter = new MockScrollActivityReporter { IsScrollingNow = true };
                 activity.SetScrolling(true, timeline, reporter);
                 Assert.True(activity.IsScrolling);
                 // View is torn down; reporter is released without SetScrolling(false)
@@ -544,7 +540,7 @@ public sealed class RenderBudgetTests
         {
             var activity = new ScrollActivity();
             var timeline = Guid.NewGuid();
-            var reporter = new MockReporter { IsScrollingNow = true };
+            var reporter = new MockScrollActivityReporter { IsScrollingNow = true };
 
             activity.SetScrolling(true, timeline, reporter);
             Assert.True(activity.IsScrolling);
