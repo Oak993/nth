@@ -2487,7 +2487,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; keep the type Codable with the same field names, since old thread documents carry it.",
       "verification_method": "unit plus a restart test reading a thread document written before the change",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
