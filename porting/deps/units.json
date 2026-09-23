@@ -3643,21 +3643,13 @@
    ],
    "intra_deps": [],
    "records_total": 2,
-   "records_todo": [
-    "PR-THEME-122",
-    "PR-THEME-181"
-   ],
-   "parts": [
-    [
-     "PR-THEME-122",
-     "PR-THEME-181"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-061"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Chat.MessagePopoverMenu",
