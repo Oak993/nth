@@ -38,7 +38,9 @@
    "level": -1,
    "component": null,
    "component_members": [],
-   "deps": [],
+   "deps": [
+    "F.FrameClock"
+   ],
    "intra_deps": [],
    "records_total": 0,
    "records_todo": [],
@@ -47,7 +49,7 @@
    ],
    "packets": [],
    "risk": "STANDARD",
-   "spec": "SwiftUI animation curves and transitions (ED-092 part 2, ED-011; R-VIEW-4). Concrete records under the existing abstract Animation in ViewSupport.cs (make it partial if the factories need it): Spring(response, dampingFraction, blendDuration), Spring(duration, bounce), Spring(response, dampingRatio) with SettlingDuration = ln(1000)/(zeta*omega0) per ED-011, Smooth (bounce 0), Snappy (bounce 0.15), EaseIn, EaseOut, EaseInOut (cubic Beziers 0.42,0,1,1 / 0,0,0.58,1 / 0.42,0,0.58,1), Linear, Delay; defaults duration 0.35 for timing curves and 0.5 for smooth, snappy and spring(duration:). A spring is a damped oscillator, omega0 = 2*pi/response, zeta = dampingFraction or 1 - bounce (bounce >= 0) or 1/(1+bounce), exposed as progress(t) and as an Avalonia Easing. SwiftTransition: Identity, Opacity, Scale(scale, anchor), Offset(x, y), Move(edge), BlurReplace, Modifier(active, identity), Asymmetric(insertion, removal), Combined(with), Animation(a); an applier animates insertion from active to identity and removal from identity to active before the control leaves, using Transaction.Current. First tests: the spring progress at fixed times against the closed form, settlingDuration 0.767 s for response 0.6 / damping 0.86, the Bezier curves at known points, delay, and insertion/removal state on a headless control.",
+   "spec": "SwiftUI animation curves and transitions (ED-092 part 2, ED-098, ED-011; R-VIEW-4). Time comes only from the F.FrameClock seam (ED-098 (1)); animatable modifiers implement IAnimatableModifier (ED-098 (2)). Concrete records under the existing abstract Animation in ViewSupport.cs (make it partial if the factories need it): Spring(response, dampingFraction, blendDuration), Spring(duration, bounce), Spring(response, dampingRatio) with SettlingDuration = ln(1000)/(zeta*omega0) per ED-011, Smooth (bounce 0), Snappy (bounce 0.15), EaseIn, EaseOut, EaseInOut (cubic Beziers 0.42,0,1,1 / 0,0,0.58,1 / 0.42,0,0.58,1), Linear, Delay; defaults duration 0.35 for timing curves and 0.5 for smooth, snappy and spring(duration:). A spring is a damped oscillator, omega0 = 2*pi/response, zeta = dampingFraction or 1 - bounce (bounce >= 0) or 1/(1+bounce), exposed as progress(t) and as an Avalonia Easing. SwiftTransition: Identity, Opacity, Scale(scale, anchor), Offset(x, y), Move(edge), BlurReplace, Modifier(active, identity), Asymmetric(insertion, removal), Combined(with), Animation(a); an applier animates insertion from active to identity and removal from identity to active before the control leaves, using Transaction.Current. First tests: the spring progress at fixed times against the closed form, settlingDuration 0.767 s for response 0.6 / damping 0.86, the Bezier curves at known points, delay, and insertion/removal state on a headless control.",
    "extends_existing": false,
    "status": "TODO"
   },
@@ -139,7 +141,7 @@
    ],
    "packets": [],
    "risk": "HIGH",
-   "spec": "File-system watcher (R-GCD-3): events posted to the main actor, overflow means rescan (probe P8: FileSystemWatcher.Error with InternalBufferOverflowException maps to everything = true / changed = nil), coalescing. First tests: a real temporary folder, including a forced overflow.",
+   "spec": "File-system watcher (R-GCD-3): tree watch events on the caller's SerialQueue and directory watch events on main (ED-116); overflow or any Error means rescan (probe P8: FileSystemWatcher.Error with InternalBufferOverflowException maps to everything = true / changed = nil; ED-114); batching of events waiting for the handler, no latency (ED-115); no order between roots (ED-113). First tests: a real temporary folder, including a forced overflow.",
    "extends_existing": false,
    "status": "TODO"
   },
@@ -162,7 +164,7 @@
    ],
    "packets": [],
    "risk": "STANDARD",
-   "spec": "Frame clock (ED-083; R-VIEW-10): frame-driven work runs on Avalonia's frame clock, the system timer resolution is never changed. First tests: a manual frame source.",
+   "spec": "Frame clock (ED-083; R-VIEW-10): frame-driven work runs on Avalonia's frame clock, the system timer resolution is never changed. Every other unit reads time only through this seam (ED-098): a public frame-source interface (request the next frame; the callback gets the frame time), the production source on TopLevel.RequestAnimationFrame, and a public manual source whose Advance(TimeSpan) runs the pending frame callbacks, for headless tests. First tests: a manual frame source.",
    "extends_existing": false,
    "status": "TODO"
   },
@@ -185,7 +187,7 @@
    ],
    "packets": [],
    "risk": "STANDARD",
-   "spec": "HTTP client matching URLSession as the source uses it (R-NET-1): inactivity timeout, decompression, redirects, status handling, the User-Agent of OD-0012 F1. First tests: a loopback server.",
+   "spec": "HTTP client matching URLSession as the source uses it (R-NET-1): inactivity timeout, decompression, redirects, status handling, the User-Agent of OD-0012 F1. First tests: a loopback server. URLSessionConfiguration.ephemeral, URLRequest.CachePolicy and URLCache as UpdateChecker.swift:101-110 uses them (ED-119); network defaults per ED-118.",
    "extends_existing": false,
    "status": "TODO"
   },
@@ -325,7 +327,7 @@
    ],
    "packets": [],
    "risk": "STANDARD",
-   "spec": "URL(string:): the macOS 14 leniency, host case and brackets, decoded path (R-PATH-1). First tests: \"foo bar\", IPv6 hosts, MarkdownView.swift:677.",
+   "spec": "URL(string:): the macOS 14 leniency, host case and brackets, decoded path (R-PATH-1). First tests: \"foo bar\", IPv6 hosts, MarkdownView.swift:677. url.pathComponents is SwiftURL.PathComponents (ED-143): the swift-foundation 6.2 split of the encoded path on runs of \"/\", each component percent-decoded as UTF-8, a final \"/\" dropped, \"\\\" kept percent-encoded; its tests carry Oracle O-44.",
    "extends_existing": false,
    "status": "TODO"
   },
@@ -498,7 +500,9 @@
    "level": 0,
    "component": null,
    "component_members": [],
-   "deps": [],
+   "deps": [
+    "F.URL"
+   ],
    "intra_deps": [],
    "records_total": 4,
    "records_todo": [
@@ -532,14 +536,13 @@
    "component_members": [],
    "deps": [],
    "intra_deps": [],
-   "records_total": 6,
+   "records_total": 5,
    "records_todo": [
     "PR-RUNTIME-016",
     "PR-RUNTIME-017",
     "PR-RUNTIME-018",
     "PR-RUNTIME-019",
-    "PR-RUNTIME-020",
-    "UI-RUNTIME-005"
+    "PR-RUNTIME-020"
    ],
    "parts": [
     [
@@ -547,13 +550,11 @@
      "PR-RUNTIME-017",
      "PR-RUNTIME-018",
      "PR-RUNTIME-019",
-     "PR-RUNTIME-020",
-     "UI-RUNTIME-005"
+     "PR-RUNTIME-020"
     ]
    ],
    "packets": [
-    "T-M2-044",
-    "T-M2-045"
+    "T-M2-044"
    ],
    "risk": "STANDARD",
    "status": "TODO"
@@ -9330,7 +9331,7 @@
     "App.Runtime.AutoContinue",
     "App.Runtime.ThreadRuntime"
    ],
-   "records_total": 63,
+   "records_total": 64,
    "records_todo": [
     "PR-GIT-063",
     "PR-GIT-064",
@@ -9386,6 +9387,7 @@
     "PR-STORE-085",
     "PR-STORE-101",
     "PR-STORE-102",
+    "PR-STORE-171",
     "PR-TERM-055",
     "PR-TERM-057",
     "PR-TERM-060",
@@ -9456,6 +9458,7 @@
      "PR-STORE-085",
      "PR-STORE-101",
      "PR-STORE-102",
+     "PR-STORE-171",
      "PR-TERM-055",
      "PR-TERM-057",
      "PR-TERM-060",
@@ -15040,7 +15043,7 @@
    "intra_deps": [
     "App.Runtime.ThreadRuntime"
    ],
-   "records_total": 11,
+   "records_total": 12,
    "records_todo": [
     "PR-COMPOSER-183",
     "PR-COMPOSER-184",
@@ -15050,6 +15053,7 @@
     "UI-COMPOSER-063",
     "UI-COMPOSER-064",
     "UI-COMPOSER-065",
+    "UI-RUNTIME-005",
     "UI-RUNTIME-006",
     "UI-RUNTIME-007",
     "UI-RUNTIME-008"
@@ -15064,6 +15068,7 @@
      "UI-COMPOSER-063",
      "UI-COMPOSER-064",
      "UI-COMPOSER-065",
+     "UI-RUNTIME-005",
      "UI-RUNTIME-006",
      "UI-RUNTIME-007",
      "UI-RUNTIME-008"

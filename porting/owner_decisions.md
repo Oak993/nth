@@ -241,3 +241,80 @@ instruction may change one.
 - **Answer, verbatim (selected option):** "Keep upstream default (Recommended)"
 - **Effect:** exact parity. Over the desktop the material is Acrylic plus the app-drawn scrim (OD-0005,
   probe P3); the richer drawn material appears once the user sets a wallpaper. UNK-0023 is resolved.
+
+## OD-0015 App icon: the Marrow icon the owner already finalized
+
+- **Asked:** 2026-09-22, in decision batch 2 (UNK-0008, the app icon under the Marrow name). The answer then was
+  "Design a new icon"; three drafts and a Stitch board followed, and a round-3 board on 2026-09-23.
+- **Answer, verbatim (2026-09-23):** "As for the icon, I don't like any of stitch's generated icons. LEt's stick to
+  our original finalized icon."
+- **Effect:** the port ships the icon of the owner's own Marrow app: `resources/icon.svg` (three arcs round a white
+  core on a dark navy tile), `resources/icon-small.svg` for 24 px and below, `resources/icon-mono.svg`, and the
+  rendered `build/icon.ico` and `resources/icon.png`, copied unchanged into `src/Marrow.App/Assets/`. The files say
+  they are original artwork, not derived from Droppy or Droppy Code artwork. The executable, installer, taskbar and
+  window use it, and so does every place upstream shows its own app icon or logo. It supersedes the batch-2 answer
+  "Design a new icon". This is part of the identity deviation of OD-0002 and is listed with it in the final report.
+
+## OD-0016 The Marrow icon, animated, on loading screens
+
+- **Asked by the owner, 2026-09-23, verbatim:** "I need that icon animated in the app for loading screens"
+- **What upstream does:** it has no loading screen. A thread whose history is still being read shows an empty
+  canvas on purpose, so the new-thread prompt does not flash (ThreadTimeline.swift:132-135); launch shows the main
+  window once the prologue has run (PR-LAUNCH-001, PR-LAUNCH-028); area-sized waits show the system spinner
+  (DiffInspector.swift:76 "Reading the diff...", AttachmentPreview.swift:299 and :319); small inline waits show
+  small or mini system spinners.
+- **Effect:** an owner-requested addition, listed as a named deviation in the final report. The animated Marrow
+  icon (the loading mark) appears where the app waits with a screen or a pane to fill: the thread history load, the
+  diff pane while it reads the diff (its label kept), the large attachment preview while its image or video frame
+  loads, and a launch splash while the prologue runs. Small and mini inline spinners stay the system spinner, as
+  upstream. Where, when and how it moves is ED-097. The motion is option A "Orbit" from
+  `E:/Droppy/work/icon/loading_preview.html` unless the owner picks B "Ratchet" or C "Bloom".
+
+## OD-0017 Live resize: adopt `stretch`, accept the Windows residual
+
+- **Asked:** 2026-09-23, after probe P4b (porting/probes/p4b/RESULT.md) found no remedy that removes every edge strip,
+  as OD-0013 required it to come back.
+- **Put to the owner:** `stretch` lowers the moving grow-edge strip from 2.54 % to 0.16 % of samples and removes every
+  shrink clip; the rest is a one-frame lag composed by DWM that also occurs without the remedy and that no app code
+  reaches, and about 2 % of moving samples show the previous frame scaled by up to 5 px for one frame instead of a
+  strip; nothing changes at rest. Options: adopt and accept the rest as a named deviation (recommended); adopt and keep
+  the chrome open; keep the chrome blocked.
+- **Answer, verbatim (selected option):** "Adopt fix, accept rest (Recommended)"
+- **Effect:** every resizable top-level window uses `stretch` as ED-101 builds it, and the window chrome is accepted
+  once that is in and verified. The DWM type B frame (one frame, 3 to 9 px of what is behind the window, about 1 resize
+  step in 150 to 250 at P4's drag speed) and the one-frame scaled frames are a named deviation in the final report.
+  OD-0013 is closed by this decision.
+
+## OD-0018 Loading mark: "Comet", a large boot animation, one pulse per turn
+
+- **Asked:** 2026-09-23, after the owner found the first three motions not premium enough and was shown round 2
+  (`porting/design/loading_mark/loading_premium.html`: A Tide, B Comet, C Glass).
+- **Answers, verbatim:** "I like B. Ship it! I also want the animation to show up large when starting the app, but the
+  animation must come to life in a highly premium way at boot up, like particles flying to form the animation and the
+  animation must smoothly initiate a running state." Then: "although the pulse the central white dot releases must be
+  controlled to trigger once when the spiral comes to a stop. To make it seem that the pulse initiates the spiral."
+- **Effect:** the loading mark of OD-0016 moves as "Comet" (ED-102): one eased turn from rest to rest, trails only at
+  speed, and the core pulses once per turn, exactly when the turn comes to rest, releasing one ring, so the pulse starts
+  the next turn. Every launch opens with a large boot splash: particles in the arms' colours spiral in and form the
+  mark, the core's first pulse sets the first turn going, and the mark runs until the app is ready, then hands over to
+  the main window. The boot splash replaces the 400 ms launch-splash rule of ED-097 (5); the other loading sites keep
+  that rule. An owner-requested deviation, listed with OD-0016 in the final report. Reference previews:
+  `porting/design/loading_mark/boot_sequence.html` and `loading_premium.html` (card B).
+
+- **Amended the same day, verbatim:** "boot animation = particles form the spiral, pulse happens and spiral happens,
+  spiral ends motion, logo disintegrates into particles and forms the app complete window."
+- **Effect of the amendment:** the boot splash no longer fades out. After the first turn comes to rest (more turns,
+  each started by a pulse, while the app is not ready), the mark breaks back into its particles, and they fly out and
+  build the main window: its edge first, then its contents, which appear as the particles land. ED-103 gives the
+  numbers; the reference preview is `porting/design/loading_mark/boot_sequence.html`.
+
+## OD-0019 Agent models for the implementation waves
+
+- **Asked:** 2026-09-23, after measuring that wave A spent 834 million context tokens for 2 merged units, when the owner
+  asked how to cut usage and speed the port up.
+- **Answer, verbatim (selected option):** "Sonnet 5 for bulk (Recommended)"
+- **Effect:** from implementation engine v3 on, Sonnet 5 at medium effort writes the tests and the implementations of
+  ordinary (STANDARD-risk) units; Opus 5.5 writes the tests and implementations of HIGH-risk and foundation units and
+  does every review, every merge and every ruling. Agents work from compact per-part work packets
+  (`porting/tools/make_packets.mjs`) instead of the whole guide and spec. This is a process decision: it does not change
+  what the port must match or how it is verified.
