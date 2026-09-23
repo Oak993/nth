@@ -1,8 +1,10 @@
 using System.Text;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.Services.MCP;
 using Marrow.Services.Models;
+using Marrow.Services.Port;
 using Marrow.Services.Tests.Fixtures;
 using Marrow.Testing;
 
@@ -617,5 +619,362 @@ public sealed class MCPStoreTests
         var ids = store.EnabledServers.Select(s => s.Id).ToList();
         Assert.Equal(new[] { a.Id }, ids); // b excluded (disabled), ghost excluded (no entry), sorted (trivially, one item)
         Assert.DoesNotContain("ghost-not-in-catalog", ids);
+    }
+
+    // ===== Part 2: PR-MCP-074 to PR-MCP-083 (load/save, storedValue, saveCustomValues, init, exportAll) =====
+
+    // ===== PR-MCP-074: storedValue =====
+
+    [Fact]
+    [Trait("Req", "PR-MCP-074")] // :203-206
+    public void StoredValue_reads_the_store_for_secret_fields_and_the_connection_for_plain_ones()
+    {
+        using var harness = new MCPStoreHarness();
+        harness.Runtime.OnMain(() =>
+        {
+            var store = new MCPStore();
+            var custom = StdioCustom("Stored Value Tool", env: [new("apiKey", IsSecret: true), new("mode", IsSecret: false)]);
+            Assert.Null(store.SaveCustom(custom));
+            var entry = store.Entry(custom.Id)!;
+
+            // Nothing stored yet in either store: both read nil.
+            Assert.Null(store.StoredValue(entry.Id, "apiKey", secret: true)); // :204
+            Assert.Null(store.StoredValue(entry.Id, "mode", secret: false)); // :205, no connection row yet
+
+            MCPKeychain.Set("secret-in-store", entry.Id, "apiKey");
+            Assert.Equal("secret-in-store", store.StoredValue(entry.Id, "apiKey", secret: true)); // :204
+
+            // A plain field reads the connection, never the store, even when the store holds a value for that key
+            // (no cross-store fallback, per the record).
+            MCPKeychain.Set("should-not-be-read", entry.Id, "mode");
+            Assert.Null(store.StoredValue(entry.Id, "mode", secret: false)); // :205, still no connection row
+            Assert.True(store.SaveCustomValues([("mode", "plain-in-connection", false)], entry.Id, entry));
+            Assert.Equal("plain-in-connection", store.StoredValue(entry.Id, "mode", secret: false)); // :205
+        });
+    }
+
+    // ===== PR-MCP-075: saveCustomValues writes secrets first, abandoning the save on the first failure =====
+
+    [Fact]
+    [Trait("Req", "PR-MCP-075")] // :216-218
+    public void SaveCustomValues_writes_secrets_first_and_stops_at_the_first_failure_keeping_earlier_writes()
+    {
+        using var harness = new MCPStoreHarness();
+        harness.Runtime.OnMain(() =>
+        {
+            var store = new MCPStore();
+            var custom = StdioCustom("Secret Fail Tool", env: [new("first", IsSecret: true), new("second", IsSecret: true)]);
+            Assert.Null(store.SaveCustom(custom));
+            var entry = store.Entry(custom.Id)!;
+
+            // The second item's write is refused; the first, earlier in the submitted order, already succeeded.
+            harness.Backend.RefuseWriteTargets.Add(SecretStore.TargetName(AppInfo.Current.Name, "MCP " + entry.Id + " second"));
+
+            var ok = store.SaveCustomValues(
+                [("first", "value-one", true), ("second", "value-two", true)],
+                entry.Id, replacingFieldsOf: entry);
+
+            Assert.False(ok); // :217, the first refused write returns false immediately
+            Assert.Equal("value-one", MCPKeychain.Value(entry.Id, "first")); // already written, stays written
+            Assert.Null(MCPKeychain.Value(entry.Id, "second")); // refused, never written
+            Assert.Null(store.Connection(entry.Id)); // :219-240 never reached: the connection is left untouched
+        });
+    }
+
+    // ===== PR-MCP-076: saveCustomValues deletes the stored secrets of fields the edit no longer declares =====
+
+    [Fact]
+    [Trait("Req", "PR-MCP-076")] // :219-225
+    public void SaveCustomValues_deletes_the_stored_secret_of_a_field_the_edit_no_longer_declares()
+    {
+        using var harness = new MCPStoreHarness();
+        harness.Runtime.OnMain(() =>
+        {
+            var store = new MCPStore();
+            var custom = StdioCustom("Drop Field Tool", env: [new("apiKey", IsSecret: true), new("mode", IsSecret: false)]);
+            Assert.Null(store.SaveCustom(custom));
+            var oldEntry = store.Entry(custom.Id)!;
+            Assert.True(store.SaveCustomValues(
+                [("apiKey", "s", true), ("mode", "m", false)], custom.Id, replacingFieldsOf: null)); // :225 oldEntry nil: no deletions
+            Assert.Equal("s", MCPKeychain.Value(custom.Id, "apiKey"));
+            Assert.Equal("m", store.Connection(custom.Id)!.Values["mode"]);
+
+            // The edit no longer declares "apiKey": kept = {"mode"}, so its stored secret is deleted (:222-224).
+            Assert.True(store.SaveCustomValues(
+                [("mode", "m2", false)], custom.Id, replacingFieldsOf: oldEntry));
+
+            Assert.Null(MCPKeychain.Value(custom.Id, "apiKey")); // deleted from the store
+            Assert.False(store.Connection(custom.Id)!.Values.ContainsKey("apiKey")); // and filtered from mcp.json values
+            Assert.Equal("m2", store.Connection(custom.Id)!.Values["mode"]); // the kept field is unaffected
+        });
+    }
+
+    // ===== PR-MCP-077: a variable that changed lock state moves stores, leaving no stale copy =====
+
+    [Fact]
+    [Trait("Req", "PR-MCP-077")] // :226-234
+    public void SaveCustomValues_moves_a_variable_between_stores_when_its_lock_state_changes()
+    {
+        using var harness = new MCPStoreHarness();
+        harness.Runtime.OnMain(() =>
+        {
+            var store = new MCPStore();
+            var custom = StdioCustom("Lock Move Tool", env: [new("token", IsSecret: false)]);
+            Assert.Null(store.SaveCustom(custom));
+            var entry = store.Entry(custom.Id)!;
+
+            // Starts unlocked (plain): the value goes to the connection, nothing in the store.
+            Assert.True(store.SaveCustomValues([("token", "plain-value", false)], entry.Id, replacingFieldsOf: entry));
+            Assert.Equal("plain-value", store.Connection(entry.Id)!.Values["token"]);
+            Assert.Null(MCPKeychain.Value(entry.Id, "token"));
+
+            // Locked on: the value moves to the store and the plaintext copy is removed (:229).
+            Assert.True(store.SaveCustomValues([("token", "plain-value", true)], entry.Id, replacingFieldsOf: entry));
+            Assert.Equal("plain-value", MCPKeychain.Value(entry.Id, "token"));
+            Assert.False(store.Connection(entry.Id)!.Values.ContainsKey("token"));
+
+            // Locked off again: the value moves back and the store's copy is removed (:231-232).
+            Assert.True(store.SaveCustomValues([("token", "back-to-plain", false)], entry.Id, replacingFieldsOf: entry));
+            Assert.Equal("back-to-plain", store.Connection(entry.Id)!.Values["token"]);
+            Assert.Null(MCPKeychain.Value(entry.Id, "token"));
+
+            // An empty value clears the field (:231, "nil clears it").
+            Assert.True(store.SaveCustomValues([("token", "", false)], entry.Id, replacingFieldsOf: entry));
+            Assert.False(store.Connection(entry.Id)!.Values.ContainsKey("token"));
+        });
+    }
+
+    // ===== PR-MCP-078: no connection row for a new server whose values are all empty =====
+
+    [Fact]
+    [Trait("Req", "PR-MCP-078")] // :235-240
+    public void SaveCustomValues_creates_no_connection_row_for_a_new_server_whose_values_are_all_empty()
+    {
+        using var harness = new MCPStoreHarness();
+        harness.Runtime.OnMain(() =>
+        {
+            var store = new MCPStore();
+            var custom = StdioCustom("Empty Values Tool", env: [new("token", IsSecret: false)]);
+            Assert.Null(store.SaveCustom(custom));
+            var entry = store.Entry(custom.Id)!;
+
+            var ok = store.SaveCustomValues([("token", "", false)], entry.Id, replacingFieldsOf: entry);
+            Assert.True(ok); // :240, the function still returns true
+            Assert.Null(store.Connection(entry.Id)); // :236, no row created
+        });
+        Assert.False(File.Exists(MCPPaths.ConnectionsURL)); // and so no write happened
+
+        using var harness2 = new MCPStoreHarness();
+        harness2.Runtime.OnMain(() =>
+        {
+            var store = new MCPStore();
+            var custom = StdioCustom("Already Has Row Tool", env: [new("token", IsSecret: false)]);
+            Assert.Null(store.SaveCustom(custom));
+            var entry = store.Entry(custom.Id)!;
+
+            Assert.True(store.SaveCustomValues([("token", "now-filled", false)], entry.Id, replacingFieldsOf: entry));
+            Assert.NotNull(store.Connection(entry.Id)); // a row now exists
+
+            // Once a row exists, a later all-empty save keeps writing it (:236, "connections[id] != nil").
+            Assert.True(store.SaveCustomValues([("token", "", false)], entry.Id, replacingFieldsOf: entry));
+            Assert.NotNull(store.Connection(entry.Id));
+        });
+    }
+
+    // ===== PR-MCP-079: load reads custom-mcp.json first, then mcp.json, restoring connected states =====
+
+    [Fact]
+    [Trait("Req", "PR-MCP-079")] // :245-260
+    public void Load_reads_customs_then_connections_and_restores_connected_state_from_connectedAt()
+    {
+        using var harness = new MCPStoreDirectHarness();
+        Directory.CreateDirectory(Path.GetDirectoryName(MCPPaths.CustomsURL)!);
+        File.WriteAllText(MCPPaths.CustomsURL,
+            "[{\"id\":\"restored-tool\",\"name\":\"Restored Tool\",\"kind\":\"stdio\"," +
+            "\"command\":\"marrow-store-test-nonexistent-cmd-93a1\",\"args\":[],\"env\":[],\"url\":\"\",\"headers\":[]}]",
+            Encoding.UTF8);
+        File.WriteAllText(MCPPaths.ConnectionsURL,
+            "[{\"catalogID\":\"restored-tool\",\"connectedAt\":\"2026-01-02T03:04:05Z\",\"isEnabled\":true," +
+            "\"serverVersion\":\"9.9\",\"tools\":[{\"name\":\"t1\"}],\"values\":{}}]",
+            Encoding.UTF8);
+
+        var store = new MCPStore(); // :22-23 init calls load() first
+
+        Assert.Equal("Restored Tool", Assert.Single(store.Customs).Name); // :246-248
+        var state = store.State("restored-tool");
+        var connected = Assert.IsType<MCPConnectionState.Connected>(state); // :256-257
+        Assert.Equal(1, connected.ToolCount); // from connection.tools.count
+        Assert.Equal("9.9", store.Connection("restored-tool")!.ServerVersion);
+        Assert.NotNull(store.Connection("restored-tool")!.ConnectedAt);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-079")] // :245-260, the two read/decode failure branches
+    public void Load_leaves_customs_and_connections_empty_on_a_malformed_file_without_throwing()
+    {
+        using var harness = new MCPStoreDirectHarness();
+        Directory.CreateDirectory(Path.GetDirectoryName(MCPPaths.CustomsURL)!);
+        File.WriteAllText(MCPPaths.CustomsURL, "not json", Encoding.UTF8); // :247 decode fails, customs stays empty
+        File.WriteAllText(MCPPaths.ConnectionsURL,
+            "[{\"catalogID\":\"x\",\"connectedAt\":\"not-a-date\",\"isEnabled\":true,\"serverVersion\":null,\"tools\":[],\"values\":{}}]",
+            Encoding.UTF8); // :253 iso8601 decode fails, connections stays empty
+
+        var store = new MCPStore(); // must not throw
+
+        Assert.Empty(store.Customs);
+        Assert.Empty(store.Connections);
+        Assert.True(store.State("x") is MCPConnectionState.NotConnected);
+    }
+
+    // ===== PR-MCP-080: save writes mcp.json pretty-printed, sorted keys, ISO-8601 dates, sorted by id =====
+
+    [Fact]
+    [Trait("Req", "PR-MCP-080")] // :262-269
+    public void Save_writes_mcp_json_pretty_printed_sorted_keys_and_sorted_by_catalogID()
+    {
+        using var harness = new MCPStoreHarness();
+        var store = harness.Runtime.OnMain(() => new MCPStore());
+        var zeta = StdioCustom("Zeta");
+        var alpha = StdioCustom("Alpha");
+        harness.Runtime.OnMain(() => Assert.Null(store.SaveCustom(zeta)));
+        harness.Runtime.OnMain(() => Assert.Null(store.SaveCustom(alpha)));
+        var zetaEntry = harness.Runtime.OnMain(() => store.Entry(zeta.Id)!);
+        var alphaEntry = harness.Runtime.OnMain(() => store.Entry(alpha.Id)!);
+        // RunOneStep, not OnMain: connect spawns StartProbe's task, which must not run (R-TEST-10).
+        RunOneStep(harness.Runtime, () => store.Connect(zetaEntry));
+        RunOneStep(harness.Runtime, () => store.Connect(alphaEntry));
+
+        const string expected =
+            "[\n" +
+            "  {\n" +
+            "    \"catalogID\" : \"custom-alpha\",\n" +
+            "    \"isEnabled\" : true,\n" +
+            "    \"tools\" : [\n" +
+            "\n" +
+            "    ],\n" +
+            "    \"values\" : {\n" +
+            "\n" +
+            "    }\n" +
+            "  },\n" +
+            "  {\n" +
+            "    \"catalogID\" : \"custom-zeta\",\n" +
+            "    \"isEnabled\" : true,\n" +
+            "    \"tools\" : [\n" +
+            "\n" +
+            "    ],\n" +
+            "    \"values\" : {\n" +
+            "\n" +
+            "    }\n" +
+            "  }\n" +
+            "]";
+        // "custom-alpha" sorts before "custom-zeta" though Zeta was connected first (:266, sorted by catalogID).
+        Assert.Equal(expected, File.ReadAllText(MCPPaths.ConnectionsURL));
+    }
+
+    // ===== PR-MCP-081: saveCustoms writes custom-mcp.json pretty-printed, sorted keys, no date strategy, list order =====
+
+    [Fact]
+    [Trait("Req", "PR-MCP-081")] // :271-276
+    public void SaveCustoms_writes_custom_mcp_json_pretty_printed_with_sorted_keys_and_no_date_strategy()
+    {
+        using var harness = new MCPStoreHarness();
+        harness.Runtime.OnMain(() =>
+        {
+            var store = new MCPStore();
+            var custom = StdioCustom("B Tool"); // id "custom-b-tool", no args/env/headers
+            Assert.Null(store.SaveCustom(custom));
+        });
+
+        const string expected =
+            "[\n" +
+            "  {\n" +
+            "    \"args\" : [\n" +
+            "\n" +
+            "    ],\n" +
+            "    \"command\" : \"marrow-store-test-nonexistent-cmd-93a1\",\n" +
+            "    \"env\" : [\n" +
+            "\n" +
+            "    ],\n" +
+            "    \"headers\" : [\n" +
+            "\n" +
+            "    ],\n" +
+            "    \"id\" : \"custom-b-tool\",\n" +
+            "    \"kind\" : \"stdio\",\n" +
+            "    \"name\" : \"B Tool\",\n" +
+            "    \"url\" : \"\"\n" +
+            "  }\n" +
+            "]";
+        Assert.Equal(expected, File.ReadAllText(MCPPaths.CustomsURL));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-081")] // :273, "The payload is the customs array in list order, not sorted"
+    public void SaveCustoms_writes_customs_in_creation_order_not_sorted_by_id()
+    {
+        using var harness = new MCPStoreHarness();
+        harness.Runtime.OnMain(() =>
+        {
+            var store = new MCPStore();
+            Assert.Null(store.SaveCustom(StdioCustom("Zebra")));
+            Assert.Null(store.SaveCustom(StdioCustom("Alpha")));
+        });
+        var text = File.ReadAllText(MCPPaths.CustomsURL);
+        var zebraIndex = text.IndexOf("\"custom-zebra\"", StringComparison.Ordinal);
+        var alphaIndex = text.IndexOf("\"custom-alpha\"", StringComparison.Ordinal);
+        // Zebra was created first: it appears first in the file though "alpha" sorts first alphabetically. This is
+        // the opposite of save() (PR-MCP-080), which does sort by id: the two files differ deliberately.
+        Assert.True(zebraIndex >= 0 && alphaIndex >= 0 && zebraIndex < alphaIndex);
+    }
+
+    // ===== PR-MCP-082: exportAll rewrites the provider configs from enabledServers, in order after every mutation =====
+
+    [Fact]
+    [Trait("Req", "PR-MCP-082")] // :279-290
+    public async Task ExportAll_writes_the_provider_configs_when_a_server_is_enabled_and_clears_them_when_none_are()
+    {
+        using var harness = new MCPStoreDirectHarness();
+        var store = new MCPStore(); // :279-290 not reached with any server yet: enabledServers is empty at construction
+        Assert.False(File.Exists(MCPPaths.ClaudeConfigURL));
+
+        var custom = StdioCustom("Export Tool", command: ProbeProcessScripts.PowerShell,
+            args: ProbeProcessScripts.Args(ProbeProcessScripts.EchoArgsAndEnvAndCwd()));
+        Assert.Null(store.SaveCustom(custom));
+        var entry = store.Entry(custom.Id)!;
+
+        store.Connect(entry);
+        await WaitWhileConnecting(store, entry.Id);
+        Assert.True(store.State(entry.Id) is MCPConnectionState.Connected);
+        // A successful probe calls exportAll (:343): the enabled, connected server is now in claude.json (:286).
+        Assert.True(File.Exists(MCPPaths.ClaudeConfigURL));
+        Assert.Contains(entry.Id, File.ReadAllText(MCPPaths.ClaudeConfigURL));
+
+        store.Disconnect(entry); // :133 also calls exportAll, with enabledServers empty again
+        Assert.False(File.Exists(MCPPaths.ClaudeConfigURL)); // :149-153 WriteAll removes every provider file when empty
+    }
+
+    // ===== PR-MCP-083: init loads, starts the proxy and exports, in that order, before construction returns =====
+
+    [Fact]
+    [Trait("Req", "PR-MCP-083")] // :22-28
+    public void Init_loads_before_it_exports_so_construction_writes_the_persisted_connection_to_the_provider_configs()
+    {
+        using var harness = new MCPStoreDirectHarness();
+        Directory.CreateDirectory(Path.GetDirectoryName(MCPPaths.CustomsURL)!);
+        File.WriteAllText(MCPPaths.CustomsURL,
+            "[{\"id\":\"preloaded-tool\",\"name\":\"Preloaded Tool\",\"kind\":\"stdio\"," +
+            "\"command\":\"marrow-store-test-nonexistent-cmd-93a1\",\"args\":[],\"env\":[],\"url\":\"\",\"headers\":[]}]",
+            Encoding.UTF8);
+        File.WriteAllText(MCPPaths.ConnectionsURL,
+            "[{\"catalogID\":\"preloaded-tool\",\"connectedAt\":\"2026-01-02T03:04:05Z\",\"isEnabled\":true," +
+            "\"serverVersion\":null,\"tools\":[],\"values\":{}}]",
+            Encoding.UTF8);
+
+        var store = new MCPStore(); // :23 load(); :26 MCPProxy start; :27 exportAll(), all before this call returns
+
+        // exportAll (:27) ran AFTER load (:23) populated connections/customs: the constructor's synchronous export
+        // already reflects the persisted, connected server, not an empty list.
+        Assert.Contains("preloaded-tool", store.EnabledServers.Select(s => s.Id));
+        Assert.True(File.Exists(MCPPaths.ClaudeConfigURL));
+        Assert.Contains("preloaded-tool", File.ReadAllText(MCPPaths.ClaudeConfigURL));
     }
 }
