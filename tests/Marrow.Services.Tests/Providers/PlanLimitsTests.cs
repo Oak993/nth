@@ -117,13 +117,12 @@ public sealed class PlanLimitsTests
         // readClaude is fully implemented in this file; with no stored login and an executable that answers no
         // control requests, it falls through both internal paths to null rather than throwing
         // NotImplementedException, proving this arm did not reach a sibling stub.
+        using var runtime = new TestRuntime();
         var script = new ClaudeScript("dispatch-claude");
-        var environment = new Dictionary<string, string>
-        {
-            [script.EnvironmentEntry.Key] = script.EnvironmentEntry.Value,
-            ["CLAUDE_CONFIG_DIR"] = TempDataDir("dispatch-claude-config"),
-        };
-        var result = await PlanLimitsReader.Read(ProviderKind.Claude, FileUrl(script.ExecutablePath), environment);
+        var environment = new Dictionary<string, string> { [script.EnvironmentEntry.Key] = script.EnvironmentEntry.Value };
+        // homeDirectory is the PORT-ONLY test seam on Read (see the file header note): a throwaway folder, so
+        // this never falls through to the real signed-in user's %USERPROFILE%\.claude (R-TEST-9).
+        var result = await PlanLimitsReader.Read(ProviderKind.Claude, FileUrl(script.ExecutablePath), environment, TempDataDir("dispatch-claude-home"));
         Assert.Null(result);
     }
 
@@ -376,10 +375,8 @@ public sealed class PlanLimitsTests
         var homeDir = TempDataDir("home-dir");
         File.WriteAllText(Path.Combine(configDir, ".credentials.json"),
             "{\"claudeAiOauth\":{\"accessToken\":\"from-config\"}}");
-        File.WriteAllText(Path.Combine(SwiftPath.AppendingPathComponent(homeDir, ".claude"), ".credentials.json"),
-            "{\"claudeAiOauth\":{\"accessToken\":\"from-home\"}}");
-        // The home candidate directory does not exist yet; only the CLAUDE_CONFIG_DIR file need be real, since
-        // it is read first and this test proves that file wins.
+        // The home candidate directory (and its .claude subfolder) is never created: only the CLAUDE_CONFIG_DIR
+        // file need be real, since it is read first and this test proves that file wins.
         var environment = new Dictionary<string, string> { ["CLAUDE_CONFIG_DIR"] = configDir };
         var login = await PlanLimitsReader.ReaderClaudeLogin(environment, homeDir);
         Assert.Equal("from-config", login!.AccessToken);
@@ -607,6 +604,7 @@ public sealed class PlanLimitsTests
     [Trait("Req", "PR-PROVREG-183")] // PlanLimits.swift:256 - exactly the six-token argv
     public async Task ReadClaudeFromCLI_spawns_the_exact_six_token_argv()
     {
+        using var runtime = new TestRuntime();
         var script = new ClaudeScript("cli-argv");
         script.SetResponse(UsageResponseTemplate);
         var environment = new Dictionary<string, string> { [script.EnvironmentEntry.Key] = script.EnvironmentEntry.Value };
@@ -620,6 +618,7 @@ public sealed class PlanLimitsTests
     [Trait("Req", "PR-PROVREG-183")] // PlanLimits.swift:274 - request_id "marrow-init" (DEVIATION OD-0012 F1)
     public async Task ReadClaudeFromCLI_sends_the_marrow_init_request_id_first()
     {
+        using var runtime = new TestRuntime();
         var script = new ClaudeScript("cli-init-id");
         script.SetResponse(UsageResponseTemplate);
         var environment = new Dictionary<string, string> { [script.EnvironmentEntry.Key] = script.EnvironmentEntry.Value };
@@ -633,6 +632,7 @@ public sealed class PlanLimitsTests
     [Trait("Req", "PR-PROVREG-183")] // PlanLimits.swift:280 - request_id "marrow-usage" (DEVIATION OD-0012 F1)
     public async Task ReadClaudeFromCLI_sends_marrow_usage_after_the_init_response()
     {
+        using var runtime = new TestRuntime();
         var script = new ClaudeScript("cli-usage-id");
         script.SetResponse(UsageResponseTemplate);
         var environment = new Dictionary<string, string> { [script.EnvironmentEntry.Key] = script.EnvironmentEntry.Value };
@@ -646,6 +646,7 @@ public sealed class PlanLimitsTests
     [Trait("Req", "PR-PROVREG-184")] // PlanLimits.swift:281-284 - rate_limits is the parse root, plan name from subscription_type
     public async Task ReadClaudeFromCLI_parses_rate_limits_as_the_root_and_subscription_type_as_the_plan_name()
     {
+        using var runtime = new TestRuntime();
         var script = new ClaudeScript("cli-parse-root");
         script.SetResponse(UsageResponseTemplate);
         var environment = new Dictionary<string, string> { [script.EnvironmentEntry.Key] = script.EnvironmentEntry.Value };
