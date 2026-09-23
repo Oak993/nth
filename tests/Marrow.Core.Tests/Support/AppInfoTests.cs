@@ -57,6 +57,45 @@ public sealed class AppInfoTests
         Assert.Same(AppInfo.Current, AppInfo.Current);
     }
 
+    [Fact]
+    [Trait("Decision", "ED-065")]
+    [Trait("Decision", "ED-119")]
+    public async Task An_override_of_the_running_app_is_seen_only_in_the_async_flow_that_made_it()
+    {
+        // ED-119: AppInfo.version is a Swift static (Text.swift:3-9), so a test replaces it through an Ambient seam
+        // overridden per async flow (ED-065). A second flow running at the same time keeps the process default, and
+        // the overriding flow gets it back when the override is disposed.
+        var fixture = AppInfo.Read(new Dictionary<string, object?>
+        {
+            ["CFBundleShortVersionString"] = "7.6.5",
+            ["CFBundleVersion"] = "42"
+        }, false);
+        var processDefault = AppInfo.Current;
+        var overridden = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var otherChecked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var inside = Task.Run(async () =>
+        {
+            using (AppInfo.Running.Override(fixture))
+            {
+                Assert.Same(fixture, AppInfo.Current);
+                overridden.SetResult();
+                await otherChecked.Task;
+                Assert.Same(fixture, AppInfo.Current);
+                Assert.Equal("7.6.5", AppInfo.Current.Version);
+            }
+            Assert.Same(processDefault, AppInfo.Current);
+        });
+        var outside = Task.Run(async () =>
+        {
+            await overridden.Task;
+            Assert.Same(processDefault, AppInfo.Current);
+            otherChecked.SetResult();
+        });
+        await Task.WhenAll(inside, outside);
+        Assert.Same(processDefault, AppInfo.Current);
+        Assert.Same(AppInfo.Running.Current, AppInfo.Current);
+    }
+
     [Fact] // Windows package metadata comes from the entry assembly.
     [Trait("Req", "PR-STORE-009")]
     public void Assembly_metadata_uses_the_original_three_keys_and_an_explicit_build_channel()
