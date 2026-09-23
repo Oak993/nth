@@ -4062,29 +4062,13 @@
     "Core.Models.MCP"
    ],
    "records_total": 6,
-   "records_todo": [
-    "PR-MCP-095",
-    "PR-MCP-096",
-    "PR-MCP-097",
-    "PR-MCP-098",
-    "PR-MCP-099",
-    "PR-MCP-228"
-   ],
-   "parts": [
-    [
-     "PR-MCP-095",
-     "PR-MCP-096",
-     "PR-MCP-097",
-     "PR-MCP-098",
-     "PR-MCP-099",
-     "PR-MCP-228"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-004"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.MCP.MCPOAuth",

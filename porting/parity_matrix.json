@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 306,
+      "IMPLEMENTED": 312,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 3568,
+      "SPECIFIED": 3562,
       "RETIRED": 6,
       "DISCOVERED": 33
     },
@@ -27358,7 +27358,7 @@
       "cancellation": "not cancellable once started",
       "windows_path": "Use Windows Credential Manager (OD-0008 B3) and destroy exactly the items the entry declares under the same three-part account string. Check each deletion and report a failure other than \"not found\" (OD-0008 A12). Reached from disconnect (PR-MCP-061) and from a confirmed custom-server Delete (PR-MCP-073, OD-0008 A1). Never fall back to a plaintext store if protected storage is unavailable.",
       "verification_method": "integration test asserting one delete per declared field with the exact account string, a no-op for an entry with no fields, that a custom server's fields are taken from the entry rather than the catalog, and that a store refusing a deletion produces a reported failure instead of success",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null,
@@ -28332,7 +28332,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows Credential Manager (OD-0008 B3) keeps the same flat account namespace for the whole app, with the account format \"MCP <server> <field>\" verbatim and the app display name standing for the Keychain service, so the partitioning matches. kSecAttrAccessibleWhenUnlocked has no Credential Manager counterpart; that is recorded, not invented around.",
       "verification_method": "integration test asserting the exact account strings written",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -28361,7 +28361,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same trimming and same nil-on-empty. The capture-run short circuit is capture-mode behavior, not user-reachable runtime behavior, and is recorded in dead_code entry 44; it is not a shipped requirement. Protected storage is Windows Credential Manager (OD-0008 B3), under the same account strings.",
       "verification_method": "unit with a whitespace-only stored value",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "b2_change": "Refactor only, no shift: B1 :24 !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil } | B1 :25 return value.trimmingCharacters(in: .whitespacesAndNewlines) -> B2 :24 !value.trimmed.isEmpty else { return nil } | B2 :25 return value.trimmed; `trimmed` is defined at B2 DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, so the result is identical.",
@@ -28391,7 +28391,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same: empty means delete, and the call still reports success so saveCustomValues does not treat it as a storage failure. Protected storage is Windows Credential Manager (OD-0008 B3), under the same account strings.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "b2_change": "Refactor only, no shift: B1 :31 let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines) -> B2 :31 let trimmed = value.trimmed; `trimmed` is defined at B2 DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, so the result is identical.",
@@ -28421,7 +28421,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the update-then-add shape and the trimming against Windows Credential Manager (OD-0008 B3). Credential Manager has no accessibility attribute, so defect 21 has no Windows analogue and the attribute has no counterpart; record that rather than inventing one.",
       "verification_method": "unit over the three status outcomes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "21",
       "depends_on_unknown": null,
       "deviation": {
@@ -28451,7 +28451,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same signature: pass the entry, never look the id up in the catalog. The items live in Windows Credential Manager (OD-0008 B3); each deletion is checked (OD-0008 A12).",
       "verification_method": "unit with a custom server asserting its variables are actually deleted; a store refusing a deletion produces a reported failure",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
