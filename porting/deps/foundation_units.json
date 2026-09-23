@@ -111,10 +111,10 @@
   },
   {
    "id": "F.HTTP",
-   "project": "Marrow.Services",
-   "target": "src/Marrow.Services/Port/Http.cs",
+   "project": "Marrow.Core",
+   "target": "src/Marrow.Core/Port/Http.cs",
    "risk": "STANDARD",
-   "spec": "HTTP client matching URLSession as the source uses it (R-NET-1): inactivity timeout, decompression, redirects, status handling, the User-Agent of OD-0012 F1. First tests: a loopback server. URLSessionConfiguration.ephemeral, URLRequest.CachePolicy and URLCache as UpdateChecker.swift:101-110 uses them (ED-119); network defaults per ED-118.",
+   "spec": "HTTP client matching URLSession as the source uses it (R-NET-1): inactivity timeout, decompression, redirects, status handling, the User-Agent of OD-0012 F1. First tests: a loopback server. URLSessionConfiguration.ephemeral, URLRequest.CachePolicy and URLCache as UpdateChecker.swift:101-110 uses them (ED-119); network defaults per ED-118. ED-168 moved the port types to Marrow.Core (UI calls URLSession.shared too: LinkTitles.swift:47, MarkdownView.swift:949).",
    "patterns": [
     "URLSession",
     "URLRequest",
@@ -272,6 +272,35 @@
    "spec": "NSSound as ED-151 gives it: SwiftSound.Create(byte[]) returning null for data that is not a playable PCM WAV; float Volume; Play() returning false and doing nothing while playing; Stop(); IsPlaying; output through the Ambient<ISoundOutput> seam SoundOutput.Current, production on the Windows waveOut API by P/Invoke with Volume applied to the samples, tests on a fake that records plays, stops and volumes and completes on demand. First tests: Create null for bad data; play then play again while playing is declined; stop then play replays; the volume reaches the output; a playback completes and IsPlaying turns false.",
    "patterns": [
     "NSSound"
+   ]
+  },
+  {
+   "id": "F.HTTPMove",
+   "project": "Marrow.Core",
+   "target": "src/Marrow.Core/Port/Http.cs",
+   "risk": "STANDARD",
+   "spec": "ED-168: a pure move of the F.HTTP port types (URLSession and its companions) from Marrow.Services to Marrow.Core, with their tests; code that named them through Marrow.Services.Port gets using Marrow.Core.Port.",
+   "patterns": [
+    "URLSession",
+    "URLRequest",
+    "HTTPURLResponse",
+    "NWListener",
+    "NWConnection",
+    "URLCache"
+   ]
+  },
+  {
+   "id": "F.URLComponents",
+   "project": "Marrow.Core",
+   "target": "src/Marrow.Core/Port/URLComponents.cs",
+   "risk": "STANDARD",
+   "spec": "ED-169: Foundation URLComponents and URLQueryItem as port types, built on SwiftURL parsing and percent-coding (swift-foundation 6.2), members exactly as the call sites use them; oracle items O-57 to O-60.",
+   "deps": [
+    "F.URL"
+   ],
+   "patterns": [
+    "URLComponents",
+    "URLQueryItem"
    ]
   }
  ]
