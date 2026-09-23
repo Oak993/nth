@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -90,6 +91,14 @@ public sealed class JSONValueTests
     [InlineData("'x'")]
     [InlineData("\"unterminated")]
     [InlineData("1 2")]
+    // :16 passes only [.fragmentsAllowed], not .json5Allowed: trailing commas, comments and non-finite literals are
+    // malformed, so a parser configured with AllowTrailingCommas or CommentHandling.Skip fails these.
+    [InlineData("[1,]")]
+    [InlineData("{\"a\":1,}")]
+    [InlineData("/*c*/1")]
+    [InlineData("// c\n1")]
+    [InlineData("NaN")]
+    [InlineData("Infinity")]
     public void Malformed_input_returns_nil_without_throwing(string text)
     {
         Assert.Null(JSONValue.Parse(Utf8(text)));
@@ -133,27 +142,75 @@ public sealed class JSONValueTests
 
     [Fact]
     [Trait("Req", "PR-STORE-116")] // Core/Support/JSONValue.swift:26-45
-    public void A_provider_payload_bridges_recursively_by_runtime_type()
+    public void A_Claude_stream_payload_bridges_recursively_by_runtime_type()
     {
-        // A trimmed tool-call shape: booleans, integers, floats, strings, nulls, nested arrays and objects.
-        var parsed = JSONValue.Parse(
-            "{\"id\":12,\"ok\":true,\"ratio\":0.25,\"name\":\"read\",\"none\":null," +
-            "\"args\":{\"path\":\"/tmp/a\",\"lines\":[1,2.5,false,null,{\"deep\":\"x\"}]}}");
-        var expected = JSONValue.FromDictionaryLiteral(
-            ("id", 12),
-            ("ok", true),
-            ("ratio", 0.25),
-            ("name", "read"),
-            ("none", Nil),
-            ("args", JSONValue.FromDictionaryLiteral(
-                ("path", "/tmp/a"),
-                ("lines", JSONValue.FromArrayLiteral(1, 2.5, false, Nil, JSONValue.FromDictionaryLiteral(("deep", "x")))))));
-        Assert.Equal(expected, parsed);
-        Assert.IsType<JSONValue.Int>(parsed!["id"]);
-        Assert.IsType<JSONValue.Double>(parsed["ratio"]);
-        Assert.IsType<JSONValue.Double>(parsed["args"]!["lines"]![1]);
-        Assert.IsType<JSONValue.Object>(parsed["args"]);
-        Assert.IsType<JSONValue.Array>(parsed["args"]!["lines"]);
+        // Fixture (R-TEST-8): trimmed Claude stream-json lines. Each line is parsed whole by
+        // Core/Support/StdioProcess.swift:149 (JSONValue.parse(line)) and read through JSONValue in
+        // Services/Providers/ClaudeSession.swift: the "user" line's tool_result block at :549-555 (type, tool_use_id,
+        // block["is_error"]?.bool at :554, content through resultText at :777-780); the "result" line at :596
+        // (message["is_error"]?.bool, message["subtype"]?.string), :600-601 (errors, result), :829-832 (usage token
+        // counts by .int) and :834 (modelUsage contextWindow by .int); the rate_limit_event line at :375-378
+        // (status, resetsAt by .double). Only fields the Swift reads are kept; the values are samples.
+        var user = JSONValue.Parse(
+            "{\"type\":\"user\",\"message\":{\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_01\"," +
+            "\"is_error\":true,\"content\":[{\"type\":\"text\",\"text\":\"Exit code 1\"}]}]}}");
+        var expectedUser = JSONValue.FromDictionaryLiteral(
+            ("type", "user"),
+            ("message", JSONValue.FromDictionaryLiteral(
+                ("content", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(
+                    ("type", "tool_result"),
+                    ("tool_use_id", "toolu_01"),
+                    ("is_error", true),
+                    ("content", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("type", "text"), ("text", "Exit code 1"))))))))));
+        Assert.Equal(expectedUser, user);
+        var block = user!["message"]!["content"]![0]!;
+        Assert.IsType<JSONValue.Object>(block);
+        Assert.IsType<JSONValue.Array>(user["message"]!["content"]);
+        Assert.IsType<JSONValue.Bool>(block["is_error"]);
+        Assert.True(block["is_error"]!.JSONValueBool is true); // :554
+        Assert.IsType<JSONValue.Array>(block["content"]);
+
+        // The error result: "is_error":true and "input_tokens":1 side by side in one payload.
+        var result = JSONValue.Parse(
+            "{\"type\":\"result\",\"subtype\":\"error_during_execution\",\"is_error\":true,\"result\":\"\"," +
+            "\"errors\":[\"x\"],\"usage\":{\"input_tokens\":1,\"cache_read_input_tokens\":2048," +
+            "\"cache_creation_input_tokens\":0,\"output_tokens\":12},\"modelUsage\":{\"opus\":{\"contextWindow\":200000}}}");
+        var expectedResult = JSONValue.FromDictionaryLiteral(
+            ("type", "result"),
+            ("subtype", "error_during_execution"),
+            ("is_error", true),
+            ("result", ""),
+            ("errors", JSONValue.FromArrayLiteral("x")),
+            ("usage", JSONValue.FromDictionaryLiteral(
+                ("input_tokens", 1),
+                ("cache_read_input_tokens", 2048),
+                ("cache_creation_input_tokens", 0),
+                ("output_tokens", 12))),
+            ("modelUsage", JSONValue.FromDictionaryLiteral(("opus", JSONValue.FromDictionaryLiteral(("contextWindow", 200000))))));
+        Assert.Equal(expectedResult, result);
+        Assert.IsType<JSONValue.Bool>(result!["is_error"]);
+        Assert.Equal(new JSONValue.Bool(true), result["is_error"]);
+        Assert.NotEqual(new JSONValue.Int(1), result["is_error"]);
+        Assert.True(result["is_error"]!.JSONValueBool is true); // :596
+        Assert.Null(result["is_error"]!.JSONValueInt);
+        Assert.IsType<JSONValue.Int>(result["usage"]!["input_tokens"]);
+        Assert.Equal(new JSONValue.Int(1), result["usage"]!["input_tokens"]);
+        Assert.NotEqual(new JSONValue.Bool(true), result["usage"]!["input_tokens"]);
+        Assert.Null(result["usage"]!["input_tokens"]!.JSONValueBool);
+        Assert.Equal(1L, result["usage"]!["input_tokens"]!.JSONValueInt); // :829
+        Assert.IsType<JSONValue.Int>(result["usage"]!["cache_creation_input_tokens"]);
+        Assert.IsType<JSONValue.Int>(result["modelUsage"]!["opus"]!["contextWindow"]);
+        Assert.Equal(200000L, result["modelUsage"]!["opus"]!["contextWindow"]!.JSONValueInt); // :834
+        Assert.Equal("error_during_execution", result["subtype"]!.JSONValueString); // :596
+
+        var rateLimit = JSONValue.Parse(
+            "{\"type\":\"rate_limit_event\",\"rate_limit_info\":{\"status\":\"rejected\",\"resetsAt\":1758650400.5}}");
+        var expectedRateLimit = JSONValue.FromDictionaryLiteral(
+            ("type", "rate_limit_event"),
+            ("rate_limit_info", JSONValue.FromDictionaryLiteral(("status", "rejected"), ("resetsAt", 1758650400.5))));
+        Assert.Equal(expectedRateLimit, rateLimit);
+        Assert.IsType<JSONValue.Double>(rateLimit!["rate_limit_info"]!["resetsAt"]);
+        Assert.Equal(1758650400.5, rateLimit["rate_limit_info"]!["resetsAt"]!.JSONValueDouble); // :378
     }
 
     [Fact]
@@ -168,6 +225,7 @@ public sealed class JSONValueTests
     }
 
     [Fact]
+    [Trait("Rule", "R-CODE-8")]
     [Trait("Oracle", "O-09")]
     public void An_integral_number_written_with_a_point_or_exponent_bridges_as_a_double()
     {
@@ -209,14 +267,26 @@ public sealed class JSONValueTests
 
     [Fact]
     [Trait("Req", "PR-STORE-117")] // Core/Support/JSONValue.swift:59-65
-    public void Compact_output_escapes_quote_and_backslash_and_writes_non_ASCII_as_raw_UTF8()
+    public void Compact_output_escapes_quote_and_backslash_and_writes_non_ASCII_and_HTML_characters_raw()
     {
         Assert.Equal("\"a\\\"b\\\\c\"", new JSONValue.String("a\"b\\c").CompactString);
-        // U+2019 RIGHT SINGLE QUOTATION MARK is E2 80 99 in UTF-8; U+00E9 LATIN SMALL LETTER E WITH ACUTE is C3 A9.
-        var bytes = new JSONValue.String("\U00002019\U000000E9").Data();
-        Assert.Equal(new byte[] { 0x22, 0xE2, 0x80, 0x99, 0xC3, 0xA9, 0x22 }, bytes);
-        // Negative control (R-TEST-4): System.Text.Json's default encoder escapes both, so it cannot stand in.
-        Assert.NotEqual("\"\U00002019\U000000E9\"", JsonSerializer.Serialize("\U00002019\U000000E9")); // U+2019, U+00E9
+        // :60 writes with [.fragmentsAllowed, .withoutEscapingSlashes] only, so every scalar but the quote, the
+        // backslash and the controls (O-12, not asserted here) is written raw:
+        // U+2019 RIGHT SINGLE QUOTATION MARK = E2 80 99; U+00E9 LATIN SMALL LETTER E WITH ACUTE = C3 A9;
+        // U+1F600 GRINNING FACE (supplementary plane) = F0 9F 98 80; < > & ' + = 3C 3E 26 27 2B.
+        const string text = "\U00002019\U000000E9\U0001F600<>&'+"; // U+2019, U+00E9, U+1F600
+        var bytes = new JSONValue.String(text).Data();
+        Assert.Equal(
+            new byte[] { 0x22, 0xE2, 0x80, 0x99, 0xC3, 0xA9, 0xF0, 0x9F, 0x98, 0x80, 0x3C, 0x3E, 0x26, 0x27, 0x2B, 0x22 },
+            bytes);
+        Assert.Equal(bytes, Utf8(new JSONValue.String(text).CompactString));
+        // Negative control 1 (R-TEST-4): System.Text.Json's default encoder escapes the non-ASCII and the HTML-sensitive
+        // characters, so it cannot stand in.
+        Assert.NotEqual("\"" + text + "\"", JsonSerializer.Serialize(text));
+        // Negative control 2 (R-CODE-3): the relaxed encoder writes U+1F600 as a surrogate-pair escape, not raw.
+        var relaxed = new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+        Assert.Equal("\"\\uD83D\\uDE00\"", JsonSerializer.Serialize("\U0001F600", relaxed)); // U+1F600
+        Assert.NotEqual(new byte[] { 0x22, 0xF0, 0x9F, 0x98, 0x80, 0x22 }, Utf8(JsonSerializer.Serialize("\U0001F600", relaxed)));
     }
 
     [Fact]
@@ -247,24 +317,30 @@ public sealed class JSONValueTests
     }
 
     [Theory]
-    [Trait("Req", "PR-STORE-117")] // Core/Support/JSONValue.swift:62-64
+    [Trait("Rule", "R-CODE-4")]
+    [Trait("Oracle", "O-25")]
     [InlineData(double.NaN)]
     [InlineData(double.PositiveInfinity)]
     [InlineData(double.NegativeInfinity)]
     public void A_value_the_writer_refuses_falls_back_to_the_four_bytes_null_for_the_whole_output(double value)
     {
-        // A non-finite Double is the only case the writer refuses (R-CODE-5); `try? ... ?? Data("null".utf8)` turns
-        // the whole write into "null", not just the member, in compact and pretty form alike.
+        // UNVERIFIED (R-TEST-6), so this test proves no requirement: PR-STORE-117's failure fallback rests on it.
+        // Core/Support/JSONValue.swift:62 is `(try? JSONSerialization.data(...)) ?? Data("null".utf8)`, and `try?`
+        // catches only a thrown Swift error. Whether Darwin JSONSerialization throws for a non-finite NSNumber (so the
+        // fallback gives "null") or raises an Objective-C NSInvalidArgumentException (an uncatchable crash) is not
+        // settled; swift-corelibs-foundation throws. No Swift site reaches this path (.double(NaN) is built only at
+        // :32 and :150, and parsed JSON holds no NaN). "O-25" is the id proposed for this new oracle item; it is not
+        // yet in IMPLEMENTING.md Appendix B. Parked choice: the whole write, compact and pretty, is the bytes "null".
         Assert.Equal(new byte[] { 0x6E, 0x75, 0x6C, 0x6C }, new JSONValue.Double(value).Data());
         var nested = JSONValue.FromDictionaryLiteral(("ok", 1), ("bad", JSONValue.FromArrayLiteral(value)));
         Assert.Equal(Utf8("null"), nested.Data());
         Assert.Equal(Utf8("null"), nested.Data(pretty: true));
         Assert.Equal("null", nested.CompactString);
         Assert.Equal("null", nested.PrettyString);
-        Assert.Equal("null", nested.DisplayText); // :128, arrays and objects render through prettyString
     }
 
     [Fact]
+    [Trait("Rule", "R-CODE-4")]
     [Trait("Oracle", "O-04")]
     public void Pretty_layout_is_two_space_indent_with_space_colon_space()
     {
@@ -275,6 +351,7 @@ public sealed class JSONValueTests
     }
 
     [Fact]
+    [Trait("Rule", "R-CODE-4")]
     [Trait("Oracle", "O-04")]
     public void Pretty_empty_containers_print_an_empty_line_between_their_brackets()
     {
@@ -600,13 +677,33 @@ public sealed class JSONValueTests
     [Trait("Req", "PR-STORE-121")] // Core/Support/JSONValue.swift:132-134, :59-65
     public void An_absent_optional_field_is_written_as_an_explicit_null_not_omitted()
     {
-        var payload = JSONValue.FromDictionaryLiteral(("model", JSONValue.Optional(null)));
-        Assert.Equal("{\"model\":null}", payload.CompactString);
-        Assert.Equal(Utf8("{\"model\":null}"), payload.Data());
+        // Fixture (R-TEST-8): the set_model control request of Services/Providers/ClaudeSession.swift:224,
+        // `["subtype": "set_model", "model": .optional(wire)]`, where wire is nil for the "default" model (:223)
+        // and otherwise the model id ("opus", ProviderRegistry.swift:73). The two-key compact order is Swift
+        // Dictionary order, unspecified (R-CODE-4, R-COLL-2), so no whole two-key string is asserted.
+        var payload = JSONValue.FromDictionaryLiteral(("subtype", "set_model"), ("model", JSONValue.Optional(null)));
         Assert.NotNull(payload["model"]);
         Assert.True(payload["model"]!.IsNull);
-        var present = JSONValue.FromDictionaryLiteral(("model", JSONValue.Optional("m/1")));
-        Assert.Equal("{\"model\":\"m/1\"}", present.CompactString);
+        Assert.IsType<JSONValue.Null>(payload["model"]);
+        var compact = payload.CompactString;
+        Assert.Contains("\"model\":null", compact, StringComparison.Ordinal); // the key is written, not omitted
+        Assert.Contains("\"subtype\":\"set_model\"", compact, StringComparison.Ordinal);
+        var reparsed = JSONValue.Parse(payload.Data());
+        Assert.NotNull(reparsed);
+        Assert.Equal(2, reparsed!.JSONValueObject!.Count);
+        Assert.NotNull(reparsed["model"]);
+        Assert.True(reparsed["model"]!.IsNull);
+        Assert.Equal(payload, reparsed);
+
+        var present = JSONValue.FromDictionaryLiteral(("subtype", "set_model"), ("model", JSONValue.Optional("opus")));
+        Assert.Equal(new JSONValue.String("opus"), present["model"]);
+        Assert.Contains("\"model\":\"opus\"", present.CompactString, StringComparison.Ordinal);
+        Assert.Equal(present, JSONValue.Parse(present.Data()));
+
+        // One key has one order, so its bytes are fixed.
+        var single = JSONValue.FromDictionaryLiteral(("model", JSONValue.Optional(null)));
+        Assert.Equal("{\"model\":null}", single.CompactString);
+        Assert.Equal(Utf8("{\"model\":null}"), single.Data());
     }
 
     // ---- PR-STORE-122: literal conformances and duplicate keys ----------------------------------------------
