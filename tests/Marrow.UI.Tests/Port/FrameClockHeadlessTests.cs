@@ -65,11 +65,14 @@ public sealed class FrameClockHeadlessTests(HeadlessSession headless)
         window.Close();
     });
 
+    // The value is the port's parked choice for unverified SwiftUI and Core Animation behaviour (O-34).
     [Fact]
     [Trait("Rule", "R-VIEW-10")]
     [Trait("Rule", "R-VIEW-3")]
     [Trait("Decision", "ED-083")]
     [Trait("Decision", "ED-098")]
+    [Trait("Decision", "ED-117")]
+    [Trait("Oracle", "O-34")]
     public void The_timeline_view_modifier_draws_on_attach_follows_frames_stops_on_detach_and_starts_again_on_every_later_attach() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
