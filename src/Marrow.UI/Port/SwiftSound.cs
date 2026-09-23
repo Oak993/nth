@@ -32,7 +32,8 @@ public sealed class SwiftSound
 
     /// <summary>
     /// NSSound(data:), which is failable: null when the bytes are not a PCM WAV the port can play (RIFF/WAVE with a
-    /// fmt chunk of format 1, one or two channels, 8 or 16 bits, a sample rate, then a data chunk). The bytes are
+    /// fmt chunk of format 1, one or two channels, 8 or 16 bits, a sample rate, then a data chunk of whole frames that
+    /// the bytes hold in full; chunks between them are skipped with their RIFF pad byte). The bytes are
     /// copied, as the Swift initializer takes a <c>Data</c> value.
     /// </summary>
     // FinishChime.swift:13, SettleChime.swift:12. The layout read is the one ToneSynth.swift:52-64 writes.
@@ -68,10 +69,11 @@ public sealed class SwiftSound
             else if (id.SequenceEqual("data"u8))
             {
                 if (format is not { } found) return null;
-                // A data chunk longer than the bytes that follow plays what is there, in whole frames.
-                var length = (int)Math.Min(size, (uint)available);
-                length -= length % found.BlockAlign;
-                return new SwiftSound(copy, found, bodyStart, length);
+                // No Swift line defines NSSound(data:) for a data chunk that claims more bytes than follow it or is
+                // not a whole number of frames (the B2 callers pass only ToneSynth.swift:52-67 bytes, which are
+                // neither): the port takes ED-151's null path for both, pending an owner ruling (OD-0021 wave).
+                if (size > (uint)available || size % found.BlockAlign != 0) return null;
+                return new SwiftSound(copy, found, bodyStart, (int)size);
             }
             // RIFF chunks are padded to an even length.
             var next = (long)bodyStart + size + (size & 1);
