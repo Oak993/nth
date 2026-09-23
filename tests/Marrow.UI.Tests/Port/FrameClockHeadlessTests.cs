@@ -10,7 +10,7 @@ namespace Marrow.UI.Tests.Port;
 
 // F.FrameClock on Avalonia 12.1.2 headless (ED-083, ED-098 (1), R-VIEW-10, R-TEST-7): the production frame source is
 // TopLevel.RequestAnimationFrame and passes on its frame time, and the TimelineView modifier lives exactly as long as
-// its control is attached. The surface is described at the top of FrameClockTests.cs.
+// its control is attached, on every attach. The surface is described at the top of FrameClockTests.cs.
 [Collection("Headless")]
 public sealed class FrameClockHeadlessTests(HeadlessSession headless)
 {
@@ -43,12 +43,25 @@ public sealed class FrameClockHeadlessTests(HeadlessSession headless)
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         Dispatcher.UIThread.RunJobs();
         Assert.Single(calls); // one request, one call
+        // The frame time is the one TopLevel.RequestAnimationFrame hands out on that tick (ED-098 (1), R-VIEW-10): a raw
+        // request on the same tick gets exactly the time the frame source passes on, on two ticks, in either order.
+        var raw = new List<TimeSpan>();
         frames.RequestFrame(time => calls.Add((Dispatcher.UIThread.CheckAccess(), time)));
+        window.RequestAnimationFrame(raw.Add);
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         Dispatcher.UIThread.RunJobs();
         Assert.Equal(2, calls.Count);
+        Assert.Single(raw);
         Assert.True(calls[1].OnUiThread);
-        Assert.True(calls[1].Time >= calls[0].Time); // the render timer's time, passed on, never runs backwards
+        Assert.Equal(raw[0], calls[1].Time);
+        window.RequestAnimationFrame(raw.Add);
+        frames.RequestFrame(time => calls.Add((Dispatcher.UIThread.CheckAccess(), time)));
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(3, calls.Count);
+        Assert.Equal(2, raw.Count);
+        Assert.True(calls[2].OnUiThread);
+        Assert.Equal(raw[1], calls[2].Time);
         window.Close();
     });
 
@@ -57,7 +70,7 @@ public sealed class FrameClockHeadlessTests(HeadlessSession headless)
     [Trait("Rule", "R-VIEW-3")]
     [Trait("Decision", "ED-083")]
     [Trait("Decision", "ED-098")]
-    public void The_timeline_view_modifier_draws_on_attach_follows_frames_and_stops_on_detach() => headless.OnUiThread(() =>
+    public void The_timeline_view_modifier_draws_on_attach_follows_frames_stops_on_detach_and_starts_again_on_every_later_attach() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         var time = new ManualTimeProvider();
@@ -81,5 +94,19 @@ public sealed class FrameClockHeadlessTests(HeadlessSession headless)
         Dispatcher.UIThread.RunJobs();
         Assert.Equal(2, dates.Count); // detached: no more updates
         Assert.Equal(0, frames.Pending); // and no more frames asked for
+        // R-VIEW-3: onAppear is AttachedToVisualTree and onDisappear DetachedFromVisualTree on every attach and
+        // detach, so the same control put into a new window appears again: drawn at once with the current date, and
+        // asking for frames again.
+        window.Content = null;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(2, dates.Count);
+        time.Advance(TimeSpan.FromMilliseconds(20));
+        var second = Show(content);
+        Assert.Equal([Start, Start + TimeSpan.FromMilliseconds(20), Start + TimeSpan.FromMilliseconds(60)], dates);
+        Assert.Equal(1, frames.Pending);
+        second.Close();
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(3, dates.Count);
+        Assert.Equal(0, frames.Pending);
     });
 }
