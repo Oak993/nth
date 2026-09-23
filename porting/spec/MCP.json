@@ -3337,7 +3337,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte-identical string; providers read it from the config files.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3362,7 +3362,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same file, same decimal text format. Two builds sharing %LOCALAPPDATA%\\<AppName>\\mcp\\proxy-port collide exactly as the macOS Dev-over-release mirror does.",
       "verification_method": "restart test asserting the same port, plus a unit test on a garbage file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "24",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3387,7 +3387,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same bind-zero-and-read-back technique and the same 48123 literal, which is observable in the config files when socket creation fails.",
       "verification_method": "unit forcing each failure path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3415,7 +3415,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce: do not re-export on repick. The same collision arises when two builds share %LOCALAPPDATA%\\<AppName>\\mcp\\proxy-port.",
       "verification_method": "integration test holding the saved port and asserting the config files keep the stale one",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "9",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3442,7 +3442,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Bind an HTTP listener to 127.0.0.1 only - never 0.0.0.0, which would expose the token-adding proxy to the network. The two prints are unconditional in the source, not behind a debug flag, and are reproduced as such.",
       "verification_method": "integration test asserting the listener accepts on 127.0.0.1 and refuses on the machine's LAN address",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "25",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3468,7 +3468,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep Route.headers in the model while knowing nothing populates it, and keep the usesOAuth branch, so the shape matches if a later change populates them.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3494,7 +3494,7 @@
       "cancellation": "the connection is cancelled on stream end",
       "windows_path": "Same limit and the same silent close on a truncated head.",
       "verification_method": "contract fixture sending an oversized head",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3518,7 +3518,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same Latin-1 decode (not UTF-8, which would reject some byte sequences), same lowercasing, same last-wins on duplicates.",
       "verification_method": "unit with a non-UTF-8 header byte and a duplicated header",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3545,7 +3545,7 @@
       "cancellation": "the connection ending is what triggers the truncated relay",
       "windows_path": "Reproduce all four behaviors, including the max(0, ...) parse and the silent truncation. Do not add a 400 for short bodies.",
       "verification_method": "contract fixture for each refusal plus one that closes the socket mid-body",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "12",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3569,7 +3569,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same status and the same reasoning; a 404 here would misroute the GitLab setup detection.",
       "verification_method": "contract fixture over all four rejection cases",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3596,7 +3596,7 @@
       "cancellation": "not cancellable once relayed",
       "windows_path": "Forward exactly those five headers and no more. The hour-long timeout is what keeps SSE sessions alive.",
       "verification_method": "contract fixture asserting the exact header set reaching a stub upstream",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3622,7 +3622,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce including the useless replay. Add no force-refresh parameter and synthesize no expires_at when the provider omits expires_in.",
       "verification_method": "contract fixture with a stub answering 401 twice and asserting exactly two upstream requests",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "18",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3646,7 +3646,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Copy back exactly those three plus the framing headers. Adding WWW-Authenticate would change what providers see.",
       "verification_method": "contract fixture asserting the response header set",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "13",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3670,7 +3670,7 @@
       "cancellation": "cancelling the connection ends the relay",
       "windows_path": "Reproduce the per-byte framing. Record it as a known upstream defect rather than silently fixing it.",
       "verification_method": "contract fixture counting the chunks emitted for a known payload",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "10",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3694,7 +3694,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the buffering and the asymmetric error handling between the two branches.",
       "verification_method": "contract fixture with a large body and one with a mid-stream failure",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "11",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3720,7 +3720,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte-identical head and body construction; providers parse these bodies.",
       "verification_method": "unit on the escaping plus a contract fixture on the bytes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3744,7 +3744,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce all twelve rows and both defaults, unused rows included.",
       "verification_method": "unit over the table and both defaults",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3769,7 +3769,7 @@
       "cancellation": "individual connections are cancelled; the listener never is",
       "windows_path": "The teardown entry point may be a no-op or omitted entirely, but never shut the proxy down where the source does not - an OAuth server would become unreachable mid-session.",
       "verification_method": "integration test asserting the listener is still accepting after every MCP flow",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -8233,7 +8233,8 @@
       "source_evidence": [
         "DroppyCode/UI/Common/MCPGlyph.swift:4-58"
       ],
-      "notes": "exact_text is the accessibility label, built as the entry name plus a space and the word \"tool\". The badge transitions in with a combined scale and opacity. This is the only MCP element outside Settings."
+      "notes": "exact_text is the accessibility label, built as the entry name plus a space and the word \"tool\". The badge transitions in with a combined scale and opacity. This is the only MCP element outside Settings.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-093",

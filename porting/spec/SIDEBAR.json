@@ -1739,7 +1739,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Tabular figures for the monospaced digits; the abbreviated month comes from the Windows locale and is therefore not a fixed string.",
       "verification_method": "unit test at each boundary (59 s, 60 s, 3599 s, 3600 s, 86399 s, 86400 s, 604799 s, 604800 s) and for a negative interval.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2522,7 +2522,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce both timings separately. Collapsing them to one would change whether a follow-on popover can present.",
       "verification_method": "unit test on the dispatcher asserting the two timings differ.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "62",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2544,7 +2544,7 @@
       "cancellation": "Clicking away closes the menu and runs nothing.",
       "windows_path": "By owner ruling OD-0010 the SF Symbol `ellipsis` is drawn as the Lucide icon `ellipsis` from the published table porting/icons/sf-symbols-to-lucide.json; the popover becomes a Windows flyout with the same width bounds and padding.",
       "verification_method": "interaction test plus capture comparison of the menu's metrics.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2571,7 +2571,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Middle truncation is required, not tail truncation, so a long `Reveal worktree in File Explorer` label (owner ruling OD-0008 B1) elides in the middle.",
       "verification_method": "capture comparison of a menu with a destructive row and a hovered row.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3326,7 +3326,7 @@
       "cancellation": "A relaunch cancels the previous glide for the same thread without running its finish, so its hiding flag is inherited by the new one.",
       "windows_path": "Reduce Motion maps to the Windows client-area-animation system setting. Platform boundary: accessibility settings.",
       "verification_method": "interaction test with the system reduced-motion setting on and off.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3349,7 +3349,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct translation of the 0.5 s window and the direction match.",
       "verification_method": "unit test on the guard, plus a capture comparison with the destination scrolled out of view.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3373,7 +3373,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Per-thread observation granularity must be preserved, or every glide re-renders the whole list.",
       "verification_method": "capture comparison at the handover, plus a unit test that only two rows re-render per glide.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3395,7 +3395,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Every literal threshold and the smoothstep formula must be reproduced. The keyframe animator runs its closure off the main actor, which is why the check insets are declared nonisolated; the Windows implementation may evaluate wherever it likes but must not read live UI state from inside the interpolation.",
       "verification_method": "capture comparison at sampled progress values against a reference recording.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3417,7 +3417,7 @@
       "cancellation": "not cancellable",
       "windows_path": "These two insets (36 and 16) are separate constants from the row's own check insets (26 and 6) and must not be unified with them. By owner ruling OD-0010 `checkmark.circle` and `checkmark.circle.fill` are both drawn as the Lucide icon `circle-check` from the published table porting/icons/sf-symbols-to-lucide.json, the filled form with the table's fill rendering (fill=currentColor on closed shapes) so the two stay distinct.",
       "verification_method": "capture comparison at sampled progress values.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3447,7 +3447,7 @@
       "cancellation": "Task cancellation aborts both sleeps.",
       "windows_path": "The spring's settling duration must be computed the same way for the timing to line up. Platform boundary: spring solver. The 0.12 s handover is literal.",
       "verification_method": "unit test on the timing with a controlled clock.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3467,7 +3467,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A non-hit-testable, non-accessible overlay above the window content.",
       "verification_method": "interaction test clicking through a flight.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3661,7 +3661,7 @@
       "cancellation": "Dismissing the popover keeps whatever was last chosen; each tap applies immediately.",
       "windows_path": "Direct translation of the metrics and strings. The picker is presented from the Projects settings page, not from the sidebar row, but it is the only writer of `project.icon`, which the sidebar reads.",
       "verification_method": "interaction test asserting the strings and the reset, plus capture comparison.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3694,7 +3694,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The 131 emoji, the 27 category titles, their order, each category's names and their order are data and are carried over verbatim (PR-SIDEBAR-164). By owner ruling OD-0010 the glyph drawn for each symbol name comes from the published table porting/icons/sf-symbols-to-lucide.json, which maps every catalogue and shortlist name (0 unmapped). The `Popular` availability filter (`NSImage(systemSymbolName:)`, :80-85) becomes a check against that table, under which all 56 shortlist names are kept.",
       "verification_method": "contract fixture asserting the emoji list and the category order; the symbol contents are a mapping fixture.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3728,7 +3728,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The placeholder `Search symbols` and the section heading `Symbols` are literal. The search filters the verbatim catalogue `all` list carried over from ProjectSymbolCatalogue.swift:25-51 (PR-SIDEBAR-164); by owner ruling OD-0010 the glyph drawn for each result comes from the published table porting/icons/sf-symbols-to-lucide.json. Locale-aware case-insensitive containment must be used, not an ordinal comparison. The system check in `filledForm` (`NSImage(systemSymbolName:)`, :130 and :133) is answered from that table: a typed filled form is offered when the table maps it.",
       "verification_method": "interaction test on a matching query, a non-matching query and a typed unfilled name.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3759,7 +3759,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct translation of the metrics; the nine fixed columns at 26 pt plus 8 gaps of 4 pt is 266 pt, which fits the 300 pt panel less 24 pt of padding.",
       "verification_method": "capture comparison of a hovered and a selected tile.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4318,7 +4318,8 @@
         "DroppyCode/UI/Chrome/Popovers.swift:384-399"
       ],
       "notes": "Tooltip is exactly `More`. Because the popover's presentation flag feeds back into the row's showsActions, the row keeps its accessories while the menu is open.",
-      "b2_change": "Chrome.inlineIconFont: B1 Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 Chrome.swift:29 `.system(.subheadline, weight: .semibold)`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token) where this glyph uses it. Nothing else changed."
+      "b2_change": "Chrome.inlineIconFont: B1 Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 Chrome.swift:29 `.system(.subheadline, weight: .semibold)`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token) where this glyph uses it. Nothing else changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-012",
@@ -4345,7 +4346,8 @@
         "decision": "OD-0005",
         "upstream": "PopoverMenu (Popovers.swift:95-113) is hosted in a native `NSPopover` on the system popover material; the source sets no fill of its own.",
         "port": "The popover's backdrop is an Acrylic-class Windows system material where it shows the desktop; no lensing, refraction or chromatic fringing. No tint or fill is added, since the source defines none."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-013",
@@ -4370,7 +4372,8 @@
         "DroppyCode/UI/Chrome/Popovers.swift:354-363"
       ],
       "notes": "The title truncates in the MIDDLE, not the tail. Items marked startsGroup are preceded by a PopoverDivider inset 8 pt horizontally with 5 pt of vertical padding.",
-      "b2_change": "PopoverItem fonts B1 Popovers.swift:308 `.system(size: 13)`, :303 and :315 `.system(size: 12)`, :278 `.system(size: 11, weight: .semibold)`, :297 `.system(size: 12, weight: .semibold)` -> B2 same lines `.system(.body)`, `.system(.callout)`, `.system(.subheadline, weight: .semibold)`, `.system(.callout, weight: .semibold)`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token). RowActionItems (:354-363) unchanged. Citations corrected from :186-334 and :352-363 (pre-existing offsets) to PopoverItem :190-336 and RowActionItems :354-363."
+      "b2_change": "PopoverItem fonts B1 Popovers.swift:308 `.system(size: 13)`, :303 and :315 `.system(size: 12)`, :278 `.system(size: 11, weight: .semibold)`, :297 `.system(size: 12, weight: .semibold)` -> B2 same lines `.system(.body)`, `.system(.callout)`, `.system(.subheadline, weight: .semibold)`, `.system(.callout, weight: .semibold)`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token). RowActionItems (:354-363) unchanged. Citations corrected from :186-334 and :352-363 (pre-existing offsets) to PopoverItem :190-336 and RowActionItems :354-363.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-014",
@@ -5269,7 +5272,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Sidebar/RowGlide.swift:139-234"
       ],
-      "notes": "Only the reopen direction runs today; the settle branches are kept for the flight's shape. Progress is driven by a single spring keyframe with response 0.6 and damping ratio 0.86."
+      "notes": "Only the reopen direction runs today; the settle branches are kept for the flight's shape. Progress is driven by a single spring keyframe with response 0.6 and damping ratio 0.86.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-051",
@@ -5292,7 +5296,8 @@
         "DroppyCode/App/Views/Sidebar/RowGlide.swift:186-220"
       ],
       "notes": "These insets (36 and 16) are NOT the row's own check insets (26 and 6). Unifying them shifts the check visibly at the handover.",
-      "b2_change": "Chrome.inlineIconFont: B1 Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 Chrome.swift:29 `.system(.subheadline, weight: .semibold)`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Nothing else changed."
+      "b2_change": "Chrome.inlineIconFont: B1 Chrome.swift:29 `.system(size: 11, weight: .semibold)` -> B2 Chrome.swift:29 `.system(.subheadline, weight: .semibold)`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Nothing else changed.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-052",
@@ -5312,7 +5317,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/ProjectIconPicker.swift:29-51"
       ],
-      "notes": "Tooltip is exactly `Choose this project's icon`; accessibility label is exactly `Project icon`."
+      "notes": "Tooltip is exactly `Choose this project's icon`; accessibility label is exactly `Project icon`.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-053",
@@ -5336,7 +5342,8 @@
         "DroppyCode/UI/Chrome/ProjectIconPicker.swift:136-172"
       ],
       "notes": "There is no confirm button and no empty-results message: every tap applies immediately, and a query with no matches and no filled form shows the default sections again (ProjectIconPicker.swift:144-151).",
-      "b2_change": "Heading B1 ProjectIconPicker.swift:139 `.font(.system(size: 12, weight: .medium))` -> B2 :139 `.font(.system(.callout, weight: .medium))`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Citation tightened to the body :136-172. Geometry unchanged."
+      "b2_change": "Heading B1 ProjectIconPicker.swift:139 `.font(.system(size: 12, weight: .medium))` -> B2 :139 `.font(.system(.callout, weight: .medium))`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Citation tightened to the body :136-172. Geometry unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-054",
@@ -5360,7 +5367,8 @@
         "DroppyCode/UI/Chrome/ProjectIconPicker.swift:115-136"
       ],
       "notes": "This field has no clear button and no Escape handler, unlike the sidebar's own search field.",
-      "b2_change": "Magnifier B1 ProjectIconPicker.swift:191 `.font(.system(size: 11))` and text :195 `.font(.system(size: 12))` -> B2 `.font(.system(.subheadline))` and `.font(.system(.callout))`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token). Citation tightened to :188-203. Matching unchanged."
+      "b2_change": "Magnifier B1 ProjectIconPicker.swift:191 `.font(.system(size: 11))` and text :195 `.font(.system(size: 12))` -> B2 `.font(.system(.subheadline))` and `.font(.system(.callout))`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token). Citation tightened to :188-203. Matching unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-055",
@@ -5382,7 +5390,8 @@
         "DroppyCode/UI/Chrome/ProjectIconPicker.swift:104-109"
       ],
       "notes": "Beyond these three literals, every catalogue category supplies its own heading: Communication, Maps, Objects & Tools, Devices, Camera & Photos, Gaming, Connectivity, Transportation, Automotive, Accessibility, Privacy & Security, Human, Home, Fitness, Nature, Editing, Text Formatting, Media, Keyboard, Commerce, Time, Health, Shapes, Arrows, Indices, Math, Other.",
-      "b2_change": "Heading B1 ProjectIconPicker.swift:235 `.font(.system(size: 10, weight: .medium))` -> B2 :235 `.font(.system(.footnote, weight: .medium))`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token). Citations tightened to :232-239 and :104-109. Groups unchanged."
+      "b2_change": "Heading B1 ProjectIconPicker.swift:235 `.font(.system(size: 10, weight: .medium))` -> B2 :235 `.font(.system(.footnote, weight: .medium))`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token). Citations tightened to :232-239 and :104-109. Groups unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-056",
@@ -5407,7 +5416,8 @@
         "DroppyCode/UI/Chrome/ProjectIconPicker.swift:241-272"
       ],
       "notes": "Nine columns of 26 pt with eight 4 pt gaps is 266 pt, which is exactly what the 300 pt panel leaves after its 12 pt padding on each side.",
-      "b2_change": "Emoji B1 ProjectIconPicker.swift:211 `.font(.system(size: 15))` -> B2 `.font(.system(.title3))`; symbols B1 :180 and :224 `.font(.system(size: 12))` -> B2 `.font(.system(.callout))`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Citation tightened to :174-230. Columns (:111, corrected from :113, a pre-existing offset) and IconTile unchanged."
+      "b2_change": "Emoji B1 ProjectIconPicker.swift:211 `.font(.system(size: 15))` -> B2 `.font(.system(.title3))`; symbols B1 :180 and :224 `.font(.system(size: 12))` -> B2 `.font(.system(.callout))`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Citation tightened to :174-230. Columns (:111, corrected from :113, a pre-existing offset) and IconTile unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-057",
@@ -5428,7 +5438,8 @@
         "DroppyCode/UI/Chrome/ProjectIconPicker.swift:158-168"
       ],
       "notes": "Only the tile is a button; the word `Folder` beside it is a plain label and does not respond to clicks.",
-      "b2_change": "Label B1 ProjectIconPicker.swift:165 and glyph :161 `.font(.system(size: 12))` -> B2 `.font(.system(.callout))`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token). Citation corrected from :163-175 to the row at :158-168."
+      "b2_change": "Label B1 ProjectIconPicker.swift:165 and glyph :161 `.font(.system(size: 12))` -> B2 `.font(.system(.callout))`; text styles sized per upstream's own table at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`, B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11`, B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10`, B1:DroppyCode/UI/Common/ChatZoom.swift:50 `case .title3: 15`; that file is gone at B2), so the default point size is unchanged; by ED-059 each style is set at that table's size in Inter (OD-0009) and scales only through the app's own zoom (UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; visual size parity stays UNVERIFIED under OD-0001. Chrome.secondaryText redefined: B1 DroppyCode/UI/Chrome/Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` -> B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`, i.e. the label colour at 0.7 (B2 :77-78 says secondaryLabelColor's 50% alpha missed the 4.5:1 contrast floor; ED-062 adopts it, superseding ED-051's secondaryLabelColor literal for this token). Citation corrected from :163-175 to the row at :158-168.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SIDEBAR-058",
