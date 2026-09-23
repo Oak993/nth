@@ -117,8 +117,9 @@ public static partial class MCPCatalog
     }
 
     // :475-480 static var byCategory: [(category: MCPCategory, entries: [MCPCatalogEntry])]
+    // R-ENUM-1: never Enum.GetValues on a ported Swift enum; use SwiftEnum<T>.AllCases.
     public static IReadOnlyList<(MCPCategory Category, IReadOnlyList<MCPCatalogEntry> Entries)> ByCategory =>
-        Array.AsReadOnly(Enum.GetValues<MCPCategory>()
+        Array.AsReadOnly(SwiftEnum<MCPCategory>.AllCases
             .Select(category => (Category: category, Entries: (IReadOnlyList<MCPCatalogEntry>)Array.AsReadOnly(Entries.Where(entry => entry.Category == category).ToArray())))
             .Where(group => group.Entries.Count > 0).ToArray());
 
