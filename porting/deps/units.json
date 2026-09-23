@@ -2723,27 +2723,13 @@
    ],
    "intra_deps": [],
    "records_total": 5,
-   "records_todo": [
-    "PR-PROVAPI-187",
-    "PR-PROVAPI-188",
-    "PR-PROVAPI-189",
-    "PR-PROVAPI-190",
-    "PR-PROVAPI-191"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-187",
-     "PR-PROVAPI-188",
-     "PR-PROVAPI-189",
-     "PR-PROVAPI-190",
-     "PR-PROVAPI-191"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-140"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.ZaiKeychain",
