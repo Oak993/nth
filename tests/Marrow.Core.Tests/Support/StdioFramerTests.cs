@@ -281,6 +281,57 @@ public sealed class StdioFramerTests
             Assert.Single(framer.Append([0x80, 0xFF, 0x00, 0x0A])));
     }
 
+    // Once bodyLength is set the body is taken purely by count: the separator search is gated on
+    // `if bodyLength == nil {` (StdioFramer.swift:35-36) and the body is `buffer[start..<start + length]` (:47-49).
+    // Each body below is made of separator bytes or header text; a port that searches for "\r\n\r\n" or re-parses
+    // headers before checking a pending body splits it wrongly. Header "Content-Length: 4\r\n\r\n" is bytes 0-20,
+    // the body 21-24, the next header 25-45 and "Z" byte 46; header "Content-Length: 19\r\n\r\n" is bytes 0-21, the
+    // body 22-40, the next header 41-61 and "Z" byte 62.
+    [Theory]
+    [Trait("Req", "PR-PROVACP-151")] // StdioFramer.swift:35-36, :47-53
+    [Trait("Req", "PR-PROVACP-150")] // StdioFramer.swift:19-23, :58-59 (split across any number of chunks)
+    [InlineData("Content-Length: 4\r\n\r\n", "\r\n\r\n", 24)]
+    [InlineData("Content-Length: 19\r\n\r\n", "Content-Length: 9\r\n", 40)]
+    public void A_pending_body_is_taken_by_count_even_when_it_holds_separators_or_header_text(
+        string header, string body, int lastBodyByte)
+    {
+        var wire = Bytes(header + body + "Content-Length: 1\r\n\r\nZ");
+        Assert.Equal(lastBodyByte + 22, wire.Length - 1);
+
+        // One append.
+        var framer = new StdioFramer(StdioFramer.Framing.ContentLength);
+        var messages = framer.Append(wire);
+        Assert.Equal(2, messages.Count);
+        Assert.Equal(Bytes(body), messages[0]);
+        Assert.Equal(Bytes("Z"), messages[1]);
+        Assert.Null(framer.Finish());
+
+        // One byte at a time: the body is emitted by the append of its last byte, "Z" by the append of the last byte.
+        framer = new StdioFramer(StdioFramer.Framing.ContentLength);
+        var collected = new List<byte[]>();
+        for (var i = 0; i < wire.Length; i++)
+        {
+            var emitted = framer.Append(wire.AsSpan(i, 1));
+            if (i == lastBodyByte) Assert.Equal(Bytes(body), Assert.Single(emitted));
+            else if (i == wire.Length - 1) Assert.Equal(Bytes("Z"), Assert.Single(emitted));
+            else Assert.Empty(emitted);
+            collected.AddRange(emitted);
+        }
+        Assert.Equal(2, collected.Count);
+        Assert.Null(framer.Finish());
+
+        // Every two-chunk split.
+        for (var split = 0; split <= wire.Length; split++)
+        {
+            framer = new StdioFramer(StdioFramer.Framing.ContentLength);
+            var parts = framer.Append(wire.AsSpan(0, split)).Concat(framer.Append(wire.AsSpan(split))).ToArray();
+            Assert.Equal(2, parts.Length);
+            Assert.Equal(Bytes(body), parts[0]);
+            Assert.Equal(Bytes("Z"), parts[1]);
+            Assert.Null(framer.Finish());
+        }
+    }
+
     [Theory]
     [Trait("Req", "PR-PROVACP-151")] // StdioFramer.swift:13, :37-39, :64
     [InlineData("Content-Length: 1\n\nA")]
@@ -296,7 +347,7 @@ public sealed class StdioFramerTests
 
     [Theory]
     [Trait("Req", "PR-PROVACP-151")] // StdioFramer.swift:42-44
-    [Trait("Req", "PR-PROVACP-152")] // StdioFramer.swift:72-79
+    [Trait("Req", "PR-PROVACP-152")] // StdioFramer.swift:72-79; the single split and its count check: :73-76
     [InlineData("Ignored: yes")]
     [InlineData("")]
     [InlineData("Content-Length: -1")]
@@ -314,6 +365,11 @@ public sealed class StdioFramerTests
     [InlineData("Content-Length: ++1")]
     [InlineData("Content-Length: -")]
     [InlineData("Content-Length: 1:2")]
+    // StdioFramer.swift:73-76: `split(separator: ":", maxSplits: 1)` gives ["Content-Length", " 1:2"], so the count
+    // check passes, Int("1:2") is nil and `else { return nil }` ends the whole block; the second line is never read.
+    [InlineData("Content-Length: 1:2\r\nContent-Length: 1")]
+    // StdioFramer.swift:73-76: one split gives ["Content-Length", ":1"]; Int(":1") is nil, so the block is nil.
+    [InlineData("Content-Length::1")]
     [InlineData("Content-Length: bad\r\nContent-Length: 1")]
     [InlineData("Content-Length: \r\nContent-Length: 1")]
     [InlineData("Content-Length: \t\r\nContent-Length: 1")]
