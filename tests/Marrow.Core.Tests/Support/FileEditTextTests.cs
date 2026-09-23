@@ -18,6 +18,14 @@ public sealed class FileEditTextTests
         Assert.Equal(1, edit.Deletions);
     }
 
+    [Fact] // Text.swift:121-124 passes path straight into self.init(path:) without normalizing it.
+    [Trait("Req", "PR-STORE-113")]
+    public void Convenience_constructor_never_normalizes_the_path()
+    {
+        var edit = new FileEdit(" Folder/A.txt ", "old", "new");
+        Assert.Equal(" Folder/A.txt ", edit.Path);
+    }
+
     [Fact]
     [Trait("Req", "PR-STORE-113")]
     public void Over_cap_edit_keeps_the_counts_while_omitting_diff_from_storage()
