@@ -161,6 +161,54 @@ public sealed class SwiftSoundTests
 
     [Fact]
     [Trait("Decision", "ED-151")]
+    public void Create_steps_over_the_pad_byte_after_an_odd_sized_chunk_before_the_data_chunk()
+    {
+        // RIFF pads every chunk body to an even length; the pad byte is not counted in the chunk size.
+        var samples = Int16Samples(5, -6);
+        byte[] odd = [.. Encoding.ASCII.GetBytes("junk"), .. U32(3), 0x61, 0x62, 0x63, 0x00];
+
+        var sound = SwiftSound.Create(Wave(1, 1, 44100, 16, samples, extraChunkBeforeData: odd));
+
+        Assert.NotNull(sound);
+        Assert.Equal(1, sound.Format.Channels);
+        Assert.Equal(16, sound.Format.BitsPerSample);
+        Assert.Equal(samples, sound.Samples.ToArray());
+    }
+
+    // No Swift line defines NSSound(data:) for a data chunk that claims more bytes than follow it, or one that is not
+    // a whole number of frames: the only bytes the B2 callers pass are ToneSynth.swift:52-67, which is neither. The
+    // port takes the failable path ED-151 already names (null for data that is not a PCM WAV the port can play) and
+    // pins it here; the build-mode verification wave (OD-0021) holds it for an owner ruling.
+    [Fact]
+    [Trait("Decision", "ED-151")]
+    public void Create_returns_null_for_the_finish_chime_wave_cut_inside_its_data_chunk()
+    {
+        Assert.Null(SwiftSound.Create(FinishWave()[..100]));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-151")]
+    public void Create_returns_null_for_a_data_chunk_that_declares_more_bytes_than_follow_it()
+    {
+        var wave = Wave(1, 1, 44100, 16, Int16Samples(1, 2, 3, 4));
+        // The data chunk size sits at bytes 40-43 (ToneSynth.swift:63-64 layout): 10 declared, 8 present.
+        BinaryPrimitives.WriteUInt32LittleEndian(wave.AsSpan(40), 10);
+
+        Assert.Null(SwiftSound.Create(wave));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-151")]
+    public void Create_returns_null_for_a_data_chunk_that_is_not_a_whole_number_of_frames()
+    {
+        // Stereo 16-bit: 4 bytes a frame; 6 bytes is a frame and a half.
+        Assert.Null(SwiftSound.Create(Wave(1, 2, 44100, 16, new byte[6])));
+        // Mono 16-bit: 2 bytes a frame; 3 bytes is a frame and a half.
+        Assert.Null(SwiftSound.Create(Wave(1, 1, 44100, 16, new byte[3])));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-151")]
     public void Play_starts_one_playback_of_the_sound_and_returns_true()
     {
         var output = new FakeSoundOutput();
