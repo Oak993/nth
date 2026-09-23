@@ -1405,7 +1405,7 @@
       "cancellation": "The detached task is not cancelled by the composer.",
       "windows_path": "Same double count and orphan cleanup. File copies go to the Windows storage root of the app-paths adaptation.",
       "verification_method": "integration test attaching from two sources at once",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1430,7 +1430,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Use a Windows imaging codec for HEIF where available; the JPEG quality and the PNG naming are verbatim. If HEIF decoding is unavailable the import must fail the same way (dropped silently), not fall back to copying the HEIC.",
       "verification_method": "contract fixture comparing output bytes' dimensions and the stored names",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

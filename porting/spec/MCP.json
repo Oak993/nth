@@ -2366,7 +2366,7 @@
       "cancellation": "not cancellable",
       "windows_path": "<data root> is %LOCALAPPDATA%\\<AppName>\\ and the mcp subdirectory is %LOCALAPPDATA%\\<AppName>\\mcp\\. Putting mcp.json or custom-mcp.json inside mcp\\ silently loses every connection and custom server. The bridge file, which macOS writes to <Application Support>/<AppName>/MCP/, collapses onto the same mcp\\ folder on a case-insensitive filesystem and is written there (PR-MCP-193). managed.json is used only by MCPExternalSync, which is not ported (ED-061, PR-MCP-176), so the port neither reads nor writes it.",
       "verification_method": "restart test plus a file-inventory assertion",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
