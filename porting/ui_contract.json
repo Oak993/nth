@@ -22380,7 +22380,7 @@
       "role": "label",
       "exact_text": "No tour pages",
       "geometry": "VStack(spacing: 12), .frame(maxWidth: .infinity) and .frame(height: 220), which is also the whole window height in this case",
-      "typography": "Glyph .font(.title); text .font(.headline). ED-059: .title is set at 22 point (B1:DroppyCode/UI/Common/ChatZoom.swift:48 'case .title: 22') and .headline at 13 point (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), semibold as the same table's font builder resolves .headline (B1:DroppyCode/UI/Common/ChatZoom.swift:63 'let resolvedWeight = weight ?? (style == .headline ? .semibold : nil)'), in Inter (OD-0009)",
+      "typography": "Glyph .font(.title); text .font(.headline). ED-059: .title is set at 22 point (B1:DroppyCode/UI/Common/ChatZoom.swift:48 'case .title: 22') and .headline at 13 point (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), in the plain system style's weight (ED-186: bold per ED-091, oracle O-64; the chat builder's semibold rule does not apply to a plain .headline) (B1:DroppyCode/UI/Common/ChatZoom.swift:63 'let resolvedWeight = weight ?? (style == .headline ? .semibold : nil)'), in Inter (OD-0009)",
       "colors": "Glyph Chrome.secondaryText; text Chrome.primaryText",
       "states": [
         "Unreachable through the shipped call sites, which always pass eight pages, but it is shipped code"
