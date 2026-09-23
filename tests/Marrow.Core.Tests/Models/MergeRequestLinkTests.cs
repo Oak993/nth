@@ -70,8 +70,9 @@ public sealed class MergeRequestLinkTests
         Assert.Equal(number, link.Number);
         Assert.Equal(Encoding.UTF8.GetBytes(label), Encoding.UTF8.GetBytes(link.Label));
         Assert.Equal(Encoding.UTF8.GetBytes("Merge " + label), Encoding.UTF8.GetBytes(link.Title));
-        // :38 self.url = url: the URL is kept as given, query, fragment and case included, compared as text.
-        Assert.Equal(Url(text).AbsoluteString, link.Url.AbsoluteString);
+        // :38 self.url = url: the URL is kept as given, query, fragment and case included, compared as text. Every
+        // row is a valid URL string, which URL(string:) keeps byte for byte as its absoluteString (SwiftURLTests).
+        Assert.Equal(Encoding.UTF8.GetBytes(text), Encoding.UTF8.GetBytes(link.Url.AbsoluteString));
         Assert.Equal(Url(text), link.Url);
     }
 
