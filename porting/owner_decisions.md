@@ -269,3 +269,14 @@ instruction may change one.
   loads, and a launch splash while the prologue runs. Small and mini inline spinners stay the system spinner, as
   upstream. Where, when and how it moves is ED-097. The motion is option A "Orbit" from
   `E:/Droppy/work/icon/loading_preview.html` unless the owner picks B "Ratchet" or C "Bloom".
+
+## OD-0019 Agent models for the implementation waves
+
+- **Asked:** 2026-09-23, after measuring that wave A spent 834 million context tokens for 2 merged units, when the owner
+  asked how to cut usage and speed the port up.
+- **Answer, verbatim (selected option):** "Sonnet 5 for bulk (Recommended)"
+- **Effect:** from implementation engine v3 on, Sonnet 5 at medium effort writes the tests and the implementations of
+  ordinary (STANDARD-risk) units; Opus 5.5 writes the tests and implementations of HIGH-risk and foundation units and
+  does every review, every merge and every ruling. Agents work from compact per-part work packets
+  (`porting/tools/make_packets.mjs`) instead of the whole guide and spec. This is a process decision: it does not change
+  what the port must match or how it is verified.
