@@ -855,4 +855,53 @@ public sealed class SwiftFontTests(HeadlessSession headless)
         Assert.NotEqual("SF Mono", FaceName(g!));
         Assert.NotEqual("SF Mono", g!.FamilyName);
     });
+
+    // ---- Inter italic and weight 800 come from the rsms/inter release files, under the fonts:Inter key ----
+    // OD-0020 item 2 and porting/probes/p9/INTER-FILES.md: Inter-Italic, -MediumItalic, -SemiBoldItalic, -BoldItalic,
+    // -ExtraBold and -ExtraBoldItalic (rsms/inter v4.1, extras/ttf) ship in src/Marrow.UI/Assets/Fonts beside the
+    // Cascadia Mono files, and INTER-FILES.md:22 gives their registration beside the package's Inter family to this unit
+    // (ED-107). Reviewer finding 1: registered only through the Cascadia collection, they resolved under
+    // fonts:CascadiaMono#Inter, while fonts:Inter#Inter fell back to the upright face with Oblique simulation and to the
+    // 700 face with Bold simulation. B2 reaches these faces: italic through the emphasized run,
+    // UI/Markdown/LinkParagraphView.swift:116 (NSFontManager convert toHaveTrait: .italicFontMask) and :131
+    // (intent.contains(.emphasized) -> italic); .heavy (800, ED-091) at UI/Common/HydraGlyph.swift:56 and
+    // UI/Common/MCPGlyph.swift:49. No weight-900 file ships, so 900 stays unasserted (ED-107 (6)).
+
+    [Theory]
+    [Trait("Decision", "ED-107")]
+    [Trait("Decision", "ED-091")]
+    [InlineData(SwiftFont.Weight.Regular, 400, true)]
+    [InlineData(SwiftFont.Weight.Medium, 500, true)]
+    [InlineData(SwiftFont.Weight.Semibold, 600, true)]
+    [InlineData(SwiftFont.Weight.Bold, 700, true)]
+    [InlineData(SwiftFont.Weight.Heavy, 800, false)]
+    [InlineData(SwiftFont.Weight.Heavy, 800, true)]
+    public void The_default_design_resolves_italic_and_heavy_to_the_shipped_Inter_release_files_without_simulation(SwiftFont.Weight weight, int weightClass, bool italic) => headless.OnUiThread(() =>
+    {
+        foreach (var start in new[]
+                 {
+                     SwiftFont.System(SwiftFont.TextStyle.Body, weight: weight),
+                     SwiftFont.SystemFont(ofSize: 13, weight: weight),
+                 })
+        {
+            var font = italic ? start.Italic() : start;
+            AssertTextFace(font.Resolve().FontFamily);
+            var g = ResolveGlyphTypeface(font);
+            Assert.Equal(TextFace, FaceName(g));
+            Assert.Equal(weightClass, (int)g.Weight);
+            Assert.Equal(italic ? FontStyle.Italic : FontStyle.Normal, g.Style);
+            Assert.Equal(FontSimulations.None, g.FontSimulations);
+        }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-107")]
+    public void The_monospaced_collection_holds_only_Cascadia_Mono_so_Inter_is_not_reachable_through_its_key() => headless.OnUiThread(() =>
+    {
+        // ED-107 (3): fonts:CascadiaMono is the Cascadia Mono family (CASCADIA.md). The Inter release files share its
+        // folder (INTER-FILES.md), so the collection must not pick them up: before this fix fonts:CascadiaMono#Inter
+        // resolved to Inter ExtraBold (reviewer finding 1).
+        var typeface = new Typeface(new FontFamily("fonts:CascadiaMono#Inter"), FontStyle.Normal, Avalonia.Media.FontWeight.Normal);
+        Assert.False(FontManager.Current.TryGetGlyphTypeface(typeface, out _));
+    });
 }
