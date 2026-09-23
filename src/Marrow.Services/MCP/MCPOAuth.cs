@@ -1043,6 +1043,9 @@ public static class MCPOAuth
     // :854-913. The document is PR-MCP-163's. Its logo (:904) is Droppy's mark; PR-MCP-163 records an open question on
     // what, if anything, replaces it, and the line stays as the source has it until that is answered.
     // DEVIATION OD-0012 F1: the wordmark (:907) reads "Marrow" where upstream reads "Droppy Code".
+    // The raw literal below is the Swift literal (:855-912) line for line: this file is stored with LF line endings
+    // (.gitattributes "* -text"), so the lines join with a line feed as in Swift, and the string ends at "</html>" with no
+    // newline after it.
     private static string Page(string headTitle, string heading, string message) =>
         $$"""
         <!DOCTYPE html>
@@ -1103,7 +1106,9 @@ public static class MCPOAuth
         </html>
         """;
 
-    // :915-929
+    // :915-929 (PR-MCP-164). Swift iterates Characters (extended grapheme clusters) and compares each with the five
+    // one-scalar Characters, so a cluster such as "<" plus a combining mark is copied unchanged; SwiftString.Characters
+    // and SwiftString.Equal keep that.
     private static string EscapeHTML(string @string)
     {
         var escaped = new StringBuilder(@string.Length);
