@@ -2462,7 +2462,8 @@
         "DroppyCode/App/Views/Composer/ComposerWorkingDots.swift:12-190",
         "DroppyCode/App/Views/Composer/ComposerView.swift:661-675"
       ],
-      "notes": "Once on screen the render server plays it alone: no timer, no view update and no main-thread drawing, however long a turn runs. A Windows port must match that."
+      "notes": "Once on screen the render server plays it alone: no timer, no view update and no main-thread drawing, however long a turn runs. A Windows port must match that.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
