@@ -14,15 +14,13 @@ namespace Marrow.App.Views.Chat;
 // Source: DroppyCode/App/Views/Chat/MessagePopoverMenu.swift (B2 1fbf81e), :1-83.
 // Record: PR-CHAT-087.
 
-/// <summary>:4-21 RightClickPopoverModifier: a ViewModifier that overlays a RightClickCatcher, shows a PopoverMenu
-/// when the catch point is set, and anchors the popover to a 1 by 1 rect at the pointer.</summary>
+/// <summary>:4-21 RightClickPopoverModifier: a ViewModifier that wraps content with a RightClickCatcher,
+/// shows a PopoverMenu when the catch point is set, and anchors the popover to a 1 by 1 rect at the pointer.
+/// ED-183: RightClickCatcher is now a tunnel-phase event handler on the content, not an overlay.</summary>
 internal sealed class RightClickPopoverModifier
 {
     // :5 let actions: () -> [RowAction]
     private readonly Func<System.Collections.Generic.IReadOnlyList<RowAction>> actions;
-
-    // :6 @State private var anchor: CGPoint?
-    private Point? anchor;
 
     public RightClickPopoverModifier(Func<System.Collections.Generic.IReadOnlyList<RowAction>> actions)
     {
@@ -31,50 +29,43 @@ internal sealed class RightClickPopoverModifier
 
     public Control Apply(Control content)
     {
-        // :9 content.overlay { RightClickCatcher { point in anchor = point } }
-        var overlay = new RightClickCatcher(point => anchor = point);
-
         // :10-16 .popover(isPresented: Binding, attachmentAnchor: .rect(.rect(CGRect(...))), arrowEdge: .top)
         var popover = new Popup
         {
             Placement = PlacementMode.Top, // :16 arrowEdge: .top
         };
 
-        var panel = new Panel();
-        panel.Children.Add(content);
-        panel.Children.Add(overlay);
-
-        // Track anchor changes to update popover presentation
         var shown = false;
-        overlay.Track(() => anchor, anchorPoint =>
+
+        // ED-183: Attach the RightClickCatcher event handler directly to the content as a tunnel-phase handler.
+        // No overlay, no custom hit test.
+        RightClickCatcher.AttachTo(content, point =>
         {
-            var presented = anchorPoint.HasValue;
+            // :9 anchor = point
+            var presented = true;
             if (presented == shown) return;
             shown = presented;
 
-            if (presented && anchorPoint.HasValue)
+            if (presented)
             {
                 // Set PlacementRect to a 1x1 rect at the anchor point
                 // :15 CGRect(origin: anchor ?? .zero, size: CGSize(width: 1, height: 1))
-                popover.PlacementRect = new Rect(anchorPoint.Value, new Size(1, 1));
-                popover.PlacementTarget = panel; // :15 attachment to the panel (the view tree)
+                popover.PlacementRect = new Rect(point, new Size(1, 1));
+                popover.PlacementTarget = content; // :15 attachment to the content (the view tree)
                 popover.Child = new PopoverMenu(() => new RowActionItems(actions()));
+                Presentation.Presenter.Current.SetPresented(popover, true);
             }
-            else
-            {
-                popover.Child = null;
-            }
-
-            Presentation.Presenter.Current.SetPresented(popover, presented);
         });
 
+        // :14 .popover isPresented: anchor == nil closes the popover
         popover.Closed += (_, _) =>
         {
-            anchor = null;
+            shown = false;
             popover.Child = null;
+            Presentation.Presenter.Current.SetPresented(popover, false);
         };
 
-        return panel;
+        return content;
     }
 }
 
@@ -89,63 +80,73 @@ public static class RightClickPopoverExtensions
     }
 }
 
-/// <summary>:30-40 RightClickCatcher: NSViewRepresentable wrapping RightClickCatcherView (lines :42-83).
-/// A transparent overlay that only claims secondary clicks. It returns nil from hit-testing for every other event,
-/// so text selection, links, buttons and drags in the SwiftUI content underneath behave exactly as if it were absent.</summary>
-internal sealed class RightClickCatcher : Control
+/// <summary>:30-40 RightClickCatcher: implements the tunnel-phase event handler behavior from RightClickCatcherView :42-83.
+/// ED-183: No longer an overlay Control. Instead, a static helper that attaches a tunnel-phase PointerPressedEvent
+/// handler directly to the content. The handler calls onRightClick only for a right mouse button press or a left
+/// mouse button press with the Control modifier, both inside content bounds, and sets e.Handled = true. All other
+/// presses pass through unhandled, so text selection, links, buttons and drags underneath behave exactly as if it
+/// were absent. :82 rightMouseUp is also swallowed (handled).</summary>
+internal static class RightClickCatcher
 {
-    // :31 var onRightClick: (CGPoint) -> Void
-    private readonly Action<Point> onRightClick;
-
-    public RightClickCatcher(Action<Point> onRightClick)
+    /// <summary>Attaches a tunnel-phase event handler to the given content that calls onRightClick for secondary clicks.
+    /// Secondary clicks are: right mouse button, or left mouse button with Control modifier. The handler only claims
+    /// events that occur inside the content's bounds. Also swallows the corresponding release events.</summary>
+    public static void AttachTo(Control content, Action<Point> onRightClick)
     {
-        this.onRightClick = onRightClick;
-        // Don't participate in hit testing; we'll handle events through bubbling
-        IsHitTestVisible = false;
-        HorizontalAlignment = HorizontalAlignment.Stretch;
-        VerticalAlignment = VerticalAlignment.Stretch;
-
-        // Register for pointer events on the tunnel phase so we intercept before content
-        this.AddHandler(InputElement.PointerPressedEvent, OnPointerPressedTunnel, RoutingStrategies.Tunnel, handledEventsToo: true);
-        this.AddHandler(InputElement.PointerReleasedEvent, OnPointerReleasedTunnel, RoutingStrategies.Tunnel, handledEventsToo: true);
-    }
-
-    private void OnPointerPressedTunnel(object? sender, PointerPressedEventArgs e)
-    {
-        HandlePointerPressed(e);
-    }
-
-    private void OnPointerReleasedTunnel(object? sender, PointerReleasedEventArgs e)
-    {
-        HandlePointerReleased(e);
-    }
-
-    /// <summary>:70-72 rightMouseDown: records the point and calls onRightClick. Also handles left mouse down with control modifier.
-    /// We handle these events even though we're not hit-test visible by listening on the tunnel phase.</summary>
-    private void HandlePointerPressed(PointerPressedEventArgs e)
-    {
-        // We're marked as IsHitTestVisible = false, but we still register handlers
-        // This allows events to bubble up and reach us
-        var properties = e.GetCurrentPoint(this).Properties;
-
-        // :64-65 isSecondary check: right mouse button or left mouse button with control modifier
-        var isSecondary = properties.PointerUpdateKind == PointerUpdateKind.RightButtonPressed
-            || (properties.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed
-                && e.KeyModifiers.HasFlag(KeyModifiers.Control));
-
-        if (isSecondary)
+        // :30-40 RightClickCatcher NSViewRepresentable wrapping RightClickCatcherView
+        // ED-183: Attach the handler as a tunnel-phase PointerPressedEvent handler on the content.
+        content.AddHandler(InputElement.PointerPressedEvent, (sender, e) =>
         {
-            // :71 onRightClick(convert(event.locationInWindow, from: nil))
-            var point = e.GetPosition(this);
-            onRightClick(point);
-            e.Handled = true;
+            HandlePointerPressed(content, e, onRightClick);
+        }, RoutingStrategies.Tunnel, handledEventsToo: true);
+
+        // :82 rightMouseUp: also swallow the release event
+        content.AddHandler(InputElement.PointerReleasedEvent, (sender, e) =>
+        {
+            HandlePointerReleased(content, e);
+        }, RoutingStrategies.Tunnel, handledEventsToo: true);
+    }
+
+    /// <summary>:62-68 hitTest: returns self only for secondary clicks inside bounds, nil for all other events.
+    /// ED-183: Implemented as the event handler logic. Returns true (event is handled) only for secondary clicks
+    /// inside bounds; otherwise returns false (event passes through).</summary>
+    private static void HandlePointerPressed(Control content, PointerPressedEventArgs e, Action<Point> onRightClick)
+    {
+        var properties = e.GetCurrentPoint(content).Properties;
+
+        // :64-65 isSecondary = event.type == .rightMouseDown || (event.type == .leftMouseDown && event.modifierFlags.contains(.control))
+        var isRightButton = properties.PointerUpdateKind == PointerUpdateKind.RightButtonPressed;
+        var isLeftWithControl = properties.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed
+            && e.KeyModifiers.HasFlag(KeyModifiers.Control);
+        var isSecondary = isRightButton || isLeftWithControl;
+
+        // :66 guard isSecondary, bounds.contains(convert(point, from: superview)) else { return nil }
+        if (!isSecondary)
+        {
+            // Plain left click, middle click, shift+left, etc. all pass through unhandled.
+            return;
         }
+
+        // Check if the click is inside the content's bounds
+        var point = e.GetPosition(content);
+        if (!content.Bounds.Contains(point))
+        {
+            // Click is outside the content bounds; let it pass through
+            return;
+        }
+
+        // :70-71 rightMouseDown: onRightClick(convert(event.locationInWindow, from: nil))
+        // :90-95 mouseDown with control: also calls onRightClick
+        onRightClick(point);
+
+        // ED-183: Set e.Handled = true to prevent the event from reaching the underlying content
+        e.Handled = true;
     }
 
     /// <summary>:82 rightMouseUp: swallowed (no-op). Also swallows the release from control+click.</summary>
-    private void HandlePointerReleased(PointerReleasedEventArgs e)
+    private static void HandlePointerReleased(Control content, PointerReleasedEventArgs e)
     {
-        var properties = e.GetCurrentPoint(this).Properties;
+        var properties = e.GetCurrentPoint(content).Properties;
 
         // Swallow right mouse up event (and control+left release if we're tracking it)
         if (properties.PointerUpdateKind == PointerUpdateKind.RightButtonReleased
