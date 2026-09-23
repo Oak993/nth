@@ -2131,7 +2131,8 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:275-288",
         "DroppyCode/App/Views/Composer/ComposerView.swift:552-565"
       ],
-      "notes": "Smart quotes, smart dashes, text replacement, spelling correction, completion, inline prediction and writing tools are all off, scoped to this field. The placeholder is painted by the view itself, not a sibling label. OD-0013: during live resize the window must not show the 3-5 px edge strip of its own backdrop without the app layer (probe P4)."
+      "notes": "Smart quotes, smart dashes, text replacement, spelling correction, completion, inline prediction and writing tools are all off, scoped to this field. The placeholder is painted by the view itself, not a sibling label. OD-0013: during live resize the window must not show the 3-5 px edge strip of its own backdrop without the app layer (probe P4).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -2489,7 +2490,8 @@
         "DroppyCode/App/Views/Composer/ComposerTextView.swift:54-96",
         "DroppyCode/App/Views/Composer/ComposerView.swift:241-262"
       ],
-      "notes": "The hosting controller must not publish its own size, or the panel drifts off the caret as the list changes."
+      "notes": "The hosting controller must not publish its own size, or the panel drifts off the caret as the list changes.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -2602,7 +2604,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/DownloadsPopover.swift:101-163"
       ],
-      "notes": "Without the fixed width the popover shrinks to PopoverMenu's 210 point minimum and truncates every row."
+      "notes": "Without the fixed width the popover shrinks to PopoverMenu's 210 point minimum and truncates every row.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -2622,7 +2625,8 @@
         "DroppyCode/App/Views/Composer/DownloadsPopover.swift:114"
       ],
       "notes": null,
-      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -2644,7 +2648,8 @@
         "DroppyCode/App/Views/Composer/DownloadsPopover.swift:123"
       ],
       "notes": "This is the one case where the popover sizes itself instead of using the row formula.",
-      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:144 `.font(.system(size: 12))` -> B2 :144 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:144 `.font(.system(size: 12))` -> B2 :144 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -2668,7 +2673,8 @@
         "DroppyCode/App/Views/Composer/DownloadsPopover.swift:165-241 `private struct DownloadRow` - `static let height: CGFloat = 38`; `HStack(spacing: 10) { preview; Text(verbatim: item.name).font(.system(.body)).lineLimit(1).truncationMode(.middle); Spacer(minLength: 16); if let size = item.size { Text(verbatim: size).font(.system(.callout)).foregroundStyle(Chrome.secondaryText).lineLimit(1) } }`, `.padding(.horizontal, 8)`, `.frame(height: Self.height)`, `RoundedRectangle(cornerRadius: 6, style: .continuous).fill(isHovering ? Chrome.overlay(0.1) : Color.clear)`"
       ],
       "notes": "Both the photo and the icon branch report their screen frame, or the flight would start from the screen's own corner.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/DownloadsPopover.swift:197 `.font(.system(size: 13))` and :203 `.font(.system(size: 12))` -> B2 :197 `.font(.system(.body))` and :203 `.font(.system(.callout))`, 13 and 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, :52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/DownloadsPopover.swift:197 `.font(.system(size: 13))` and :203 `.font(.system(size: 12))` -> B2 :197 `.font(.system(.body))` and :203 `.font(.system(.callout))`, 13 and 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, :52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -2694,7 +2700,8 @@
         "decision": "OD-0008 B1",
         "upstream": "PopoverItem(\"Show in Finder\", symbol: \"folder\") at DroppyCode/App/Views/Composer/DownloadsPopover.swift:134, opening the Downloads directory with NSWorkspace.shared.open(directory) at :136",
         "port": "The row reads \"Show in File Explorer\" and opens the Downloads folder in File Explorer."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -2713,7 +2720,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/DownloadsPopover.swift:139-141"
       ],
-      "notes": "The ellipsis is one character, U+2026, not three periods."
+      "notes": "The ellipsis is one character, U+2026, not three periods.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3134,7 +3142,8 @@
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/App/Views/Composer/ThreadChangesTab.swift:43 `.help(\"Show this thread's changes\\(ShortcutStore.hint(for: .toggleChanges))\")`, \"Show this thread's changes (⌘D)\" by default; DroppyCode/Core/Models/Shortcuts.swift:32-34 description is KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode), and :43-50 modifierSymbols concatenates \"⌃\", \"⌥\", \"⇧\", \"⌘\" with no separator",
         "port": "Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl): \"Show this thread's changes (Ctrl+D)\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3843,7 +3852,8 @@
         "decision": "OD-0016",
         "upstream": "DroppyCode/UI/Common/AttachmentPreview.swift:299 and :319 `ProgressView()` in the image and video slots",
         "port": "The 48 px loading mark replaces the spinner in the slot, after 400 ms (ED-097)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3867,7 +3877,8 @@
         "decision": "OD-0008 B1",
         "upstream": "Button(\"Show in Finder\") at DroppyCode/UI/Common/AttachmentPreview.swift:360, revealing the file with NSWorkspace.shared.activateFileViewerSelecting([attachment.url]) at :361",
         "port": "The link reads \"Show in File Explorer\" and reveals the file in File Explorer with it selected."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3886,7 +3897,8 @@
       "source_evidence": [
         "DroppyCode/UI/Common/AttachmentPreview.swift:365-369"
       ],
-      "notes": null
+      "notes": null,
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3934,7 +3946,8 @@
         "DroppyCode/UI/Common/AttachmentPreview.swift:193-224",
         "DroppyCode/UI/Common/AttachmentPreview.swift:153-165"
       ],
-      "notes": "Deliberately identical to the photo thumbnail in box, radius, placeholder fill and content mode; the only difference is the badge and the frame source. The frame is taken 0.5 s into the movie so a black first frame is not used."
+      "notes": "Deliberately identical to the photo thumbnail in box, radius, placeholder fill and content mode; the only difference is the badge and the frame source. The frame is taken 0.5 s into the movie so a black first frame is not used.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3956,7 +3969,8 @@
         "DroppyCode/UI/Common/AttachmentPreview.swift:176-191 `struct AttachmentPlayBadge: View` - `Circle().fill(.black.opacity(0.45)).frame(width: 30, height: 30)`; `Image(systemName: \"play.fill\").foregroundStyle(.white).font(.system(.body, weight: .semibold)).offset(x: 1)`; `.accessibilityHidden(true)`"
       ],
       "notes": "The 1-point rightward offset optically centres the triangle in the circle; without it the glyph reads as sitting left.",
-      "b2_change": "B1 DroppyCode/UI/Common/AttachmentPreview.swift:186 `.font(.system(size: 13, weight: .semibold))` -> B2 :186 `.font(.system(.body, weight: .semibold))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). Geometry, colours and accessibilityHidden unchanged; the range is still 176-191."
+      "b2_change": "B1 DroppyCode/UI/Common/AttachmentPreview.swift:186 `.font(.system(size: 13, weight: .semibold))` -> B2 :186 `.font(.system(.body, weight: .semibold))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059). Geometry, colours and accessibilityHidden unchanged; the range is still 176-191.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -3980,7 +3994,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2117-2119"
       ],
       "notes": "The file-name colour was .secondary at B1 (AttachmentPreview.swift:415) and is Chrome.secondaryText at B2 (:425). This footer has only \"Open\"; there is no reveal link here. Any tool kind can show it: a non-read call is matched by splitting its title and detail into tokens (AttachmentPreview.swift:51-58).",
-      "b2_change": "B1 DroppyCode/UI/Common/AttachmentPreview.swift:415 `.foregroundStyle(.secondary)` -> B2 :425 `.foregroundStyle(Chrome.secondaryText)`. New record: no UI record covered this view before."
+      "b2_change": "B1 DroppyCode/UI/Common/AttachmentPreview.swift:415 `.foregroundStyle(.secondary)` -> B2 :425 `.foregroundStyle(Chrome.secondaryText)`. New record: no UI record covered this view before.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -4510,7 +4525,8 @@
         "decision": "OD-0005",
         "upstream": "`.glassEffect(.regular.interactive(), in: shape)` (DroppyCode/App/Views/Composer/ThreadChangesTab.swift:38), macOS Liquid Glass",
         "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
@@ -6169,7 +6185,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/HydraPairMark.swift:5-23"
       ],
-      "notes": "Every place a pair is drawn uses this one view, so the proportions are the same everywhere. Round the derived sizes."
+      "notes": "Every place a pair is drawn uses this one view, so the proportions are the same everywhere. Round the derived sizes.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -6200,7 +6217,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :51 body 13 | :52 callout 12 | :53 subheadline 11"
       ],
       "notes": "The card must be measured with its width PINNED to 300 and never laid out narrower, or the popover wraps the task a couple of words a line in a card that had the room for it. The ellipsis in \"Working…\" is U+2026 and the separators are U+00B7.",
-      "b2_change": "B1 HydraHeadHoverPopover.swift:66, :69, :73 .system(size: 13, weight: .semibold) / .system(size: 12) / .system(size: 11) -> B2 same lines .system(.body, weight: .semibold) / .system(.callout) / .system(.subheadline), the same 13/12/11 points. Chrome.secondaryText changed value: B1 Chrome.swift:77 Color(nsColor: .secondaryLabelColor) -> B2 Chrome.swift:79 primaryText.opacity(0.7). Geometry, states, strings and interactions are unchanged."
+      "b2_change": "B1 HydraHeadHoverPopover.swift:66, :69, :73 .system(size: 13, weight: .semibold) / .system(size: 12) / .system(size: 11) -> B2 same lines .system(.body, weight: .semibold) / .system(.callout) / .system(.subheadline), the same 13/12/11 points. Chrome.secondaryText changed value: B1 Chrome.swift:77 Color(nsColor: .secondaryLabelColor) -> B2 Chrome.swift:79 primaryText.opacity(0.7). Geometry, states, strings and interactions are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",
@@ -10399,7 +10417,8 @@
       "source_evidence": [
         "DroppyCode/UI/Common/MCPGlyph.swift:4-58"
       ],
-      "notes": "exact_text is the accessibility label, built as the entry name plus a space and the word \"tool\". The badge transitions in with a combined scale and opacity. This is the only MCP element outside Settings."
+      "notes": "exact_text is the accessibility label, built as the entry name plus a space and the word \"tool\". The badge transitions in with a combined scale and opacity. This is the only MCP element outside Settings.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "MCP",
@@ -15388,7 +15407,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:50-51 chatBaseSize - .title3 15, .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Carries the header accessibility trait. Note it is 15pt semibold in primaryText, unlike a ChromeSection header which is .system(.body, weight: .semibold) in Chrome.secondaryText at B2.",
-      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:56 `.system(size: 15, weight: .semibold)` -> `.system(.title3, weight: .semibold)` at 1fbf81e6; the ChromeSection comparison is updated for DroppyCode/UI/Chrome/Chrome.swift:1035-1036 (`.system(.body, weight: .semibold)`, `Chrome.secondaryText`)."
+      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:56 `.system(size: 15, weight: .semibold)` -> `.system(.title3, weight: .semibold)` at 1fbf81e6; the ChromeSection comparison is updated for DroppyCode/UI/Chrome/Chrome.swift:1035-1036 (`.system(.body, weight: .semibold)`, `Chrome.secondaryText`).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -15417,7 +15437,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Tooltips in order: \"Each day on its own, against the busiest day of the year\", \"Each week as one shade, against the busiest week\", \"The running total, so the year fills as it goes\". The mode is view-local and is not persisted.",
-      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:77 `.system(size: 13, weight: ...)` -> `.system(.body, weight: ...)` at 1fbf81e6; lines unchanged."
+      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:77 `.system(size: 13, weight: ...)` -> `.system(.body, weight: ...)` at 1fbf81e6; lines unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -15442,7 +15463,8 @@
         "DroppyCode/App/Views/Settings/TokenActivitySection.swift:207-272",
         "DroppyCode/Services/Store/TokenLedger.swift:609-689"
       ],
-      "notes": "One canvas pass, not 365 nodes: this was the heaviest layout in Settings before it was a canvas. The legend, not the grid, carries the accessible value."
+      "notes": "One canvas pass, not 365 nodes: this was the heaviest layout in Settings before it was a canvas. The legend, not the grid, carries the accessible value.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -15468,7 +15490,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 chatBaseSize - .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Never localised. The comment records that the calendar's own symbols come out as \"M01\" without a locale.",
-      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:123 `.system(size: 11)` -> `.system(.subheadline)` at 1fbf81e6; lines unchanged."
+      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:123 `.system(size: 11)` -> `.system(.subheadline)` at 1fbf81e6; lines unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -15492,7 +15515,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 chatBaseSize - .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "One accessibility element labelled \"Token activity\". The swatch colours must be derived from the grid's colour function, not hard-coded. There is no second line at B2.",
-      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/TokenActivitySection.swift:144-181: \"<n> tokens recorded\" plus a wrapping second line for uncertain tokens in an outer VStack(spacing 4). 1fbf81e6 :138-172: one line \"<n> tokens\" with a tooltip; the second line is gone."
+      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/TokenActivitySection.swift:144-181: \"<n> tokens recorded\" plus a wrapping second line for uncertain tokens in an outer VStack(spacing 4). 1fbf81e6 :138-172: one line \"<n> tokens\" with a tooltip; the second line is gone.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -15952,7 +15976,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51, :53 chatBaseSize - .body 13, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Section symbols: \"bubble.left.and.bubble.right.fill\", \"macwindow\", \"text.cursor\".",
-      "b2_change": "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:29-30 at 1fbf81e6: title `.system(.body, weight: .semibold)` in Chrome.secondaryText (was `.system(size: 13, weight: .semibold)` in `.secondary`); :272 Reset label `.system(.subheadline, weight: .semibold)`."
+      "b2_change": "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:29-30 at 1fbf81e6: title `.system(.body, weight: .semibold)` in Chrome.secondaryText (was `.system(size: 13, weight: .semibold)` in `.secondary`); :272 Reset label `.system(.subheadline, weight: .semibold)`.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -15985,7 +16010,8 @@
         "decision": "OD-0008 B7",
         "upstream": "ShortcutsSettingsPage.swift:165-172 draw one glyph per modifier (⌃ ⌥ ⇧ ⌘) then the key label",
         "port": "The chord reads in Windows notation, Ctrl, Alt, Shift then the key, joined with \"+\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -16015,7 +16041,8 @@
         "decision": "OD-0008 B7",
         "upstream": "ShortcutsSettingsPage.swift:296-315 modifier caps \"⌃ ctrl\", \"⌥ opt\", \"⇧ shift\", \"⌘ cmd\"",
         "port": "Windows notation (Ctrl, Alt, Shift); the exact per-cap text is UNRESOLVED."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -16046,7 +16073,8 @@
         "decision": "OD-0008 B7; OD-0008 B8",
         "upstream": "Core/Models/Shortcuts.swift:326 \"Add ⌘, ⌃ or ⌥ so typing still works.\" Core/Models/Shortcuts.swift:329 \"macOS or Droppy Code already uses this chord.\"",
         "port": "\"Add Ctrl or Alt so typing still works.\" \"Windows or Marrow already uses this chord.\""
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -16071,7 +16099,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 chatBaseSize - .callout 12 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Clear persists a cleared state (an override holding nil); Reset removes the override. The two are not the same and must not be merged.",
-      "b2_change": "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:452 `.system(size: 12, weight: .semibold)` -> `.system(.callout, weight: .semibold)` at 1fbf81e6."
+      "b2_change": "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:452 `.system(size: 12, weight: .semibold)` -> `.system(.callout, weight: .semibold)` at 1fbf81e6.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -16099,7 +16128,8 @@
         "decision": "OD-0008 B7",
         "upstream": "ShortcutsSettingsPage.swift:70, :73, :74 \"⇧ Return\", \"⌘ Return\", \"⌘ 1–9\"",
         "port": "\"Shift+Return\", \"Ctrl+Return\", \"Ctrl+1–9\""
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "SETTINGS",
@@ -21112,7 +21142,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:1106-1131"
       ],
       "notes": "The caller supplies one symbol per option, for example the Sidebar row's sidebar.left, macwindow.on.rectangle and macwindow (SettingsView.swift:433-435). Dense and regular widths are both 76, so two- and three-option pickers line up. SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010).",
-      "b2_change": "No B2 change to the row; not covered by any record before."
+      "b2_change": "No B2 change to the row; not covered by any record before.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -21139,7 +21170,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:71-85"
       ],
       "notes": "The caption is always shown under the tile, because the symbol alone does not say what the choice is (ChromeVisualPicker.swift:76). SF Symbols are drawn as their Lucide counterparts from the published symbol-by-symbol table (owner ruling OD-0010). Text is set in the port's text face, Inter (owner ruling OD-0009); where its wrap points differ from the macOS face that is OD-0009's named deviation.",
-      "b2_change": "Symbol font `.system(size: 17, weight: .medium)` (B1 ChromeVisualPicker.swift:88) -> `.system(.title2, weight: .medium)` (B2 :88); caption font `.system(size: 11)` (B1 :79) -> `.system(.subheadline)` (B2 :79); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79)."
+      "b2_change": "Symbol font `.system(size: 17, weight: .medium)` (B1 ChromeVisualPicker.swift:88) -> `.system(.title2, weight: .medium)` (B2 :88); caption font `.system(size: 11)` (B1 :79) -> `.system(.subheadline)` (B2 :79); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -22133,7 +22165,8 @@
         "decision": "OD-0005",
         "upstream": "DroppyCode/App/Views/Tour/TourView.swift:82 '.glassEffect(.regular, in: shape)' with 'shape.fill(Chrome.glassTint.opacity(isDark ? 0.22 : 0.16))' over it (:84), macOS Liquid Glass",
         "port": "Where the window shows the desktop, it uses a Windows system material of the Acrylic class. Lensing, refraction and chromatic fringing are not reproduced there. Where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing at all 22 sites. (OD-0005 as recorded at porting/owner_decisions.md:119-123, verbatim with the bold markup removed.)"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "UPDATE",
@@ -22156,7 +22189,8 @@
         "DroppyCode/App/Views/Tour/TourView.swift:58-60",
         "DroppyCode/App/Views/Tour/TourView.swift:116-147"
       ],
-      "notes": "413 is 412.5 rounded; Swift rounds half away from zero. The eight assets ship as tour-*.imageset in the catalogue. The band is the top of the card with no inset, so the artwork meets the card's rounded corners."
+      "notes": "413 is 412.5 rounded; Swift rounds half away from zero. The eight assets ship as tour-*.imageset in the catalogue. The band is the top of the card with no inset, so the artwork meets the card's rounded corners.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "UPDATE",
@@ -22177,7 +22211,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Tour/TourView.swift:124-137"
       ],
-      "notes": "Deliberately only 96 points tall and bottom-anchored: the source comment says it is a seat for the indicator only, so the scrim never reaches into the picture."
+      "notes": "Deliberately only 96 points tall and bottom-anchored: the source comment says it is a seat for the indicator only, so the scrim never reaches into the picture.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "UPDATE",
@@ -22199,7 +22234,8 @@
         "DroppyCode/App/Views/Tour/TourView.swift:139-142",
         "DroppyCode/App/Views/Tour/TourView.swift:279-298"
       ],
-      "notes": "Collapsed into one accessibility element labelled \"Page N of M\". Do not make the dots tappable; the source's only paging controls are the back chevron and the primary button."
+      "notes": "Collapsed into one accessibility element labelled \"Page N of M\". Do not make the dots tappable; the source's only paging controls are the back chevron and the primary button.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "UPDATE",
@@ -22229,7 +22265,8 @@
         "upstream": "DroppyCode/App/Views/Tour/TourView.swift:222 '.chromeGlassCircle()' on the icon button; '.chromeGlassCircle()' renders 'content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)' in a Circle() (DroppyCode/UI/Chrome/Chrome.swift:141-143, :167, :180), macOS Liquid Glass",
         "port": "Where the window shows the desktop, it uses a Windows system material of the Acrylic class. Lensing, refraction and chromatic fringing are not reproduced there. Where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing at all 22 sites. (OD-0005 as recorded at porting/owner_decisions.md:119-123, verbatim with the bold markup removed.)"
       },
-      "b2_change": "B1 TourView.swift:217 '.font(.system(size: 13, weight: .semibold))' -> B2 TourView.swift:217 '.font(.system(.body, weight: .semibold))'; the 32x32 frame, the circle content shape and chromeGlassCircle are unchanged. B2 has no file that maps text styles to point sizes; the point figures given are the sizes upstream's own table recorded at B1 (dd2b86ef, 'The point size macOS lays a text style out at', B1:DroppyCode/UI/Common/ChatZoom.swift:44, a file removed at B2): .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50 'case .title3: 15'), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52 'case .callout: 12'), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53 'case .subheadline: 11') and .footnote 10 point (B1:DroppyCode/UI/Common/ChatZoom.swift:54 'case .footnote, .caption, .caption2: 10'). By ED-059 the port sets each text style at that table's size in Inter (OD-0009), fixed per style; visual size parity stays UNVERIFIED under OD-0001. The tour window does not take the app-wide zoom: TourWindowController hosts its root in a bare 'let hosting = NSHostingView(rootView: rootView)' (DroppyCode/App/Views/Tour/TourWindowController.swift:69), not through WindowManager's HostedRoot, which is where '.modifier(AppZoomModifier(percent: model.settings.appZoom))' is applied (DroppyCode/App/Window/WindowManager.swift:150, :173-175). Whether the text styles follow a macOS text-size setting is UNKNOWN; ED-059 decides the port follows no system text-size preference, because the source gives no hook for one, and the tour window, like upstream's, takes no app zoom."
+      "b2_change": "B1 TourView.swift:217 '.font(.system(size: 13, weight: .semibold))' -> B2 TourView.swift:217 '.font(.system(.body, weight: .semibold))'; the 32x32 frame, the circle content shape and chromeGlassCircle are unchanged. B2 has no file that maps text styles to point sizes; the point figures given are the sizes upstream's own table recorded at B1 (dd2b86ef, 'The point size macOS lays a text style out at', B1:DroppyCode/UI/Common/ChatZoom.swift:44, a file removed at B2): .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50 'case .title3: 15'), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52 'case .callout: 12'), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53 'case .subheadline: 11') and .footnote 10 point (B1:DroppyCode/UI/Common/ChatZoom.swift:54 'case .footnote, .caption, .caption2: 10'). By ED-059 the port sets each text style at that table's size in Inter (OD-0009), fixed per style; visual size parity stays UNVERIFIED under OD-0001. The tour window does not take the app-wide zoom: TourWindowController hosts its root in a bare 'let hosting = NSHostingView(rootView: rootView)' (DroppyCode/App/Views/Tour/TourWindowController.swift:69), not through WindowManager's HostedRoot, which is where '.modifier(AppZoomModifier(percent: model.settings.appZoom))' is applied (DroppyCode/App/Window/WindowManager.swift:150, :173-175). Whether the text styles follow a macOS text-size setting is UNKNOWN; ED-059 decides the port follows no system text-size preference, because the source gives no hook for one, and the tour window, like upstream's, takes no app zoom.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "UPDATE",
@@ -22258,7 +22295,8 @@
         "upstream": "DroppyCode/App/Views/Tour/TourView.swift:222 '.chromeGlassCircle()' on the icon button; '.chromeGlassCircle()' renders 'content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)' in a Circle() (DroppyCode/UI/Chrome/Chrome.swift:141-143, :167, :180), macOS Liquid Glass",
         "port": "Where the window shows the desktop, it uses a Windows system material of the Acrylic class. Lensing, refraction and chromatic fringing are not reproduced there. Where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing at all 22 sites. (OD-0005 as recorded at porting/owner_decisions.md:119-123, verbatim with the bold markup removed.)"
       },
-      "b2_change": "B1 TourView.swift:217 '.font(.system(size: 13, weight: .semibold))' -> B2 TourView.swift:217 '.font(.system(.body, weight: .semibold))'; the 32x32 frame, the circle content shape and chromeGlassCircle are unchanged. B2 has no file that maps text styles to point sizes; the point figures given are the sizes upstream's own table recorded at B1 (dd2b86ef, 'The point size macOS lays a text style out at', B1:DroppyCode/UI/Common/ChatZoom.swift:44, a file removed at B2): .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50 'case .title3: 15'), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52 'case .callout: 12'), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53 'case .subheadline: 11') and .footnote 10 point (B1:DroppyCode/UI/Common/ChatZoom.swift:54 'case .footnote, .caption, .caption2: 10'). By ED-059 the port sets each text style at that table's size in Inter (OD-0009), fixed per style; visual size parity stays UNVERIFIED under OD-0001. The tour window does not take the app-wide zoom: TourWindowController hosts its root in a bare 'let hosting = NSHostingView(rootView: rootView)' (DroppyCode/App/Views/Tour/TourWindowController.swift:69), not through WindowManager's HostedRoot, which is where '.modifier(AppZoomModifier(percent: model.settings.appZoom))' is applied (DroppyCode/App/Window/WindowManager.swift:150, :173-175). Whether the text styles follow a macOS text-size setting is UNKNOWN; ED-059 decides the port follows no system text-size preference, because the source gives no hook for one, and the tour window, like upstream's, takes no app zoom."
+      "b2_change": "B1 TourView.swift:217 '.font(.system(size: 13, weight: .semibold))' -> B2 TourView.swift:217 '.font(.system(.body, weight: .semibold))'; the 32x32 frame, the circle content shape and chromeGlassCircle are unchanged. B2 has no file that maps text styles to point sizes; the point figures given are the sizes upstream's own table recorded at B1 (dd2b86ef, 'The point size macOS lays a text style out at', B1:DroppyCode/UI/Common/ChatZoom.swift:44, a file removed at B2): .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50 'case .title3: 15'), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52 'case .callout: 12'), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53 'case .subheadline: 11') and .footnote 10 point (B1:DroppyCode/UI/Common/ChatZoom.swift:54 'case .footnote, .caption, .caption2: 10'). By ED-059 the port sets each text style at that table's size in Inter (OD-0009), fixed per style; visual size parity stays UNVERIFIED under OD-0001. The tour window does not take the app-wide zoom: TourWindowController hosts its root in a bare 'let hosting = NSHostingView(rootView: rootView)' (DroppyCode/App/Views/Tour/TourWindowController.swift:69), not through WindowManager's HostedRoot, which is where '.modifier(AppZoomModifier(percent: model.settings.appZoom))' is applied (DroppyCode/App/Window/WindowManager.swift:150, :173-175). Whether the text styles follow a macOS text-size setting is UNKNOWN; ED-059 decides the port follows no system text-size preference, because the source gives no hook for one, and the tour window, like upstream's, takes no app zoom.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "UPDATE",
@@ -22277,7 +22315,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Tour/TourView.swift:149-181"
       ],
-      "notes": "Text(verbatim:), so no Markdown parsing. The same typography is mirrored in the off-screen sizing view, which is what makes the measured height match."
+      "notes": "Text(verbatim:), so no Markdown parsing. The same typography is mirrored in the off-screen sizing view, which is what makes the measured height match.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "UPDATE",
@@ -22297,7 +22336,8 @@
         "DroppyCode/App/Views/Tour/TourView.swift:162-167"
       ],
       "notes": "Upstream the body font is the dynamic system body, not a fixed point size; it is the only text in this area specified by role rather than by number. By ED-059 the port sets it at the 13 point upstream's B1 table gives .body (B1:DroppyCode/UI/Common/ChatZoom.swift:51). The longest description is what fixes the card's height for every page.",
-      "b2_change": "The behaviour and the call site are unchanged; only the colour behind Chrome.secondaryText changed. Chrome.secondaryText changed from 'Color(nsColor: .secondaryLabelColor)' (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to 'primaryText.opacity(0.7)' (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). By ED-062 the port's secondaryText is primaryText at 0.7, as B2 states; ED-051's 1.6.0 literal (secondaryLabelColor) is superseded for this token."
+      "b2_change": "The behaviour and the call site are unchanged; only the colour behind Chrome.secondaryText changed. Chrome.secondaryText changed from 'Color(nsColor: .secondaryLabelColor)' (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to 'primaryText.opacity(0.7)' (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). By ED-062 the port's secondaryText is primaryText at 0.7, as B2 states; ED-051's 1.6.0 literal (secondaryLabelColor) is superseded for this token.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "UPDATE",
@@ -22327,7 +22367,8 @@
         "upstream": "DroppyCode/App/Views/Tour/TourView.swift:210 '.buttonStyle(.glassProminent)', the system prominent Liquid Glass button style",
         "port": "Where the window shows the desktop, it uses a Windows system material of the Acrylic class. Lensing, refraction and chromatic fringing are not reproduced there. Where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing at all 22 sites. (OD-0005 as recorded at porting/owner_decisions.md:119-123, verbatim with the bold markup removed.)"
       },
-      "b2_change": "B1 TourView.swift:207 and its sizing twin B1 TourWindowController.swift:179 '.font(.system(size: 15, weight: .semibold))' -> B2 '.font(.system(.title3, weight: .semibold))' at the same lines. The labels and the 220x42 frame are unchanged. B2 has no file that maps text styles to point sizes; the point figures given are the sizes upstream's own table recorded at B1 (dd2b86ef, 'The point size macOS lays a text style out at', B1:DroppyCode/UI/Common/ChatZoom.swift:44, a file removed at B2): .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50 'case .title3: 15'), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52 'case .callout: 12'), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53 'case .subheadline: 11') and .footnote 10 point (B1:DroppyCode/UI/Common/ChatZoom.swift:54 'case .footnote, .caption, .caption2: 10'). By ED-059 the port sets each text style at that table's size in Inter (OD-0009), fixed per style; visual size parity stays UNVERIFIED under OD-0001. The tour window does not take the app-wide zoom: TourWindowController hosts its root in a bare 'let hosting = NSHostingView(rootView: rootView)' (DroppyCode/App/Views/Tour/TourWindowController.swift:69), not through WindowManager's HostedRoot, which is where '.modifier(AppZoomModifier(percent: model.settings.appZoom))' is applied (DroppyCode/App/Window/WindowManager.swift:150, :173-175). Whether the text styles follow a macOS text-size setting is UNKNOWN; ED-059 decides the port follows no system text-size preference, because the source gives no hook for one, and the tour window, like upstream's, takes no app zoom."
+      "b2_change": "B1 TourView.swift:207 and its sizing twin B1 TourWindowController.swift:179 '.font(.system(size: 15, weight: .semibold))' -> B2 '.font(.system(.title3, weight: .semibold))' at the same lines. The labels and the 220x42 frame are unchanged. B2 has no file that maps text styles to point sizes; the point figures given are the sizes upstream's own table recorded at B1 (dd2b86ef, 'The point size macOS lays a text style out at', B1:DroppyCode/UI/Common/ChatZoom.swift:44, a file removed at B2): .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50 'case .title3: 15'), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51 'case .headline, .body: 13'), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52 'case .callout: 12'), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53 'case .subheadline: 11') and .footnote 10 point (B1:DroppyCode/UI/Common/ChatZoom.swift:54 'case .footnote, .caption, .caption2: 10'). By ED-059 the port sets each text style at that table's size in Inter (OD-0009), fixed per style; visual size parity stays UNVERIFIED under OD-0001. The tour window does not take the app-wide zoom: TourWindowController hosts its root in a bare 'let hosting = NSHostingView(rootView: rootView)' (DroppyCode/App/Views/Tour/TourWindowController.swift:69), not through WindowManager's HostedRoot, which is where '.modifier(AppZoomModifier(percent: model.settings.appZoom))' is applied (DroppyCode/App/Window/WindowManager.swift:150, :173-175). Whether the text styles follow a macOS text-size setting is UNKNOWN; ED-059 decides the port follows no system text-size preference, because the source gives no hook for one, and the tour window, like upstream's, takes no app zoom.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "UPDATE",
@@ -22350,7 +22391,8 @@
         "DroppyCode/App/Views/Tour/TourWindowController.swift:44-46"
       ],
       "notes": "The glyph is SF Symbol rectangle.stack. The card's glass, clip and border still apply around it.",
-      "b2_change": "The behaviour and the call site are unchanged; only the colour behind Chrome.secondaryText changed. Chrome.secondaryText changed from 'Color(nsColor: .secondaryLabelColor)' (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to 'primaryText.opacity(0.7)' (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). By ED-062 the port's secondaryText is primaryText at 0.7, as B2 states; ED-051's 1.6.0 literal (secondaryLabelColor) is superseded for this token."
+      "b2_change": "The behaviour and the call site are unchanged; only the colour behind Chrome.secondaryText changed. Chrome.secondaryText changed from 'Color(nsColor: .secondaryLabelColor)' (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to 'primaryText.opacity(0.7)' (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). By ED-062 the port's secondaryText is primaryText at 0.7, as B2 states; ED-051's 1.6.0 literal (secondaryLabelColor) is superseded for this token.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "UPDATE",
@@ -22544,7 +22586,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Tour/TourView.swift:254-276"
       ],
-      "notes": "SF Symbol \"photo\". All eight assets exist at the pinned commit, so this is a safety net rather than a shipped visual; it is still a real user-visible state and must be implemented."
+      "notes": "SF Symbol \"photo\". All eight assets exist at the pinned commit, so this is a safety net rather than a shipped visual; it is still a real user-visible state and must be implemented.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "UPDATE",
@@ -23653,7 +23696,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2) - the size ED-059 adopts for .body"
       ],
       "notes": "The three titles come from TokenActivityMode, which is in this area; the section's own layout, heatmap canvas and legend belong to the settings area's specification.",
-      "b2_change": "B1 DroppyCode/App/Views/Settings/TokenActivitySection.swift:77 `.font(.system(size: 13, weight: mode == option ? .medium : .regular))` -> B2 DroppyCode/App/Views/Settings/TokenActivitySection.swift:77 `.font(.system(.body, weight: mode == option ? .medium : .regular))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Titles, order, chip style and the 0.45 second blend unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Settings/TokenActivitySection.swift:77 `.font(.system(size: 13, weight: mode == option ? .medium : .regular))` -> B2 DroppyCode/App/Views/Settings/TokenActivitySection.swift:77 `.font(.system(.body, weight: mode == option ? .medium : .regular))`. At the macOS default .body is 13 point per upstream's B1 table DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2), so by that table the rendered size at the macOS default is unchanged. B2 carries no size table, so this is UNVERIFIED on a Mac (OD-0001, UNK-0003), and whether the text style follows a macOS text-size or accessibility setting, and so renders differently on a non-default configuration, is UNKNOWN (drift map entry \"new\" for USAGE, not verified on macOS). Titles, order, chip style and the 0.45 second blend unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -23684,7 +23728,8 @@
         "decision": "OD-0008 C1",
         "upstream": "DroppyCode/App/Window/WindowManager.swift:98 `window.isReleasedWhenClosed = false`; closing the main window leaves the app running (DroppyCode/App/AppDelegate.swift:30-33 reopens it)",
         "port": "Closing the main window quits the app, keeping the upstream wait while a Hydra merge is running."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -23706,7 +23751,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/WindowChrome.swift:183-199",
         "DroppyCode/UI/Chrome/Chrome.swift:15-17"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -23729,7 +23775,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/WindowChrome.swift:183-199",
         "DroppyCode/App/Window/WindowManager.swift:81 settings window resizable: false"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",
@@ -23758,7 +23805,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/WindowChrome.swift:376-570",
         "DroppyCode/App/Views/RootView.swift:22-31 and :54-63"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "area": "WIN",

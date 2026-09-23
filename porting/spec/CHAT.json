@@ -1924,7 +1924,7 @@
       "cancellation": "Dismissing the popover clears the anchor.",
       "windows_path": "Windows has no control-click convention; the trigger is the right mouse button and the context-menu key. The overlay must still be transparent to every other event.",
       "verification_method": "interaction test that a left click on a link inside a message still opens the link",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2287,7 +2287,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Absolute-path detection must accept a drive letter and a UNC path, not only a leading slash. The tilde expansion becomes the user profile directory. Keep the extension pre-check: the source records that the answer ends in a file-existence check, per row, per frame the row is rebuilt.",
       "verification_method": "unit over the candidate splitter plus an interaction test on a fixture screenshot",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4198,7 +4198,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The union, the single watchdog, the 2-second poll and the change-only publication are all directly reproducible. This is the receiving half of PR-CHAT-136 and PR-CHAT-163 and of the settings-pane reporter (PR-SETTINGS-018, PR-SETTINGS-019); without it a window closed mid-flick pins the whole app to 'scrolling' and every shimmer, sweep and breathing ring stops for good.",
       "verification_method": "unit test: two timelines reporting, one withdrawing, one released without withdrawing, asserting the flag over the watchdog's passes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4220,7 +4220,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Weak references are the load-bearing detail: a strong map here is both a leak and an app-wide animation freeze. If the Windows object model offers no weak reference for this type, an explicit unregister on teardown plus the watchdog's liveness check must produce the same result.",
       "verification_method": "unit test that releasing a reporter without withdrawing clears the flag within one watchdog pass, and that a stop empties both maps",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

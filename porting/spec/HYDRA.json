@@ -4778,7 +4778,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Round the derived sizes; do not use fractional pixel sizes. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it.",
       "verification_method": "capture comparison at lead sizes 16 and 24",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4806,7 +4806,7 @@
       "cancellation": "The pending 250 ms task is cancelled on hide and on a new hover.",
       "windows_path": "250 ms delay, 300 px card, 78 px height fallback. The card must be measured with its width pinned, or the task title wraps after a couple of words in a card that had the room for it. ED-059: each text style is set at the point size in upstream's B1 table (body 13, callout 12, subheadline 11; B1:DroppyCode/UI/Common/ChatZoom.swift:44-57), in Inter (OD-0009), and scales only with the app's own zoom (UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it.",
       "verification_method": "interaction test with a fake clock plus a capture comparison of all four status lines",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6717,7 +6717,8 @@
       "source_evidence": [
         "DroppyCode/UI/Chrome/HydraPairMark.swift:5-23"
       ],
-      "notes": "Every place a pair is drawn uses this one view, so the proportions are the same everywhere. Round the derived sizes."
+      "notes": "Every place a pair is drawn uses this one view, so the proportions are the same everywhere. Round the derived sizes.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-035",
@@ -6747,7 +6748,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :51 body 13 | :52 callout 12 | :53 subheadline 11"
       ],
       "notes": "The card must be measured with its width PINNED to 300 and never laid out narrower, or the popover wraps the task a couple of words a line in a card that had the room for it. The ellipsis in \"Working…\" is U+2026 and the separators are U+00B7.",
-      "b2_change": "B1 HydraHeadHoverPopover.swift:66, :69, :73 .system(size: 13, weight: .semibold) / .system(size: 12) / .system(size: 11) -> B2 same lines .system(.body, weight: .semibold) / .system(.callout) / .system(.subheadline), the same 13/12/11 points. Chrome.secondaryText changed value: B1 Chrome.swift:77 Color(nsColor: .secondaryLabelColor) -> B2 Chrome.swift:79 primaryText.opacity(0.7). Geometry, states, strings and interactions are unchanged."
+      "b2_change": "B1 HydraHeadHoverPopover.swift:66, :69, :73 .system(size: 13, weight: .semibold) / .system(size: 12) / .system(size: 11) -> B2 same lines .system(.body, weight: .semibold) / .system(.callout) / .system(.subheadline), the same 13/12/11 points. Chrome.secondaryText changed value: B1 Chrome.swift:77 Color(nsColor: .secondaryLabelColor) -> B2 Chrome.swift:79 primaryText.opacity(0.7). Geometry, states, strings and interactions are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-036",

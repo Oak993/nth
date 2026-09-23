@@ -4505,7 +4505,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte-compatible JSON; do not normalize the four writers into one, because they differ deliberately on exactly these omissions.",
       "verification_method": "contract fixture comparing the file against a frozen expectation",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "23",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4530,7 +4530,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact key names; codex rejects its whole configuration on an unexpected shape.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "23",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4554,7 +4554,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Always write the empty maps here even though Claude and Codex omit them.",
       "verification_method": "contract fixture asserting empty headers and env survive",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "23",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4579,7 +4579,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact key names, including httpUrl and the always-present empty headers.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "23",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4604,7 +4604,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four names, same delete-on-empty rule, same atomic replace. Never delete proxy-port here.",
       "verification_method": "integration test toggling the last server off and asserting all four files are gone",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4628,7 +4628,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shapes, including the empty env array and the \"<key>: <value>\" header string. It must run AFTER writeAll, because it reads the file.",
       "verification_method": "contract fixture over both capability values",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4653,7 +4653,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same line parser and the same six-character rejection set. The home directory is the Windows user profile; the path is %USERPROFILE%\\.codex\\config.toml.",
       "verification_method": "unit over quoted, dotted, commented and malformed table headers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4681,7 +4681,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same nil-on-empty contract. copilotConfigJSON hands the whole compact JSON as a single argument value, not a file path, so it must survive command-line construction unmangled.",
       "verification_method": "unit over present, empty and missing files",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -8233,7 +8233,8 @@
       "source_evidence": [
         "DroppyCode/UI/Common/MCPGlyph.swift:4-58"
       ],
-      "notes": "exact_text is the accessibility label, built as the entry name plus a space and the word \"tool\". The badge transitions in with a combined scale and opacity. This is the only MCP element outside Settings."
+      "notes": "exact_text is the accessibility label, built as the entry name plus a space and the word \"tool\". The badge transitions in with a combined scale and opacity. This is the only MCP element outside Settings.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-093",
