@@ -31,9 +31,10 @@ using Marrow.UI.Theme;
 // The private top-level structs (:153, :187, :967) are `file` types, C#'s nearest form of a file-private type.
 // View mechanics without an Avalonia counterpart of the same shape (a plain Button and TextField, `.background`,
 // `.onHover`, `.popover`, `.fixedSize`, a font on any view, an animated colour) are in Port/PlainControls.cs.
-// Not drawn, each a missing dependency reported by the unit (see Symbols and WindowBackdrop below): SF Symbol glyphs
-// (OD-0010: no unit renders the Lucide table yet), asset-catalogue images, and the app-drawn glass material with its
-// .interactive() press response (OD-0005, ADR-0002 Glass (b)); `.continuous` corners are drawn with circular arcs.
+// Settled by the orchestrator's run4 ruling on this unit's stops: Image(systemName:) and Image(_:) are SwiftImage
+// (ED-179, ED-182; OD-0010 Lucide icons); every glass site records its source-defined material as data on the layer it
+// draws (SwiftGlass, ED-180; `// MARROW_DEFERRED ED-180` at each site: the app-drawn material and the .interactive()
+// press response); every `.continuous` shape goes through SwiftShapes (ED-181; its curve is MARROW_DEFERRED there).
 
 namespace Marrow.UI.Chrome
 {
@@ -191,32 +192,12 @@ namespace Marrow.UI.Chrome
         }
     }
 
-    // Image(systemName:) and Image(_:) for an asset. OD-0010 draws each SF Symbol as its Lucide counterpart through
-    // porting/icons/sf-symbols-to-lucide.json, and the asset catalogue's first-party art ships with the app, but no unit in
-    // the tree renders either yet (missing dependency, reported by UI.Chrome.Chrome part 1). The view keeps its place in
-    // the layout, its font and its foreground, carries the name it will draw, and draws nothing until that unit lands.
+    // Image(systemName:) at a chrome site: SwiftImage (ED-179, ED-182) with the site's `.font`. It fills the frame a site
+    // gives it and draws its square centred there (SwiftImage.Destination), as SwiftUI centres an image in a larger
+    // frame, without layout rounding moving the glyph off the centre.
     file static class Symbols
     {
-        public static Border Image(string systemName, SwiftFont font) =>
-            new Border { Tag = systemName, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }.Font(font);
-
-        /// <summary>Sets the view's <c>.foregroundStyle</c> to a fixed colour that follows the appearance.</summary>
-        public static T ForegroundStyle<T>(this T view, SwiftColor color) where T : Control
-        {
-            view.SetValue(TextElement.ForegroundProperty, color.Brush(view));
-            return view;
-        }
-    }
-
-    // Capsule(style: .continuous): a capsule's corner radius is half its shorter side. The `.continuous` curvature has no
-    // unit in the tree (missing dependency, reported); the corner is a circular arc.
-    file static class CapsuleShape
-    {
-        public static T Apply<T>(T border) where T : Border
-        {
-            border.SizeChanged += (_, e) => border.CornerRadius = new CornerRadius(Math.Min(e.NewSize.Width, e.NewSize.Height) / 2);
-            return border;
-        }
+        public static SwiftImage Image(string systemName, SwiftFont font) => SwiftImage.SystemName(systemName).Font(font);
     }
 
     // :151-185 private struct ChromeGlassSurface: ViewModifier
@@ -247,19 +228,26 @@ namespace Marrow.UI.Chrome
             // no-drag region behind the whole control.
             var fill = new Border { IsHitTestVisible = false };
             var host = new Panel { Children = { fill, content } };
+            GlassShape glassShape;
             if (shape == Kind.Circle)
             {
+                // :166-167 Circle(): the largest circle centred in the frame.
+                glassShape = GlassShape.Circle;
                 fill.HorizontalAlignment = HorizontalAlignment.Center;
                 fill.VerticalAlignment = VerticalAlignment.Center;
+                host.SizeChanged += (_, e) =>
+                {
+                    var side = Math.Min(e.NewSize.Width, e.NewSize.Height);
+                    fill.CornerRadius = new CornerRadius(side / 2);
+                    fill.Width = side;
+                    fill.Height = side;
+                };
             }
-            host.SizeChanged += (_, e) =>
+            else
             {
-                var side = Math.Min(e.NewSize.Width, e.NewSize.Height);
-                fill.CornerRadius = new CornerRadius(side / 2);
-                if (shape != Kind.Circle) return;
-                fill.Width = side;
-                fill.Height = side;
-            };
+                glassShape = GlassShape.Capsule(RoundedCornerStyle.Continuous); // :164-165 Capsule(style: .continuous)
+                fill.Capsule(RoundedCornerStyle.Continuous);
+            }
             var state = new ViewState();
             var paint = new AnimatedColor(fill);
             fill.Background = paint.Brush;
@@ -269,7 +257,8 @@ namespace Marrow.UI.Chrome
                 // :158 @Environment(\.isOnGlassPanel), :159 @Environment(\.colorScheme)
                 if (RenderBudget.GetIsOnGlassPanel(host))
                 {
-                    // :173-178 the panel's flat control fill, a shade brighter under the pointer.
+                    // :173-178 the panel's flat control fill, a shade brighter under the pointer: no glass.
+                    SwiftGlass.SetEffect(fill, null);
                     paint.Set(
                         SwiftColor.Dynamic(
                             light: Chrome.PanelControlFill(isDark: false, hovered: state.IsHovered),
@@ -280,8 +269,11 @@ namespace Marrow.UI.Chrome
                 {
                     // :179-182 `.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3))[.interactive()], in: shape)`.
                     // The tint is drawn here over whatever material lies below: over the desktop that is the window's
-                    // Acrylic (OD-0005, ADR-0002 Glass (a)). The app-drawn material over a wallpaper or the solid base,
-                    // and the press response of IsInteractive, have no unit in the tree (missing dependency, reported).
+                    // Acrylic (OD-0005, ADR-0002 Glass (a)); the material itself is recorded as data (ED-180).
+                    // MARROW_DEFERRED ED-180: the app-drawn material over a wallpaper or the solid base, and the
+                    // .interactive() press response.
+                    var glass = GlassEffect.Regular(glassShape).Tint(Chrome.GlassTint, 0.3);
+                    SwiftGlass.SetEffect(fill, IsInteractive ? glass.Interactive() : glass); // :180 interactive, :182 not
                     paint.Set(Chrome.GlassTint.Opacity(0.3), animation);
                 }
             }
@@ -329,6 +321,7 @@ namespace Marrow.UI.Chrome
         private Control? baseView;
         private Image? picture;
         private Border? scrim;
+        private Panel? wallpaperOverlay;
 
         /// <param name="opacity">:205 <c>let opacity: Double</c>.</param>
         /// <param name="wallpaper">:207 <c>var wallpaper: NSImage? = nil</c>.</param>
@@ -374,7 +367,17 @@ namespace Marrow.UI.Chrome
         }
 
         // :218 RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style: .continuous), the size of the backdrop.
-        private static Border Shape() => new() { CornerRadius = new CornerRadius(Chrome.WindowCornerRadius) };
+        private static Border Shape() => new Border().RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);
+
+        // `shape.fill(.clear).glassEffect(in: shape)` (:243-245, :252-254): the default glass, no tint, no .interactive()
+        // and no container, recorded as data on a clear layer of the shape (ED-180).
+        // MARROW_DEFERRED ED-180: the app-drawn material where the app draws its own backdrop (OD-0005, ADR-0002 Glass (b)).
+        private static Border GlassLayer()
+        {
+            var layer = Shape();
+            SwiftGlass.SetEffect(layer, GlassEffect.Regular(GlassShape.RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous)));
+            return layer;
+        }
 
         private void Draw()
         {
@@ -400,6 +403,12 @@ namespace Marrow.UI.Chrome
                 picture.Opacity = opacity; // :238
             }
             if (scrim is not null) scrim.Opacity = Scrim(opacity, isDark); // :258
+            if (wallpaperOverlay is { } overlay)
+            {
+                // :241-247 `.overlay { if !isSolid { ... } }`
+                if (!isSolid && overlay.Children.Count == 0) overlay.Children.Add(GlassLayer()); // MARROW_DEFERRED ED-180
+                else if (isSolid && overlay.Children.Count != 0) overlay.Children.Clear();
+            }
         }
 
         // :226-248 The picture rides over the desktop: the setting is its own opacity, and no scrim is drawn here.
@@ -412,9 +421,10 @@ namespace Marrow.UI.Chrome
             clip.ClipToBounds = true; // :240 .clipShape(shape)
             clip.Child = picture; // :233 .overlay
             // :241-247 `.overlay { if !isSolid { shape.fill(.clear).glassEffect(in: shape) } }`: over the picture the app
-            // draws its own backdrop, where OD-0005 calls for the app-drawn material (ADR-0002 Glass (b)). No unit in the
-            // tree renders that material (missing dependency, reported), so nothing is drawn over the picture yet.
-            return clip.Transition(SwiftTransition.Opacity); // :248 .transition(.opacity)
+            // draws its own backdrop, where OD-0005 calls for the app-drawn material (ADR-0002 Glass (b)); Draw lays the
+            // glass layer (GlassLayer, MARROW_DEFERRED ED-180) in this overlay while the setting is below 0.98.
+            wallpaperOverlay = new Panel();
+            return new Panel { Children = { clip, wallpaperOverlay } }.Transition(SwiftTransition.Opacity); // :248 .transition(.opacity)
         }
 
         // :249-250 `shape.fill(isDark ? Color.black : Color.white)`
@@ -422,6 +432,7 @@ namespace Marrow.UI.Chrome
         {
             picture = null;
             scrim = null;
+            wallpaperOverlay = null;
             var solid = Shape();
             solid.Background = SwiftColor.Dynamic(light: SwiftColor.White, dark: SwiftColor.Black).Brush(solid);
             return solid;
@@ -431,12 +442,13 @@ namespace Marrow.UI.Chrome
         private Control GlassBase()
         {
             picture = null;
+            wallpaperOverlay = null;
             // :252-254 `shape.fill(.clear).glassEffect(in: shape)`: with no wallpaper the window shows the desktop, and
-            // there the glass is the window's own Acrylic (OD-0005, ADR-0002 Glass (a), OD-0014), so the app draws
-            // nothing under the scrim.
+            // there the glass is the window's own Acrylic (OD-0005, ADR-0002 Glass (a), OD-0014), so the app paints
+            // nothing under the scrim; the glass is recorded as data on a clear layer (GlassLayer, ED-180).
             scrim = Shape();
             scrim.Background = SwiftColor.Dynamic(light: SwiftColor.White, dark: SwiftColor.Black).Brush(scrim); // :256-257
-            return new Panel { Children = { scrim } }; // :255 .overlay
+            return new Panel { Children = { GlassLayer(), scrim } }; // :255 .overlay; MARROW_DEFERRED ED-180 (GlassLayer)
         }
     }
 
@@ -505,7 +517,7 @@ namespace Marrow.UI.Chrome
         // :325-330 body
         public ChromeDivider()
         {
-            var bar = new Border { CornerRadius = new CornerRadius(0.5), Width = 1, Height = Chrome.DividerHeight }; // :326, :328
+            var bar = new Border { Width = 1, Height = Chrome.DividerHeight }.RoundedRectangle(0.5, RoundedCornerStyle.Continuous); // :326, :328
             bar.Background = Chrome.PrimaryText.Opacity(0.22).Brush(bar); // :327
             AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw); // :329 .accessibilityHidden(true)
             Child = bar;
@@ -768,12 +780,12 @@ namespace Marrow.UI.Chrome
                 Height = Chrome.CapsuleContentHeight, // :498
                 Child = row,
             };
-            var label = CapsuleShape.Apply(new Border
+            var label = new Border
             {
                 Padding = new Thickness(0, Chrome.CapsuleVerticalPadding), // :499
                 Background = Brushes.Transparent, // :500 .contentShape(Capsule(style: .continuous))
                 Child = framed,
-            });
+            }.Capsule(RoundedCornerStyle.Continuous);
             var button = PlainControls.Button(label, () => state.IsPresented = !state.IsPresented); // :483-485, :502
             var surface = button.ChromeGlassCapsule(); // :503 .fixedSize() (MeasureOverride), :504
             surface.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :505-507
@@ -831,12 +843,12 @@ namespace Marrow.UI.Chrome
                 Height = Chrome.CapsuleContentHeight, // :539
                 Child = row,
             };
-            var label = CapsuleShape.Apply(new Border
+            var label = new Border
             {
                 Padding = new Thickness(0, Chrome.CapsuleVerticalPadding), // :540
                 Background = Brushes.Transparent, // :541 .contentShape(Capsule(style: .continuous))
                 Child = framed,
-            });
+            }.Capsule(RoundedCornerStyle.Continuous);
             var button = PlainControls.Button(label, action); // :529, :543
             button.IsEnabled = isEnabled; // :544
             var surface = button.ChromeGlassCapsule(); // :545 .fixedSize() (MeasureOverride), :546
@@ -1018,13 +1030,13 @@ namespace Marrow.UI.Chrome
                     SwiftTransition.Remove(row, gone);
                 }
             });
-            var capsule = CapsuleShape.Apply(new Border
+            var capsule = new Border
             {
                 Padding = new Thickness(9, 0), // :808
                 Height = 30, // :809
                 Child = row,
-            });
-            capsule.Background = Chrome.Overlay(0.07).Brush(capsule); // :810-813 the capsule background, also the content shape
+            }.Capsule(RoundedCornerStyle.Continuous);
+            capsule.Background = Chrome.Overlay(0.07).Brush(capsule); // :810-813 Capsule(style: .continuous).fill(Chrome.overlay(0.07)), also the content shape
             // :814-815 Escape empties the field, the way the chrome's search capsule does, and goes no further.
             AddHandler(KeyDownEvent, (_, e) =>
             {
@@ -1155,7 +1167,7 @@ namespace Marrow.UI.Chrome
             row.Track(() => state.IsHovering || state.IsPresented, full =>
                 foreground.Set(Chrome.PrimaryText.Opacity(full ? 1 : 0.92), Transaction.Current)); // :909
             Border? assetView = null;
-            Border? symbolView = null;
+            SwiftImage? symbolView = null;
             row.Track(() =>
             {
                 var value = selection.Value;
@@ -1168,10 +1180,12 @@ namespace Marrow.UI.Chrome
                 {
                     if (assetView is null)
                     {
-                        assetView = new Border { Width = 14, Height = 14, VerticalAlignment = VerticalAlignment.Center };
+                        assetView = new Border { Width = 14, Height = 14, VerticalAlignment = VerticalAlignment.Center }; // :894
                         SwiftTransition.Insert(row, 0, assetView);
                     }
-                    assetView.Tag = name; // the asset the missing image unit will draw (see Symbols)
+                    // :891-893 Image(name).resizable().aspectRatio(contentMode: .fit): the same view with a new name.
+                    if (assetView.Child is not SwiftImage { } drawn || drawn.AssetName != name)
+                        assetView.Child = SwiftImage.Named(name).Resizable().AspectRatio(ContentMode.Fit);
                 }
                 else if (assetView is { } goneAsset)
                 {
@@ -1181,13 +1195,14 @@ namespace Marrow.UI.Chrome
                 // :896-900 `if let symbol = symbol(selection) { Image(systemName: symbol).font(.system(.callout, weight: .medium)).foregroundStyle(Chrome.secondaryText) }`
                 if (shown.Symbol is { } glyph)
                 {
-                    if (symbolView is null)
-                    {
-                        symbolView = Symbols.Image(glyph, SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Medium))
-                            .ForegroundStyle(Chrome.SecondaryText);
-                        SwiftTransition.Insert(row, row.Children.IndexOf(text), symbolView);
-                    }
-                    symbolView.Tag = glyph;
+                    var image = symbolView is null || symbolView.SymbolName != glyph
+                        ? Symbols.Image(glyph, SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Medium)) // :897-898
+                            .ForegroundStyle(Chrome.SecondaryText) // :899
+                        : symbolView;
+                    // The same view with a new name draws the new symbol in place; only its appearing is a transition.
+                    if (symbolView is null) SwiftTransition.Insert(row, row.Children.IndexOf(text), image);
+                    else if (!ReferenceEquals(image, symbolView)) row.Children[row.Children.IndexOf(symbolView)] = image;
+                    symbolView = image;
                 }
                 else if (symbolView is { } goneSymbol)
                 {
@@ -1195,13 +1210,13 @@ namespace Marrow.UI.Chrome
                     SwiftTransition.Remove(row, goneSymbol);
                 }
             });
-            var label = CapsuleShape.Apply(new Border
+            var label = new Border
             {
                 Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0), // :910
                 Height = Chrome.CapsuleContentHeight, // :911
                 Background = Brushes.Transparent, // :912 .contentShape(Capsule(style: .continuous))
                 Child = row,
-            });
+            }.Capsule(RoundedCornerStyle.Continuous);
             var button = PlainControls.Button(label, () => state.IsPresented = !state.IsPresented); // :886-888, :914
             fixesWidth = maxWidth is null; // :915 .fixedSize(horizontal: maxWidth == nil, vertical: true) (MeasureOverride)
             var surface = button.ChromeGlassCapsule(); // :916
