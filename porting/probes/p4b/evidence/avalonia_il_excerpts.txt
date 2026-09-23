@@ -1,0 +1,1554 @@
+﻿P4b: IL excerpts read from the shipped binaries with porting/probes/p4b/ildump (System.Reflection.Metadata).
+Avalonia.Win32.dll / Avalonia.Base.dll / Avalonia.Controls.dll 12.1.2+d3c867a9e2de379249b03dbeb3495bd7f076a81a, lib/net10.0, from the NuGet cache.
+
+==== Avalonia.Win32.WindowImpl::AppWndProc: message dispatch (IL_0000..IL_02E3)
+  IL_0000: newobj Void Avalonia.Win32.WindowImpl/<>c__DisplayClass1_0::.ctor()
+  IL_0005: stloc.0
+  IL_0006: ldloc.0
+  IL_0007: ldarg.0
+  IL_0008: stfld Avalonia.Win32.WindowImpl Avalonia.Win32.WindowImpl/<>c__DisplayClass1_0::<>4__this
+  IL_000D: call Int32 Avalonia.Win32.Interop.UnmanagedMethods::GetMessageTime()
+  IL_0012: stloc.1
+  IL_0013: ldnull
+  IL_0014: stloc.2
+  IL_0015: ldc.i4.0
+  IL_0016: stloc.3
+  IL_0017: ldarg.2
+  IL_0018: stloc.s 4
+  IL_001A: ldloc.s 4
+  IL_001C: stloc.s 9
+  IL_001E: ldloc.s 9
+  IL_0020: ldc.i4 161 (0xA1)
+  IL_0025: bgt.un IL_00F7
+  IL_002A: ldloc.s 9
+  IL_002C: ldc.i4.s 36
+  IL_002E: bgt.un.s IL_0089
+  IL_0030: ldloc.s 9
+  IL_0032: ldc.i4.s 15
+  IL_0034: bgt.un.s IL_0069
+  IL_0036: ldloc.s 9
+  IL_0038: ldc.i4.2
+  IL_0039: sub
+  IL_003A: switch (0:IL_04F0, 1:IL_11F4, 2:IL_1647, 3:IL_10AA, 4:IL_02E3, 5:IL_1647, 6:IL_1512)
+  IL_005B: ldloc.s 9
+  IL_005D: ldc.i4.s 15
+  IL_005F: beq IL_0FE9
+  IL_0064: br IL_1647
+  IL_0069: ldloc.s 9
+  IL_006B: ldc.i4.s 16
+  IL_006D: beq IL_04AB
+  IL_0072: ldloc.s 9
+  IL_0074: ldc.i4.s 24
+  IL_0076: beq IL_109A
+  IL_007B: ldloc.s 9
+  IL_007D: ldc.i4.s 36
+  IL_007F: beq IL_1211
+  IL_0084: br IL_1647
+  IL_0089: ldloc.s 9
+  IL_008B: ldc.i4.s 71
+  IL_008D: bgt.un.s IL_00AF
+  IL_008F: ldloc.s 9
+  IL_0091: ldc.i4.s 61
+  IL_0093: beq IL_15CF
+  IL_0098: ldloc.s 9
+  IL_009A: ldc.i4.s 70
+  IL_009C: beq IL_1414
+  IL_00A1: ldloc.s 9
+  IL_00A3: ldc.i4.s 71
+  IL_00A5: beq IL_1613
+  IL_00AA: br IL_1647
+  IL_00AF: ldloc.s 9
+  IL_00B1: ldc.i4.s 81
+  IL_00B3: beq IL_1543
+  IL_00B8: ldloc.s 9
+  IL_00BA: ldc.i4.s 126
+  IL_00BC: sub
+  IL_00BD: switch (0:IL_14F6, 1:IL_06A8, 2:IL_1647, 3:IL_1647, 4:IL_1647, 5:IL_0332, 6:IL_1647, 7:IL_0FC6, 8:IL_0FD7)
+  IL_00E6: ldloc.s 9
+  IL_00E8: ldc.i4 161 (0xA1)
+  IL_00ED: beq IL_0BAF
+  IL_00F2: br IL_1647
+  IL_00F7: ldloc.s 9
+  IL_00F9: ldc.i4 288 (0x120)
+  IL_00FE: bgt.un IL_0190
+  IL_0103: ldloc.s 9
+  IL_0105: ldc.i4 171 (0xAB)
+  IL_010A: bgt.un.s IL_0135
+  IL_010C: ldloc.s 9
+  IL_010E: ldc.i4 164 (0xA4)
+  IL_0113: beq IL_0BAF
+  IL_0118: ldloc.s 9
+  IL_011A: ldc.i4 167 (0xA7)
+  IL_011F: beq IL_0BAF
+  IL_0124: ldloc.s 9
+  IL_0126: ldc.i4 171 (0xAB)
+  IL_012B: beq IL_0BAF
+  IL_0130: br IL_1647
+  IL_0135: ldloc.s 9
+  IL_0137: ldc.i4 256 (0x100)
+  IL_013C: sub
+  IL_013D: switch (0:IL_06DF, 1:IL_0730, 2:IL_0764, 3:IL_1647, 4:IL_06F2, 5:IL_074A)
+  IL_015A: ldloc.s 9
+  IL_015C: ldc.i4 269 (0x10D)
+  IL_0161: sub
+  IL_0162: switch (0:IL_158E, 1:IL_159E, 2:IL_157B, 3:IL_1647, 4:IL_1647, 5:IL_0705)
+  IL_017F: ldloc.s 9
+  IL_0181: ldc.i4 288 (0x120)
+  IL_0186: beq IL_0729
+  IL_018B: br IL_1647
+  IL_0190: ldloc.s 9
+  IL_0192: ldc.i4 646 (0x286)
+  IL_0197: bgt.un IL_02B8
+  IL_019C: ldloc.s 9
+  IL_019E: ldc.i4 512 (0x200)
+  IL_01A3: sub
+  IL_01A4: switch (0:IL_0917, 1:IL_07B4, 2:IL_0869, 3:IL_1647, 4:IL_07B4, 5:IL_0869, 6:IL_1647, 7:IL_07B4, 8:IL_0869, 9:IL_1647, 10:IL_0A54, 11:IL_07B4, 12:IL_0869, 13:IL_1647, 14:IL_0AAD, 15:IL_1647, 16:IL_1647, 17:IL_1647, 18:IL_1647, 19:IL_1647, 20:IL_1647, 21:IL_0B54)
+  IL_0201: ldloc.s 9
+  IL_0203: ldc.i4 561 (0x231)
+  IL_0208: sub
+  IL_0209: switch (0:IL_108E, 1:IL_11E8, 2:IL_1647, 3:IL_1647, 4:IL_1647, 5:IL_1647, 6:IL_1647, 7:IL_1647, 8:IL_1647, 9:IL_1647, 10:IL_1647, 11:IL_1647, 12:IL_1647, 13:IL_1647, 14:IL_1647, 15:IL_0C58, 16:IL_1647, 17:IL_0E54, 18:IL_0E54, 19:IL_1647, 20:IL_0E54, 21:IL_0E54, 22:IL_0E54, 23:IL_1647, 24:IL_1647, 25:IL_0EA6, 26:IL_1647, 27:IL_0EEF, 28:IL_1647, 29:IL_0F39, 30:IL_0F39, 31:IL_1647)
+  IL_028E: ldloc.s 9
+  IL_0290: ldc.i4 641 (0x281)
+  IL_0295: sub
+  IL_0296: switch (0:IL_1550, 1:IL_1647, 2:IL_1647, 3:IL_1647, 4:IL_1647, 5:IL_1647)
+  IL_02B3: br IL_1647
+  IL_02B8: ldloc.s 9
+  IL_02BA: ldc.i4 656 (0x290)
+  IL_02BF: sub
+  IL_02C0: ldc.i4.1
+  IL_02C1: ble.un IL_1647
+  IL_02C6: ldloc.s 9
+  IL_02C8: ldc.i4 675 (0x2A3)
+  IL_02CD: beq IL_0B07
+  IL_02D2: ldloc.s 9
+  IL_02D4: ldc.i4 736 (0x2E0)
+  IL_02D9: beq IL_0606
+  IL_02DE: br IL_1647
+  IL_02E3: ldarg.3
+
+==== AppWndProc: WM_NCCALCSIZE (0x83) with an extended client area, returns 0 (IL_0332..IL_04AA)
+  IL_0332: ldarg.3
+  IL_0333: call Int32 Avalonia.Win32.WindowImpl::ToInt32(IntPtr)
+  IL_0338: ldc.i4.1
+  IL_0339: bne.un IL_1647
+  IL_033E: ldarg.0
+  IL_033F: ldflda Avalonia.Win32.WindowImpl/WindowProperties Avalonia.Win32.WindowImpl::_windowProperties
+  IL_0344: ldfld Avalonia.Controls.WindowDecorations Avalonia.Win32.WindowImpl/WindowProperties::Decorations
+  IL_0349: brtrue.s IL_0351
+  IL_034B: ldsfld IntPtr System.IntPtr::Zero
+  IL_0350: ret
+  IL_0351: ldarg.0
+  IL_0352: ldfld Boolean Avalonia.Win32.WindowImpl::_isClientAreaExtended
+  IL_0357: brfalse IL_1647
+  IL_035C: ldarg.1
+  IL_035D: ldloca.s 11
+  IL_035F: call Boolean Avalonia.Win32.Interop.UnmanagedMethods::GetWindowPlacement(IntPtr, Avalonia.Win32.Interop.UnmanagedMethods/WINDOWPLACEMENT&)
+  IL_0364: pop
+  IL_0365: ldloc.s 11
+  IL_0367: ldfld Avalonia.Win32.Interop.UnmanagedMethods/ShowWindowCommand Avalonia.Win32.Interop.UnmanagedMethods/WINDOWPLACEMENT::ShowCmd
+  IL_036C: ldc.i4.2
+  IL_036D: beq IL_1647
+  IL_0372: ldarg.s 4
+  IL_0374: call !!0 System.Runtime.InteropServices.Marshal::PtrToStructure(IntPtr)<Avalonia.Win32.Interop.UnmanagedMethods/NCCALCSIZE_PARAMS>
+  IL_0379: dup
+  IL_037A: ldfld Avalonia.Win32.Interop.UnmanagedMethods/RECT[] Avalonia.Win32.Interop.UnmanagedMethods/NCCALCSIZE_PARAMS::rgrc
+  IL_037F: ldc.i4.0
+  IL_0380: ldelema Avalonia.Win32.Interop.UnmanagedMethods/RECT
+  IL_0385: ldarg.0
+  IL_0386: ldfld IntPtr Avalonia.Win32.WindowImpl::_hwnd
+  IL_038B: ldc.i4.s -16
+  IL_038D: call UInt32 Avalonia.Win32.Interop.UnmanagedMethods::GetWindowLong(IntPtr, Int32)
+  IL_0392: stloc.s 12
+  IL_0394: ldarg.0
+  IL_0395: call Avalonia.Win32.WindowImpl/WindowRectAdjuster Avalonia.Win32.WindowImpl::CreateWindowRectAdjuster()
+  IL_039A: stloc.s 13
+  IL_039C: ldloca.s 14
+  IL_039E: initobj Avalonia.Win32.Interop.UnmanagedMethods/RECT
+  IL_03A4: ldloc.s 12
+  IL_03A6: ldc.i4 12582912 (0xC00000)
+  IL_03AB: call Boolean Avalonia.EnumExtensions::HasAllFlags(!!0, !!0)<Avalonia.Win32.Interop.UnmanagedMethods/WindowStyles>
+  IL_03B0: brfalse.s IL_03F2
+  IL_03B2: ldloc.s 11
+  IL_03B4: ldfld Avalonia.Win32.Interop.UnmanagedMethods/ShowWindowCommand Avalonia.Win32.Interop.UnmanagedMethods/WINDOWPLACEMENT::ShowCmd
+  IL_03B9: ldc.i4.3
+  IL_03BA: bne.un.s IL_03DC
+  IL_03BC: ldloca.s 13
+  IL_03BE: ldloca.s 14
+  IL_03C0: ldloc.s 12
+  IL_03C2: ldc.i4 -12582913 (0xFF3FFFFF)
+  IL_03C7: and
+  IL_03C8: ldc.i4 8388608 (0x800000)
+  IL_03CD: or
+  IL_03CE: ldc.i4 262144 (0x40000)
+  IL_03D3: or
+  IL_03D4: ldc.i4.0
+  IL_03D5: call Void Avalonia.Win32.WindowImpl/WindowRectAdjuster::Adjust(Avalonia.Win32.Interop.UnmanagedMethods/RECT&, Avalonia.Win32.Interop.UnmanagedMethods/WindowStyles, Avalonia.Win32.Interop.UnmanagedMethods/WindowStyles)
+  IL_03DA: br.s IL_045A
+  IL_03DC: ldloca.s 13
+  IL_03DE: ldloca.s 14
+  IL_03E0: ldloc.s 12
+  IL_03E2: ldc.i4.0
+  IL_03E3: call Void Avalonia.Win32.WindowImpl/WindowRectAdjuster::Adjust(Avalonia.Win32.Interop.UnmanagedMethods/RECT&, Avalonia.Win32.Interop.UnmanagedMethods/WindowStyles, Avalonia.Win32.Interop.UnmanagedMethods/WindowStyles)
+  IL_03E8: ldloca.s 14
+  IL_03EA: ldc.i4.0
+  IL_03EB: stfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::top
+  IL_03F0: br.s IL_045A
+  IL_03F2: ldloc.s 12
+  IL_03F4: ldc.i4 8388608 (0x800000)
+  IL_03F9: call Boolean Avalonia.EnumExtensions::HasAllFlags(!!0, !!0)<Avalonia.Win32.Interop.UnmanagedMethods/WindowStyles>
+  IL_03FE: brfalse.s IL_044E
+  IL_0400: ldloc.s 11
+  IL_0402: ldfld Avalonia.Win32.Interop.UnmanagedMethods/ShowWindowCommand Avalonia.Win32.Interop.UnmanagedMethods/WINDOWPLACEMENT::ShowCmd
+  IL_0407: ldc.i4.3
+  IL_0408: bne.un.s IL_0418
+  IL_040A: ldloca.s 13
+  IL_040C: ldloca.s 14
+  IL_040E: ldloc.s 12
+  IL_0410: ldc.i4.0
+  IL_0411: call Void Avalonia.Win32.WindowImpl/WindowRectAdjuster::Adjust(Avalonia.Win32.Interop.UnmanagedMethods/RECT&, Avalonia.Win32.Interop.UnmanagedMethods/WindowStyles, Avalonia.Win32.Interop.UnmanagedMethods/WindowStyles)
+  IL_0416: br.s IL_045A
+  IL_0418: ldloca.s 13
+  IL_041A: ldloca.s 14
+  IL_041C: ldloc.s 12
+  IL_041E: ldc.i4.0
+  IL_041F: call Void Avalonia.Win32.WindowImpl/WindowRectAdjuster::Adjust(Avalonia.Win32.Interop.UnmanagedMethods/RECT&, Avalonia.Win32.Interop.UnmanagedMethods/WindowStyles, Avalonia.Win32.Interop.UnmanagedMethods/WindowStyles)
+  IL_0424: ldloca.s 15
+  IL_0426: initobj Avalonia.Win32.Interop.UnmanagedMethods/RECT
+  IL_042C: ldloca.s 13
+  IL_042E: ldloca.s 15
+  IL_0430: ldloc.s 12
+  IL_0432: ldc.i4 -262145 (0xFFFBFFFF)
+  IL_0437: and
+  IL_0438: ldc.i4.0
+  IL_0439: call Void Avalonia.Win32.WindowImpl/WindowRectAdjuster::Adjust(Avalonia.Win32.Interop.UnmanagedMethods/RECT&, Avalonia.Win32.Interop.UnmanagedMethods/WindowStyles, Avalonia.Win32.Interop.UnmanagedMethods/WindowStyles)
+  IL_043E: ldloca.s 14
+  IL_0440: ldloc.s 15
+  IL_0442: ldfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::top
+  IL_0447: stfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::top
+  IL_044C: br.s IL_045A
+  IL_044E: ldloca.s 13
+  IL_0450: ldloca.s 14
+  IL_0452: ldloc.s 12
+  IL_0454: ldc.i4.0
+  IL_0455: call Void Avalonia.Win32.WindowImpl/WindowRectAdjuster::Adjust(Avalonia.Win32.Interop.UnmanagedMethods/RECT&, Avalonia.Win32.Interop.UnmanagedMethods/WindowStyles, Avalonia.Win32.Interop.UnmanagedMethods/WindowStyles)
+  IL_045A: dup
+  IL_045B: ldflda Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::left
+  IL_0460: dup
+  IL_0461: ldind.i4
+  IL_0462: ldloc.s 14
+  IL_0464: ldfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::left
+  IL_0469: sub
+  IL_046A: stind.i4
+  IL_046B: dup
+  IL_046C: ldflda Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::top
+  IL_0471: dup
+  IL_0472: ldind.i4
+  IL_0473: ldloc.s 14
+  IL_0475: ldfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::top
+  IL_047A: sub
+  IL_047B: stind.i4
+  IL_047C: dup
+  IL_047D: ldflda Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::right
+  IL_0482: dup
+  IL_0483: ldind.i4
+  IL_0484: ldloc.s 14
+  IL_0486: ldfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::right
+  IL_048B: sub
+  IL_048C: stind.i4
+  IL_048D: ldflda Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::bottom
+  IL_0492: dup
+  IL_0493: ldind.i4
+  IL_0494: ldloc.s 14
+  IL_0496: ldfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::bottom
+  IL_049B: sub
+  IL_049C: stind.i4
+  IL_049D: ldarg.s 4
+  IL_049F: ldc.i4.0
+  IL_04A0: call Void System.Runtime.InteropServices.Marshal::StructureToPtr(!!0, IntPtr, Boolean)<Avalonia.Win32.Interop.UnmanagedMethods/NCCALCSIZE_PARAMS>
+  IL_04A5: ldsfld IntPtr System.IntPtr::Zero
+  IL_04AA: ret
+
+==== AppWndProc: WM_PAINT (0x0F) -> Paint(rect) under NonPumpingSyncContext (IL_0FE9..IL_108D)
+  IL_0FE9: call Avalonia.Win32.NonPumpingWaitHelperImpl Avalonia.Win32.NonPumpingWaitHelperImpl::get_Instance()
+  IL_0FEE: call System.IDisposable Avalonia.Threading.NonPumpingSyncContext::Use(Avalonia.Utilities.NonPumpingLockHelper/IHelperImpl)
+  IL_0FF3: stloc.s 74
+  IL_0FF5: ldarg.0
+  IL_0FF6: ldfld IntPtr Avalonia.Win32.WindowImpl::_hwnd
+  IL_0FFB: ldloca.s 75
+  IL_0FFD: call IntPtr Avalonia.Win32.Interop.UnmanagedMethods::BeginPaint(IntPtr, Avalonia.Win32.Interop.UnmanagedMethods/PAINTSTRUCT&)
+  IL_1002: ldsfld IntPtr System.IntPtr::Zero
+  IL_1007: beq.s IL_107A
+  IL_1009: ldarg.0
+  IL_100A: call Double Avalonia.Win32.WindowImpl::get_RenderScaling()
+  IL_100F: stloc.s 76
+  IL_1011: ldloc.s 75
+  IL_1013: ldfld Avalonia.Win32.Interop.UnmanagedMethods/RECT Avalonia.Win32.Interop.UnmanagedMethods/PAINTSTRUCT::rcPaint
+  IL_1018: stloc.s 77
+  IL_101A: ldarg.0
+  IL_101B: call System.Action`1<Avalonia.Rect> Avalonia.Win32.WindowImpl::get_Paint()
+  IL_1020: dup
+  IL_1021: brtrue.s IL_1026
+  IL_1023: pop
+  IL_1024: br.s IL_106C
+  IL_1026: ldloc.s 77
+  IL_1028: ldfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::left
+  IL_102D: conv.r8
+  IL_102E: ldloc.s 76
+  IL_1030: div
+  IL_1031: ldloc.s 77
+  IL_1033: ldfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::top
+  IL_1038: conv.r8
+  IL_1039: ldloc.s 76
+  IL_103B: div
+  IL_103C: ldloc.s 77
+  IL_103E: ldfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::right
+  IL_1043: ldloc.s 77
+  IL_1045: ldfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::left
+  IL_104A: sub
+  IL_104B: conv.r8
+  IL_104C: ldloc.s 76
+  IL_104E: div
+  IL_104F: ldloc.s 77
+  IL_1051: ldfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::bottom
+  IL_1056: ldloc.s 77
+  IL_1058: ldfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::top
+  IL_105D: sub
+  IL_105E: conv.r8
+  IL_105F: ldloc.s 76
+  IL_1061: div
+  IL_1062: newobj Void Avalonia.Rect::.ctor(Double, Double, Double, Double)
+  IL_1067: callvirt Void System.Action`1<Avalonia.Rect>::Invoke(!0)
+  IL_106C: ldarg.0
+  IL_106D: ldfld IntPtr Avalonia.Win32.WindowImpl::_hwnd
+  IL_1072: ldloca.s 75
+  IL_1074: call Boolean Avalonia.Win32.Interop.UnmanagedMethods::EndPaint(IntPtr, Avalonia.Win32.Interop.UnmanagedMethods/PAINTSTRUCT&)
+  IL_1079: pop
+  IL_107A: leave.s IL_1088
+  IL_107C: ldloc.s 74
+  IL_107E: brfalse.s IL_1087
+  IL_1080: ldloc.s 74
+  IL_1082: callvirt Void System.IDisposable::Dispose()
+  IL_1087: endfinally
+  IL_1088: ldsfld IntPtr System.IntPtr::Zero
+  IL_108D: ret
+
+==== AppWndProc: WM_ENTERSIZEMOVE (0x231) sets _resizeReason = 1 (User); WM_SIZE (0x05) -> Resized(size / scaling, _resizeReason) (IL_108E..IL_11E7)
+  IL_108E: ldarg.0
+  IL_108F: ldc.i4.1
+  IL_1090: stfld Avalonia.Controls.WindowResizeReason Avalonia.Win32.WindowImpl::_resizeReason
+  IL_1095: br IL_1647
+  IL_109A: ldarg.0
+  IL_109B: ldarg.3
+  IL_109C: ldc.i4.0
+  IL_109D: conv.i
+  IL_109E: cgt.un
+  IL_10A0: call Void Avalonia.Win32.WindowImpl::OnShowHideMessage(Boolean)
+  IL_10A5: br IL_1647
+  IL_10AA: ldarg.3
+  IL_10AB: conv.i4
+  IL_10AC: stloc.s 78
+  IL_10AE: ldloc.s 78
+  IL_10B0: stloc.s 81
+  IL_10B2: ldloc.s 81
+  IL_10B4: ldc.i4.1
+  IL_10B5: beq.s IL_10C1
+  IL_10B7: ldloc.s 81
+  IL_10B9: ldc.i4.2
+  IL_10BA: bne.un.s IL_10C6
+  IL_10BC: ldc.i4.2
+  IL_10BD: stloc.s 80
+  IL_10BF: br.s IL_10E8
+  IL_10C1: ldc.i4.1
+  IL_10C2: stloc.s 80
+  IL_10C4: br.s IL_10E8
+  IL_10C6: ldarg.0
+  IL_10C7: ldfld Boolean Avalonia.Win32.WindowImpl::_isFullScreenActive
+  IL_10CC: brfalse.s IL_10D3
+  IL_10CE: ldc.i4.3
+  IL_10CF: stloc.s 80
+  IL_10D1: br.s IL_10E8
+  IL_10D3: ldarg.0
+  IL_10D4: ldfld Boolean Avalonia.Win32.WindowImpl::_shown
+  IL_10D9: brtrue.s IL_10E5
+  IL_10DB: ldarg.0
+  IL_10DC: ldfld Avalonia.Controls.WindowState Avalonia.Win32.WindowImpl::_lastWindowState
+  IL_10E1: stloc.s 80
+  IL_10E3: br.s IL_10E8
+  IL_10E5: ldc.i4.0
+  IL_10E6: stloc.s 80
+  IL_10E8: ldloc.s 80
+  IL_10EA: stloc.s 79
+  IL_10EC: ldloc.s 79
+  IL_10EE: ldarg.0
+  IL_10EF: ldfld Avalonia.Controls.WindowState Avalonia.Win32.WindowImpl::_lastWindowState
+  IL_10F4: ceq
+  IL_10F6: ldc.i4.0
+  IL_10F7: ceq
+  IL_10F9: ldarg.0
+  IL_10FA: ldloc.s 79
+  IL_10FC: stfld Avalonia.Controls.WindowState Avalonia.Win32.WindowImpl::_lastWindowState
+  IL_1101: ldarg.0
+  IL_1102: call System.Action`2<Avalonia.Size,Avalonia.Controls.WindowResizeReason> Avalonia.Win32.WindowImpl::get_Resized()
+  IL_1107: brfalse.s IL_1150
+  IL_1109: ldloc.s 78
+  IL_110B: brfalse.s IL_1112
+  IL_110D: ldloc.s 78
+  IL_110F: ldc.i4.2
+  IL_1110: bne.un.s IL_1150
+  IL_1112: ldloca.s 82
+  IL_1114: ldarg.s 4
+  IL_1116: call Int32 Avalonia.Win32.WindowImpl::ToInt32(IntPtr)
+  IL_111B: ldc.i4 65535 (0xFFFF)
+  IL_1120: and
+  IL_1121: conv.r8
+  IL_1122: ldarg.s 4
+  IL_1124: call Int32 Avalonia.Win32.WindowImpl::ToInt32(IntPtr)
+  IL_1129: ldc.i4.s 16
+  IL_112B: shr
+  IL_112C: conv.r8
+  IL_112D: call Void Avalonia.Size::.ctor(Double, Double)
+  IL_1132: ldarg.0
+  IL_1133: call System.Action`2<Avalonia.Size,Avalonia.Controls.WindowResizeReason> Avalonia.Win32.WindowImpl::get_Resized()
+  IL_1138: ldloc.s 82
+  IL_113A: ldarg.0
+  IL_113B: call Double Avalonia.Win32.WindowImpl::get_RenderScaling()
+  IL_1140: call Avalonia.Size Avalonia.Size::op_Division(Avalonia.Size, Double)
+  IL_1145: ldarg.0
+  IL_1146: ldfld Avalonia.Controls.WindowResizeReason Avalonia.Win32.WindowImpl::_resizeReason
+  IL_114B: callvirt Void System.Action`2<Avalonia.Size,Avalonia.Controls.WindowResizeReason>::Invoke(!0, !1)
+  IL_1150: ldarg.0
+  IL_1151: ldfld IntPtr Avalonia.Win32.WindowImpl::_hwnd
+  IL_1156: call Boolean Avalonia.Win32.Interop.UnmanagedMethods::IsWindowVisible(IntPtr)
+  IL_115B: brfalse.s IL_116C
+  IL_115D: ldarg.0
+  IL_115E: ldfld Boolean Avalonia.Win32.WindowImpl::_shown
+  IL_1163: brtrue.s IL_116C
+  IL_1165: ldarg.0
+  IL_1166: ldc.i4.1
+  IL_1167: stfld Boolean Avalonia.Win32.WindowImpl::_shown
+  IL_116C: brfalse.s IL_11BD
+  IL_116E: ldarg.0
+  IL_116F: ldfld Avalonia.Win32.WindowImpl/WindowProperties Avalonia.Win32.WindowImpl::_windowProperties
+  IL_1174: stloc.s 83
+  IL_1176: ldloca.s 83
+  IL_1178: ldloc.s 79
+  IL_117A: stfld Avalonia.Controls.WindowState Avalonia.Win32.WindowImpl/WindowProperties::WindowState
+  IL_117F: ldarg.0
+  IL_1180: ldloc.s 83
+  IL_1182: ldc.i4.0
+  IL_1183: call Void Avalonia.Win32.WindowImpl::UpdateWindowProperties(Avalonia.Win32.WindowImpl/WindowProperties, Boolean)
+  IL_1188: ldarg.0
+  IL_1189: call System.Action`1<Avalonia.Controls.WindowState> Avalonia.Win32.WindowImpl::get_WindowStateChanged()
+  IL_118E: dup
+  IL_118F: brtrue.s IL_1194
+  IL_1191: pop
+  IL_1192: br.s IL_119B
+  IL_1194: ldloc.s 79
+  IL_1196: callvirt Void System.Action`1<Avalonia.Controls.WindowState>::Invoke(!0)
+  IL_119B: ldarg.0
+  IL_119C: ldfld Boolean Avalonia.Win32.WindowImpl::_isClientAreaExtended
+  IL_11A1: brfalse.s IL_11E2
+  IL_11A3: ldarg.0
+  IL_11A4: call Void Avalonia.Win32.WindowImpl::ExtendClientArea()
+  IL_11A9: ldarg.0
+  IL_11AA: call System.Action`1<Boolean> Avalonia.Win32.WindowImpl::get_ExtendClientAreaToDecorationsChanged()
+  IL_11AF: dup
+  IL_11B0: brtrue.s IL_11B5
+  IL_11B2: pop
+  IL_11B3: br.s IL_11E2
+  IL_11B5: ldc.i4.1
+  IL_11B6: callvirt Void System.Action`1<Boolean>::Invoke(!0)
+  IL_11BB: br.s IL_11E2
+  IL_11BD: ldloc.s 79
+  IL_11BF: ldc.i4.2
+  IL_11C0: bne.un.s IL_11E2
+  IL_11C2: ldarg.0
+  IL_11C3: ldfld Boolean Avalonia.Win32.WindowImpl::_isClientAreaExtended
+  IL_11C8: brfalse.s IL_11E2
+  IL_11CA: ldarg.0
+  IL_11CB: call Void Avalonia.Win32.WindowImpl::ExtendClientArea()
+  IL_11D0: ldarg.0
+  IL_11D1: call System.Action`1<Boolean> Avalonia.Win32.WindowImpl::get_ExtendClientAreaToDecorationsChanged()
+  IL_11D6: dup
+  IL_11D7: brtrue.s IL_11DC
+  IL_11D9: pop
+  IL_11DA: br.s IL_11E2
+  IL_11DC: ldc.i4.1
+  IL_11DD: callvirt Void System.Action`1<Boolean>::Invoke(!0)
+  IL_11E2: ldsfld IntPtr System.IntPtr::Zero
+  IL_11E7: ret
+
+==== AppWndProc: WM_EXITSIZEMOVE (0x232) resets _resizeReason (IL_11E8..IL_11EF)
+  IL_11E8: ldarg.0
+  IL_11E9: ldc.i4.0
+  IL_11EA: stfld Avalonia.Controls.WindowResizeReason Avalonia.Win32.WindowImpl::_resizeReason
+  IL_11EF: br IL_1647
+
+==== AppWndProc: WM_WINDOWPOSCHANGED (0x47) falls through to DefWindowProc (which sends WM_SIZE) (IL_1613..IL_1647, IL_16CA..IL_16D4)
+  IL_1613: ldarg.s 4
+  IL_1615: call !!0 System.Runtime.InteropServices.Marshal::PtrToStructure(IntPtr)<Avalonia.Win32.Interop.UnmanagedMethods/WINDOWPOS>
+  IL_161A: stloc.s 8
+  IL_161C: ldloc.s 8
+  IL_161E: ldfld UInt32 Avalonia.Win32.Interop.UnmanagedMethods/WINDOWPOS::flags
+  IL_1623: ldc.i4.s 64
+  IL_1625: and
+  IL_1626: brfalse.s IL_1631
+  IL_1628: ldarg.0
+  IL_1629: ldc.i4.1
+  IL_162A: call Void Avalonia.Win32.WindowImpl::OnShowHideMessage(Boolean)
+  IL_162F: br.s IL_1647
+  IL_1631: ldloc.s 8
+  IL_1633: ldfld UInt32 Avalonia.Win32.Interop.UnmanagedMethods/WINDOWPOS::flags
+  IL_1638: ldc.i4 128 (0x80)
+  IL_163D: and
+  IL_163E: brfalse.s IL_1647
+  IL_1640: ldarg.0
+  IL_1641: ldc.i4.0
+  IL_1642: call Void Avalonia.Win32.WindowImpl::OnShowHideMessage(Boolean)
+  IL_1647: ldloc.3
+  IL_16CA: ldarg.1
+  IL_16CB: ldarg.2
+  IL_16CC: ldarg.3
+  IL_16CD: ldarg.s 4
+  IL_16CF: call IntPtr Avalonia.Win32.Interop.UnmanagedMethods::DefWindowProc(IntPtr, UInt32, IntPtr, IntPtr)
+  IL_16D4: ret
+
+// ===== type Avalonia.Win32.WindowImpl : System.Object
+method IntPtr Avalonia.Win32.WindowImpl::WndProcMessageHandler(IntPtr hWnd, UInt32 msg, IntPtr wParam, IntPtr lParam) [Private, HideBySig] rva=0xB848
+  .local V_0 Boolean
+  .local V_1 IntPtr
+  .local V_2 Avalonia.Controls.Win32Properties/CustomWndProcHookCallback
+  IL_0000: ldc.i4.0
+  IL_0001: stloc.0
+  IL_0002: ldsfld IntPtr System.IntPtr::Zero
+  IL_0007: stloc.1
+  IL_0008: ldarg.0
+  IL_0009: call Avalonia.Controls.Win32Properties/CustomWndProcHookCallback Avalonia.Win32.WindowImpl::get_WndProcHookCallback()
+  IL_000E: stloc.2
+  IL_000F: ldloc.2
+  IL_0010: brfalse.s IL_0020
+  IL_0012: ldloc.2
+  IL_0013: ldarg.1
+  IL_0014: ldarg.2
+  IL_0015: ldarg.3
+  IL_0016: ldarg.s 4
+  IL_0018: ldloca.s 0
+  IL_001A: callvirt IntPtr Avalonia.Controls.Win32Properties/CustomWndProcHookCallback::Invoke(IntPtr, UInt32, IntPtr, IntPtr, Boolean&)
+  IL_001F: stloc.1
+  IL_0020: ldloc.0
+  IL_0021: brfalse.s IL_0025
+  IL_0023: ldloc.1
+  IL_0024: ret
+  IL_0025: ldarg.0
+  IL_0026: ldarg.1
+  IL_0027: ldarg.2
+  IL_0028: ldarg.3
+  IL_0029: ldarg.s 4
+  IL_002B: callvirt IntPtr Avalonia.Win32.WindowImpl::WndProc(IntPtr, UInt32, IntPtr, IntPtr)
+  IL_0030: ret
+
+method Avalonia.PixelSize Avalonia.Win32.WindowImpl::Avalonia.OpenGL.Egl.EglGlPlatformSurface.IEglWindowGlPlatformSurfaceInfo.get_Size() [Private, Final, Virtual, HideBySig, VtableLayoutMask, SpecialName] rva=0xC34C
+  .local V_0 Avalonia.Win32.Interop.UnmanagedMethods/RECT
+  IL_0000: ldarg.0
+  IL_0001: ldfld IntPtr Avalonia.Win32.WindowImpl::_hwnd
+  IL_0006: ldloca.s 0
+  IL_0008: call Boolean Avalonia.Win32.Interop.UnmanagedMethods::GetClientRect(IntPtr, Avalonia.Win32.Interop.UnmanagedMethods/RECT&)
+  IL_000D: pop
+  IL_000E: ldc.i4.1
+  IL_000F: ldloc.0
+  IL_0010: ldfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::right
+  IL_0015: ldloc.0
+  IL_0016: ldfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::left
+  IL_001B: sub
+  IL_001C: call Int32 System.Math::Max(Int32, Int32)
+  IL_0021: ldc.i4.1
+  IL_0022: ldloc.0
+  IL_0023: ldfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::bottom
+  IL_0028: ldloc.0
+  IL_0029: ldfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/RECT::top
+  IL_002E: sub
+  IL_002F: call Int32 System.Math::Max(Int32, Int32)
+  IL_0034: newobj Void Avalonia.PixelSize::.ctor(Int32, Int32)
+  IL_0039: ret
+
+method IntPtr Avalonia.Win32.WindowImpl::WndProc(IntPtr hWnd, UInt32 msg, IntPtr wParam, IntPtr lParam) [Family, Virtual, HideBySig, VtableLayoutMask] rva=0xCB58
+  .local V_0 IntPtr
+  .local V_1 Boolean
+  IL_0000: ldsfld IntPtr System.IntPtr::Zero
+  IL_0005: stloc.0
+  IL_0006: ldc.i4.1
+  IL_0007: stloc.1
+  IL_0008: ldarg.0
+  IL_0009: ldfld Boolean Avalonia.Win32.WindowImpl::_isClientAreaExtended
+  IL_000E: brfalse.s IL_001E
+  IL_0010: ldarg.0
+  IL_0011: ldarg.1
+  IL_0012: ldarg.2
+  IL_0013: ldarg.3
+  IL_0014: ldarg.s 4
+  IL_0016: ldloca.s 1
+  IL_0018: callvirt IntPtr Avalonia.Win32.WindowImpl::CustomCaptionProc(IntPtr, UInt32, IntPtr, IntPtr, Boolean&)
+  IL_001D: stloc.0
+  IL_001E: ldloc.1
+  IL_001F: brfalse.s IL_002D
+  IL_0021: ldarg.0
+  IL_0022: ldarg.1
+  IL_0023: ldarg.2
+  IL_0024: ldarg.3
+  IL_0025: ldarg.s 4
+  IL_0027: callvirt IntPtr Avalonia.Win32.WindowImpl::AppWndProc(IntPtr, UInt32, IntPtr, IntPtr)
+  IL_002C: stloc.0
+  IL_002D: ldloc.0
+  IL_002E: ret
+
+// ===== type Avalonia.Controls.TopLevel : Avalonia.Controls.ContentControl
+method Void Avalonia.Controls.TopLevel::HandlePaint(Avalonia.Rect rect) [Private, HideBySig] rva=0x3C824
+  IL_0000: ldarg.0
+  IL_0001: call Avalonia.Rendering.Composition.CompositingRenderer Avalonia.Controls.TopLevel::get_Renderer()
+  IL_0006: ldarg.1
+  IL_0007: callvirt Void Avalonia.Rendering.Composition.CompositingRenderer::Paint(Avalonia.Rect)
+  IL_000C: ret
+
+method Void Avalonia.Controls.TopLevel::HandleResized(Avalonia.Size clientSize, Avalonia.Controls.WindowResizeReason reason) [Assembly, Virtual, HideBySig, VtableLayoutMask, CheckAccessOnOverride] rva=0x3C949
+  IL_0000: ldarg.0
+  IL_0001: ldarg.1
+  IL_0002: call Void Avalonia.Controls.TopLevel::set_ClientSize(Avalonia.Size)
+  IL_0007: ldarg.0
+  IL_0008: ldarga.s 1
+  IL_000A: call Double Avalonia.Size::get_Width()
+  IL_000F: call Void Avalonia.Layout.Layoutable::set_Width(Double)
+  IL_0014: ldarg.0
+  IL_0015: ldarga.s 1
+  IL_0017: call Double Avalonia.Size::get_Height()
+  IL_001C: call Void Avalonia.Layout.Layoutable::set_Height(Double)
+  IL_0021: ldarg.0
+  IL_0022: call Avalonia.Layout.ILayoutManager Avalonia.Controls.TopLevel::get_LayoutManager()
+  IL_0027: callvirt Void Avalonia.Layout.ILayoutManager::ExecuteLayoutPass()
+  IL_002C: ldarg.0
+  IL_002D: call Avalonia.Rendering.Composition.CompositingRenderer Avalonia.Controls.TopLevel::get_Renderer()
+  IL_0032: ldarg.1
+  IL_0033: callvirt Void Avalonia.Rendering.Composition.CompositingRenderer::Resized(Avalonia.Size)
+  IL_0038: ret
+
+// ===== type Avalonia.Controls.WindowBase : Avalonia.Controls.TopLevel
+method Void Avalonia.Controls.WindowBase::HandleResized(Avalonia.Size clientSize, Avalonia.Controls.WindowResizeReason reason) [Assembly, Virtual, HideBySig, CheckAccessOnOverride] rva=0x471B0
+  .local V_0 System.Nullable`1<Avalonia.Size>
+  IL_0000: ldarg.0
+  IL_0001: ldarg.0
+  IL_0002: call Avalonia.Platform.IWindowBaseImpl Avalonia.Controls.WindowBase::get_PlatformImpl()
+  IL_0007: dup
+  IL_0008: brtrue.s IL_0016
+  IL_000A: pop
+  IL_000B: ldloca.s 0
+  IL_000D: initobj System.Nullable`1<Avalonia.Size>
+  IL_0013: ldloc.0
+  IL_0014: br.s IL_001B
+  IL_0016: callvirt System.Nullable`1<Avalonia.Size> Avalonia.Platform.IWindowBaseImpl::get_FrameSize()
+  IL_001B: call Void Avalonia.Controls.TopLevel::set_FrameSize(System.Nullable`1<Avalonia.Size>)
+  IL_0020: ldarg.0
+  IL_0021: call Avalonia.Size Avalonia.Controls.TopLevel::get_ClientSize()
+  IL_0026: ldarg.1
+  IL_0027: call Boolean Avalonia.Size::op_Inequality(Avalonia.Size, Avalonia.Size)
+  IL_002C: ldarg.0
+  IL_002D: ldarg.1
+  IL_002E: call Void Avalonia.Controls.TopLevel::set_ClientSize(Avalonia.Size)
+  IL_0033: ldarg.0
+  IL_0034: ldarg.1
+  IL_0035: ldarg.2
+  IL_0036: newobj Void Avalonia.Controls.WindowResizedEventArgs::.ctor(Avalonia.Size, Avalonia.Controls.WindowResizeReason)
+  IL_003B: callvirt Void Avalonia.Controls.WindowBase::OnResized(Avalonia.Controls.WindowResizedEventArgs)
+  IL_0040: brfalse.s IL_0059
+  IL_0042: ldarg.0
+  IL_0043: call Avalonia.Layout.ILayoutManager Avalonia.Controls.TopLevel::get_LayoutManager()
+  IL_0048: callvirt Void Avalonia.Layout.ILayoutManager::ExecuteLayoutPass()
+  IL_004D: ldarg.0
+  IL_004E: call Avalonia.Rendering.Composition.CompositingRenderer Avalonia.Controls.TopLevel::get_Renderer()
+  IL_0053: ldarg.1
+  IL_0054: callvirt Void Avalonia.Rendering.Composition.CompositingRenderer::Resized(Avalonia.Size)
+  IL_0059: ret
+
+// ===== type Avalonia.Rendering.Composition.CompositingRenderer : System.Object
+method Void Avalonia.Rendering.Composition.CompositingRenderer::QueueUpdate() [Private, HideBySig] rva=0x1E925
+  IL_0000: ldarg.0
+  IL_0001: ldfld Boolean Avalonia.Rendering.Composition.CompositingRenderer::_queuedUpdate
+  IL_0006: brfalse.s IL_0009
+  IL_0008: ret
+  IL_0009: ldarg.0
+  IL_000A: ldc.i4.1
+  IL_000B: stfld Boolean Avalonia.Rendering.Composition.CompositingRenderer::_queuedUpdate
+  IL_0010: ldarg.0
+  IL_0011: ldfld Avalonia.Rendering.Composition.Compositor Avalonia.Rendering.Composition.CompositingRenderer::_compositor
+  IL_0016: ldarg.0
+  IL_0017: ldfld System.Action Avalonia.Rendering.Composition.CompositingRenderer::_update
+  IL_001C: callvirt Void Avalonia.Rendering.Composition.Compositor::RequestCompositionUpdate(System.Action)
+  IL_0021: ret
+
+method Void Avalonia.Rendering.Composition.CompositingRenderer::UpdateCore() [Private, HideBySig] rva=0x1EA80
+  .local V_0 Avalonia.Rendering.Composition.Transport.CompositionBatch
+  .local V_1 System.Collections.Generic.HashSet`1/Enumerator<Avalonia.Visual>
+  .local V_2 Avalonia.Visual
+  .local V_3 Avalonia.Rendering.Composition.CompositionDrawListVisual
+  .local V_4 Avalonia.Visual
+  .Finally try IL_002D..IL_004C handler IL_004C..IL_0058
+  .Finally try IL_0013..IL_0069 handler IL_0069..IL_0077
+  .Finally try IL_0083..IL_00AF handler IL_00AF..IL_00BD
+  IL_0000: ldarg.0
+  IL_0001: ldc.i4.0
+  IL_0002: stfld Boolean Avalonia.Rendering.Composition.CompositingRenderer::_queuedUpdate
+  IL_0007: ldarg.0
+  IL_0008: ldfld System.Collections.Generic.HashSet`1<Avalonia.Visual> Avalonia.Rendering.Composition.CompositingRenderer::_dirty
+  IL_000D: callvirt System.Collections.Generic.HashSet`1/Enumerator<!0> System.Collections.Generic.HashSet`1<Avalonia.Visual>::GetEnumerator()
+  IL_0012: stloc.1
+  IL_0013: br.s IL_005E
+  IL_0015: ldloca.s 1
+  IL_0017: call !0 System.Collections.Generic.HashSet`1/Enumerator<Avalonia.Visual>::get_Current()
+  IL_001C: stloc.2
+  IL_001D: ldloc.2
+  IL_001E: callvirt Avalonia.Rendering.Composition.CompositionDrawListVisual Avalonia.Visual::get_CompositionVisual()
+  IL_0023: stloc.3
+  IL_0024: ldloc.3
+  IL_0025: brfalse.s IL_005E
+  IL_0027: ldloc.2
+  IL_0028: callvirt Void Avalonia.Visual::SynchronizeCompositionProperties()
+  IL_002D: ldloc.2
+  IL_002E: ldarg.0
+  IL_002F: ldfld Avalonia.Rendering.Composition.Drawing.RenderDataDrawingContext Avalonia.Rendering.Composition.CompositingRenderer::_recorder
+  IL_0034: callvirt Void Avalonia.Visual::Render(Avalonia.Media.DrawingContext)
+  IL_0039: ldloc.3
+  IL_003A: ldarg.0
+  IL_003B: ldfld Avalonia.Rendering.Composition.Drawing.RenderDataDrawingContext Avalonia.Rendering.Composition.CompositingRenderer::_recorder
+  IL_0040: callvirt Avalonia.Rendering.Composition.Drawing.CompositionRenderData Avalonia.Rendering.Composition.Drawing.RenderDataDrawingContext::GetRenderResults()
+  IL_0045: callvirt Void Avalonia.Rendering.Composition.CompositionDrawListVisual::set_DrawList(Avalonia.Rendering.Composition.Drawing.CompositionRenderData)
+  IL_004A: leave.s IL_0058
+  IL_004C: ldarg.0
+  IL_004D: ldfld Avalonia.Rendering.Composition.Drawing.RenderDataDrawingContext Avalonia.Rendering.Composition.CompositingRenderer::_recorder
+  IL_0052: callvirt Void Avalonia.Rendering.Composition.Drawing.RenderDataDrawingContext::Reset()
+  IL_0057: endfinally
+  IL_0058: ldloc.2
+  IL_0059: callvirt Void Avalonia.Visual::SynchronizeCompositionChildVisuals()
+  IL_005E: ldloca.s 1
+  IL_0060: call Boolean System.Collections.Generic.HashSet`1/Enumerator<Avalonia.Visual>::MoveNext()
+  IL_0065: brtrue.s IL_0015
+  IL_0067: leave.s IL_0077
+  IL_0069: ldloca.s 1
+  IL_006B: constrained. System.Collections.Generic.HashSet`1/Enumerator<Avalonia.Visual>
+  IL_0071: callvirt Void System.IDisposable::Dispose()
+  IL_0076: endfinally
+  IL_0077: ldarg.0
+  IL_0078: ldfld System.Collections.Generic.HashSet`1<Avalonia.Visual> Avalonia.Rendering.Composition.CompositingRenderer::_recalculateChildren
+  IL_007D: callvirt System.Collections.Generic.HashSet`1/Enumerator<!0> System.Collections.Generic.HashSet`1<Avalonia.Visual>::GetEnumerator()
+  IL_0082: stloc.1
+  IL_0083: br.s IL_00A4
+  IL_0085: ldloca.s 1
+  IL_0087: call !0 System.Collections.Generic.HashSet`1/Enumerator<Avalonia.Visual>::get_Current()
+  IL_008C: stloc.s 4
+  IL_008E: ldarg.0
+  IL_008F: ldfld System.Collections.Generic.HashSet`1<Avalonia.Visual> Avalonia.Rendering.Composition.CompositingRenderer::_dirty
+  IL_0094: ldloc.s 4
+  IL_0096: callvirt Boolean System.Collections.Generic.HashSet`1<Avalonia.Visual>::Contains(!0)
+  IL_009B: brtrue.s IL_00A4
+  IL_009D: ldloc.s 4
+  IL_009F: callvirt Void Avalonia.Visual::SynchronizeCompositionChildVisuals()
+  IL_00A4: ldloca.s 1
+  IL_00A6: call Boolean System.Collections.Generic.HashSet`1/Enumerator<Avalonia.Visual>::MoveNext()
+  IL_00AB: brtrue.s IL_0085
+  IL_00AD: leave.s IL_00BD
+  IL_00AF: ldloca.s 1
+  IL_00B1: constrained. System.Collections.Generic.HashSet`1/Enumerator<Avalonia.Visual>
+  IL_00B7: callvirt Void System.IDisposable::Dispose()
+  IL_00BC: endfinally
+  IL_00BD: ldarg.0
+  IL_00BE: ldfld System.Collections.Generic.HashSet`1<Avalonia.Visual> Avalonia.Rendering.Composition.CompositingRenderer::_dirty
+  IL_00C3: callvirt Void System.Collections.Generic.HashSet`1<Avalonia.Visual>::Clear()
+  IL_00C8: ldarg.0
+  IL_00C9: ldfld System.Collections.Generic.HashSet`1<Avalonia.Visual> Avalonia.Rendering.Composition.CompositingRenderer::_recalculateChildren
+  IL_00CE: callvirt Void System.Collections.Generic.HashSet`1<Avalonia.Visual>::Clear()
+  IL_00D3: ldarg.0
+  IL_00D4: call Avalonia.Rendering.Composition.CompositionTarget Avalonia.Rendering.Composition.CompositingRenderer::get_CompositionTarget()
+  IL_00D9: ldarg.0
+  IL_00DA: ldfld Avalonia.Rendering.IPresentationSource Avalonia.Rendering.Composition.CompositingRenderer::_root
+  IL_00DF: callvirt Avalonia.Size Avalonia.Rendering.IPresentationSource::get_ClientSize()
+  IL_00E4: callvirt Void Avalonia.Rendering.Composition.CompositionTarget::set_Size(Avalonia.Size)
+  IL_00E9: ldarg.0
+  IL_00EA: call Avalonia.Rendering.Composition.CompositionTarget Avalonia.Rendering.Composition.CompositingRenderer::get_CompositionTarget()
+  IL_00EF: ldarg.0
+  IL_00F0: ldfld Avalonia.Rendering.IPresentationSource Avalonia.Rendering.Composition.CompositingRenderer::_root
+  IL_00F5: callvirt Double Avalonia.Rendering.IPresentationSource::get_RenderScaling()
+  IL_00FA: callvirt Void Avalonia.Rendering.Composition.CompositionTarget::set_Scaling(Double)
+  IL_00FF: ldarg.0
+  IL_0100: ldfld Avalonia.Rendering.Composition.Compositor Avalonia.Rendering.Composition.CompositingRenderer::_compositor
+  IL_0105: callvirt Avalonia.Rendering.Composition.Transport.CompositionBatch Avalonia.Rendering.Composition.Compositor::RequestCompositionBatchCommitAsync()
+  IL_010A: stloc.0
+  IL_010B: ldarg.0
+  IL_010C: ldfld Boolean Avalonia.Rendering.Composition.CompositingRenderer::_queuedSceneInvalidation
+  IL_0111: brtrue.s IL_0141
+  IL_0113: ldarg.0
+  IL_0114: ldc.i4.1
+  IL_0115: stfld Boolean Avalonia.Rendering.Composition.CompositingRenderer::_queuedSceneInvalidation
+  IL_011A: ldloc.0
+  IL_011B: callvirt System.Threading.Tasks.Task Avalonia.Rendering.Composition.Transport.CompositionBatch::get_Rendered()
+  IL_0120: ldarg.0
+  IL_0121: ldftn Void Avalonia.Rendering.Composition.CompositingRenderer::<UpdateCore>b__28_0(System.Threading.Tasks.Task)
+  IL_0127: newobj Void System.Action`1<System.Threading.Tasks.Task>::.ctor(Object, IntPtr)
+  IL_012C: call System.Threading.CancellationToken System.Threading.CancellationToken::get_None()
+  IL_0131: ldc.i4 524288 (0x80000)
+  IL_0136: call System.Threading.Tasks.TaskScheduler System.Threading.Tasks.TaskScheduler::get_Default()
+  IL_013B: callvirt System.Threading.Tasks.Task System.Threading.Tasks.Task::ContinueWith(System.Action`1<System.Threading.Tasks.Task>, System.Threading.CancellationToken, System.Threading.Tasks.TaskContinuationOptions, System.Threading.Tasks.TaskScheduler)
+  IL_0140: pop
+  IL_0141: ret
+
+method Void Avalonia.Rendering.Composition.CompositingRenderer::Resized(Avalonia.Size size) [Public, Final, Virtual, HideBySig, VtableLayoutMask] rva=0x1EC80
+  IL_0000: ret
+
+method Void Avalonia.Rendering.Composition.CompositingRenderer::Paint(Avalonia.Rect rect) [Public, Final, Virtual, HideBySig, VtableLayoutMask] rva=0x1EC82
+  IL_0000: ldarg.0
+  IL_0001: ldarg.1
+  IL_0002: ldc.i4.1
+  IL_0003: call Void Avalonia.Rendering.Composition.CompositingRenderer::Paint(Avalonia.Rect, Boolean)
+  IL_0008: ret
+
+method Void Avalonia.Rendering.Composition.CompositingRenderer::Paint(Avalonia.Rect rect, Boolean catchExceptions) [Public, HideBySig] rva=0x1EC8C
+  IL_0000: ldarg.0
+  IL_0001: ldfld Boolean Avalonia.Rendering.Composition.CompositingRenderer::_isDisposed
+  IL_0006: brfalse.s IL_0009
+  IL_0008: ret
+  IL_0009: ldarg.0
+  IL_000A: call Void Avalonia.Rendering.Composition.CompositingRenderer::QueueUpdate()
+  IL_000F: ldarg.0
+  IL_0010: call Avalonia.Rendering.Composition.CompositionTarget Avalonia.Rendering.Composition.CompositingRenderer::get_CompositionTarget()
+  IL_0015: callvirt Void Avalonia.Rendering.Composition.CompositionTarget::RequestRedraw()
+  IL_001A: call Avalonia.Media.MediaContext Avalonia.Media.MediaContext::get_Instance()
+  IL_001F: ldarg.0
+  IL_0020: call Avalonia.Rendering.Composition.CompositionTarget Avalonia.Rendering.Composition.CompositingRenderer::get_CompositionTarget()
+  IL_0025: ldarg.2
+  IL_0026: callvirt Void Avalonia.Media.MediaContext::ImmediateRenderRequested(Avalonia.Rendering.Composition.CompositionTarget, Boolean)
+  IL_002B: ret
+
+// ===== type Avalonia.Media.MediaContext : System.Object
+method Void Avalonia.Media.MediaContext::SyncCommit(Avalonia.Rendering.Composition.Compositor compositor, Boolean waitFullRender, Boolean catchExceptions) [Private, HideBySig] rva=0x6EE60
+  .local V_0 System.IDisposable
+  .Finally try IL_0013..IL_0025 handler IL_0025..IL_002F
+  IL_0000: call Avalonia.IAvaloniaDependencyResolver Avalonia.AvaloniaLocator::get_Current()
+  IL_0005: call !!0 Avalonia.LocatorExtensions::GetService(Avalonia.IAvaloniaDependencyResolver)<Avalonia.Platform.IPlatformRenderInterface>
+  IL_000A: brtrue.s IL_000D
+  IL_000C: ret
+  IL_000D: call System.IDisposable Avalonia.Utilities.NonPumpingLockHelper::Use()
+  IL_0012: stloc.0
+  IL_0013: ldarg.0
+  IL_0014: ldarg.1
+  IL_0015: ldarg.0
+  IL_0016: ldarg.1
+  IL_0017: call Avalonia.Rendering.Composition.Transport.CompositionBatch Avalonia.Media.MediaContext::CommitCompositor(Avalonia.Rendering.Composition.Compositor)
+  IL_001C: ldarg.2
+  IL_001D: ldarg.3
+  IL_001E: call Void Avalonia.Media.MediaContext::SyncWaitCompositorBatch(Avalonia.Rendering.Composition.Compositor, Avalonia.Rendering.Composition.Transport.CompositionBatch, Boolean, Boolean)
+  IL_0023: leave.s IL_002F
+  IL_0025: ldloc.0
+  IL_0026: brfalse.s IL_002E
+  IL_0028: ldloc.0
+  IL_0029: callvirt Void System.IDisposable::Dispose()
+  IL_002E: endfinally
+  IL_002F: ret
+
+method Void Avalonia.Media.MediaContext::SyncWaitCompositorBatch(Avalonia.Rendering.Composition.Compositor compositor, Avalonia.Rendering.Composition.Transport.CompositionBatch batch, Boolean waitFullRender, Boolean catchExceptions) [Private, HideBySig] rva=0x6EEAC
+  .local V_0 System.IDisposable
+  .local V_1 Avalonia.Rendering.IRenderLoop
+  .Finally try IL_0006..IL_004A handler IL_004A..IL_0054
+  IL_0000: call System.IDisposable Avalonia.Utilities.NonPumpingLockHelper::Use()
+  IL_0005: stloc.0
+  IL_0006: ldarg.1
+  IL_0007: brfalse.s IL_003B
+  IL_0009: ldarg.1
+  IL_000A: callvirt Boolean Avalonia.Rendering.Composition.Compositor::get_UseUiThreadForSynchronousCommits()
+  IL_000F: brtrue.s IL_003B
+  IL_0011: ldarg.1
+  IL_0012: callvirt Avalonia.Rendering.IRenderLoop Avalonia.Rendering.Composition.Compositor::get_Loop()
+  IL_0017: stloc.1
+  IL_0018: ldloc.1
+  IL_0019: brfalse.s IL_003B
+  IL_001B: ldloc.1
+  IL_001C: callvirt Boolean Avalonia.Rendering.IRenderLoop::get_RunsInBackground()
+  IL_0021: brfalse.s IL_003B
+  IL_0023: ldarg.3
+  IL_0024: brtrue.s IL_002E
+  IL_0026: ldarg.2
+  IL_0027: callvirt System.Threading.Tasks.Task Avalonia.Rendering.Composition.Transport.CompositionBatch::get_Processed()
+  IL_002C: br.s IL_0034
+  IL_002E: ldarg.2
+  IL_002F: callvirt System.Threading.Tasks.Task Avalonia.Rendering.Composition.Transport.CompositionBatch::get_Rendered()
+  IL_0034: callvirt Void System.Threading.Tasks.Task::Wait()
+  IL_0039: leave.s IL_0054
+  IL_003B: ldarg.1
+  IL_003C: callvirt Avalonia.Rendering.Composition.Server.ServerCompositor Avalonia.Rendering.Composition.Compositor::get_Server()
+  IL_0041: ldarg.s 4
+  IL_0043: callvirt Void Avalonia.Rendering.Composition.Server.ServerCompositor::Render(Boolean)
+  IL_0048: leave.s IL_0054
+  IL_004A: ldloc.0
+  IL_004B: brfalse.s IL_0053
+  IL_004D: ldloc.0
+  IL_004E: callvirt Void System.IDisposable::Dispose()
+  IL_0053: endfinally
+  IL_0054: ret
+
+method Void Avalonia.Media.MediaContext::ImmediateRenderRequested(Avalonia.Rendering.Composition.CompositionTarget target, Boolean catchExceptions) [Public, HideBySig] rva=0x6EF20
+  IL_0000: ldarg.0
+  IL_0001: ldarg.1
+  IL_0002: callvirt Avalonia.Rendering.Composition.Compositor Avalonia.Rendering.Composition.CompositionObject::get_Compositor()
+  IL_0007: ldc.i4.1
+  IL_0008: ldarg.2
+  IL_0009: call Void Avalonia.Media.MediaContext::SyncCommit(Avalonia.Rendering.Composition.Compositor, Boolean, Boolean)
+  IL_000E: ret
+
+// ===== type Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow : System.Object
+//   field Avalonia.OpenGL.Egl.EglGlPlatformSurface/IEglWindowGlPlatformSurfaceInfo <WindowInfo>k__BackingField
+//   field Avalonia.Win32.WinRT.Composition.WinUiCompositionShared _shared
+//   field Avalonia.Win32.WinRT.ICompositionRoundedRectangleGeometry _compositionRoundedRectangleGeometry
+//   field Avalonia.Win32.WinRT.IVisual _micaLight
+//   field Avalonia.Win32.WinRT.IVisual _micaDark
+//   field Avalonia.Win32.WinRT.IVisual _blur
+//   field Avalonia.Win32.WinRT.IVisual _visual
+//   field Avalonia.PixelSize _size
+//   field Avalonia.Win32.WinRT.ICompositionSurfaceBrush _surfaceBrush
+//   field Avalonia.Win32.WinRT.ICompositionTarget _target
+method Void Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::.ctor(Avalonia.OpenGL.Egl.EglGlPlatformSurface/IEglWindowGlPlatformSurfaceInfo info, Avalonia.Win32.WinRT.Composition.WinUiCompositionShared shared, System.Nullable`1<Single> backdropCornerRadius) [Public, HideBySig, SpecialName, RTSpecialName] rva=0x2064C
+  .local V_0 Avalonia.Win32.WinRT.IDesktopWindowTarget
+  .local V_1 Avalonia.Win32.WinRT.IContainerVisual
+  .local V_2 Avalonia.Win32.WinRT.IVisual
+  .local V_3 Avalonia.Win32.WinRT.IVisual2
+  .local V_4 Avalonia.Win32.WinRT.IVisualCollection
+  .local V_5 Avalonia.Win32.WinRT.ISpriteVisual
+  .local V_6 Avalonia.Win32.WinRT.ICompositionBrush
+  .Finally try IL_016F..IL_0186 handler IL_0186..IL_0192
+  .Finally try IL_0137..IL_0192 handler IL_0192..IL_019E
+  .Finally try IL_006F..IL_019E handler IL_019E..IL_01AA
+  .Finally try IL_0052..IL_01AA handler IL_01AA..IL_01B4
+  .Finally try IL_004B..IL_01B4 handler IL_01B4..IL_01BE
+  .Finally try IL_0044..IL_01BE handler IL_01BE..IL_01C8
+  .Finally try IL_002C..IL_01C8 handler IL_01C8..IL_01D2
+  IL_0000: ldarg.0
+  IL_0001: call Void System.Object::.ctor()
+  IL_0006: ldarg.0
+  IL_0007: ldarg.1
+  IL_0008: stfld Avalonia.OpenGL.Egl.EglGlPlatformSurface/IEglWindowGlPlatformSurfaceInfo Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::<WindowInfo>k__BackingField
+  IL_000D: ldarg.0
+  IL_000E: ldarg.2
+  IL_000F: stfld Avalonia.Win32.WinRT.Composition.WinUiCompositionShared Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_shared
+  IL_0014: ldarg.2
+  IL_0015: callvirt Avalonia.Win32.WinRT.ICompositorDesktopInterop Avalonia.Win32.WinRT.Composition.WinUiCompositionShared::get_DesktopInterop()
+  IL_001A: ldarg.0
+  IL_001B: call Avalonia.OpenGL.Egl.EglGlPlatformSurface/IEglWindowGlPlatformSurfaceInfo Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::get_WindowInfo()
+  IL_0020: callvirt IntPtr Avalonia.OpenGL.Egl.EglGlPlatformSurface/IEglWindowGlPlatformSurfaceInfo::get_Handle()
+  IL_0025: ldc.i4.0
+  IL_0026: callvirt Avalonia.Win32.WinRT.IDesktopWindowTarget Avalonia.Win32.WinRT.ICompositorDesktopInterop::CreateDesktopWindowTarget(IntPtr, Int32)
+  IL_002B: stloc.0
+  IL_002C: ldarg.0
+  IL_002D: ldloc.0
+  IL_002E: call !!0 MicroCom.Runtime.MicroComRuntime::QueryInterface(MicroCom.Runtime.IUnknown)<Avalonia.Win32.WinRT.ICompositionTarget>
+  IL_0033: stfld Avalonia.Win32.WinRT.ICompositionTarget Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_target
+  IL_0038: ldarg.2
+  IL_0039: callvirt Avalonia.Win32.WinRT.ICompositor Avalonia.Win32.WinRT.Composition.WinUiCompositionShared::get_Compositor()
+  IL_003E: callvirt Avalonia.Win32.WinRT.IContainerVisual Avalonia.Win32.WinRT.ICompositor::CreateContainerVisual()
+  IL_0043: stloc.1
+  IL_0044: ldloc.1
+  IL_0045: call !!0 MicroCom.Runtime.MicroComRuntime::QueryInterface(MicroCom.Runtime.IUnknown)<Avalonia.Win32.WinRT.IVisual>
+  IL_004A: stloc.2
+  IL_004B: ldloc.1
+  IL_004C: call !!0 MicroCom.Runtime.MicroComRuntime::QueryInterface(MicroCom.Runtime.IUnknown)<Avalonia.Win32.WinRT.IVisual2>
+  IL_0051: stloc.3
+  IL_0052: ldloc.3
+  IL_0053: ldc.r4 1
+  IL_0058: ldc.r4 1
+  IL_005D: newobj Void System.Numerics.Vector2::.ctor(Single, Single)
+  IL_0062: callvirt Void Avalonia.Win32.WinRT.IVisual2::SetRelativeSizeAdjustment(System.Numerics.Vector2)
+  IL_0067: ldloc.1
+  IL_0068: callvirt Avalonia.Win32.WinRT.IVisualCollection Avalonia.Win32.WinRT.IContainerVisual::get_Children()
+  IL_006D: stloc.s 4
+  IL_006F: ldarg.0
+  IL_0070: ldfld Avalonia.Win32.WinRT.ICompositionTarget Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_target
+  IL_0075: ldloc.2
+  IL_0076: callvirt Void Avalonia.Win32.WinRT.ICompositionTarget::SetRoot(Avalonia.Win32.WinRT.IVisual)
+  IL_007B: ldarg.0
+  IL_007C: ldarg.2
+  IL_007D: callvirt Avalonia.Win32.WinRT.ICompositor Avalonia.Win32.WinRT.Composition.WinUiCompositionShared::get_Compositor()
+  IL_0082: ldarg.2
+  IL_0083: callvirt Avalonia.Win32.WinRT.ICompositionBrush Avalonia.Win32.WinRT.Composition.WinUiCompositionShared::get_BlurBrush()
+  IL_0088: call Avalonia.Win32.WinRT.IVisual Avalonia.Win32.WinRT.Composition.WinUiCompositionUtils::CreateBlurVisual(Avalonia.Win32.WinRT.ICompositor, Avalonia.Win32.WinRT.ICompositionBrush)
+  IL_008D: stfld Avalonia.Win32.WinRT.IVisual Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_blur
+  IL_0092: ldarg.2
+  IL_0093: callvirt Avalonia.Win32.WinRT.ICompositionBrush Avalonia.Win32.WinRT.Composition.WinUiCompositionShared::get_MicaBrushLight()
+  IL_0098: brfalse.s IL_00BE
+  IL_009A: ldarg.0
+  IL_009B: ldarg.2
+  IL_009C: callvirt Avalonia.Win32.WinRT.ICompositor Avalonia.Win32.WinRT.Composition.WinUiCompositionShared::get_Compositor()
+  IL_00A1: ldarg.2
+  IL_00A2: callvirt Avalonia.Win32.WinRT.ICompositionBrush Avalonia.Win32.WinRT.Composition.WinUiCompositionShared::get_MicaBrushLight()
+  IL_00A7: call Avalonia.Win32.WinRT.IVisual Avalonia.Win32.WinRT.Composition.WinUiCompositionUtils::CreateBlurVisual(Avalonia.Win32.WinRT.ICompositor, Avalonia.Win32.WinRT.ICompositionBrush)
+  IL_00AC: stfld Avalonia.Win32.WinRT.IVisual Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_micaLight
+  IL_00B1: ldloc.s 4
+  IL_00B3: ldarg.0
+  IL_00B4: ldfld Avalonia.Win32.WinRT.IVisual Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_micaLight
+  IL_00B9: callvirt Void Avalonia.Win32.WinRT.IVisualCollection::InsertAtTop(Avalonia.Win32.WinRT.IVisual)
+  IL_00BE: ldarg.2
+  IL_00BF: callvirt Avalonia.Win32.WinRT.ICompositionBrush Avalonia.Win32.WinRT.Composition.WinUiCompositionShared::get_MicaBrushDark()
+  IL_00C4: brfalse.s IL_00EA
+  IL_00C6: ldarg.0
+  IL_00C7: ldarg.2
+  IL_00C8: callvirt Avalonia.Win32.WinRT.ICompositor Avalonia.Win32.WinRT.Composition.WinUiCompositionShared::get_Compositor()
+  IL_00CD: ldarg.2
+  IL_00CE: callvirt Avalonia.Win32.WinRT.ICompositionBrush Avalonia.Win32.WinRT.Composition.WinUiCompositionShared::get_MicaBrushDark()
+  IL_00D3: call Avalonia.Win32.WinRT.IVisual Avalonia.Win32.WinRT.Composition.WinUiCompositionUtils::CreateBlurVisual(Avalonia.Win32.WinRT.ICompositor, Avalonia.Win32.WinRT.ICompositionBrush)
+  IL_00D8: stfld Avalonia.Win32.WinRT.IVisual Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_micaDark
+  IL_00DD: ldloc.s 4
+  IL_00DF: ldarg.0
+  IL_00E0: ldfld Avalonia.Win32.WinRT.IVisual Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_micaDark
+  IL_00E5: callvirt Void Avalonia.Win32.WinRT.IVisualCollection::InsertAtTop(Avalonia.Win32.WinRT.IVisual)
+  IL_00EA: ldarg.0
+  IL_00EB: ldarg.2
+  IL_00EC: callvirt Avalonia.Win32.WinRT.ICompositor Avalonia.Win32.WinRT.Composition.WinUiCompositionShared::get_Compositor()
+  IL_00F1: ldarg.3
+  IL_00F2: ldc.i4.3
+  IL_00F3: newarr Avalonia.Win32.WinRT.IVisual
+  IL_00F8: dup
+  IL_00F9: ldc.i4.0
+  IL_00FA: ldarg.0
+  IL_00FB: ldfld Avalonia.Win32.WinRT.IVisual Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_blur
+  IL_0100: stelem.ref
+  IL_0101: dup
+  IL_0102: ldc.i4.1
+  IL_0103: ldarg.0
+  IL_0104: ldfld Avalonia.Win32.WinRT.IVisual Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_micaLight
+  IL_0109: stelem.ref
+  IL_010A: dup
+  IL_010B: ldc.i4.2
+  IL_010C: ldarg.0
+  IL_010D: ldfld Avalonia.Win32.WinRT.IVisual Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_micaDark
+  IL_0112: stelem.ref
+  IL_0113: call Avalonia.Win32.WinRT.ICompositionRoundedRectangleGeometry Avalonia.Win32.WinRT.Composition.WinUiCompositionUtils::ClipVisual(Avalonia.Win32.WinRT.ICompositor, System.Nullable`1<Single>, Avalonia.Win32.WinRT.IVisual[])
+  IL_0118: stfld Avalonia.Win32.WinRT.ICompositionRoundedRectangleGeometry Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_compositionRoundedRectangleGeometry
+  IL_011D: ldloc.s 4
+  IL_011F: ldarg.0
+  IL_0120: ldfld Avalonia.Win32.WinRT.IVisual Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_blur
+  IL_0125: callvirt Void Avalonia.Win32.WinRT.IVisualCollection::InsertAtTop(Avalonia.Win32.WinRT.IVisual)
+  IL_012A: ldarg.2
+  IL_012B: callvirt Avalonia.Win32.WinRT.ICompositor Avalonia.Win32.WinRT.Composition.WinUiCompositionShared::get_Compositor()
+  IL_0130: callvirt Avalonia.Win32.WinRT.ISpriteVisual Avalonia.Win32.WinRT.ICompositor::CreateSpriteVisual()
+  IL_0135: stloc.s 5
+  IL_0137: ldarg.0
+  IL_0138: ldloc.s 5
+  IL_013A: call !!0 MicroCom.Runtime.MicroComRuntime::QueryInterface(MicroCom.Runtime.IUnknown)<Avalonia.Win32.WinRT.IVisual>
+  IL_013F: stfld Avalonia.Win32.WinRT.IVisual Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_visual
+  IL_0144: ldloc.s 4
+  IL_0146: ldarg.0
+  IL_0147: ldfld Avalonia.Win32.WinRT.IVisual Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_visual
+  IL_014C: callvirt Void Avalonia.Win32.WinRT.IVisualCollection::InsertAtTop(Avalonia.Win32.WinRT.IVisual)
+  IL_0151: ldarg.0
+  IL_0152: ldarg.2
+  IL_0153: callvirt Avalonia.Win32.WinRT.ICompositor Avalonia.Win32.WinRT.Composition.WinUiCompositionShared::get_Compositor()
+  IL_0158: callvirt Avalonia.Win32.WinRT.ICompositionSurfaceBrush Avalonia.Win32.WinRT.ICompositor::CreateSurfaceBrush()
+  IL_015D: stfld Avalonia.Win32.WinRT.ICompositionSurfaceBrush Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_surfaceBrush
+  IL_0162: ldarg.0
+  IL_0163: ldfld Avalonia.Win32.WinRT.ICompositionSurfaceBrush Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_surfaceBrush
+  IL_0168: call !!0 MicroCom.Runtime.MicroComRuntime::QueryInterface(MicroCom.Runtime.IUnknown)<Avalonia.Win32.WinRT.ICompositionBrush>
+  IL_016D: stloc.s 6
+  IL_016F: ldloc.s 5
+  IL_0171: ldloc.s 6
+  IL_0173: callvirt Void Avalonia.Win32.WinRT.ISpriteVisual::SetBrush(Avalonia.Win32.WinRT.ICompositionBrush)
+  IL_0178: ldarg.0
+  IL_0179: ldfld Avalonia.Win32.WinRT.ICompositionTarget Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_target
+  IL_017E: ldloc.2
+  IL_017F: callvirt Void Avalonia.Win32.WinRT.ICompositionTarget::SetRoot(Avalonia.Win32.WinRT.IVisual)
+  IL_0184: leave.s IL_01D2
+  IL_0186: ldloc.s 6
+  IL_0188: brfalse.s IL_0191
+  IL_018A: ldloc.s 6
+  IL_018C: callvirt Void System.IDisposable::Dispose()
+  IL_0191: endfinally
+  IL_0192: ldloc.s 5
+  IL_0194: brfalse.s IL_019D
+  IL_0196: ldloc.s 5
+  IL_0198: callvirt Void System.IDisposable::Dispose()
+  IL_019D: endfinally
+  IL_019E: ldloc.s 4
+  IL_01A0: brfalse.s IL_01A9
+  IL_01A2: ldloc.s 4
+  IL_01A4: callvirt Void System.IDisposable::Dispose()
+  IL_01A9: endfinally
+  IL_01AA: ldloc.3
+  IL_01AB: brfalse.s IL_01B3
+  IL_01AD: ldloc.3
+  IL_01AE: callvirt Void System.IDisposable::Dispose()
+  IL_01B3: endfinally
+  IL_01B4: ldloc.2
+  IL_01B5: brfalse.s IL_01BD
+  IL_01B7: ldloc.2
+  IL_01B8: callvirt Void System.IDisposable::Dispose()
+  IL_01BD: endfinally
+  IL_01BE: ldloc.1
+  IL_01BF: brfalse.s IL_01C7
+  IL_01C1: ldloc.1
+  IL_01C2: callvirt Void System.IDisposable::Dispose()
+  IL_01C7: endfinally
+  IL_01C8: ldloc.0
+  IL_01C9: brfalse.s IL_01D1
+  IL_01CB: ldloc.0
+  IL_01CC: callvirt Void System.IDisposable::Dispose()
+  IL_01D1: endfinally
+  IL_01D2: ret
+
+method Void Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::SetSurface(Avalonia.Win32.WinRT.ICompositionSurface surface) [Public, HideBySig] rva=0x208D8
+  IL_0000: ldarg.0
+  IL_0001: ldfld Avalonia.Win32.WinRT.ICompositionSurfaceBrush Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_surfaceBrush
+  IL_0006: ldarg.1
+  IL_0007: callvirt Void Avalonia.Win32.WinRT.ICompositionSurfaceBrush::SetSurface(Avalonia.Win32.WinRT.ICompositionSurface)
+  IL_000C: ret
+
+method Void Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::ResizeIfNeeded(Avalonia.PixelSize size) [Public, HideBySig] rva=0x209A0
+  .local V_0 Object
+  .local V_1 Boolean
+  .Finally try IL_000E..IL_0073 handler IL_0073..IL_007D
+  IL_0000: ldarg.0
+  IL_0001: ldfld Avalonia.Win32.WinRT.Composition.WinUiCompositionShared Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_shared
+  IL_0006: callvirt Object Avalonia.Win32.WinRT.Composition.WinUiCompositionShared::get_SyncRoot()
+  IL_000B: stloc.0
+  IL_000C: ldc.i4.0
+  IL_000D: stloc.1
+  IL_000E: ldloc.0
+  IL_000F: ldloca.s 1
+  IL_0011: call Void System.Threading.Monitor::Enter(Object, Boolean&)
+  IL_0016: ldarg.0
+  IL_0017: ldfld Avalonia.PixelSize Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_size
+  IL_001C: ldarg.1
+  IL_001D: call Boolean Avalonia.PixelSize::op_Inequality(Avalonia.PixelSize, Avalonia.PixelSize)
+  IL_0022: brfalse.s IL_0071
+  IL_0024: ldarg.0
+  IL_0025: ldfld Avalonia.Win32.WinRT.IVisual Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_visual
+  IL_002A: ldarga.s 1
+  IL_002C: call Int32 Avalonia.PixelSize::get_Width()
+  IL_0031: conv.r4
+  IL_0032: ldarga.s 1
+  IL_0034: call Int32 Avalonia.PixelSize::get_Height()
+  IL_0039: conv.r4
+  IL_003A: newobj Void System.Numerics.Vector2::.ctor(Single, Single)
+  IL_003F: callvirt Void Avalonia.Win32.WinRT.IVisual::SetSize(System.Numerics.Vector2)
+  IL_0044: ldarg.0
+  IL_0045: ldfld Avalonia.Win32.WinRT.ICompositionRoundedRectangleGeometry Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_compositionRoundedRectangleGeometry
+  IL_004A: dup
+  IL_004B: brtrue.s IL_0050
+  IL_004D: pop
+  IL_004E: br.s IL_006A
+  IL_0050: ldarga.s 1
+  IL_0052: call Int32 Avalonia.PixelSize::get_Width()
+  IL_0057: conv.r4
+  IL_0058: ldarga.s 1
+  IL_005A: call Int32 Avalonia.PixelSize::get_Height()
+  IL_005F: conv.r4
+  IL_0060: newobj Void System.Numerics.Vector2::.ctor(Single, Single)
+  IL_0065: callvirt Void Avalonia.Win32.WinRT.ICompositionRoundedRectangleGeometry::SetSize(System.Numerics.Vector2)
+  IL_006A: ldarg.0
+  IL_006B: ldarg.1
+  IL_006C: stfld Avalonia.PixelSize Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::_size
+  IL_0071: leave.s IL_007D
+  IL_0073: ldloc.1
+  IL_0074: brfalse.s IL_007C
+  IL_0076: ldloc.0
+  IL_0077: call Void System.Threading.Monitor::Exit(Object)
+  IL_007C: endfinally
+  IL_007D: ret
+
+// ===== type Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget : System.Object
+method Avalonia.Win32.DirectX.IDirect3D11TextureRenderTargetRenderSession Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::BeginDraw(Avalonia.Platform.IRenderTarget/RenderTargetSceneInfo sceneInfo) [Public, Final, Virtual, HideBySig, VtableLayoutMask] rva=0x20DCC
+  .local V_0 System.IDisposable
+  .local V_1 Boolean
+  .local V_2 Avalonia.Platform.PlatformRenderTargetState
+  .local V_3 Boolean
+  .local V_4 Avalonia.PixelSize
+  .local V_5 Double
+  .local V_6 Void*
+  .local V_7 Avalonia.Win32.Interop.UnmanagedMethods/POINT
+  .local V_8 Avalonia.PixelPoint
+  .local V_9 MicroCom.Runtime.IUnknown
+  .local V_10 System.Guid
+  .local V_11 Avalonia.Win32.Interop.UnmanagedMethods/POINT
+  .local V_12 Avalonia.Win32.DirectX.IDirect3D11TextureRenderTargetRenderSession
+  .Catch try IL_00BB..IL_0121 handler IL_0121..IL_012E catch System.Exception
+  .Finally try IL_014F..IL_016D handler IL_016D..IL_0179
+  .Finally try IL_0024..IL_0179 handler IL_0179..IL_0197
+  IL_0000: ldarg.0
+  IL_0001: call Avalonia.Platform.PlatformRenderTargetState Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::get_State()
+  IL_0006: stloc.2
+  IL_0007: ldloca.s 2
+  IL_0009: call Boolean Avalonia.Platform.PlatformRenderTargetState::get_IsCorrupted()
+  IL_000E: brfalse.s IL_0016
+  IL_0010: newobj Void Avalonia.RenderTargetCorruptedException::.ctor()
+  IL_0015: throw
+  IL_0016: ldarg.0
+  IL_0017: ldfld Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_window
+  IL_001C: callvirt System.IDisposable Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::BeginTransaction()
+  IL_0021: stloc.0
+  IL_0022: ldc.i4.0
+  IL_0023: stloc.1
+  IL_0024: ldarga.s 1
+  IL_0026: call Avalonia.Rendering.Composition.CompositionTransparencyLevel Avalonia.Platform.IRenderTarget/RenderTargetSceneInfo::get_TransparencyLevel()
+  IL_002B: ldc.i4.0
+  IL_002C: cgt.un
+  IL_002E: stloc.3
+  IL_002F: ldarg.0
+  IL_0030: ldfld Avalonia.Win32.WinRT.ICompositionSurface Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_surface
+  IL_0035: brfalse.s IL_0050
+  IL_0037: ldarg.0
+  IL_0038: ldfld Avalonia.Win32.WinRT.ICompositionDrawingSurfaceInterop Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_surfaceInterop
+  IL_003D: brfalse.s IL_0050
+  IL_003F: ldarg.0
+  IL_0040: ldfld Avalonia.Win32.WinRT.ICompositionDrawingSurface Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_drawingSurface
+  IL_0045: brfalse.s IL_0050
+  IL_0047: ldarg.0
+  IL_0048: ldfld Boolean Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_isSurfaceSupportTransparency
+  IL_004D: ldloc.3
+  IL_004E: beq.s IL_008B
+  IL_0050: ldarg.0
+  IL_0051: ldfld Avalonia.Win32.WinRT.ICompositionSurface Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_surface
+  IL_0056: dup
+  IL_0057: brtrue.s IL_005C
+  IL_0059: pop
+  IL_005A: br.s IL_0061
+  IL_005C: callvirt Void System.IDisposable::Dispose()
+  IL_0061: ldarg.0
+  IL_0062: ldfld Avalonia.Win32.WinRT.ICompositionDrawingSurfaceInterop Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_surfaceInterop
+  IL_0067: dup
+  IL_0068: brtrue.s IL_006D
+  IL_006A: pop
+  IL_006B: br.s IL_0072
+  IL_006D: callvirt Void System.IDisposable::Dispose()
+  IL_0072: ldarg.0
+  IL_0073: ldfld Avalonia.Win32.WinRT.ICompositionDrawingSurface Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_drawingSurface
+  IL_0078: dup
+  IL_0079: brtrue.s IL_007E
+  IL_007B: pop
+  IL_007C: br.s IL_0083
+  IL_007E: callvirt Void System.IDisposable::Dispose()
+  IL_0083: ldarg.0
+  IL_0084: ldarga.s 1
+  IL_0086: call Void Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::CreateSurface(Avalonia.Platform.IRenderTarget/RenderTargetSceneInfo&)
+  IL_008B: ldarga.s 1
+  IL_008D: call Avalonia.PixelSize Avalonia.Platform.IRenderTarget/RenderTargetSceneInfo::get_Size()
+  IL_0092: stloc.s 4
+  IL_0094: ldarga.s 1
+  IL_0096: call Double Avalonia.Platform.IRenderTarget/RenderTargetSceneInfo::get_Scaling()
+  IL_009B: stloc.s 5
+  IL_009D: ldarg.0
+  IL_009E: ldfld Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_window
+  IL_00A3: ldloc.s 4
+  IL_00A5: callvirt Void Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::ResizeIfNeeded(Avalonia.PixelSize)
+  IL_00AA: ldarg.0
+  IL_00AB: ldfld Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_window
+  IL_00B0: ldarg.0
+  IL_00B1: ldfld Avalonia.Win32.WinRT.ICompositionSurface Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_surface
+  IL_00B6: callvirt Void Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::SetSurface(Avalonia.Win32.WinRT.ICompositionSurface)
+  IL_00BB: ldarg.0
+  IL_00BC: ldfld Avalonia.PixelSize Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_size
+  IL_00C1: ldloc.s 4
+  IL_00C3: call Boolean Avalonia.PixelSize::op_Inequality(Avalonia.PixelSize, Avalonia.PixelSize)
+  IL_00C8: brfalse.s IL_0103
+  IL_00CA: ldarg.0
+  IL_00CB: ldfld Avalonia.Win32.WinRT.ICompositionDrawingSurfaceInterop Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_surfaceInterop
+  IL_00D0: ldloca.s 11
+  IL_00D2: initobj Avalonia.Win32.Interop.UnmanagedMethods/POINT
+  IL_00D8: ldloca.s 11
+  IL_00DA: ldloca.s 4
+  IL_00DC: call Int32 Avalonia.PixelSize::get_Width()
+  IL_00E1: stfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/POINT::X
+  IL_00E6: ldloca.s 11
+  IL_00E8: ldloca.s 4
+  IL_00EA: call Int32 Avalonia.PixelSize::get_Height()
+  IL_00EF: stfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/POINT::Y
+  IL_00F4: ldloc.s 11
+  IL_00F6: callvirt Void Avalonia.Win32.WinRT.ICompositionDrawingSurfaceInterop::Resize(Avalonia.Win32.Interop.UnmanagedMethods/POINT)
+  IL_00FB: ldarg.0
+  IL_00FC: ldloc.s 4
+  IL_00FE: stfld Avalonia.PixelSize Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_size
+  IL_0103: ldsfld System.Guid Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::IID_ID3D11Texture2D
+  IL_0108: stloc.s 10
+  IL_010A: ldarg.0
+  IL_010B: ldfld Avalonia.Win32.WinRT.ICompositionDrawingSurfaceInterop Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_surfaceInterop
+  IL_0110: ldc.i4.0
+  IL_0111: conv.u
+  IL_0112: ldloca.s 10
+  IL_0114: conv.u
+  IL_0115: ldloca.s 6
+  IL_0117: conv.u
+  IL_0118: callvirt Avalonia.Win32.Interop.UnmanagedMethods/POINT Avalonia.Win32.WinRT.ICompositionDrawingSurfaceInterop::BeginDraw(Avalonia.Win32.Interop.UnmanagedMethods/RECT*, System.Guid*, Void**)
+  IL_011D: stloc.s 7
+  IL_011F: leave.s IL_012E
+  IL_0121: ldarg.0
+  IL_0122: ldc.i4.1
+  IL_0123: stfld Boolean Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_lost
+  IL_0128: newobj Void Avalonia.RenderTargetCorruptedException::.ctor(System.Exception)
+  IL_012D: throw
+  IL_012E: ldc.i4.1
+  IL_012F: stloc.1
+  IL_0130: ldloca.s 8
+  IL_0132: ldloc.s 7
+  IL_0134: ldfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/POINT::X
+  IL_0139: ldloc.s 7
+  IL_013B: ldfld Int32 Avalonia.Win32.Interop.UnmanagedMethods/POINT::Y
+  IL_0140: call Void Avalonia.PixelPoint::.ctor(Int32, Int32)
+  IL_0145: ldloc.s 6
+  IL_0147: ldc.i4.1
+  IL_0148: call !!0 MicroCom.Runtime.MicroComRuntime::CreateProxyFor(Void*, Boolean)<MicroCom.Runtime.IUnknown>
+  IL_014D: stloc.s 9
+  IL_014F: ldarg.0
+  IL_0150: ldfld Avalonia.Win32.WinRT.ICompositionDrawingSurfaceInterop Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_surfaceInterop
+  IL_0155: ldloc.s 9
+  IL_0157: ldloc.0
+  IL_0158: ldarg.0
+  IL_0159: ldfld Avalonia.PixelSize Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_size
+  IL_015E: ldloc.s 8
+  IL_0160: ldloc.s 5
+  IL_0162: newobj Void Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget/Session::.ctor(Avalonia.Win32.WinRT.ICompositionDrawingSurfaceInterop, MicroCom.Runtime.IUnknown, System.IDisposable, Avalonia.PixelSize, Avalonia.PixelPoint, Double)
+  IL_0167: ldnull
+  IL_0168: stloc.0
+  IL_0169: stloc.s 12
+  IL_016B: leave.s IL_0197
+  IL_016D: ldloc.s 9
+  IL_016F: brfalse.s IL_0178
+  IL_0171: ldloc.s 9
+  IL_0173: callvirt Void System.IDisposable::Dispose()
+  IL_0178: endfinally
+  IL_0179: ldloc.0
+  IL_017A: brfalse.s IL_0196
+  IL_017C: ldloc.1
+  IL_017D: brfalse.s IL_0190
+  IL_017F: ldarg.0
+  IL_0180: ldfld Avalonia.Win32.WinRT.ICompositionDrawingSurfaceInterop Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::_surfaceInterop
+  IL_0185: dup
+  IL_0186: brtrue.s IL_018B
+  IL_0188: pop
+  IL_0189: br.s IL_0190
+  IL_018B: callvirt Void Avalonia.Win32.WinRT.ICompositionDrawingSurfaceInterop::EndDraw()
+  IL_0190: ldloc.0
+  IL_0191: callvirt Void System.IDisposable::Dispose()
+  IL_0196: endfinally
+  IL_0197: ldloc.s 12
+  IL_0199: ret
+
+// ===== type Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowSurface : System.Object
+method Avalonia.Win32.DirectX.IDirect3D11TextureRenderTarget2 Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowSurface::CreateRenderTarget(Avalonia.Platform.IPlatformGraphicsContext context, IntPtr d3dDevice) [Public, Final, Virtual, HideBySig, VtableLayoutMask] rva=0x20A74
+  .local V_0 System.Nullable`1<Single>
+  .local V_1 System.Nullable`1<Single>
+  IL_0000: call Avalonia.IAvaloniaDependencyResolver Avalonia.AvaloniaLocator::get_Current()
+  IL_0005: call !!0 Avalonia.LocatorExtensions::GetService(Avalonia.IAvaloniaDependencyResolver)<Avalonia.Win32PlatformOptions>
+  IL_000A: dup
+  IL_000B: brtrue.s IL_0019
+  IL_000D: pop
+  IL_000E: ldloca.s 1
+  IL_0010: initobj System.Nullable`1<Single>
+  IL_0016: ldloc.1
+  IL_0017: br.s IL_001E
+  IL_0019: call System.Nullable`1<Single> Avalonia.Win32PlatformOptions::get_WinUICompositionBackdropCornerRadius()
+  IL_001E: stloc.0
+  IL_001F: ldarg.0
+  IL_0020: ldfld Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowSurface::_window
+  IL_0025: brtrue.s IL_003F
+  IL_0027: ldarg.0
+  IL_0028: ldarg.0
+  IL_0029: ldfld Avalonia.OpenGL.Egl.EglGlPlatformSurface/IEglWindowGlPlatformSurfaceInfo Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowSurface::_info
+  IL_002E: ldarg.0
+  IL_002F: ldfld Avalonia.Win32.WinRT.Composition.WinUiCompositionShared Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowSurface::_shared
+  IL_0034: ldloc.0
+  IL_0035: newobj Void Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::.ctor(Avalonia.OpenGL.Egl.EglGlPlatformSurface/IEglWindowGlPlatformSurfaceInfo, Avalonia.Win32.WinRT.Composition.WinUiCompositionShared, System.Nullable`1<Single>)
+  IL_003A: stfld Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowSurface::_window
+  IL_003F: ldarg.0
+  IL_0040: ldfld Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowSurface::_window
+  IL_0045: ldarg.0
+  IL_0046: ldfld Avalonia.Win32.BlurEffect Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowSurface::_blurEffect
+  IL_004B: callvirt Void Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow::SetBlur(Avalonia.Win32.BlurEffect)
+  IL_0050: ldarg.1
+  IL_0051: ldarg.0
+  IL_0052: ldfld Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowSurface::_window
+  IL_0057: ldarg.2
+  IL_0058: ldarg.0
+  IL_0059: ldfld Avalonia.Win32.WinRT.Composition.WinUiCompositionShared Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowSurface::_shared
+  IL_005E: callvirt Avalonia.Win32.WinRT.ICompositor Avalonia.Win32.WinRT.Composition.WinUiCompositionShared::get_Compositor()
+  IL_0063: newobj Void Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowRenderTarget::.ctor(Avalonia.Platform.IPlatformGraphicsContext, Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow, IntPtr, Avalonia.Win32.WinRT.ICompositor)
+  IL_0068: ret
+
+// ===== type Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection : System.Object
+method Boolean Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection::get_RunsInBackground() [Public, Final, Virtual, HideBySig, VtableLayoutMask, SpecialName] rva=0x21B39
+  IL_0000: ldc.i4.1
+  IL_0001: ret
+
+method Boolean Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection::TryCreateAndRegisterCore() [Private, Static, HideBySig] rva=0x21BD8
+  IL_0000: newobj Void Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/<>c__DisplayClass10_0::.ctor()
+  IL_0005: dup
+  IL_0006: newobj Void System.Threading.Tasks.TaskCompletionSource`1<Boolean>::.ctor()
+  IL_000B: stfld System.Threading.Tasks.TaskCompletionSource`1<Boolean> Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/<>c__DisplayClass10_0::tcs
+  IL_0010: dup
+  IL_0011: ldftn Void Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/<>c__DisplayClass10_0::<TryCreateAndRegisterCore>b__0()
+  IL_0017: newobj Void System.Threading.ThreadStart::.ctor(Object, IntPtr)
+  IL_001C: newobj Void System.Threading.Thread::.ctor(System.Threading.ThreadStart)
+  IL_0021: dup
+  IL_0022: ldc.i4.1
+  IL_0023: callvirt Void System.Threading.Thread::set_IsBackground(Boolean)
+  IL_0028: dup
+  IL_0029: ldstr "DwmRenderTimerLoop"
+  IL_002E: callvirt Void System.Threading.Thread::set_Name(String)
+  IL_0033: dup
+  IL_0034: ldc.i4.0
+  IL_0035: callvirt Void System.Threading.Thread::SetApartmentState(System.Threading.ApartmentState)
+  IL_003A: callvirt Void System.Threading.Thread::Start()
+  IL_003F: ldfld System.Threading.Tasks.TaskCompletionSource`1<Boolean> Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/<>c__DisplayClass10_0::tcs
+  IL_0044: callvirt System.Threading.Tasks.Task`1<!0> System.Threading.Tasks.TaskCompletionSource`1<Boolean>::get_Task()
+  IL_0049: callvirt !0 System.Threading.Tasks.Task`1<Boolean>::get_Result()
+  IL_004E: ret
+
+// ===== type Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/RunLoopHandler : Avalonia.MicroCom.CallbackBase
+method Void Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/RunLoopHandler::OnCommitCompleted() [Private, HideBySig] rva=0x34A78
+  IL_0000: ldarg.0
+  IL_0001: ldfld Avalonia.Win32.WinRT.IAsyncAction Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/RunLoopHandler::_currentCommit
+  IL_0006: dup
+  IL_0007: brtrue.s IL_000C
+  IL_0009: pop
+  IL_000A: br.s IL_0011
+  IL_000C: callvirt Void System.IDisposable::Dispose()
+  IL_0011: ldarg.0
+  IL_0012: ldnull
+  IL_0013: stfld Avalonia.Win32.WinRT.IAsyncAction Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/RunLoopHandler::_currentCommit
+  IL_0018: ldarg.0
+  IL_0019: ldfld Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/RunLoopHandler::_parent
+  IL_001E: volatile.
+  IL_0020: ldfld System.Action`1<System.TimeSpan> Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection::_tick
+  IL_0025: dup
+  IL_0026: brtrue.s IL_002B
+  IL_0028: pop
+  IL_0029: br.s IL_003B
+  IL_002B: ldarg.0
+  IL_002C: ldfld System.Diagnostics.Stopwatch Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/RunLoopHandler::_st
+  IL_0031: callvirt System.TimeSpan System.Diagnostics.Stopwatch::get_Elapsed()
+  IL_0036: callvirt Void System.Action`1<System.TimeSpan>::Invoke(!0)
+  IL_003B: ldarg.0
+  IL_003C: call Void Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/RunLoopHandler::ScheduleNextCommit()
+  IL_0041: ldarg.0
+  IL_0042: ldc.i4.1
+  IL_0043: stfld Boolean Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/RunLoopHandler::_commitCompleted
+  IL_0048: ret
+
+method Void Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/RunLoopHandler::ScheduleNextCommit() [Private, HideBySig] rva=0x34B30
+  IL_0000: ldarg.0
+  IL_0001: ldarg.0
+  IL_0002: ldfld System.Diagnostics.Stopwatch Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/RunLoopHandler::_st
+  IL_0007: callvirt System.TimeSpan System.Diagnostics.Stopwatch::get_Elapsed()
+  IL_000C: ldc.i4.1
+  IL_000D: conv.i8
+  IL_000E: call System.TimeSpan System.TimeSpan::FromSeconds(Int64)
+  IL_0013: call System.TimeSpan System.TimeSpan::op_Addition(System.TimeSpan, System.TimeSpan)
+  IL_0018: newobj Void System.Nullable`1<System.TimeSpan>::.ctor(!0)
+  IL_001D: stfld System.Nullable`1<System.TimeSpan> Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/RunLoopHandler::_commitDueAt
+  IL_0022: ldarg.0
+  IL_0023: ldarg.0
+  IL_0024: ldfld Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/RunLoopHandler::_parent
+  IL_0029: ldfld Avalonia.Win32.WinRT.Composition.WinUiCompositionShared Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection::_shared
+  IL_002E: callvirt Avalonia.Win32.WinRT.ICompositor5 Avalonia.Win32.WinRT.Composition.WinUiCompositionShared::get_Compositor5()
+  IL_0033: callvirt Avalonia.Win32.WinRT.IAsyncAction Avalonia.Win32.WinRT.ICompositor5::RequestCommitAsync()
+  IL_0038: stfld Avalonia.Win32.WinRT.IAsyncAction Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/RunLoopHandler::_currentCommit
+  IL_003D: ldarg.0
+  IL_003E: ldfld Avalonia.Win32.WinRT.IAsyncAction Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection/RunLoopHandler::_currentCommit
+  IL_0043: ldarg.0
+  IL_0044: callvirt Void Avalonia.Win32.WinRT.IAsyncAction::SetCompleted(Avalonia.Win32.WinRT.IAsyncActionCompletedHandler)
+  IL_0049: ret
+
+// ===== type Avalonia.Win32.WinRT.Composition.WinUiCompositionUtils : System.Object
+method Avalonia.Win32.WinRT.IVisual Avalonia.Win32.WinRT.Composition.WinUiCompositionUtils::CreateBlurVisual(Avalonia.Win32.WinRT.ICompositor compositor, Avalonia.Win32.WinRT.ICompositionBrush compositionBrush) [Public, Static, HideBySig] rva=0x219E4
+  .local V_0 Avalonia.Win32.WinRT.ISpriteVisual
+  .local V_1 Avalonia.Win32.WinRT.IVisual
+  .local V_2 Avalonia.Win32.WinRT.IVisual2
+  .local V_3 Avalonia.Win32.WinRT.IVisual
+  .Finally try IL_0015..IL_0041 handler IL_0041..IL_004B
+  .Finally try IL_000E..IL_004B handler IL_004B..IL_0055
+  .Finally try IL_0007..IL_0055 handler IL_0055..IL_005F
+  IL_0000: ldarg.0
+  IL_0001: callvirt Avalonia.Win32.WinRT.ISpriteVisual Avalonia.Win32.WinRT.ICompositor::CreateSpriteVisual()
+  IL_0006: stloc.0
+  IL_0007: ldloc.0
+  IL_0008: call !!0 MicroCom.Runtime.MicroComRuntime::QueryInterface(MicroCom.Runtime.IUnknown)<Avalonia.Win32.WinRT.IVisual>
+  IL_000D: stloc.1
+  IL_000E: ldloc.0
+  IL_000F: call !!0 MicroCom.Runtime.MicroComRuntime::QueryInterface(MicroCom.Runtime.IUnknown)<Avalonia.Win32.WinRT.IVisual2>
+  IL_0014: stloc.2
+  IL_0015: ldloc.0
+  IL_0016: ldarg.1
+  IL_0017: callvirt Void Avalonia.Win32.WinRT.ISpriteVisual::SetBrush(Avalonia.Win32.WinRT.ICompositionBrush)
+  IL_001C: ldloc.1
+  IL_001D: ldc.i4.0
+  IL_001E: callvirt Void Avalonia.Win32.WinRT.IVisual::SetIsVisible(Int32)
+  IL_0023: ldloc.2
+  IL_0024: ldc.r4 1
+  IL_0029: ldc.r4 1
+  IL_002E: newobj Void System.Numerics.Vector2::.ctor(Single, Single)
+  IL_0033: callvirt Void Avalonia.Win32.WinRT.IVisual2::SetRelativeSizeAdjustment(System.Numerics.Vector2)
+  IL_0038: ldloc.1
+  IL_0039: call !!0 MicroCom.Runtime.MicroComRuntime::CloneReference(!!0)<Avalonia.Win32.WinRT.IVisual>
+  IL_003E: stloc.3
+  IL_003F: leave.s IL_005F
+  IL_0041: ldloc.2
+  IL_0042: brfalse.s IL_004A
+  IL_0044: ldloc.2
+  IL_0045: callvirt Void System.IDisposable::Dispose()
+  IL_004A: endfinally
+  IL_004B: ldloc.1
+  IL_004C: brfalse.s IL_0054
+  IL_004E: ldloc.1
+  IL_004F: callvirt Void System.IDisposable::Dispose()
+  IL_0054: endfinally
+  IL_0055: ldloc.0
+  IL_0056: brfalse.s IL_005E
+  IL_0058: ldloc.0
+  IL_0059: callvirt Void System.IDisposable::Dispose()
+  IL_005E: endfinally
+  IL_005F: ldloc.3
+  IL_0060: ret
+
+// ===== type Avalonia.Win32.WinRT.Impl.__MicroComICompositorVTable : Avalonia.Win32.WinRT.Impl.__MicroComIInspectableVTable
+method Int32 Avalonia.Win32.WinRT.Impl.__MicroComICompositorVTable::CreateColorBrushWithColor(Void* this, Avalonia.Win32.WinRT.WinRTColor* color, Void** result) [Private, Static, HideBySig] rva=0x14050
+  .local V_0 Avalonia.Win32.WinRT.ICompositor
+  .local V_1 Avalonia.Win32.WinRT.ICompositionColorBrush
+  .local V_2 Int32
+  .local V_3 System.Exception
+  .Catch try IL_0002..IL_0026 handler IL_0026..IL_002E catch System.Runtime.InteropServices.COMException
+  .Catch try IL_0002..IL_0026 handler IL_002E..IL_003E catch System.Exception
+  IL_0000: ldnull
+  IL_0001: stloc.0
+  IL_0002: ldarg.0
+  IL_0003: newobj Void System.IntPtr::.ctor(Void*)
+  IL_0008: call Object MicroCom.Runtime.MicroComRuntime::GetObjectFromCcw(IntPtr)
+  IL_000D: castclass Avalonia.Win32.WinRT.ICompositor
+  IL_0012: stloc.0
+  IL_0013: ldloc.0
+  IL_0014: ldarg.1
+  IL_0015: callvirt Avalonia.Win32.WinRT.ICompositionColorBrush Avalonia.Win32.WinRT.ICompositor::CreateColorBrushWithColor(Avalonia.Win32.WinRT.WinRTColor*)
+  IL_001A: stloc.1
+  IL_001B: ldarg.2
+  IL_001C: ldloc.1
+  IL_001D: ldc.i4.1
+  IL_001E: call Void* MicroCom.Runtime.MicroComRuntime::GetNativePointer(!!0, Boolean)<Avalonia.Win32.WinRT.ICompositionColorBrush>
+  IL_0023: stind.i
+  IL_0024: leave.s IL_003E
+  IL_0026: callvirt Int32 System.Runtime.InteropServices.ExternalException::get_ErrorCode()
+  IL_002B: stloc.2
+  IL_002C: leave.s IL_0040
+  IL_002E: stloc.3
+  IL_002F: ldloc.0
+  IL_0030: ldloc.3
+  IL_0031: call Void MicroCom.Runtime.MicroComRuntime::UnhandledException(Object, System.Exception)
+  IL_0036: ldc.i4 -2147467259 (0x80004005)
+  IL_003B: stloc.2
+  IL_003C: leave.s IL_0040
+  IL_003E: ldc.i4.0
+  IL_003F: ret
+  IL_0040: ldloc.2
+  IL_0041: ret
+
+==== Win32Platform.Initialize(options): the Compositor is built with useUiThreadForSynchronousCommits = false (IL_0195 ldc.i4.0, IL_0196 newobj)
+  IL_0144: brfalse.s IL_0172
+  IL_0172: call Avalonia.Platform.IPlatformGraphics Avalonia.Win32.Win32GlManager::Initialize()
+  IL_0195: ldc.i4.0
+  IL_0196: newobj Void Avalonia.Rendering.Composition.Compositor::.ctor(Avalonia.Platform.IPlatformGraphics, Boolean)

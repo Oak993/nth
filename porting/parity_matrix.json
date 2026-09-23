@@ -5,12 +5,13 @@
   },
   "note": "Every requirement carries file:line evidence from the pinned source and a verification method. Status SPECIFIED means specified, not implemented and not verified.",
   "counts": {
-    "total": 3938,
+    "total": 3939,
     "by_status": {
-      "SPECIFIED": 3872,
+      "SPECIFIED": 3860,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
       "DISCOVERED": 34,
-      "RETIRED": 6
+      "RETIRED": 6,
+      "IMPLEMENTED": 13
     },
     "by_area": {
       "CHAT": 193,
@@ -27,7 +28,7 @@
       "RUNTIME": 264,
       "SETTINGS": 272,
       "SIDEBAR": 164,
-      "STORE": 170,
+      "STORE": 171,
       "TERM": 134,
       "THEME": 184,
       "UPDATE": 113,
@@ -306,17 +307,19 @@
       "title": "A turn summary records status, duration and the file counts the folded turn shows",
       "source_evidence": [
         "DroppyCode/Core/Models/Timeline.swift:252-257 enum TurnStatus: String - running, completed, interrupted, failed",
-        "DroppyCode/Core/Models/Timeline.swift:259-267 struct TurnSummary - turnID, status, duration: TimeInterval, filesChanged, additions, deletions, changes: FileChangeSummary?"
+        "DroppyCode/Core/Models/Timeline.swift:259-267 struct TurnSummary - turnID, status, duration: TimeInterval, filesChanged, additions, deletions, changes: FileChangeSummary?",
+        "DroppyCode/Core/Models/Timeline.swift:4-26 struct TimelineItem (id, turnID: UUID?, date, content) and enum Content, synthesized, case turnEnd(TurnSummary)",
+        "DroppyCode/Core/Support/Coding.swift:19-25 JSONEncoder.storage - .iso8601 dates, .sortedKeys"
       ],
       "preconditions": "A turn ends.",
       "action": "A turnEnd item is appended.",
-      "expected_result": "The summary names the turn, its final status (one of the four), the elapsed seconds as a floating-point interval, the three integer counts, and optionally the full per-file change summary. changes is null on turns recorded by older builds, which is what drives the legacy back-fill (PR-CHAT-104).",
+      "expected_result": "The summary names the turn, its final status (one of the four), the elapsed seconds as a floating-point interval, the three integer counts, and optionally the full per-file change summary. changes is nil on turns recorded by older builds and on install's synthetic end marker (PR-RUNTIME-161); nil is written by omitting the key (synthesized encodeIfPresent), and an absent key or a stored null both read back as nil (decodeIfPresent), which is what drives the legacy back-fill (PR-CHAT-104). When changes is present it is the FileChangeSummary with the keys of PR-RUNTIME-264.",
       "side_effects": [],
       "persistence": "Stored in the turnEnd item's content.",
       "failure_cases": [],
       "cancellation": "not cancellable",
       "windows_path": "duration is seconds as a double, not milliseconds.",
-      "verification_method": "contract fixture",
+      "verification_method": "contract fixture - (1) round-trip a TimelineItem whose content is .turnEnd(TurnSummary(..., changes: a two-file summary, one of them binary)) through JSONEncoder.storage: assert the exact bytes (content.turnEnd._0 holding additions, changes, deletions, duration, filesChanged, status, turnID in sorted order; changes holding additions, deletions, files; each file holding additions, deletions, isBinary, path) and decode it back equal; (2) the same row with changes nil: assert the changes key is absent and that it decodes back to nil; (3) the same bytes with \"changes\":null decode to changes nil",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -606,7 +609,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0016",
+        "upstream": "DroppyCode/App/Views/Chat/ThreadTimeline.swift:132-135 `if runtime.isLoadingHistory { Color.clear }`",
+        "port": "While history loads the timeline stays empty for 400 ms, then shows the 64 px loading mark centred in it, fading in over 0.2 s (ED-097)."
+      }
     },
     {
       "area": "CHAT",
@@ -11650,7 +11658,7 @@
         "Stream creation or start failure leaves the watch with no stream; settledGeneration then returns nil at once and every capture is fresh"
       ],
       "cancellation": "The stream is stopped, invalidated and released in teardown, on its own queue, so no callback can be in flight.",
-      "windows_path": "Platform boundary: ReadDirectoryChangesW with FILE_NOTIFY_CHANGE_FILE_NAME, DIR_NAME, LAST_WRITE, SIZE and ATTRIBUTES, recursive, on a dedicated thread or IOCP; two directory handles when the git directory lies outside the root. There is no /private symlink analogue, so the realpath step becomes a full-path canonicalisation.",
+      "windows_path": "Platform boundary: ReadDirectoryChangesW with FILE_NOTIFY_CHANGE_FILE_NAME, DIR_NAME, LAST_WRITE, SIZE and ATTRIBUTES, recursive, on a dedicated thread or IOCP; one FileSystemWatcher (ReadDirectoryChangesW) over the root when the git directory lies under it; when it lies outside (a linked worktree), no watcher is started and the watch holds no stream, as when upstream's stream fails to start (ED-113), because two handles do not order events between them. There is no /private symlink analogue, so the realpath step becomes a full-path canonicalisation.",
       "verification_method": "interaction test observing a write is noticed within the cookie round trip",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -11882,7 +11890,7 @@
         "A volume that does not report events never delivers the cookie, so the watch is torn down and every later snapshot for that directory is taken fresh"
       ],
       "cancellation": "The timer task is cancelled when the event wins.",
-      "windows_path": "Platform boundary: the same cookie file trick maps directly onto ReadDirectoryChangesW, which also delivers in order. Keep the one second ceiling.",
+      "windows_path": "Platform boundary: the same cookie file trick maps onto ReadDirectoryChangesW, which delivers in order within one directory handle; the cookie is only used when the git directory lies under the root, one handle (ED-113); otherwise the watch has no stream and the answer is nil at once. UNVERIFIED on Windows: whether the event of a write made through a handle still open when the cookie is created arrives before the cookie's event (ReadDirectoryChangesW may report a last write only when the cache is flushed). Windows verification item for the GIT unit: append to a tracked file without closing it, write the cookie, and check which event arrives first. Keep the one second ceiling.",
       "verification_method": "interaction test with a shimmed stream that never delivers, asserting the one second timeout and the teardown",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -15389,7 +15397,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce byte for byte. The porting repository's own lint rules about apostrophes and spelling do not apply to model-visible source strings; add an exemption rather than editing the text.",
       "verification_method": "contract fixture comparing bytes, including the U+2019 codepoint",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 11",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -15399,8 +15407,7 @@
         "upstream": "DroppyCode/Core/Models/AntiSlopPolicy.swift:3 \"[Droppy Code anti-slop guidance]\" and :12 \"[Droppy Code anti-slop guidance: off]\"",
         "port": "The first lines read \"[Marrow anti-slop guidance]\" and \"[Marrow anti-slop guidance: off]\"; every other line, the U+2019 in \"product’s\" and the US spelling \"colors\" are unchanged."
       },
-      "spec_fix": "expected_result said the enabled text contains U+2019 in \"product's\" but wrote the word with an ASCII apostrophe (U+0027), so a worker copying it produced the wrong byte -> DroppyCode/Core/Models/AntiSlopPolicy.swift:6 \"For UI work, follow the product’s components, typography and colors.\" has RIGHT SINGLE QUOTATION MARK U+2019 (bytes E2 80 99); expected_result now carries that character.",
-      "rework": true
+      "spec_fix": "expected_result said the enabled text contains U+2019 in \"product's\" but wrote the word with an ASCII apostrophe (U+0027), so a worker copying it produced the wrong byte -> DroppyCode/Core/Models/AntiSlopPolicy.swift:6 \"For UI work, follow the product’s components, typography and colors.\" has RIGHT SINGLE QUOTATION MARK U+2019 (bytes E2 80 99); expected_result now carries that character."
     },
     {
       "area": "HYDRA",
@@ -24054,7 +24061,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0018",
+        "upstream": "DroppyCode/App/AppDelegate.swift: the main window is shown once the launch prologue has run; nothing is shown before it",
+        "port": "Every launch opens with the boot sequence of ED-102 and ED-103: particles gather into the loading mark, its pulse starts the Comet turn, the mark comes to rest after the first turn that ends once the app is ready, and then breaks into particles that build the main window, edge first; the main window is shown as its outline completes and its contents fade in as the particles land. The launch prologue keeps its order (PR-LAUNCH-001)."
+      }
     },
     {
       "area": "LAUNCH",
@@ -46837,7 +46849,7 @@
         "A failed write leaves the mod polling until the turn ends or its six-hour deadline passes."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The temp-then-replace sequence must be an atomic replace on Windows, because the mod polls the target file and must never read a partial write. A replace can fail while the mod has the file open; the direct-write fallback is what covers that, and it must also be atomic.",
+      "windows_path": "The temp-then-replace sequence must be an atomic replace on Windows, because the mod polls the target file and must never read a partial write. A replace can fail while the mod has the file open; the direct-write fallback is what covers that, and it must also be atomic. Before the first reply <id>.reply.json does not exist; the replace then throws (O-35, ED-123), the direct atomic write lands the reply, and <id>.reply.json.tmp remains until clearApprovalFiles removes it.",
       "verification_method": "contract fixture asserting both payloads byte for byte, plus a test where the replace fails",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -64120,27 +64132,25 @@
     {
       "area": "RUNTIME",
       "id": "PR-RUNTIME-264",
-      "title": "A turn's change summary is stored as FileChangeSummary: per-file path, additions, deletions and isBinary, plus the two totals",
+      "title": "FileChangeSummary is stored with Swift's synthesized keys: per-file path, additions, deletions and isBinary, plus files and the two totals",
       "source_evidence": [
         "DroppyCode/Core/Models/FileChangeSummary.swift:3-15 - the comment \"What a turn changed, file by file, as the timeline and the changes tab show it.\"; struct FileChangeSummary: Codable, Hashable, Sendable { struct File: Codable, Hashable, Sendable { var path: String; var additions: Int; var deletions: Int; var isBinary: Bool }; let files: [File]; let additions: Int; let deletions: Int }",
-        "DroppyCode/Core/Models/Timeline.swift:259-267 struct TurnSummary - turnID, status, duration, filesChanged, additions, deletions, var changes: FileChangeSummary?",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:2384-2395 finishTurn - let changes = FileChangeSummary(files: await parsedDiff(selection: turnID, providerFiles: providerFiles)); TurnSummary(..., filesChanged: changes.files.count, additions: changes.additions, deletions: changes.deletions, changes: changes); append(TimelineItem(turnID: turnID, content: .turnEnd(summary)))",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:609 install - a synthetic end marker is built with changes: nil",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:3751-3757 storeLegacyChanges - fills summary.changes only when it is nil"
+        "DroppyCode/Core/Support/Coding.swift:19-25 JSONEncoder.storage - .iso8601 dates, .sortedKeys"
       ],
       "preconditions": "A turn ends, or a stored turn is shown.",
       "action": "The turn-end row's summary is written or read.",
-      "expected_result": "FileChangeSummary uses Swift's synthesized Codable, so it is stored with exactly the keys files, additions and deletions, and each file with path, additions, deletions and isBinary. finishTurn stores the parsed diff's summary as TurnSummary.changes on the turn-end row and copies its file count and totals into filesChanged, additions and deletions. A synthetic end marker written by install carries changes nil; storeLegacyChanges fills changes later, only while it is still nil. The row is part of ThreadDocument.items, so the summary is on disk and a reopened thread reads it instead of running git again.",
+      "expected_result": "FileChangeSummary uses Swift's synthesized Codable and Hashable, so it is stored with exactly the keys files, additions and deletions, and each file with exactly path, additions, deletions and isBinary. Every key is required on decode, and the totals are stored as given (the memberwise init; the summing init(files:) is PR-GIT-092). Where it is stored: TurnSummary.changes on the turn-end row, PR-CHAT-012. Who writes it: finishTurn, PR-RUNTIME-121; install's nil marker, PR-RUNTIME-161; the legacy back-fill, PR-RUNTIME-200. A summary that fails to decode fails its TimelineItem, which ThreadDocument drops through Lenient (Timeline.swift:356-365, PR-CHAT-019); the thread still opens.",
       "side_effects": [],
-      "persistence": "ThreadDocument.items, inside the .turnEnd row's TurnSummary.changes.",
+      "persistence": "Inside ThreadDocument.items as TurnSummary.changes (PR-CHAT-012); this record fixes only the summary's own keys.",
       "failure_cases": [],
       "cancellation": "not cancellable",
       "windows_path": "Keep these key names; the thread file is the compatibility surface for an existing installation. How the summary is computed from a diff is PR-GIT-092.",
-      "verification_method": "contract fixture - round-trip a turn-end row with a two-file summary, one of them binary, and assert the exact keys",
+      "verification_method": "contract fixture - encode a two-file summary, one of them binary, with JSONEncoder.storage, assert the exact bytes and keys, and decode it back equal",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "spec_fix": "Narrowed by the ruling on STOP Core.Models.FileChangeSummary #1 (2026-09-23): the turn-end-row round trip and the nil cases moved to PR-CHAT-012; finishTurn, install's nil marker and storeLegacyChanges are PR-RUNTIME-121, -161 and -200; this record keeps FileChangeSummary.swift:3-15."
     },
     {
       "area": "SETTINGS",
@@ -72728,8 +72738,8 @@
       "id": "PR-SIDEBAR-051",
       "title": "RowDrag.settle walks the grabbed row past every neighbour whose crossing threshold it has passed, folding each slot shift into the compensation",
       "source_evidence": [
-        "DroppyCode/UI/Chrome/RowDrag.swift:41-77 settle - guards on `let id, let index = order.firstIndex(of: id)`; `let own = heights[id] ?? fallbackHeight`; loop: downward when `offset > 0, current + 1 < order.count` with `let slot = heights[next] ?? fallbackHeight` and `guard offset > (own + slot) / 2 + slot * pastCentre, move(next, true) else { break }` then `settled += slot; current += 1; moved = true`; upward mirrored with `-offset` and `settled -= slot`; returns `moved`",
-        "DroppyCode/UI/Chrome/RowDrag.swift:36 - `pastCentre: CGFloat = 0` default",
+        "DroppyCode/UI/Chrome/RowDrag.swift:29-61 settle - guards on `let id, let index = order.firstIndex(of: id)`; `let own = heights[id] ?? fallbackHeight`; loop: downward when `offset > 0, current + 1 < order.count` with `let slot = heights[next] ?? fallbackHeight` and `guard offset > (own + slot) / 2 + slot * pastCentre, move(next, true) else { break }` then `settled += slot; current += 1; moved = true`; upward mirrored with `-offset` and `settled -= slot`; returns `moved`",
+        "DroppyCode/UI/Chrome/RowDrag.swift:33 - `pastCentre: CGFloat = 0` default",
         "DroppyCode/App/Views/Sidebar/SidebarView.swift:782-801 dragChanged - calls `drag.settle(order:heights:fallbackHeight: Chrome.rowHeight + 1)` with no pastCentre",
         "E:/Droppy/port/porting/port_impacts.md:316 entry 154 - the move callback returns Bool; break on false WITHOUT advancing index or compensation; strict `>`; fallbackHeight = rowHeight + 1 = 29"
       ],
@@ -75713,7 +75723,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The 27 titles, their order, each group's names and their order are data and are carried over verbatim from :25-51 at 1fbf81e. The glyph drawn for each name comes from the published symbol-to-icon mapping table (owner ruling OD-0010), which this record does not restate. The double appearance of Popular symbols and their double selection ring are reproduced.",
       "verification_method": "contract fixture generated from ProjectSymbolCatalogue.swift:25-51 at 1fbf81e asserting the 27 titles in order, each group's count and name sequence, the total of 2,630 with no duplicates, and the four names without `.fill`; interaction test with a Popular symbol chosen asserting two ringed tiles (Popular and its category) with an empty query.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -77110,7 +77120,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port the generational structure verbatim. An LRU substitute has a different hit rate and a different memory ceiling and would change how often threads and thumbnails are re-decoded.",
       "verification_method": "unit reproducing a known hit and eviction sequence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -77120,8 +77130,7 @@
         "DroppyCode/Core/Support/RecentCache.swift:30-32 - contains(_:) is true when the key is in either generation",
         "porting/port_impacts.md entry 117 - \"Implement the generational cache exactly; an LRU substitute changes hit rate and memory ceiling.\""
       ],
-      "implemented_by_task": "T-M2-066",
-      "rework": true
+      "implemented_by_task": "T-M2-066"
     },
     {
       "area": "STORE",
@@ -77135,7 +77144,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The reader must have write access to the cache. A port that exposes a const read will silently lose the promotion and halve the effective capacity.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -77143,8 +77152,7 @@
       "source_evidence": [
         "DroppyCode/Core/Support/RecentCache.swift:22-28 - mutating func value(for key:) returns current[key] directly, otherwise removes the entry from previous, subtracts its cost from previousCost and re-inserts it into current at the same cost"
       ],
-      "implemented_by_task": "T-M2-066",
-      "rework": true
+      "implemented_by_task": "T-M2-066"
     },
     {
       "area": "STORE",
@@ -77158,7 +77166,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same condition, same wholesale discard, same ordering (rollover, then write).",
       "verification_method": "unit on both arms of the condition",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "44",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -77166,8 +77174,7 @@
       "source_evidence": [
         "DroppyCode/Core/Support/RecentCache.swift:47-55 - if current.count >= limit || currentCost > costLimit - cost { previous = current; previousCost = currentCost; current = [:]; current.reserveCapacity(limit); currentCost = 0 }; current[key] = Entry(value:cost:); currentCost += cost"
       ],
-      "implemented_by_task": "T-M2-066",
-      "rework": true
+      "implemented_by_task": "T-M2-066"
     },
     {
       "area": "STORE",
@@ -77184,7 +77191,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the ordering exactly: remove, clamp, then reject. It is an ordinary quirk under AM-0001 (a cache miss, no lasting harm), so it is the product.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "43",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -77196,8 +77203,7 @@
         "DroppyCode/Services/Store/Storage.swift:264-270 - DocumentPrefetch init(limit: 12, costLimit: 16 * 1_024 * 1_024, ...) builds the ready RecentCache"
       ],
       "implemented_by_task": "T-M2-066",
-      "spec_fix": "Said a thumbnail bitmap over 32 MiB is never cached and that an over-budget insert removes a smaller cached version of it -> there are two bitmap caches, ThumbnailCache.thumbnails at 32 MiB (ThumbnailCache.swift:16) and ThumbnailMemory.images at 16 MiB (:70), and both keys include the pixel size (:25, :73), so no smaller version of the same image shares the key; only a thread document (keyed by thread id, 16 MiB, Storage.swift:264-270) loses an earlier cached version",
-      "rework": true
+      "spec_fix": "Said a thumbnail bitmap over 32 MiB is never cached and that an over-budget insert removes a smaller cached version of it -> there are two bitmap caches, ThumbnailCache.thumbnails at 32 MiB (ThumbnailCache.swift:16) and ThumbnailMemory.images at 16 MiB (:70), and both keys include the pixel size (:25, :73), so no smaller version of the same image shares the key; only a thread document (keyed by thread id, 16 MiB, Storage.swift:264-270) loses an earlier cached version"
     },
     {
       "area": "STORE",
@@ -77213,7 +77219,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three clamps and the same default cost of 1.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -77223,8 +77229,7 @@
         "DroppyCode/Core/Support/RecentCache.swift:44 - let cost = max(0, cost)",
         "DroppyCode/Core/Support/RecentCache.swift:43 - cost defaults to 1"
       ],
-      "implemented_by_task": "T-M2-066",
-      "rework": true
+      "implemented_by_task": "T-M2-066"
     },
     {
       "area": "STORE",
@@ -77238,7 +77243,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same dual removal. The currentCost refund is load-bearing: without it the budget leaks and rollovers come early. previousCost is write-only in the source; keeping it is harmless, and no test can observe it.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -77249,8 +77254,7 @@
         "DroppyCode/Core/Support/RecentCache.swift:43-56 - insert: removeValue(for: key) first; rollover when current.count >= limit || currentCost > costLimit - cost, then previous = current, current = [:]"
       ],
       "implemented_by_task": "T-M2-066",
-      "spec_fix": "Said refunding only one counter leaks budget, and that a key can sit in both generations with the current value winning -> only currentCost is read (RecentCache.swift:47); previousCost is only written (:12, :25, :39, :49), and insert (:44), promotion (:24-26) and rollover (:47-52) keep the two generations disjoint",
-      "rework": true
+      "spec_fix": "Said refunding only one counter leaks budget, and that a key can sit in both generations with the current value winning -> only currentCost is read (RecentCache.swift:47); previousCost is only written (:12, :25, :39, :49), and insert (:44), promotion (:24-26) and rollover (:47-52) keep the two generations disjoint"
     },
     {
       "area": "STORE",
@@ -78915,21 +78919,21 @@
       "id": "PR-STORE-128",
       "preconditions": "A list of projects or threads is on screen.",
       "action": "One item changes.",
-      "expected_result": "Only the row reading that item’s box re-renders. The box holds exactly one property, is main-actor isolated and is created once per item. Cells are built inside AppModel.init because property observers do not fire there.",
+      "expected_result": "Only the row reading that item’s box re-renders. The box holds exactly one property and is main-actor isolated.",
       "side_effects": [],
       "persistence": "none",
       "failure_cases": [],
       "cancellation": "not cancellable",
       "windows_path": "Per-item observable boxes rather than a whole-list signal. This is the mechanism that keeps a long sidebar cheap; a port that re-renders the whole list on any change will not meet the source’s scroll behaviour.",
-      "verification_method": "interaction test counting row renders when one thread is renamed",
+      "verification_method": "unit test counting row renders (each row body evaluated under observation tracking, R-OBS-4) when one thread's cell is written; the rename through the app model is PR-STORE-171",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
+      "spec_fix": "expected_result said the box 'is created once per item' and 'Cells are built inside AppModel.init because property observers do not fire there', citing AppModel.swift:138-140 -> those are AppModel facts (AppModel.swift:137-140 builds the cells in init; :165-168 reuses an existing cell and creates one only for a new id), so they move to PR-STORE-171, owned by App.AppModel; this record keeps ObservedValue.swift:4-13 (ruling on STOP Core.Support.ObservedValue #1)",
       "title": "A single model item is observed through its own box so siblings never re-render it",
       "source_evidence": [
-        "DroppyCode/Core/Support/ObservedValue.swift:4-13 - doc comment \"One value under its own observation. A view that reads a thread or project through its cell depends on that item alone, so a change to any other item never re-renders it.\" then @MainActor @Observable final class ObservedValue<Value> { var value: Value; init(_ value: Value) }",
-        "DroppyCode/App/AppModel.swift:138-140 - the project and thread cells are built once inside the initializer because property observers stay quiet there"
+        "DroppyCode/Core/Support/ObservedValue.swift:4-13 - doc comment \"One value under its own observation. A view that reads a thread or project through its cell depends on that item alone, so a change to any other item never re-renders it.\" then @MainActor @Observable final class ObservedValue<Value> { var value: Value; init(_ value: Value) }"
       ]
     },
     {
@@ -78946,7 +78950,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Store as an exact string resource, byte for byte, including U+2019 and the American spellings, with the OD-0012 F1 first line \"[Marrow anti-slop guidance]\". Do not reflow, re-wrap, spell-check or localise it. Deliver it at exactly the points and with exactly the once-per-epoch rule the expected result names.",
       "verification_method": "contract fixture: byte-compare the delivered text against the source literal with its first line replaced by \"[Marrow anti-slop guidance]\" (OD-0012 F1), at each delivery point: Claude --append-system-prompt, Codex developerInstructions, Copilot systemMessage, the OpenAI-compatible system prompt, and the user-prompt prefix of another CLI provider (once per session epoch, absent on a slash command)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78964,8 +78968,7 @@
         "upstream": "DroppyCode/Core/Models/AntiSlopPolicy.swift:3 - first line \"[Droppy Code anti-slop guidance]\"",
         "port": "First line \"[Marrow anti-slop guidance]\"; the four guidance lines, including the U+2019 in \"product’s\", are unchanged. OD-0012 F1 names the \"[Marrow]\" notes sent to models."
       },
-      "spec_fix": "Action and expected result said the text is injected into the system prompt when a turn starts -> it goes into the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers (ClaudeSession.swift:121-128, CodexSession.swift:249-257, CopilotSession.swift:147-156, OpenAICompatibleSession.swift:1188-1195), and for every other provider it is prefixed to the user prompt once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367, :1751, :2090)",
-      "rework": true
+      "spec_fix": "Action and expected result said the text is injected into the system prompt when a turn starts -> it goes into the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers (ClaudeSession.swift:121-128, CodexSession.swift:249-257, CopilotSession.swift:147-156, OpenAICompatibleSession.swift:1188-1195), and for every other provider it is prefixed to the user prompt once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367, :1751, :2090)"
     },
     {
       "area": "STORE",
@@ -78983,7 +78986,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte-exact string with the OD-0012 F1 first line \"[Marrow anti-slop guidance: off]\", and the same always-inject-one-of-two selector. The selector takes a Bool and returns one of the two constants; there is no third state.",
       "verification_method": "contract fixture over both branches, at each delivery point PR-STORE-129 names, with the first lines \"[Marrow anti-slop guidance]\" and \"[Marrow anti-slop guidance: off]\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78999,8 +79002,7 @@
         "upstream": "DroppyCode/Core/Models/AntiSlopPolicy.swift:12 - first line \"[Droppy Code anti-slop guidance: off]\"",
         "port": "First line \"[Marrow anti-slop guidance: off]\"; the second line is unchanged. OD-0012 F1 names the \"[Marrow]\" notes sent to models."
       },
-      "spec_fix": "Action said the text is injected when a turn starts -> it is delivered where PR-STORE-129 now says: in the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers, otherwise as a user-prompt prefix once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367)",
-      "rework": true
+      "spec_fix": "Action said the text is injected when a turn starts -> it is delivered where PR-STORE-129 now says: in the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers, otherwise as a user-prompt prefix once per session epoch, never on a slash command (ThreadRuntime.swift:1323-1334, :1365-1367)"
     },
     {
       "area": "STORE",
@@ -79986,6 +79988,30 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003"
+    },
+    {
+      "area": "STORE",
+      "id": "PR-STORE-171",
+      "title": "Each project and thread gets its own cell, built in the app model's initializer and written only when its item changes",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:137-140 - comment \"Property observers stay quiet inside an initializer, so the cells are built here once.\" then Self.write(Self.sync(&projectCells, with: projects)), Self.write(Self.sync(&threadCells, with: threads)), syncChildCells()",
+        "DroppyCode/App/AppModel.swift:148-150 - doc comment \"Mirrors a list into its cells: values that changed are written to their cell (and only those, so an untouched item's observers never fire), new items get a cell, and a removed item's cell is emptied as it goes, so whoever was showing it re-renders to nothing.\"",
+        "DroppyCode/App/AppModel.swift:157-177 - sync(_:with:): if let cell = cells[value.id] reuses the cell and writes only if cell.value != value (:165-166); cells[value.id] = ObservedValue(value) is the only creation (:168); an unseen id gets a nil write and is dropped (:171-175)",
+        "DroppyCode/App/AppModel.swift:30-32 - projects didSet { Self.write(Self.sync(&projectCells, with: projects)) }"
+      ],
+      "preconditions": "The library holds projects and threads.",
+      "action": "The app model is created from the stored library; later one thread is renamed, the list is reassigned with that thread unchanged, or the thread is removed.",
+      "expected_result": "Each item's cell is created once per item. Cells are built inside AppModel.init because property observers do not fire there. On every later change to the list, values that changed are written to their cell, and only those, so an untouched item's observers never fire; new items get a cell; a removed item's cell is emptied as it goes, so whoever was showing it re-renders to nothing.",
+      "side_effects": [],
+      "persistence": "none",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The constructor builds the cells explicitly after loading, because a C# constructor assigns backing fields and runs no didSet (R-OBS-1, R-OBS-2). The dictionary is settled before the cells are written (R-OBS-5). An unchanged item's cell is not written, which matters because ObservedValue notifies on every assignment (R-OBS-3, SetAlways).",
+      "verification_method": "unit test on AppModel with a library fixture. Right after construction, project(id) and thread(id) return every loaded item. A tracker on thread(A) (which reads through A's cell, AppModel.swift:288-290) fires once when A is renamed through the model, and still fires on a second rename, which shows the cell was not replaced. It does not fire when thread B is renamed or when the list is reassigned with A unchanged. When A is removed, the tracker fires and thread(A) is nil.",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
     },
     {
       "area": "TERM",
@@ -85390,7 +85416,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Synthesize the same PCM and hand it to the Windows audio stack. Shipping a pre-rendered .wav asset produced by this same algorithm is acceptable only if it is bit-identical; the tuning constants stay in code either way.",
       "verification_method": "contract fixture: the generated buffer's bytes for both chimes are checked against a recorded golden buffer",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85415,7 +85441,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure arithmetic; port it directly in double precision. The partial set is shared by every note of a chime, not per note.",
       "verification_method": "unit: sample-by-sample comparison against the formula for a known note and partial list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85441,7 +85467,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The normalization means the declared per-note levels set the balance between notes, not the absolute loudness; the absolute loudness comes only from the per-chime volume (PR-THEME-081, PR-THEME-082).",
       "verification_method": "unit: peak sample equals 29490 for both chimes; the last sample is near zero",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -99474,7 +99500,7 @@
       "preconditions": "A hosted view tree carries the app zoom.",
       "action": "The tree is measured and placed.",
       "expected_result": "Measuring: the child is asked for its size given the proposal divided by the scale in each dimension, an unspecified dimension staying unspecified, and the layout reports that size multiplied by the scale. Placing: the child is placed at the layout's origin, anchored top-leading, with a proposal of the layout's bounds divided by the scale. So at 200% a window 1000 points wide lays its content out 500 points wide and draws it twice as large: forms reflow and their scroll bars stay inside the window. With no child the layout is zero by zero.",
-      "windows_path": "A layout panel whose measure and arrange pass the available size divided by the scale to the child, report the child's desired size times the scale, and arrange the child at the origin.",
+      "windows_path": "A layout panel whose measure and arrange pass the available size divided by the scale to the child, report the child's desired size times the scale, and arrange the child at the origin. Avalonia clamps every DesiredSize to its constraint (ED-150), so when the content wants more than the host divided by the scale, the layout reports the host size rather than the content's wish times the scale; placement from the arranged bounds is unchanged, and hosts arrange the zoom at their own frame as FrameHostingView (sizingOptions = []) does.",
       "verification_method": "unit on the proposal arithmetic at each level; interaction test at 200% that a Settings page scrolls inside the window and nothing is cut off at the right edge"
     },
     {
