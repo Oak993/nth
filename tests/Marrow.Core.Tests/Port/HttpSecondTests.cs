@@ -1,10 +1,10 @@
 using Marrow.Core.Support;
-using Marrow.Services.Port;
-using Marrow.Services.Tests.Fixtures;
+using Marrow.Core.Port;
+using Marrow.Core.Tests.Fixtures;
 using Marrow.Testing;
-using static Marrow.Services.Tests.Fixtures.HttpReading;
+using static Marrow.Core.Tests.Fixtures.HttpReading;
 
-namespace Marrow.Services.Tests.Port;
+namespace Marrow.Core.Tests.Port;
 
 // Foundation unit F.HTTP, second part of the tests (R-TEST-3 suffix): URLSession(configuration:) as
 // UpdateChecker.swift:101-110 builds it, and the network defaults a server sees from URLSession.shared (cookies,

@@ -4,10 +4,9 @@ using System.IO.Compression;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Threading.Channels;
-using Marrow.Core.Port;
 using Marrow.Core.Support;
 
-namespace Marrow.Services.Port;
+namespace Marrow.Core.Port;
 
 // Foundation unit F.HTTP (IMPLEMENTING.md 4.3), the HTTP client behind every URLSession site:
 //   URLSession.shared.data(for:)   MCPHub.swift:455-477, MCPOAuth.swift:250-268, :715-742, :744-797, MCPProbe.swift:309-325,

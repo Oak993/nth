@@ -1,9 +1,9 @@
-using Marrow.Services.Port;
-using Marrow.Services.Tests.Fixtures;
+using Marrow.Core.Port;
+using Marrow.Core.Tests.Fixtures;
 using Marrow.Testing;
-using static Marrow.Services.Tests.Fixtures.HttpReading;
+using static Marrow.Core.Tests.Fixtures.HttpReading;
 
-namespace Marrow.Services.Tests.Port;
+namespace Marrow.Core.Tests.Port;
 
 // Foundation unit F.HTTP, fourth part of the tests (R-TEST-3 suffix): the rules of the two stores ED-118 gives the
 // sessions, the RFC 6265 cookie store (item 3, O-28) and the response cache (item 4, O-33), each case on its own.

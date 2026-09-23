@@ -1,8 +1,8 @@
 using System.IO.Compression;
 using System.Text;
-using Marrow.Services.Port;
+using Marrow.Core.Port;
 
-namespace Marrow.Services.Tests.Fixtures;
+namespace Marrow.Core.Tests.Fixtures;
 
 // PORT-ONLY test helpers for the HTTP unit's tests (HttpTests, HttpSecondTests): reading a byte or line sequence
 // under the hang guard, compressing a body the way a server would, and splitting a raw request head. Nothing here
