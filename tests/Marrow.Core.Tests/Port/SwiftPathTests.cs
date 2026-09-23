@@ -832,6 +832,7 @@ public sealed class SwiftPathTests
     [InlineData(@"C:\dir\name.")]
     [InlineData(@"C:\dir\notes.final draft")]
     [InlineData(@"C:\dir\..tiff")]
+    [InlineData(@"C:\dir\...tiff")] // UNVERIFIED O-42: the stem before the last "." is exactly ".." (ED-140)
     [InlineData("C:\\dir\\a.t\U0000200Ext")] // U+200E LEFT-TO-RIGHT MARK
     public void FileURL_pathExtension_is_empty_where_swift_foundation_rejects_the_extension(string path)
     {
