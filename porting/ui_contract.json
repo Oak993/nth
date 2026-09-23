@@ -6207,7 +6207,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :51 body 13 | :52 callout 12 | :53 subheadline 11"
       ],
       "notes": "The card must be measured with its width PINNED to 300 and never laid out narrower, or the popover wraps the task a couple of words a line in a card that had the room for it. The ellipsis in \"Working…\" is U+2026 and the separators are U+00B7.",
-      "b2_change": "B1 HydraHeadHoverPopover.swift:66, :69, :73 .system(size: 13, weight: .semibold) / .system(size: 12) / .system(size: 11) -> B2 same lines .system(.body, weight: .semibold) / .system(.callout) / .system(.subheadline), the same 13/12/11 points. Chrome.secondaryText changed value: B1 Chrome.swift:77 Color(nsColor: .secondaryLabelColor) -> B2 Chrome.swift:79 primaryText.opacity(0.7). Geometry, states, strings and interactions are unchanged."
+      "b2_change": "B1 HydraHeadHoverPopover.swift:66, :69, :73 .system(size: 13, weight: .semibold) / .system(size: 12) / .system(size: 11) -> B2 same lines .system(.body, weight: .semibold) / .system(.callout) / .system(.subheadline), the same 13/12/11 points. Chrome.secondaryText changed value: B1 Chrome.swift:77 Color(nsColor: .secondaryLabelColor) -> B2 Chrome.swift:79 primaryText.opacity(0.7). Geometry, states, strings and interactions are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRA",

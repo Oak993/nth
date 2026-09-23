@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 1156,
+      "IMPLEMENTED": 1158,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 2732,
+      "SPECIFIED": 2730,
       "RETIRED": 6,
       "DISCOVERED": 19
     },
@@ -19042,7 +19042,7 @@
       "cancellation": "The pending 250 ms task is cancelled on hide and on a new hover.",
       "windows_path": "250 ms delay, 300 px card, 78 px height fallback. The card must be measured with its width pinned, or the task title wraps after a couple of words in a card that had the room for it. ED-059: each text style is set at the point size in upstream's B1 table (body 13, callout 12, subheadline 11; B1:DroppyCode/UI/Common/ChatZoom.swift:44-57), in Inter (OD-0009), and scales only with the app's own zoom (UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it.",
       "verification_method": "interaction test with a fake clock plus a capture comparison of all four status lines",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -64564,7 +64564,7 @@
       "cancellation": "end() is the cancellation path and is called from onDisappear.",
       "windows_path": "One tracker object per settings view instance with the same 150ms debounce, feeding the same app-wide scroll-activity signal used to pause requestAnimationFrame loops.",
       "verification_method": "unit test on the tracker's state machine including the 150ms debounce and the end() path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
