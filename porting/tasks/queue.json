@@ -727,7 +727,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -747,7 +747,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 TESTS_REVIEW: Frozen PR-MCP-001..010 Expected rows reviewed against all source fields. Fixture covers defaults and order, exact glyph text and hex colors, profile-root adaptation, Bearer-space contract. | 2026-09-22 DONE: PR-MCP-001..010 complete frozen Expected fixtures match all catalog fields; 102 tests pass A12 B8 quarantine protected. No servers contacted/launched. Catalog source identical at latest SHA. Actual connect/probe/secret storage remains Services work. Director reviewed generated C# against source and independent test fixture; tests unchanged."
     },
