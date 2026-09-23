@@ -3064,21 +3064,21 @@
       "id": "PR-STORE-128",
       "preconditions": "A list of projects or threads is on screen.",
       "action": "One item changes.",
-      "expected_result": "Only the row reading that item’s box re-renders. The box holds exactly one property, is main-actor isolated and is created once per item. Cells are built inside AppModel.init because property observers do not fire there.",
+      "expected_result": "Only the row reading that item’s box re-renders. The box holds exactly one property and is main-actor isolated.",
       "side_effects": [],
       "persistence": "none",
       "failure_cases": [],
       "cancellation": "not cancellable",
       "windows_path": "Per-item observable boxes rather than a whole-list signal. This is the mechanism that keeps a long sidebar cheap; a port that re-renders the whole list on any change will not meet the source’s scroll behaviour.",
-      "verification_method": "interaction test counting row renders when one thread is renamed",
+      "verification_method": "unit test counting row renders (each row body evaluated under observation tracking, R-OBS-4) when one thread's cell is written; the rename through the app model is PR-STORE-171",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
+      "spec_fix": "expected_result said the box 'is created once per item' and 'Cells are built inside AppModel.init because property observers do not fire there', citing AppModel.swift:138-140 -> those are AppModel facts (AppModel.swift:137-140 builds the cells in init; :165-168 reuses an existing cell and creates one only for a new id), so they move to PR-STORE-171, owned by App.AppModel; this record keeps ObservedValue.swift:4-13 (ruling on STOP Core.Support.ObservedValue #1)",
       "title": "A single model item is observed through its own box so siblings never re-render it",
       "source_evidence": [
-        "DroppyCode/Core/Support/ObservedValue.swift:4-13 - doc comment \"One value under its own observation. A view that reads a thread or project through its cell depends on that item alone, so a change to any other item never re-renders it.\" then @MainActor @Observable final class ObservedValue<Value> { var value: Value; init(_ value: Value) }",
-        "DroppyCode/App/AppModel.swift:138-140 - the project and thread cells are built once inside the initializer because property observers stay quiet there"
+        "DroppyCode/Core/Support/ObservedValue.swift:4-13 - doc comment \"One value under its own observation. A view that reads a thread or project through its cell depends on that item alone, so a change to any other item never re-renders it.\" then @MainActor @Observable final class ObservedValue<Value> { var value: Value; init(_ value: Value) }"
       ]
     },
     {
@@ -4091,6 +4091,29 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003"
+    },
+    {
+      "id": "PR-STORE-171",
+      "title": "Each project and thread gets its own cell, built in the app model's initializer and written only when its item changes",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:137-140 - comment \"Property observers stay quiet inside an initializer, so the cells are built here once.\" then Self.write(Self.sync(&projectCells, with: projects)), Self.write(Self.sync(&threadCells, with: threads)), syncChildCells()",
+        "DroppyCode/App/AppModel.swift:148-150 - doc comment \"Mirrors a list into its cells: values that changed are written to their cell (and only those, so an untouched item's observers never fire), new items get a cell, and a removed item's cell is emptied as it goes, so whoever was showing it re-renders to nothing.\"",
+        "DroppyCode/App/AppModel.swift:157-177 - sync(_:with:): if let cell = cells[value.id] reuses the cell and writes only if cell.value != value (:165-166); cells[value.id] = ObservedValue(value) is the only creation (:168); an unseen id gets a nil write and is dropped (:171-175)",
+        "DroppyCode/App/AppModel.swift:30-32 - projects didSet { Self.write(Self.sync(&projectCells, with: projects)) }"
+      ],
+      "preconditions": "The library holds projects and threads.",
+      "action": "The app model is created from the stored library; later one thread is renamed, the list is reassigned with that thread unchanged, or the thread is removed.",
+      "expected_result": "Each item's cell is created once per item. Cells are built inside AppModel.init because property observers do not fire there. On every later change to the list, values that changed are written to their cell, and only those, so an untouched item's observers never fire; new items get a cell; a removed item's cell is emptied as it goes, so whoever was showing it re-renders to nothing.",
+      "side_effects": [],
+      "persistence": "none",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "The constructor builds the cells explicitly after loading, because a C# constructor assigns backing fields and runs no didSet (R-OBS-1, R-OBS-2). The dictionary is settled before the cells are written (R-OBS-5). An unchanged item's cell is not written, which matters because ObservedValue notifies on every assignment (R-OBS-3, SetAlways).",
+      "verification_method": "unit test on AppModel with a library fixture. Right after construction, project(id) and thread(id) return every loaded item. A tracker on thread(A) (which reads through A's cell, AppModel.swift:288-290) fires once when A is renamed through the model, and still fires on a second rename, which shows the cell was not replaced. It does not fire when thread B is renamed or when the list is reassigned with A unchanged. When A is removed, the tracker fires and thread(A) is nil.",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null
     }
   ],
   "ui": [

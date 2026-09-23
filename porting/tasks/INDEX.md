@@ -9,14 +9,14 @@ every line, not a sample.
 | Milestone | Packets | Requirements | HIGH risk | Quarantined reqs |
 | --- | --- | --- | --- | --- |
 | M0 Probes that must pass before production code (ADR-0002) | 10 | 0 | 2 | 0 |
-| M2 Core models and pure support | 79 | 546 | 9 | 0 |
+| M2 Core models and pure support | 78 | 546 | 9 | 0 |
 | M3 Services foundation: store and git | 25 | 186 | 12 | 0 |
 | M4 Providers and MCP | 147 | 1062 | 11 | 0 |
 | M5 UI toolkit: theme, chrome, glass, markdown, sound | 77 | 290 | 15 | 0 |
-| M6 App shell, windows, model and runtime | 92 | 704 | 45 | 0 |
+| M6 App shell, windows, model and runtime | 92 | 705 | 45 | 0 |
 | M7 Feature views | 242 | 1062 | 10 | 0 |
 | M8 Update and packaging | 8 | 56 | 4 | 0 |
-| **Total** | **680** | **3906** | **108** | **0** |
+| **Total** | **679** | **3907** | **108** | **0** |
 
 ## M0: Probes that must pass before production code (ADR-0002)
 
@@ -81,7 +81,7 @@ every line, not a sample.
 | [T-M2-042](T-M2-042.md) | Core/Models/Provider.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
 | [T-M2-043](T-M2-043.md) | Core/Models/ProviderSettings.swift | 1 | STANDARD | `src/Marrow.Core/Models/ProviderSettings.cs` |
 | [T-M2-044](T-M2-044.md) | Core/Models/Requests.swift | 5 | STANDARD | `src/Marrow.Core/Models/Requests.cs` |
-| [T-M2-045](T-M2-045.md) | Core/Models/Requests.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/Requests.cs` |
+| [T-M2-045](T-M2-045.md) | Core/Models/Requests.swift (UI, withdrawn: UI-RUNTIME-005 is T-M7-112's) | 0 | STANDARD | `src/Marrow.Core/Models/Requests.cs` |
 | [T-M2-046](T-M2-046.md) | Core/Models/Shortcuts.swift (1 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
 | [T-M2-047](T-M2-047.md) | Core/Models/Shortcuts.swift (2 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
 | [T-M2-048](T-M2-048.md) | Core/Models/Shortcuts.swift (3 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
@@ -421,7 +421,7 @@ every line, not a sample.
 | [T-M6-034](T-M6-034.md) | App/AppModel.swift (4 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
 | [T-M6-035](T-M6-035.md) | App/AppModel.swift (5 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
 | [T-M6-036](T-M6-036.md) | App/AppModel.swift (6 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
-| [T-M6-037](T-M6-037.md) | App/AppModel.swift (7 of 7) | 1 | STANDARD | `src/Marrow.App/AppModel.cs` |
+| [T-M6-037](T-M6-037.md) | App/AppModel.swift (7 of 7) | 2 | STANDARD | `src/Marrow.App/AppModel.cs` |
 | [T-M6-038](T-M6-038.md) | App/AppModel.swift (UI) | 0 | STANDARD | `src/Marrow.App/AppModel.cs` |
 | [T-M6-039](T-M6-039.md) | App/AppSettings.swift (1 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
 | [T-M6-040](T-M6-040.md) | App/AppSettings.swift (2 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |

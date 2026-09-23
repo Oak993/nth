@@ -6054,7 +6054,7 @@
         "A failed write leaves the mod polling until the turn ends or its six-hour deadline passes."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The temp-then-replace sequence must be an atomic replace on Windows, because the mod polls the target file and must never read a partial write. A replace can fail while the mod has the file open; the direct-write fallback is what covers that, and it must also be atomic.",
+      "windows_path": "The temp-then-replace sequence must be an atomic replace on Windows, because the mod polls the target file and must never read a partial write. A replace can fail while the mod has the file open; the direct-write fallback is what covers that, and it must also be atomic. Before the first reply <id>.reply.json does not exist; the replace then throws (O-35, ED-123), the direct atomic write lands the reply, and <id>.reply.json.tmp remains until clearApprovalFiles removes it.",
       "verification_method": "contract fixture asserting both payloads byte for byte, plus a test where the replace fails",
       "status": "SPECIFIED",
       "upstream_defect": null,

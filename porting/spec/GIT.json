@@ -1849,7 +1849,7 @@
         "Stream creation or start failure leaves the watch with no stream; settledGeneration then returns nil at once and every capture is fresh"
       ],
       "cancellation": "The stream is stopped, invalidated and released in teardown, on its own queue, so no callback can be in flight.",
-      "windows_path": "Platform boundary: ReadDirectoryChangesW with FILE_NOTIFY_CHANGE_FILE_NAME, DIR_NAME, LAST_WRITE, SIZE and ATTRIBUTES, recursive, on a dedicated thread or IOCP; two directory handles when the git directory lies outside the root. There is no /private symlink analogue, so the realpath step becomes a full-path canonicalisation.",
+      "windows_path": "Platform boundary: ReadDirectoryChangesW with FILE_NOTIFY_CHANGE_FILE_NAME, DIR_NAME, LAST_WRITE, SIZE and ATTRIBUTES, recursive, on a dedicated thread or IOCP; one FileSystemWatcher (ReadDirectoryChangesW) over the root when the git directory lies under it; when it lies outside (a linked worktree), no watcher is started and the watch holds no stream, as when upstream's stream fails to start (ED-113), because two handles do not order events between them. There is no /private symlink analogue, so the realpath step becomes a full-path canonicalisation.",
       "verification_method": "interaction test observing a write is noticed within the cookie round trip",
       "status": "SPECIFIED",
       "upstream_defect": null,
@@ -2072,7 +2072,7 @@
         "A volume that does not report events never delivers the cookie, so the watch is torn down and every later snapshot for that directory is taken fresh"
       ],
       "cancellation": "The timer task is cancelled when the event wins.",
-      "windows_path": "Platform boundary: the same cookie file trick maps directly onto ReadDirectoryChangesW, which also delivers in order. Keep the one second ceiling.",
+      "windows_path": "Platform boundary: the same cookie file trick maps onto ReadDirectoryChangesW, which delivers in order within one directory handle; the cookie is only used when the git directory lies under the root, one handle (ED-113); otherwise the watch has no stream and the answer is nil at once. UNVERIFIED on Windows: whether the event of a write made through a handle still open when the cookie is created arrives before the cookie's event (ReadDirectoryChangesW may report a last write only when the cache is flushed). Windows verification item for the GIT unit: append to a tracked file without closing it, write the cookie, and check which event arrives first. Keep the one second ceiling.",
       "verification_method": "interaction test with a shimmed stream that never delivers, asserting the one second timeout and the teardown",
       "status": "SPECIFIED",
       "upstream_defect": null,

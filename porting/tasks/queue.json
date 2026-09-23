@@ -1211,23 +1211,6 @@
       "notes": ""
     },
     {
-      "id": "T-M2-045",
-      "milestone": "M2",
-      "source": "DroppyCode/Core/Models/Requests.swift",
-      "target": "src/Marrow.Core/Models/Requests.cs",
-      "risk": "STANDARD",
-      "requirements": [],
-      "ui": [
-        "UI-RUNTIME-005"
-      ],
-      "quarantined": [],
-      "needs_desktop": false,
-      "kind": "ui",
-      "status": "TODO",
-      "assignee": null,
-      "notes": ""
-    },
-    {
       "id": "T-M2-046",
       "milestone": "M2",
       "source": "DroppyCode/Core/Models/Shortcuts.swift",
@@ -8521,12 +8504,12 @@
         "PR-STORE-085",
         "PR-STORE-101",
         "PR-STORE-102",
+        "PR-STORE-171",
         "PR-TERM-055",
         "PR-TERM-057",
         "PR-TERM-060",
         "PR-TERM-061",
-        "PR-TERM-065",
-        "PR-TERM-066"
+        "PR-TERM-065"
       ],
       "ui": [],
       "quarantined": [],
@@ -8543,6 +8526,7 @@
       "target": "src/Marrow.App/AppModel.cs",
       "risk": "STANDARD",
       "requirements": [
+        "PR-TERM-066",
         "PR-TERM-067"
       ],
       "ui": [],
@@ -12475,6 +12459,7 @@
         "UI-COMPOSER-063",
         "UI-COMPOSER-064",
         "UI-COMPOSER-065",
+        "UI-RUNTIME-005",
         "UI-RUNTIME-006",
         "UI-RUNTIME-007",
         "UI-RUNTIME-008"
