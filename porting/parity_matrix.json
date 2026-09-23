@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 733,
+      "IMPLEMENTED": 748,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 3148,
+      "SPECIFIED": 3133,
       "RETIRED": 6,
       "DISCOVERED": 26
     },
@@ -57783,7 +57783,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A discriminated union (TypeScript) or sealed type with the same 31 members and the same payload names. Payload field names are part of the contract because adapters and the runtime are written against them.",
       "verification_method": "unit - exhaustiveness test asserting exactly 31 members, in declaration order, with the declared payload shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -57808,7 +57808,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Plain optional-field record. Do not collapse nil and empty string: applyToolUpdate distinguishes them for title.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57829,7 +57829,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Record with the same defaults. The default matters: a synthesized spawn in the late-announcement path passes isBackground: false explicitly (PR-RUNTIME-105).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57850,7 +57850,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same record. antiSlopEnabled defaulting to true is load-bearing: a CLI session built without it still launches with the policy on.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57871,7 +57871,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same record with the same defaults.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57892,7 +57892,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same record.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57915,7 +57915,7 @@
       "cancellation": "start(), send(), interrupt() and compact() are async and therefore cancellable by the caller's task; stop() is synchronous.",
       "windows_path": "Interface on the main/UI thread equivalent. The main-actor isolation is what makes the epoch guard in observe() safe without locking (PR-RUNTIME-043).",
       "verification_method": "contract fixture - a scripted stand-in session implementing the full surface",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57938,7 +57938,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Default method on the interface, or an explicit false in a base class. Do not make it throw.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57961,7 +57961,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the arrow character and the Settings path wording exactly; the Windows settings window uses the same page names.",
       "verification_method": "unit - exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57984,7 +57984,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the backticks. The Windows loginCommand values come from the provider table, not from this file.",
       "verification_method": "unit - exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58007,7 +58007,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literal.",
       "verification_method": "unit - exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58028,7 +58028,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not add an error code, a provider name or a prefix.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58051,7 +58051,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep all six POSIX prefixes verbatim even on Windows: they appear in output produced by providers running through their own shells and in recorded fixtures. UNK-0005 is marked resolved by OD-0008 C5, which rules the shell of the app's own terminal tabs and project scripts (PowerShell 7 when installed, otherwise Windows PowerShell), not the shells providers run their commands in; that ruling adds no prefix to this table, so the six POSIX prefixes stay the whole list.",
       "verification_method": "unit - table test over all six prefixes, both quote characters and the escape sequence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -58075,7 +58075,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: on Windows the separator is a backslash and the file system is case-insensitive, so a literal port of this byte-prefix test will fail to shorten paths it should. The port must decide the separator and case policy once and apply it here and in TouchedPaths.relative together; record the departure.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -58098,7 +58098,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Split on \\n only, not on \\r\\n: a CRLF diff leaves a trailing \\r on every line, which does not change the prefix test.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

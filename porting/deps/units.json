@@ -1888,48 +1888,14 @@
    ],
    "intra_deps": [],
    "records_total": 15,
-   "records_todo": [
-    "PR-RUNTIME-001",
-    "PR-RUNTIME-002",
-    "PR-RUNTIME-003",
-    "PR-RUNTIME-004",
-    "PR-RUNTIME-005",
-    "PR-RUNTIME-006",
-    "PR-RUNTIME-007",
-    "PR-RUNTIME-008",
-    "PR-RUNTIME-009",
-    "PR-RUNTIME-010",
-    "PR-RUNTIME-011",
-    "PR-RUNTIME-012",
-    "PR-RUNTIME-013",
-    "PR-RUNTIME-014",
-    "PR-RUNTIME-015"
-   ],
-   "parts": [
-    [
-     "PR-RUNTIME-001",
-     "PR-RUNTIME-002",
-     "PR-RUNTIME-003",
-     "PR-RUNTIME-004",
-     "PR-RUNTIME-005",
-     "PR-RUNTIME-006",
-     "PR-RUNTIME-007",
-     "PR-RUNTIME-008",
-     "PR-RUNTIME-009",
-     "PR-RUNTIME-010",
-     "PR-RUNTIME-011",
-     "PR-RUNTIME-012",
-     "PR-RUNTIME-013",
-     "PR-RUNTIME-014",
-     "PR-RUNTIME-015"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-138",
     "T-M4-139"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Markdown.LinkTitles",
