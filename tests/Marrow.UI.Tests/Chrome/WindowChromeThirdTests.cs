@@ -213,6 +213,14 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            // Flake cause (evidence: a headless Window always reports Position (0,0), so NewAttachedStrip's strip
+            // occupies real screen pixels (0,0)-(9,200) — confirmed by a throwaway diagnostic printing
+            // window.PointToScreen and the live WindowsCursorPlatform.ScreenPosition side by side). RefreshHover
+            // (WindowChrome.cs:565-579) reads the real, unrelated OS cursor via CursorPlatform unless overridden, so
+            // this test intermittently saw isHovering true whenever the machine's actual mouse pointer sat in that
+            // corner of the screen, growing the "at rest" grip. Pin the cursor off-strip, as Move()'s
+            // FakeCursorPlatform comment above already establishes for the hover-driven tests in this file.
+            using var _ = SidebarResizeHandleView.CursorPlatform.Override(new FakeCursorPlatform(null));
             var (_, view) = NewAttachedStrip();
             var grip = view.GripLayerForTest;
             Assert.Equal(2.5, grip.Width);
@@ -246,6 +254,9 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            // Same real-cursor flake as At_rest_the_grip_is_10_tall_and_invisible above: pin the cursor off-strip
+            // so ShowsGrip (WindowChrome.cs:484) can never read the live OS pointer as hovering.
+            using var _ = SidebarResizeHandleView.CursorPlatform.Override(new FakeCursorPlatform(null));
             var (_, view) = NewAttachedStrip();
             var glow = view.GlowLayerForTest;
             Assert.Equal(0, glow.Opacity);
