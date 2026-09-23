@@ -1319,12 +1319,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port, including the asymmetry between the searched GitLab index and the fixed index 2 for the other two.",
       "verification_method": "unit table over a GitLab subgroup URL, a /diffs suffix, github.com, a GitHub Enterprise host, Codeberg and a non-matching URL",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-030",
-      "rework": true
+      "implemented_by_task": "T-M2-030"
     },
     {
       "id": "PR-GIT-053",
@@ -1345,12 +1344,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit for both forms",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-030",
-      "rework": true
+      "implemented_by_task": "T-M2-030"
     },
     {
       "id": "PR-GIT-054",
@@ -1371,12 +1369,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit for both forges",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-030",
-      "rework": true
+      "implemented_by_task": "T-M2-030"
     },
     {
       "id": "PR-GIT-055",
@@ -1397,13 +1394,12 @@
       "cancellation": "The helper thread can be stopped like any other.",
       "windows_path": "Reproduce every character including the backticks and the parenthetical \"(a 405)\". The prompt is deliberately self-contained because a native provider reads no AGENTS.md before it starts.",
       "verification_method": "unit asserting the three assembled strings byte for byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-030",
-      "spec_fix": "expected_result said the first line holds \"<absolute url>\" and the citation began at :46 inside the doc comment -> the source interpolates url.absoluteString, the URL's own text as stored at MergeRequestLink.swift:38 (MergeRequestLink.swift:57), and `var prompt` begins at :47 (verify finding, packet T-M2-030)",
-      "rework": true
+      "spec_fix": "expected_result said the first line holds \"<absolute url>\" and the citation began at :46 inside the doc comment -> the source interpolates url.absoluteString, the URL's own text as stored at MergeRequestLink.swift:38 (MergeRequestLink.swift:57), and `var prompt` begins at :47 (verify finding, packet T-M2-030)"
     },
     {
       "id": "PR-GIT-056",
@@ -2266,7 +2262,7 @@
       "cancellation": "Parsing runs off the main actor and is not separately cancellable.",
       "windows_path": "Split on \\n only and treat a trailing \\r as ordinary content, as the source does. Deriving oldPath from the \"--- \" line would widen every focus and de-duplication match downstream, so it must not be added.",
       "verification_method": "unit over recorded patches covering add, delete, rename, binary and mode-change headers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2291,7 +2287,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port. The note text drops exactly two characters, so \"\\\\ No newline at end of file\" becomes \"No newline at end of file\".",
       "verification_method": "unit asserting line numbers and the note text for a patch ending without a trailing newline",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2315,7 +2311,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port with a backwards ordinal search.",
       "verification_method": "unit with a path containing a space and one containing \" b/\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2339,7 +2335,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit over @@ -1,5 +1,7 @@, @@ -0,0 +1 @@ and a malformed header",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2363,7 +2359,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; the synthetic header uses forward slashes regardless of the platform.",
       "verification_method": "unit with a bare hunk body and with a full patch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2388,7 +2384,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Split on \"/\" as the source does; git paths are forward-slashed even on Windows.",
       "verification_method": "unit over a root-level file and a nested one",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2487,7 +2483,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; keep the type Codable with the same field names, since old thread documents carry it.",
       "verification_method": "unit plus a restart test reading a thread document written before the change",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

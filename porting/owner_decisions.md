@@ -348,3 +348,13 @@ instruction may change one.
   verification wave runs after the app runs: the full review (fidelity, test adequacy, mutation, safety for high-risk
   units) of every unit merged in build mode, with fixes. Gate D and the final parity claim wait for that wave; nothing
   about the target or the contract changes.
+
+## OD-0022 MCP custom headers are dropped at a cross-server redirect
+
+- **Asked 2026-09-23** (blocker-ruling question Q1, `E:/Droppy/work/rulings2/owner_questions.md`): when a configured MCP
+  server redirects to a different server (scheme, host or port), should the server's custom headers still be sent?
+- **Owner answer, verbatim:** "Drop them (Recommended)".
+- **Effect:** Services.MCP.MCPHub, MCPProbe and MCPProxy send a server's custom headers only to that server; a redirect
+  that changes scheme, host or port drops them, and a same-server redirect keeps them. This matches ED-152's rule for
+  `Authorization`. It is a named safety deviation: a server that deliberately redirects elsewhere and expects the key
+  there may fail to connect on Windows where it may work on the Mac.
