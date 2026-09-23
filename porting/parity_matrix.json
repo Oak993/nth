@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 457,
+      "IMPLEMENTED": 460,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 3417,
+      "SPECIFIED": 3414,
       "RETIRED": 6,
       "DISCOVERED": 33
     },
@@ -93378,7 +93378,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field names on the wire; lenient per-field reads with the same defaults.",
       "verification_method": "contract fixture decoding a minimal record and a full record",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -93401,7 +93401,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Enforce in the aggregation code and in any test fixture; the contract is stated only in the doc comment, so it must be carried into the port's own documentation.",
       "verification_method": "unit test summing a mixed lead-and-head spend list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -93424,7 +93424,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same nil-propagating sum; do not use a zero default.",
       "verification_method": "unit test over (both present), (left nil), (right nil), (both nil)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

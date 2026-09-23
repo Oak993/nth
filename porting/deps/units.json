@@ -1482,23 +1482,13 @@
     "Core.Models.Provider"
    ],
    "records_total": 3,
-   "records_todo": [
-    "PR-USAGE-086",
-    "PR-USAGE-087",
-    "PR-USAGE-088"
-   ],
-   "parts": [
-    [
-     "PR-USAGE-086",
-     "PR-USAGE-087",
-     "PR-USAGE-088"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-057"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.HangWatchdog",
