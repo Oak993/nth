@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
+using Avalonia.Headless;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -137,7 +138,7 @@ public sealed class SwiftImageTests(HeadlessSession headless)
         var zero = SymbolCatalogue.Mapping("0.circle.fill")!;
         Assert.True(zero.ComposedRendering);
         Assert.Equal("approximate", zero.Confidence);
-        Assert.Contains("draw \"0\" as text", zero.Note);
+        Assert.Contains("draw \"0\" as text", zero.Note, StringComparison.Ordinal);
     });
 
     [Fact]

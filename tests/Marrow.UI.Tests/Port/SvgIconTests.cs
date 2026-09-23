@@ -266,9 +266,10 @@ public sealed class SvgIconTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-179")]
-    public void Malformed_path_data_is_an_error_not_a_silent_shape()
+    public void Malformed_path_data_is_an_error_not_a_silent_shape() => headless.OnUiThread(() =>
     {
+        // StreamGeometry needs the platform render interface, so this runs on the headless UI thread too.
         Assert.ThrowsAny<FormatException>(() => SvgIcon.ParsePathData("M2 2 X4 4"));
         Assert.ThrowsAny<FormatException>(() => SvgIcon.ParsePathData("L2 2"));
-    }
+    });
 }
