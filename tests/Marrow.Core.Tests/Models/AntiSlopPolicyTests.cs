@@ -10,10 +10,10 @@ namespace Marrow.Core.Tests.Models;
 //
 // Where the expectations come from, never from the C# under test:
 // - SwiftEnabledB64 and SwiftDisabledB64 are the UTF-8 bytes of the two Swift multi-line string literals,
-//   :2-8 and :11-14, taken from the git blob at 1fbf81e (LF line ends; the working copy on disk is CRLF, and Swift
-//   normalizes a multi-line literal's line breaks to LF anyway), with the closing delimiter's four-space indentation
-//   stripped and no trailing newline (Swift's rule for a multi-line literal). Enabled: 1077 bytes, SHA-256
-//   2ad357d1...5a30. Disabled: 147 bytes, SHA-256 7dfa24d8...7a1c.
+//   :2-8 and :11-14 at 1fbf81e, as the literals evaluate: the file is stored with CRLF line ends, and Swift
+//   normalizes every line break inside a multi-line literal to LF; the closing delimiter's four-space indentation is
+//   stripped from each line and there is no trailing newline (Swift's rules for a multi-line literal). Enabled: 1077
+//   bytes, SHA-256 2ad357d1...5a30. Disabled: 147 bytes, SHA-256 7dfa24d8...7a1c.
 // - The port's expected text is that source text with only its first line replaced, as the records' deviation
 //   (OD-0012 F1) says: "[Droppy Code anti-slop guidance]" (:3) becomes "[Marrow anti-slop guidance]" and
 //   "[Droppy Code anti-slop guidance: off]" (:12) becomes "[Marrow anti-slop guidance: off]"; every other line,
@@ -25,6 +25,9 @@ namespace Marrow.Core.Tests.Models;
 // Scope: these tests prove the texts and the selector, the part of each record this file owns. The delivery points
 // the records also name (Hydra.swift claudeAgents/copilotAgents, ThreadRuntime.swift:1323-1334 and :1365-1367, the
 // Claude, Codex, Copilot and OpenAI-compatible session launches) belong to those files' units and are tested there.
+// Verification of the earlier pass (waveA.json) noted that nothing in the port joins these texts into a prompt yet:
+// the byte comparison of the assembled prompt at each delivery point, including the off branch (a resumed session
+// gets the cancellation block), is owed by the Hydra (Hydra.swift:808-816 and :843-872), ThreadRuntime and session units.
 public sealed class AntiSlopPolicyTests
 {
     // UTF-8 bytes of the Swift literal enabledInstructions, AntiSlopPolicy.swift:2-8. 1077 bytes, 5 lines.
@@ -256,5 +259,21 @@ public sealed class AntiSlopPolicyTests
         string swiftOff = Encoding.UTF8.GetString(Convert.FromBase64String(SwiftDisabledB64));
         Assert.Equal(swiftOn[(SwiftEnabledHeader.Length + 1)..], on[(PortEnabledHeader.Length + 1)..]);
         Assert.Equal(swiftOff[(SwiftDisabledHeader.Length + 1)..], off[(PortDisabledHeader.Length + 1)..]);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-STORE-130")] // Core/Models/AntiSlopPolicy.swift:16 static func instructions(enabled: Bool) -> String
+    public void The_selector_takes_a_plain_bool_and_returns_a_string_so_there_is_no_third_state()
+    {
+        // The record's windows_path: "The selector takes a Bool and returns one of the two constants; there is no
+        // third state." A bool? parameter or a second overload would admit one.
+        var methods = typeof(AntiSlopPolicy).GetMethods().Where(m => m.Name == "Instructions").ToArray();
+
+        var method = Assert.Single(methods);
+        Assert.True(method.IsStatic);
+        Assert.Equal(typeof(string), method.ReturnType);
+        var parameter = Assert.Single(method.GetParameters());
+        Assert.Equal(typeof(bool), parameter.ParameterType);
+        Assert.Equal("enabled", parameter.Name);
     }
 }
