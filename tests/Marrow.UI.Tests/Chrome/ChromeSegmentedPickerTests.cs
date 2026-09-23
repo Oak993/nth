@@ -8,6 +8,8 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Marrow.Core.Port;
+using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Marrow.UI.Tests.Fixtures;
@@ -69,11 +71,18 @@ public sealed class ChromeSegmentedPickerTests(HeadlessSession headless)
         return window;
     }
 
-    private static void Frames(ManualFrameSource frames, int count, int everyMilliseconds = 10)
+    // clock is the ManualTimeProvider bound to SwiftClock.Provider, when a test needs elapsed time to move in
+    // lockstep with the frames (AnimationClocks.Frame's pattern, Fixtures/AnimationFixtures.cs): AnimatedColor.Set
+    // (Port/PlainControls.cs:207-233) measures a span's progress on SwiftClock.Now, never on the frame callback's own
+    // TimeSpan (Port/FrameClock.cs:7-10), so a test that asserts a specific mid-animation progress must move both
+    // clocks together or the real wall clock (SwiftClock's default TimeProvider.System) decides the progress instead.
+    private static void Frames(ManualFrameSource frames, int count, int everyMilliseconds = 10, ManualTimeProvider? clock = null)
     {
         for (var i = 0; i < count; i++)
         {
-            frames.Advance(TimeSpan.FromMilliseconds(everyMilliseconds));
+            var span = TimeSpan.FromMilliseconds(everyMilliseconds);
+            clock?.Advance(span);
+            frames.Advance(span);
             Dispatcher.UIThread.RunJobs();
         }
     }
@@ -489,13 +498,18 @@ public sealed class ChromeSegmentedPickerTests(HeadlessSession headless)
     {
         var frames = new ManualFrameSource();
         using var source = FrameClock.Source.Override(frames);
+        // AnimatedColor.Set times the fill's fade on SwiftClock.Now (Port/PlainControls.cs:207-233), so the frame
+        // source alone does not carry the animation to completion: SwiftClock.Provider must move in lockstep too
+        // (see the clock parameter added to Frames() below, and AnimationClocks in Fixtures/AnimationFixtures.cs).
+        var clock = new ManualTimeProvider();
+        using var clockSource = SwiftClock.Provider.Override(clock);
         var cell = new CellSample<int?>(1);
         var picker = new ChromeSegmentedPicker<int?>(options: HydraOptions(), selection: new Binding<int?>(() => cell.Value, v => cell.Value = v));
         var window = Show(picker);
         var theme = window.ActualThemeVariant;
 
         Click(window, Centre(Segment(picker, "6"), window));
-        Frames(frames, 30); // 300 ms, well past the 0.1 s of Chrome.hover
+        Frames(frames, 30, clock: clock); // 300 ms, well past the 0.1 s of Chrome.hover
 
         var chosen = Segment(picker, "6");
         Assert.True(IsSelected(chosen));
@@ -540,6 +554,15 @@ public sealed class ChromeSegmentedPickerTests(HeadlessSession headless)
     {
         var frames = new ManualFrameSource();
         using var source = FrameClock.Source.Override(frames);
+        // AnimatedColor.Set (Port/PlainControls.cs:207-233) times the fade on SwiftClock.Now, not on the frame
+        // callback's own TimeSpan (Port/FrameClock.cs:7-10: "the TimeSpan a frame callback receives decides
+        // nothing"). Without also overriding SwiftClock.Provider here, elapsed time keeps coming from the real wall
+        // clock while only the frame wake-ups are manual, so the mid-animation assertions below raced the real clock
+        // instead of the deterministic one - the documented mechanism (Fixtures/AnimationFixtures.cs's
+        // AnimationClocks, and PopoversTests.cs:208-228) is to move a ManualTimeProvider bound to SwiftClock.Provider
+        // in lockstep with the ManualFrameSource, which this test omitted.
+        var clock = new ManualTimeProvider();
+        using var clockSource = SwiftClock.Provider.Override(clock);
         var picker = new ChromeSegmentedPicker<int?>(options: HydraOptions(), selection: Binding<int?>.Constant(1));
         var window = Show(picker);
         var theme = window.ActualThemeVariant;
@@ -552,17 +575,17 @@ public sealed class ChromeSegmentedPickerTests(HeadlessSession headless)
 
         // Whether the 0.1 s starts at the change or at the next frame, 50 ms in is mid-way: ease-out progress 0.57 to
         // 0.68 of the change (cubic Bezier 0, 0, 0.58, 1 at 0.4 and 0.5), strictly between the two ends.
-        Frames(frames, 5);
+        Frames(frames, 5, clock: clock);
         Assert.InRange((int)Fill(two).A, 1, target.A - 2);
-        Frames(frames, 20);
+        Frames(frames, 20, clock: clock);
         AssertColor(target, Fill(two));
         Assert.False(IsSelected(two)); // hover never selects
 
         window.MouseMove(new Point(390, 290), RawInputModifiers.None); // off the strip
         Dispatcher.UIThread.RunJobs();
-        Frames(frames, 5);
+        Frames(frames, 5, clock: clock);
         Assert.InRange((int)Fill(two).A, 1, target.A - 2);
-        Frames(frames, 20);
+        Frames(frames, 20, clock: clock);
         AssertColor(Chrome.PrimaryText.Opacity(0).Resolve(theme), Fill(two));
         window.Close();
     });
