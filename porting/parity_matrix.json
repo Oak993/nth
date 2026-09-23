@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 993,
+      "IMPLEMENTED": 997,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 2889,
+      "SPECIFIED": 2885,
       "RETIRED": 6,
       "DISCOVERED": 25
     },
@@ -7137,7 +7137,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One control with these nine literals, per port_impacts X8(c). A compositor-side replicator or an equivalent instanced draw; it must not tick on the UI thread.",
       "verification_method": "capture comparison of a one-line and a five-line composer",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7159,7 +7159,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A compositor animation with these exact keyframes and per-instance delays, started from a process-wide clock origin so separate fields stay in phase.",
       "verification_method": "capture comparison of two composers side by side, asserting they are in phase",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7181,7 +7181,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Read the Windows animation-effects setting; same static opacity.",
       "verification_method": "capture comparison with reduced motion on",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7203,7 +7203,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Re-resolve the brush on a theme/appearance change without recreating the visual tree.",
       "verification_method": "interaction test switching light and dark mid-turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
