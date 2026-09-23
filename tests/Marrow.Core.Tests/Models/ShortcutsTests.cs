@@ -105,9 +105,36 @@ public sealed class ShortcutsTests
 
     private static string Decimal(long value) => value.ToString(CultureInfo.InvariantCulture);
 
-    // A synthesized KeyChord encoding (:5-9): keyCode then modifiers, the stored masked bits (:13).
+    // A synthesized KeyChord encoding (:5-9) holding the stored masked bits (:13), used only as INPUT to the
+    // decoder, which reads the keys in any order.
     private static string ChordJson(long code, ChordModifiers mods) =>
         "{\"keyCode\":" + Decimal(code) + ",\"modifiers\":" + Decimal((uint)mods) + "}";
+
+    // The writer is `JSONEncoder().encode(overrides)` with no .sortedKeys (:261): the unsorted PlainEncoder, whose
+    // key order Swift does not fix (R-CODE-4, R-TEST-4). A single-entry dictionary holding one chord therefore has
+    // exactly two correct byte sequences, the two orders of the chord object's keys; each is compared byte for byte.
+    private static void AssertStoredChord(TestRuntime runtime, string raw, long keyCode, ulong modifiers)
+    {
+        var code = "\"keyCode\":" + Decimal(keyCode);
+        var mods = "\"modifiers\":" + modifiers.ToString(CultureInfo.InvariantCulture);
+        var prefix = "{\"" + raw + "\":{\"chord\":{";
+        byte[][] permutations =
+        [
+            Utf8(prefix + code + "," + mods + "}}}"),
+            Utf8(prefix + mods + "," + code + "}}}"),
+        ];
+        Assert.Contains(Stored(runtime), permutations, ByteSequence.Instance);
+    }
+
+    private sealed class ByteSequence : IEqualityComparer<byte[]>
+    {
+        public static readonly ByteSequence Instance = new();
+
+        public bool Equals(byte[]? x, byte[]? y) =>
+            x is not null && y is not null && x.AsSpan().SequenceEqual(y);
+
+        public int GetHashCode(byte[] obj) => obj.Length;
+    }
 
     private static (AppShortcut Shortcut, string Raw, AppShortcutSection Section, string Title, string Detail, long? Code, ChordModifiers Mods, string? Rendered, string? Equivalent) Row(AppShortcut shortcut) =>
         Array.Find(Table, r => r.Shortcut == shortcut);
@@ -179,7 +206,7 @@ public sealed class ShortcutsTests
             Assert.Equal(Utf8(donorRow.Rendered!), Utf8(ShortcutStore.Label(shortcut)!));
             Assert.Equal(Utf8(" (" + donorRow.Rendered + ")"), Utf8(ShortcutStore.Hint(shortcut)));
         });
-        Assert.Equal(Utf8("{\"" + row.Raw + "\":{\"chord\":" + ChordJson(donorCode, donorRow.Mods) + "}}"), Stored(runtime));
+        AssertStoredChord(runtime, row.Raw, donorCode, (uint)donorRow.Mods);
 
         OnMain(runtime, store, () =>
         {
@@ -381,7 +408,7 @@ public sealed class ShortcutsTests
             Assert.Equal(Utf8("Show Marrow already uses this chord."), Utf8(store.Refusal(ctrl0, AppShortcut.NewThread)!));
             Assert.Null(store.Refusal(ctrl0, AppShortcut.ShowMainWindow));
         });
-        Assert.Equal(Utf8("{\"showMainWindow\":{\"chord\":{\"keyCode\":11,\"modifiers\":2}}}"), Stored(runtime));
+        AssertStoredChord(runtime, "showMainWindow", 11, 2);
     }
 
     [Fact]
@@ -505,7 +532,7 @@ public sealed class ShortcutsTests
             Assert.Equal(Utf8("Ctrl+Shift+R"), Utf8(ShortcutStore.Label(AppShortcut.RunScript)!));
             Assert.Equal(Utf8(" (Ctrl+Shift+R)"), Utf8(ShortcutStore.Hint(AppShortcut.RunScript)));
         });
-        Assert.Equal(Utf8("{\"runScript\":{\"chord\":{\"keyCode\":19,\"modifiers\":6}}}"), Stored(runtime));
+        AssertStoredChord(runtime, "runScript", 19, 6);
     }
 
     // ------------------------------------------------------------------ PR-SETTINGS-104 persistence
@@ -550,19 +577,65 @@ public sealed class ShortcutsTests
 
         OnMain(runtime, store, () => store.Set(new KeyChord(0x31, Shift | Alt | Ctrl), AppShortcut.ToggleTerminal));
         Assert.Equal(new[] { Key }, runtime.Defaults.Writes);
-        Assert.Equal(Utf8("{\"toggleTerminal\":{\"chord\":{\"keyCode\":49,\"modifiers\":7}}}"), Stored(runtime));
+        AssertStoredChord(runtime, "toggleTerminal", 49, 7);
 
         // The Win key never reaches storage (:13, ED-099 (3)).
         OnMain(runtime, store, () => store.Set(new KeyChord(0x31, Ctrl | Win), AppShortcut.ToggleTerminal));
-        Assert.Equal(Utf8("{\"toggleTerminal\":{\"chord\":{\"keyCode\":49,\"modifiers\":2}}}"), Stored(runtime));
+        AssertStoredChord(runtime, "toggleTerminal", 49, 2);
 
         // An extended key is 0xE000 | code, written as a decimal integer: Home is 0xE047 (ED-099 (1), (2)).
         OnMain(runtime, store, () => store.Set(new KeyChord(0xE047, Ctrl), AppShortcut.ToggleTerminal));
-        Assert.Equal(Utf8("{\"toggleTerminal\":{\"chord\":{\"keyCode\":57415,\"modifiers\":2}}}"), Stored(runtime));
+        AssertStoredChord(runtime, "toggleTerminal", 57415, 2);
 
         // No modifiers at all: modifiers is 0, not omitted (a non-optional UInt, :9).
         OnMain(runtime, store, () => store.Set(new KeyChord(0x3F, default), AppShortcut.ToggleTerminal));
-        Assert.Equal(Utf8("{\"toggleTerminal\":{\"chord\":{\"keyCode\":63,\"modifiers\":0}}}"), Stored(runtime));
+        AssertStoredChord(runtime, "toggleTerminal", 63, 0);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-104")] // Core/Models/Shortcuts.swift:8-9, :16-18, :72, :268-270 (R-NUM-4: Swift Int and UInt are 64-bit)
+    public void A_stored_chord_keeps_a_negative_key_code_and_a_modifier_value_wider_than_32_bits()
+    {
+        // keyCode is a Swift Int and modifiers a Swift UInt (:8-9), both 64 bits, so the synthesized decoder
+        // accepts -1 and 4294967298 (2^32 + 2) and stores them raw: it does not run the masking init (:11-14).
+        using var runtime = new TestRuntime();
+        Seed(runtime, "{\"toggleTerminal\":{\"chord\":{\"keyCode\":-1,\"modifiers\":4294967298}}}");
+        var store = Load(runtime);
+        OnMain(runtime, store, () =>
+        {
+            Assert.True(store.IsCustomized(AppShortcut.ToggleTerminal));
+            var chord = store.Chord(AppShortcut.ToggleTerminal)!;
+            Assert.Equal(-1L, chord.KeyCode);
+            Assert.Equal(4294967298UL, (ulong)chord.Modifiers);
+            // modifierFlags intersects with the allowed set (:16-18): only bit 2, Control, survives.
+            Assert.Equal(Ctrl, chord.ModifierFlags);
+            // -1 is in neither label table, so it reads "Key -1" (:72, ED-099 (2)).
+            Assert.Equal(Utf8("Ctrl+Key -1"), Utf8(chord.Description));
+            Assert.Equal(Utf8("Ctrl+Key -1"), Utf8(ShortcutStore.Label(AppShortcut.ToggleTerminal)!));
+        });
+        Assert.Empty(runtime.Defaults.Writes);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-104")] // Core/Models/Shortcuts.swift:245-249, :259-270, :304-306, :316-318
+    public void An_override_for_no_current_command_survives_the_next_write()
+    {
+        // `overrides` is keyed by the raw string (:245) and didSet re-encodes the whole dictionary (:259-265),
+        // so an entry no AppShortcut names is carried through every write.
+        using var runtime = new TestRuntime();
+        Seed(runtime, "{\"notAShortcut\":{}}");
+        var store = Load(runtime);
+        OnMain(runtime, store, () =>
+        {
+            // The stray key belongs to no section (:316-318).
+            Assert.False(store.HasCustomizations(AppShortcutSection.Threads));
+            Assert.False(store.HasCustomizations(AppShortcutSection.Window));
+            store.Reset(AppShortcut.ToggleTerminal); // one assignment, one write (:304-306)
+            Assert.False(store.HasCustomizations(AppShortcutSection.Threads));
+            Assert.False(store.HasCustomizations(AppShortcutSection.Window));
+        });
+        Assert.Equal(new[] { Key }, runtime.Defaults.Writes);
+        Assert.Equal(Utf8("{\"notAShortcut\":{}}"), Stored(runtime));
     }
 
     [Fact]
@@ -712,11 +785,14 @@ public sealed class ShortcutsTests
     [InlineData("{\"toggleTerminal\":{},\"newThread\":{\"chord\":{\"keyCode\":49,\"modifiers\":\"2\"}}}")]
     [InlineData("{\"toggleTerminal\":{},\"newThread\":{\"chord\":{\"keyCode\":49.5,\"modifiers\":2}}}")]
     [InlineData("{\"toggleTerminal\":{},\"newThread\":{\"chord\":{\"keyCode\":49,\"modifiers\":-1}}}")]
+    [InlineData("{\"toggleTerminal\":{},\"newThread\":{\"chord\":{\"keyCode\":49,\"modifiers\":18446744073709551616}}}")]
+    [InlineData("{\"toggleTerminal\":{},\"newThread\":{\"chord\":{\"keyCode\":9223372036854775808,\"modifiers\":2}}}")]
     [InlineData("{\"toggleTerminal\":{},\"newThread\":{\"chord\":{\"keyCode\":true,\"modifiers\":2}}}")]
     public void Stored_data_that_fails_to_decode_starts_empty_and_the_next_change_overwrites_it(string stored)
     {
         // keyCode (Int) and modifiers (UInt) are non-optional synthesized fields (:8-9): missing, null, a string,
-        // a fraction, a Bool or a negative UInt throws, and with it the whole dictionary (try?, :269).
+        // a fraction, a Bool, a negative UInt, a UInt past UInt.max (2^64) or an Int past Int.max (2^63) throws,
+        // and with it the whole dictionary (try?, :269).
         using var runtime = new TestRuntime();
         Seed(runtime, stored);
         var store = Load(runtime);
@@ -1034,6 +1110,51 @@ public sealed class ShortcutsTests
                 // Bare, such a key does not type (:77), so the menu check is the one that fires.
                 Assert.Equal(Utf8(MenuRefusal), Utf8(store.Refusal(new KeyChord(code, default), AppShortcut.NewThread)!));
             }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-219")] // Core/Models/Shortcuts.swift:22, :72, :77, :80-101, :325-328 (ED-099 (1), (2))
+    [Trait("Req", "PR-SETTINGS-223")] // Core/Models/Shortcuts.swift:72, :276-279, :281-289 (ED-099 (2))
+    public void An_extended_key_and_its_non_extended_twin_are_different_positions()
+    {
+        // ED-099 (1): extended keys are 0xE000 | code, and :72, :77 and :80-101 are exact dictionary lookups. So
+        // numpad 7 (0x47) is not Home (0xE047), numpad Enter (0xE01C) is not Return (0x1C), and numpad slash
+        // (0xE035) is not '/' (0x35): none of the three is in the table.
+        using var runtime = new TestRuntime();
+        var store = Load(runtime);
+        (long Code, string Bare, string WithCtrl)[] outside =
+        [
+            (0x47, "Key 71", "Ctrl+Key 71"),
+            (0xE01C, "Key 57372", "Ctrl+Key 57372"),
+            (0xE035, "Key 57397", "Ctrl+Key 57397"),
+        ];
+        OnMain(runtime, store, () =>
+        {
+            foreach (var (code, bare, withCtrl) in outside)
+            {
+                // Not a typing key (:77), so bare or with Shift the menu check fires, not the typing refusal (:325-328).
+                Assert.Equal(Utf8(MenuRefusal), Utf8(store.Refusal(new KeyChord(code, default), AppShortcut.NewThread)!));
+                Assert.Equal(Utf8(MenuRefusal), Utf8(store.Refusal(new KeyChord(code, Shift), AppShortcut.NewThread)!));
+                Assert.Equal(Utf8(MenuRefusal), Utf8(store.Refusal(new KeyChord(code, Ctrl), AppShortcut.NewThread)!));
+                Assert.Null(new KeyChord(code, Ctrl).KeyboardShortcut); // :22
+                Assert.Equal(Utf8(bare), Utf8(new KeyChord(code, default).Description)); // :72
+                Assert.Equal(Utf8(withCtrl), Utf8(new KeyChord(code, Ctrl).Description));
+
+                // Through the store: the chord is kept, has no menu shortcut, and labels as "Key <decimal>".
+                store.Set(new KeyChord(code, Ctrl), AppShortcut.ToggleTerminal);
+                Assert.Null(store.KeyboardShortcut(AppShortcut.ToggleTerminal));
+                Assert.Equal(Utf8(withCtrl), Utf8(ShortcutStore.Label(AppShortcut.ToggleTerminal)!));
+                Assert.Equal(Utf8(" (" + withCtrl + ")"), Utf8(ShortcutStore.Hint(AppShortcut.ToggleTerminal)));
+            }
+
+            // Their twins in the table behave as the table says.
+            Assert.Null(store.Refusal(new KeyChord(0xE047, default), AppShortcut.NewThread)); // Home does not type
+            Assert.Equal(Utf8("Home"), Utf8(new KeyChord(0xE047, default).Description));
+            Assert.Equal(Utf8(TypingRefusal), Utf8(store.Refusal(new KeyChord(0x1C, default), AppShortcut.NewThread)!)); // Return
+            Assert.Equal(Utf8("Return"), Utf8(new KeyChord(0x1C, default).Description));
+            Assert.Equal(Utf8(TypingRefusal), Utf8(store.Refusal(new KeyChord(0x35, default), AppShortcut.NewThread)!)); // '/'
+            Assert.Equal(Utf8("/"), Utf8(new KeyChord(0x35, default).Description));
         });
     }
 
