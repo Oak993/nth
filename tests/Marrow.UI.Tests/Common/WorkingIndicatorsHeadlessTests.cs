@@ -91,13 +91,14 @@ public sealed class WorkingIndicatorsHeadlessTests(HeadlessSession headless)
     {
         var saved = ThemeManager.Current;
         using var source = FrameClock.Source.Override(new ManualFrameSource());
+        Window? window = null;
         try
         {
             // System keeps the system control accent (no fixed hex); CatppuccinMocha pins its own (PR-THEME-030),
             // so the two are guaranteed to resolve to different tints.
             ThemeManager.Current = AppTheme.System;
             var inner = new SpinnerLayerView(WorkingSpinner.Cells, 3, 3.5);
-            Show(inner);
+            window = Show(inner);
             Assert.Equal(GradientSpin.RowTints(Marrow.UI.Chrome.Chrome.AccentNSColor.Resolve(inner.ActualThemeVariant)), Tints(inner));
             var systemTints = Tints(inner);
 
@@ -110,6 +111,10 @@ public sealed class WorkingIndicatorsHeadlessTests(HeadlessSession headless)
         }
         finally
         {
+            // Detach before restoring, so the control's ThemeManager.DidChange subscription (:185, :193-195) is
+            // dropped: otherwise it would keep reacting to every later test's theme changes.
+            window?.Close();
+            Dispatcher.UIThread.RunJobs();
             ThemeManager.Current = saved;
         }
     });
@@ -133,19 +138,27 @@ public sealed class WorkingIndicatorsHeadlessTests(HeadlessSession headless)
         using var clock = SwiftClock.Provider.Override(time);
 
         var first = new SpinnerLayerView(WorkingSpinner.Cells, 3, 3.5);
-        Show(first);
+        var firstWindow = Show(first);
         Frame(time, frames, 0.3); // advance the shared clock before the second spinner exists
 
         var second = new SpinnerLayerView(WorkingSpinner.Cells, 3, 3.5);
-        Show(second);
+        var secondWindow = Show(second);
+        try
+        {
+            var phaseNow = time.GetTimestamp() / (double)time.TimestampFrequency / GradientSpin.Period;
+            var cell = WorkingSpinner.Cells[0];
+            var expected = GradientSpin.Opacity(phaseNow - cell.Lag);
 
-        var phaseNow = time.GetTimestamp() / (double)time.TimestampFrequency / GradientSpin.Period;
-        var cell = WorkingSpinner.Cells[0];
-        var expected = GradientSpin.Opacity(phaseNow - cell.Lag);
-
-        // Both spinners agree at once, though the second one only just joined: neither restarts its own clock.
-        Assert.Equal(expected, OpacityAt(first, cell), 6);
-        Assert.Equal(expected, OpacityAt(second, cell), 6);
+            // Both spinners agree at once, though the second one only just joined: neither restarts its own clock.
+            Assert.Equal(expected, OpacityAt(first, cell), 6);
+            Assert.Equal(expected, OpacityAt(second, cell), 6);
+        }
+        finally
+        {
+            firstWindow.Close();
+            secondWindow.Close();
+            Dispatcher.UIThread.RunJobs();
+        }
     });
 
     [Fact]
@@ -155,11 +168,19 @@ public sealed class WorkingIndicatorsHeadlessTests(HeadlessSession headless)
         var frames = new ManualFrameSource();
         using var source = FrameClock.Source.Override(frames);
         var spinner = new SpinnerLayerView(WorkingSpinner.Cells, 3, 3.5);
-        Show(spinner);
-        Assert.Equal(1, frames.Pending);
-        frames.Advance(TimeSpan.FromSeconds(0.1));
-        Dispatcher.UIThread.RunJobs();
-        Assert.Equal(1, frames.Pending); // exactly one outstanding request at a time
+        var window = Show(spinner);
+        try
+        {
+            Assert.Equal(1, frames.Pending);
+            frames.Advance(TimeSpan.FromSeconds(0.1));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(1, frames.Pending); // exactly one outstanding request at a time
+        }
+        finally
+        {
+            window.Close();
+            Dispatcher.UIThread.RunJobs();
+        }
     });
 
     // ---- Reduce motion freezes the wave (PR-THEME-168) ----
@@ -174,11 +195,18 @@ public sealed class WorkingIndicatorsHeadlessTests(HeadlessSession headless)
         EnvironmentValues.SetAccessibilityReduceMotion(grid, true);
         var spinner = new SpinnerLayerView(WorkingSpinner.Cells, 3, 3.5);
         grid.Children.Add(spinner);
-        Show(grid);
-
-        Assert.Equal(0, frames.Pending); // no frame requested: no animation was installed
-        var cell = WorkingSpinner.Cells[1];
-        Assert.Equal(GradientSpin.Opacity(-cell.Lag), OpacityAt(spinner, cell), 12);
+        var window = Show(grid);
+        try
+        {
+            Assert.Equal(0, frames.Pending); // no frame requested: no animation was installed
+            var cell = WorkingSpinner.Cells[1];
+            Assert.Equal(GradientSpin.Opacity(-cell.Lag), OpacityAt(spinner, cell), 12);
+        }
+        finally
+        {
+            window.Close();
+            Dispatcher.UIThread.RunJobs();
+        }
     });
 
     [Fact]
@@ -192,15 +220,23 @@ public sealed class WorkingIndicatorsHeadlessTests(HeadlessSession headless)
         var grid = new Panel();
         var spinner = new SpinnerLayerView(WorkingSpinner.Cells, 3, 3.5);
         grid.Children.Add(spinner);
-        Show(grid);
-        Assert.Equal(1, frames.Pending);
+        var window = Show(grid);
+        try
+        {
+            Assert.Equal(1, frames.Pending);
 
-        EnvironmentValues.SetAccessibilityReduceMotion(grid, true);
-        Dispatcher.UIThread.RunJobs();
+            EnvironmentValues.SetAccessibilityReduceMotion(grid, true);
+            Dispatcher.UIThread.RunJobs();
 
-        Assert.Equal(0, frames.Pending);
-        var cell = WorkingSpinner.Cells[2];
-        Assert.Equal(GradientSpin.Opacity(-cell.Lag), OpacityAt(spinner, cell), 12);
+            Assert.Equal(0, frames.Pending);
+            var cell = WorkingSpinner.Cells[2];
+            Assert.Equal(GradientSpin.Opacity(-cell.Lag), OpacityAt(spinner, cell), 12);
+        }
+        finally
+        {
+            window.Close();
+            Dispatcher.UIThread.RunJobs();
+        }
     });
 
     // Reads the opacity SpinnerLayerView is about to paint for one cell, the same way GradientSpin.RowTints/Opacity
