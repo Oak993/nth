@@ -1251,4 +1251,54 @@ public sealed class ProviderTests
         Assert.Null(ProviderKind.OpencodeGo.ApiKeySource);
         Assert.Null(ProviderKind.OpencodeGo.ApiKeyEnvVar);
     }
+
+    // PR-PROVREG-245: :146-154. The pure predicate: true for exactly codex, claude, copilot, deepseek,
+    // meta, zai and pi, false for the other seven. This record also describes ComposerView.swift:478-480
+    // (the built-in "compact" slash-command suggestion) and ThreadRuntime.swift:1164-1167 (routing a sent
+    // "/compact" to the app's own compact() and recording it), both a different Swift file and a different
+    // unit (App layer); out of scope for Marrow.Core and not proven here.
+    [Trait("Req", "PR-PROVREG-245")] // Core/Models/Provider.swift:146-154
+    [Fact]
+    public void SupportsCompact_predicate_is_true_for_exactly_the_seven_named_providers()
+    {
+        ProviderKind[] expectedTrue =
+        [
+            ProviderKind.Codex, ProviderKind.Claude, ProviderKind.Copilot,
+            ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai, ProviderKind.Pi,
+        ];
+        ProviderKind[] expectedFalse =
+        [
+            ProviderKind.Cursor, ProviderKind.Opencode, ProviderKind.OpencodeGo, ProviderKind.Grok,
+            ProviderKind.Devin, ProviderKind.Antigravity, ProviderKind.Commandcode,
+        ];
+        foreach (var kind in expectedTrue) Assert.True(kind.SupportsCompact);
+        foreach (var kind in expectedFalse) Assert.False(kind.SupportsCompact);
+        Assert.Equal(SwiftEnum<ProviderKind>.AllCases.Count, expectedTrue.Length + expectedFalse.Length);
+    }
+
+    // UI-PROVACP-034: :161-195. The four runtime-mode rows in source declaration order, with their exact
+    // titles, summaries and SF Symbol names. The symbol strings are data ported verbatim, not drawn as
+    // text; substituting an actual Windows icon for each is a platform boundary handled elsewhere
+    // (UNK-0007/PA-0012), not by this record. Id is Identifiable.id == rawValue (:167), the same pattern
+    // already proven for ProviderKind at PR-PROVREG-001.
+    [Trait("Req", "UI-PROVACP-034")] // Core/Models/Provider.swift:161-195
+    [Fact]
+    public void RuntimeMode_rows_have_exact_titles_summaries_symbols_and_ids_in_source_order()
+    {
+        (RuntimeMode Mode, string RawValue, string Title, string Summary, string Symbol)[] expected =
+        [
+            (RuntimeMode.Supervised, "supervised", "Supervised", "Asks before commands and file changes", "hand.raised"),
+            (RuntimeMode.AutoAcceptEdits, "autoAcceptEdits", "Auto-accept edits", "Edits files freely, asks before other actions", "pencil.line"),
+            (RuntimeMode.Auto, "auto", "Auto", "The provider's reviewer approves routine actions", "wand.and.sparkles"),
+            (RuntimeMode.FullAccess, "fullAccess", "Full access", "Runs commands and edits without asking", "lock.open"),
+        ];
+        foreach (var (mode, rawValue, title, summary, symbol) in expected)
+        {
+            Assert.Equal(rawValue, mode.Id);
+            Assert.Equal(title, mode.Title);
+            Assert.Equal(summary, mode.Summary);
+            Assert.Equal(symbol, mode.Symbol);
+        }
+        Assert.Equal(expected.Length, SwiftEnum<RuntimeMode>.AllCases.Count);
+    }
 }
