@@ -1,0 +1,186 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Threading;
+using Marrow.Core.Port;
+using Marrow.Testing;
+using Marrow.UI.Port;
+using Marrow.UI.Tests.Fixtures;
+
+namespace Marrow.UI.Tests.Port;
+
+// F.LoadingMark on Avalonia 12.1.2 headless (R-TEST-7): the LoadingMark control and the BootStage control run from the
+// frame clock seam (ED-083, ED-097 (2), ED-102 (7); R-VIEW-10), follow reduce motion from the environment (R-VIEW-6,
+// ED-097 (3)), take no input (ED-097 (6), ED-103 (1)) and draw the icon of src/Marrow.App/Assets/icon.svg.
+// PORT-ONLY surface these tests fix, in src/Marrow.UI/Port/LoadingMark.cs, namespace Marrow.UI.Port:
+//   LoadingMark : Control { double Elapsed; double CurrentOpacity; CometState State; }   Elapsed is SwiftClock time
+//       since the control was attached, as of its last frame
+//   BootStage(BootSequence sequence) : Control { double Elapsed; BootFrame Frame; void Ready();
+//       event EventHandler MainWindowShown; event EventHandler Closed; }
+[Collection("Headless")]
+public sealed class LoadingMarkHeadlessTests(HeadlessSession headless)
+{
+    private static Window Show(Control content, IBrush? background = null)
+    {
+        var window = new Window { Width = 256, Height = 256, Content = content, Background = background };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        return window;
+    }
+
+    private static void Frame(ManualTimeProvider time, ManualFrameSource frames, double seconds)
+    {
+        time.Advance(TimeSpan.FromSeconds(seconds));
+        frames.Advance(TimeSpan.FromSeconds(seconds));
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static Color Pixel(WriteableBitmap bitmap, int x, int y)
+    {
+        using var buffer = bitmap.Lock();
+        var bytes = new byte[4];
+        System.Runtime.InteropServices.Marshal.Copy(buffer.Address + y * buffer.RowBytes + x * 4, bytes, 0, 4);
+        return buffer.Format == Avalonia.Platform.PixelFormat.Rgba8888
+            ? Color.FromArgb(bytes[3], bytes[0], bytes[1], bytes[2])
+            : Color.FromArgb(bytes[3], bytes[2], bytes[1], bytes[0]);
+    }
+
+    private static Color Capture(Window window, int x, int y)
+    {
+        using var frame = window.CaptureRenderedFrame()!;
+        using var bitmap = new WriteableBitmap(frame.PixelSize, frame.Dpi, Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Premul);
+        using (var buffer = bitmap.Lock()) frame.CopyPixels(new PixelRect(frame.PixelSize), buffer.Address, buffer.RowBytes * buffer.Size.Height, buffer.RowBytes);
+        return Pixel(bitmap, x, y);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-097")]
+    public void The_mark_is_a_picture_not_a_control_with_no_hit_testing_and_no_focus() => headless.OnUiThread(() =>
+    {
+        var mark = new LoadingMark();
+        Assert.False(mark.IsHitTestVisible);
+        Assert.False(mark.Focusable);
+        var stage = new BootStage(new BootSequence(new BootWindowLayout(new Rect(0, 0, 780, 480), 14, [new Rect(20, 8, 740, 28)]), reduceMotion: false));
+        Assert.False(stage.IsHitTestVisible); // ED-103 (1): nothing on the stage takes input
+        Assert.False(stage.Focusable);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-097")]
+    [Trait("Decision", "ED-102")]
+    [Trait("Decision", "ED-083")]
+    [Trait("Rule", "R-VIEW-10")]
+    public void The_mark_runs_from_the_frame_clock_after_the_400_ms_rule_and_asks_for_no_frames_once_detached() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var mark = new LoadingMark { Width = 64, Height = 64 };
+        var window = Show(mark);
+        Assert.Equal(0, mark.Elapsed);
+        Assert.Equal(0, mark.CurrentOpacity);
+        Assert.Equal(1, frames.Pending);
+        Frame(time, frames, .3);
+        Assert.Equal(.3, mark.Elapsed, 9);
+        Assert.Equal(0, mark.CurrentOpacity);
+        Frame(time, frames, .2);
+        Assert.Equal(.5, mark.CurrentOpacity, 9);
+        Frame(time, frames, 1.1); // 1.6 s: 1.2 s into the first turn
+        Assert.Equal(1, mark.CurrentOpacity, 9);
+        Assert.Equal(LoadingMark.Motion(mark.Elapsed, reduceMotion: false), mark.State);
+        Assert.Equal(Math.PI, mark.State.Angle, 7);
+        // time alone moves nothing: only a frame does
+        time.Advance(TimeSpan.FromSeconds(1));
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(1.6, mark.Elapsed, 9);
+        window.Close();
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(0, frames.Pending);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-097")]
+    [Trait("Rule", "R-VIEW-6")]
+    public void Under_reduce_motion_from_the_environment_the_mark_is_drawn_still() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var mark = new LoadingMark { Width = 64, Height = 64 };
+        var host = new Border { Child = mark };
+        EnvironmentValues.SetAccessibilityReduceMotion(host, true);
+        var window = Show(host);
+        Frame(time, frames, 1.6);
+        Assert.Equal(CometMotion.Still, mark.State);
+        Assert.Equal(1, mark.CurrentOpacity, 9);
+        EnvironmentValues.SetAccessibilityReduceMotion(host, false);
+        Frame(time, frames, .1);
+        Assert.Equal(LoadingMark.Motion(1.7, reduceMotion: false), mark.State); // moving again, on the same clock
+        Assert.Equal(1.7, mark.Elapsed, 9);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-097")]
+    [Trait("Decision", "ED-102")]
+    public void The_mark_draws_nothing_before_400_ms_then_the_icon_with_its_white_core_on_the_dark_tile() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var gray = Color.FromRgb(0x80, 0x80, 0x80);
+        // 128 DIP mark centred in 256: icon unit u maps to 64 + u / 8
+        var mark = new LoadingMark { Width = 128, Height = 128 };
+        var window = Show(mark, new SolidColorBrush(gray));
+        Frame(time, frames, .2);
+        Assert.Equal(gray, Capture(window, 128, 128));
+        Assert.Equal(gray, Capture(window, 128, 76));
+        Frame(time, frames, .8); // 1.0 s: fully shown, .6 s after the first pulse
+        var core = Capture(window, 128, 128); // icon (512, 512): the core, #FFFFFF to #F2F5FF near its focus
+        Assert.True(core.R >= 235 && core.G >= 235 && core.B >= 240, $"core pixel {core}");
+        var tile = Capture(window, 128, 76); // icon (512, 96): the tile under its glow, no arm or ring there
+        Assert.True(tile.R < 100 && tile.G < 100 && tile.B < 140, $"tile pixel {tile}");
+        var outside = Capture(window, 66, 66); // icon (16, 16): outside the rounded tile
+        Assert.True(Math.Abs(outside.R - gray.R) < 24 && Math.Abs(outside.B - gray.B) < 24, $"outside pixel {outside}");
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-103")]
+    [Trait("Decision", "ED-102")]
+    [Trait("Rule", "R-VIEW-10")]
+    public void The_boot_stage_runs_from_the_frame_clock_shows_the_main_window_when_the_outline_lands_and_closes_after_the_last_particle() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var layout = new BootWindowLayout(new Rect(-262, -112, 780, 480), 14,
+            [new Rect(-248, -60, 204, 150), new Rect(10, -42, 468, 220), new Rect(-242, -104, 740, 28)]);
+        var sequence = new BootSequence(layout, reduceMotion: false);
+        var stage = new BootStage(sequence);
+        var shown = new List<double>();
+        var closed = new List<double>();
+        stage.MainWindowShown += (_, _) => shown.Add(stage.Elapsed);
+        stage.Closed += (_, _) => closed.Add(stage.Elapsed);
+        var window = Show(stage);
+        for (var i = 0; i < 50; i++) Frame(time, frames, .05); // 2.5 s
+        Assert.Equal(BootPhase.Turning, stage.Frame.Phase);
+        stage.Ready();
+        for (var i = 0; i < 80; i++) Frame(time, frames, .05); // to 6.5 s
+        var showAt = sequence.MainWindowShownAt(2.5);
+        var closeAt = sequence.StageClosesAt(2.5);
+        Assert.Single(shown);
+        Assert.InRange(shown[0], showAt, showAt + .05 + 1e-9);
+        Assert.Single(closed);
+        Assert.InRange(closed[0], closeAt, closeAt + .05 + 1e-9);
+        Assert.Equal(BootPhase.Closed, stage.Frame.Phase);
+        Assert.Equal(0, frames.Pending); // closed: no more frames
+        window.Close();
+    });
+}
