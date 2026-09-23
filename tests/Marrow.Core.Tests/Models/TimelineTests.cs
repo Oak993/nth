@@ -489,6 +489,27 @@ public sealed class TimelineTests
         Assert.Equal(1.0, new ContextUsage { UsedTokens = 100, WindowTokens = 100 }.Fraction);
     }
 
+    // ---- PR-USAGE-085: ContextUsage.fraction is nil without a positive window and is otherwise clamped to at most one ----
+
+    [Fact]
+    [Trait("Req", "PR-USAGE-085")] // Core/Models/Timeline.swift:335-338
+    public void Fraction_is_nil_for_a_missing_zero_or_negative_window_and_otherwise_used_over_window_capped_at_one()
+    {
+        Assert.Null(new ContextUsage { UsedTokens = 500 }.Fraction);
+        Assert.Null(new ContextUsage { UsedTokens = 500, WindowTokens = 0 }.Fraction);
+        Assert.Null(new ContextUsage { UsedTokens = 500, WindowTokens = -1 }.Fraction);
+        Assert.Equal(0.5, new ContextUsage { UsedTokens = 50, WindowTokens = 100 }.Fraction);
+        Assert.Equal(1.0, new ContextUsage { UsedTokens = 100, WindowTokens = 100 }.Fraction);
+        Assert.Equal(1.0, new ContextUsage { UsedTokens = 1_000, WindowTokens = 100 }.Fraction); // capped, never above 1
+    }
+
+    [Fact]
+    [Trait("Req", "PR-USAGE-085")] // Core/Models/Timeline.swift:335-338; no lower clamp on usedTokens
+    public void Fraction_has_no_lower_clamp_so_a_negative_usedTokens_yields_a_negative_fraction()
+    {
+        Assert.Equal(-0.5, new ContextUsage { UsedTokens = -50, WindowTokens = 100 }.Fraction);
+    }
+
     // ---- PR-CHAT-015: FollowUpPrompt.isEmpty ----
 
     [Fact]
