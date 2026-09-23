@@ -60,6 +60,10 @@ public static class SwiftPath
         {
             if (HasLongUncPrefix(p))
             {
+                // ED-139 + ED-036: \\?\UNC\server\share is the same path as \\server\share, so its root is the whole
+                // share: the upward walk (AppModel+Hydra.swift:332-340) ends there and ".." in standardization
+                // (AppModel+Hydra.swift:323, :326; TouchedPaths.swift:23, :25) never climbs above it. ED-142: the
+                // root keeps its \\?\UNC\ lead-in. Pinned by the long-UNC root rows in SwiftPathTests.
                 var share = ServerShareLength(p, 8);
                 if (share > 0) return 8 + share;
             }
