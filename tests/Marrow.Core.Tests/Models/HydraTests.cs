@@ -6,10 +6,19 @@ using Marrow.Testing;
 
 namespace Marrow.Core.Tests.Models;
 
-// Source-derived tests for DroppyCode/Core/Models/Hydra.swift (B2 1fbf81e), unit Core.Models.Hydra, parts 1-2
+// Source-derived tests for DroppyCode/Core/Models/Hydra.swift (B2 1fbf81e), unit Core.Models.Hydra, parts 1-4
 // of 4. Every expected value is transcribed from the cited Swift lines or the record itself, never from the C#
 // under test (R-TEST-4). Records proved: part 1, PR-HYDRA-001 to PR-HYDRA-024; part 2, PR-HYDRA-025 to
-// PR-HYDRA-052 (excluding 029, 030, 041, 042, not named by this part's records).
+// PR-HYDRA-052 (excluding 029, 030, 041, 042, not named by this part's records); part 4, PR-HYDRA-080, 082,
+// 083, 088 to 093, 097, 248 to 251, PR-HYDRAMERGE-083, UI-HYDRAMERGE-003.
+//
+// Part 4 untestable/blocked records: PR-HYDRA-084, PR-HYDRA-085 and PR-HYDRA-098 all describe
+// HydraPrompts.Delegations/the private body parser, which calls delegation(fromEntry:) - an extension
+// declared in a DIFFERENT Swift file, HydraDelegationStream.swift:110-118, whose C# twin (unit
+// Core.Models.HydraDelegationStream) is not yet in this tree. Delegations(string) stays a MARROW_STUB
+// NotImplementedException at this site (see Models/Hydra.cs); no test can exercise behaviour that throws
+// unconditionally without asserting the exception, which would prove nothing about the record. Left
+// unwritten per the packet's stop rule; reported as a blocker, not silently skipped.
 //
 // PR-HYDRA-016 (the fixed order of the in-turn budget checks and the out-of-turn backstop's allowance) describes
 // runtime behaviour in AppModel+Hydra.swift / ThreadRuntime.swift (the turn loop and the backstop timer), not
@@ -910,6 +919,7 @@ public sealed class HydraTests
     // ---- PR-HYDRA-028: HydraMergeStage has exactly seven cases with these exact words in order ----
 
     [Trait("Req", "PR-HYDRA-028")] // DroppyCode/Core/Models/Hydra.swift:509-530
+    [Trait("Req", "UI-HYDRAMERGE-003")] // DroppyCode/Core/Models/Hydra.swift:509-530 the merge pill's "words" text (its geometry/typography/colors/transitions/shimmer are TimelineRows.swift, a UI unit, untestable here)
     [Fact]
     public void Words_are_exactly_the_seven_stage_sentences_in_order()
     {
@@ -1937,6 +1947,7 @@ public sealed class HydraTests
     }
 
     [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1003-1007 held, no files left vs waiting with the run-on fallback
+    [Trait("Req", "PR-HYDRAMERGE-083")] // DroppyCode/Core/Models/Hydra.swift:1003-1007 the .held branch B2 adds
     [Fact]
     public void MergeStatus_held_outcome_has_two_shapes_and_the_nil_fallback_run_on_sentence()
     {
@@ -1954,6 +1965,7 @@ public sealed class HydraTests
     }
 
     [Trait("Req", "PR-HYDRA-066")] // DroppyCode/Core/Models/Hydra.swift:1008-1009 settled, exact assembly
+    [Trait("Req", "PR-HYDRAMERGE-083")] // DroppyCode/Core/Models/Hydra.swift:1008-1009 the .settled branch B2 adds
     [Fact]
     public void MergeStatus_settled_outcome_exact_text_with_pending_and_do_not_describe_sentence()
     {
@@ -2362,5 +2374,428 @@ public sealed class HydraTests
         Assert.Contains(
             "Do not check any of this with git status or git diff: the checkout changes under you while heads work, and the user may be editing too. Do not reconcile, revert or redo anything. Build on the reports, read the files they name if something matters, run one verification if it matters, and finish the job.",
             notReviewing, StringComparison.Ordinal);
+    }
+
+    // ---- PR-HYDRA-080: delegationOpener accepts hydra, hydra-sent, hydra-leaving, case-insensitively ----
+    // Exercised through the public surface (DelegationBlockRange/HasDelegationBlock/HasDelegationOpener),
+    // since delegationOpener itself is private (Hydra.swift:1092-1094).
+
+    [Trait("Req", "PR-HYDRA-080")] // DroppyCode/Core/Models/Hydra.swift:1092-1094
+    [Fact]
+    public void DelegationBlockRange_opener_accepts_the_three_dialects_case_insensitively()
+    {
+        Assert.NotNull(HydraPrompts.DelegationBlockRange("```hydra\n[]\n```"));
+        Assert.NotNull(HydraPrompts.DelegationBlockRange("```HYDRA\n[]\n```"));
+        Assert.NotNull(HydraPrompts.DelegationBlockRange("```Hydra-Sent\n[]\n```"));
+        Assert.NotNull(HydraPrompts.DelegationBlockRange("```hydra-leaving\n[]\n```"));
+        Assert.NotNull(HydraPrompts.DelegationBlockRange("```HYDRA-LEAVING\n[]\n```"));
+    }
+
+    [Trait("Req", "PR-HYDRA-080")] // DroppyCode/Core/Models/Hydra.swift:1092-1094
+    [Fact]
+    public void DelegationBlockRange_opener_allows_spaces_or_tabs_and_an_optional_CR_before_the_LF()
+    {
+        Assert.NotNull(HydraPrompts.DelegationBlockRange("```  hydra \t\n[]\n```"));
+        Assert.NotNull(HydraPrompts.DelegationBlockRange("```hydra\r\n[]\n```"));
+    }
+
+    [Trait("Req", "PR-HYDRA-080")] // DroppyCode/Core/Models/Hydra.swift:1092-1094
+    [Fact]
+    public void DelegationBlockRange_opener_rejects_other_info_strings_and_other_whitespace_classes()
+    {
+        Assert.Null(HydraPrompts.DelegationBlockRange("```json\n[]\n```"));
+        Assert.Null(HydraPrompts.DelegationBlockRange("```hydraX\n[]\n```"));
+        // A vertical tab is not in the pattern's [ \t] whitespace class.
+        Assert.Null(HydraPrompts.DelegationBlockRange("```hydra\u000B\n[]\n```"));
+    }
+
+    [Trait("Req", "PR-HYDRA-080")] // DroppyCode/Core/Models/Hydra.swift:1092-1094
+    [Fact]
+    public void DelegationBlockRange_opener_uses_the_first_match_in_the_text()
+    {
+        var range = HydraPrompts.DelegationBlockRange("noise\n```hydra\nA\n```\nmore\n```hydra-sent\nB\n```");
+        Assert.NotNull(range);
+        Assert.Equal("noise\n".Length, range!.Value.LowerBound);
+    }
+
+    // ---- PR-HYDRA-082/083: lineStartFences and delegationBlockRange (private helpers, exercised through
+    // DelegationBlockRange, which is delegationOpener.lowerBound .. the LAST line-start fence's upperBound,
+    // or the end of the text) ----
+
+    [Trait("Req", "PR-HYDRA-082")] // DroppyCode/Core/Models/Hydra.swift:1099-1109
+    [Fact]
+    public void DelegationBlockRange_keeps_a_fence_only_when_it_opens_a_line()
+    {
+        // "``` ```" mid-line: not a line-start fence, so no closer is found and the block runs to the end.
+        var text = "```hydra\n[] not a fence: ``` mid-line\n```";
+        var range = HydraPrompts.DelegationBlockRange(text);
+        Assert.NotNull(range);
+        Assert.Equal(text.Length, range!.Value.UpperBound);
+    }
+
+    [Trait("Req", "PR-HYDRA-082")] // DroppyCode/Core/Models/Hydra.swift:1099-1109
+    [Fact]
+    public void DelegationBlockRange_counts_a_line_start_fence_that_carries_an_info_string()
+    {
+        var text = "```hydra\n[]\n```swift\nsome code\n```";
+        var range = HydraPrompts.DelegationBlockRange(text);
+        Assert.NotNull(range);
+        // The LAST line-start fence is ```swift's closer at the very end, not the ```swift opener itself.
+        Assert.Equal(text.Length, range!.Value.UpperBound);
+    }
+
+    [Trait("Req", "PR-HYDRA-082")] // DroppyCode/Core/Models/Hydra.swift:1099-1109
+    [Fact]
+    public void DelegationBlockRange_six_consecutive_backticks_yield_only_one_fence_after_the_opener()
+    {
+        // "``````" at line start: the first "```" is a line-start fence; scanning resumes right after it,
+        // so the second "```" starts mid-token, not at a line start, and is not itself a fence.
+        var text = "```hydra\n``````\ntail";
+        var range = HydraPrompts.DelegationBlockRange(text);
+        Assert.NotNull(range);
+        var openerLen = "```hydra\n".Length;
+        Assert.Equal(openerLen + 3, range!.Value.UpperBound);
+    }
+
+    [Trait("Req", "PR-HYDRA-082")] // DroppyCode/Core/Models/Hydra.swift:1099-1109
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r")]
+    [InlineData("\r\n")]
+    [InlineData("\u0085")] // NEL
+    [InlineData(" ")] // LINE SEPARATOR
+    [InlineData(" ")] // PARAGRAPH SEPARATOR
+    public void DelegationBlockRange_fence_detection_recognizes_every_Foundation_newline_class(string newline)
+    {
+        var text = "```hydra\n[]" + newline + "```";
+        var range = HydraPrompts.DelegationBlockRange(text);
+        Assert.NotNull(range);
+        Assert.Equal(text.Length, range!.Value.UpperBound);
+    }
+
+    [Trait("Req", "PR-HYDRA-083")] // DroppyCode/Core/Models/Hydra.swift:1117-1121
+    [Fact]
+    public void DelegationBlockRange_ends_at_the_LAST_line_start_fence_not_the_first()
+    {
+        var text = "```hydra\n[]\n```\nafter, quoting a prompt's own fence\n```\ntail\n```";
+        var range = HydraPrompts.DelegationBlockRange(text);
+        Assert.NotNull(range);
+        Assert.Equal(text.Length, range!.Value.UpperBound);
+    }
+
+    [Trait("Req", "PR-HYDRA-083")] // DroppyCode/Core/Models/Hydra.swift:1117-1121
+    [Fact]
+    public void DelegationBlockRange_runs_to_the_end_of_the_text_with_no_closing_fence_at_all()
+    {
+        var text = "```hydra\n[{\"task\": \"t\", \"prompt\": \"p\"}]";
+        var range = HydraPrompts.DelegationBlockRange(text);
+        Assert.NotNull(range);
+        Assert.Equal(0, range!.Value.LowerBound);
+        Assert.Equal(text.Length, range!.Value.UpperBound);
+    }
+
+    [Trait("Req", "PR-HYDRA-083")] // DroppyCode/Core/Models/Hydra.swift:1117-1121
+    [Fact]
+    public void DelegationBlockRange_is_null_with_no_opener_at_all()
+    {
+        Assert.Null(HydraPrompts.DelegationBlockRange("no block here at all"));
+    }
+
+    // ---- PR-HYDRA-088: withoutDelegationBlock removes the block's range and trims both ends ----
+
+    [Trait("Req", "PR-HYDRA-088")] // DroppyCode/Core/Models/Hydra.swift:1165-1169
+    [Fact]
+    public void WithoutDelegationBlock_removes_the_whole_range_and_trims_leading_and_trailing_whitespace()
+    {
+        var text = "  \n  Here is my answer.\n\n```hydra\n[{\"task\": \"t\", \"prompt\": \"p\"}]\n```\n  \n";
+        var kept = HydraPrompts.WithoutDelegationBlock(text);
+        Assert.Equal("Here is my answer.", kept);
+    }
+
+    [Trait("Req", "PR-HYDRA-088")] // DroppyCode/Core/Models/Hydra.swift:1165-1169
+    [Fact]
+    public void WithoutDelegationBlock_with_no_block_present_returns_the_text_trimmed()
+    {
+        Assert.Equal("just an answer", HydraPrompts.WithoutDelegationBlock("  just an answer  \n"));
+    }
+
+    // ---- PR-HYDRA-089: hasDelegationBlock and hasDelegationOpener are the two block-presence tests ----
+
+    [Trait("Req", "PR-HYDRA-089")] // DroppyCode/Core/Models/Hydra.swift:1124
+    [Fact]
+    public void HasDelegationBlock_is_true_whenever_a_block_range_exists_readable_or_not()
+    {
+        Assert.True(HydraPrompts.HasDelegationBlock("```hydra\nnot valid json at all\n```"));
+        Assert.True(HydraPrompts.HasDelegationBlock("```hydra\n[]\n```"));
+        Assert.False(HydraPrompts.HasDelegationBlock("no block here"));
+    }
+
+    [Trait("Req", "PR-HYDRA-089")] // DroppyCode/Core/Models/Hydra.swift:1129-1131
+    [Fact]
+    public void HasDelegationOpener_applies_the_same_three_dialect_regex_over_a_streaming_tail()
+    {
+        Assert.True(HydraPrompts.HasDelegationOpener("```hydra\n"));
+        Assert.True(HydraPrompts.HasDelegationOpener("some prior text\n```HYDRA-SENT\n"));
+        Assert.False(HydraPrompts.HasDelegationOpener("```hydra")); // no terminating LF yet: still streaming
+    }
+
+    // ---- PR-HYDRA-090: markingDelegationBlockSent rewrites the opener to ```hydra-sent, once ----
+
+    [Trait("Req", "PR-HYDRA-090")] // DroppyCode/Core/Models/Hydra.swift:1200-1203
+    [Fact]
+    public void MarkingDelegationBlockSent_rewrites_the_opener_to_exactly_hydra_sent_with_a_single_LF()
+    {
+        var result = HydraPrompts.MarkingDelegationBlockSent("before\n```hydra\n[]\n```\nafter");
+        Assert.Equal("before\n```hydra-sent\n[]\n```\nafter", result);
+    }
+
+    [Trait("Req", "PR-HYDRA-090")] // DroppyCode/Core/Models/Hydra.swift:1200-1203
+    [Fact]
+    public void MarkingDelegationBlockSent_replaces_the_whole_matched_range_CRLF_included_with_plain_LF()
+    {
+        var result = HydraPrompts.MarkingDelegationBlockSent("```  hydra \t\r\n[]\n```");
+        Assert.Equal("```hydra-sent\n[]\n```", result);
+    }
+
+    [Trait("Req", "PR-HYDRA-090")] // DroppyCode/Core/Models/Hydra.swift:1200-1203
+    [Fact]
+    public void MarkingDelegationBlockSent_is_idempotent_and_does_nothing_with_no_opener()
+    {
+        var already = "```hydra-sent\n[]\n```";
+        Assert.Equal(already, HydraPrompts.MarkingDelegationBlockSent(already));
+        var noOpener = "no block here";
+        Assert.Equal(noOpener, HydraPrompts.MarkingDelegationBlockSent(noOpener));
+    }
+
+    // ---- PR-HYDRA-091: markingDelegationBlockLeaving rewrites a sent opener to ```hydra-leaving, once ----
+
+    [Trait("Req", "PR-HYDRA-091")] // DroppyCode/Core/Models/Hydra.swift:1193-1196
+    [Fact]
+    public void MarkingDelegationBlockLeaving_rewrites_a_sent_opener_to_exactly_hydra_leaving()
+    {
+        var result = HydraPrompts.MarkingDelegationBlockLeaving("```hydra-sent\n[]\n```");
+        Assert.Equal("```hydra-leaving\n[]\n```", result);
+    }
+
+    [Trait("Req", "PR-HYDRA-091")] // DroppyCode/Core/Models/Hydra.swift:1193-1196
+    [Fact]
+    public void MarkingDelegationBlockLeaving_does_nothing_without_a_sent_block_or_when_already_leaving()
+    {
+        var notSent = "```hydra\n[]\n```";
+        Assert.Equal(notSent, HydraPrompts.MarkingDelegationBlockLeaving(notSent));
+        var alreadyLeaving = "```hydra-leaving\n[]\n```";
+        Assert.Equal(alreadyLeaving, HydraPrompts.MarkingDelegationBlockLeaving(alreadyLeaving));
+    }
+
+    // ---- PR-HYDRA-092: hasSentDelegationBlock and hasLeavingDelegationBlock use narrower regexes ----
+
+    [Trait("Req", "PR-HYDRA-092")] // DroppyCode/Core/Models/Hydra.swift:1181-1188
+    [Fact]
+    public void HasSentDelegationBlock_matches_sent_or_leaving_but_not_the_plain_hydra_opener()
+    {
+        Assert.True(HydraPrompts.HasSentDelegationBlock("```hydra-sent\n"));
+        Assert.True(HydraPrompts.HasSentDelegationBlock("```HYDRA-LEAVING\n"));
+        Assert.False(HydraPrompts.HasSentDelegationBlock("```hydra\n"));
+    }
+
+    [Trait("Req", "PR-HYDRA-092")] // DroppyCode/Core/Models/Hydra.swift:1181-1188
+    [Fact]
+    public void HasLeavingDelegationBlock_matches_only_leaving_and_not_sent()
+    {
+        Assert.True(HydraPrompts.HasLeavingDelegationBlock("```hydra-leaving\n"));
+        Assert.False(HydraPrompts.HasLeavingDelegationBlock("```hydra-sent\n"));
+    }
+
+    [Trait("Req", "PR-HYDRA-092")] // DroppyCode/Core/Models/Hydra.swift:1181-1188
+    [Fact]
+    public void HasSentDelegationBlock_uses_contains_so_the_match_may_sit_anywhere_in_the_text()
+    {
+        Assert.True(HydraPrompts.HasSentDelegationBlock("some preceding reply text\n```hydra-sent\nrest"));
+    }
+
+    // ---- PR-HYDRA-093: the delegation card's hold and fade durations ----
+
+    [Trait("Req", "PR-HYDRA-093")] // DroppyCode/Core/Models/Hydra.swift:1173
+    [Fact]
+    public void DelegationSentHold_is_exactly_3_point_2_seconds()
+    {
+        Assert.Equal(TimeSpan.FromSeconds(3.2), HydraPrompts.DelegationSentHold);
+    }
+
+    [Trait("Req", "PR-HYDRA-093")] // DroppyCode/Core/Models/Hydra.swift:1177
+    [Fact]
+    public void DelegationLeaveFade_is_exactly_450_milliseconds()
+    {
+        Assert.Equal(TimeSpan.FromMilliseconds(450), HydraPrompts.DelegationLeaveFade);
+    }
+    // The re-check-before-each-step sequencing (send -> hold -> mark leaving -> fade -> strip, each step
+    // re-checking a sent block is still present) is driven by ThreadRuntime.swift's turn loop, not by
+    // anything in Hydra.swift; it is untestable at this unit and left for the runtime unit that owns it.
+
+    // ---- PR-HYDRA-097: the fallback policy's fenced-code-block prohibition, reproduced verbatim ----
+
+    [Trait("Req", "PR-HYDRA-097")] // DroppyCode/Core/Models/Hydra.swift:967
+    [Fact]
+    public void FallbackPolicy_forbids_a_fenced_code_block_of_the_leads_own_inside_a_prompt()
+    {
+        var text = HydraPrompts.FallbackPolicy(null, isolated: true);
+
+        Assert.Contains(
+            "Inside a prompt never open a fenced code block of your own (three backticks would end the hydra block early and no head would go out): describe code in words, quote identifiers with single backticks, or indent a snippet by four spaces.",
+            text, StringComparison.Ordinal);
+    }
+
+    // ---- PR-HYDRA-248: HydraDelegationBudget counts rounds, allows at most 3, resets only on a user turn ----
+
+    [Trait("Req", "PR-HYDRA-248")] // DroppyCode/Core/Models/Hydra.swift:571
+    [Fact]
+    public void CanDelegate_is_true_below_MaxDelegationRounds_and_false_at_or_above_it()
+    {
+        var budget = new HydraDelegationBudget();
+        Assert.True(budget.CanDelegate);
+        budget = budget.ChargeRound().ChargeRound().ChargeRound();
+        Assert.Equal(3, budget.Rounds);
+        Assert.False(budget.CanDelegate);
+    }
+
+    [Trait("Req", "PR-HYDRA-248")] // DroppyCode/Core/Models/Hydra.swift:577-581
+    [Fact]
+    public void BeginTurn_resets_rounds_and_refusals_only_when_userAuthored()
+    {
+        var budget = new HydraDelegationBudget().ChargeRound().ChargeRound();
+        var (afterRefuse, _) = budget.Refuse("m");
+        budget = afterRefuse;
+        Assert.Equal(2, budget.Rounds);
+        Assert.Equal(1, budget.Refusals);
+
+        var notReset = budget.BeginTurn(userAuthored: false);
+        Assert.Equal(2, notReset.Rounds);
+        Assert.Equal(1, notReset.Refusals);
+
+        var reset = budget.BeginTurn(userAuthored: true);
+        Assert.Equal(0, reset.Rounds);
+        Assert.Equal(0, reset.Refusals);
+    }
+
+    [Trait("Req", "PR-HYDRA-248")] // DroppyCode/Core/Models/Hydra.swift:577-581
+    [Fact]
+    public void BeginTurn_never_clears_a_waiting_drop_notice_even_on_a_user_authored_turn()
+    {
+        var budget = new HydraDelegationBudget();
+        for (var i = 0; i < 3; i++) (budget, _) = budget.Refuse("m" + i);
+        (budget, _) = budget.Refuse("dropped"); // past maxRefusals: sets the drop notice
+        Assert.NotNull(budget.DropNotice);
+
+        var afterBeginTurn = budget.BeginTurn(userAuthored: true);
+        Assert.NotNull(afterBeginTurn.DropNotice);
+    }
+
+    [Trait("Req", "PR-HYDRA-248")] // DroppyCode/Core/Models/Hydra.swift:584-586
+    [Fact]
+    public void ChargeRound_increments_rounds_by_one()
+    {
+        var budget = new HydraDelegationBudget();
+        Assert.Equal(1, budget.ChargeRound().Rounds);
+        Assert.Equal(2, budget.ChargeRound().ChargeRound().Rounds);
+    }
+
+    // ---- PR-HYDRA-249: past 3 refusals a block gets no turn of its own; its message becomes a one-shot drop notice ----
+
+    [Trait("Req", "PR-HYDRA-249")] // DroppyCode/Core/Models/Hydra.swift:591-598
+    [Fact]
+    public void Refuse_the_first_three_times_returns_true_and_counts_a_refusal()
+    {
+        var budget = new HydraDelegationBudget();
+        for (var i = 0; i < 3; i++)
+        {
+            var (next, result) = budget.Refuse("refused " + i);
+            Assert.True(result);
+            budget = next;
+        }
+        Assert.Equal(3, budget.Refusals);
+        Assert.Null(budget.DropNotice);
+    }
+
+    [Trait("Req", "PR-HYDRA-249")] // DroppyCode/Core/Models/Hydra.swift:591-598
+    [Fact]
+    public void Refuse_past_the_cap_returns_false_counts_nothing_and_stores_the_drop_notice()
+    {
+        var budget = new HydraDelegationBudget();
+        for (var i = 0; i < 3; i++) (budget, _) = budget.Refuse("m" + i);
+
+        var (afterFourth, result) = budget.Refuse("the fourth message");
+        Assert.False(result);
+        Assert.Equal(3, afterFourth.Refusals);
+        Assert.Equal(HydraPrompts.DroppedBlockNotice("the fourth message"), afterFourth.DropNotice);
+    }
+
+    [Trait("Req", "PR-HYDRA-249")] // DroppyCode/Core/Models/Hydra.swift:602-604
+    [Fact]
+    public void NoteDropped_stores_the_message_wrapped_as_a_drop_notice_and_a_later_drop_replaces_an_earlier_one()
+    {
+        var budget = new HydraDelegationBudget().NoteDropped("first");
+        Assert.Equal(HydraPrompts.DroppedBlockNotice("first"), budget.DropNotice);
+
+        var replaced = budget.NoteDropped("second");
+        Assert.Equal(HydraPrompts.DroppedBlockNotice("second"), replaced.DropNotice);
+    }
+
+    [Trait("Req", "PR-HYDRA-249")] // DroppyCode/Core/Models/Hydra.swift:607-610
+    [Fact]
+    public void TakeDropNotice_returns_the_notice_once_and_clears_it()
+    {
+        var budget = new HydraDelegationBudget().NoteDropped("waiting");
+        var (cleared, taken) = budget.TakeDropNotice();
+        Assert.Equal(HydraPrompts.DroppedBlockNotice("waiting"), taken);
+        Assert.Null(cleared.DropNotice);
+
+        var (stillCleared, takenAgain) = cleared.TakeDropNotice();
+        Assert.Null(takenAgain);
+        Assert.Null(stillCleared.DropNotice);
+    }
+
+    [Trait("Req", "PR-HYDRA-249")] // DroppyCode/Core/Models/Hydra.swift:616
+    [Fact]
+    public void MaxRefusals_is_exactly_3()
+    {
+        Assert.Equal(3, HydraDelegationBudget.MaxRefusals);
+    }
+
+    // ---- PR-HYDRA-250: a dropped block's notice is '[Hydra] ' + message + blank line, '---', blank line ----
+
+    [Trait("Req", "PR-HYDRA-250")] // DroppyCode/Core/Models/Hydra.swift:1086-1088
+    [Fact]
+    public void DroppedBlockNotice_is_exactly_Hydra_prefix_message_then_a_separator()
+    {
+        Assert.Equal("[Hydra] a message\n\n---\n\n", HydraPrompts.DroppedBlockNotice("a message"));
+    }
+
+    [Trait("Req", "PR-HYDRA-250")] // DroppyCode/Core/Models/Hydra.swift:1086-1088
+    [Fact]
+    public void DroppedBlockNotice_of_an_already_prefixed_unreadable_message_doubles_the_Hydra_prefix()
+    {
+        var message = "[Hydra] Your delegation block could not be read, so no heads went out.";
+        Assert.Equal("[Hydra] [Hydra] Your delegation block could not be read, so no heads went out.\n\n---\n\n",
+            HydraPrompts.DroppedBlockNotice(message));
+    }
+
+    // ---- PR-HYDRA-251: interruptedBlockMessage tells the lead its block's heads never went out ----
+
+    [Trait("Req", "PR-HYDRA-251")] // DroppyCode/Core/Models/Hydra.swift:1073-1080
+    [Fact]
+    public void InterruptedBlockMessage_stopped_says_was_stopped()
+    {
+        Assert.Equal(
+            "No heads went out.\nYour reply's delegation block was dropped: the turn was stopped before the heads could go out, and none of that work was delegated. Do it yourself, or send the block again.",
+            HydraPrompts.InterruptedBlockMessage(stopped: true));
+    }
+
+    [Trait("Req", "PR-HYDRA-251")] // DroppyCode/Core/Models/Hydra.swift:1073-1080
+    [Fact]
+    public void InterruptedBlockMessage_not_stopped_says_failed()
+    {
+        Assert.Equal(
+            "No heads went out.\nYour reply's delegation block was dropped: the turn failed before the heads could go out, and none of that work was delegated. Do it yourself, or send the block again.",
+            HydraPrompts.InterruptedBlockMessage(stopped: false));
     }
 }
