@@ -102,6 +102,26 @@ public sealed class ISO8601Tests
     }
 
     [Fact]
+    [Trait("Req", "PR-STORE-169")] // Core/Support/ISO8601.swift:15-16, :23-26
+    public void A_date_that_is_not_ISO_8601_returns_nil()
+    {
+        // The style is Date.ISO8601FormatStyle().year().month().day(), not a general-purpose date parser: neither
+        // input starts with a dash-separated four-digit year, so no edge shape of UNK-0003 is involved.
+        Assert.Null(ISO8601.DateOnly("09/13/2026"));
+        Assert.Null(ISO8601.DateOnly("Sep 13 2026"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")]
+    public void The_general_purpose_parser_accepts_dates_that_are_not_ISO_8601()
+    {
+        // Negative control for A_date_that_is_not_ISO_8601_returns_nil: the obvious .NET API reads both inputs
+        // (observed on .NET 10, Windows 11), so it cannot be the port of ISO8601.dateOnly(from:).
+        Assert.True(DateTimeOffset.TryParse("09/13/2026", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out _));
+        Assert.True(DateTimeOffset.TryParse("Sep 13 2026", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out _));
+    }
+
+    [Fact]
     [Trait("Rule", "R-TIME-3")]
     public void A_bare_date_is_midnight_UTC_as_the_parked_rule_says()
     {
