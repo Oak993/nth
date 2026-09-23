@@ -1850,56 +1850,14 @@
    ],
    "intra_deps": [],
    "records_total": 19,
-   "records_todo": [
-    "PR-PROVACP-154",
-    "PR-PROVACP-155",
-    "PR-PROVACP-156",
-    "PR-PROVACP-157",
-    "PR-PROVACP-158",
-    "PR-PROVACP-159",
-    "PR-PROVACP-160",
-    "PR-PROVACP-161",
-    "PR-PROVACP-162",
-    "PR-PROVACP-163",
-    "PR-TERM-107",
-    "PR-TERM-108",
-    "PR-TERM-109",
-    "PR-TERM-110",
-    "PR-TERM-111",
-    "PR-TERM-112",
-    "PR-TERM-113",
-    "PR-TERM-114",
-    "PR-TERM-115"
-   ],
-   "parts": [
-    [
-     "PR-PROVACP-154",
-     "PR-PROVACP-155",
-     "PR-PROVACP-156",
-     "PR-PROVACP-157",
-     "PR-PROVACP-158",
-     "PR-PROVACP-159",
-     "PR-PROVACP-160",
-     "PR-PROVACP-161",
-     "PR-PROVACP-162",
-     "PR-PROVACP-163",
-     "PR-TERM-107",
-     "PR-TERM-108",
-     "PR-TERM-109",
-     "PR-TERM-110",
-     "PR-TERM-111",
-     "PR-TERM-112",
-     "PR-TERM-113",
-     "PR-TERM-114",
-     "PR-TERM-115"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-072",
     "T-M2-073"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.Text",

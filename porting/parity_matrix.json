@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "SPECIFIED": 3743,
+      "SPECIFIED": 3724,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
       "DISCOVERED": 34,
       "RETIRED": 6,
-      "IMPLEMENTED": 130
+      "IMPLEMENTED": 149
     },
     "by_area": {
       "CHAT": 193,
@@ -35631,7 +35631,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same: terminate with 0x0A only, and do not let the platform translate it to CRLF - write raw bytes to the stdin stream, not through a text-mode writer. Do not escape forward slashes.",
       "verification_method": "contract fixture (byte-level assertion on a frame containing a URL)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35656,7 +35656,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-byte strip. This is what makes a CRLF-writing Windows CLI work despite the LF-only framer.",
       "verification_method": "unit (CRLF line, padded line, banner line)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35680,7 +35680,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three limits, measured in bytes not characters.",
       "verification_method": "unit (feed 100 KB, assert the trim points)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -35706,7 +35706,7 @@
       "cancellation": "This is the teardown path.",
       "windows_path": "Named platform boundary. Windows has no SIGTERM with delivery semantics: per port_impacts #24, TerminateProcess is the practical equivalent and behaves like SIGKILL, so the graceful window collapses. The specification for Windows is: close stdin first, then request termination, then after the same 3 seconds force-kill if still running - preserving the ordering and the 3-second timing even though the first step is already forceful. Do NOT introduce a Job Object group kill here: the source kills the pid only, and killing the group would change observable behavior for mcp-remote grandchildren. PA-0007's Job Object candidate applies to Shell.swift, which is a different code path.",
       "verification_method": "interaction test on Windows (assert stdin closes first, the child dies, and a grandchild survives, matching macOS)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35729,7 +35729,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering: flush the remainder, then end the stream.",
       "verification_method": "contract fixture (final frame with no trailing newline)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -35753,7 +35753,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same 1-second forced close. It matters more on Windows, where an mcp-remote npx grandchild inheriting the handle is common and there is no process-group cleanup (see PR-PROVACP-157).",
       "verification_method": "interaction test (agent exits while a grandchild holds stdout; assert the exited event within about a second)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -35781,7 +35781,7 @@
       "cancellation": "not cancellable",
       "windows_path": "In Electron this maps to the main process doing the stdio work and the renderer never touching the pipe. Preserve write ordering with a single serial queue per child; Node streams give this, but a naive `await` per write must not reorder frames.",
       "verification_method": "interaction test (interleaved writes arrive in order) plus a performance guard on a 10 MB tool output",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -35809,7 +35809,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same surface. StdioProcess.isRunning is a real process check, unlike ACPSession.isRunning (PR-PROVACP-075).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -35833,7 +35833,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same teardown. On Windows the common causes differ: ENOENT for a bare name that only exists as a .cmd shim, and EACCES for a directory. The error text shown to the user is the platform's, which is an accepted observable difference.",
       "verification_method": "unit (spawn a nonexistent executable, assert the throw and that no reader is left parked)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35854,7 +35854,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82883,7 +82883,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same configuration. Platform boundary: the working directory and environment block are Windows-shaped, and the child must be launched without a console window.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82908,7 +82908,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering and the same cleanup on a failed launch.",
       "verification_method": "contract fixture with a missing executable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82934,7 +82934,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same framing bytes exactly, and the same single serial write queue. The header must not gain a Content-Type line.",
       "verification_method": "unit test comparing the emitted bytes for both framings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82960,7 +82960,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering guarantee through one serial writer.",
       "verification_method": "contract fixture piping a prompt to a one-shot child",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -82985,7 +82985,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order and the same three-second gap, and the same single-process (not tree) scope, so the two ladders stay distinguishable. Platform boundary: graceful stop and forced termination in place of the two signals.",
       "verification_method": "contract fixture with a child that ignores the graceful stop",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83007,7 +83007,7 @@
       "cancellation": "The continuation is not cancellable; it is a non-throwing continuation.",
       "windows_path": "Same two-branch shape.",
       "verification_method": "unit test awaiting before and after exit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83030,7 +83030,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same stripping set and the same silent drops. The CR stripping is what makes CRLF-emitting Windows children work without a separate normalization step.",
       "verification_method": "unit test over CRLF, padded, empty and non-JSON frames",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83055,7 +83055,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two termination paths and the same one-second bound. Platform boundary: handle inheritance on Windows must be restricted so a grandchild does not hold the pipe, or the same bound applied.",
       "verification_method": "contract fixture with a child that leaves a grandchild holding stdout",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83079,7 +83079,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three numbers (4,000, 64,000, 16,000) and the same lossy decode. Do not normalize CRLF in the stderr tail.",
       "verification_method": "unit test over the trimming thresholds",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
