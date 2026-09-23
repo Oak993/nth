@@ -8,8 +8,10 @@ namespace Marrow.Services.Tests.Port;
 
 // Foundation unit F.HTTP, second part of the tests (R-TEST-3 suffix): URLSession(configuration:) as
 // UpdateChecker.swift:101-110 builds it, and the network defaults a server sees from URLSession.shared (cookies,
-// the request headers URLSession adds, the response cache). The API, the timer contract and the proposed oracle
-// items O-26 to O-33 are listed at the top of HttpTests.cs. Same determinism rules: loopback server, manual clock.
+// the request headers URLSession adds, the response cache). The API, the timer contract and the oracle items O-26
+// to O-33 (IMPLEMENTING.md Appendix B) are listed at the top of HttpTests.cs. Same determinism rules: loopback
+// server, manual clock. The two tests that change process-wide state (the shared cookie store and the shared cache)
+// are in HttpProcessStateTests, a collection that never runs in parallel (R-TEST-5, ED-118).
 //
 // AppUpdater.swift:472-484 also builds an ephemeral session (request 30 s, resource 1,800 s), but for a
 // downloadTask with a progress delegate; platform_adaptations.md ("What does NOT carry over (App/AppUpdater.swift)")
@@ -54,7 +56,7 @@ public sealed class HttpSecondTests
         // SEMANTICS: `class var ephemeral` returns a new configuration object each time, which UpdateChecker.swift:102-109
         // then changes; its documented defaults are timeoutIntervalForRequest 60, timeoutIntervalForResource 7 days
         // (604,800 s), requestCachePolicy .useProtocolCachePolicy, waitsForConnectivity false and no
-        // httpAdditionalHeaders. AppInfo is the port-only seam of ED-088 and starts as the running app.
+        // httpAdditionalHeaders.
         var configuration = URLSessionConfiguration.Ephemeral;
         Assert.NotSame(configuration, URLSessionConfiguration.Ephemeral);
         Assert.Equal(60.0, configuration.TimeoutIntervalForRequest);
@@ -62,7 +64,6 @@ public sealed class HttpSecondTests
         Assert.Equal(URLRequest.CachePolicy.UseProtocolCachePolicy, configuration.RequestCachePolicy);
         Assert.False(configuration.WaitsForConnectivity);
         Assert.Null(configuration.HttpAdditionalHeaders);
-        Assert.Same(AppInfo.Current, configuration.AppInfo);
     }
 
     [Theory]
@@ -99,7 +100,7 @@ public sealed class HttpSecondTests
         using var runtime = new TestRuntime();
         await using var server = new LoopbackHttpServer();
         var configuration = URLSessionConfiguration.Ephemeral;
-        configuration.AppInfo = AppVersion("7.6.5", "42");
+        using var app = AppInfo.Running.Override(AppVersion("7.6.5", "42"));
         var pending = new URLSession(configuration).Data(new URLRequest(server.Url("/ua")));
         var exchange = await server.NextExchange();
         var lines = RawHeaderLines(exchange.RawHead)
@@ -173,7 +174,7 @@ public sealed class HttpSecondTests
         // UpdateChecker.swift:223 builds its HEAD request with URLRequest(url:), and :190 fetches the feed with
         // data(from:); both requests carry the default timeoutInterval 60, on a session whose timeoutIntervalForRequest
         // is 15 (:105).
-        // UNVERIFIED (proposed O-31): which of the two limits URLSession applies is not documented. The parked choice
+        // UNVERIFIED O-31: which of the two limits URLSession applies is not documented. The parked choice
         // is 15 s, the configuration's, which is what the author set it for and what both readings in circulation
         // (the configuration wins over a request default; the shorter limit wins) give here.
         using var runtime = new TestRuntime();
@@ -247,33 +248,7 @@ public sealed class HttpSecondTests
         Assert.Equal(URLError.Code.CannotConnectToHost, error.URLErrorCode);
     }
 
-    // ---- Network defaults a server sees (IMPLEMENTING.md 7.1 item 12) ----
-
-    [Fact]
-    [Trait("Rule", "R-NET-1")]
-    [Trait("Oracle", "O-28")]
-    public async Task A_cookie_set_by_a_server_goes_back_to_it_on_the_next_request_of_the_shared_session()
-    {
-        // R-NET-1: "cookie persistence [is] observable to servers". URLSession.shared stores Set-Cookie in
-        // HTTPCookieStorage.shared and sends a matching cookie on later requests, from any call site.
-        // UNVERIFIED (proposed O-28), and an owner question (IMPLEMENTING.md 7.1 item 12, reported as a STOP): the
-        // parked choice is the source's behaviour, the cookie comes back. The cookie is scoped to a path no other
-        // test uses, because cookies ignore the port and every test server is on 127.0.0.1.
-        using var runtime = new TestRuntime();
-        await using var server = new LoopbackHttpServer();
-        var jar = "/jar-" + Guid.NewGuid().ToString("N");
-        var setting = URLSession.Shared.Data(new URLRequest(server.Url(jar + "/set")));
-        var first = await server.NextExchange();
-        Assert.Empty(first.HeaderValues("Cookie"));
-        await first.Respond(200, "OK", [], ("Set-Cookie", "a=1; Path=" + jar));
-        await setting.WaitAsync(Guard);
-
-        var next = URLSession.Shared.Data(new URLRequest(server.Url(jar + "/next")));
-        var second = await server.NextExchange();
-        Assert.Equal(["a=1"], second.HeaderValues("Cookie"));
-        await second.Respond(204, "No Content", []);
-        await next.WaitAsync(Guard);
-    }
+    // ---- Network defaults a server sees (ED-118) ----
 
     [Fact]
     [Trait("Rule", "R-NET-1")]
@@ -284,7 +259,7 @@ public sealed class HttpSecondTests
         // it in RAM instead, so its cookies live in a store of its own for the life of the session: the next request
         // of the same session carries the cookie, another ephemeral session and URLSession.shared do not.
         // UpdateChecker.swift:101 keeps one such session for the app's life.
-        // UNVERIFIED (proposed O-28), and the owner question of 7.1 item 12: the parked choice is that behaviour.
+        // UNVERIFIED O-28: the parked choice is that behaviour (ED-118: a memory store per ephemeral session).
         using var runtime = new TestRuntime();
         await using var server = new LoopbackHttpServer();
         var jar = "/jar-" + Guid.NewGuid().ToString("N");
@@ -320,17 +295,16 @@ public sealed class HttpSecondTests
     {
         // LinkTitles.swift:47 (data(from:)), MarkdownView.swift:946-949 (the favicon) and MCPProxy.swift:317-326 (when
         // the client sent no Accept) set no Accept, so the server sees what URLSession adds: Accept "*/*", one
-        // Accept-Language built from the user's preferred languages, and Accept-Encoding "gzip, deflate, br".
-        // UNVERIFIED (proposed O-27), and an owner question next to 7.1 item 12: the parked choice is the headers
-        // CFNetwork is believed to add. What Accept-Language holds on Windows (the user's language list, in which
-        // form) has no ruling, so only its presence is asserted; that value stays reported as a STOP.
+        // Accept-Language, and Accept-Encoding "gzip, deflate, br".
+        // UNVERIFIED O-27: the parked choice is the headers CFNetwork is believed to add (ED-118). Accept-Language is
+        // the constant "en-US,en;q=0.9": the app ships English only (project.pbxproj:107-112), so CFNetwork is
+        // believed to send an English tag whatever the system language, and Windows' language list is not used.
         using var runtime = new TestRuntime();
         await using var server = new LoopbackHttpServer();
         var pending = URLSession.Shared.Data(server.Url("/oembed?format=json"));
         var exchange = await server.NextExchange();
         Assert.Equal(["*/*"], exchange.HeaderValues("Accept"));
-        var language = Assert.Single(exchange.HeaderValues("Accept-Language"));
-        Assert.NotEqual("", language.Trim(' ', '\t'));
+        Assert.Equal(["en-US,en;q=0.9"], exchange.HeaderValues("Accept-Language"));
         Assert.Equal(["gzip, deflate, br"], exchange.HeaderValues("Accept-Encoding"));
         await exchange.Respond(204, "No Content", []);
         await pending.WaitAsync(Guard);
@@ -343,7 +317,7 @@ public sealed class HttpSecondTests
     {
         // MCPProxy.swift:317-326 and :340-342: the client's body is forwarded, and Content-Type only when the client
         // sent one. URLSession then gives the body the type "application/x-www-form-urlencoded".
-        // UNVERIFIED (proposed O-27): the parked choice is that CFNetwork default.
+        // UNVERIFIED O-27: the parked choice is that CFNetwork default.
         using var runtime = new TestRuntime();
         await using var server = new LoopbackHttpServer();
         var body = Ascii("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}");
@@ -354,32 +328,5 @@ public sealed class HttpSecondTests
         Assert.Equal(body, exchange.Body);
         await exchange.Respond(202, "Accepted", []);
         await pending.WaitAsync(Guard);
-    }
-
-    [Fact]
-    [Trait("Rule", "R-NET-1")]
-    [Trait("Oracle", "O-33")]
-    public async Task A_cacheable_answer_to_a_GET_on_the_shared_session_is_served_again_from_the_cache()
-    {
-        // URLSession.shared uses URLCache.shared with .useProtocolCachePolicy, so a GET answered with a freshness
-        // lifetime is answered from the cache while fresh, and the server sees no second request. PlanLimits.swift:247,
-        // LinkTitles.swift:47 and MarkdownView.swift:949 all GET through it; UpdateChecker.swift:103-104 turns the
-        // cache off for its own session, which shows the author relied on it being on elsewhere.
-        // UNVERIFIED (proposed O-33), and an owner question next to 7.1 item 12: the parked choice is that behaviour.
-        using var runtime = new TestRuntime();
-        await using var server = new LoopbackHttpServer();
-        var url = server.Url("/api/oauth/usage");
-        var first = URLSession.Shared.Data(new URLRequest(url, timeoutInterval: 15));
-        var one = await server.NextExchange();
-        await one.Respond(200, "OK", Ascii("{\"v\":1}"), ("Cache-Control", "max-age=600"), ("Content-Type", "application/json"));
-        Assert.Equal(Ascii("{\"v\":1}"), (await first.WaitAsync(Guard)).Data);
-
-        var again = URLSession.Shared.Data(new URLRequest(url, timeoutInterval: 15));
-        var reachedServer = server.NextExchange();
-        var winner = await Task.WhenAny(again, reachedServer).WaitAsync(Guard);
-        Assert.Same(again, winner);
-        var (data, response) = await again;
-        Assert.Equal(Ascii("{\"v\":1}"), data);
-        Assert.Equal(200, Assert.IsType<HTTPURLResponse>(response).StatusCode);
     }
 }

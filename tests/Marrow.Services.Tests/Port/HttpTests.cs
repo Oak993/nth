@@ -17,12 +17,13 @@ namespace Marrow.Services.Tests.Port;
 //
 // Expected values come from the pinned Swift (B2 1fbf81e) and from URLSession's documented behaviour (SEMANTICS),
 // never from a C# implementation. Where the Swift behaviour is not documented and no oracle has settled it, the
-// test carries an Oracle trait (R-TEST-6) with a PROPOSED item id, O-26 to O-33 (O-25 is ED-100's); they are not in
-// IMPLEMENTING.md Appendix B yet and are reported to the orchestrator as STOP F.HTTP items:
+// test carries an Oracle trait (R-TEST-6) with its item id, O-26 to O-33 (O-25 is ED-100's), registered in
+// IMPLEMENTING.md Appendix B with the parked choices these tests assert (network defaults: ED-118):
 //   O-26 bytes.lines (AsyncLineSequence): CR, CRLF, NEL, LS and PS end a line; empty lines are not yielded
 //   O-27 request headers URLSession adds: Accept */*, Accept-Language, Accept-Encoding, a form Content-Type
 //   O-28 cookies: HTTPCookieStorage.shared for URLSession.shared, a per-session store in RAM for .ephemeral
-//   O-29 request headers kept when a same-origin redirect is followed, Authorization included
+//   O-29 request headers kept when a redirect is followed: all of them to the same origin, Authorization included;
+//        all but Authorization to another origin
 //   O-30 a repeated response header is one allHeaderFields entry, its values joined with ", "
 //   O-31 which idle limit applies: a request's default 60 s or its session configuration's timeoutIntervalForRequest
 //   O-32 the error a read of URLSession.AsyncBytes throws when its task is cancelled
@@ -56,15 +57,13 @@ namespace Marrow.Services.Tests.Port;
 //                                       URLRequest.CachePolicy RequestCachePolicy; URLCache? UrlCache;
 //                                       double TimeoutIntervalForRequest; double TimeoutIntervalForResource;
 //                                       bool WaitsForConnectivity; IReadOnlyDictionary<string, string>? HttpAdditionalHeaders
-//                                       (all { get; set; }, as the Swift class's var properties);
-//                                       AppInfo AppInfo { get; set; } PORT-ONLY, AppInfo.Current unless set: the app whose
-//                                       version the default User-Agent names (ED-088), so a test can control it
+//                                       (all { get; set; }, as the Swift class's var properties) (ED-119)
 //   sealed class URLSession             static URLSession Shared; URLSession(URLSessionConfiguration configuration);
 //                                       Task<(byte[] Data, URLResponse Response)> Data(URLRequest request)   data(for:)
 //                                       Task<(byte[] Data, URLResponse Response)> Data(Uri from)             data(from:)
 //                                       Task<(URLSession.AsyncBytes Bytes, URLResponse Response)> Bytes(URLRequest request)
-//                                       TimeSpan HttpClientTimeout { get; } PORT-ONLY: the Timeout of the HttpClient
-//                                       underneath, which R-NET-1 requires to be infinite
+//                                       TimeSpan HttpClientTimeout { get; } PORT-ONLY, accepted by ED-119: the Timeout
+//                                       of the HttpClient underneath, which R-NET-1 requires to be infinite
 //                                       nested sealed AsyncBytes : IAsyncEnumerable<byte>                  bytes(for:)
 //                                         IAsyncEnumerable<string> Lines { get; }                          bytes.lines
 //   sealed class URLError : Exception   URLError(URLError.Code code); URLError.Code URLErrorCode (Swift: code, R-NAME-3);
@@ -77,6 +76,15 @@ namespace Marrow.Services.Tests.Port;
 public sealed class HttpTests
 {
     private static readonly TimeSpan Guard = LoopbackHttpServer.Guard;
+
+    /// <summary>An app whose Info values a test controls (Text.swift:3-9 reads these three keys).</summary>
+    private static AppInfo AppVersion(string version, string build) =>
+        AppInfo.Read(new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["CFBundleDisplayName"] = "Droppy Code",
+            ["CFBundleShortVersionString"] = version,
+            ["CFBundleVersion"] = build,
+        }, isDevelopment: false);
 
     // ---- The shared session and URLRequest's defaults ----
 
@@ -270,6 +278,7 @@ public sealed class HttpTests
     [Fact]
     [Trait("Rule", "R-NET-1")]
     [Trait("Decision", "ED-088")]
+    [Trait("Decision", "ED-065")]
     public async Task The_default_User_Agent_is_one_header_line_Marrow_slash_the_app_version_and_nothing_else()
     {
         // R-NET-1: URLSession.shared sends a default User-Agent; the source's is "Droppy%20Code/<build> CFNetwork/<v>
@@ -277,16 +286,18 @@ public sealed class HttpTests
         // DEVIATION OD-0012|ED-088: OD-0012 F1 (decision_batch_20260922b.md section F) names the network User-Agent
         // "Marrow/<version>", and ED-088 puts identities sent over the network under F1. So the build number becomes
         // the version (AppInfo.version, Text.swift:7, as in the source's own "Droppy Code/\(AppInfo.version)",
-        // UpdateChecker.swift:108), and the CFNetwork and Darwin tokens are dropped. The raw header line is compared
-        // byte for byte, so an added product token (a .NET default, a runtime version) fails the test; the version
-        // the test controls is in HttpSecondTests (URLSessionConfiguration.AppInfo).
+        // UpdateChecker.swift:108), and the CFNetwork and Darwin tokens are dropped (ED-118). The raw header line is
+        // compared byte for byte, so an added product token (a .NET default, a runtime version) fails the test. The
+        // version is one the test controls through the AppInfo.Running seam (ED-065, ED-119): 7.6.5, build 42, so a
+        // port that writes a fixed version or the build number fails too.
         using var runtime = new TestRuntime();
+        using var app = AppInfo.Running.Override(AppVersion("7.6.5", "42"));
         await using var server = new LoopbackHttpServer();
         var pending = URLSession.Shared.Data(new URLRequest(server.Url("/ua")));
         var exchange = await server.NextExchange();
         var lines = RawHeaderLines(exchange.RawHead)
             .Where(line => line.StartsWith("user-agent:", StringComparison.OrdinalIgnoreCase)).ToList();
-        Assert.Equal(["User-Agent: Marrow/" + AppInfo.Current.Version], lines);
+        Assert.Equal(["User-Agent: Marrow/7.6.5"], lines);
         await exchange.Respond(204, "No Content", []);
         await pending.WaitAsync(Guard);
     }
@@ -440,9 +451,9 @@ public sealed class HttpTests
         // PlanLimits.swift:243-246 sends Authorization, anthropic-beta and Accept; CommandCodeAPI.swift:169-171 and
         // MCPProxy.swift:326-339 send Authorization and the route's own headers. URLSession builds the redirected
         // request from the original one, so its header fields go along to the same origin.
-        // UNVERIFIED (proposed O-29): whether URLSession keeps Authorization on a same-origin redirect is not
-        // documented; the parked choice is that every field is kept. The negative control below shows the .NET
-        // redirect handler drops Authorization, the plausible wrong port.
+        // UNVERIFIED O-29: whether URLSession keeps Authorization on a same-origin redirect is not documented; the
+        // parked choice is that every field is kept. The negative control below shows the .NET redirect handler
+        // drops Authorization, the plausible wrong port.
         using var runtime = new TestRuntime();
         await using var server = new LoopbackHttpServer();
         var request = new URLRequest(server.Url("/api/oauth/usage"), timeoutInterval: 15)
@@ -459,6 +470,38 @@ public sealed class HttpTests
         Assert.Equal(["application/json"], second.HeaderValues("Accept"));
         await second.Respond(200, "OK", Ascii("{}"));
         await pending.WaitAsync(Guard);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-NET-1")]
+    [Trait("Oracle", "O-29")]
+    public async Task A_redirect_to_another_origin_keeps_anthropic_beta_and_Accept_and_drops_Authorization()
+    {
+        // The same request as PlanLimits.swift:243-246, redirected with an absolute Location to a second loopback
+        // server on 127.0.0.1: another port is another origin (scheme, host and port, RFC 6454).
+        // UNVERIFIED O-29: the parked choice drops Authorization on a redirect to another origin and keeps every
+        // other field. Appendix B records that half as a safety default, not a reading of CFNetwork.
+        using var runtime = new TestRuntime();
+        await using var server = new LoopbackHttpServer();
+        await using var other = new LoopbackHttpServer();
+        var request = new URLRequest(server.Url("/api/oauth/usage"), timeoutInterval: 15)
+            .SetValue("Bearer token-1", forHTTPHeaderField: "Authorization")
+            .SetValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
+            .SetValue("application/json", forHTTPHeaderField: "Accept");
+        var pending = URLSession.Shared.Data(request);
+        var first = await server.NextExchange();
+        Assert.Equal(["Bearer token-1"], first.HeaderValues("Authorization"));
+        await first.Respond(302, "Found", [], ("Location", other.Url("/api/oauth/usage2").AbsoluteUri));
+        var second = await other.NextExchange();
+        Assert.Equal("GET", second.Method);
+        Assert.Equal("/api/oauth/usage2", second.Target);
+        Assert.Empty(second.HeaderValues("Authorization"));
+        Assert.Equal(["oauth-2025-04-20"], second.HeaderValues("anthropic-beta"));
+        Assert.Equal(["application/json"], second.HeaderValues("Accept"));
+        await second.Respond(200, "OK", Ascii("{}"));
+        var (data, response) = await pending.WaitAsync(Guard);
+        Assert.Equal(200, Assert.IsType<HTTPURLResponse>(response).StatusCode);
+        Assert.Equal(Ascii("{}"), data);
     }
 
     [Fact]
@@ -575,7 +618,7 @@ public sealed class HttpTests
         // MCPOAuth.swift:259-268 collects every WWW-Authenticate entry of allHeaderFields (a String, or a [String]) and
         // then looks for resource_metadata and scopes in each challenge (:272-280). A port that kept only the first or the last
         // line would lose a challenge.
-        // UNVERIFIED (proposed O-30): HTTPURLResponse is believed to fold a repeated field into one String entry, its
+        // UNVERIFIED O-30: HTTPURLResponse is believed to fold a repeated field into one String entry, its
         // values joined with ", " in arrival order (the list form RFC 9110 5.3 allows), and value(forHTTPHeaderField:)
         // to return that same String; this is the parked choice.
         using var runtime = new TestRuntime();
@@ -710,7 +753,7 @@ public sealed class HttpTests
     {
         // An SSE server may end its lines with CRLF or CR (the text/event-stream grammar allows all three); the drain
         // at OpenAICompatibleSession.swift:742-744 trims each line and needs "data:" at its start.
-        // UNVERIFIED (proposed O-26): AsyncLineSequence is believed to end a line at LF, CR or CRLF, a CRLF pair
+        // UNVERIFIED O-26: AsyncLineSequence is believed to end a line at LF, CR or CRLF, a CRLF pair
         // ending one line; this is the parked choice. The CRLF pair is split across two chunks here.
         using var runtime = new TestRuntime();
         await using var server = new LoopbackHttpServer();
@@ -732,7 +775,7 @@ public sealed class HttpTests
         // SSE separates events with an empty line. OpenAICompatibleSession.swift:636-637 builds the error body from the
         // lines it is given (`body += line + "\n"`), so whether empty lines arrive changes that text; :742-744 skips
         // anything without "data:" either way.
-        // UNVERIFIED (proposed O-26): AsyncLineSequence is widely reported to yield no empty line, whatever the
+        // UNVERIFIED O-26: AsyncLineSequence is widely reported to yield no empty line, whatever the
         // terminators; this is the parked choice. The negative control below shows the .NET line reader yields them.
         using var runtime = new TestRuntime();
         await using var server = new LoopbackHttpServer();
@@ -770,7 +813,7 @@ public sealed class HttpTests
     {
         // A raw U+2028 inside an SSE JSON string is valid JSON (RFC 8259 escapes only controls), so a split there cuts
         // a "data:" line in two and OpenAICompatibleSession.swift:747 fails to parse either half.
-        // UNVERIFIED (proposed O-26): AsyncLineSequence is believed to end a line at NEL (U+0085), LS (U+2028) and
+        // UNVERIFIED O-26: AsyncLineSequence is believed to end a line at NEL (U+0085), LS (U+2028) and
         // PS (U+2029) as well as at CR and LF; this is the parked choice.
         using var runtime = new TestRuntime();
         await using var server = new LoopbackHttpServer();
@@ -940,7 +983,7 @@ public sealed class HttpTests
         // The SSE drain runs in a detached task that a stop cancels directly (OpenAICompatibleSession.swift:652-661);
         // what the pending read then throws decides the path: `catch is CancellationError` (:781) finishes quietly,
         // any other error goes to `coalescer.fail(chunkError:)` (:784).
-        // UNVERIFIED (proposed O-32): R-TASK-2 says URLSession throws URLError(.cancelled) for a cancelled task; that
+        // UNVERIFIED O-32: R-TASK-2 says URLSession throws URLError(.cancelled) for a cancelled task; that
         // a pending read of URLSession.AsyncBytes throws the same, and not CancellationError, is not documented. It is
         // the parked choice. The read is started before the cancel: `next` was observed not completed.
         using var runtime = new TestRuntime();
