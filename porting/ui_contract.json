@@ -8225,7 +8225,8 @@
         "decision": "OD-0008 C7; OD-0012 F1",
         "upstream": "DroppyCode/Core/Support/HangWatchdog.swift:118-121 reportsFolder() - 'library.appendingPathComponent(\"Logs/Droppy Code\", isDirectory: true)'; HangWatchdog.swift:91 - 'var header = \"Droppy Code main thread unresponsive for \\(String(format: \"%.1f\", stalledFor))s\\n\"'",
         "port": "The report folder is %LOCALAPPDATA%\\Marrow Code\\Logs (OD-0008 C7); OD-0012 F1: line 1 reads \"Marrow main thread unresponsive for <x.x>s\""
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "LAUNCH",
@@ -11207,7 +11208,8 @@
         "DroppyCode/Core/Support/JSONRPC.swift:145",
         "DroppyCode/Core/Support/JSONRPC.swift:133"
       ],
-      "notes": "All three reach the user through turnCompleted's error text, because finishPrompt uses the error's localized description, which for an RPCError is its message."
+      "notes": "All three reach the user through turnCompleted's error text, because finishPrompt uses the error's localized description, which for an RPCError is its message.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
