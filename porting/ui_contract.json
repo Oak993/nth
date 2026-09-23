@@ -21047,7 +21047,8 @@
         "DroppyCode/UI/Common/Genie.swift:130-176",
         "DroppyCode/UI/Common/Genie.swift:182-213"
       ],
-      "notes": "The default landing point for a flight with no target is x 24, y canvas height minus 12: the archive corner at the bottom left. The command palette sits above this layer (PR-WIN-067)."
+      "notes": "The default landing point for a flight with no target is x 24, y canvas height minus 12: the archive corner at the bottom left. The command palette sits above this layer (PR-WIN-067).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
