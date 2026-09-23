@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "SPECIFIED": 3863,
+      "SPECIFIED": 3860,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
       "DISCOVERED": 34,
       "RETIRED": 6,
-      "IMPLEMENTED": 10
+      "IMPLEMENTED": 13
     },
     "by_area": {
       "CHAT": 193,
@@ -24063,9 +24063,9 @@
       "blocked_by": null,
       "depends_on_unknown": null,
       "deviation": {
-        "decision": "OD-0016",
+        "decision": "OD-0018",
         "upstream": "DroppyCode/App/AppDelegate.swift: the main window is shown once the launch prologue has run; nothing is shown before it",
-        "port": "A launch splash with the 96 px loading mark appears if the main window has not been shown 400 ms after process start, and closes when it is (ED-097). The prologue order is unchanged."
+        "port": "Every launch opens with the boot sequence of ED-102 and ED-103: particles gather into the loading mark, its pulse starts the Comet turn, the mark comes to rest after the first turn that ends once the app is ready, and then breaks into particles that build the main window, edge first; the main window is shown as its outline completes and its contents fade in as the particles land. The launch prologue keeps its order (PR-LAUNCH-001)."
       }
     },
     {
@@ -85416,7 +85416,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Synthesize the same PCM and hand it to the Windows audio stack. Shipping a pre-rendered .wav asset produced by this same algorithm is acceptable only if it is bit-identical; the tuning constants stay in code either way.",
       "verification_method": "contract fixture: the generated buffer's bytes for both chimes are checked against a recorded golden buffer",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85441,7 +85441,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure arithmetic; port it directly in double precision. The partial set is shared by every note of a chime, not per note.",
       "verification_method": "unit: sample-by-sample comparison against the formula for a known note and partial list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85467,7 +85467,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The normalization means the declared per-note levels set the balance between notes, not the absolute loudness; the absolute loudness comes only from the per-chime volume (PR-THEME-081, PR-THEME-082).",
       "verification_method": "unit: peak sample equals 29490 for both chimes; the last sample is near zero",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

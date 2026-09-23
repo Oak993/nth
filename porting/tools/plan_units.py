@@ -139,14 +139,16 @@ if os.path.exists(fpath):
         for f in fdoc['units']:
             if RANK[f['project']] > RANK[u['project']] or RANK[f['project']] == 1 and u['project'] != 'Marrow.App' and f['project'] != u['project']:
                 continue
-            if any(p in src for p in f['patterns']):
+            if any(p in src for p in f['patterns']) or u['id'] in f.get('dependents', []):
                 u['deps'] = sorted(set(u['deps']) | {f['id']})
+    lv = {u['id']: u['level'] for u in units}
     for f in fdoc['units']:
-        exists = os.path.exists(os.path.join(ROOT, f['target']))
+        exists = os.path.exists(os.path.join(ROOT, f['target'].split(' ')[0]))
         units.insert(0, {
             'id': f['id'], 'kind': 'foundation', 'swift': None, 'target': f['target'], 'project': f['project'],
             'test_project': 'tests/Marrow.Core.Tests' if f['project'] in ('Marrow.Core', 'Marrow.Testing') else f'tests/{f["project"]}.Tests',
-            'level': -1, 'component': None, 'component_members': [], 'deps': fdeps.get(f['id'], []), 'intra_deps': [],
+            'level': max([-1] + [lv[d] + 1 for d in f.get('deps', []) if d in lv]), 'component': None, 'component_members': [], 'deps': sorted(set(fdeps.get(f['id'], []) + f.get('deps', []))), 'intra_deps': [],
+            'noMerge': f.get('noMerge', False), 'base': f.get('base'),
             'records_total': 0, 'records_todo': [], 'parts': [[]], 'packets': [], 'risk': f['risk'],
             'spec': f['spec'], 'extends_existing': exists, 'status': 'TODO',
         })
