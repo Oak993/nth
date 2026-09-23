@@ -13,7 +13,7 @@ public static class TurnDiff
     /// checkout between two checkpoints, so when a touched set is given only files the chat's turns reported, the
     /// provider's own patch, or its tool edits name are taken from it. Reported and edit paths resolve against the
     /// working root and then normalize against the repository root; snapshot paths normalize directly. ED-138/ED-142:
-    /// the <c>hasPrefix("/")</c> tests at :34 and :41 are SwiftPath.IsAbsolute on reportedPath's output. PR-GIT-089
+    /// the <c>hasPrefix("/")</c> tests at :34 and :41 are SwiftPath.IsAbsolute on reportedPath's output (ED-173: including a forward-slash UNC "//srv/share/..."). PR-GIT-089
     /// windows_path: agent-reported paths reach this function forward-slashed (TouchedPaths.Normalize, ED-019(3)).
     /// </summary>
     public static ValueList<DiffFile> Merge(
@@ -81,7 +81,7 @@ public static class TurnDiff
                     Path = ReportedPath(source.Path), // :32
                     OldPath = source.OldPath is { } oldPath ? ReportedPath(oldPath) : null, // :33
                 };
-                if (!SwiftPath.IsAbsolute(file.Path) || files.ContainsKey(file.Path)) continue; // :34, ED-138
+                if (!SwiftPath.IsAbsolute(file.Path) || files.ContainsKey(file.Path)) continue; // :34, ED-138, ED-173
                 Append(file, files); // :35
             }
         }
@@ -92,7 +92,7 @@ public static class TurnDiff
         {
             if (edit.Path.Length == 0) continue; // :39
             var path = ReportedPath(edit.Path); // :40
-            if (authoritative.Contains(path) || !(snapshot is null || SwiftPath.IsAbsolute(path))) continue; // :41, ED-138
+            if (authoritative.Contains(path) || !(snapshot is null || SwiftPath.IsAbsolute(path))) continue; // :41, ED-138, ED-173
             var file = DiffParser.ParseHunks(edit.Diff ?? "", path); // :42
             if (file.Hunks.Count == 0) // :43-46
             {
