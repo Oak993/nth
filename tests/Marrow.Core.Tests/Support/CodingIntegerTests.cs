@@ -8,7 +8,8 @@ namespace Marrow.Core.Tests.Support;
 // Source: DroppyCode/Core/Support/Coding.swift (B2 1fbf81e), :5-6 and :28-34. Swift Int decoding under the storage
 // decoder and inside value(_:default:). Foundation JSONDecoder's integer slow path accepts an exactly integral JSON
 // number (1.0, 1e3) but never a numeric string, a fraction or a number Int cannot hold (R-CODE-1; swift-6.0-RELEASE
-// JSONDecoder.swift). Int is 64-bit, so the port type is long.
+// JSONDecoder.swift). Int is 64-bit, so the port type is long. Whether a fraction whose parsed Double is exactly
+// integral (1.0000000000000001) is read is open (O-09) and pinned apart, with its Oracle trait.
 public sealed class CodingIntegerTests
 {
     private static JsonElement Root(string number) => JsonDocument.Parse("{\"x\":" + number + "}").RootElement.Clone();
@@ -45,12 +46,22 @@ public sealed class CodingIntegerTests
     [InlineData("1.0", 1L)]
     [InlineData("1e3", 1000L)]
     [InlineData("-1.0", -1L)]
-    [InlineData("1.0000000000000001", 1L)]
     [InlineData("9223372036854775807", long.MaxValue)]
     [InlineData("-9223372036854775808", long.MinValue)]
     public void The_storage_decoder_reads_integral_number_forms_as_Int(string number, long expected)
     {
         Assert.Equal(expected, Coding.Decode<long>(Encoding.UTF8.GetBytes(number)));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-CODE-1")]
+    [Trait("Oracle", "O-09")]
+    public void A_fraction_that_rounds_to_an_integral_Double_is_read_as_Int_until_the_oracle_answers()
+    {
+        // Rests on O-09 (number text in JSONDecoder): no pinned line says whether Int decoding judges the JSON text,
+        // which is a fraction, or the Double it parses to, which is exactly 1. The parked choice judges the parsed
+        // Double (SwiftDecoding.ReadInt, the R-CODE-1 reader), so the text reads as 1. Only the macOS oracle can settle it.
+        Assert.Equal(1L, Coding.Decode<long>("1.0000000000000001"u8));
     }
 
     [Theory]

@@ -9,8 +9,14 @@ namespace Marrow.Core.Tests.Support;
 // Source: DroppyCode/Core/Support/Coding.swift (B2 1fbf81e), :1-34. The storage coders (JSONEncoder.storage :19-26,
 // JSONDecoder.storage :28-34) and value(_:default:) (:3-8). Expected values come from those lines, the records
 // PR-STORE-017, PR-STORE-018 and PR-STORE-020, and the R-CODE rules of IMPLEMENTING.md 3.8; never from running the port.
-// PR-STORE-017 names the key collation, the non-ASCII and control escaping and the Double text as UNVERIFIED (UNK-0003):
-// the tests that pin those carry a Rule, Decision or Oracle trait and no Req trait (R-TEST-6).
+// PR-STORE-017 is only partly proven here. Its verification method is a byte-compare against a macOS-produced file, and
+// it depends on UNK-0003, which OD-0001 closed as BLOCKED_ON_ACCESS: no such file exists. The PR-STORE-017 Req tests
+// prove only the settled subset: sorting of lowercase ASCII keys, array order, one compact line, slash escaping in
+// values and keys, and ISO 8601 date text. They do not prove the key collation, the non-ASCII and control escaping or
+// the Double text the record names; those stay UNVERIFIED under UNK-0003, and PR-STORE-017 must not be reported as
+// fully VERIFIED on the strength of these tests. The tests that pin those parts carry no Req trait: an expectation
+// that rests on an open item carries an Oracle trait (R-TEST-6); one set by a port rule or decision alone carries that
+// Rule or Decision trait.
 // Lenient (:10-17) is proven in CodingLenientTests; Int decoding in CodingIntegerTests.
 public sealed class CodingTests
 {
@@ -26,8 +32,9 @@ public sealed class CodingTests
     [Trait("Req", "PR-STORE-017")] // Core/Support/Coding.swift:21-23
     public void Storage_sorts_keys_at_every_level_keeps_array_order_is_one_compact_line_and_escapes_slashes()
     {
-        // Keys are plain lowercase ASCII letters, where an ordinal sort and Foundation's collation agree (R-CODE-9).
-        // Every string is printable ASCII, so no expectation here rests on the open escaping items (O-12, UNK-0003).
+        // Sibling keys are plain lowercase ASCII letters, where an ordinal sort and Foundation's collation agree
+        // (R-CODE-9); "a/b" is the only key of its object, so its place rests on no collation (O-01). Every string is
+        // printable ASCII, so no expectation here rests on the open escaping items (O-12, UNK-0003).
         var payload = new Dictionary<string, object?>
         {
             ["z"] = new object[]
@@ -36,11 +43,12 @@ public sealed class CodingTests
                 new Dictionary<string, object?> { ["b"] = false, ["a"] = 1 },
             },
             ["m"] = new Dictionary<string, object?> { ["y"] = "line", ["b"] = new[] { 3, 1, 2 } },
+            ["k"] = new Dictionary<string, object?> { ["a/b"] = 1 }, // a key goes through the same string writer (:21)
             ["a"] = "https://host/path",
         };
         var json = Text(Coding.Encode(payload));
         Assert.Equal(
-            "{\"a\":\"https:\\/\\/host\\/path\",\"m\":{\"b\":[3,1,2],\"y\":\"line\"}," +
+            "{\"a\":\"https:\\/\\/host\\/path\",\"k\":{\"a\\/b\":1},\"m\":{\"b\":[3,1,2],\"y\":\"line\"}," +
             "\"z\":[{\"a\":\"a\\/b\",\"z\":2},{\"a\":1,\"b\":false}]}", json);
         Assert.DoesNotContain(" : ", json, StringComparison.Ordinal);
     }
@@ -163,8 +171,12 @@ public sealed class CodingTests
         // synthesized encodeIfPresent of a model, which the model's own writer does (R-CODE-3), not the shared coder.
         var values = new Dictionary<string, string?> { ["b"] = "x", ["a"] = null };
         Assert.Equal("{\"a\":null,\"b\":\"x\"}", Text(Coding.Encode(values)));
-        var thread = new ThreadSample(Guid.Parse("0123abcd-89ab-cdef-0123-456789abcdef"), "t", 2, DateTimeOffset.UnixEpoch, new(["x"]), null);
-        Assert.DoesNotContain("note", Text(Coding.Encode(thread)), StringComparison.Ordinal);
+        // ChatThread (Library.swift:121) has a synthesized encode(to:): worktreePath (:135) and sortOrder (:149) are
+        // nil, so neither key is written.
+        var thread = new ChatThreadCodingSample(Guid.Parse("0123abcd-89ab-cdef-0123-456789abcdef"), "t", DateTimeOffset.UnixEpoch, null, null);
+        Assert.Equal(
+            "{\"createdAt\":\"1970-01-01T00:00:00Z\",\"id\":\"0123ABCD-89AB-CDEF-0123-456789ABCDEF\",\"title\":\"t\"}",
+            Text(Coding.Encode(thread)));
     }
 
     [Fact]
@@ -173,15 +185,17 @@ public sealed class CodingTests
     [Trait("Decision", "ED-072")]
     public void A_model_goes_through_the_storage_coder_with_Swift_bytes_end_to_end()
     {
-        // ThreadSample is shaped like ChatThread (Library.swift); its writer is the hand-written one of R-CODE-3.
+        // ChatThreadCodingSample is ChatThread (Library.swift:121-265) trimmed to id :124, title :126, createdAt :127,
+        // worktreePath :135 and sortOrder :149 (a Double? holding 1e-05); its writer is the hand-written one of R-CODE-3.
+        // The five keys start with distinct lowercase letters, so ordinal order and Foundation's collation agree.
         var id = Guid.Parse("0123abcd-89ab-cdef-0123-456789abcdef");
         var created = new DateTimeOffset(2026, 9, 22, 10, 0, 0, TimeSpan.Zero).AddTicks(9_999_999);
-        var thread = new ThreadSample(id, "caf\U000000E9 \U0001F600 a/b", 0.00001, created, new(["y", "x"]), "n");
+        var thread = new ChatThreadCodingSample(id, "caf\U000000E9 \U0001F600 a/b", created, "/Users/me/wt", 0.00001);
         var bytes = Coding.Encode(thread);
         Assert.Equal(
-            "{\"createdAt\":\"2026-09-22T10:00:00Z\",\"id\":\"0123ABCD-89AB-CDEF-0123-456789ABCDEF\",\"note\":\"n\"," +
-            "\"sortOrder\":1e-05,\"tags\":[\"y\",\"x\"],\"title\":\"caf\U000000E9 \U0001F600 a\\/b\"}", Text(bytes));
-        var reloaded = Coding.Decode<ThreadSample>(bytes)!;
+            "{\"createdAt\":\"2026-09-22T10:00:00Z\",\"id\":\"0123ABCD-89AB-CDEF-0123-456789ABCDEF\",\"sortOrder\":1e-05," +
+            "\"title\":\"caf\U000000E9 \U0001F600 a\\/b\",\"worktreePath\":\"\\/Users\\/me\\/wt\"}", Text(bytes));
+        var reloaded = Coding.Decode<ChatThreadCodingSample>(bytes)!;
         Assert.Equal(thread with { CreatedAt = created.AddTicks(-9_999_999) }, reloaded); // the fraction is lost, as in Swift
     }
 
@@ -216,12 +230,16 @@ public sealed class CodingTests
     // ---- JSONDecoder.storage (:28-34) ----
 
     [Fact]
-    [Trait("Req", "PR-STORE-018")] // Core/Support/Coding.swift:29-33
-    public void Both_storage_coders_are_one_shared_instance_built_once_and_frozen()
+    [Trait("Req", "PR-STORE-018")] // Core/Support/Coding.swift:20, :29
+    public void Both_storage_coders_are_one_shared_instance_built_once()
     {
+        // :20 and :29 are `static let` constants, each holding one lazily built coder. Coding.StorageOptions carries
+        // the converters of both directions (Encode and Decode), so every read gives the same object.
         Assert.Same(Coding.StorageOptions, Coding.StorageOptions);
-        Assert.True(Coding.StorageOptions.IsReadOnly);
-        Assert.Throws<InvalidOperationException>(() => Coding.StorageOptions.WriteIndented = true);
+        // Coding.Decode also parses with SwiftJson.DocumentOptions (R-CODE-8). That is a JsonDocumentOptions, a
+        // struct: a reference check cannot apply to it, so this checks that every read gives the same value.
+        var documentOptions = SwiftJson.DocumentOptions;
+        Assert.Equal(documentOptions, SwiftJson.DocumentOptions);
     }
 
     [Fact]
