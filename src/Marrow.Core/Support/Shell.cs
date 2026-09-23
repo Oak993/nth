@@ -1,11 +1,18 @@
+using System.Collections;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using Marrow.Core.Port;
 
-// Source: DroppyCode/Core/Support/Shell.swift (B2 1fbf81e), :1-325. Not ported yet, and why: the nil environment
-// default of :40 and :49 (`environment ?? LoginEnvironment.current`), run(tool:) at :120-133 and LoginEnvironment at
-// :327-462. LoginEnvironment.current, which, read and fallback all rest on augmentedPath (:441-453), whose Windows
-// directory list no decision settles (PR-TERM-103 open question; STOP Core.Support.Shell part 1 #1), and which's
-// PATHEXT source is not decided (#2). Until then Run takes the environment as a required argument.
+// Source: DroppyCode/Core/Support/Shell.swift (B2 1fbf81e), :1-462. Not ported, and why:
+// - :372-385, read()'s login-shell capture (the marker, /usr/bin/env -0 and the parse): no login shell is spawned on
+//   Windows and the capture is the app's own process environment (ED-028 (3), ED-170 (2)).
+// - :389-390, :393-413, the git resolution (LoginEnvironment.git, resolvedGit, developerGit): developerGit's
+//   xcode-select probe can never run on Windows (porting/dead_code.md entry 51) and must not be transliterated, and the
+//   fallback when which("git") finds nothing (upstream's /usr/bin/git, :399 and :405) has no Windows decision
+//   (PR-TERM-106 open question): STOP Core.Support.Shell part 2 #3.
+// - :429-439, userShell(): its callers are :372 (not ported, above) and TerminalStore.swift:28, which OD-0008 C5 gives
+//   PowerShell 7 if installed, otherwise Windows PowerShell; PR-TERM-039's deviation states that the SHELL,
+//   password-database and /bin/zsh chain is not ported.
 
 namespace Marrow.Core.Support;
 
@@ -58,14 +65,14 @@ public static class Shell
     /// :31-108 Runs a process to completion off the main actor and collects its output. With an
     /// <paramref name="outputLimit"/>, only that many bytes of each stream's tail are kept (a command a model runs can
     /// print without end for the whole timeout; the app's own commands keep it all). <c>@concurrent</c> is Task.Run at
-    /// the boundary (R-ISO-2). The environment has no default yet: see the file header (STOP #1).
+    /// the boundary (R-ISO-2).
     /// </summary>
-    public static Task<ShellResult> Run(string executable, IReadOnlyList<string> arguments, string? @in,
-        IReadOnlyDictionary<string, string> environment, byte[]? input = null, double timeout = 120, int? outputLimit = null) =>
+    public static Task<ShellResult> Run(string executable, IReadOnlyList<string> arguments, string? @in = null,
+        IReadOnlyDictionary<string, string>? environment = null, byte[]? input = null, double timeout = 120, int? outputLimit = null) =>
         Task.Run(() => RunBody(executable, arguments, @in, environment, input, timeout, outputLimit));
 
     private static async Task<ShellResult> RunBody(string executable, IReadOnlyList<string> arguments, string? directory,
-        IReadOnlyDictionary<string, string> environment, byte[]? input, double timeout, int? outputLimit)
+        IReadOnlyDictionary<string, string>? environment, byte[]? input, double timeout, int? outputLimit)
     {
         // :45-49. The child gets its own job and process group (ED-047 (a)).
         var process = new ProcessLauncher
@@ -74,7 +81,7 @@ public static class Shell
             Arguments = arguments,
         };
         if (directory is { } given) process.CurrentDirectoryURL = given;
-        process.Environment = environment;
+        process.Environment = environment ?? LoginEnvironment.Current;
 
         // :51-56. No stdin pipe means FileHandle.nullDevice: the launcher hands the child NUL (R-PROC-1).
         var stdout = new ProcessPipe();
@@ -180,6 +187,21 @@ public static class Shell
     /// CTRL_BREAK_EVENT to the child's own process group, then TerminateJobObject (ED-047 (a) as ED-126 applies it).
     /// </summary>
     private static void Terminate(ProcessLauncher process) => TerminationLadder.Shell(process);
+
+    /// <summary>
+    /// :120-133 Runs a named tool found on the login PATH. Swift's <c>run(tool:_:in:environment:input:timeout:)</c>: C#
+    /// cannot overload <see cref="Run"/> on the argument label alone, so the label is in the name. It takes no
+    /// outputLimit, so a tool run by name keeps its whole output (PR-TERM-091).
+    /// </summary>
+    public static async Task<ShellResult> RunTool(string tool, IReadOnlyList<string> arguments, string? @in = null,
+        IReadOnlyDictionary<string, string>? environment = null, byte[]? input = null, double timeout = 120)
+    {
+        // :129-131. The tool is looked up with no environment, so on current's PATH.
+        if (LoginEnvironment.Which(tool) is not { } executable)
+            throw new ShellError(tool + " was not found on your PATH.");
+        // :132
+        return await Run(executable, arguments, @in, environment, input, timeout);
+    }
 }
 
 /// <summary>
@@ -583,5 +605,217 @@ internal sealed class OutputCollector
             return waiters;
         });
         foreach (var waiter in ready) waiter.Resume(default(ValueTuple));
+    }
+}
+
+/// <summary>
+/// Shell.swift:327-462. The user's login shell environment. Apps launched from Finder inherit a minimal PATH that cannot
+/// find provider CLIs, so this is captured once at launch. On Windows no login shell is spawned: the capture is the app's
+/// own process environment, so read() gives what fallback() gives (ED-028 (3), ED-170 (2)). Environments are
+/// case-insensitive dictionaries, and copies keep that comparer (ED-128 (1)).
+/// </summary>
+public static class LoginEnvironment
+{
+    // :335-339
+    private static readonly HashSet<string> ExcludedKeys = new(SwiftStringComparer.Instance)
+    {
+        "_", "SHLVL", "PWD", "OLDPWD", "TERM", "TERM_PROGRAM", "TERM_PROGRAM_VERSION",
+        "TERM_SESSION_ID", "COLORTERM", "ITERM_SESSION_ID", "XPC_SERVICE_NAME",
+        "__CFBundleIdentifier", "CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_SSE_PORT",
+    };
+
+    // ED-171: the extensions which uses when neither the searched environment nor the process has a PATHEXT.
+    private const string DefaultPathExt = ".COM;.EXE;.BAT;.CMD";
+
+    // :330-333 and :347: the process's one Loader, made on first use as the Swift statics are.
+    private static readonly Lazy<Loader> shared =
+        new(() => new Loader(Fallback, AugmentedPath), LazyThreadSafetyMode.ExecutionAndPublication);
+
+    /// <summary>:341-343</summary>
+    public static ValueMap<string, string> Current => shared.Value.Current;
+
+    /// <summary>:349-351</summary>
+    public static bool IsLoaded => shared.Value.IsLoaded;
+
+    /// <summary>:353-355 <c>FileManager.default.homeDirectoryForCurrentUser.path</c>: the user's profile folder.</summary>
+    public static string HomeDirectory => System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile);
+
+    /// <summary>:357-365</summary>
+    public static Task Load() => shared.Value.Load();
+
+    /// <summary>:415-427</summary>
+    public static string? Which(string name, IReadOnlyDictionary<string, string>? environment = null) =>
+        Which(name, environment, HomeDirectory);
+
+    /// <summary>
+    /// :415-427 with <paramref name="home"/> as the home folder, both for augmentedPath(nil) and for a leading '~'
+    /// (ED-130). The tests' seam; the public overload passes <see cref="HomeDirectory"/>.
+    /// </summary>
+    internal static string? Which(string name, IReadOnlyDictionary<string, string>? environment, string home)
+    {
+        IReadOnlyDictionary<string, string> searched = environment ?? Current;
+        // ED-171: the PATHEXT that stands in for Darwin's executable test, on both branches.
+        var pathExt = PathExt(searched);
+        // :421 with ED-170 (3)
+        var path = searched.TryGetValue("PATH", out var value) ? value : AugmentedPath(null, home);
+        // :416-420 and :422-426 on Windows: a name holding '/' or '\', or drive-qualified, is a path, tilde-expanded and
+        // tested itself; any other name is tried in each ';'-separated PATH directory, first match wins (ED-031, ED-129,
+        // ED-130, ED-131).
+        return ProcessLauncher.Which(name, path, pathExt, home);
+    }
+
+    /// <summary>
+    /// ED-171: the PATHEXT of the environment which searches, its name looked up case-insensitively; when that is
+    /// absent or empty, the app process's own PATHEXT; when that is absent or empty too, ".COM;.EXE;.BAT;.CMD".
+    /// </summary>
+    private static string PathExt(IReadOnlyDictionary<string, string> environment)
+    {
+        if (ValueIgnoringCase(environment, "PATHEXT") is { Length: > 0 } searched) return searched;
+        if (System.Environment.GetEnvironmentVariable("PATHEXT") is { Length: > 0 } own) return own;
+        return DefaultPathExt;
+    }
+
+    /// <summary>The value of <paramref name="name"/> in any letter case, also from a dictionary that compares exactly.</summary>
+    private static string? ValueIgnoringCase(IReadOnlyDictionary<string, string> environment, string name)
+    {
+        if (environment.TryGetValue(name, out var value)) return value;
+        foreach (var (key, candidate) in environment)
+        {
+            if (string.Equals(key, name, StringComparison.OrdinalIgnoreCase)) return candidate;
+        }
+        return null;
+    }
+
+    /// <summary>:441-453</summary>
+    public static string AugmentedPath(string? path) => AugmentedPath(path, HomeDirectory);
+
+    /// <summary>
+    /// :441-453 with <paramref name="home"/> as the home folder (the tests' seam). DEVIATION ED-170 (1): PATH is split
+    /// and joined on ';', and only the five entries under the home folder are appended, in the Swift order, each unless
+    /// an entry already equals it ignoring letter case after one trailing separator is trimmed. The seven absolute macOS
+    /// locations (/opt/homebrew/bin, /opt/homebrew/sbin, /usr/local/bin, /usr/bin, /bin, /usr/sbin, /sbin) are not
+    /// appended.
+    /// </summary>
+    internal static string AugmentedPath(string? path, string home)
+    {
+        // :443. split(separator:) drops empty pieces.
+        var entries = new List<string>(SwiftString.Split(path ?? "", ";"));
+        // :444-448, the five home entries as ED-170 (1) spells them (Path.Join, backslash separators).
+        string[] common =
+        [
+            Path.Join(home, ".local", "bin"), Path.Join(home, ".bun", "bin"), Path.Join(home, ".cargo", "bin"),
+            Path.Join(home, ".npm-global", "bin"), Path.Join(home, ".volta", "bin"),
+        ];
+        // :449-451
+        foreach (var directory in common)
+        {
+            if (!entries.Any(entry => SameEntry(entry, directory))) entries.Add(directory);
+        }
+        // :452
+        return string.Join(';', entries);
+    }
+
+    /// <summary>
+    /// ED-170 (1): <paramref name="entry"/>, less one trailing '\' or '/', equals <paramref name="directory"/> ignoring
+    /// letter case. Letter case is compared as the port compares paths (ED-137): with the Windows ordinal table, never
+    /// OrdinalIgnoreCase, which is wider than the file system.
+    /// </summary>
+    private static bool SameEntry(string entry, string directory)
+    {
+        var trimmed = entry.Length > 0 && entry[^1] is '\\' or '/' ? entry[..^1] : entry;
+        if (trimmed.Length != directory.Length) return false;
+        if (trimmed.Length == 0) return true;
+        var result = CompareStringOrdinal(trimmed, trimmed.Length, directory, directory.Length, bIgnoreCase: true);
+        if (result == 0) throw new InvalidOperationException($"CompareStringOrdinal failed with error {Marshal.GetLastPInvokeError()}.");
+        return result == CstrEqual;
+    }
+
+    private const int CstrEqual = 2;
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern int CompareStringOrdinal(string lpString1, int cchCount1, string lpString2, int cchCount2,
+        [MarshalAs(UnmanagedType.Bool)] bool bIgnoreCase);
+
+    /// <summary>:455-461</summary>
+    private static ValueMap<string, string> Fallback() => Fallback(ProcessEnvironment(), HomeDirectory);
+
+    /// <summary>:455-461 over the given process environment and home folder (the tests' seam).</summary>
+    internal static ValueMap<string, string> Fallback(IEnumerable<KeyValuePair<string, string>> processEnvironment, string home)
+    {
+        // :456 ProcessInfo.processInfo.environment, in a case-insensitive dictionary (ED-128 (1)): a name set again in
+        // another case keeps the first spelling and takes the last value.
+        var environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, value) in processEnvironment) environment[key] = value;
+        // :457. The dictionary compares names as Windows does, so each removal is case-insensitive (PR-TERM-102).
+        foreach (var key in ExcludedKeys) environment.Remove(key);
+        // :458
+        environment["PATH"] = AugmentedPath(environment.TryGetValue("PATH", out var path) ? path : null, home);
+        // :459
+        if (!environment.ContainsKey("LANG")) environment["LANG"] = "en_US.UTF-8";
+        // :460
+        return new ValueMap<string, string>(environment, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>The app process's own environment block.</summary>
+    private static IEnumerable<KeyValuePair<string, string>> ProcessEnvironment()
+    {
+        foreach (DictionaryEntry entry in System.Environment.GetEnvironmentVariables())
+            yield return new KeyValuePair<string, string>((string)entry.Key, (string?)entry.Value ?? "");
+    }
+
+    /// <summary>
+    /// The state Swift keeps in the statics <c>cached</c>, <c>loading</c> and <c>fallbackEnvironment</c> (:330-351),
+    /// with the load and read over it (:357-391). The static members use one per process; a test makes its own, so no
+    /// test changes the process's (R-TEST-5).
+    /// </summary>
+    internal sealed class Loader(Func<ValueMap<string, string>> fallback, Func<string?, string> augmentedPath)
+    {
+        // :330
+        private readonly Mutex<ValueMap<string, string>?> cached = new(null);
+
+        // :331-333 The one read of the login shell. Launch starts it; anything that resolves a CLI before it lands
+        // waits on the same task, so a codex under nvm is never reported missing.
+        private readonly Mutex<TaskHandle?> loading = new(null);
+
+        // :345-347 The process's own environment, for the moments before the login shell has answered: built once,
+        // since every reader in that window asked for a fresh copy.
+        private readonly Lazy<ValueMap<string, string>> fallbackEnvironment = new(fallback, LazyThreadSafetyMode.ExecutionAndPublication);
+
+        // :341-343
+        public ValueMap<string, string> Current =>
+            cached.WithLock((ref ValueMap<string, string>? value) => value) ?? fallbackEnvironment.Value;
+
+        // :349-351
+        public bool IsLoaded => cached.WithLock((ref ValueMap<string, string>? value) => value is not null);
+
+        // :357-365
+        public async Task Load() => await Loading().Completion;
+
+        /// <summary>:358-363 The stored task, started by the first caller.</summary>
+        internal TaskHandle Loading() => loading.WithLock((ref TaskHandle? current) =>
+        {
+            if (current is { } existing) return existing;
+            // :360. A Task created in nonisolated code: detached (R-TASK-1); read() is @concurrent.
+            var started = TaskHandle.Detached(Read);
+            current = started;
+            return started;
+        });
+
+        // :367-391
+        private Task Read()
+        {
+            // :371
+            var environment = fallbackEnvironment.Value;
+            // :372-385 not ported: no login shell is spawned (ED-028 (3), ED-170 (2)).
+            // :386
+            environment = environment.Mutating(values =>
+                values["PATH"] = augmentedPath(values.TryGetValue("PATH", out var path) ? path : null));
+            // :387-388
+            var resolved = environment;
+            cached.WithLock((ref ValueMap<string, string>? value) => { value = resolved; });
+            // :389-390 not ported: the git resolution, STOP Core.Support.Shell part 2 #3 (see the file header).
+            return Task.CompletedTask;
+        }
     }
 }
