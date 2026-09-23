@@ -1,0 +1,2 @@
+t0,rep,phaseByTime,side,offset,calibrated,bandRGB,innerMeanRGB,maxDiffNeighbour,maxDiffReference,visibleNeighbour,visibleReference
+219765.30,4,grow,right,none,1,"","",0,0,False,False

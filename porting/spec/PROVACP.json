@@ -3359,12 +3359,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same: split on 0x0A only, per port_impacts #18. A CRLF-writing Windows CLI therefore yields messages ending in 0x0D, which the delivery step strips (PR-PROVACP-155) - note that port_impacts #18 says the source does not strip CR, which is true of the framer but NOT of StdioProcess.deliver.",
       "verification_method": "unit (CRLF and LF fixtures, plus a message split across two chunks)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-071",
-      "rework": true
+      "implemented_by_task": "T-M2-071"
     },
     {
       "id": "PR-PROVACP-150",
@@ -3381,12 +3380,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same incremental behavior is required, not just the same result: an agent streaming a multi-megabyte tool output in small chunks must not cost quadratic time.",
       "verification_method": "unit (byte-at-a-time feed of a 1 MB message) plus a performance guard",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-071",
-      "rework": true
+      "implemented_by_task": "T-M2-071"
     },
     {
       "id": "PR-PROVACP-151",
@@ -3405,13 +3403,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. ACP never uses this mode - ACPSession takes the .lines default - but the framer is shared with the Copilot connection, so the mode must exist and behave identically.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-071",
-      "spec_fix": "The record said the search pointer is \"rewound to endIndex minus three\" and covered only a header \"whose Content-Length cannot be parsed\" -> StdioFramer.swift:38 clamps it, `search = max(start, buffer.endIndex - 3)`; StdioFramer.swift:41-44 moves start past the separator before `guard let length = Self.contentLength(in: header) else { continue }`, and contentLength returns nil both for an unparsable value and for a block with no Content-Length line (:71-80), so either block is skipped with no body consumed and the bytes meant as the body are scanned as the next header block.",
-      "rework": true
+      "spec_fix": "The record said the search pointer is \"rewound to endIndex minus three\" and covered only a header \"whose Content-Length cannot be parsed\" -> StdioFramer.swift:38 clamps it, `search = max(start, buffer.endIndex - 3)`; StdioFramer.swift:41-44 moves start past the separator before `guard let length = Self.contentLength(in: header) else { continue }`, and contentLength returns nil both for an unparsable value and for a block with no Content-Length line (:71-80), so either block is skipped with no body consumed and the bytes meant as the body are scanned as the next header block."
     },
     {
       "id": "PR-PROVACP-152",
@@ -3428,13 +3425,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (header table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-071",
-      "spec_fix": "The record (its source_evidence summary and expected_result) said the parser \"splits each line on the first colon\", \"requires two parts\" without the consequence, trims \"spaces\", accepts \"an integer of zero or more\" and splits the header \"on newlines\" -> StdioFramer.swift:72-76: `header.split(whereSeparator: \\.isNewline)` splits on every Character.isNewline (LF, VT, FF, CR, CR LF, NEL, U+2028, U+2029); `line.split(separator: \":\", maxSplits: 1)` omits empty leading pieces and matches only a standalone colon Character; `parts.count == 2` skips \"Content-Length:\" but not \"Content-Length: \", which reaches `Int(...)` with an empty string and returns nil for the block; `.whitespaces` is tab, Zs and U+200B; `Int(...)` accepts '+', \"-0\" and leading zeros and rejects values above Int64.max. source_evidence now quotes :72-79 instead of the summary.",
-      "rework": true
+      "spec_fix": "The record (its source_evidence summary and expected_result) said the parser \"splits each line on the first colon\", \"requires two parts\" without the consequence, trims \"spaces\", accepts \"an integer of zero or more\" and splits the header \"on newlines\" -> StdioFramer.swift:72-76: `header.split(whereSeparator: \\.isNewline)` splits on every Character.isNewline (LF, VT, FF, CR, CR LF, NEL, U+2028, U+2029); `line.split(separator: \":\", maxSplits: 1)` omits empty leading pieces and matches only a standalone colon Character; `parts.count == 2` skips \"Content-Length:\" but not \"Content-Length: \", which reaches `Int(...)` with an empty string and returns nil for the block; `.whitespaces` is tab, Zs and U+200B; `Int(...)` accepts '+', \"-0\" and leading zeros and rejects values above Int64.max. source_evidence now quotes :72-79 instead of the summary."
     },
     {
       "id": "PR-PROVACP-153",
@@ -3451,12 +3447,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same asymmetry.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-071",
-      "rework": true
+      "implemented_by_task": "T-M2-071"
     },
     {
       "id": "PR-PROVACP-154",

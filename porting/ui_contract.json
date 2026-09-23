@@ -1998,7 +1998,8 @@
         "DroppyCode/UI/Common/ChatFont.swift:1-11",
         "DroppyCode/UI/Common/AppZoom.swift:18-26"
       ],
-      "notes": "Replaces the zoom-aware Font.chat of the deleted B1 UI/Common/ChatZoom.swift (PR-CHAT-138, retired). Every chat view that called .chat(style, zoom: zoom) at B1 calls .chat(style) at B2."
+      "notes": "Replaces the zoom-aware Font.chat of the deleted B1 UI/Common/ChatZoom.swift (PR-CHAT-138, retired). Every chat view that called .chat(style, zoom: zoom) at B1 calls .chat(style) at B2.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -3835,7 +3836,12 @@
         "DroppyCode/UI/Common/AttachmentPreviewPanel.swift:78-235"
       ],
       "notes": "The panel never resizes once shown; content taller than measured is clipped at the bottom, never at the header.",
-      "b2_change": "Colours: B1 name :341 `.foregroundStyle(.secondary)` and size :347 `.foregroundStyle(.tertiary)` -> B2 DroppyCode/UI/Common/AttachmentPreview.swift:351 and :357 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal. Geometry: B1 :264-275 read the movie track synchronously when the panel opened; B2 :283-285 uses only the cached size, else 480 by 360. The range moves from B1 230-386 to B2 231-396. States, typography and the other geometry unchanged."
+      "b2_change": "Colours: B1 name :341 `.foregroundStyle(.secondary)` and size :347 `.foregroundStyle(.tertiary)` -> B2 DroppyCode/UI/Common/AttachmentPreview.swift:351 and :357 `.foregroundStyle(Chrome.secondaryText)`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal. Geometry: B1 :264-275 read the movie track synchronously when the panel opened; B2 :283-285 uses only the cached size, else 480 by 360. The range moves from B1 230-386 to B2 231-396. States, typography and the other geometry unchanged.",
+      "deviation": {
+        "decision": "OD-0016",
+        "upstream": "DroppyCode/UI/Common/AttachmentPreview.swift:299 and :319 `ProgressView()` in the image and video slots",
+        "port": "The 48 px loading mark replaces the spinner in the slot, after 400 ms (ED-097)."
+      }
     },
     {
       "area": "COMPOSER",
@@ -4240,7 +4246,12 @@
       "source_evidence": [
         "DroppyCode/App/Views/Diff/DiffInspector.swift:71-85"
       ],
-      "notes": "The label is deliberate: an unnamed spinner in an otherwise empty 640 by 540 pane says nothing. The ellipsis is the single character U+2026."
+      "notes": "The label is deliberate: an unnamed spinner in an otherwise empty 640 by 540 pane says nothing. The ellipsis is the single character U+2026.",
+      "deviation": {
+        "decision": "OD-0016",
+        "upstream": "DroppyCode/App/Views/Diff/DiffInspector.swift:76 `ProgressView(\"Reading the diff…\")`",
+        "port": "The 64 px loading mark replaces the spinner above the same label \"Reading the diff…\", after 400 ms (ED-097)."
+      }
     },
     {
       "area": "GIT",
@@ -14087,11 +14098,12 @@
         "None on the headline itself."
       ],
       "source_evidence": [
-        "DroppyCode/Core/Models/Requests.swift:34-52 headline and symbol",
-        "DroppyCode/App/Views/Composer/RequestCards.swift:3-65 ApprovalCard"
+        "DroppyCode/App/Views/Composer/RequestCards.swift:3-65 ApprovalCard (headline row :8-15, card padding and glass :62-64)",
+        "DroppyCode/Core/Models/Requests.swift:34-52 headline and symbol"
       ],
       "notes": "The five icons are SF Symbols \"terminal\", \"doc.badge.plus\", \"wrench.and.screwdriver\", \"lock.shield\" and \"checklist\"; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table, one for one). Glass: OD-0005 applies (Acrylic where the window shows the desktop; where the app draws its own backdrop, a shader reproducing the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing); an owner-approved deviation, not parity.",
-      "b2_change": "The flagged range RequestCards.swift:3-65 changed only at :28, :37 and :43 (.secondary -> Chrome.secondaryText on the plan body, the detail and the reason; the plan body is UI-RUNTIME-007). The headline, icon, geometry and glass tint this record states are unchanged. The typography note no longer contrasts the headline with a chat-zoomed font, because B2 removed chat zoom (UI/Common/ChatFont.swift:4-10). Owner rulings applied in this refresh: the glass note states OD-0005 in the ruling's words and as an owner-approved deviation, the icons follow OD-0010 (Lucide) in place of the open UNK-0007, and the face follows OD-0009 (Inter)."
+      "b2_change": "The flagged range RequestCards.swift:3-65 changed only at :28, :37 and :43 (.secondary -> Chrome.secondaryText on the plan body, the detail and the reason; the plan body is UI-RUNTIME-007). The headline, icon, geometry and glass tint this record states are unchanged. The typography note no longer contrasts the headline with a chat-zoomed font, because B2 removed chat zoom (UI/Common/ChatFont.swift:4-10). Owner rulings applied in this refresh: the glass note states OD-0005 in the ruling's words and as an owner-approved deviation, the icons follow OD-0010 (Lucide) in place of the open UNK-0007, and the face follows OD-0009 (Inter).",
+      "spec_fix": "The first source_evidence was Requests.swift, so plan_units.py and gen_tasks.mjs assigned this view record to Core.Models.Requests, whose Marrow.Core tests cannot reach the card. RequestCards.swift is now first, which moves the record to App.Views.Composer.RequestCards beside UI-RUNTIME-006..008. The headline strings and symbol names stay proven at the model by PR-RUNTIME-017 and PR-RUNTIME-018."
     },
     {
       "area": "RUNTIME",
@@ -18455,7 +18467,8 @@
         "DroppyCode/UI/Chrome/ProjectIconPicker.swift:174-186",
         "DroppyCode/UI/Chrome/ProjectIconPicker.swift:232-239"
       ],
-      "notes": "Tiles per section: Communication 88, Maps 20, Objects & Tools 283, Devices 140, Camera & Photos 45, Gaming 90, Connectivity 35, Transportation 15, Automotive 278, Accessibility 37, Privacy & Security 16, Human 87, Home 126, Fitness 120, Nature 109, Editing 34, Text Formatting 5, Media 31, Keyboard 17, Commerce 141, Time 1, Health 45, Shapes 17, Arrows 186, Indices 176, Math 24, Other 464 (2,630 in all). Every name is a `.fill` mark except `apple.logo`, `curlybraces`, `swift` and `terminal` in Other. The behaviour is PR-SIDEBAR-164."
+      "notes": "Tiles per section: Communication 88, Maps 20, Objects & Tools 283, Devices 140, Camera & Photos 45, Gaming 90, Connectivity 35, Transportation 15, Automotive 278, Accessibility 37, Privacy & Security 16, Human 87, Home 126, Fitness 120, Nature 109, Editing 34, Text Formatting 5, Media 31, Keyboard 17, Commerce 141, Time 1, Health 45, Shapes 17, Arrows 186, Indices 176, Math 24, Other 464 (2,630 in all). Every name is a `.fill` mark except `apple.logo`, `curlybraces`, `swift` and `terminal` in Other. The behaviour is PR-SIDEBAR-164.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -19777,7 +19790,8 @@
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/Core/Models/Shortcuts.swift:32-34 description is KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode), and :43-50 modifierSymbols concatenates \"⌃\", \"⌥\", \"⇧\", \"⌘\" with no separator; the default reads \"⌘J\"",
         "port": "Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl): the default reads \"Ctrl+J\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "TERM",
@@ -19807,7 +19821,8 @@
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/Core/Models/Shortcuts.swift:32-34 description is KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode), and :43-50 modifierSymbols concatenates \"⌃\", \"⌥\", \"⇧\", \"⌘\" with no separator; the default reads \"⌘R\"",
         "port": "Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl): the default reads \"Ctrl+R\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "THEME",
@@ -25639,7 +25654,8 @@
         "DroppyCode/UI/Common/AppZoom.swift:18-51",
         "DroppyCode/App/Window/WindowManager.swift:173-175",
         "DroppyCode/App/Views/RootView.swift:276-282"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     }
   ]
 }

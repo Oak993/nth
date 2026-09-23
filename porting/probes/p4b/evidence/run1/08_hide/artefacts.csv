@@ -1,0 +1,7 @@
+t0,rep,phaseByTime,side,offset,calibrated,bandRGB,innerMeanRGB,maxDiffNeighbour,maxDiffReference,visibleNeighbour,visibleReference
+362675.88,1,grow,right,5,1,"(58,80,170)(58,80,170)(58,80,170)(58,80,170)","(58,80,170)",0,18,False,False
+364521.86,1,shrink,right,none,1,"","",0,0,False,False
+364688.36,1,shrink,right,none,1,"","",0,0,False,False
+374477.33,3,grow,right,6,1,"(84,101,170)(84,101,170)(84,101,170)(84,101,170)(84,101,170)","(85,102,170)",1,11,False,False
+380753.01,4,grow,right,6,1,"(60,81,170)(60,81,170)(60,81,170)(60,81,170)(60,81,170)","(60,81,170)",0,28,False,False
+382507.90,4,shrink,right,none,1,"","",0,0,False,False
