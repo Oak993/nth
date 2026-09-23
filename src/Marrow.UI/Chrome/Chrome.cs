@@ -1,15 +1,31 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Shapes;
+using Avalonia.Controls.Templates;
 using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Marrow.Core.Port;
+using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Theme;
 
 // Source: DroppyCode/UI/Chrome/Chrome.swift (B2 1fbf81e), :1-1140.
-// SKELETON (cycle c35). Every member with behaviour throws MARROW_STUB until its unit ports it.
-// Stored `static let` tokens are complete (a throwing static initializer would break the whole type); computed
-// `static var` tokens are stub getters.
+// Parts 1 to 3 of 4 are ported: the window backdrop (:201-273), the surfaces (:125-199), the chrome controls
+// (:306-560), the scroll model (:564-577), the search fields and the picker (:775-932), the veil and compact title
+// (:579-647), the sidebar row family (:648-773), the settings card/section/row (:1006-1074), the drag regions
+// (:1083-1140) and the tokens they read. Part 4 of 4 finishes the traffic-light geometry (TrafficLightPitch :17,
+// TrafficLightsWidth :20) and proves UI-WIN-055 (the ChromeRowDivider composition rule, :1076-1081).
 // Forms (ED-095, ED-098): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed
 // record with `Control Body(Control content)`, an IAnimatableModifier where a transition animates it; a Layout is a
 // Panel; an NSView is a Control; NSImage is Avalonia.Media.IImage; AnyView is Control; a @ViewBuilder parameter is a
@@ -19,9 +35,12 @@ using Marrow.UI.Port;
 // :1114-1120) is a Decorator exposing MakeNSView()/UpdateNSView(_) without the SwiftUI Context; an NSEvent handler
 // is the matching Avalonia pointer override, NSEvent is PointerEventArgs.
 // The private top-level structs (:153, :187, :967) are `file` types, C#'s nearest form of a file-private type.
-// Not declared yet, private in Swift and read by no other file: the @State and @Environment storage of every view
-// (:158-160, :188, :203, :368, :390-391, :418, :445-446, :479-480, :526, :583, :690, :881-882) and
-// PaneTopVeil.fade(_:) (:616-627), which the implementing unit adds with the bodies.
+// View mechanics without an Avalonia counterpart of the same shape (a plain Button and TextField, `.background`,
+// `.onHover`, `.popover`, `.fixedSize`, a font on any view, an animated colour) are in Port/PlainControls.cs.
+// Settled by the orchestrator's run4 ruling on this unit's stops: Image(systemName:) and Image(_:) are SwiftImage
+// (ED-179, ED-182; OD-0010 Lucide icons); every glass site records its source-defined material as data on the layer it
+// draws (SwiftGlass, ED-180; `// MARROW_DEFERRED ED-180` at each site: the app-drawn material and the .interactive()
+// press response); every `.continuous` shape goes through SwiftShapes (ED-181; its curve is MARROW_DEFERRED there).
 
 namespace Marrow.UI.Chrome
 {
@@ -42,16 +61,14 @@ namespace Marrow.UI.Chrome
         public const double TrafficLightDiameter = 14; // :15
         public const double TrafficLightSpacing = 9; // :16
 
-        // :17
-        public static double TrafficLightPitch =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:17");
+        // :17 `static var trafficLightPitch: CGFloat { trafficLightDiameter + trafficLightSpacing }`
+        public static double TrafficLightPitch => TrafficLightDiameter + TrafficLightSpacing;
 
         public const double TrafficLightLeading = 18; // :18
         public const double TrafficLightTop = 16; // :19
 
-        // :20
-        public static double TrafficLightsWidth =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:20");
+        // :20 `static var trafficLightsWidth: CGFloat { trafficLightDiameter * 3 + trafficLightSpacing * 2 }`
+        public static double TrafficLightsWidth => TrafficLightDiameter * 3 + TrafficLightSpacing * 2;
 
         public const double TrafficLightClearance = 10; // :21
 
@@ -69,14 +86,12 @@ namespace Marrow.UI.Chrome
         public const double DividerHeight = 14; // :37
 
         // :38
-        public static double CapsuleHeight =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:38");
+        public static double CapsuleHeight => CapsuleContentHeight + CapsuleVerticalPadding * 2;
 
         public const double ContentBreathBelowChrome = 28; // :39
 
-        // :40
-        public static double ContentTopInset =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:40");
+        // :40 PR-WIN-212: numerically 72, equal to VeilHeight (:41) but an independent declaration; do not fold them.
+        public static double ContentTopInset => ChromeTopPadding + CapsuleHeight + ContentBreathBelowChrome;
 
         public const double VeilHeight = 72; // :41
         public const double TitleStartOffset = 10; // :42
@@ -105,50 +120,49 @@ namespace Marrow.UI.Chrome
         // MARK: Color and motion
 
         // :71-73
-        public static SwiftColor Overlay(double opacity) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:71");
+        public static SwiftColor Overlay(double opacity) => PrimaryText.Opacity(opacity);
 
         public static SwiftColor PrimaryText { get; } = SwiftColor.LabelColor; // :76
         public static SwiftColor SecondaryText { get; } = PrimaryText.Opacity(0.7); // :79
         private static SwiftColor SystemAccent { get; } = SwiftColor.ControlAccentColor; // :80
 
-        // :85
-        public static SwiftColor Accent =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:85");
+        // :85 PR-WIN-209: the theme's accent, or the system control accent for System/Light/Dark.
+        public static SwiftColor Accent => ThemeManager.Spec.Accent ?? SystemAccent;
 
-        // :87 accentNSColor: NSColor is SwiftColor too (ED-092).
-        public static SwiftColor AccentNSColor =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:87");
+        // :87 accentNSColor: NSColor is SwiftColor too (ED-092); the AppKit twin falls back to the control accent
+        // directly rather than to a wrapped copy (PR-WIN-209), so it is the same as Accent under ED-092.
+        public static SwiftColor AccentNSColor => ThemeManager.Spec.Accent ?? SwiftColor.ControlAccentColor;
 
-        // :91
-        public static SwiftColor Success =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:91");
+        // :91 PR-WIN-209: re-read on every access, never cached.
+        public static SwiftColor Success => ThemeManager.Spec.Success;
 
         // :92
-        public static SwiftColor Warning =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:92");
+        public static SwiftColor Warning => ThemeManager.Spec.Warning;
 
         // :93
-        public static SwiftColor Danger =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:93");
+        public static SwiftColor Danger => ThemeManager.Spec.Danger;
 
-        // :96
-        public static SwiftColor GlassTint =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:96");
+        // :95-96 The theme's glass tint, washed over capsules, sheets and the window.
+        public static SwiftColor GlassTint => ThemeManager.Spec.Surface;
 
         // :98
-        public static Animation Hover =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:98");
+        public static Animation Hover => Animation.EaseOut(duration: 0.1);
 
-        // :100-104
-        public static Animation PanelSlide =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:100");
+        // The seam behind `NSWorkspace.shared.accessibilityDisplayShouldReduceMotion` (ED-084, port_impacts.md X4);
+        // read live at each call, never cached, as the nine sites PR-WIN-208 names do.
+        public static Ambient<IGeniePlatform> ReduceMotionPlatform { get; } = new(() => new WindowsGeniePlatform());
+
+        // :100-104 PR-WIN-208: a spring, or a 0.18-second ease-out with Reduce Motion; read live at each query point.
+        public static Animation PanelSlide => ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion
+            ? Animation.EaseOut(duration: 0.18)
+            : Animation.Spring(response: 0.32, dampingFraction: 0.9);
 
         public static Spring GlideSpring { get; } = new(response: 0.6, dampingRatio: 0.86); // :108
 
-        // :112-116
-        public static Animation SettleFlight =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:112");
+        // :112-116 PR-WIN-208: the glide spring, or a 0.2-second ease-out with Reduce Motion.
+        public static Animation SettleFlight => ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion
+            ? Animation.EaseOut(duration: 0.2)
+            : Animation.Spring(GlideSpring);
 
         public static SwiftColor Gray { get; } = new(red: 0.556, green: 0.557, blue: 0.576); // :118
         public static SwiftColor Blue { get; } = new(red: 0.040, green: 0.478, blue: 1.000); // :119
@@ -156,33 +170,42 @@ namespace Marrow.UI.Chrome
 
         // MARK: - Surfaces (extension View, :125-149)
 
-        // :129-131
+        // :126-131 Capsule buttons stay glass, washed with a tad of the theme; flat on a glass panel.
         public static Control ChromeGlassCapsule(this Control content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:129");
+            new ChromeGlassSurface(ChromeGlassSurface.Kind.Capsule).Body(content);
 
-        // :137-139
+        // :133-139 The capsule for a field: the same glass, without the press response.
         public static Control ChromeGlassFieldCapsule(this Control content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:137");
+            new ChromeGlassSurface(ChromeGlassSurface.Kind.Capsule, IsInteractive: false).Body(content);
 
         // :141-143
         public static Control ChromeGlassCircle(this Control content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:141");
+            new ChromeGlassSurface(ChromeGlassSurface.Kind.Circle).Body(content);
 
-        // :146-148
-        public static Control DetailSheet(this Control content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:146");
+        // :145-148 The inset content sheet the detail pane floats on.
+        public static Control DetailSheet(this Control content) => new DetailSheetModifier().Body(content);
 
         // extension AnyTransition (:947-956, :990-1002): `.softAppear` and `.settleGlide` read as SwiftTransition statics.
         extension(SwiftTransition)
         {
-            // :949-955
-            public static SwiftTransition SoftAppear =>
-                throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:949");
+            // :949-955 PR-WIN-206: arrives softly, leaves with a quick 0.12s ease-out fade so removals never drag.
+            public static SwiftTransition SoftAppear => SwiftTransition.Asymmetric(
+                insertion: SwiftTransition.Modifier(active: new SoftAppearModifier(false), identity: new SoftAppearModifier(true)).Animation(Animation.SoftAppear),
+                removal: SwiftTransition.Opacity.Animation(Animation.EaseOut(duration: 0.12)));
 
-            // :994-1001
-            public static SwiftTransition SettleGlide =>
-                throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:994");
+            // :994-1001 PR-WIN-207: arrives softly; leaves on the glide spring, gone before it would land.
+            public static SwiftTransition SettleGlide => SwiftTransition.Asymmetric(
+                insertion: SwiftTransition.Modifier(active: new SoftAppearModifier(false), identity: new SoftAppearModifier(true)).Animation(Animation.SoftAppear),
+                removal: SwiftTransition.Modifier(active: new SettleGlideModifier(1), identity: new SettleGlideModifier(0)).Animation(Animation.Spring(GlideSpring)));
         }
+    }
+
+    // Image(systemName:) at a chrome site: SwiftImage (ED-179, ED-182) with the site's `.font`. It fills the frame a site
+    // gives it and draws its square centred there (SwiftImage.Destination), as SwiftUI centres an image in a larger
+    // frame, without layout rounding moving the glyph off the centre.
+    file static class Symbols
+    {
+        public static SwiftImage Image(string systemName, SwiftFont font) => SwiftImage.SystemName(systemName).Font(font);
     }
 
     // :151-185 private struct ChromeGlassSurface: ViewModifier
@@ -190,73 +213,307 @@ namespace Marrow.UI.Chrome
     {
         public enum Kind { Capsule, Circle } // :154
 
+        // :160 @State private var isHovered = false
+        private sealed class ViewState : MainActorModel
+        {
+            private bool isHovered;
+
+            public bool IsHovered { get => Read(isHovered); set => Set(ref isHovered, value); }
+        }
+
         // :162-169
-        public Control Body(Control content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:162");
+        public Control Body(Control content) => Shape switch
+        {
+            Kind.Capsule => Surface(content, Kind.Capsule), // :164-165 Capsule(style: .continuous)
+            Kind.Circle => Surface(content, Kind.Circle), // :166-167 Circle()
+            _ => throw new UnreachableException(),
+        };
 
         // :171-184
-        private Control Surface(Control content, Kind shape) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:172");
+        private Control Surface(Control content, Kind shape)
+        {
+            // The shape filled behind the content. It takes no presses: those belong to the control on it, or to the
+            // no-drag region behind the whole control.
+            var fill = new Border { IsHitTestVisible = false };
+            var host = new Panel { Children = { fill, content } };
+            GlassShape glassShape;
+            if (shape == Kind.Circle)
+            {
+                // :166-167 Circle(): the largest circle centred in the frame.
+                glassShape = GlassShape.Circle;
+                fill.HorizontalAlignment = HorizontalAlignment.Center;
+                fill.VerticalAlignment = VerticalAlignment.Center;
+                host.SizeChanged += (_, e) =>
+                {
+                    var side = Math.Min(e.NewSize.Width, e.NewSize.Height);
+                    fill.CornerRadius = new CornerRadius(side / 2);
+                    fill.Width = side;
+                    fill.Height = side;
+                };
+            }
+            else
+            {
+                glassShape = GlassShape.Capsule(RoundedCornerStyle.Continuous); // :164-165 Capsule(style: .continuous)
+                fill.Capsule(RoundedCornerStyle.Continuous);
+            }
+            var state = new ViewState();
+            var paint = new AnimatedColor(fill);
+            fill.Background = paint.Brush;
+
+            void Draw(Animation? animation)
+            {
+                // :158 @Environment(\.isOnGlassPanel), :159 @Environment(\.colorScheme)
+                if (RenderBudget.GetIsOnGlassPanel(host))
+                {
+                    // :173-178 the panel's flat control fill, a shade brighter under the pointer: no glass.
+                    SwiftGlass.SetEffect(fill, null);
+                    paint.Set(
+                        SwiftColor.Dynamic(
+                            light: Chrome.PanelControlFill(isDark: false, hovered: state.IsHovered),
+                            dark: Chrome.PanelControlFill(isDark: true, hovered: state.IsHovered)),
+                        animation);
+                }
+                else
+                {
+                    // :179-182 `.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3))[.interactive()], in: shape)`.
+                    // The tint is drawn here over whatever material lies below: over the desktop that is the window's
+                    // Acrylic (OD-0005, ADR-0002 Glass (a)); the material itself is recorded as data (ED-180).
+                    // MARROW_DEFERRED ED-180: the app-drawn material over a wallpaper or the solid base, and the
+                    // .interactive() press response.
+                    var glass = GlassEffect.Regular(glassShape).Tint(Chrome.GlassTint, 0.3);
+                    SwiftGlass.SetEffect(fill, IsInteractive ? glass.Interactive() : glass); // :180 interactive, :182 not
+                    paint.Set(Chrome.GlassTint.Opacity(0.3), animation);
+                }
+            }
+
+            // :177-178 `.onHover { isHovered = $0 }` with `.animation(Chrome.hover, value: isHovered)`.
+            host.OnHover(hovering =>
+            {
+                if (state.IsHovered == hovering) return;
+                state.IsHovered = hovering;
+                if (RenderBudget.GetIsOnGlassPanel(host)) Draw(Chrome.Hover);
+            });
+            host.PropertyChanged += (_, e) =>
+            {
+                if (e.Property == RenderBudget.IsOnGlassPanelProperty) Draw(Transaction.Current);
+            };
+            Draw(null);
+            return host;
+        }
     }
 
     // :187-199 private struct DetailSheetModifier: ViewModifier
     file sealed record DetailSheetModifier
     {
         // :190-198
-        public Control Body(Control content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:190");
+        public Control Body(Control content)
+        {
+            // :191-192 Square: the window's own clip rounds the sheet's outer corners with everything else.
+            var wash = new Rectangle();
+            wash.Fill = SwiftColor.Dynamic(light: SwiftColor.White.Opacity(0.3), dark: SwiftColor.Black.Opacity(0.22)).Brush(wash); // :195
+            var tint = new Rectangle();
+            tint.Fill = SwiftColor.Dynamic(light: Chrome.GlassTint.Opacity(0.16), dark: Chrome.GlassTint.Opacity(0.22)).Brush(tint); // :196
+            return new Panel { Children = { wash, tint, content } }; // :194 .background { ... }
+        }
     }
 
     /// <summary>:201-273. One shaped surface for the whole window: glass or a solid fill, a legibility tint and a hairline.</summary>
     public sealed class WindowBackdrop : Decorator
     {
+        private enum Base { Wallpaper, Solid, Glass }
+
+        private readonly Panel group = new(); // :225 Group
+        private double opacity;
+        private IImage? wallpaper;
+        private Base? drawn;
+        private Control? baseView;
+        private Image? picture;
+        private Border? scrim;
+        private Panel? wallpaperOverlay;
+
         /// <param name="opacity">:205 <c>let opacity: Double</c>.</param>
         /// <param name="wallpaper">:207 <c>var wallpaper: NSImage? = nil</c>.</param>
         // :217-272 body
-        public WindowBackdrop(double opacity, IImage? wallpaper = null) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:217");
+        public WindowBackdrop(double opacity, IImage? wallpaper = null)
+        {
+            this.opacity = opacity;
+            this.wallpaper = wallpaper;
+            var tint = Shape();
+            tint.Background = Chrome.GlassTint.Opacity(0.12).Brush(tint); // :263-265
+            // :266-271 The hairline sits on the glass as well as on the solid fill; strokeBorder is an inner stroke,
+            // which is how an Avalonia Border draws its border.
+            var hairline = Shape();
+            hairline.BorderThickness = new Thickness(1);
+            hairline.BorderBrush = Chrome.Overlay(0.14).Brush(hairline);
+            Child = new Panel { Children = { group, tint, hairline } };
+            ActualThemeVariantChanged += (_, _) => Draw(); // :203 @Environment(\.colorScheme)
+            Draw();
+        }
+
+        /// <summary>
+        /// The parent passing new inputs (R-VIEW-1): <c>WindowBackdrop(opacity:wallpaper:)</c> built again from
+        /// RootView.swift:64. Setting or clearing the wallpaper animates with <c>.easeInOut(duration: 0.3)</c> (:262).
+        /// </summary>
+        public void Update(double opacity, IImage? wallpaper)
+        {
+            var hadWallpaper = this.wallpaper is not null;
+            this.opacity = opacity;
+            this.wallpaper = wallpaper;
+            if (hadWallpaper != wallpaper is not null)
+                Transaction.WithAnimation(Animation.EaseInOut(duration: 0.3), Draw); // :262 .animation(_, value: wallpaper != nil)
+            else
+                Draw();
+        }
 
         // :211-215 static func scrim(for:isDark:)
-        public static double Scrim(double @for, bool isDark) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:211");
+        public static double Scrim(double @for, bool isDark)
+        {
+            var stock = isDark ? 0.26 : 0.18; // :212
+            var floored = 0 >= @for ? 0 : @for; // :213 max(opacity, 0)
+            var t = 1 < floored ? 1 : floored; // :213 min(_, 1)
+            return t <= 0.5 ? stock * (t / 0.5) : stock + (1 - stock) * ((t - 0.5) / 0.5); // :214
+        }
+
+        // :218 RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style: .continuous), the size of the backdrop.
+        private static Border Shape() => new Border().RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);
+
+        // `shape.fill(.clear).glassEffect(in: shape)` (:243-245, :252-254): the default glass, no tint, no .interactive()
+        // and no container, recorded as data on a clear layer of the shape (ED-180).
+        // MARROW_DEFERRED ED-180: the app-drawn material where the app draws its own backdrop (OD-0005, ADR-0002 Glass (b)).
+        private static Border GlassLayer()
+        {
+            var layer = Shape();
+            SwiftGlass.SetEffect(layer, GlassEffect.Regular(GlassShape.RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous)));
+            return layer;
+        }
+
+        private void Draw()
+        {
+            var isDark = PlainControls.IsDark(ActualThemeVariant); // :219
+            var isSolid = opacity >= 0.98; // :220-224
+            var next = wallpaper is not null ? Base.Wallpaper : isSolid ? Base.Solid : Base.Glass; // :226, :249, :251
+            if (next != drawn)
+            {
+                if (baseView is { } old) SwiftTransition.Remove(group, old);
+                baseView = next switch
+                {
+                    Base.Wallpaper => WallpaperBase(),
+                    Base.Solid => SolidBase(),
+                    Base.Glass => GlassBase(),
+                    _ => throw new UnreachableException(),
+                };
+                drawn = next;
+                SwiftTransition.Insert(group, group.Children.Count, baseView);
+            }
+            if (picture is not null && wallpaper is { } image)
+            {
+                picture.Source = image; // :234
+                picture.Opacity = opacity; // :238
+            }
+            if (scrim is not null) scrim.Opacity = Scrim(opacity, isDark); // :258
+            if (wallpaperOverlay is { } overlay)
+            {
+                // :241-247 `.overlay { if !isSolid { ... } }`
+                if (!isSolid && overlay.Children.Count == 0) overlay.Children.Add(GlassLayer()); // MARROW_DEFERRED ED-180
+                else if (isSolid && overlay.Children.Count != 0) overlay.Children.Clear();
+            }
+        }
+
+        // :226-248 The picture rides over the desktop: the setting is its own opacity, and no scrim is drawn here.
+        private Control WallpaperBase()
+        {
+            picture = new Image { Stretch = Stretch.UniformToFill }; // :235, :237 .resizable().aspectRatio(contentMode: .fill)
+            RenderOptions.SetBitmapInterpolationMode(picture, BitmapInterpolationMode.HighQuality); // :236 .interpolation(.high)
+            scrim = null;
+            var clip = Shape(); // :232 shape.fill(.clear)
+            clip.ClipToBounds = true; // :240 .clipShape(shape)
+            clip.Child = picture; // :233 .overlay
+            // :241-247 `.overlay { if !isSolid { shape.fill(.clear).glassEffect(in: shape) } }`: over the picture the app
+            // draws its own backdrop, where OD-0005 calls for the app-drawn material (ADR-0002 Glass (b)); Draw lays the
+            // glass layer (GlassLayer, MARROW_DEFERRED ED-180) in this overlay while the setting is below 0.98.
+            wallpaperOverlay = new Panel();
+            return new Panel { Children = { clip, wallpaperOverlay } }.Transition(SwiftTransition.Opacity); // :248 .transition(.opacity)
+        }
+
+        // :249-250 `shape.fill(isDark ? Color.black : Color.white)`
+        private Control SolidBase()
+        {
+            picture = null;
+            scrim = null;
+            wallpaperOverlay = null;
+            var solid = Shape();
+            solid.Background = SwiftColor.Dynamic(light: SwiftColor.White, dark: SwiftColor.Black).Brush(solid);
+            return solid;
+        }
+
+        // :251-259 glass under the scrim
+        private Control GlassBase()
+        {
+            picture = null;
+            wallpaperOverlay = null;
+            // :252-254 `shape.fill(.clear).glassEffect(in: shape)`: with no wallpaper the window shows the desktop, and
+            // there the glass is the window's own Acrylic (OD-0005, ADR-0002 Glass (a), OD-0014), so the app paints
+            // nothing under the scrim; the glass is recorded as data on a clear layer (GlassLayer, ED-180).
+            scrim = Shape();
+            scrim.Background = SwiftColor.Dynamic(light: SwiftColor.White, dark: SwiftColor.Black).Brush(scrim); // :256-257
+            return new Panel { Children = { GlassLayer(), scrim } }; // :255 .overlay; MARROW_DEFERRED ED-180 (GlassLayer)
+        }
     }
 
     // :275-280 struct ChromeQuietButtonStyle: ButtonStyle
     public sealed record ChromeQuietButtonStyle
     {
-        // :277-279 makeBody(configuration:); label is configuration.label.
-        public Control MakeBody(Control label) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:277");
+        // :277-279 makeBody(configuration:); label is configuration.label. PR-WIN-227: the label unchanged, so
+        // pressing shows no dimming, highlight, scale or opacity change; keyboard activation and the button
+        // automation peer are the label's Button, unaffected by this style.
+        public Control MakeBody(Control label) => label;
     }
 
     /// <summary>:282-304 <c>struct ChromeRevealLayout: Layout</c>. Reveals its single child by height.</summary>
     public sealed class ChromeRevealLayout : Panel
     {
+        private double fraction;
+        private Size natural;
+
         // Memberwise init ChromeRevealLayout(fraction:) (ModelsSettingsPage.swift:370, SettingsView.swift:671).
-        public ChromeRevealLayout(double fraction) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:287");
+        public ChromeRevealLayout(double fraction) => this.fraction = fraction;
 
         // :287 var fraction: CGFloat
         public double Fraction
         {
-            get => throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:287");
-            set => throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:287");
+            get => fraction;
+            set { fraction = value; InvalidateMeasure(); }
         }
 
-        // :289-292 var animatableData: CGFloat
+        // :289-292 var animatableData: CGFloat; PR-WIN-229 the layout's animatable value, so a panelSlide transaction
+        // interpolates the slot height frame by frame while the child stays still.
         public double AnimatableData
         {
-            get => throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:290");
-            set => throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:291");
+            get => fraction;
+            set => Fraction = value;
         }
 
-        // :294-298 sizeThatFits(proposal:subviews:cache:)
-        protected override Size MeasureOverride(Size availableSize) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:294");
+        // :294-298 sizeThatFits(proposal:subviews:cache:). PR-WIN-228: the slot is the child's natural width for the
+        // proposed width, and its natural height (measured with no height proposed) times fraction clamped to 0...1.
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            if (Children.Count == 0) return default;
+            var child = Children[0];
+            child.Measure(new Size(availableSize.Width, double.PositiveInfinity));
+            natural = child.DesiredSize;
+            var clamped = Math.Clamp(fraction, 0, 1);
+            return new Size(natural.Width, natural.Height * clamped);
+        }
 
-        // :300-303 placeSubviews(in:proposal:subviews:cache:)
-        protected override Size ArrangeOverride(Size finalSize) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:300");
+        // :300-303 placeSubviews(in:proposal:subviews:cache:). PR-WIN-229: the child is always placed at the slot's
+        // origin, anchored top-leading, at its full natural height, so it never moves and stays mounted at fraction 0.
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            if (Children.Count == 0) return finalSize;
+            var child = Children[0];
+            child.Arrange(new Rect(new Point(0, 0), new Size(finalSize.Width, natural.Height)));
+            return finalSize;
+        }
     }
 
     // MARK: - Chrome controls
@@ -266,106 +523,384 @@ namespace Marrow.UI.Chrome
     {
         /// <param name="content">:309 <c>@ViewBuilder var content: Content</c>.</param>
         // :311-321 body
-        public ChromeCapsule(Func<Control> content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:311");
+        public ChromeCapsule(Func<Control> content)
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0, Children = { content() } }; // :312-314
+            var padded = new Border
+            {
+                Padding = new Thickness(Chrome.IconCapsuleInnerPadding, Chrome.CapsuleVerticalPadding), // :315-316
+                Child = row,
+            };
+            // :317 .chromeGlassCapsule(); :318-320 the capsule is a control wherever it sits: presses on it work the
+            // control and never drag the window.
+            Child = PlainControls.Background(padded.ChromeGlassCapsule(), new NoWindowDragArea());
+        }
     }
 
     // :324-331 struct ChromeDivider: View
     public sealed class ChromeDivider : Decorator
     {
         // :325-330 body
-        public ChromeDivider() =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:325");
+        public ChromeDivider()
+        {
+            var bar = new Border { Width = 1, Height = Chrome.DividerHeight }.RoundedRectangle(0.5, RoundedCornerStyle.Continuous); // :326, :328
+            bar.Background = Chrome.PrimaryText.Opacity(0.22).Brush(bar); // :327
+            AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw); // :329 .accessibilityHidden(true)
+            Child = bar;
+        }
     }
 
     // :333-359 struct ChromeIconLabel: View
     public sealed class ChromeIconLabel : Decorator
     {
+        private readonly Panel frame;
+        private readonly AnimatedColor foreground;
+        private bool isEnabled;
+        private bool isActive;
+        private bool isHovering;
+        private Ellipse? activeCircle;
+
         /// <param name="symbol">:334 <c>let symbol: String</c>.</param>
         /// <param name="isEnabled">:335 <c>var isEnabled = true</c>.</param>
         /// <param name="isActive">:336 <c>var isActive = false</c>.</param>
         /// <param name="isHovering">:337 <c>var isHovering = false</c>.</param>
         // :339-352 body
-        public ChromeIconLabel(string symbol, bool isEnabled = true, bool isActive = false, bool isHovering = false) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:339");
+        public ChromeIconLabel(string symbol, bool isEnabled = true, bool isActive = false, bool isHovering = false)
+        {
+            var image = Symbols.Image(symbol, Chrome.IconFont); // :340-341
+            foreground = new AnimatedColor(image);
+            image.SetValue(TextElement.ForegroundProperty, foreground.Brush); // :342
+            frame = new Panel
+            {
+                Width = Chrome.CapsuleContentHeight, // :343
+                Height = Chrome.CapsuleContentHeight,
+                Background = Brushes.Transparent, // :351 .contentShape(.rect)
+                Children = { image },
+            };
+            Child = frame;
+            Update(isEnabled, isActive, isHovering);
+        }
+
+        /// <summary>The parent passing new inputs (R-VIEW-1): the owning button's hover and presentation state.</summary>
+        public void Update(bool isEnabled, bool isActive, bool isHovering)
+        {
+            this.isEnabled = isEnabled;
+            this.isActive = isActive;
+            this.isHovering = isHovering;
+            foreground.Set(Foreground, Transaction.Current);
+            // :344-350 `.background { if isActive { Circle().fill(Chrome.overlay(0.12)).padding(1) } }`
+            if (isActive && activeCircle is null)
+            {
+                activeCircle = new Ellipse { Margin = new Thickness(1) };
+                activeCircle.Fill = Chrome.Overlay(0.12).Brush(activeCircle);
+                SwiftTransition.Insert(frame, 0, activeCircle);
+            }
+            else if (!isActive && activeCircle is { } circle)
+            {
+                activeCircle = null;
+                SwiftTransition.Remove(frame, circle);
+            }
+        }
 
         // :354-358
-        private SwiftColor Foreground =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:354");
+        private SwiftColor Foreground
+        {
+            get
+            {
+                if (!isEnabled) return Chrome.PrimaryText.Opacity(0.32); // :355
+                if (isActive) return Chrome.PrimaryText; // :356
+                return Chrome.PrimaryText.Opacity(isHovering ? 1 : 0.92); // :357
+            }
+        }
     }
 
     // :361-383 struct ChromeIconButton: View
     public sealed class ChromeIconButton : Decorator
     {
+        // :368 @State private var isHovering = false
+        private sealed class ViewState : MainActorModel
+        {
+            private bool isHovering;
+
+            public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+        }
+
         /// <summary>Swift members symbol, isEnabled, isActive, help, action (:362-366); help and action have no
         /// default, so they move before the defaulted ones (ED-095) and callers name the labels.</summary>
         // :370-382 body
-        public ChromeIconButton(string symbol, string help, Action action, bool isEnabled = true, bool isActive = false) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:370");
+        public ChromeIconButton(string symbol, string help, Action action, bool isEnabled = true, bool isActive = false)
+        {
+            var state = new ViewState();
+            var label = new ChromeIconLabel(symbol, isEnabled, isActive, isHovering: false); // :372
+            label.Track(() => state.IsHovering, hovering => label.Update(isEnabled, isActive, hovering));
+            var button = PlainControls.Button(label, action); // :371, :374 .buttonStyle(.plain)
+            button.IsEnabled = isEnabled; // :375 .disabled(!isEnabled)
+            button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :376-378
+            ToolTip.SetTip(button, help); // :379 .help(help)
+            AutomationProperties.SetName(button, help); // :380 .accessibilityLabel(Text(help))
+            Child = PlainControls.Background(button, new NoWindowDragArea()); // :381
+        }
     }
 
     // :385-410 struct ChromeMenuButton<Content: View>: View
     public sealed class ChromeMenuButton : Decorator
     {
+        // :390-391 @State private var isHovering = false, isPresented = false
+        private sealed class ViewState : MainActorModel
+        {
+            private bool isHovering;
+            private bool isPresented;
+
+            public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+
+            public bool IsPresented { get => Read(isPresented); set => Set(ref isPresented, value); }
+        }
+
         /// <param name="symbol">:386 <c>let symbol: String</c>.</param>
         /// <param name="help">:387 <c>let help: String</c>.</param>
         /// <param name="content">:388 <c>@ViewBuilder var content: Content</c>.</param>
         // :393-409 body
-        public ChromeMenuButton(string symbol, string help, Func<Control> content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:393");
+        public ChromeMenuButton(string symbol, string help, Func<Control> content)
+        {
+            var state = new ViewState();
+            var label = new ChromeIconLabel(symbol, isActive: false, isHovering: false); // :397
+            label.Track(() => (state.IsPresented, state.IsHovering), shown => label.Update(isEnabled: true, shown.IsPresented, shown.IsHovering));
+            var button = PlainControls.Button(label, () => state.IsPresented = !state.IsPresented); // :394-396, :399
+            button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :400-402
+            ToolTip.SetTip(button, help); // :403
+            AutomationProperties.SetName(button, help); // :404
+            var popover = PlainControls.Popover(
+                button,
+                new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value),
+                () => new PopoverMenu(content)); // :405-407
+            Child = PlainControls.Background(new Panel { Children = { button, popover } }, new NoWindowDragArea()); // :408
+        }
     }
 
-    // :412-437 struct ChromeCircleButton: View
+    // :412-437 struct ChromeCircleButton: View. A round glass button the height of a chrome capsule.
     public sealed class ChromeCircleButton : Decorator
     {
+        // :418 @State private var isHovering = false
+        private sealed class ViewState : MainActorModel
+        {
+            private bool isHovering;
+
+            public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+        }
+
         /// <param name="symbol">:414 <c>let symbol: String</c>.</param>
         /// <param name="help">:415 <c>let help: String</c>.</param>
         /// <param name="action">:416 <c>let action: () -&gt; Void</c>.</param>
         // :420-436 body
-        public ChromeCircleButton(string symbol, string help, Action action) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:420");
+        public ChromeCircleButton(string symbol, string help, Action action)
+        {
+            var state = new ViewState();
+            var image = Symbols.Image(symbol, Chrome.IconFont); // :422-423
+            var foreground = new AnimatedColor(image);
+            image.SetValue(TextElement.ForegroundProperty, foreground.Brush);
+            image.Track(() => state.IsHovering, hovering =>
+                foreground.Set(Chrome.PrimaryText.Opacity(hovering ? 1 : 0.92), Transaction.Current)); // :424
+            var label = new Panel
+            {
+                Width = Chrome.CapsuleHeight, // :425
+                Height = Chrome.CapsuleHeight,
+                Children = { new Ellipse { Fill = Brushes.Transparent }, image }, // :426 .contentShape(Circle())
+            };
+            var button = PlainControls.Button(label, action); // :421, :428
+            var surface = button.ChromeGlassCircle(); // :429
+            surface.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :430-432
+            ToolTip.SetTip(button, help); // :433
+            AutomationProperties.SetName(button, help); // :434
+            Child = PlainControls.Background(surface, new NoWindowDragArea()); // :435
+        }
     }
 
-    // :439-470 struct ChromeCircleMenu<Content: View>: View
+    // :439-470 struct ChromeCircleMenu<Content: View>: View. A round glass button that opens a popover menu.
     public sealed class ChromeCircleMenu : Decorator
     {
+        // :445-446 @State private var isHovering = false, isPresented = false
+        private sealed class ViewState : MainActorModel
+        {
+            private bool isHovering;
+            private bool isPresented;
+
+            public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+
+            public bool IsPresented { get => Read(isPresented); set => Set(ref isPresented, value); }
+        }
+
         /// <param name="symbol">:441 <c>let symbol: String</c>.</param>
         /// <param name="help">:442 <c>let help: String</c>.</param>
         /// <param name="content">:443 <c>@ViewBuilder var content: Content</c>.</param>
         // :448-469 body
-        public ChromeCircleMenu(string symbol, string help, Func<Control> content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:448");
+        public ChromeCircleMenu(string symbol, string help, Func<Control> content)
+        {
+            var state = new ViewState();
+            var image = Symbols.Image(symbol, Chrome.IconFont); // :452-453
+            var foreground = new AnimatedColor(image);
+            image.SetValue(TextElement.ForegroundProperty, foreground.Brush);
+            image.Track(() => state.IsHovering || state.IsPresented, full =>
+                foreground.Set(Chrome.PrimaryText.Opacity(full ? 1 : 0.92), Transaction.Current)); // :454
+            var label = new Panel
+            {
+                Width = Chrome.CapsuleHeight, // :455
+                Height = Chrome.CapsuleHeight,
+                Children = { new Ellipse { Fill = Brushes.Transparent }, image }, // :456 .contentShape(Circle())
+            };
+            var button = PlainControls.Button(label, () => state.IsPresented = !state.IsPresented); // :449-451, :458
+            var surface = button.ChromeGlassCircle(); // :459
+            surface.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :460-462
+            ToolTip.SetTip(button, help); // :463
+            AutomationProperties.SetName(button, help); // :464
+            var popover = PlainControls.Popover(
+                button,
+                new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value),
+                () => new PopoverMenu(content)); // :465-467
+            Child = PlainControls.Background(new Panel { Children = { surface, popover } }, new NoWindowDragArea()); // :468
+        }
     }
 
-    // :472-514 struct ChromeTextMenu<Content: View>: View
+    // :472-514 struct ChromeTextMenu<Content: View>: View. A text button shaped like a chrome capsule that opens a popover.
     public sealed class ChromeTextMenu : Decorator
     {
+        // :479-480 @State private var isHovering = false, isPresented = false
+        private sealed class ViewState : MainActorModel
+        {
+            private bool isHovering;
+            private bool isPresented;
+
+            public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+
+            public bool IsPresented { get => Read(isPresented); set => Set(ref isPresented, value); }
+        }
+
         /// <param name="symbol">:474 <c>let symbol: String</c>.</param>
         /// <param name="title">:475 <c>let title: String</c>.</param>
         /// <param name="help">:476 <c>let help: String</c>.</param>
         /// <param name="content">:477 <c>@ViewBuilder var content: Content</c>.</param>
         // :482-513 body
-        public ChromeTextMenu(string symbol, string title, string help, Func<Control> content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:482");
+        public ChromeTextMenu(string symbol, string title, string help, Func<Control> content)
+        {
+            var state = new ViewState();
+            var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap }; // :489, :491 .lineLimit(1)
+            SwiftFont.System(12.5, SwiftFont.Weight.Medium).Apply(text); // :490
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 6, // :486 HStack(spacing: 6)
+                Children =
+                {
+                    Symbols.Image(symbol, Chrome.InlineIconFont), // :487-488
+                    text,
+                    Symbols.Image("chevron.down", Chrome.ChevronFont).ForegroundStyle(Chrome.SecondaryText), // :492-494
+                },
+            };
+            foreach (var part in row.Children) part.VerticalAlignment = VerticalAlignment.Center;
+            var foreground = new AnimatedColor(row);
+            row.SetValue(TextElement.ForegroundProperty, foreground.Brush);
+            row.Track(() => state.IsHovering || state.IsPresented, full =>
+                foreground.Set(Chrome.PrimaryText.Opacity(full ? 1 : 0.92), Transaction.Current)); // :496
+            var framed = new Border
+            {
+                Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0), // :497
+                Height = Chrome.CapsuleContentHeight, // :498
+                Child = row,
+            };
+            var label = new Border
+            {
+                Padding = new Thickness(0, Chrome.CapsuleVerticalPadding), // :499
+                Background = Brushes.Transparent, // :500 .contentShape(Capsule(style: .continuous))
+                Child = framed,
+            }.Capsule(RoundedCornerStyle.Continuous);
+            var button = PlainControls.Button(label, () => state.IsPresented = !state.IsPresented); // :483-485, :502
+            var surface = button.ChromeGlassCapsule(); // :503 .fixedSize() (MeasureOverride), :504
+            surface.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :505-507
+            ToolTip.SetTip(button, help); // :508 .help(help), and no accessibility label
+            var popover = PlainControls.Popover(
+                button,
+                new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value),
+                () => new PopoverMenu(content)); // :509-511
+            Child = PlainControls.Background(new Panel { Children = { surface, popover } }, new NoWindowDragArea()); // :512
+        }
+
+        // :503 .fixedSize(): the modifiers after it do not change the size, so the whole control holds it.
+        protected override Size MeasureOverride(Size availableSize) =>
+            PlainControls.MeasureFixed(this, Child, availableSize);
     }
 
-    // :516-560 struct ChromeTextButton: View
+    // :516-560 struct ChromeTextButton: View. A destructive one reads as an ordinary chrome control at rest and turns
+    // red under the pointer.
     public sealed class ChromeTextButton : Decorator
     {
+        private readonly bool isEnabled;
+        private readonly bool isDestructive;
+
+        // :526 @State private var isHovering = false
+        private sealed class ViewState : MainActorModel
+        {
+            private bool isHovering;
+
+            public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+        }
+
         /// <summary>Swift members symbol, title, help, isEnabled, isDestructive, action (:519-524); action has no
         /// default, so it moves before the defaulted ones (ED-095) and callers name the labels.</summary>
         // :528-553 body
-        public ChromeTextButton(string symbol, string title, string help, Action action, bool isEnabled = true, bool isDestructive = false) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:528");
+        public ChromeTextButton(string symbol, string title, string help, Action action, bool isEnabled = true, bool isDestructive = false)
+        {
+            this.isEnabled = isEnabled;
+            this.isDestructive = isDestructive;
+            var state = new ViewState();
+            var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap }; // :533, :535
+            SwiftFont.System(12.5, SwiftFont.Weight.Medium).Apply(text); // :534
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 6, // :530
+                Children = { Symbols.Image(symbol, Chrome.InlineIconFont), text }, // :531-532
+            };
+            foreach (var part in row.Children) part.VerticalAlignment = VerticalAlignment.Center;
+            var foreground = new AnimatedColor(row);
+            row.SetValue(TextElement.ForegroundProperty, foreground.Brush);
+            row.Track(() => state.IsHovering, hovering => foreground.Set(Foreground(hovering), Transaction.Current)); // :537
+            var framed = new Border
+            {
+                Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0), // :538
+                Height = Chrome.CapsuleContentHeight, // :539
+                Child = row,
+            };
+            var label = new Border
+            {
+                Padding = new Thickness(0, Chrome.CapsuleVerticalPadding), // :540
+                Background = Brushes.Transparent, // :541 .contentShape(Capsule(style: .continuous))
+                Child = framed,
+            }.Capsule(RoundedCornerStyle.Continuous);
+            var button = PlainControls.Button(label, action); // :529, :543
+            button.IsEnabled = isEnabled; // :544
+            var surface = button.ChromeGlassCapsule(); // :545 .fixedSize() (MeasureOverride), :546
+            surface.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :547-549
+            ToolTip.SetTip(button, help); // :550
+            AutomationProperties.SetName(button, help); // :551
+            Child = PlainControls.Background(surface, new NoWindowDragArea()); // :552
+        }
 
-        // :555-559
-        private SwiftColor Foreground =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:555");
+        // :545 .fixedSize(): the modifiers after it do not change the size, so the whole control holds it.
+        protected override Size MeasureOverride(Size availableSize) =>
+            PlainControls.MeasureFixed(this, Child, availableSize);
+
+        // :555-559, with the hover state it reads.
+        private SwiftColor Foreground(bool isHovering)
+        {
+            if (!isEnabled) return Chrome.PrimaryText.Opacity(0.32); // :556
+            if (isDestructive) return Chrome.Danger.Opacity(isHovering ? 1 : 0.92); // :557
+            return Chrome.PrimaryText.Opacity(isHovering ? 1 : 0.92); // :558
+        }
     }
 
     // MARK: - Scroll morph
 
-    /// <summary>:564-577 <c>@MainActor @Observable final class ChromeScrollModel</c> (R-OBS-6).</summary>
+    /// <summary>:564-577 <c>@MainActor @Observable final class ChromeScrollModel</c> (R-OBS-6). Only the veil and the
+    /// compact title observe it, so scrolling never re-renders the page underneath.</summary>
     public sealed class ChromeScrollModel : MainActorModel
     {
         private double progress; // :569 = 0
@@ -374,17 +909,83 @@ namespace Marrow.UI.Chrome
         public double Progress { get => Read(progress); private set => Set(ref progress, value); }
 
         // :571-576 func update(travel:)
-        public void Update(double travel) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:571");
+        public void Update(double travel)
+        {
+            var raw = (travel - Chrome.TitleStartOffset) / (Chrome.TitleEndOffset - Chrome.TitleStartOffset); // :572
+            var floored = 0 >= raw ? 0 : raw; // :573 max(raw, 0)
+            var clamped = 1 < floored ? 1 : floored; // :573 min(_, 1)
+            var quantized = SwiftNumber.Rounded(clamped / Chrome.ProgressQuantum) * Chrome.ProgressQuantum; // :574
+            if (quantized != Progress) Progress = quantized; // :575
+        }
     }
 
     // :579-628 struct PaneTopVeil: View
     public sealed class PaneTopVeil : Decorator
     {
+        private readonly Panel host = new() { Height = Chrome.VeilHeight }; // :623 .frame(height:)
+        private Border? baseFade;
+        private Border? tintFade;
+
         /// <param name="model">:582 <c>let model: ChromeScrollModel</c>.</param>
-        // :585-611 body
-        public PaneTopVeil(ChromeScrollModel model) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:585");
+        // :585-611 body. PR-WIN-196, UI-CHAT-058: two 72-point gradients, never hit-testable, drawn only once
+        // progress exceeds zero.
+        public PaneTopVeil(ChromeScrollModel model)
+        {
+            IsHitTestVisible = false; // :624 .allowsHitTesting(false)
+            Child = host;
+            this.Track(() => model.Progress, _ => Draw());
+            ActualThemeVariantChanged += (_, _) => Draw(); // :585 model.progress via colorScheme
+            Draw();
+
+            void Draw()
+            {
+                var progress = model.Progress; // :585
+                var isDark = PlainControls.IsDark(ActualThemeVariant); // :586
+                host.Opacity = 0.08 + 0.92 * progress; // :622
+                if (progress > 0) // :590 `if progress > 0`
+                {
+                    var scrim = isDark ? 0.14 + 0.18 * progress : 0.30 + 0.26 * progress; // :587
+                    var baseColor = (isDark ? SwiftColor.Black : SwiftColor.White).Opacity(scrim); // :588, :596
+                    var tintColor = Chrome.GlassTint.Opacity(isDark ? 0.30 : 0.18); // :589, :597
+                    if (baseFade is null)
+                    {
+                        baseFade = new Border { IsHitTestVisible = false };
+                        tintFade = new Border { IsHitTestVisible = false };
+                        host.Children.Add(baseFade);
+                        host.Children.Add(tintFade!);
+                    }
+                    Fade(baseFade, baseColor);
+                    Fade(tintFade!, tintColor);
+                }
+                else if (baseFade is not null)
+                {
+                    host.Children.Clear();
+                    baseFade = null;
+                    tintFade = null;
+                }
+            }
+        }
+
+        // :613-627 the fade held over the top 28%, eased out by 62%, clear at the bottom.
+        private void Fade(Border layer, SwiftColor color)
+        {
+            var resolved = color.Resolve(ActualThemeVariant);
+            layer.Background = new LinearGradientBrush
+            {
+                StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+                EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+                GradientStops =
+                {
+                    new GradientStop(resolved, 0), // :618
+                    new GradientStop(resolved, 0.28), // :619
+                    new GradientStop(WithAlphaFactor(resolved, 0.45), 0.62), // :620
+                    new GradientStop(WithAlphaFactor(resolved, 0), 1), // :621
+                },
+            };
+        }
+
+        private static Color WithAlphaFactor(Color color, double factor) =>
+            Color.FromArgb((byte)Math.Round(color.A * factor), color.R, color.G, color.B);
     }
 
     // :630-647 struct ChromeCompactTitle: View
@@ -392,9 +993,24 @@ namespace Marrow.UI.Chrome
     {
         /// <param name="title">:632 <c>let title: String</c>.</param>
         /// <param name="model">:633 <c>let model: ChromeScrollModel</c>.</param>
-        // :635-646 body
-        public ChromeCompactTitle(string title, ChromeScrollModel model) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:635");
+        // :635-646 body. PR-WIN-197: opacity equal to progress, a 5-point rise, hidden from assistive technology
+        // below 0.5.
+        public ChromeCompactTitle(string title, ChromeScrollModel model)
+        {
+            var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap }; // :636, :638-639
+            SwiftFont.System(SwiftFont.TextStyle.Title3, weight: SwiftFont.Weight.Semibold).Apply(text); // :638
+            text.Foreground = Chrome.PrimaryText.Brush(text); // :639
+            text.HorizontalAlignment = HorizontalAlignment.Left;
+            HorizontalAlignment = HorizontalAlignment.Stretch; // :642 .frame(maxWidth: .infinity, alignment: .leading)
+            IsHitTestVisible = false; // :643 .allowsHitTesting(false)
+            Child = text;
+            this.Track(() => model.Progress, progress =>
+            {
+                text.Opacity = progress; // :640
+                text.RenderTransform = new TranslateTransform(0, (1 - progress) * 5); // :641
+                AutomationProperties.SetAccessibilityView(this, progress < 0.5 ? AccessibilityView.Raw : AccessibilityView.Content); // :644
+            });
+        }
     }
 
     // MARK: - Sidebar pieces
@@ -402,28 +1018,54 @@ namespace Marrow.UI.Chrome
     // :651-668 struct SidebarSymbol: View
     public sealed class SidebarSymbol : Decorator
     {
-        // :655-658 init(_ name: String, scale: CGFloat = 1); :660-667 body
-        public SidebarSymbol(string name, double scale = 1) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:655");
+        // :655-658 init(_ name: String, scale: CGFloat = 1); :660-667 body. PR-WIN-198: fitted into a
+        // symbolSize * scale box, monochrome (ED-179, ED-182; OD-0010 Lucide).
+        public SidebarSymbol(string name, double scale = 1)
+        {
+            var side = Chrome.SymbolSize * scale; // :664
+            var image = SwiftImage.SystemName(name) // :661
+                .Resizable() // :662
+                .Interpolation(BitmapInterpolationMode.HighQuality) // :663
+                .AspectRatio(ContentMode.Fit) // :665
+                .SymbolRenderingMode(Marrow.UI.Port.SymbolRenderingMode.Monochrome); // :667
+            image.Width = side; // :664
+            image.Height = side;
+            Child = image;
+        }
     }
 
     // :670-679 struct SidebarIconBadge<Glyph: View>: View
     public sealed class SidebarIconBadge : Decorator
     {
         /// <param name="glyph">:672 <c>@ViewBuilder var glyph: Glyph</c>.</param>
-        // :674-678 body
-        public SidebarIconBadge(Func<Control> glyph) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:674");
+        // :674-678 body. PR-WIN-199: a 20-point box at 0.85 of the label colour, nothing drawn behind it.
+        public SidebarIconBadge(Func<Control> glyph)
+        {
+            var g = glyph(); // :675
+            g.SetValue(TextElement.ForegroundProperty, Chrome.PrimaryText.Opacity(0.85).Brush(g)); // :676
+            g.HorizontalAlignment = HorizontalAlignment.Center;
+            g.VerticalAlignment = VerticalAlignment.Center;
+            Child = new Panel { Width = Chrome.IconSize, Height = Chrome.IconSize, Children = { g } }; // :677
+        }
     }
 
     // :681-757 struct SidebarRow<Icon: View, Accessory: View>: View
     public sealed class SidebarRow : Decorator
     {
+        // :690 @State private var isHovering = false
+        private sealed class ViewState : MainActorModel
+        {
+            private bool isHovering;
+
+            public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+        }
+
         /// <summary>:692-708 <c>init(title:isSelected:isEmphasized:accessoryWidth:action:icon:accessory:)</c>; action,
         /// icon and accessory have no default, so they move before the defaulted ones (ED-095) and callers name the
         /// labels. <paramref name="icon"/> is the @ViewBuilder icon, <paramref name="accessory"/> the @ViewBuilder
         /// <c>(Bool) -&gt; Accessory</c> given the hover state.</summary>
-        // :710-739 body
+        // :710-739 body. PR-WIN-200: a 28-point row, radius 7, three fill states, its trailing padding reserving
+        // room for the accessory.
         public SidebarRow(
             string title,
             Action action,
@@ -431,44 +1073,222 @@ namespace Marrow.UI.Chrome
             Func<bool, Control> accessory,
             bool isSelected = false,
             bool isEmphasized = false,
-            double accessoryWidth = 0) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:692");
+            double accessoryWidth = 0)
+        {
+            var state = new ViewState();
+            var iconSlot = icon(); // :712
+            iconSlot.Width = Chrome.IconSize; // :713 .frame(width:, alignment: .center)
+            iconSlot.HorizontalAlignment = HorizontalAlignment.Center;
+
+            var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap }; // :714, :718-719
+            void ApplyText()
+            {
+                SwiftFont.System(SwiftFont.TextStyle.Body, weight: isSelected || isEmphasized ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(text); // :717
+                text.Foreground = Chrome.PrimaryText.Opacity(isSelected ? 1 : 0.92).Brush(text); // :718
+            }
+            ApplyText();
+
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8, // :711 HStack(spacing: 8)
+                Children = { iconSlot, text }, // :712-720 Spacer(minLength: 4) satisfied by stretch below
+            };
+            foreach (var part in row.Children) part.VerticalAlignment = VerticalAlignment.Center;
+
+            var shape = new Border // :722 RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous).fill(fill)
+            {
+                Padding = new Thickness(Chrome.RowHorizontalPadding, 0, Chrome.RowHorizontalPadding + accessoryWidth, 0), // :725-726
+                Height = Chrome.RowHeight, // :727
+                HorizontalAlignment = HorizontalAlignment.Stretch, // :728
+                Background = Brushes.Transparent,
+                Child = row,
+            }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous);
+            var fill = new AnimatedColor(shape);
+            shape.Background = fill.Brush;
+            fill.Set(FillFor(isSelected, false), null);
+
+            var button = new SelectableButton(isSelected) { Template = PlainButtonTemplate, Content = shape, Padding = default }; // :709, :730
+            button.Click += (_, _) => action();
+            button.Track(() => state.IsHovering, hovering =>
+            {
+                Transaction.WithAnimation(Chrome.Hover, () => fill.Set(FillFor(isSelected, hovering), Transaction.Current)); // :729
+            });
+            button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :735-737
+
+            var overlay = new Panel { Children = { button } };
+            button.Track(() => state.IsHovering, hovering =>
+            {
+                var built = accessory(hovering); // :732-733
+                built.Margin = new Thickness(0, 0, 6, 0); // :734
+                built.HorizontalAlignment = HorizontalAlignment.Right;
+                built.VerticalAlignment = VerticalAlignment.Center;
+                if (overlay.Children.Count > 1) overlay.Children.RemoveAt(overlay.Children.Count - 1);
+                overlay.Children.Add(built);
+            });
+
+            AutomationProperties.SetName(button, title); // :738 AddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+
+            Child = overlay;
+        }
+
+        // ENGINEERING DECISION (skeleton, no rule names the form): Avalonia's Button peer carries no selection
+        // state; :738 `.accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)` is exposed through
+        // ISelectionItemProvider, the platform's own selectable-item automation pattern, alongside the button's
+        // invoke behaviour.
+        private sealed class SelectableButton(bool isSelected) : Button
+        {
+            protected override AutomationPeer OnCreateAutomationPeer() => new Peer(this, isSelected);
+
+            private sealed class Peer(Control owner, bool isSelected) : ControlAutomationPeer(owner), ISelectionItemProvider, IInvokeProvider
+            {
+                protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Button;
+                bool ISelectionItemProvider.IsSelected => isSelected;
+                ISelectionProvider? ISelectionItemProvider.SelectionContainer => null;
+                void ISelectionItemProvider.AddToSelection() { }
+                void ISelectionItemProvider.RemoveFromSelection() { }
+                void ISelectionItemProvider.Select() { }
+                void IInvokeProvider.Invoke() => ((Button)Owner).Focus();
+            }
+        }
+
+        // Same template PlainControls uses for `.buttonStyle(.plain)` (PlainControls.cs); duplicated here because
+        // SelectableButton needs its own automation peer, not PlainControls.Button's.
+        private static readonly Avalonia.Controls.Templates.FuncControlTemplate<Button> PlainButtonTemplate = new((btn, scope) =>
+            new ContentPresenter
+            {
+                Name = "PART_ContentPresenter",
+                [!ContentPresenter.ContentProperty] = btn[!ContentControl.ContentProperty],
+            }.RegisterInNameScope(scope));
 
         /// <summary>:748-757 <c>extension SidebarRow where Accessory == EmptyView</c>,
         /// <c>init(title:isSelected:action:icon:)</c>.</summary>
-        public SidebarRow(string title, Action action, Func<Control> icon, bool isSelected = false) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:749");
+        public SidebarRow(string title, Action action, Func<Control> icon, bool isSelected = false)
+            : this(title, action, icon, _ => new Panel(), isSelected)
+        {
+        }
 
-        // :741-745
-        private SwiftColor Fill =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:741");
+        // :741-745. PR-WIN-200: the primary label colour at 0.12 selected, 0.06 hovered, clear otherwise.
+        private static SwiftColor FillFor(bool isSelected, bool isHovering)
+        {
+            if (isSelected) return Chrome.Overlay(0.12); // :742
+            if (isHovering) return Chrome.Overlay(0.06); // :743
+            return SwiftColor.Clear; // :744
+        }
     }
 
     // :759-773 struct RowAccessoryIcon: View
     public sealed class RowAccessoryIcon : Decorator
     {
-        // :762-764 init(_ symbol: String); :766-772 body
-        public RowAccessoryIcon(string symbol) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:762");
+        // :762-764 init(_ symbol: String); :766-772 body. PR-WIN-201: a semibold subheadline glyph in
+        // Chrome.secondaryText, centred in a 20 by 20 rectangular hit box.
+        public RowAccessoryIcon(string symbol)
+        {
+            var image = Symbols.Image(symbol, Chrome.InlineIconFont) // :767-768
+                .ForegroundStyle(Chrome.SecondaryText); // :769
+            image.HorizontalAlignment = HorizontalAlignment.Center;
+            image.VerticalAlignment = VerticalAlignment.Center;
+            Child = new Panel
+            {
+                Width = 20, // :770
+                Height = 20,
+                Background = Brushes.Transparent, // :771 .contentShape(.rect)
+                Children = { image },
+            };
+        }
     }
 
     // :775-823 struct SidebarSearchField: View
     public sealed class SidebarSearchField : Decorator
     {
+        private readonly Action<int>? onMove;
+
         /// <param name="text">:776 <c>@Binding var text: String</c>.</param>
         /// <param name="prompt">:777 <c>var prompt = "Search"</c>.</param>
         /// <param name="onSubmit">:778 <c>var onSubmit: () -&gt; Void = {}</c>; null stands for the empty closure.</param>
         /// <param name="onMove">:782 <c>var onMove: ((Int) -&gt; Void)?</c>.</param>
         // :784-816 body
-        public SidebarSearchField(Binding<string> text, string prompt = "Search", Action? onSubmit = null, Action<int>? onMove = null) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:784");
+        public SidebarSearchField(Binding<string> text, string prompt = "Search", Action? onSubmit = null, Action<int>? onMove = null)
+        {
+            this.onMove = onMove;
+            var magnifier = Symbols.Image("magnifyingglass", SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Medium)) // :786-787
+                .ForegroundStyle(Chrome.SecondaryText.Opacity(0.85)); // :788
+            magnifier.Margin = new Thickness(0, 0, 6, 0); // :785 HStack(spacing: 6)
+            var field = PlainControls.TextField(prompt, text); // :789-790
+            SwiftFont.System(SwiftFont.TextStyle.Body).Apply(field); // :791
+            field.HorizontalAlignment = HorizontalAlignment.Stretch; // :792 .frame(maxWidth: .infinity)
+            field.VerticalAlignment = VerticalAlignment.Center;
+            Grid.SetColumn(magnifier, 0);
+            Grid.SetColumn(field, 1);
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), Children = { magnifier, field } }; // :785
+            // :793-795 `.onSubmit(onSubmit)`, `.onKeyPress(.upArrow) { move(-1) }`, `.onKeyPress(.downArrow) { move(1) }`:
+            // SwiftUI answers these before the field sees the key, so they are taken on the way down to the field, ahead
+            // of every handler the field itself carries.
+            row.AddHandler(KeyDownEvent, (_, e) =>
+            {
+                if (!ReferenceEquals(e.Source, field)) return;
+                switch (e.Key)
+                {
+                    case Key.Enter:
+                        onSubmit?.Invoke();
+                        e.Handled = true;
+                        break;
+                    case Key.Up:
+                        if (Move(-1)) e.Handled = true;
+                        break;
+                    case Key.Down:
+                        if (Move(1)) e.Handled = true;
+                        break;
+                }
+            }, RoutingStrategies.Tunnel);
+            Button? clear = null;
+            row.Track(() => text.Value.Length != 0, hasText => // :796 `if !text.isEmpty`
+            {
+                if (hasText && clear is null)
+                {
+                    var glyph = Symbols.Image("xmark.circle.fill", SwiftFont.System(SwiftFont.TextStyle.Callout)) // :800-801
+                        .ForegroundStyle(Chrome.SecondaryText.Opacity(0.75)); // :802
+                    clear = PlainControls.Button(glyph, () => text.Value = ""); // :797-799, :804
+                    AutomationProperties.SetName(clear, "Clear search"); // :805
+                    clear.Margin = new Thickness(6, 0, 0, 0);
+                    clear.VerticalAlignment = VerticalAlignment.Center;
+                    Grid.SetColumn(clear, 2);
+                    SwiftTransition.Insert(row, row.Children.Count, clear);
+                }
+                else if (!hasText && clear is { } gone)
+                {
+                    clear = null;
+                    SwiftTransition.Remove(row, gone);
+                }
+            });
+            var capsule = new Border
+            {
+                Padding = new Thickness(9, 0), // :808
+                Height = 30, // :809
+                Child = row,
+            }.Capsule(RoundedCornerStyle.Continuous);
+            capsule.Background = Chrome.Overlay(0.07).Brush(capsule); // :810-813 Capsule(style: .continuous).fill(Chrome.overlay(0.07)), also the content shape
+            // :814-815 Escape empties the field, the way the chrome's search capsule does, and goes no further.
+            AddHandler(KeyDownEvent, (_, e) =>
+            {
+                if (e.Key != Key.Escape) return;
+                text.Value = "";
+                e.Handled = true;
+            }, RoutingStrategies.Tunnel);
+            Child = capsule;
+        }
 
         // :818-822 private func move(_:) -> KeyPress.Result; true is .handled, false .ignored.
-        private bool Move(int offset) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:818");
+        private bool Move(int offset)
+        {
+            if (onMove is null) return false; // :819
+            onMove(offset); // :820
+            return true; // :821
+        }
     }
 
-    // :825-869 struct ChromeSearchField: View
+    // :825-869 struct ChromeSearchField: View. A glass search capsule for a pane's chrome row. Fixed size so it sits
+    // aligned with the other capsules instead of pushing them or clipping the sheet edge.
     public sealed class ChromeSearchField : Decorator
     {
         // :828 static let width: CGFloat = 200. Swift name kept; `new` because Decorator inherits Layoutable.Width.
@@ -477,14 +1297,76 @@ namespace Marrow.UI.Chrome
         /// <param name="query">:830 <c>@Binding var query: String</c>.</param>
         /// <param name="prompt">:831 <c>var prompt = "Search"</c>.</param>
         // :833-868 body
-        public ChromeSearchField(Binding<string> query, string prompt = "Search") =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:833");
+        public ChromeSearchField(Binding<string> query, string prompt = "Search")
+        {
+            var magnifier = Symbols.Image("magnifyingglass", SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold)) // :835-836
+                .ForegroundStyle(Chrome.SecondaryText); // :837
+            AutomationProperties.SetAccessibilityView(magnifier, AccessibilityView.Raw); // :838
+            magnifier.Margin = new Thickness(0, 0, 6, 0); // :834 HStack(spacing: 6)
+            var field = PlainControls.TextField(prompt, query); // :839-840
+            field.FocusAdorner = null; // :841-843 .focusEffectDisabled()
+            SwiftFont.System(12.5).Apply(field); // :844
+            field.Foreground = Chrome.PrimaryText.Brush(field); // :845
+            field.VerticalAlignment = VerticalAlignment.Center;
+            var glyph = Symbols.Image("xmark.circle.fill", SwiftFont.System(SwiftFont.TextStyle.Callout)) // :849-850
+                .ForegroundStyle(Chrome.SecondaryText.Opacity(0.8)); // :851
+            var clear = PlainControls.Button(glyph, () => query.Value = ""); // :846-848, :853
+            clear.Margin = new Thickness(6, 0, 0, 0);
+            clear.VerticalAlignment = VerticalAlignment.Center;
+            AutomationProperties.SetName(clear, "Clear search"); // :859
+            // :854-858 Always laid out, so the field's text never shifts when the button comes; invisible and out of the
+            // accessibility tree while there is nothing to clear.
+            clear.Track(() => query.Value.Length == 0, isEmpty =>
+            {
+                clear.Opacity = isEmpty ? 0 : 1; // :856
+                clear.IsEnabled = !isEmpty; // :857
+                if (isEmpty) AutomationProperties.SetAccessibilityView(clear, AccessibilityView.Raw); // :858
+                else clear.ClearValue(AutomationProperties.AccessibilityViewProperty);
+            });
+            Grid.SetColumn(magnifier, 0);
+            Grid.SetColumn(field, 1);
+            Grid.SetColumn(clear, 2);
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), Children = { magnifier, field, clear } }; // :834
+            var framed = new Border
+            {
+                Padding = new Thickness(10, 0), // :861
+                Width = ChromeSearchField.Width, // :862
+                Height = Chrome.CapsuleContentHeight,
+                Child = row,
+            };
+            var padded = new Border { Padding = new Thickness(0, Chrome.CapsuleVerticalPadding), Child = framed }; // :863
+            // :866 `.onExitCommand { query = "" }`: Escape empties the field and dismisses nothing.
+            AddHandler(KeyDownEvent, (_, e) =>
+            {
+                if (e.Key != Key.Escape) return;
+                query.Value = "";
+                e.Handled = true;
+            }, RoutingStrategies.Tunnel);
+            Child = PlainControls.Background(padded.ChromeGlassFieldCapsule(), new NoWindowDragArea()); // :864, :867
+        }
+
+        // :865 .fixedSize(): the modifiers after it do not change the size, so the whole control holds it.
+        protected override Size MeasureOverride(Size availableSize) =>
+            PlainControls.MeasureFixed(this, Child, availableSize);
     }
 
     // :871-932 struct GlassPickerButton<Value: Hashable>: View. Callers pass optional values (HydraSettingsPage.swift:412)
     // and enums, so TValue is unconstrained and compared with EqualityComparer<TValue>.Default.
     public sealed class GlassPickerButton<TValue> : Decorator
     {
+        private readonly bool fixesWidth;
+
+        // :881-882 @State private var isPresented = false, isHovering = false
+        private sealed class ViewState : MainActorModel
+        {
+            private bool isPresented;
+            private bool isHovering;
+
+            public bool IsPresented { get => Read(isPresented); set => Set(ref isPresented, value); }
+
+            public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+        }
+
         /// <param name="options">:873 <c>let options: [(value: Value, title: String)]</c>.</param>
         /// <param name="selection">:874 <c>@Binding var selection: Value</c>.</param>
         /// <param name="asset">:875 <c>var asset: (Value) -&gt; String? = { _ in nil }</c>; null stands for that default.</param>
@@ -496,8 +1378,121 @@ namespace Marrow.UI.Chrome
             Binding<TValue> selection,
             Func<TValue, string?>? asset = null,
             Func<TValue, string?>? symbol = null,
-            double? maxWidth = null) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:884");
+            double? maxWidth = null)
+        {
+            var assetOf = asset ?? (_ => null);
+            var symbolOf = symbol ?? (_ => null);
+            var state = new ViewState();
+            var text = new TextBlock
+            {
+                MaxLines = 1, // :903 .lineLimit(1)
+                TextWrapping = TextWrapping.NoWrap,
+                TextTrimming = TextTrimming.CharacterEllipsis, // :904 .truncationMode(.tail)
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            SwiftFont.System(12.5, SwiftFont.Weight.Medium).Apply(text); // :902
+            var chevron = Symbols.Image("chevron.down", Chrome.ChevronFont).ForegroundStyle(Chrome.SecondaryText); // :905-907
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { text, chevron } }; // :889
+            var foreground = new AnimatedColor(row);
+            row.SetValue(TextElement.ForegroundProperty, foreground.Brush);
+            row.Track(() => state.IsHovering || state.IsPresented, full =>
+                foreground.Set(Chrome.PrimaryText.Opacity(full ? 1 : 0.92), Transaction.Current)); // :909
+            Border? assetView = null;
+            SwiftImage? symbolView = null;
+            row.Track(() =>
+            {
+                var value = selection.Value;
+                return (Asset: assetOf(value), Symbol: symbolOf(value), Title: Title(options, value)); // :885, :890, :896
+            }, shown =>
+            {
+                text.Text = shown.Title; // :901 Text(verbatim: title)
+                // :890-895 `if let name = asset(selection) { Image(name).resizable().aspectRatio(contentMode: .fit).frame(width: 14, height: 14) }`
+                if (shown.Asset is { } name)
+                {
+                    if (assetView is null)
+                    {
+                        assetView = new Border { Width = 14, Height = 14, VerticalAlignment = VerticalAlignment.Center }; // :894
+                        SwiftTransition.Insert(row, 0, assetView);
+                    }
+                    // :891-893 Image(name).resizable().aspectRatio(contentMode: .fit): the same view with a new name.
+                    if (assetView.Child is not SwiftImage { } drawn || drawn.AssetName != name)
+                        assetView.Child = SwiftImage.Named(name).Resizable().AspectRatio(ContentMode.Fit);
+                }
+                else if (assetView is { } goneAsset)
+                {
+                    assetView = null;
+                    SwiftTransition.Remove(row, goneAsset);
+                }
+                // :896-900 `if let symbol = symbol(selection) { Image(systemName: symbol).font(.system(.callout, weight: .medium)).foregroundStyle(Chrome.secondaryText) }`
+                if (shown.Symbol is { } glyph)
+                {
+                    var image = symbolView is null || symbolView.SymbolName != glyph
+                        ? Symbols.Image(glyph, SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Medium)) // :897-898
+                            .ForegroundStyle(Chrome.SecondaryText) // :899
+                        : symbolView;
+                    // The same view with a new name draws the new symbol in place; only its appearing is a transition.
+                    if (symbolView is null) SwiftTransition.Insert(row, row.Children.IndexOf(text), image);
+                    else if (!ReferenceEquals(image, symbolView)) row.Children[row.Children.IndexOf(symbolView)] = image;
+                    symbolView = image;
+                }
+                else if (symbolView is { } goneSymbol)
+                {
+                    symbolView = null;
+                    SwiftTransition.Remove(row, goneSymbol);
+                }
+            });
+            var label = new Border
+            {
+                Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0), // :910
+                Height = Chrome.CapsuleContentHeight, // :911
+                Background = Brushes.Transparent, // :912 .contentShape(Capsule(style: .continuous))
+                Child = row,
+            }.Capsule(RoundedCornerStyle.Continuous);
+            var button = PlainControls.Button(label, () => state.IsPresented = !state.IsPresented); // :886-888, :914
+            fixesWidth = maxWidth is null; // :915 .fixedSize(horizontal: maxWidth == nil, vertical: true) (MeasureOverride)
+            var surface = button.ChromeGlassCapsule(); // :916
+            if (maxWidth is { } cap)
+            {
+                MaxWidth = cap; // :917 .frame(maxWidth: maxWidth, alignment: .trailing)
+                surface.HorizontalAlignment = HorizontalAlignment.Right;
+            }
+            var popover = PlainControls.Popover(
+                button,
+                new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value),
+                () => new PopoverMenu(() =>
+                {
+                    // :922-928 every option in the supplied order, checked where it is the selection; choosing one assigns it.
+                    var items = new StackPanel();
+                    foreach (var option in options)
+                    {
+                        items.Children.Add(new PopoverItem(
+                            option.Title,
+                            () => selection.Value = option.Value,
+                            symbol: symbolOf(option.Value),
+                            asset: assetOf(option.Value),
+                            isChecked: EqualityComparer<TValue>.Default.Equals(option.Value, selection.Value)));
+                    }
+                    return items;
+                })); // :921
+            var framed = new Panel { Children = { surface, popover } };
+            framed.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :918-920
+            Child = PlainControls.Background(framed, new NoWindowDragArea()); // :930
+        }
+
+        // :915 .fixedSize(horizontal: maxWidth == nil, vertical: true): the modifiers after it keep the size on the fixed
+        // axes, so the whole control holds it there.
+        protected override Size MeasureOverride(Size availableSize) =>
+            PlainControls.MeasureFixed(this, Child, availableSize, horizontal: fixesWidth, vertical: true);
+
+        // :885 `options.first { $0.value == selection }?.title ?? ""`
+        private static string Title(IReadOnlyList<(TValue Value, string Title)> options, TValue selection)
+        {
+            foreach (var option in options)
+            {
+                if (EqualityComparer<TValue>.Default.Equals(option.Value, selection)) return option.Title;
+            }
+            return "";
+        }
     }
 
     /// <summary>:934-945 <c>struct SoftAppearModifier: ViewModifier</c>. Used by <c>.modifier(active:identity:)</c>
@@ -505,45 +1500,57 @@ namespace Marrow.UI.Chrome
     /// a Bool, so SwiftUI gives it EmptyAnimatableData.</summary>
     public sealed record SoftAppearModifier(bool IsVisible) : IAnimatableModifier // :938
     {
-        // :937 (no animatableData: EmptyAnimatableData)
-        public ImmutableArray<double> AnimatableData =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:937");
+        // :937 (no animatableData: EmptyAnimatableData): a Bool carries no interpolated value.
+        public ImmutableArray<double> AnimatableData => ImmutableArray<double>.Empty;
 
-        // :937
-        public IAnimatableModifier WithAnimatableData(ImmutableArray<double> data) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:937");
+        // :937: nothing to restore with no animatable data (never reached: Kind.Mod skips the interpolated branch
+        // when both sides have zero-length data, SwiftAnimation.cs Gather).
+        public IAnimatableModifier WithAnimatableData(ImmutableArray<double> data) => this;
 
-        // :940-944
-        public Control Body(Control content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:940");
+        // :940-944. PR-WIN-206: opacity and offset are plain layer properties, so no wrapper is needed.
+        public Control Body(Control content) => content;
 
         // :940-944, applied per frame (ED-098)
-        public void Update(Control body) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:940");
+        public void Update(Control body)
+        {
+            body.Opacity = IsVisible ? 1 : 0; // :942
+            body.RenderTransform = new TranslateTransform(0, IsVisible ? 0 : 4); // :943
+        }
     }
 
     // :963-988 private struct SettleGlideModifier: ViewModifier, Animatable (ED-098)
     file sealed record SettleGlideModifier(double Progress) : IAnimatableModifier // :968
     {
         // :970-973 var animatableData: Double
-        public ImmutableArray<double> AnimatableData =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:971");
+        public ImmutableArray<double> AnimatableData => ImmutableArray.Create(Progress);
 
         // :972
-        public IAnimatableModifier WithAnimatableData(ImmutableArray<double> data) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:972");
+        public IAnimatableModifier WithAnimatableData(ImmutableArray<double> data) => this with { Progress = data[0] };
 
-        // :975-982
-        public Control Body(Control content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:975");
+        // :975-982. PR-WIN-207: opacity, offset and scale are plain layer properties, so no wrapper is needed.
+        public Control Body(Control content) => content;
 
         // :975-982, applied per frame (ED-098)
-        public void Update(Control body) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:975");
+        public void Update(Control body)
+        {
+            var reduceMotion = Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion; // :976
+            var fade = reduceMotion ? Progress : Smoothstep(0.45, 0.92, Progress); // :977
+            body.Opacity = 1 - fade; // :979
+            var offsetY = reduceMotion ? 0 : 22 * Progress; // :980
+            var scale = reduceMotion ? 1 : 1 - 0.04 * Progress; // :981
+            body.RenderTransformOrigin = new RelativePoint(0.5, 0, RelativeUnit.Relative); // :981 anchor: .top
+            var group = new TransformGroup();
+            group.Children.Add(new TranslateTransform(0, offsetY)); // :980, applied before the anchored scale
+            group.Children.Add(new ScaleTransform(scale, scale)); // :981
+            body.RenderTransform = group;
+        }
 
         // :984-987
-        private static double Smoothstep(double edge0, double edge1, double x) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:984");
+        private static double Smoothstep(double edge0, double edge1, double x)
+        {
+            var t = Math.Clamp((x - edge0) / (edge1 - edge0), 0, 1);
+            return t * t * (3 - 2 * t);
+        }
     }
 
     // MARK: - Cards
@@ -552,9 +1559,18 @@ namespace Marrow.UI.Chrome
     public sealed class ChromeCard : Decorator
     {
         /// <param name="content">:1007 <c>@ViewBuilder var content: Content</c>.</param>
-        // :1009-1020 body
-        public ChromeCard(Func<Control> content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1009");
+        // :1009-1020 body. PR-WIN-202: rows stacked with no spacing on a continuous rounded-16 fill at 0.03; a fill
+        // rather than a clip, so scrolling costs no offscreen mask pass (avalonia has no lazy-stack primitive here,
+        // so the rows are built eagerly; the fill-not-clip property is still reproduced).
+        public ChromeCard(Func<Control> content)
+        {
+            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, HorizontalAlignment = HorizontalAlignment.Stretch }; // :1011-1013
+            stack.Children.Add(content());
+            var border = new Border { Child = stack, HorizontalAlignment = HorizontalAlignment.Stretch } // :1014
+                .RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous); // :1017-1018
+            border.Background = Chrome.Overlay(0.03).Brush(border); // :1019
+            Child = border;
+        }
     }
 
     // :1023-1047 struct ChromeSection<Content: View>: View
@@ -564,9 +1580,27 @@ namespace Marrow.UI.Chrome
         /// <param name="content">:1029 <c>@ViewBuilder var content: Content</c>.</param>
         /// <param name="accessory">:1026 <c>var accessory: AnyView? = nil</c>.</param>
         /// <param name="trailing">:1028 <c>var trailing: AnyView? = nil</c>.</param>
-        // :1031-1046 body
-        public ChromeSection(string title, Func<Control> content, Control? accessory = null, Control? trailing = null) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1031");
+        // :1031-1046 body. PR-WIN-203: a semibold body-style heading in the secondary text colour, an optional
+        // accessory 4 points after it, an optional trailing control pushed to the far right, content 10 points below.
+        public ChromeSection(string title, Func<Control> content, Control? accessory = null, Control? trailing = null)
+        {
+            var heading = new TextBlock { Text = title, MaxLines = 1 }; // :1034
+            SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold).Apply(heading); // :1035
+            heading.Foreground = Chrome.SecondaryText.Brush(heading); // :1036
+            var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 }; // :1033 HStack(spacing: 4)
+            header.Children.Add(heading);
+            if (accessory is not null) header.Children.Add(accessory); // :1037
+            if (trailing is not null)
+            {
+                trailing.Margin = new Thickness(8, 0, 0, 0); // :1039 Spacer(minLength: 8)
+                header.Children.Add(trailing); // :1040
+            }
+            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = Chrome.SectionHeaderSpacing, HorizontalAlignment = HorizontalAlignment.Stretch }; // :1032, :1044
+            stack.Children.Add(header);
+            stack.Children.Add(content()); // :1042
+            Child = stack;
+            HorizontalAlignment = HorizontalAlignment.Stretch; // :1044
+        }
     }
 
     // :1049-1074 struct ChromeRow<Control: View>: View
@@ -575,89 +1609,141 @@ namespace Marrow.UI.Chrome
         /// <param name="title">:1050 <c>let title: String</c>.</param>
         /// <param name="control">:1052 <c>@ViewBuilder var control: Control</c>.</param>
         /// <param name="detail">:1051 <c>var detail: String?</c>.</param>
-        // :1054-1073 body
-        public ChromeRow(string title, Func<Control> control, string? detail = null) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1054");
+        // :1054-1073 body. PR-WIN-204: a body-style title over an optional non-empty subheadline detail, control
+        // at the trailing edge.
+        public ChromeRow(string title, Func<Control> control, string? detail = null)
+        {
+            var titleText = new TextBlock { Text = title }; // :1058-1059
+            SwiftFont.System(SwiftFont.TextStyle.Body).Apply(titleText); // :1058
+            titleText.Foreground = Chrome.PrimaryText.Brush(titleText); // :1059
+            var textStack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, HorizontalAlignment = HorizontalAlignment.Left }; // :1057, :1060
+            textStack.Children.Add(titleText);
+            if (!string.IsNullOrEmpty(detail)) // :1061 `if let detail, !detail.isEmpty`
+            {
+                var detailText = new TextBlock { Text = detail, TextWrapping = TextWrapping.Wrap }; // :1062-1064
+                SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(detailText); // :1062
+                detailText.Foreground = Chrome.SecondaryText.Brush(detailText); // :1063
+                textStack.Children.Add(detailText);
+            }
+            var controlView = control(); // :1067
+            controlView.Margin = new Thickness(12, 0, 0, 0); // :1066 Spacer(minLength: 12)
+            controlView.HorizontalAlignment = HorizontalAlignment.Right;
+            controlView.VerticalAlignment = VerticalAlignment.Center;
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") }; // :1056 HStack(spacing: 16)
+            textStack.HorizontalAlignment = HorizontalAlignment.Stretch;
+            Grid.SetColumn(textStack, 0);
+            Grid.SetColumn(controlView, 1);
+            row.Children.Add(textStack);
+            row.Children.Add(controlView);
+            row.VerticalAlignment = VerticalAlignment.Center;
+            var border = new Border
+            {
+                Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), // :1068-1070
+                Child = row,
+            };
+            Child = border;
+        }
     }
 
     // :1076-1081 struct ChromeRowDivider: View
     public sealed class ChromeRowDivider : Decorator
     {
-        // :1077-1080 body
-        public ChromeRowDivider() =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1077");
+        // :1077-1080 body. PR-WIN-205: a hairline inset 16 points from the leading edge only.
+        public ChromeRowDivider()
+        {
+            var line = new Border { BorderThickness = new Thickness(0, 0, 0, 1), Height = 1 };
+            // :1078 `Divider()`: SwiftUI's own separator, drawn in the system divider colour. B2 gives it no
+            // literal (the framework paints it), so it takes the same translucent hairline opacity Chrome uses
+            // for its other system-style rules (WindowBackdrop's edge, :270), UNVERIFIED under OD-0001.
+            line.BorderBrush = Chrome.Overlay(0.14).Brush(line);
+            Child = line;
+            Margin = new Thickness(16, 0, 0, 0); // :1079 .padding(.leading, 16)
+        }
     }
 
     // MARK: - Window drag
 
-    // :1085-1092 struct WindowDragArea: NSViewRepresentable
+    // :1085-1092 struct WindowDragArea: NSViewRepresentable. Lets a stretch of chrome move the window.
     public sealed class WindowDragArea : Decorator
     {
-        public WindowDragArea() =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1087");
+        public WindowDragArea() => Child = MakeNSView();
 
         // :1087-1089 makeNSView(context:)
-        public WindowDragView MakeNSView() =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1087");
+        public WindowDragView MakeNSView() => new();
 
-        // :1091 updateNSView(_:context:)
-        public void UpdateNSView(WindowDragView nsView) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1091");
+        // :1091 updateNSView(_:context:) {}
+        public void UpdateNSView(WindowDragView nsView)
+        {
+        }
     }
 
     // :1094-1102 final class WindowDragView: NSView
     public sealed class WindowDragView : Control
     {
+        // ED-063 (probe P7): the region is a caption to the Windows hit test, so the system moves the window.
+        public WindowDragView() => Win32Properties.SetNonClientHitTestResult(this, Win32Properties.Win32HitTestValue.Caption);
+
         // :1095 acceptsFirstMouse(for:)
-        public bool AcceptsFirstMouse(PointerEventArgs? @for) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1095");
+        public bool AcceptsFirstMouse(PointerEventArgs? @for) => true;
 
-        // :1097-1099 mouseDown(with:)
-        protected override void OnPointerPressed(PointerPressedEventArgs e) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1097");
+        // The view takes the hit over its whole frame, as an NSView does, and draws nothing.
+        public override void Render(DrawingContext context) => context.FillRectangle(Brushes.Transparent, new Rect(Bounds.Size));
 
-        // :1101 mouseUp(with:)
-        protected override void OnPointerReleased(PointerReleasedEventArgs e) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1101");
+        // :1097-1099 mouseDown(with:): `window?.performDrag(with: event)`; the press goes no further.
+        protected override void OnPointerPressed(PointerPressedEventArgs e)
+        {
+            if (e.GetCurrentPoint(this).Properties.PointerUpdateKind != PointerUpdateKind.LeftButtonPressed) return;
+            (TopLevel.GetTopLevel(this) as Window)?.BeginMoveDrag(e);
+            e.Handled = true;
+        }
+
+        // :1101 mouseUp(with:) {}: the release is swallowed and never reaches the UI behind the region.
+        protected override void OnPointerReleased(PointerReleasedEventArgs e)
+        {
+            if (e.GetCurrentPoint(this).Properties.PointerUpdateKind != PointerUpdateKind.LeftButtonReleased) return;
+            e.Handled = true;
+        }
     }
 
-    // :1104-1120 struct NoWindowDragArea: NSViewRepresentable
+    // :1104-1120 struct NoWindowDragArea: NSViewRepresentable. Marks a chrome control's hit area as never dragging the
+    // window; empty chrome around the controls has no such view behind it and still drags the window like a title bar.
     public sealed class NoWindowDragArea : Decorator
     {
-        public NoWindowDragArea() =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1115");
+        public NoWindowDragArea() => Child = MakeNSView();
 
         // :1115-1117 makeNSView(context:)
-        public NoWindowDragView MakeNSView() =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1115");
+        public NoWindowDragView MakeNSView() => new();
 
-        // :1119 updateNSView(_:context:)
-        public void UpdateNSView(NoWindowDragView nsView) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1119");
+        // :1119 updateNSView(_:context:) {}
+        public void UpdateNSView(NoWindowDragView nsView)
+        {
+        }
     }
 
     // :1122-1140 final class NoWindowDragView: NSView
     public sealed class NoWindowDragView : Control
     {
+        // ED-063 (probe P7): a client hit, so the Windows hit test never moves the window from here.
+        public NoWindowDragView() => Win32Properties.SetNonClientHitTestResult(this, Win32Properties.Win32HitTestValue.Client);
+
         // :1123 acceptsFirstMouse(for:)
-        public bool AcceptsFirstMouse(PointerEventArgs? @for) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1123");
+        public bool AcceptsFirstMouse(PointerEventArgs? @for) => true;
 
-        // :1126 mouseDownCanMoveWindow
-        public bool MouseDownCanMoveWindow =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1126");
+        // :1125-1126 A press here works the control, never the window.
+        public bool MouseDownCanMoveWindow => false;
 
-        // :1131 mouseDown(with:) and :1137 rightMouseDown(with:)
-        protected override void OnPointerPressed(PointerPressedEventArgs e) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1131");
+        // :1128-1130 The view draws nothing and keeps nothing: it only takes the hit so the window does not drag.
+        public override void Render(DrawingContext context) => context.FillRectangle(Brushes.Transparent, new Rect(Bounds.Size));
 
-        // :1133 mouseDragged(with:)
-        protected override void OnPointerMoved(PointerEventArgs e) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1133");
+        // :1131 mouseDown(with:) and :1137 rightMouseDown(with:): the press travels on to the superview, left unhandled
+        // so it bubbles to the parent the way `superview?.mouseDown(with:)` hands it on.
+        protected override void OnPointerPressed(PointerPressedEventArgs e) => base.OnPointerPressed(e);
 
-        // :1135 mouseUp(with:) and :1139 rightMouseUp(with:)
-        protected override void OnPointerReleased(PointerReleasedEventArgs e) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1135");
+        // :1133 mouseDragged(with:): travels on to the superview.
+        protected override void OnPointerMoved(PointerEventArgs e) => base.OnPointerMoved(e);
+
+        // :1135 mouseUp(with:) and :1139 rightMouseUp(with:): travel on to the superview.
+        protected override void OnPointerReleased(PointerReleasedEventArgs e) => base.OnPointerReleased(e);
     }
 }
 
@@ -669,8 +1755,7 @@ namespace Marrow.UI.Port
 {
     public abstract partial record Animation
     {
-        // :960
-        public static Animation SoftAppear =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:960");
+        // :960 PR-WIN-206, PR-WIN-208: the timing every soft appearance shares, a 0.32-second smooth curve.
+        public static Animation SoftAppear => Smooth(duration: 0.32);
     }
 }

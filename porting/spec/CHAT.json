@@ -5776,7 +5776,8 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:143-145",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:484"
       ],
-      "notes": "Two gradient fills and nothing else. The earlier glass-under-a-mask implementation cost a backdrop sample and an offscreen mask pass on every scrolled frame."
+      "notes": "Two gradient fills and nothing else. The earlier glass-under-a-mask implementation cost a backdrop sample and an offscreen mask pass on every scrolled frame.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-059",
