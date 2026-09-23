@@ -31,9 +31,9 @@ public sealed class MessagePopoverMenuTests(HeadlessSession headless)
     // The message sits away from the window origin, so a point in the view's own space and a window point differ.
     private static readonly Thickness Inset = new(10, 20, 0, 0);
 
-    private static Window Show(Control content)
+    private static Avalonia.Controls.Window Show(Control content)
     {
-        var window = new Window { Width = 400, Height = 300, Content = content };
+        var window = new Avalonia.Controls.Window { Width = 400, Height = 300, Content = content };
         window.Show();
         Dispatcher.UIThread.RunJobs();
         return window;
@@ -74,14 +74,14 @@ public sealed class MessagePopoverMenuTests(HeadlessSession headless)
         return column;
     }
 
-    private static void RightClick(Window window, Point at)
+    private static void RightClick(Avalonia.Controls.Window window, Point at)
     {
         window.MouseDown(at, MouseButton.Right, RawInputModifiers.None);
         window.MouseUp(at, MouseButton.Right, RawInputModifiers.None);
         Dispatcher.UIThread.RunJobs();
     }
 
-    private static void LeftClick(Window window, Point at)
+    private static void LeftClick(Avalonia.Controls.Window window, Point at)
     {
         window.MouseDown(at, MouseButton.Left, RawInputModifiers.None);
         window.MouseUp(at, MouseButton.Left, RawInputModifiers.None);
