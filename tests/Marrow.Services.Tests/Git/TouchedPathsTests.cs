@@ -33,7 +33,8 @@ public sealed class TouchedPathsTests
     [Trait("Req", "PR-GIT-093")] // Services/Git/TouchedPaths.swift:9-12
     public void Normalize_of_path_outside_root_is_returned_unchanged_and_absolute()
     {
-        Assert.Equal(@"C:\other\App.cs", TouchedPaths.Normalize(@"C:\other\App.cs", @"C:\repo"));
+        // ED-019(3): forward-slashed like every TouchedPaths result, since consumers split/concatenate on "/".
+        Assert.Equal("C:/other/App.cs", TouchedPaths.Normalize(@"C:\other\App.cs", @"C:\repo"));
     }
 
     [Fact]
