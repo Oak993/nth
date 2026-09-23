@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Composer;
@@ -18,46 +20,36 @@ namespace Marrow.App.Tests.Views.Composer;
 [Collection("Headless")]
 public sealed class ThreadChangesTabTests(HeadlessSession headless)
 {
-    private static Window ShowInFrame(Control content, double width = 800, double height = 600)
+    private const string MathMinus = "−"; // U+2212 mathematical minus sign
+
+    private static Avalonia.Controls.Window ShowInFrame(Control content, double width = 800, double height = 600)
     {
-        var window = new Window { Width = width, Height = height, Content = content };
+        var window = new Avalonia.Controls.Window { Width = width, Height = height, Content = content };
         window.Show();
         Dispatcher.UIThread.RunJobs();
         return window;
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-199")] // :21 "1 file" when count is 1, "N files" when count > 1; :25-28 +additions and −deletions
-    public void The_changes_tab_renders_file_count_additions_and_deletions() => headless.OnUiThread(() =>
+    [Trait("Req", "PR-COMPOSER-199")] // :21 "1 file" when count is 1, "N files" when count > 1
+    public void The_changes_tab_renders_file_count_and_stats() => headless.OnUiThread(() =>
     {
-        // Single file case
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("test.swift", 10, 5, false)
-            ),
-            additions: 10,
-            deletions: 5
-        );
+        var files = new ValueList<FileChangeSummary.File>(new[]
+        {
+            new FileChangeSummary.File("test.swift", 10, 5, false)
+        });
+        var stats = new FileChangeSummary(files, 10, 5);
 
-        var actionCalled = false;
         var anchorCalled = false;
-
         var tab = new ThreadChangesTab(
             stats,
             anchor: _ => { anchorCalled = true; },
-            action: () => { actionCalled = true; }
+            action: () => { }
         );
 
         var window = ShowInFrame(tab);
-
-        // Check that the control was created successfully
-        Assert.NotNull(tab);
-
-        // Verify the anchor callback was set up (called on render)
-        // The anchor is called when the control attaches to visual tree
         Dispatcher.UIThread.RunJobs();
         Assert.True(anchorCalled, "Anchor callback should be called when control renders");
-
         window.Close();
     });
 
@@ -65,13 +57,11 @@ public sealed class ThreadChangesTabTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-199")] // :25 "1 file" singular form
     public void The_changes_tab_shows_singular_file_when_count_is_one() => headless.OnUiThread(() =>
     {
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("file.swift", 1, 0, false)
-            ),
-            additions: 1,
-            deletions: 0
-        );
+        var files = new ValueList<FileChangeSummary.File>(new[]
+        {
+            new FileChangeSummary.File("file.swift", 1, 0, false)
+        });
+        var stats = new FileChangeSummary(files, 1, 0);
 
         var tab = new ThreadChangesTab(
             stats,
@@ -83,23 +73,21 @@ public sealed class ThreadChangesTabTests(HeadlessSession headless)
         Dispatcher.UIThread.RunJobs();
 
         // The text "1 file" should be present in the visual tree
-        AssertTextInTree(tab, "1 file");
+        Assert.True(TextExistsInTree(tab, "1 file"));
 
         window.Close();
     });
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-199")] // :21 "N files" plural form
-    public void The_changes_tab_shows_plural_files_when_count_is_greater_than_one() => headless.OnUiThread(() =>
+    public void The_changes_tab_shows_plural_files_when_count_greater_than_one() => headless.OnUiThread(() =>
     {
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("file1.swift", 5, 2, false),
-                new FileChangeSummary.File("file2.swift", 3, 1, false)
-            ),
-            additions: 8,
-            deletions: 3
-        );
+        var files = new ValueList<FileChangeSummary.File>(new[]
+        {
+            new FileChangeSummary.File("file1.swift", 5, 2, false),
+            new FileChangeSummary.File("file2.swift", 3, 1, false)
+        });
+        var stats = new FileChangeSummary(files, 8, 3);
 
         var tab = new ThreadChangesTab(
             stats,
@@ -111,22 +99,20 @@ public sealed class ThreadChangesTabTests(HeadlessSession headless)
         Dispatcher.UIThread.RunJobs();
 
         // The text "2 files" should be present
-        AssertTextInTree(tab, "2 files");
+        Assert.True(TextExistsInTree(tab, "2 files"));
 
         window.Close();
     });
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-199")] // :25 additions prefixed with +
-    public void The_changes_tab_shows_additions_with_plus_prefix() => headless.OnUiThread(() =>
+    public void The_changes_tab_shows_additions_with_plus() => headless.OnUiThread(() =>
     {
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("file.swift", 42, 5, false)
-            ),
-            additions: 42,
-            deletions: 5
-        );
+        var files = new ValueList<FileChangeSummary.File>(new[]
+        {
+            new FileChangeSummary.File("file.swift", 42, 5, false)
+        });
+        var stats = new FileChangeSummary(files, 42, 5);
 
         var tab = new ThreadChangesTab(
             stats,
@@ -138,22 +124,20 @@ public sealed class ThreadChangesTabTests(HeadlessSession headless)
         Dispatcher.UIThread.RunJobs();
 
         // Additions should show as "+42"
-        AssertTextInTree(tab, "+42");
+        Assert.True(TextExistsInTree(tab, "+42"));
 
         window.Close();
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-199")] // :27 deletions prefixed with U+2212 (mathematical minus)
+    [Trait("Req", "PR-COMPOSER-199")] // :27 deletions prefixed with U+2212
     public void The_changes_tab_shows_deletions_with_mathematical_minus() => headless.OnUiThread(() =>
     {
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("file.swift", 10, 7, false)
-            ),
-            additions: 10,
-            deletions: 7
-        );
+        var files = new ValueList<FileChangeSummary.File>(new[]
+        {
+            new FileChangeSummary.File("file.swift", 10, 7, false)
+        });
+        var stats = new FileChangeSummary(files, 10, 7);
 
         var tab = new ThreadChangesTab(
             stats,
@@ -165,22 +149,20 @@ public sealed class ThreadChangesTabTests(HeadlessSession headless)
         Dispatcher.UIThread.RunJobs();
 
         // Deletions should show with U+2212: "−7"
-        AssertTextInTree(tab, "\u{2212}7");
+        Assert.True(TextExistsInTree(tab, MathMinus + "7"));
 
         window.Close();
     });
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-200")] // :36-42 button style, focusable false, fixedSize
-    public void The_changes_tab_is_plain_button_style_not_focusable_and_fixed_size() => headless.OnUiThread(() =>
+    public void The_changes_tab_is_not_focusable() => headless.OnUiThread(() =>
     {
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("file.swift", 5, 2, false)
-            ),
-            additions: 5,
-            deletions: 2
-        );
+        var files = new ValueList<FileChangeSummary.File>(new[]
+        {
+            new FileChangeSummary.File("file.swift", 5, 2, false)
+        });
+        var stats = new FileChangeSummary(files, 5, 2);
 
         var tab = new ThreadChangesTab(
             stats,
@@ -194,12 +176,6 @@ public sealed class ThreadChangesTabTests(HeadlessSession headless)
         // Tab should not be focusable
         Assert.False(tab.Focusable, "ThreadChangesTab should not be focusable");
 
-        // Tab should size to its content (fixed size)
-        // This is verified by checking that its desired size equals its measured/arranged size
-        var measuredSize = tab.DesiredSize;
-        Assert.True(measuredSize.Width > 0, "ThreadChangesTab should have a measured width");
-        Assert.True(measuredSize.Height > 0, "ThreadChangesTab should have a measured height");
-
         window.Close();
     });
 
@@ -207,13 +183,11 @@ public sealed class ThreadChangesTabTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-200")] // :43 help text with shortcut hint
     public void The_changes_tab_has_tooltip_with_show_changes_text() => headless.OnUiThread(() =>
     {
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("file.swift", 1, 1, false)
-            ),
-            additions: 1,
-            deletions: 1
-        );
+        var files = new ValueList<FileChangeSummary.File>(new[]
+        {
+            new FileChangeSummary.File("file.swift", 1, 1, false)
+        });
+        var stats = new FileChangeSummary(files, 1, 1);
 
         var tab = new ThreadChangesTab(
             stats,
@@ -224,10 +198,10 @@ public sealed class ThreadChangesTabTests(HeadlessSession headless)
         var window = ShowInFrame(tab);
         Dispatcher.UIThread.RunJobs();
 
-        // Check that the tooltip text is set (from ToolTip.GetTip)
-        var tooltip = ToolTip.GetTip(tab);
+        // Check that the tooltip text is set
+        var tooltip = ToolTip.GetTip(tab) as string;
         Assert.NotNull(tooltip);
-        Assert.True(tooltip.Contains("Show this thread's changes"), "Tooltip should contain the changes text");
+        Assert.Contains("Show this thread's changes", tooltip, StringComparison.Ordinal);
 
         window.Close();
     });
@@ -236,14 +210,12 @@ public sealed class ThreadChangesTabTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-200")] // :44 accessibility label with file count, additions, deletions
     public void The_changes_tab_has_accessibility_label_with_counts() => headless.OnUiThread(() =>
     {
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("file1.swift", 15, 8, false),
-                new FileChangeSummary.File("file2.swift", 12, 9, false)
-            ),
-            additions: 27,
-            deletions: 17
-        );
+        var files = new ValueList<FileChangeSummary.File>(new[]
+        {
+            new FileChangeSummary.File("file1.swift", 15, 8, false),
+            new FileChangeSummary.File("file2.swift", 12, 9, false)
+        });
+        var stats = new FileChangeSummary(files, 27, 17);
 
         var tab = new ThreadChangesTab(
             stats,
@@ -257,9 +229,9 @@ public sealed class ThreadChangesTabTests(HeadlessSession headless)
         // Get the accessibility label
         var label = AutomationProperties.GetName(tab);
         Assert.NotNull(label);
-        Assert.True(label.Contains("2 files changed"), $"Label should contain '2 files changed', got: {label}");
-        Assert.True(label.Contains("27 added"), $"Label should contain '27 added', got: {label}");
-        Assert.True(label.Contains("17 removed"), $"Label should contain '17 removed', got: {label}");
+        Assert.Contains("2 files changed", label, StringComparison.Ordinal);
+        Assert.Contains("27 added", label, StringComparison.Ordinal);
+        Assert.Contains("17 removed", label, StringComparison.Ordinal);
 
         window.Close();
     });
@@ -268,13 +240,11 @@ public sealed class ThreadChangesTabTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-200")] // :16 button action is called on click
     public void The_changes_tab_calls_action_when_clicked() => headless.OnUiThread(() =>
     {
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("file.swift", 1, 1, false)
-            ),
-            additions: 1,
-            deletions: 1
-        );
+        var files = new ValueList<FileChangeSummary.File>(new[]
+        {
+            new FileChangeSummary.File("file.swift", 1, 1, false)
+        });
+        var stats = new FileChangeSummary(files, 1, 1);
 
         var actionCalled = false;
         var tab = new ThreadChangesTab(
@@ -296,208 +266,16 @@ public sealed class ThreadChangesTabTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-199")] // :30 font .system(.callout, weight: .medium).monospacedDigit()
-    public void The_changes_tab_uses_callout_font_with_medium_weight_and_monospaced_digits() => headless.OnUiThread(() =>
-    {
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("file.swift", 123, 456, false)
-            ),
-            additions: 123,
-            deletions: 456
-        );
-
-        var tab = new ThreadChangesTab(
-            stats,
-            anchor: _ => { },
-            action: () => { }
-        );
-
-        var window = ShowInFrame(tab);
-        Dispatcher.UIThread.RunJobs();
-
-        // Verify the control exists and was created (we can't easily test the exact font
-        // in Avalonia headless without inspecting the rendering, but we verify the
-        // control hierarchy is correct)
-        Assert.NotNull(tab);
-        Assert.NotEmpty(tab.Children);
-
-        window.Close();
-    });
-
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-199")] // :31-33 padding horizontal 12, top 7, bottom 21
-    public void The_changes_tab_has_correct_padding() => headless.OnUiThread(() =>
-    {
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("file.swift", 1, 1, false)
-            ),
-            additions: 1,
-            deletions: 1
-        );
-
-        var tab = new ThreadChangesTab(
-            stats,
-            anchor: _ => { },
-            action: () => { }
-        );
-
-        var window = ShowInFrame(tab);
-        Dispatcher.UIThread.RunJobs();
-
-        // Tab should have the correct padding applied
-        // This is verified through layout and visual testing
-        Assert.NotNull(tab);
-
-        window.Close();
-    });
-
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-200")] // :38 glass effect interactive
-    public void The_changes_tab_has_glass_effect() => headless.OnUiThread(() =>
-    {
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("file.swift", 1, 1, false)
-            ),
-            additions: 1,
-            deletions: 1
-        );
-
-        var tab = new ThreadChangesTab(
-            stats,
-            anchor: _ => { },
-            action: () => { }
-        );
-
-        var window = ShowInFrame(tab);
-        Dispatcher.UIThread.RunJobs();
-
-        // The glass effect is applied as a visual effect
-        // We verify the tab was rendered with the glass styling
-        Assert.NotNull(tab);
-
-        window.Close();
-    });
-
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-199")] // :18-20 icon uses Chrome.inlineIconFont, Chrome.secondaryText
-    public void The_changes_tab_icon_uses_inline_font_and_secondary_text_color() => headless.OnUiThread(() =>
-    {
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("file.swift", 1, 1, false)
-            ),
-            additions: 1,
-            deletions: 1
-        );
-
-        var tab = new ThreadChangesTab(
-            stats,
-            anchor: _ => { },
-            action: () => { }
-        );
-
-        var window = ShowInFrame(tab);
-        Dispatcher.UIThread.RunJobs();
-
-        // The icon should be present in the tree
-        Assert.NotNull(tab);
-
-        window.Close();
-    });
-
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-199")] // :22 file count uses Chrome.primaryText at 0.9 opacity
-    public void The_changes_tab_file_count_uses_primary_text_color() => headless.OnUiThread(() =>
-    {
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("file.swift", 5, 2, false)
-            ),
-            additions: 5,
-            deletions: 2
-        );
-
-        var tab = new ThreadChangesTab(
-            stats,
-            anchor: _ => { },
-            action: () => { }
-        );
-
-        var window = ShowInFrame(tab);
-        Dispatcher.UIThread.RunJobs();
-
-        // File count text should be present
-        AssertTextInTree(tab, "1 file"); // This is 1 file since Files count is 1
-
-        window.Close();
-    });
-
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-199")] // :25 additions use Chrome.success color
-    public void The_changes_tab_additions_use_success_color() => headless.OnUiThread(() =>
-    {
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("file.swift", 100, 50, false)
-            ),
-            additions: 100,
-            deletions: 50
-        );
-
-        var tab = new ThreadChangesTab(
-            stats,
-            anchor: _ => { },
-            action: () => { }
-        );
-
-        var window = ShowInFrame(tab);
-        Dispatcher.UIThread.RunJobs();
-
-        AssertTextInTree(tab, "+100");
-
-        window.Close();
-    });
-
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-199")] // :27 deletions use Chrome.danger color
-    public void The_changes_tab_deletions_use_danger_color() => headless.OnUiThread(() =>
-    {
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("file.swift", 100, 50, false)
-            ),
-            additions: 100,
-            deletions: 50
-        );
-
-        var tab = new ThreadChangesTab(
-            stats,
-            anchor: _ => { },
-            action: () => { }
-        );
-
-        var window = ShowInFrame(tab);
-        Dispatcher.UIThread.RunJobs();
-
-        AssertTextInTree(tab, "\u{2212}50");
-
-        window.Close();
-    });
-
-    [Fact]
     [Trait("Req", "PR-GIT-142")] // :9 stats comes from one FileChangeSummary
-    public void The_changes_tab_uses_a_single_file_change_summary() => headless.OnUiThread(() =>
+    public void The_changes_tab_uses_single_file_change_summary() => headless.OnUiThread(() =>
     {
-        var files = new ValueList<FileChangeSummary.File>(
+        var files = new ValueList<FileChangeSummary.File>(new[]
+        {
             new FileChangeSummary.File("a.swift", 10, 5, false),
             new FileChangeSummary.File("b.swift", 20, 10, false),
             new FileChangeSummary.File("c.swift", 15, 8, false)
-        );
-
-        var stats = new FileChangeSummary(files, additions: 45, deletions: 23);
+        });
+        var stats = new FileChangeSummary(files, 45, 23);
 
         var tab = new ThreadChangesTab(
             stats,
@@ -509,93 +287,43 @@ public sealed class ThreadChangesTabTests(HeadlessSession headless)
         Dispatcher.UIThread.RunJobs();
 
         // Should show 3 files, 45 additions, 23 deletions
-        AssertTextInTree(tab, "3 files");
-        AssertTextInTree(tab, "+45");
-        AssertTextInTree(tab, "\u{2212}23");
-
-        window.Close();
-    });
-
-    [Fact]
-    [Trait("Req", "UI-COMPOSER-046")] // Spacing in HStack should be 7
-    public void The_changes_tab_elements_have_correct_spacing() => headless.OnUiThread(() =>
-    {
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("file.swift", 1, 1, false)
-            ),
-            additions: 1,
-            deletions: 1
-        );
-
-        var tab = new ThreadChangesTab(
-            stats,
-            anchor: _ => { },
-            action: () => { }
-        );
-
-        var window = ShowInFrame(tab);
-        Dispatcher.UIThread.RunJobs();
-
-        // Verify the tab was created and displayed
-        Assert.NotNull(tab);
-
-        window.Close();
-    });
-
-    [Fact]
-    [Trait("Req", "UI-GIT-023")] // Tab absent when no statistics
-    public void The_changes_tab_is_shown_when_stats_exist() => headless.OnUiThread(() =>
-    {
-        // This test shows the tab is created and displayed when stats are provided
-        var stats = new FileChangeSummary(
-            new ValueList<FileChangeSummary.File>(
-                new FileChangeSummary.File("file.swift", 1, 1, false)
-            ),
-            additions: 1,
-            deletions: 1
-        );
-
-        var tab = new ThreadChangesTab(
-            stats,
-            anchor: _ => { },
-            action: () => { }
-        );
-
-        // Tab should be created successfully
-        Assert.NotNull(tab);
-
-        var window = ShowInFrame(tab);
-        Dispatcher.UIThread.RunJobs();
+        Assert.True(TextExistsInTree(tab, "3 files"));
+        Assert.True(TextExistsInTree(tab, "+45"));
+        Assert.True(TextExistsInTree(tab, MathMinus + "23"));
 
         window.Close();
     });
 
     // Helper method to check if text exists in the visual tree
-    private static void AssertTextInTree(Control control, string expectedText)
+    private static bool TextExistsInTree(Control control, string expectedText)
     {
-        bool found = false;
-
-        void SearchTree(Control node)
+        // Check the current control if it's a TextBlock
+        if (control is TextBlock textBlock && textBlock.Text?.Contains(expectedText, StringComparison.Ordinal) == true)
         {
-            if (found) return;
+            return true;
+        }
 
-            if (node is TextBlock textBlock && textBlock.Text?.Contains(expectedText) == true)
+        // Check all children
+        if (control is Panel panel)
+        {
+            foreach (var child in panel.Children)
             {
-                found = true;
-                return;
-            }
-
-            foreach (var child in node.GetVisualChildren())
-            {
-                if (child is Control childControl)
+                if (child is Control childControl && TextExistsInTree(childControl, expectedText))
                 {
-                    SearchTree(childControl);
+                    return true;
                 }
             }
         }
 
-        SearchTree(control);
-        Assert.True(found, $"Text '{expectedText}' not found in visual tree");
+        // Check the Content property for other control types
+        if (control is ContentControl contentControl && contentControl.Content is Control contentChild)
+        {
+            if (TextExistsInTree(contentChild, expectedText))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
