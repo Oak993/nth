@@ -1,0 +1,5 @@
+t0,rep,phaseByTime,side,offset,calibrated,bandRGB,innerMeanRGB,maxDiffNeighbour,maxDiffReference,visibleNeighbour,visibleReference
+274487.51,1,grow,right,6,1,"(162,181,255)(162,181,255)(162,181,255)(161,180,255)(161,180,255)","(109,121,170)",85,85,True,True
+276516.97,1,shrink,right,none,1,"","",0,0,False,False
+288518.50,3,shrink,right,none,1,"","",0,0,False,False
+294598.75,4,shrink,right,none,1,"","",0,0,False,False

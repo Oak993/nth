@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    P4b helper: a minimal IL lister built on System.Reflection.Metadata (part of the shared framework, no package).
+    Used to read Avalonia 12.1.2's Win32 resize and paint handling from the exact binaries the probe runs against,
+    because the NuGet packages ship no source. A throwaway tool, never production code.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>IlDump</RootNamespace>
+    <AssemblyName>ildump</AssemblyName>
+  </PropertyGroup>
+
+</Project>
