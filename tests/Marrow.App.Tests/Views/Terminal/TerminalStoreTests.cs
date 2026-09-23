@@ -716,9 +716,11 @@ public sealed class TerminalStoreTests(HeadlessSession headless)
         Assert.True(session.IsRunning);
     }));
 
-    // ---- PR-TERM-124: the font is TerminalFont.preferred(), evaluated once per session creation -----------------------
+    // ---- PR-TERM-038 (font and Option-as-Meta only; the 640x240 frame has no seam here, see the trailing note) and
+    // PR-TERM-124: the font is TerminalFont.preferred(), evaluated once per session creation -----------------------
 
     [Fact]
+    [Trait("Req", "PR-TERM-038")] // App/Views/Terminal/TerminalStore.swift:21-23
     [Trait("Req", "PR-TERM-124")] // App/Views/Terminal/TerminalStore.swift:22
     public void Each_session_is_created_with_TerminalFont_preferred() => headless.OnUiThread(() => WithStore(store =>
     {
