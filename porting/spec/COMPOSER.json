@@ -2381,7 +2381,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One control with these nine literals, per port_impacts X8(c). A compositor-side replicator or an equivalent instanced draw; it must not tick on the UI thread.",
       "verification_method": "capture comparison of a one-line and a five-line composer",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2402,7 +2402,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A compositor animation with these exact keyframes and per-instance delays, started from a process-wide clock origin so separate fields stay in phase.",
       "verification_method": "capture comparison of two composers side by side, asserting they are in phase",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2423,7 +2423,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Read the Windows animation-effects setting; same static opacity.",
       "verification_method": "capture comparison with reduced motion on",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2444,7 +2444,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Re-resolve the brush on a theme/appearance change without recreating the visual tree.",
       "verification_method": "interaction test switching light and dark mid-turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5268,7 +5268,8 @@
         "DroppyCode/App/Views/Composer/ComposerWorkingDots.swift:12-190",
         "DroppyCode/App/Views/Composer/ComposerView.swift:661-675"
       ],
-      "notes": "Once on screen the render server plays it alone: no timer, no view update and no main-thread drawing, however long a turn runs. A Windows port must match that."
+      "notes": "Once on screen the render server plays it alone: no timer, no view update and no main-thread drawing, however long a turn runs. A Windows port must match that.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-018",
