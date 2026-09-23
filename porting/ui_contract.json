@@ -10536,7 +10536,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:801-826 - `subject(from:kind:)`; :819 `text = text.trimmed`, then the four quote pairs at :821"
       ],
       "notes": "The subject-stripping rules are the visible behavior: a row reads \"https://example.com\" rather than \"Fetched https://example.com\", and \"src/main.ts\" rather than \"Edit file\". Porting the strings without the sixteen phrases, forty-eight verbs and four quote pairs produces visibly different rows.",
-      "b2_change": "Re-cited only, behaviour unchanged: B1 `text = text.trimmingCharacters(in: .whitespacesAndNewlines)` -> B2 `text = text.trimmed`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:132). Line :819 at both baselines; the row text is the same."
+      "b2_change": "Re-cited only, behaviour unchanged: B1 `text = text.trimmingCharacters(in: .whitespacesAndNewlines)` -> B2 `text = text.trimmed`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:132). Line :819 at both baselines; the row text is the same.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10555,7 +10556,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:868"
       ],
-      "notes": "Sentence case, single space, no trailing punctuation. Also one of the ten labels isFallbackTitle refuses to let overwrite a real path (:882)."
+      "notes": "Sentence case, single space, no trailing punctuation. Also one of the ten labels isFallbackTitle refuses to let overwrite a real path (:882).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10574,7 +10576,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:869"
       ],
-      "notes": "Also in the isFallbackTitle list."
+      "notes": "Also in the isFallbackTitle list.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10593,7 +10596,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:870"
       ],
-      "notes": "Covers the agent kinds edit, delete and move, all of which map to .edit."
+      "notes": "Covers the agent kinds edit, delete and move, all of which map to .edit.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10612,7 +10616,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:871"
       ],
-      "notes": "One word, capital S."
+      "notes": "One word, capital S.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10631,7 +10636,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:872"
       ],
-      "notes": "Not \"Fetch URL\" and not \"Browse\"."
+      "notes": "Not \"Fetch URL\" and not \"Browse\".",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10650,7 +10656,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:873,875"
       ],
-      "notes": "Two kinds share this one string. In practice ACP payloads only ever reach it through .other, because the kind mapping never yields .mcp."
+      "notes": "Two kinds share this one string. In practice ACP payloads only ever reach it through .other, because the kind mapping never yields .mcp.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10670,7 +10677,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:874",
         "DroppyCode/Services/Providers/ACPSession.swift:855-864"
       ],
-      "notes": "Specified because the table must be complete and the same table serves other callers; do not delete the row, and do not invent an ACP kind that reaches it."
+      "notes": "Specified because the table must be complete and the same table serves other callers; do not delete the row, and do not invent an ACP kind that reaches it.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10691,7 +10699,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:723-732"
       ],
-      "notes": "The path is always relative to the working directory. An agent reporting the working directory itself never produces a detail line."
+      "notes": "The path is always relative to the working directory. An agent reporting the working directory itself never produces a detail line.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10713,7 +10722,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:756-768"
       ],
-      "notes": "The \"(no output)\" suppression is an exact-string comparison; a padded variant is shown. Output truncation to ToolCall.outputLimit (60000) happens in Timeline.swift, not here."
+      "notes": "The \"(no output)\" suppression is an exact-string comparison; a padded variant is shown. Output truncation to ToolCall.outputLimit (60000) happens in Timeline.swift, not here.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10734,7 +10744,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:840-849",
         "DroppyCode/Services/Providers/ACPSession.swift:734,754-755"
       ],
-      "notes": "Paths are relative to the working directory. Line endings inside the diff text are passed through unchanged."
+      "notes": "Paths are relative to the working directory. Line endings inside the diff text are passed through unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10756,7 +10767,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:889-895",
         "DroppyCode/Services/Providers/ACPSession.swift:769"
       ],
-      "notes": "ToolCall.Status.declined exists but is never produced by this area."
+      "notes": "ToolCall.Status.declined exists but is never produced by this area.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10776,7 +10788,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:577-581",
         "DroppyCode/Core/Models/Requests.swift:36"
       ],
-      "notes": "The question mark is part of the string. PROVACP chooses the kind; Requests.swift owns the wording."
+      "notes": "The question mark is part of the string. PROVACP chooses the kind; Requests.swift owns the wording.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10796,7 +10809,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:579",
         "DroppyCode/Core/Models/Requests.swift:37"
       ],
-      "notes": "A delete or move request is shown with this same wording; that is the source behavior."
+      "notes": "A delete or move request is shown with this same wording; that is the source behavior.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10816,7 +10830,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:580",
         "DroppyCode/Core/Models/Requests.swift:38"
       ],
-      "notes": "PROVACP never produces the .permissions or .plan approval kinds, so \"Grant extra access?\" and \"Ready to build this plan?\" are unreachable from an ACP session."
+      "notes": "PROVACP never produces the .permissions or .plan approval kinds, so \"Grant extra access?\" and \"Ready to build this plan?\" are unreachable from an ACP session.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10836,7 +10851,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:560-562,582-589"
       ],
-      "notes": "ApprovalRequest.reason is never set by this area, so any reason line in the card stays empty for ACP providers."
+      "notes": "ApprovalRequest.reason is never set by this area, so any reason line in the card stays empty for ACP providers.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10864,7 +10880,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:213-217",
         "DroppyCode/Core/Models/Requests.swift:13-24"
       ],
-      "notes": "There are no fixed button labels for ACP: every label comes from the agent. A port that hardcodes Allow/Deny would be inventing text. Buttons appear in the agent's order. In full-access mode, and for edits in auto-accept-edits mode, the card never appears at all."
+      "notes": "There are no fixed button labels for ACP: every label comes from the agent. A port that hardcodes Allow/Deny would be inventing text. Buttons appear in the agent's order. In full-access mode, and for edits in auto-accept-edits mode, the card never appears at all.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10889,7 +10906,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:337-362",
         "DroppyCode/Core/Models/Provider.swift:216-291"
       ],
-      "notes": "The row's primary text is ModelOption.name (the agent's name, or the id), and its secondary text is the agent's description. shortName and chipName transformations are applied by the picker, not here."
+      "notes": "The row's primary text is ModelOption.name (the agent's name, or the id), and its secondary text is the agent's description. shortName and chipName transformations are applied by the picker, not here.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10914,7 +10932,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:413-430",
         "DroppyCode/Services/Providers/ACPSession.swift:385-391"
       ],
-      "notes": "The tick labels come from ModelOption.effortTitle (Provider.swift:284-290): \"xhigh\" and \"extra-high\" both render as \"Extra High\", the empty string renders as \"Default\", and anything else is the value with its first letter uppercased. Grok's descending list is the reason orderedEfforts exists; reference_captures/tour/v5/slider.webp is an approximate oracle for the control's structure only, never for measurement."
+      "notes": "The tick labels come from ModelOption.effortTitle (Provider.swift:284-290): \"xhigh\" and \"extra-high\" both render as \"Extra High\", the empty string renders as \"Default\", and anything else is the value with its first letter uppercased. Grok's descending list is the reason orderedEfforts exists; reference_captures/tour/v5/slider.webp is an approximate oracle for the control's structure only, never for measurement.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10940,7 +10959,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:460-466",
         "DroppyCode/Core/Models/Provider.swift:255"
       ],
-      "notes": "In practice this only ever appears for Cursor, because the option rides on the Cursor-only parameterizedModelPicker capability."
+      "notes": "In practice this only ever appears for Cursor, because the option rides on the Cursor-only parameterizedModelPicker capability.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10965,7 +10985,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:467-474",
         "DroppyCode/Services/Providers/ACPSession.swift:534-536"
       ],
-      "notes": "The build mode id is chosen by the agent's own list order over the four candidates agent, build, code, default, then the first id that is neither plan nor ask."
+      "notes": "The build mode id is chosen by the agent's own list order over the four candidates agent, build, code, default, then the first id that is neither plan nor ask.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -10989,7 +11010,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:528-533",
         "DroppyCode/Core/Models/Provider.swift:293-299"
       ],
-      "notes": "isBuiltIn stays false and skillPath stays nil for every ACP command, so none of them carries a skill payload."
+      "notes": "isBuiltIn stays false and skillPath stays nil for every ACP command, so none of them carries a skill payload.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -11014,7 +11036,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:503-523"
       ],
       "notes": "An OpenCode todowrite call titled \"3 todos\" is routed here and must NOT also appear as a tool row. The step label is the first present string among content, text, step, title.",
-      "b2_change": "Re-cited only, behaviour unchanged: B1 `!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` -> B2 `!text.trimmed.isEmpty`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:132). Line :691 at both baselines; the checklist is the same."
+      "b2_change": "Re-cited only, behaviour unchanged: B1 `!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` -> B2 `!text.trimmed.isEmpty`; `trimmed` is `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }` (DroppyCode/Core/Support/Text.swift:132). Line :691 at both baselines; the checklist is the same.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -11035,7 +11058,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:541-549",
         "DroppyCode/Core/Models/Timeline.swift:331-339"
       ],
-      "notes": "These numbers are occupancy, not spend. They must never reach the token ledger or any cost display; the source comment says so explicitly."
+      "notes": "These numbers are occupancy, not spend. They must never reach the token ledger or any cost display; the source comment says so explicitly.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -11055,7 +11079,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:539-540"
       ],
-      "notes": "Emitted from session_info_update only."
+      "notes": "Emitted from session_info_update only.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -11074,7 +11099,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ACPSession.swift:618"
       ],
-      "notes": "No provider name, trailing full stop, capital T."
+      "notes": "No provider name, trailing full stop, capital T.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -11095,7 +11121,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:627",
         "DroppyCode/Core/Support/Text.swift:17-24"
       ],
-      "notes": "The CLI's own error text reaching the chat verbatim is the intended behavior; do not prefix it with the provider name."
+      "notes": "The CLI's own error text reaching the chat verbatim is the intended behavior; do not prefix it with the provider name.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -11116,7 +11143,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:629-630",
         "DroppyCode/Services/Providers/ACPSession.swift:221-224"
       ],
-      "notes": "The flag-before-kill ordering in stop() is what keeps a deliberate stop from showing this notice."
+      "notes": "The flag-before-kill ordering in stop() is what keeps a deliberate stop from showing this notice.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -11141,7 +11169,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1738-1747 - `func compact() {` ... `try await session.compact()`; the only call of this function is `compact()` at :1166, inside `case \"/compact\" where thread?.provider.supportsCompact == true:` (:1164); no other code calls a session's compact()"
       ],
       "notes": "The display name is substituted verbatim: \"OpenCode Zen\" and \"OpenCode Go\", each with the internal capital C and a space before the plan name. /compact is run locally only when supportsCompact is true, which is false for every ACP kind (Provider.swift:146-148: for every other provider the command goes to the tool). Because nothing else calls a session's compact(), the message is unreachable in the pinned app (and was at B1, whose /compact case at ThreadRuntime.swift:1146 listed no ACP kind).",
-      "b2_change": "\"OpenCode compacts its own context.\" -> \"OpenCode Zen compacts its own context.\", plus the new \"OpenCode Go compacts its own context.\". B1 Provider.swift:25 `case .opencode: \"OpenCode\"` -> B2 Provider.swift:26-27 `case .opencode: \"OpenCode Zen\"` and the new `case .opencodeGo: \"OpenCode Go\"`; B2 Provider.swift:104 adds .opencodeGo to usesACP, so ACPSession now runs for it too. ACPSession.swift:210 is unchanged."
+      "b2_change": "\"OpenCode compacts its own context.\" -> \"OpenCode Zen compacts its own context.\", plus the new \"OpenCode Go compacts its own context.\". B1 Provider.swift:25 `case .opencode: \"OpenCode\"` -> B2 Provider.swift:26-27 `case .opencode: \"OpenCode Zen\"` and the new `case .opencodeGo: \"OpenCode Go\"`; B2 Provider.swift:104 adds .opencodeGo to usesACP, so ACPSession now runs for it too. ACPSession.swift:210 is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -11163,7 +11192,8 @@
         "DroppyCode/Core/Models/Provider.swift:25-28,32 - displayName: `case .cursor: \"Cursor\"`, `case .opencode: \"OpenCode Zen\"`, `case .opencodeGo: \"OpenCode Go\"`, `case .grok: \"Grok\"`, `case .devin: \"Devin\"`"
       ],
       "notes": "The child process is left running when this fires; the guard does not stop it.",
-      "b2_change": "The OpenCode variant \"OpenCode did not start a session.\" -> \"OpenCode Zen did not start a session.\", plus the new \"OpenCode Go did not start a session.\". B1 Provider.swift:25 `case .opencode: \"OpenCode\"` -> B2 Provider.swift:26-27 `case .opencode: \"OpenCode Zen\"` and the new `case .opencodeGo: \"OpenCode Go\"`; B2 Provider.swift:104 adds .opencodeGo to usesACP, so ACPSession now runs for it too. ACPSession.swift:149 is unchanged."
+      "b2_change": "The OpenCode variant \"OpenCode did not start a session.\" -> \"OpenCode Zen did not start a session.\", plus the new \"OpenCode Go did not start a session.\". B1 Provider.swift:25 `case .opencode: \"OpenCode\"` -> B2 Provider.swift:26-27 `case .opencode: \"OpenCode Zen\"` and the new `case .opencodeGo: \"OpenCode Go\"`; B2 Provider.swift:104 adds .opencodeGo to usesACP, so ACPSession now runs for it too. ACPSession.swift:149 is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -11190,7 +11220,8 @@
         "DroppyCode/Core/Models/Provider.swift:25-28,32 - displayName: `case .cursor: \"Cursor\"`, `case .opencode: \"OpenCode Zen\"`, `case .opencodeGo: \"OpenCode Go\"`, `case .grok: \"Grok\"`, `case .devin: \"Devin\"`"
       ],
       "notes": "The login command is wrapped in backticks inside the sentence, and the sentence ends with a full stop after the closing backtick.",
-      "b2_change": "The OpenCode variant \"OpenCode is not installed. Install it and sign in with `opencode auth login`.\" -> \"OpenCode Zen is not installed. Install it and sign in with `opencode auth login`.\", plus the new \"OpenCode Go is not installed. Install it and sign in with `opencode auth login`.\". B1 Provider.swift:25 `case .opencode: \"OpenCode\"` -> B2 Provider.swift:26-27 `case .opencode: \"OpenCode Zen\"` and the new `case .opencodeGo: \"OpenCode Go\"`; B2 Provider.swift:104 adds .opencodeGo to usesACP, so ACPSession now runs for it too; B2 Provider.swift:68 `case .opencodeGo: \"opencode auth login\"`."
+      "b2_change": "The OpenCode variant \"OpenCode is not installed. Install it and sign in with `opencode auth login`.\" -> \"OpenCode Zen is not installed. Install it and sign in with `opencode auth login`.\", plus the new \"OpenCode Go is not installed. Install it and sign in with `opencode auth login`.\". B1 Provider.swift:25 `case .opencode: \"OpenCode\"` -> B2 Provider.swift:26-27 `case .opencode: \"OpenCode Zen\"` and the new `case .opencodeGo: \"OpenCode Go\"`; B2 Provider.swift:104 adds .opencodeGo to usesACP, so ACPSession now runs for it too; B2 Provider.swift:68 `case .opencodeGo: \"opencode auth login\"`.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
@@ -11210,7 +11241,8 @@
         "DroppyCode/Services/Providers/ACPSession.swift:168",
         "DroppyCode/Services/Providers/ProviderSession.swift:170-171"
       ],
-      "notes": "Distinct from the JSON-RPC layer's \"The agent process is not running.\" - both sentences ship and must not be merged."
+      "notes": "Distinct from the JSON-RPC layer's \"The agent process is not running.\" - both sentences ship and must not be merged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVACP",
