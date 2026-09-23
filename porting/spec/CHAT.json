@@ -545,7 +545,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0016",
+        "upstream": "DroppyCode/App/Views/Chat/ThreadTimeline.swift:132-135 `if runtime.isLoadingHistory { Color.clear }`",
+        "port": "While history loads the timeline stays empty for 400 ms, then shows the 64 px loading mark centred in it, fading in over 0.2 s (ED-097)."
+      }
     },
     {
       "id": "PR-CHAT-026",

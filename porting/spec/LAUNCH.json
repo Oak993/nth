@@ -732,7 +732,12 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0016",
+        "upstream": "DroppyCode/App/AppDelegate.swift: the main window is shown once the launch prologue has run; nothing is shown before it",
+        "port": "A launch splash with the 96 px loading mark appears if the main window has not been shown 400 ms after process start, and closes when it is (ED-097). The prologue order is unchanged."
+      }
     },
     {
       "id": "PR-LAUNCH-029",
