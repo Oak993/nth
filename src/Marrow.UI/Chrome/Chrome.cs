@@ -2,10 +2,14 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
+using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
+using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -86,9 +90,8 @@ namespace Marrow.UI.Chrome
 
         public const double ContentBreathBelowChrome = 28; // :39
 
-        // :40
-        public static double ContentTopInset =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:40");
+        // :40 PR-WIN-212: numerically 72, equal to VeilHeight (:41) but an independent declaration; do not fold them.
+        public static double ContentTopInset => ChromeTopPadding + CapsuleHeight + ContentBreathBelowChrome;
 
         public const double VeilHeight = 72; // :41
         public const double TitleStartOffset = 10; // :42
@@ -123,21 +126,18 @@ namespace Marrow.UI.Chrome
         public static SwiftColor SecondaryText { get; } = PrimaryText.Opacity(0.7); // :79
         private static SwiftColor SystemAccent { get; } = SwiftColor.ControlAccentColor; // :80
 
-        // :85
-        public static SwiftColor Accent =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:85");
+        // :85 PR-WIN-209: the theme's accent, or the system control accent for System/Light/Dark.
+        public static SwiftColor Accent => ThemeManager.Spec.Accent ?? SystemAccent;
 
-        // :87 accentNSColor: NSColor is SwiftColor too (ED-092).
-        public static SwiftColor AccentNSColor =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:87");
+        // :87 accentNSColor: NSColor is SwiftColor too (ED-092); the AppKit twin falls back to the control accent
+        // directly rather than to a wrapped copy (PR-WIN-209), so it is the same as Accent under ED-092.
+        public static SwiftColor AccentNSColor => ThemeManager.Spec.Accent ?? SwiftColor.ControlAccentColor;
 
-        // :91
-        public static SwiftColor Success =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:91");
+        // :91 PR-WIN-209: re-read on every access, never cached.
+        public static SwiftColor Success => ThemeManager.Spec.Success;
 
         // :92
-        public static SwiftColor Warning =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:92");
+        public static SwiftColor Warning => ThemeManager.Spec.Warning;
 
         // :93
         public static SwiftColor Danger => ThemeManager.Spec.Danger;
@@ -148,15 +148,21 @@ namespace Marrow.UI.Chrome
         // :98
         public static Animation Hover => Animation.EaseOut(duration: 0.1);
 
-        // :100-104
-        public static Animation PanelSlide =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:100");
+        // The seam behind `NSWorkspace.shared.accessibilityDisplayShouldReduceMotion` (ED-084, port_impacts.md X4);
+        // read live at each call, never cached, as the nine sites PR-WIN-208 names do.
+        public static Ambient<IGeniePlatform> ReduceMotionPlatform { get; } = new(() => new WindowsGeniePlatform());
+
+        // :100-104 PR-WIN-208: a spring, or a 0.18-second ease-out with Reduce Motion; read live at each query point.
+        public static Animation PanelSlide => ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion
+            ? Animation.EaseOut(duration: 0.18)
+            : Animation.Spring(response: 0.32, dampingFraction: 0.9);
 
         public static Spring GlideSpring { get; } = new(response: 0.6, dampingRatio: 0.86); // :108
 
-        // :112-116
-        public static Animation SettleFlight =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:112");
+        // :112-116 PR-WIN-208: the glide spring, or a 0.2-second ease-out with Reduce Motion.
+        public static Animation SettleFlight => ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion
+            ? Animation.EaseOut(duration: 0.2)
+            : Animation.Spring(GlideSpring);
 
         public static SwiftColor Gray { get; } = new(red: 0.556, green: 0.557, blue: 0.576); // :118
         public static SwiftColor Blue { get; } = new(red: 0.040, green: 0.478, blue: 1.000); // :119
@@ -182,13 +188,15 @@ namespace Marrow.UI.Chrome
         // extension AnyTransition (:947-956, :990-1002): `.softAppear` and `.settleGlide` read as SwiftTransition statics.
         extension(SwiftTransition)
         {
-            // :949-955
-            public static SwiftTransition SoftAppear =>
-                throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:949");
+            // :949-955 PR-WIN-206: arrives softly, leaves with a quick 0.12s ease-out fade so removals never drag.
+            public static SwiftTransition SoftAppear => SwiftTransition.Asymmetric(
+                insertion: SwiftTransition.Modifier(active: new SoftAppearModifier(false), identity: new SoftAppearModifier(true)).Animation(Animation.SoftAppear),
+                removal: SwiftTransition.Opacity.Animation(Animation.EaseOut(duration: 0.12)));
 
-            // :994-1001
-            public static SwiftTransition SettleGlide =>
-                throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:994");
+            // :994-1001 PR-WIN-207: arrives softly; leaves on the glide spring, gone before it would land.
+            public static SwiftTransition SettleGlide => SwiftTransition.Asymmetric(
+                insertion: SwiftTransition.Modifier(active: new SoftAppearModifier(false), identity: new SoftAppearModifier(true)).Animation(Animation.SoftAppear),
+                removal: SwiftTransition.Modifier(active: new SettleGlideModifier(1), identity: new SettleGlideModifier(0)).Animation(Animation.Spring(GlideSpring)));
         }
     }
 
@@ -455,39 +463,57 @@ namespace Marrow.UI.Chrome
     // :275-280 struct ChromeQuietButtonStyle: ButtonStyle
     public sealed record ChromeQuietButtonStyle
     {
-        // :277-279 makeBody(configuration:); label is configuration.label.
-        public Control MakeBody(Control label) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:277");
+        // :277-279 makeBody(configuration:); label is configuration.label. PR-WIN-227: the label unchanged, so
+        // pressing shows no dimming, highlight, scale or opacity change; keyboard activation and the button
+        // automation peer are the label's Button, unaffected by this style.
+        public Control MakeBody(Control label) => label;
     }
 
     /// <summary>:282-304 <c>struct ChromeRevealLayout: Layout</c>. Reveals its single child by height.</summary>
     public sealed class ChromeRevealLayout : Panel
     {
+        private double fraction;
+        private Size natural;
+
         // Memberwise init ChromeRevealLayout(fraction:) (ModelsSettingsPage.swift:370, SettingsView.swift:671).
-        public ChromeRevealLayout(double fraction) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:287");
+        public ChromeRevealLayout(double fraction) => this.fraction = fraction;
 
         // :287 var fraction: CGFloat
         public double Fraction
         {
-            get => throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:287");
-            set => throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:287");
+            get => fraction;
+            set { fraction = value; InvalidateMeasure(); }
         }
 
-        // :289-292 var animatableData: CGFloat
+        // :289-292 var animatableData: CGFloat; PR-WIN-229 the layout's animatable value, so a panelSlide transaction
+        // interpolates the slot height frame by frame while the child stays still.
         public double AnimatableData
         {
-            get => throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:290");
-            set => throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:291");
+            get => fraction;
+            set => Fraction = value;
         }
 
-        // :294-298 sizeThatFits(proposal:subviews:cache:)
-        protected override Size MeasureOverride(Size availableSize) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:294");
+        // :294-298 sizeThatFits(proposal:subviews:cache:). PR-WIN-228: the slot is the child's natural width for the
+        // proposed width, and its natural height (measured with no height proposed) times fraction clamped to 0...1.
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            if (Children.Count == 0) return default;
+            var child = Children[0];
+            child.Measure(new Size(availableSize.Width, double.PositiveInfinity));
+            natural = child.DesiredSize;
+            var clamped = Math.Clamp(fraction, 0, 1);
+            return new Size(natural.Width, natural.Height * clamped);
+        }
 
-        // :300-303 placeSubviews(in:proposal:subviews:cache:)
-        protected override Size ArrangeOverride(Size finalSize) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:300");
+        // :300-303 placeSubviews(in:proposal:subviews:cache:). PR-WIN-229: the child is always placed at the slot's
+        // origin, anchored top-leading, at its full natural height, so it never moves and stays mounted at fraction 0.
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            if (Children.Count == 0) return finalSize;
+            var child = Children[0];
+            child.Arrange(new Rect(new Point(0, 0), new Size(finalSize.Width, natural.Height)));
+            return finalSize;
+        }
     }
 
     // MARK: - Chrome controls
@@ -896,10 +922,70 @@ namespace Marrow.UI.Chrome
     // :579-628 struct PaneTopVeil: View
     public sealed class PaneTopVeil : Decorator
     {
+        private readonly Panel host = new() { Height = Chrome.VeilHeight }; // :623 .frame(height:)
+        private Border? baseFade;
+        private Border? tintFade;
+
         /// <param name="model">:582 <c>let model: ChromeScrollModel</c>.</param>
-        // :585-611 body
-        public PaneTopVeil(ChromeScrollModel model) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:585");
+        // :585-611 body. PR-WIN-196, UI-CHAT-058: two 72-point gradients, never hit-testable, drawn only once
+        // progress exceeds zero.
+        public PaneTopVeil(ChromeScrollModel model)
+        {
+            IsHitTestVisible = false; // :624 .allowsHitTesting(false)
+            Child = host;
+            this.Track(() => model.Progress, _ => Draw());
+            ActualThemeVariantChanged += (_, _) => Draw(); // :585 model.progress via colorScheme
+            Draw();
+
+            void Draw()
+            {
+                var progress = model.Progress; // :585
+                var isDark = PlainControls.IsDark(ActualThemeVariant); // :586
+                host.Opacity = 0.08 + 0.92 * progress; // :622
+                if (progress > 0) // :590 `if progress > 0`
+                {
+                    var scrim = isDark ? 0.14 + 0.18 * progress : 0.30 + 0.26 * progress; // :587
+                    var baseColor = (isDark ? SwiftColor.Black : SwiftColor.White).Opacity(scrim); // :588, :596
+                    var tintColor = Chrome.GlassTint.Opacity(isDark ? 0.30 : 0.18); // :589, :597
+                    if (baseFade is null)
+                    {
+                        baseFade = new Border { IsHitTestVisible = false };
+                        tintFade = new Border { IsHitTestVisible = false };
+                        host.Children.Add(baseFade);
+                        host.Children.Add(tintFade!);
+                    }
+                    Fade(baseFade, baseColor);
+                    Fade(tintFade!, tintColor);
+                }
+                else if (baseFade is not null)
+                {
+                    host.Children.Clear();
+                    baseFade = null;
+                    tintFade = null;
+                }
+            }
+        }
+
+        // :613-627 the fade held over the top 28%, eased out by 62%, clear at the bottom.
+        private void Fade(Border layer, SwiftColor color)
+        {
+            var resolved = color.Resolve(ActualThemeVariant);
+            layer.Background = new LinearGradientBrush
+            {
+                StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+                EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+                GradientStops =
+                {
+                    new GradientStop(resolved, 0), // :618
+                    new GradientStop(resolved, 0.28), // :619
+                    new GradientStop(WithAlphaFactor(resolved, 0.45), 0.62), // :620
+                    new GradientStop(WithAlphaFactor(resolved, 0), 1), // :621
+                },
+            };
+        }
+
+        private static Color WithAlphaFactor(Color color, double factor) =>
+            Color.FromArgb((byte)Math.Round(color.A * factor), color.R, color.G, color.B);
     }
 
     // :630-647 struct ChromeCompactTitle: View
@@ -907,9 +993,24 @@ namespace Marrow.UI.Chrome
     {
         /// <param name="title">:632 <c>let title: String</c>.</param>
         /// <param name="model">:633 <c>let model: ChromeScrollModel</c>.</param>
-        // :635-646 body
-        public ChromeCompactTitle(string title, ChromeScrollModel model) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:635");
+        // :635-646 body. PR-WIN-197: opacity equal to progress, a 5-point rise, hidden from assistive technology
+        // below 0.5.
+        public ChromeCompactTitle(string title, ChromeScrollModel model)
+        {
+            var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap }; // :636, :638-639
+            SwiftFont.System(SwiftFont.TextStyle.Title3, weight: SwiftFont.Weight.Semibold).Apply(text); // :638
+            text.Foreground = Chrome.PrimaryText.Brush(text); // :639
+            text.HorizontalAlignment = HorizontalAlignment.Left;
+            HorizontalAlignment = HorizontalAlignment.Stretch; // :642 .frame(maxWidth: .infinity, alignment: .leading)
+            IsHitTestVisible = false; // :643 .allowsHitTesting(false)
+            Child = text;
+            this.Track(() => model.Progress, progress =>
+            {
+                text.Opacity = progress; // :640
+                text.RenderTransform = new TranslateTransform(0, (1 - progress) * 5); // :641
+                AutomationProperties.SetAccessibilityView(this, progress < 0.5 ? AccessibilityView.Raw : AccessibilityView.Content); // :644
+            });
+        }
     }
 
     // MARK: - Sidebar pieces
@@ -917,28 +1018,54 @@ namespace Marrow.UI.Chrome
     // :651-668 struct SidebarSymbol: View
     public sealed class SidebarSymbol : Decorator
     {
-        // :655-658 init(_ name: String, scale: CGFloat = 1); :660-667 body
-        public SidebarSymbol(string name, double scale = 1) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:655");
+        // :655-658 init(_ name: String, scale: CGFloat = 1); :660-667 body. PR-WIN-198: fitted into a
+        // symbolSize * scale box, monochrome (ED-179, ED-182; OD-0010 Lucide).
+        public SidebarSymbol(string name, double scale = 1)
+        {
+            var side = Chrome.SymbolSize * scale; // :664
+            var image = SwiftImage.SystemName(name) // :661
+                .Resizable() // :662
+                .Interpolation(BitmapInterpolationMode.HighQuality) // :663
+                .AspectRatio(ContentMode.Fit) // :665
+                .SymbolRenderingMode(Marrow.UI.Port.SymbolRenderingMode.Monochrome); // :667
+            image.Width = side; // :664
+            image.Height = side;
+            Child = image;
+        }
     }
 
     // :670-679 struct SidebarIconBadge<Glyph: View>: View
     public sealed class SidebarIconBadge : Decorator
     {
         /// <param name="glyph">:672 <c>@ViewBuilder var glyph: Glyph</c>.</param>
-        // :674-678 body
-        public SidebarIconBadge(Func<Control> glyph) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:674");
+        // :674-678 body. PR-WIN-199: a 20-point box at 0.85 of the label colour, nothing drawn behind it.
+        public SidebarIconBadge(Func<Control> glyph)
+        {
+            var g = glyph(); // :675
+            g.SetValue(TextElement.ForegroundProperty, Chrome.PrimaryText.Opacity(0.85).Brush(g)); // :676
+            g.HorizontalAlignment = HorizontalAlignment.Center;
+            g.VerticalAlignment = VerticalAlignment.Center;
+            Child = new Panel { Width = Chrome.IconSize, Height = Chrome.IconSize, Children = { g } }; // :677
+        }
     }
 
     // :681-757 struct SidebarRow<Icon: View, Accessory: View>: View
     public sealed class SidebarRow : Decorator
     {
+        // :690 @State private var isHovering = false
+        private sealed class ViewState : MainActorModel
+        {
+            private bool isHovering;
+
+            public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+        }
+
         /// <summary>:692-708 <c>init(title:isSelected:isEmphasized:accessoryWidth:action:icon:accessory:)</c>; action,
         /// icon and accessory have no default, so they move before the defaulted ones (ED-095) and callers name the
         /// labels. <paramref name="icon"/> is the @ViewBuilder icon, <paramref name="accessory"/> the @ViewBuilder
         /// <c>(Bool) -&gt; Accessory</c> given the hover state.</summary>
-        // :710-739 body
+        // :710-739 body. PR-WIN-200: a 28-point row, radius 7, three fill states, its trailing padding reserving
+        // room for the accessory.
         public SidebarRow(
             string title,
             Action action,
@@ -946,25 +1073,129 @@ namespace Marrow.UI.Chrome
             Func<bool, Control> accessory,
             bool isSelected = false,
             bool isEmphasized = false,
-            double accessoryWidth = 0) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:692");
+            double accessoryWidth = 0)
+        {
+            var state = new ViewState();
+            var iconSlot = icon(); // :712
+            iconSlot.Width = Chrome.IconSize; // :713 .frame(width:, alignment: .center)
+            iconSlot.HorizontalAlignment = HorizontalAlignment.Center;
+
+            var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap }; // :714, :718-719
+            void ApplyText()
+            {
+                SwiftFont.System(SwiftFont.TextStyle.Body, weight: isSelected || isEmphasized ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(text); // :717
+                text.Foreground = Chrome.PrimaryText.Opacity(isSelected ? 1 : 0.92).Brush(text); // :718
+            }
+            ApplyText();
+
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8, // :711 HStack(spacing: 8)
+                Children = { iconSlot, text }, // :712-720 Spacer(minLength: 4) satisfied by stretch below
+            };
+            foreach (var part in row.Children) part.VerticalAlignment = VerticalAlignment.Center;
+
+            var shape = new Border // :722 RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous).fill(fill)
+            {
+                Padding = new Thickness(Chrome.RowHorizontalPadding, 0, Chrome.RowHorizontalPadding + accessoryWidth, 0), // :725-726
+                Height = Chrome.RowHeight, // :727
+                HorizontalAlignment = HorizontalAlignment.Stretch, // :728
+                Background = Brushes.Transparent,
+                Child = row,
+            }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous);
+            var fill = new AnimatedColor(shape);
+            shape.Background = fill.Brush;
+            fill.Set(FillFor(isSelected, false), null);
+
+            var button = new SelectableButton(isSelected) { Template = PlainButtonTemplate, Content = shape, Padding = default }; // :709, :730
+            button.Click += (_, _) => action();
+            button.Track(() => state.IsHovering, hovering =>
+            {
+                Transaction.WithAnimation(Chrome.Hover, () => fill.Set(FillFor(isSelected, hovering), Transaction.Current)); // :729
+            });
+            button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :735-737
+
+            var overlay = new Panel { Children = { button } };
+            button.Track(() => state.IsHovering, hovering =>
+            {
+                var built = accessory(hovering); // :732-733
+                built.Margin = new Thickness(0, 0, 6, 0); // :734
+                built.HorizontalAlignment = HorizontalAlignment.Right;
+                built.VerticalAlignment = VerticalAlignment.Center;
+                if (overlay.Children.Count > 1) overlay.Children.RemoveAt(overlay.Children.Count - 1);
+                overlay.Children.Add(built);
+            });
+
+            AutomationProperties.SetName(button, title); // :738 AddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+
+            Child = overlay;
+        }
+
+        // ENGINEERING DECISION (skeleton, no rule names the form): Avalonia's Button peer carries no selection
+        // state; :738 `.accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)` is exposed through
+        // ISelectionItemProvider, the platform's own selectable-item automation pattern, alongside the button's
+        // invoke behaviour.
+        private sealed class SelectableButton(bool isSelected) : Button
+        {
+            protected override AutomationPeer OnCreateAutomationPeer() => new Peer(this, isSelected);
+
+            private sealed class Peer(Control owner, bool isSelected) : ControlAutomationPeer(owner), ISelectionItemProvider, IInvokeProvider
+            {
+                protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Button;
+                bool ISelectionItemProvider.IsSelected => isSelected;
+                ISelectionProvider? ISelectionItemProvider.SelectionContainer => null;
+                void ISelectionItemProvider.AddToSelection() { }
+                void ISelectionItemProvider.RemoveFromSelection() { }
+                void ISelectionItemProvider.Select() { }
+                void IInvokeProvider.Invoke() => ((Button)Owner).Focus();
+            }
+        }
+
+        // Same template PlainControls uses for `.buttonStyle(.plain)` (PlainControls.cs); duplicated here because
+        // SelectableButton needs its own automation peer, not PlainControls.Button's.
+        private static readonly Avalonia.Controls.Templates.FuncControlTemplate<Button> PlainButtonTemplate = new((btn, scope) =>
+            new ContentPresenter
+            {
+                Name = "PART_ContentPresenter",
+                [!ContentPresenter.ContentProperty] = btn[!ContentControl.ContentProperty],
+            }.RegisterInNameScope(scope));
 
         /// <summary>:748-757 <c>extension SidebarRow where Accessory == EmptyView</c>,
         /// <c>init(title:isSelected:action:icon:)</c>.</summary>
-        public SidebarRow(string title, Action action, Func<Control> icon, bool isSelected = false) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:749");
+        public SidebarRow(string title, Action action, Func<Control> icon, bool isSelected = false)
+            : this(title, action, icon, _ => new Panel(), isSelected)
+        {
+        }
 
-        // :741-745
-        private SwiftColor Fill =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:741");
+        // :741-745. PR-WIN-200: the primary label colour at 0.12 selected, 0.06 hovered, clear otherwise.
+        private static SwiftColor FillFor(bool isSelected, bool isHovering)
+        {
+            if (isSelected) return Chrome.Overlay(0.12); // :742
+            if (isHovering) return Chrome.Overlay(0.06); // :743
+            return SwiftColor.Clear; // :744
+        }
     }
 
     // :759-773 struct RowAccessoryIcon: View
     public sealed class RowAccessoryIcon : Decorator
     {
-        // :762-764 init(_ symbol: String); :766-772 body
-        public RowAccessoryIcon(string symbol) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:762");
+        // :762-764 init(_ symbol: String); :766-772 body. PR-WIN-201: a semibold subheadline glyph in
+        // Chrome.secondaryText, centred in a 20 by 20 rectangular hit box.
+        public RowAccessoryIcon(string symbol)
+        {
+            var image = Symbols.Image(symbol, Chrome.InlineIconFont) // :767-768
+                .ForegroundStyle(Chrome.SecondaryText); // :769
+            image.HorizontalAlignment = HorizontalAlignment.Center;
+            image.VerticalAlignment = VerticalAlignment.Center;
+            Child = new Panel
+            {
+                Width = 20, // :770
+                Height = 20,
+                Background = Brushes.Transparent, // :771 .contentShape(.rect)
+                Children = { image },
+            };
+        }
     }
 
     // :775-823 struct SidebarSearchField: View
@@ -1269,45 +1500,57 @@ namespace Marrow.UI.Chrome
     /// a Bool, so SwiftUI gives it EmptyAnimatableData.</summary>
     public sealed record SoftAppearModifier(bool IsVisible) : IAnimatableModifier // :938
     {
-        // :937 (no animatableData: EmptyAnimatableData)
-        public ImmutableArray<double> AnimatableData =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:937");
+        // :937 (no animatableData: EmptyAnimatableData): a Bool carries no interpolated value.
+        public ImmutableArray<double> AnimatableData => ImmutableArray<double>.Empty;
 
-        // :937
-        public IAnimatableModifier WithAnimatableData(ImmutableArray<double> data) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:937");
+        // :937: nothing to restore with no animatable data (never reached: Kind.Mod skips the interpolated branch
+        // when both sides have zero-length data, SwiftAnimation.cs Gather).
+        public IAnimatableModifier WithAnimatableData(ImmutableArray<double> data) => this;
 
-        // :940-944
-        public Control Body(Control content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:940");
+        // :940-944. PR-WIN-206: opacity and offset are plain layer properties, so no wrapper is needed.
+        public Control Body(Control content) => content;
 
         // :940-944, applied per frame (ED-098)
-        public void Update(Control body) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:940");
+        public void Update(Control body)
+        {
+            body.Opacity = IsVisible ? 1 : 0; // :942
+            body.RenderTransform = new TranslateTransform(0, IsVisible ? 0 : 4); // :943
+        }
     }
 
     // :963-988 private struct SettleGlideModifier: ViewModifier, Animatable (ED-098)
     file sealed record SettleGlideModifier(double Progress) : IAnimatableModifier // :968
     {
         // :970-973 var animatableData: Double
-        public ImmutableArray<double> AnimatableData =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:971");
+        public ImmutableArray<double> AnimatableData => ImmutableArray.Create(Progress);
 
         // :972
-        public IAnimatableModifier WithAnimatableData(ImmutableArray<double> data) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:972");
+        public IAnimatableModifier WithAnimatableData(ImmutableArray<double> data) => this with { Progress = data[0] };
 
-        // :975-982
-        public Control Body(Control content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:975");
+        // :975-982. PR-WIN-207: opacity, offset and scale are plain layer properties, so no wrapper is needed.
+        public Control Body(Control content) => content;
 
         // :975-982, applied per frame (ED-098)
-        public void Update(Control body) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:975");
+        public void Update(Control body)
+        {
+            var reduceMotion = Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion; // :976
+            var fade = reduceMotion ? Progress : Smoothstep(0.45, 0.92, Progress); // :977
+            body.Opacity = 1 - fade; // :979
+            var offsetY = reduceMotion ? 0 : 22 * Progress; // :980
+            var scale = reduceMotion ? 1 : 1 - 0.04 * Progress; // :981
+            body.RenderTransformOrigin = new RelativePoint(0.5, 0, RelativeUnit.Relative); // :981 anchor: .top
+            var group = new TransformGroup();
+            group.Children.Add(new TranslateTransform(0, offsetY)); // :980, applied before the anchored scale
+            group.Children.Add(new ScaleTransform(scale, scale)); // :981
+            body.RenderTransform = group;
+        }
 
         // :984-987
-        private static double Smoothstep(double edge0, double edge1, double x) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:984");
+        private static double Smoothstep(double edge0, double edge1, double x)
+        {
+            var t = Math.Clamp((x - edge0) / (edge1 - edge0), 0, 1);
+            return t * t * (3 - 2 * t);
+        }
     }
 
     // MARK: - Cards
@@ -1316,9 +1559,18 @@ namespace Marrow.UI.Chrome
     public sealed class ChromeCard : Decorator
     {
         /// <param name="content">:1007 <c>@ViewBuilder var content: Content</c>.</param>
-        // :1009-1020 body
-        public ChromeCard(Func<Control> content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1009");
+        // :1009-1020 body. PR-WIN-202: rows stacked with no spacing on a continuous rounded-16 fill at 0.03; a fill
+        // rather than a clip, so scrolling costs no offscreen mask pass (avalonia has no lazy-stack primitive here,
+        // so the rows are built eagerly; the fill-not-clip property is still reproduced).
+        public ChromeCard(Func<Control> content)
+        {
+            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, HorizontalAlignment = HorizontalAlignment.Stretch }; // :1011-1013
+            stack.Children.Add(content());
+            var border = new Border { Child = stack, HorizontalAlignment = HorizontalAlignment.Stretch } // :1014
+                .RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous); // :1017-1018
+            border.Background = Chrome.Overlay(0.03).Brush(border); // :1019
+            Child = border;
+        }
     }
 
     // :1023-1047 struct ChromeSection<Content: View>: View
@@ -1328,9 +1580,27 @@ namespace Marrow.UI.Chrome
         /// <param name="content">:1029 <c>@ViewBuilder var content: Content</c>.</param>
         /// <param name="accessory">:1026 <c>var accessory: AnyView? = nil</c>.</param>
         /// <param name="trailing">:1028 <c>var trailing: AnyView? = nil</c>.</param>
-        // :1031-1046 body
-        public ChromeSection(string title, Func<Control> content, Control? accessory = null, Control? trailing = null) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1031");
+        // :1031-1046 body. PR-WIN-203: a semibold body-style heading in the secondary text colour, an optional
+        // accessory 4 points after it, an optional trailing control pushed to the far right, content 10 points below.
+        public ChromeSection(string title, Func<Control> content, Control? accessory = null, Control? trailing = null)
+        {
+            var heading = new TextBlock { Text = title, MaxLines = 1 }; // :1034
+            SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold).Apply(heading); // :1035
+            heading.Foreground = Chrome.SecondaryText.Brush(heading); // :1036
+            var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 }; // :1033 HStack(spacing: 4)
+            header.Children.Add(heading);
+            if (accessory is not null) header.Children.Add(accessory); // :1037
+            if (trailing is not null)
+            {
+                trailing.Margin = new Thickness(8, 0, 0, 0); // :1039 Spacer(minLength: 8)
+                header.Children.Add(trailing); // :1040
+            }
+            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = Chrome.SectionHeaderSpacing, HorizontalAlignment = HorizontalAlignment.Stretch }; // :1032, :1044
+            stack.Children.Add(header);
+            stack.Children.Add(content()); // :1042
+            Child = stack;
+            HorizontalAlignment = HorizontalAlignment.Stretch; // :1044
+        }
     }
 
     // :1049-1074 struct ChromeRow<Control: View>: View
@@ -1339,17 +1609,53 @@ namespace Marrow.UI.Chrome
         /// <param name="title">:1050 <c>let title: String</c>.</param>
         /// <param name="control">:1052 <c>@ViewBuilder var control: Control</c>.</param>
         /// <param name="detail">:1051 <c>var detail: String?</c>.</param>
-        // :1054-1073 body
-        public ChromeRow(string title, Func<Control> control, string? detail = null) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1054");
+        // :1054-1073 body. PR-WIN-204: a body-style title over an optional non-empty subheadline detail, control
+        // at the trailing edge.
+        public ChromeRow(string title, Func<Control> control, string? detail = null)
+        {
+            var titleText = new TextBlock { Text = title }; // :1058-1059
+            SwiftFont.System(SwiftFont.TextStyle.Body).Apply(titleText); // :1058
+            titleText.Foreground = Chrome.PrimaryText.Brush(titleText); // :1059
+            var textStack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, HorizontalAlignment = HorizontalAlignment.Left }; // :1057, :1060
+            textStack.Children.Add(titleText);
+            if (!string.IsNullOrEmpty(detail)) // :1061 `if let detail, !detail.isEmpty`
+            {
+                var detailText = new TextBlock { Text = detail, TextWrapping = TextWrapping.Wrap }; // :1062-1064
+                SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(detailText); // :1062
+                detailText.Foreground = Chrome.SecondaryText.Brush(detailText); // :1063
+                textStack.Children.Add(detailText);
+            }
+            var controlView = control(); // :1067
+            controlView.Margin = new Thickness(12, 0, 0, 0); // :1066 Spacer(minLength: 12)
+            controlView.HorizontalAlignment = HorizontalAlignment.Right;
+            controlView.VerticalAlignment = VerticalAlignment.Center;
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") }; // :1056 HStack(spacing: 16)
+            textStack.HorizontalAlignment = HorizontalAlignment.Stretch;
+            Grid.SetColumn(textStack, 0);
+            Grid.SetColumn(controlView, 1);
+            row.Children.Add(textStack);
+            row.Children.Add(controlView);
+            row.VerticalAlignment = VerticalAlignment.Center;
+            var border = new Border
+            {
+                Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), // :1068-1070
+                Child = row,
+            };
+            Child = border;
+        }
     }
 
     // :1076-1081 struct ChromeRowDivider: View
     public sealed class ChromeRowDivider : Decorator
     {
-        // :1077-1080 body
-        public ChromeRowDivider() =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:1077");
+        // :1077-1080 body. PR-WIN-205: a hairline inset 16 points from the leading edge only.
+        public ChromeRowDivider()
+        {
+            var line = new Border { BorderThickness = new Thickness(0, 0, 0, 1), Height = 1 };
+            line.BorderBrush = Chrome.Overlay(0.14).Brush(line); // the hairline colour ChromeDivider (:327) also uses
+            Child = line;
+            Margin = new Thickness(16, 0, 0, 0); // :1079 .padding(.leading, 16)
+        }
     }
 
     // MARK: - Window drag
@@ -1446,8 +1752,7 @@ namespace Marrow.UI.Port
 {
     public abstract partial record Animation
     {
-        // :960
-        public static Animation SoftAppear =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/UI/Chrome/Chrome.swift:960");
+        // :960 PR-WIN-206, PR-WIN-208: the timing every soft appearance shares, a 0.32-second smooth curve.
+        public static Animation SoftAppear => Smooth(duration: 0.32);
     }
 }
