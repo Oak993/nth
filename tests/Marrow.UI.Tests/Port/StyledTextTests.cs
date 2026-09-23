@@ -11,7 +11,8 @@ using Marrow.UI.Tests.Fixtures;
 namespace Marrow.UI.Tests.Port;
 
 // ED-092(3), ED-158: SwiftUI Text values render one inline per run, including image runs.
-// O-49 pins the image baseline and O-50 pins inner modifier precedence.
+// UNVERIFIED: image baseline expectations rest on open oracle O-49; inner modifier precedence
+// rests on open oracle O-50. These are parked assumptions, not established macOS requirements.
 [Collection("Headless")]
 public sealed class StyledTextTests(HeadlessSession headless)
 {
