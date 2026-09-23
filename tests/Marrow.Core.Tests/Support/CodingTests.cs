@@ -27,6 +27,7 @@ public sealed class CodingTests
     public void Storage_sorts_keys_at_every_level_keeps_array_order_is_one_compact_line_and_escapes_slashes()
     {
         // Keys are plain lowercase ASCII letters, where an ordinal sort and Foundation's collation agree (R-CODE-9).
+        // Every string is printable ASCII, so no expectation here rests on the open escaping items (O-12, UNK-0003).
         var payload = new Dictionary<string, object?>
         {
             ["z"] = new object[]
@@ -34,15 +35,30 @@ public sealed class CodingTests
                 new Dictionary<string, object?> { ["z"] = 2, ["a"] = "a/b" },
                 new Dictionary<string, object?> { ["b"] = false, ["a"] = 1 },
             },
-            ["m"] = new Dictionary<string, object?> { ["y"] = "line1\nline2", ["b"] = new[] { 3, 1, 2 } },
+            ["m"] = new Dictionary<string, object?> { ["y"] = "line", ["b"] = new[] { 3, 1, 2 } },
             ["a"] = "https://host/path",
         };
         var json = Text(Coding.Encode(payload));
         Assert.Equal(
-            "{\"a\":\"https:\\/\\/host\\/path\",\"m\":{\"b\":[3,1,2],\"y\":\"line1\\nline2\"}," +
+            "{\"a\":\"https:\\/\\/host\\/path\",\"m\":{\"b\":[3,1,2],\"y\":\"line\"}," +
             "\"z\":[{\"a\":\"a\\/b\",\"z\":2},{\"a\":1,\"b\":false}]}", json);
-        Assert.DoesNotContain("\n", json, StringComparison.Ordinal); // not pretty-printed: one line (:23 has no .prettyPrinted)
         Assert.DoesNotContain(" : ", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-STORE-017")] // Core/Support/Coding.swift:23
+    public void Text_holding_line_breaks_still_saves_as_one_line()
+    {
+        // :23 sets no .prettyPrinted, and JSON never carries a raw line break inside a string, so the file has no
+        // CR or LF byte whatever escape form the breaks take (that form is O-12, pinned by an Oracle test below).
+        var payload = new Dictionary<string, object?> { ["b"] = new[] { "one\ntwo", "three\r\nfour" }, ["a"] = "x\ry" };
+        var bytes = Coding.Encode(payload);
+        Assert.DoesNotContain((byte)'\n', bytes);
+        Assert.DoesNotContain((byte)'\r', bytes);
+        var reloaded = Coding.Decode<JsonElement>(bytes);
+        Assert.Equal("x\ry", reloaded.GetProperty("a").GetString());
+        Assert.Equal("one\ntwo", reloaded.GetProperty("b")[0].GetString());
+        Assert.Equal("three\r\nfour", reloaded.GetProperty("b")[1].GetString());
     }
 
     [Fact]

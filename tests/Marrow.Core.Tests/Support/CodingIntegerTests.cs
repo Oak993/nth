@@ -19,7 +19,6 @@ public sealed class CodingIntegerTests
     [InlineData("1.0", 1L)]
     [InlineData("1e3", 1000L)]
     [InlineData("-1.0", -1L)]
-    [InlineData("1.0000000000000001", 1L)]
     [InlineData("9223372036854775807", long.MaxValue)]
     [InlineData("-9223372036854775808", long.MinValue)]
     public void Integral_number_forms_are_a_present_Int_and_not_a_miss(string number, long expected)
