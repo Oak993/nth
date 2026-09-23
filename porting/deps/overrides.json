@@ -1,0 +1,16 @@
+{
+ "note": "Orchestrator overrides read by plan_units.py. ED-177: MCPPaths (MCP.swift:236-253) moved up to Services because it builds on Storage.root, so its records belong to the Services.Store.Storage unit and every file that uses MCPPaths waits for that unit.",
+ "assign": {
+  "PR-MCP-084": "DroppyCode/Services/Store/Storage.swift",
+  "PR-STORE-011": "DroppyCode/Services/Store/Storage.swift"
+ },
+ "extra_deps": {
+  "DroppyCode/Services/MCP/MCPHub.swift": ["DroppyCode/Services/Store/Storage.swift"],
+  "DroppyCode/Services/MCP/MCPProviderConfig.swift": ["DroppyCode/Services/Store/Storage.swift"],
+  "DroppyCode/Services/MCP/MCPProxy.swift": ["DroppyCode/Services/Store/Storage.swift"],
+  "DroppyCode/Services/MCP/MCPSessionOverrides.swift": ["DroppyCode/Services/Store/Storage.swift"],
+  "DroppyCode/Services/MCP/MCPStore.swift": ["DroppyCode/Services/Store/Storage.swift"],
+  "DroppyCode/Services/Providers/CommandCodeSession.swift": ["DroppyCode/Services/Store/Storage.swift"],
+  "DroppyCode/Services/Providers/PiSession.swift": ["DroppyCode/Services/Store/Storage.swift"]
+ }
+}

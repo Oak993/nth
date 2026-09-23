@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 528,
+      "IMPLEMENTED": 526,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 3351,
+      "SPECIFIED": 3353,
       "RETIRED": 6,
       "DISCOVERED": 28
     },
@@ -27988,7 +27988,7 @@
       "cancellation": "not cancellable",
       "windows_path": "<data root> is %LOCALAPPDATA%\\<AppName>\\ and the mcp subdirectory is %LOCALAPPDATA%\\<AppName>\\mcp\\. Putting mcp.json or custom-mcp.json inside mcp\\ silently loses every connection and custom server. The bridge file, which macOS writes to <Application Support>/<AppName>/MCP/, collapses onto the same mcp\\ folder on a case-insensitive filesystem and is written there (PR-MCP-193). managed.json is used only by MCPExternalSync, which is not ported (ED-061, PR-MCP-176), so the port neither reads nor writes it.",
       "verification_method": "restart test plus a file-inventory assertion",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -75978,7 +75978,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One root constant with these eleven names hanging off it, and one migration routine that moves the whole folder rather than named files.",
       "verification_method": "restart test over a populated store, asserting all eleven entries survive a root move",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
