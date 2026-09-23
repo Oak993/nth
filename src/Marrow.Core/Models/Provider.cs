@@ -8,10 +8,13 @@ namespace Marrow.Core.Models;
 // Source: DroppyCode/Core/Models/Provider.swift (B2 1fbf81e), :1-351.
 // SKELETON (cycle c4). Every member with behaviour throws MARROW_STUB until its unit ports it.
 // Codable conformance (the synthesized coding and :244-253 init(from:)) is left to the implementing unit.
-// Unit Core.Models.Provider part 1 of 5 implements: ProviderKind.Id, DisplayName, ExecutableName, IconName
+// Unit Core.Models.Provider part 1 of 5 implemented ProviderKind.Id, DisplayName, ExecutableName, IconName
 // and LoginCommand (PR-PROVREG-001 to 012, PR-PROVCLI-203, 266, 317), and SlashCommand.NameIn,
-// ClaudeCommands, CodexSkills and CodexInput (PR-PROVCLI-345 to 353). Every other member in this file stays
-// MARROW_STUB for a later part.
+// ClaudeCommands, CodexSkills and CodexInput (PR-PROVCLI-345 to 353). Part 1's switch statements already
+// covered every ProviderKind case, so part 2 of 5 (PR-PROVREG-013 to 036: commandcode and pi identity, and
+// executableName/loginCommand for every remaining case) adds no new arms, only proves the remaining record
+// ids against DisplayName, ExecutableName, IconName and LoginCommand as part 1 wrote them. Every other
+// member in this file stays MARROW_STUB for a later part.
 
 // :3-18
 public enum ProviderKind
@@ -54,31 +57,31 @@ public static class ProviderKindExtensions
             ProviderKind.Devin => "Devin", // :32
             ProviderKind.Antigravity => "Antigravity", // :33
             ProviderKind.Copilot => "Copilot", // :34
-            ProviderKind.Commandcode => "Command Code", // :35
-            ProviderKind.Pi => "Pi", // :36
+            ProviderKind.Commandcode => "Command Code", // :35 - PR-PROVREG-013
+            ProviderKind.Pi => "Pi", // :36 - PR-PROVREG-014
             _ => throw new UnreachableException(),
         };
 
         // :40-57. deepseek, meta and zai are API-key providers with no local CLI, so the empty string.
         public string ExecutableName => kind switch
         {
-            ProviderKind.Codex => "codex", // :42
-            ProviderKind.Claude => "claude", // :43
-            ProviderKind.Cursor => "cursor-agent", // :44
-            ProviderKind.Opencode => "opencode", // :45
-            ProviderKind.OpencodeGo => "opencode", // :46
-            ProviderKind.Grok => "grok", // :47
-            ProviderKind.Deepseek => "", // :48
-            ProviderKind.Meta => "", // :49
-            ProviderKind.Zai => "", // :50
-            ProviderKind.Devin => "devin", // :51
-            ProviderKind.Antigravity => "agy", // :52 - PR-PROVCLI-317
-            ProviderKind.Copilot => "copilot", // :53
-            ProviderKind.Commandcode => "cmd", // :54 - PR-PROVCLI-203. See PA-0016/ED-020/ED-127 for the
-                                                // Windows resolver that keeps this literal name from matching
-                                                // the command interpreter; that resolver lives in the
-                                                // ProviderRegistry unit, not here.
-            ProviderKind.Pi => "pi", // :55 - PR-PROVCLI-266
+            ProviderKind.Codex => "codex", // :42 - PR-PROVREG-015
+            ProviderKind.Claude => "claude", // :43 - PR-PROVREG-016
+            ProviderKind.Cursor => "cursor-agent", // :44 - PR-PROVREG-017
+            ProviderKind.Opencode => "opencode", // :45 - PR-PROVREG-018
+            ProviderKind.OpencodeGo => "opencode", // :46 - PR-PROVREG-018
+            ProviderKind.Grok => "grok", // :47 - PR-PROVREG-019
+            ProviderKind.Deepseek => "", // :48 - PR-PROVREG-020
+            ProviderKind.Meta => "", // :49 - PR-PROVREG-021
+            ProviderKind.Zai => "", // :50 - PR-PROVREG-022
+            ProviderKind.Devin => "devin", // :51 - PR-PROVREG-023
+            ProviderKind.Antigravity => "agy", // :52 - PR-PROVCLI-317, PR-PROVREG-024
+            ProviderKind.Copilot => "copilot", // :53 - PR-PROVREG-025
+            ProviderKind.Commandcode => "cmd", // :54 - PR-PROVCLI-203, PR-PROVREG-026. See PA-0016/ED-020/
+                                                // ED-127 for the Windows resolver that keeps this literal
+                                                // name from matching the command interpreter; that resolver
+                                                // lives in the ProviderRegistry unit, not here.
+            ProviderKind.Pi => "pi", // :55 - PR-PROVCLI-266, PR-PROVREG-027
             _ => throw new UnreachableException(),
         };
 
@@ -88,16 +91,16 @@ public static class ProviderKindExtensions
         // :62-79.
         public string LoginCommand => kind switch
         {
-            ProviderKind.Codex => "codex login", // :64
-            ProviderKind.Claude => "claude auth login", // :65
-            ProviderKind.Cursor => "cursor-agent login", // :66
-            ProviderKind.Opencode => "opencode auth login", // :67
-            ProviderKind.OpencodeGo => "opencode auth login", // :68
-            ProviderKind.Grok => "grok login", // :69
-            ProviderKind.Deepseek => "DEEPSEEK_API_KEY=sk-...", // :70
-            ProviderKind.Meta => "MODEL_API_KEY=...", // :71
-            ProviderKind.Zai => "ZAI_API_KEY=...", // :72
-            ProviderKind.Devin => "devin auth login", // :73
+            ProviderKind.Codex => "codex login", // :64 - PR-PROVREG-028
+            ProviderKind.Claude => "claude auth login", // :65 - PR-PROVREG-029
+            ProviderKind.Cursor => "cursor-agent login", // :66 - PR-PROVREG-030
+            ProviderKind.Opencode => "opencode auth login", // :67 - PR-PROVREG-031
+            ProviderKind.OpencodeGo => "opencode auth login", // :68 - PR-PROVREG-031
+            ProviderKind.Grok => "grok login", // :69 - PR-PROVREG-032
+            ProviderKind.Deepseek => "DEEPSEEK_API_KEY=sk-...", // :70 - PR-PROVREG-033
+            ProviderKind.Meta => "MODEL_API_KEY=...", // :71 - PR-PROVREG-034
+            ProviderKind.Zai => "ZAI_API_KEY=...", // :72 - PR-PROVREG-035
+            ProviderKind.Devin => "devin auth login", // :73 - PR-PROVREG-036
             ProviderKind.Antigravity => "agy", // :74 - PR-PROVCLI-317
             ProviderKind.Copilot => "copilot login", // :75
             ProviderKind.Commandcode => "cmd login", // :76 - PR-PROVCLI-203
