@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 460,
+      "IMPLEMENTED": 471,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 3414,
+      "SPECIFIED": 3403,
       "RETIRED": 6,
       "DISCOVERED": 33
     },
@@ -36705,7 +36705,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same URLs and constant.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36730,7 +36730,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same request.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36755,7 +36755,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same parsing and comparator.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36779,7 +36779,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two lists and the same exact-id test.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36800,7 +36800,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals including the middle dot separators.",
       "verification_method": "unit plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36821,7 +36821,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36842,7 +36842,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36863,7 +36863,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36884,7 +36884,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36906,7 +36906,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same case-insensitive prefix test.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36927,7 +36927,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same test including the nil-is-true branch, which differs from DeepSeek and Z.ai.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
