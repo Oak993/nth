@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 1482,
+      "IMPLEMENTED": 1493,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 2407,
+      "SPECIFIED": 2396,
       "RETIRED": 6,
       "DISCOVERED": 18
     },
@@ -36950,7 +36950,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same configuration, including the per-model identity string.",
       "verification_method": "unit plus contract fixture on the request body",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36973,7 +36973,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same keys, and nothing extra.",
       "verification_method": "contract fixture on the request body",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36996,7 +36996,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same mapping, including the nil-model default.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -37019,7 +37019,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same tests and message, keeping the U+2192 arrows.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -37042,7 +37042,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same tests and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -37065,7 +37065,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same tests and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -37088,7 +37088,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same tests and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -37111,7 +37111,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same test and message, keeping the straight quotes.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -37134,7 +37134,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same tests and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -37157,7 +37157,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same test and message.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -37180,7 +37180,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Preserve the branch order; reordering changes which message a user sees.",
       "verification_method": "unit with overlapping inputs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

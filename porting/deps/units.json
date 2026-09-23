@@ -4555,40 +4555,14 @@
    ],
    "intra_deps": [],
    "records_total": 11,
-   "records_todo": [
-    "PR-PROVAPI-045",
-    "PR-PROVAPI-046",
-    "PR-PROVAPI-047",
-    "PR-PROVAPI-048",
-    "PR-PROVAPI-049",
-    "PR-PROVAPI-050",
-    "PR-PROVAPI-051",
-    "PR-PROVAPI-052",
-    "PR-PROVAPI-053",
-    "PR-PROVAPI-054",
-    "PR-PROVAPI-055"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-045",
-     "PR-PROVAPI-046",
-     "PR-PROVAPI-047",
-     "PR-PROVAPI-048",
-     "PR-PROVAPI-049",
-     "PR-PROVAPI-050",
-     "PR-PROVAPI-051",
-     "PR-PROVAPI-052",
-     "PR-PROVAPI-053",
-     "PR-PROVAPI-054",
-     "PR-PROVAPI-055"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-096",
     "T-M4-097"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.PiCLI",
