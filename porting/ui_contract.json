@@ -18600,7 +18600,8 @@
       "notes": "The 2x scale factor is hard-coded, not read from the display, so a 150% or 200% Windows display still gets a 2x bitmap. Two caches with two different key formats are involved and the main-actor one omits the square flag, so a square-filled and a plain thumbnail of the same image at the same point size share a key there.",
       "screen": "Attachment chip, attachment strip, downloads popover, attachment preview",
       "element": "Rendered thumbnail of an image attachment",
-      "role": "image"
+      "role": "image",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
