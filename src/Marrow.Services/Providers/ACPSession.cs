@@ -47,17 +47,15 @@ public sealed class ACPSession : ProviderSession
     private bool supportsHTTPMCP; // :35
     private ValueList<string> authMethods = ValueList<string>.Empty; // :33
     private string? sessionID; // :32
-#pragma warning disable CS0414 // set here, read by HandleNotification/HandleClose: part 4+
     private bool isReplaying; // :36
     private bool isStopping; // :37
-#pragma warning restore CS0414
     private bool promptActive; // :43
-#pragma warning disable CS0414 // set here (Send, Interrupt), read by FinishPrompt: part 4+
     private bool cancelRequested; // :44
     private string? messageID; // :39
     private string? thoughtID; // :40
-#pragma warning restore CS0414
+    private int counter; // :41
     private readonly Dictionary<string, RPCID> pendingPermissions = new(); // :42; R-COLL-2: iteration order unspecified
+    private readonly HashSet<string> todoToolCallIDs = new(); // :45-48; R-COLL-2: iteration order unspecified
     private RuntimeMode runtimeMode; // :38
 
     // :50-62. Model/mode/effort state discovered from the session reply and config options.
@@ -538,17 +536,486 @@ public sealed class ACPSession : ProviderSession
         if (result?["configOptions"]?.JSONValueArray is { } options) ApplyConfigOptions(new ValueList<JSONValue>(options)); // :484
     }
 
-    // :604-623. Part 4 of 8's own records; called from Send's floating task (part 3) and, later, HandleClose.
-    private void FinishPrompt(string? stopReason, Exception? error) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:604-623, part 4+"); // :604
+    // :604-623. Part 4 of 8 (PR-PROVACP-074, 083). Called from Send's floating task (part 3) and HandleClose.
+    private void FinishPrompt(string? stopReason, Exception? error)
+    {
+        if (!promptActive) return; // :605
+        promptActive = false; // :606
+        todoToolCallIDs.Clear(); // :607
+        foreach (var (key, id) in pendingPermissions) // :608
+        {
+            connection?.Respond(id, JSONValue.FromDictionaryLiteral(("outcome", JSONValue.FromDictionaryLiteral(("outcome", "cancelled"))))); // :609
+            OnEvent?.Invoke(new ProviderEvent.RequestResolved(key)); // :610
+        }
+        pendingPermissions.Clear(); // :612
+        if (cancelRequested || stopReason == "cancelled") // :613
+            OnEvent?.Invoke(new ProviderEvent.TurnCompleted(TurnStatus.Interrupted, null)); // :614
+        else if (error is not null) // :615
+            OnEvent?.Invoke(new ProviderEvent.TurnCompleted(TurnStatus.Failed, SwiftErrors.LocalizedDescription(error))); // :616
+        else if (stopReason == "refusal") // :617
+            OnEvent?.Invoke(new ProviderEvent.TurnCompleted(TurnStatus.Failed, "The agent declined this request.")); // :618
+        else
+            OnEvent?.Invoke(new ProviderEvent.TurnCompleted(TurnStatus.Completed, null)); // :620
+        cancelRequested = false; // :622
+    }
 
-    // MARK: - Updates (part 4+)
-    private void HandleNotification(string method, JSONValue parameters) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:489-553, part 4+"); // :489
+    // MARK: - Updates
 
-    private void HandleRequest(RPCID id, string method, JSONValue parameters) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:555-590, part 4+"); // :555
+    // :489-553. Part 4 of 8 (PR-PROVACP-076..093).
+    private void HandleNotification(string method, JSONValue parameters)
+    {
+        if (method != "session/update" || isReplaying || parameters["update"] is not { } update) return; // :490
+        switch (update["sessionUpdate"]?.JSONValueString) // :491
+        {
+            case "agent_message_chunk": // :492
+            {
+                if (update["content"]?["text"]?.JSONValueString is not { } text) return; // :493
+                thoughtID = null; // :494
+                var id = update["messageId"]?.JSONValueString is { } messageId ? $"message-{messageId}" : messageID ?? NextID("message"); // :495
+                messageID = id; // :496
+                OnEvent?.Invoke(new ProviderEvent.MessageDelta(id, text)); // :497
+                break;
+            }
+            case "agent_thought_chunk": // :498
+            {
+                if (update["content"]?["text"]?.JSONValueString is not { } text) return; // :499
+                var id = thoughtID ?? NextID("thought"); // :500
+                thoughtID = id; // :501
+                OnEvent?.Invoke(new ProviderEvent.ReasoningDelta(id, text)); // :502
+                break;
+            }
+            case "tool_call": // :503
+            {
+                if (update["toolCallId"]?.JSONValueString is not { } id) return; // :504
+                messageID = null; // :505
+                thoughtID = null; // :506
+                if (IsTodoCall(update)) // :507
+                {
+                    todoToolCallIDs.Add(id); // :508
+                    var steps = TodoSteps(update); // :509
+                    if (steps.Count > 0) OnEvent?.Invoke(new ProviderEvent.Todos(steps)); // :510
+                    return; // :511
+                }
+                OnEvent?.Invoke(new ProviderEvent.ToolStarted(id, MakeToolCall(update))); // :513
+                var initial = MakeToolUpdate(update); // :514
+                if (initial.Output is not null || initial.Status is not null) OnEvent?.Invoke(new ProviderEvent.ToolUpdated(id, initial)); // :515
+                break;
+            }
+            case "tool_call_update": // :516
+            {
+                if (update["toolCallId"]?.JSONValueString is not { } id) return; // :517
+                if (todoToolCallIDs.Contains(id) || IsTodoCall(update)) // :518
+                {
+                    todoToolCallIDs.Add(id); // :519
+                    var steps = TodoSteps(update); // :520
+                    if (steps.Count > 0) OnEvent?.Invoke(new ProviderEvent.Todos(steps)); // :521
+                    return; // :522
+                }
+                OnEvent?.Invoke(new ProviderEvent.ToolUpdated(id, MakeToolUpdate(update))); // :524
+                break;
+            }
+            case "plan": // :525
+                OnEvent?.Invoke(new ProviderEvent.Todos(ParseTodoItems(update["entries"]))); // :526-527
+                break;
+            case "available_commands_update": // :528
+            {
+                var commands = new ValueList<SlashCommand>((update["availableCommands"]?.JSONValueArray ?? []) // :529
+                    .Select(command => command["name"]?.JSONValueString is { } name
+                        ? new SlashCommand { Name = name, Detail = command["description"]?.JSONValueString ?? "" } // :531
+                        : null)
+                    .OfType<SlashCommand>());
+                OnEvent?.Invoke(new ProviderEvent.Commands(commands)); // :533
+                break;
+            }
+            case "current_mode_update": // :534
+                currentMode = update["currentModeId"]?.JSONValueString; // :535
+                if (planMode is not null) OnEvent?.Invoke(new ProviderEvent.ModeChanged(currentMode == planMode ? InteractionMode.Plan : InteractionMode.Build)); // :536
+                break;
+            case "config_option_update": // :537
+                if (update["configOptions"]?.JSONValueArray is { } configOptions) ApplyConfigOptions(new ValueList<JSONValue>(configOptions)); // :538
+                break;
+            case "session_info_update": // :539
+                if (update["title"]?.JSONValueString is { Length: > 0 } title) OnEvent?.Invoke(new ProviderEvent.Title(title)); // :540
+                break;
+            case "usage_update": // :541
+                if (update["used"]?.JSONValueInt is { } used) // :542
+                    // Occupancy, not spend: `used` of `size` is how full the context window is, so it feeds the
+                    // context meter and nothing else. The deltas a session total would give are the growth of
+                    // that meter, and a compaction or a new request drops them; charging the ledger here would
+                    // bill the context, not the tokens. :543-547
+                    OnEvent?.Invoke(new ProviderEvent.Usage(new ContextUsage { UsedTokens = used, WindowTokens = update["size"]?.JSONValueInt })); // :548
+                break;
+            default: break; // :550-551
+        }
+    }
 
-    private void HandleClose(string tail) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ACPSession.swift:625-631, part 4+"); // :625
+    // :555-590. Part 4 of 8 (PR-PROVACP-094..097).
+    private void HandleRequest(RPCID id, string method, JSONValue parameters)
+    {
+        if (method != "session/request_permission") // :556
+        {
+            connection?.Respond(id, -32601, "Method not found"); // :557
+            return; // :558
+        }
+        var options = parameters["options"]?.JSONValueArray ?? []; // :560
+        var toolCall = parameters["toolCall"] ?? new JSONValue.Null(); // :561
+        var call = MakeToolCall(toolCall); // :562
+        if (AutomaticOption(call.ToolCallKind, options) is { } optionID) // :563
+        {
+            connection?.Respond(id, JSONValue.FromDictionaryLiteral( // :564-565
+                ("outcome", JSONValue.FromDictionaryLiteral(("outcome", "selected"), ("optionId", optionID)))));
+            return; // :565
+        }
+        var mapped = new ValueList<ApprovalRequest.Option>(options // :567-575
+            .Select(option =>
+            {
+                if (option["optionId"]?.JSONValueString is not { } optionId) return null; // :568
+                var role = option["kind"]?.JSONValueString switch // :569-573
+                {
+                    "allow_always" => ApprovalRequest.Option.Role.ApproveAlways,
+                    "reject_once" or "reject_always" => ApprovalRequest.Option.Role.Decline,
+                    _ => ApprovalRequest.Option.Role.Approve,
+                };
+                return (ApprovalRequest.Option?)new ApprovalRequest.Option(optionId, option["name"]?.JSONValueString ?? optionId, role); // :574
+            })
+            .OfType<ApprovalRequest.Option>());
+        pendingPermissions[id.Key] = id; // :576
+        var kind = call.ToolCallKind switch // :577-581
+        {
+            ToolCall.Kind.Command => ApprovalRequest.Kind.Command,
+            ToolCall.Kind.Edit => ApprovalRequest.Kind.FileChange,
+            _ => ApprovalRequest.Kind.Tool,
+        };
+        OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest( // :582-589
+            id.Key, kind, call.Title, mapped, call.Detail, null, toolCall["toolCallId"]?.JSONValueString)));
+    }
+
+    // :592-602. Part 4 of 8 (PR-PROVACP-095).
+    private string? AutomaticOption(ToolCall.Kind kind, IReadOnlyList<JSONValue> options)
+    {
+        var automatic = runtimeMode switch // :593-597
+        {
+            RuntimeMode.FullAccess => true,
+            RuntimeMode.AutoAcceptEdits => kind == ToolCall.Kind.Edit,
+            _ => false,
+        };
+        if (!automatic) return null; // :598
+        var allowOnce = options.FirstOrDefault(o => o["kind"]?.JSONValueString == "allow_once"); // :599
+        var allowAlways = options.FirstOrDefault(o => o["kind"]?.JSONValueString == "allow_always"); // :600
+        return (allowOnce ?? allowAlways)?["optionId"]?.JSONValueString; // :601
+    }
+
+    // :625-631. Part 4 of 8 (PR-PROVACP-074).
+    private void HandleClose(string tail)
+    {
+        if (promptActive) // :626
+            FinishPrompt(null, new ProviderError(new ProviderError.Case.Failed(TextCleanup.LastLines(tail) ?? "The agent exited."))); // :627
+        if (isStopping) return; // :629
+        OnEvent?.Invoke(new ProviderEvent.Exited(TextCleanup.LastLines(tail))); // :630
+    }
+
+    // MARK: - Mapping (part 4 of 8: static helpers used by handleNotification/handleRequest; makeToolCall and
+    // makeToolUpdate's own title-synthesis records sit in a later part, but both are implemented now so this
+    // part's tests (PR-PROVACP-080..082) can exercise the real event flow through handleNotification.)
+
+    /// <summary>True when a tool_call update belongs to a todo-list tool. :635-642.</summary>
+    private static bool IsTodoCall(JSONValue update)
+    {
+        if (update["rawInput"]?["todos"] is not null) return true; // :639
+        if (update["title"]?.JSONValueString is { } title && IsTodoTitle(title)) return true; // :640
+        return false; // :641
+    }
+
+    private static readonly ValueSet<string> TodoExactTitles = // :647
+        new(["todo", "todos", "todowrite", "todo write", "write todos"], SwiftStringComparer.Instance);
+
+    private static bool IsTodoTitle(string title) // :644-659
+    {
+        var text = SwiftString.Lowercased(title.Trimmed()); // :645
+        if (TodoExactTitles.Contains(text)) return true; // :646-648
+        foreach (var suffix in new[] { " todos", " todo" }) // :653
+        {
+            if (!SwiftString.HasSuffix(text, suffix)) continue; // :654
+            var count = FoundationText.Trim(SwiftString.DropLast(text, SwiftString.Count(suffix))); // :655
+            if (count.Length > 0 && SwiftString.Characters(count).All(SwiftCharacter.IsNumber)) return true; // :656
+        }
+        return false; // :658
+    }
+
+    /// <summary>The checklist carried by a todo tool call: structured input first, then the JSON list the tool
+    /// reports back as its result text. :661-683.</summary>
+    private static ValueList<TodoStep> TodoSteps(JSONValue update)
+    {
+        var steps = ParseTodoItems(update["rawInput"]?["todos"]); // :664
+        if (steps.Count > 0) return steps; // :665
+        steps = ParseTodoItems(update["rawOutput"]?["todos"]); // :666
+        if (steps.Count > 0) return steps; // :667
+        foreach (var block in update["content"]?.JSONValueArray ?? []) // :668
+        {
+            if (block["type"]?.JSONValueString != "content") continue; // :669
+            if (block["content"]?["text"]?.JSONValueString is not { } text) continue; // :670
+            if (JSONValue.Parse(text) is not { } json) continue; // :671
+            steps = ParseTodoItems(json["todos"] ?? json); // :672
+            if (steps.Count > 0) return steps; // :673
+        }
+        if (update["rawOutput"] is { } raw && !raw.IsNull) // :675
+        {
+            foreach (var key in new[] { "output", "stdout", "text" }) // :676
+            {
+                if (raw[key]?.JSONValueString is not { } text) continue; // :677
+                if (JSONValue.Parse(text) is not { } json) continue; // :677
+                steps = ParseTodoItems(json["todos"] ?? json); // :678
+                if (steps.Count > 0) return steps; // :679
+            }
+        }
+        return ValueList<TodoStep>.Empty; // :682
+    }
+
+    /// <summary>Todo items across provider shapes. Unknown statuses stay pending so a new provider state never
+    /// drops an item. :685-699.</summary>
+    public static ValueList<TodoStep> ParseTodoItems(JSONValue? value) =>
+        new((value?.JSONValueArray ?? [])
+            .Select(item =>
+            {
+                var text = item["content"]?.JSONValueString ?? item["text"]?.JSONValueString ?? item["step"]?.JSONValueString ?? item["title"]?.JSONValueString; // :690
+                if (text is null || text.Trimmed().Length == 0) return null; // :691
+                var status = item["status"]?.JSONValueString switch // :692-696
+                {
+                    "completed" or "complete" or "done" => TodoStep.Status.Done,
+                    "in_progress" or "inProgress" or "in-progress" or "active" => TodoStep.Status.Active,
+                    _ => TodoStep.Status.Pending,
+                };
+                return (TodoStep?)new TodoStep { Text = text, TodoStepStatus = status }; // :697
+            })
+            .OfType<TodoStep>());
+
+    // :701-704.
+    private string NextID(string prefix)
+    {
+        counter += 1; // :702
+        return $"{prefix}-{counter}-{SwiftUUID.UuidString(Guid.NewGuid())[..8]}"; // :703
+    }
+
+    private static readonly string[] PathKeys = // :773
+        ["filePath", "file_path", "path", "file", "notebook_path", "target_file", "targetFile"];
+
+    private static string? StringIn(JSONValue value, IReadOnlyList<string> keys) // :775-780
+    {
+        foreach (var key in keys) // :776
+            if (value[key]?.JSONValueString?.Trimmed() is { Length: > 0 } text) return text; // :777
+        return null; // :779
+    }
+
+    private static readonly string[] SubjectPhrases = // :788-792
+    [
+        "searched web for ", "search web for ", "searching web for ", "searched the web for ", "search the web for ",
+        "searched for ", "searching for ", "search for ", "reading file ", "read file ", "listed directory ",
+        "listing directory ", "list directory ", "listed files in ", "list files in ", "listing files in ",
+    ];
+
+    private static readonly ValueSet<string> SubjectVerbs = new([ // :793-799
+        "read", "reading", "viewed", "viewing", "view", "fetched", "fetching", "fetch", "browsed", "browsing",
+        "searched", "searching", "search", "grep", "glob", "listed", "listing", "list", "wrote", "writing",
+        "write", "edited", "editing", "edit", "modified", "modifying", "modify", "updated", "updating", "update",
+        "created", "creating", "create", "deleted", "deleting", "delete", "ran", "running", "run", "executed",
+        "executing", "execute", "called", "calling", "call", "opened", "opening", "open",
+    ], SwiftStringComparer.Instance);
+
+    private static readonly (string Open, string Close)[] QuotePairs = // :821
+    [
+        ("'", "'"), ("\"", "\""), ("“", "”"), ("`", "`"), // U+201C LEFT / U+201D RIGHT DOUBLE QUOTATION MARK
+    ];
+
+    // :801-826.
+    private static string Subject(string? title, ToolCall.Kind kind)
+    {
+        var text = CleanTitle(title); // :802
+        if (text.Length == 0) return ""; // :803
+        if (IsBareToolName(text)) return ""; // :804
+        var rowHasVerb = kind is ToolCall.Kind.Read or ToolCall.Kind.Edit or ToolCall.Kind.Search or ToolCall.Kind.Web; // :809,:814
+        var lowered = SwiftString.Lowercased(text); // :807
+        var stripped = false; // :808
+        if (rowHasVerb) // :809
+        {
+            foreach (var phrase in SubjectPhrases)
+            {
+                if (!SwiftString.HasPrefix(lowered, phrase)) continue; // :809
+                text = SwiftString.DropFirst(text, SwiftString.Count(phrase)); // :810
+                stripped = true; // :811
+                break; // :812
+            }
+        }
+        if (!stripped && rowHasVerb) // :814-815
+        {
+            var head = SwiftString.Split(lowered, " ", maxSplits: 1) is [var first, ..] ? first : null; // :815
+            if (head is not null && SubjectVerbs.Contains(head)) // :815
+            {
+                var rest = FoundationText.Trim(SwiftString.DropFirst(text, SwiftString.Count(head))); // :816
+                if (rest.Length > 0) text = rest; // :817
+            }
+        }
+        text = text.Trimmed(); // :819
+        foreach (var (open, close) in QuotePairs) // :820-824
+            if (SwiftString.Count(text) >= 2 && SwiftString.HasPrefix(text, open) && SwiftString.HasSuffix(text, close))
+                text = SwiftString.DropLast(SwiftString.DropFirst(text, 1), 1);
+        return text; // :825
+    }
+
+    private static readonly ValueSet<string> BareToolNames = new([ // :831-836
+        "read", "write", "edit", "multiedit", "patch", "bash", "shell", "list", "ls", "glob", "grep", "search",
+        "webfetch", "websearch", "fetch", "todowrite", "todoread", "task", "tool", "apply_patch", "read_file",
+        "write_file", "edit_file", "list_files", "search_files", "run_command", "run_terminal_cmd", "web_search",
+        "web_fetch", "codebase_search", "file_search", "grep_search", "list_dir", "view_file", "replace_file_content",
+    ], SwiftStringComparer.Instance);
+
+    // :828-837.
+    private static bool IsBareToolName(string title) => BareToolNames.Contains(SwiftString.Lowercased(title));
+
+    // :840-849.
+    private ValueList<FileEdit> Diffs(JSONValue? content) =>
+        new((content?.JSONValueArray ?? [])
+            .Select(block =>
+            {
+                if (block["type"]?.JSONValueString != "diff" || block["path"]?.JSONValueString is not { } path) return null; // :842
+                return (FileEdit?)new FileEdit( // :843-847
+                    ToolTitles.RelativePath(path, WorkingDirectory),
+                    block["oldText"]?.JSONValueString ?? "",
+                    block["newText"]?.JSONValueString ?? "");
+            })
+            .OfType<FileEdit>());
+
+    // :851-853.
+    private static string CleanTitle(string? title)
+    {
+        var text = title ?? "";
+        var start = 0;
+        var end = text.Length;
+        while (start < end && IsCleanTitleTrimChar(text[start])) start++;
+        while (end > start && IsCleanTitleTrimChar(text[end - 1])) end--;
+        return text[start..end];
+    }
+
+    private static bool IsCleanTitleTrimChar(char c) => c is '`' or ' ' or '\n'; // :852, CharacterSet(charactersIn: "` \n")
+
+    // :855-864.
+    private static ToolCall.Kind Kind(string? raw) => raw switch
+    {
+        "read" => ToolCall.Kind.Read,
+        "edit" or "delete" or "move" => ToolCall.Kind.Edit,
+        "search" => ToolCall.Kind.Search,
+        "execute" => ToolCall.Kind.Command,
+        "fetch" => ToolCall.Kind.Web,
+        _ => ToolCall.Kind.Other,
+    };
+
+    // :866-877.
+    private static string FallbackTitle(ToolCall.Kind kind) => kind switch
+    {
+        ToolCall.Kind.Command => "Run command",
+        ToolCall.Kind.Read => "Read file",
+        ToolCall.Kind.Edit => "Edit file",
+        ToolCall.Kind.Search => "Search",
+        ToolCall.Kind.Web => "Fetch",
+        ToolCall.Kind.Mcp => "Tool",
+        ToolCall.Kind.Agent => "Agent",
+        ToolCall.Kind.Other => "Tool",
+        _ => throw new UnreachableException(),
+    };
+
+    /// <summary>True when a call's title is just the tool's display name, no subject. :879-887.</summary>
+    private static bool IsFallbackTitle(string title) => SwiftString.Lowercased(title) switch
+    {
+        "run command" or "read file" or "edit file" or "write file" or "search" or "fetch" or "tool" or "agent" or "file" or "files" => true,
+        _ => IsBareToolName(title),
+    };
+
+    // :889-895.
+    private static ToolCall.Status Status(string raw) => raw switch
+    {
+        "completed" => ToolCall.Status.Completed,
+        "failed" => ToolCall.Status.Failed,
+        _ => ToolCall.Status.Running,
+    };
+
+    /// <summary>Same row shapes as Claude's: the subject is the command, the path, the pattern or the URL, and
+    /// the detail only qualifies it. :706-737.</summary>
+    private ToolCall MakeToolCall(JSONValue update)
+    {
+        var kind = Kind(update["kind"]?.JSONValueString); // :712
+        var raw = update["rawInput"] ?? new JSONValue.Null(); // :713
+        var location = update["locations"]?.JSONValueArray?.FirstOrDefault()?["path"]?.JSONValueString is { } locationPath
+            ? ToolTitles.RelativePath(locationPath, WorkingDirectory) : null; // :714
+        var path = StringIn(raw, PathKeys) is { } rawPath ? ToolTitles.RelativePath(rawPath, WorkingDirectory) : location; // :715
+        var title = Subject(update["title"]?.JSONValueString, kind); // :716
+        string callTitle = ""; // :717
+        string? callDetail = null;
+        switch (kind)
+        {
+            case ToolCall.Kind.Command: // :719
+                callTitle = raw["command"]?.JSONValueString is { } command ? ToolTitles.UnwrapShell(command) : title; // :720
+                break;
+            case ToolCall.Kind.Read or ToolCall.Kind.Edit: // :721
+                callTitle = path ?? title; // :722
+                break;
+            case ToolCall.Kind.Search: // :723
+                var pattern = StringIn(raw, ["pattern", "query", "glob", "regex", "search"]); // :724
+                callTitle = pattern ?? title.NilIfEmpty() ?? path ?? ""; // :725
+                if ((pattern is not null || title.Length > 0) && path is { } searchPath && searchPath != WorkingDirectory && searchPath != callTitle)
+                    callDetail = searchPath; // :726
+                break;
+            case ToolCall.Kind.Web: // :727
+                callTitle = StringIn(raw, ["url", "query", "prompt"]) ?? title; // :728
+                break;
+            default: // :729, .mcp, .agent, .other
+                callTitle = title; // :730
+                if (path is { } otherPath && otherPath != WorkingDirectory && otherPath != callTitle) callDetail = otherPath; // :731
+                break;
+        }
+        if (callTitle.Length == 0) callTitle = path ?? FallbackTitle(kind); // :733
+        var edits = Diffs(update["content"]); // :734
+        var status = update["status"]?.JSONValueString is { } statusText ? Status(statusText) : (ToolCall.Status?)null; // :735
+        return new ToolCall // :717, :736
+        {
+            ToolCallKind = kind,
+            Title = callTitle,
+            Detail = callDetail,
+            Edits = edits,
+            ToolCallStatus = status ?? ToolCall.Status.Running,
+        };
+    }
+
+    // :739-771.
+    private ToolUpdate MakeToolUpdate(JSONValue update)
+    {
+        ToolCall.Kind? kind = update["kind"]?.JSONValueString is { } kindText ? Kind(kindText) : null; // :741
+        var effectiveKind = kind ?? ToolCall.Kind.Other; // :742
+        var title = Subject(update["title"]?.JSONValueString, effectiveKind); // :743
+        string? resultTitle = null;
+        if (title.Length > 0 && !IsFallbackTitle(title)) resultTitle = title; // :745
+        if (update["rawInput"]?["command"]?.JSONValueString is { } command) resultTitle = ToolTitles.UnwrapShell(command); // :746
+        if (effectiveKind is ToolCall.Kind.Read or ToolCall.Kind.Edit && resultTitle is null && // :748
+            update["locations"]?.JSONValueArray?.FirstOrDefault()?["path"]?.JSONValueString is { } locationPath) // :749
+        {
+            var relative = ToolTitles.RelativePath(locationPath, WorkingDirectory); // :750
+            if (relative != WorkingDirectory) resultTitle = relative; // :751
+        }
+        var status = update["status"]?.JSONValueString is { } statusText ? Status(statusText) : (ToolCall.Status?)null; // :753
+        var edits = Diffs(update["content"]); // :754
+        ValueList<FileEdit>? resultEdits = edits.Count > 0 ? edits : null; // :755
+        var output = string.Join("\n", (update["content"]?.JSONValueArray ?? []) // :756-758
+            .Select(block => block["type"]?.JSONValueString == "content" ? block["content"]?["text"]?.JSONValueString : null)
+            .OfType<string>());
+        long? exitCode = null;
+        if (update["rawOutput"] is { } rawOutput && !rawOutput.IsNull) // :759
+        {
+            if (output.Length == 0) // :760
+                output = string.Join("\n", new[] { rawOutput["stdout"]?.JSONValueString, rawOutput["stderr"]?.JSONValueString, rawOutput["output"]?.JSONValueString } // :761-764
+                    .OfType<string>().Where(s => s.Length > 0));
+            exitCode = rawOutput["exitCode"]?.JSONValueInt ?? rawOutput["metadata"]?["exit"]?.JSONValueInt; // :766
+        }
+        var resultOutput = output.Length > 0 && output != "(no output)" ? output : null; // :768
+        var resultStatus = status;
+        if (exitCode is { } exit && exit != 0 && resultStatus == ToolCall.Status.Completed) resultStatus = ToolCall.Status.Failed; // :769
+        return new ToolUpdate { Title = resultTitle, Output = resultOutput, Status = resultStatus, ExitCode = exitCode, Edits = resultEdits, Kind = kind }; // :740,770
+    }
 }
