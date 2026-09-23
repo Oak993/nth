@@ -3252,7 +3252,7 @@
       "cancellation": "The refresh task is bound to the view's lifetime and is cancelled when the page is left.",
       "windows_path": "Same structure with no card; the grid takes the page's full content width.",
       "verification_method": "capture comparison of the top of the General page",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3281,7 +3281,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three chips and the same three tooltips. Keep the mode unpersisted so a reopened page always opens on Daily.",
       "verification_method": "interaction test for the three titles and tooltips; restart test asserting the mode is not remembered",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3306,7 +3306,7 @@
       "cancellation": "A newer switch supersedes the running blend.",
       "windows_path": "An animated numeric value driving a canvas redraw, with the same guard-by-counter so a fast double switch does not clear the wrong grid. Reproduce the colour mix per cell rather than cross-fading two canvases, because a cross-fade shows the background through half-transparent cells.",
       "verification_method": "unit test on the blend progress function; capture comparison at the midpoint of a switch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3330,7 +3330,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same six outcomes (future, empty, and four accent steps) with the same thresholds and opacities, resolving the accent through the theme.",
       "verification_method": "unit test over value/maxValue pairs at every boundary, plus the future and zero-max cases",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3357,7 +3357,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One canvas element with the same derived cell size, the same 4pt gap and the same 2pt radius, redrawn on resize. Do not build 365 DOM nodes.",
       "verification_method": "unit test on the cell-size and height formulas at several widths; capture comparison of a full year",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3381,7 +3381,7 @@
       "cancellation": "Leaving the page cancels the refresh task.",
       "windows_path": "Memoise the grid on the same two inputs with a structural equality check on the totals map, so a re-publish with identical totals does no calendar work.",
       "verification_method": "unit test counting grid builds across a burst of identical publishes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3429,7 +3429,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same stride, the same 12-point edge clamp and the same 30-point minimum advance. Keep the English abbreviations hard-coded rather than formatting a date, because the rest of the app reads in English.",
       "verification_method": "unit test on placedTicks at several widths; capture comparison at 780 and at a narrower pane",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3454,7 +3454,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Derive the five swatch colours from the same colour function with the same sample values rather than hard-coding them, so the ladder cannot drift from the grid.",
       "verification_method": "unit test asserting the five ladder colours equal the grid's steps; interaction test for both tooltip strings and both accessibility values; capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3479,7 +3479,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same tooltip and the same two accessibility value forms; no visible second line.",
       "verification_method": "interaction test with a stubbed ledger at zero and non-zero uncertain tokens asserting the tooltip, the accessibility value and the absence of a second line",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7600,7 +7600,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:50-51 chatBaseSize - .title3 15, .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Carries the header accessibility trait. Note it is 15pt semibold in primaryText, unlike a ChromeSection header which is .system(.body, weight: .semibold) in Chrome.secondaryText at B2.",
-      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:56 `.system(size: 15, weight: .semibold)` -> `.system(.title3, weight: .semibold)` at 1fbf81e6; the ChromeSection comparison is updated for DroppyCode/UI/Chrome/Chrome.swift:1035-1036 (`.system(.body, weight: .semibold)`, `Chrome.secondaryText`)."
+      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:56 `.system(size: 15, weight: .semibold)` -> `.system(.title3, weight: .semibold)` at 1fbf81e6; the ChromeSection comparison is updated for DroppyCode/UI/Chrome/Chrome.swift:1035-1036 (`.system(.body, weight: .semibold)`, `Chrome.secondaryText`).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-022",
@@ -7628,7 +7629,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Tooltips in order: \"Each day on its own, against the busiest day of the year\", \"Each week as one shade, against the busiest week\", \"The running total, so the year fills as it goes\". The mode is view-local and is not persisted.",
-      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:77 `.system(size: 13, weight: ...)` -> `.system(.body, weight: ...)` at 1fbf81e6; lines unchanged."
+      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:77 `.system(size: 13, weight: ...)` -> `.system(.body, weight: ...)` at 1fbf81e6; lines unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-023",
@@ -7652,7 +7654,8 @@
         "DroppyCode/App/Views/Settings/TokenActivitySection.swift:207-272",
         "DroppyCode/Services/Store/TokenLedger.swift:609-689"
       ],
-      "notes": "One canvas pass, not 365 nodes: this was the heaviest layout in Settings before it was a canvas. The legend, not the grid, carries the accessible value."
+      "notes": "One canvas pass, not 365 nodes: this was the heaviest layout in Settings before it was a canvas. The legend, not the grid, carries the accessible value.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-024",
@@ -7677,7 +7680,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 chatBaseSize - .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Never localised. The comment records that the calendar's own symbols come out as \"M01\" without a locale.",
-      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:123 `.system(size: 11)` -> `.system(.subheadline)` at 1fbf81e6; lines unchanged."
+      "b2_change": "DroppyCode/App/Views/Settings/TokenActivitySection.swift:123 `.system(size: 11)` -> `.system(.subheadline)` at 1fbf81e6; lines unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-025",
@@ -7700,7 +7704,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:53 chatBaseSize - .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "One accessibility element labelled \"Token activity\". The swatch colours must be derived from the grid's colour function, not hard-coded. There is no second line at B2.",
-      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/TokenActivitySection.swift:144-181: \"<n> tokens recorded\" plus a wrapping second line for uncertain tokens in an outer VStack(spacing 4). 1fbf81e6 :138-172: one line \"<n> tokens\" with a tooltip; the second line is gone."
+      "b2_change": "dd2b86ef DroppyCode/App/Views/Settings/TokenActivitySection.swift:144-181: \"<n> tokens recorded\" plus a wrapping second line for uncertain tokens in an outer VStack(spacing 4). 1fbf81e6 :138-172: one line \"<n> tokens\" with a tooltip; the second line is gone.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-026",

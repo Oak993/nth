@@ -381,7 +381,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A plain multiline edit control with autocorrect, text prediction and IME candidate substitution disabled for this control only; keep undo. Scoped to this control, not the process. The 14 point face is Inter (OD-0009).",
       "verification_method": "interaction test typing the four substitution triggers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -403,7 +403,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Set the caret brush from the theme accent; on a theme change update in place.",
       "verification_method": "interaction test switching themes with the caret visible",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -426,7 +426,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Draw the placeholder in the control's own paint pass at the same origin; do not use a separate overlay label, which would change the redraw behavior.",
       "verification_method": "capture comparison of the empty composer",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -534,7 +534,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Handle WM_KEYDOWN for VK_RETURN with Shift, Alt and Ctrl modifiers; Command maps to Ctrl per the Windows chord mapping. Do not intercept while an IME composition is active.",
       "verification_method": "interaction test of all four chords plus an IME composition",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -630,7 +630,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same precedence. Note the caret must be at 0 with a zero-length selection; a selection anywhere falls through.",
       "verification_method": "interaction test with a command chip and two quotes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1053,7 +1053,7 @@
       "cancellation": "not cancellable",
       "windows_path": "An owner-drawn popup window positioned at the caret rect, never activated, sized by the same formula, with an app-scoped message filter for dismissal (X7).",
       "verification_method": "interaction test measuring the panel for 1, 5 and 20 items",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1073,7 +1073,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same fallback and the same minimum sizes.",
       "verification_method": "unit test of the rect computation with a degenerate caret rect",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1479,7 +1479,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Read CF_HDROP for files and CF_DIBV5/PNG clipboard formats for images, in that order, and check for CF_UNICODETEXT before taking the image path.",
       "verification_method": "interaction test pasting a file, a screenshot and rich text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1501,7 +1501,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Enable the field's Paste command for the image and file clipboard formats and handle the Ctrl+V accelerator for them explicitly; no menu bar exists (OD-0008 C3). The image type order (PNG first, then TIFF, JPEG, HEIC) must be preserved because it decides which representation is taken.",
       "verification_method": "interaction test with an image-only clipboard",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -1529,7 +1529,7 @@
       "cancellation": "not cancellable",
       "windows_path": "IDropTarget accepting CF_HDROP; text drops fall through to the edit control.",
       "verification_method": "interaction test dropping two files and a text selection",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1599,7 +1599,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One shared non-activating popup per strip, constructed on first use, with the same toggle semantics.",
       "verification_method": "interaction test clicking three thumbnails in sequence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1621,7 +1621,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four-step fallback. The 'current event' is the message being dispatched.",
       "verification_method": "interaction test opening by click and by keyboard",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1641,7 +1641,7 @@
       "cancellation": "not cancellable",
       "windows_path": "An app-scoped message filter in place of the NSEvent local monitors, which never see other applications' events; plus window activation and move notifications.",
       "verification_method": "interaction test of all four dismissals",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1669,7 +1669,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three size formulas and the same top-aligned clipping.",
       "verification_method": "capture comparison of a portrait photo, a text file and a binary file preview, plus a portrait video previewed with and without its size cached",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1827,7 +1827,7 @@
       "cancellation": "The scan is cancelled with the task, and cancellation is propagated to the detached scan.",
       "windows_path": "SHGetKnownFolderPath(FOLDERID_Downloads). Same limit, sort, extension set and thumbnail size.",
       "verification_method": "interaction test against a fixture Downloads folder",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1850,7 +1850,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same formula and the same fixed width; a popup takes its size when it opens and keeps it.",
       "verification_method": "capture comparison with 0, 3 and 15 downloads",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1871,7 +1871,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings.",
       "verification_method": "capture comparison of the loading and empty states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1896,7 +1896,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The first label is the OD-0008 B1 wording \"Show in File Explorer\", a named deviation, and opens the Downloads folder in File Explorer. \"Choose Files…\" is carried verbatim, including the single-character ellipsis (OD-PENDING-13 ruling).",
       "verification_method": "interaction test of both rows",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1927,7 +1927,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering: arm, close, then attach. A layered, click-through, topmost window for the flight.",
       "verification_method": "interaction test picking a download and watching the chip appear",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4951,7 +4951,8 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:275-288",
         "DroppyCode/App/Views/Composer/ComposerView.swift:552-565"
       ],
-      "notes": "Smart quotes, smart dashes, text replacement, spelling correction, completion, inline prediction and writing tools are all off, scoped to this field. The placeholder is painted by the view itself, not a sibling label. OD-0013: during live resize the window must not show the 3-5 px edge strip of its own backdrop without the app layer (probe P4)."
+      "notes": "Smart quotes, smart dashes, text replacement, spelling correction, completion, inline prediction and writing tools are all off, scoped to this field. The placeholder is painted by the view itself, not a sibling label. OD-0013: during live resize the window must not show the 3-5 px edge strip of its own backdrop without the app layer (probe P4).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-004",
@@ -5294,7 +5295,8 @@
         "DroppyCode/App/Views/Composer/ComposerTextView.swift:54-96",
         "DroppyCode/App/Views/Composer/ComposerView.swift:241-262"
       ],
-      "notes": "The hosting controller must not publish its own size, or the panel drifts off the caret as the list changes."
+      "notes": "The hosting controller must not publish its own size, or the panel drifts off the caret as the list changes.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-019",
@@ -5402,7 +5404,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/DownloadsPopover.swift:101-163"
       ],
-      "notes": "Without the fixed width the popover shrinks to PopoverMenu's 210 point minimum and truncates every row."
+      "notes": "Without the fixed width the popover shrinks to PopoverMenu's 210 point minimum and truncates every row.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-024",
@@ -5421,7 +5424,8 @@
         "DroppyCode/App/Views/Composer/DownloadsPopover.swift:114"
       ],
       "notes": null,
-      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:126 `.font(.system(size: 11, weight: .semibold))` -> B2 :126 `.font(.system(.subheadline, weight: .semibold))`, 11 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:53 `case .subheadline: 11` (file deleted at B2; the port uses these sizes per ED-059); B2 DroppyCode/App/Views/Composer/EffortSlider.swift:272 still calls it `an 11 pt line`. Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-025",
@@ -5442,7 +5446,8 @@
         "DroppyCode/App/Views/Composer/DownloadsPopover.swift:123"
       ],
       "notes": "This is the one case where the popover sizes itself instead of using the row formula.",
-      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:144 `.font(.system(size: 12))` -> B2 :144 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal."
+      "b2_change": "B1 DroppyCode/UI/Chrome/Popovers.swift:144 `.font(.system(size: 12))` -> B2 :144 `.font(.system(.callout))`, 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059). Chrome.secondaryText itself is B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)` (B1 Chrome.swift:77 `Color(nsColor: .secondaryLabelColor)`); ED-062 pins the B2 definition for the port, superseding ED-051's secondaryLabelColor literal.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-026",
@@ -5465,7 +5470,8 @@
         "DroppyCode/App/Views/Composer/DownloadsPopover.swift:165-241 `private struct DownloadRow` - `static let height: CGFloat = 38`; `HStack(spacing: 10) { preview; Text(verbatim: item.name).font(.system(.body)).lineLimit(1).truncationMode(.middle); Spacer(minLength: 16); if let size = item.size { Text(verbatim: size).font(.system(.callout)).foregroundStyle(Chrome.secondaryText).lineLimit(1) } }`, `.padding(.horizontal, 8)`, `.frame(height: Self.height)`, `RoundedRectangle(cornerRadius: 6, style: .continuous).fill(isHovering ? Chrome.overlay(0.1) : Color.clear)`"
       ],
       "notes": "Both the photo and the icon branch report their screen frame, or the flight would start from the screen's own corner.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/DownloadsPopover.swift:197 `.font(.system(size: 13))` and :203 `.font(.system(size: 12))` -> B2 :197 `.font(.system(.body))` and :203 `.font(.system(.callout))`, 13 and 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, :52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/DownloadsPopover.swift:197 `.font(.system(size: 13))` and :203 `.font(.system(size: 12))` -> B2 :197 `.font(.system(.body))` and :203 `.font(.system(.callout))`, 13 and 12 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`, :52 `case .callout: 12` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-027",
@@ -5490,7 +5496,8 @@
         "decision": "OD-0008 B1",
         "upstream": "PopoverItem(\"Show in Finder\", symbol: \"folder\") at DroppyCode/App/Views/Composer/DownloadsPopover.swift:134, opening the Downloads directory with NSWorkspace.shared.open(directory) at :136",
         "port": "The row reads \"Show in File Explorer\" and opens the Downloads folder in File Explorer."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-028",
@@ -5508,7 +5515,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/DownloadsPopover.swift:139-141"
       ],
-      "notes": "The ellipsis is one character, U+2026, not three periods."
+      "notes": "The ellipsis is one character, U+2026, not three periods.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-029",

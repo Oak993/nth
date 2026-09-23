@@ -8233,7 +8233,8 @@
       "source_evidence": [
         "DroppyCode/UI/Common/MCPGlyph.swift:4-58"
       ],
-      "notes": "exact_text is the accessibility label, built as the entry name plus a space and the word \"tool\". The badge transitions in with a combined scale and opacity. This is the only MCP element outside Settings."
+      "notes": "exact_text is the accessibility label, built as the entry name plus a space and the word \"tool\". The badge transitions in with a combined scale and opacity. This is the only MCP element outside Settings.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-093",
