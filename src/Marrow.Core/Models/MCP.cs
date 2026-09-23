@@ -3,6 +3,11 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Marrow.Core.Support;
 
+// Source: DroppyCode/Core/Models/MCP.swift (B2 1fbf81e), :1-263. Moved up a layer (IMPLEMENTING 2.1): :152-169
+// resolve is Marrow.Services.MCP.MCPResolver (architecture V1, MCPProxy); :236-253 MCPPaths is
+// src/Marrow.Services/Models/MCP.cs (architecture V2, Storage.root); :255-263 Color(rgb:) is SwiftColor.Rgb in
+// Marrow.UI.Port (Core's Color extension becomes a plain RGBA value).
+
 namespace Marrow.Core.Models;
 
 // DroppyCode/Core/Models/MCP.swift:4-100.
@@ -62,6 +67,10 @@ public sealed record MCPCatalogEntry(string Id, string Name, string Vendor, stri
     public IReadOnlyDictionary<string, string> Env { get => _env; init => _env = MCPValues.Map(value); }
     public IReadOnlyList<string> SampleTools { get => _sampleTools; init => _sampleTools = MCPValues.List(value); }
     public string? KeysUrl { get; init; }
+    // :92. Color is a plain RGBA value at the Core boundary (IMPLEMENTING 2.1).
+    public (double Red, double Green, double Blue, double Alpha) Color =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/MCP.swift:92");
+
     public bool NeedsInput => Fields.Any(item => item.IsRequired);
     public bool IsOAuth => Transport is MCPTransport.OAuth;
 
@@ -141,6 +150,9 @@ internal sealed class MCPToolSummaryConverter : JsonConverter<MCPToolSummary>
     }
 }
 
+// :180-184
+public sealed record MCPProbeResult(string? ServerName, string? ServerVersion, ValueList<MCPToolSummary> Tools);
+
 // Construction defaults do not make synthesized Swift Codable fields optional during decoding.
 [JsonConverter(typeof(MCPConnectionConverter))]
 public sealed record MCPConnection(string CatalogID)
@@ -153,6 +165,27 @@ public sealed record MCPConnection(string CatalogID)
     public string? ServerVersion { get; init; }
     public IReadOnlyList<MCPToolSummary> Tools { get => _tools; init => _tools = MCPValues.List(value); }
     public string Id => CatalogID;
+}
+
+// :203-215
+public sealed record MCPSetupGuide(string Title, string Reason, ValueList<string> Steps, string PageLabel,
+    string PageURL, string? Note = null);
+
+// :218-232
+public abstract record MCPConnectionState
+{
+    private MCPConnectionState() { }
+    public sealed record NotConnected : MCPConnectionState;                    // :219
+    public sealed record Connecting : MCPConnectionState;                      // :220
+    public sealed record Connected(long ToolCount) : MCPConnectionState;       // :221
+    public sealed record Failed(string Message) : MCPConnectionState;          // :222
+    public sealed record NeedsSetup(MCPSetupGuide Guide) : MCPConnectionState; // :224, unlabeled associated value
+
+    // :226-229
+    public bool IsConnected => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/MCP.swift:226");
+
+    // :231
+    public bool IsConnecting => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/MCP.swift:231");
 }
 
 // Swift arrays/dictionaries are values: copying and content equality must survive the C# boundary.
