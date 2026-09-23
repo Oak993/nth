@@ -7,19 +7,24 @@ namespace Marrow.Services.Tests.Git;
 // Every expected value below is transcribed from that file and from the Swift standard library semantics named
 // beside it (split, Int(String), reduce with a trapping +), never from a C# implementation.
 //
-// The thrown error: every guard throws CocoaError(.fileReadCorruptFile) (:33, :36). The C# tree has no port of
-// CocoaError yet (reported as a STOP item), so these tests pin only what the Swift fixes without that type: the
-// initializer throws a Swift error (not a trap, R-ERR-1), try? turns it into nil, no partial preview escapes, and
-// every malformed shape throws the same error (both guards throw the same value).
+// The thrown error: every guard throws CocoaError(.fileReadCorruptFile) (:33, :36), ported as
+// Marrow.Core.Port.CocoaError (ED-100): Domain "NSCocoaErrorDomain", code 259. AssertCorruptFile pins that identity on
+// every malformed shape, that it is a thrown Swift error (not a trap, R-ERR-1), and that try? turns it into nil so no
+// partial preview escapes. Its description is Foundation's text, UNVERIFIED as oracle item O-25.
 public sealed class RevertPreviewTests
 {
     private static RevertPreview.File Row(string path, long additions, long deletions, bool isBinary = false) =>
         new(path, additions, deletions, isBinary);
 
-    private static Exception AssertCorruptFile(string numstat)
+    private static CocoaError AssertCorruptFile(string numstat)
     {
-        var error = Assert.ThrowsAny<Exception>(() => new RevertPreview(numstat));
-        Assert.True(SwiftTry.IsThrownError(error), $"a thrown Swift error, not a trap: {error.GetType().Name}");
+        var thrown = Assert.ThrowsAny<Exception>(() => new RevertPreview(numstat));
+        Assert.True(SwiftTry.IsThrownError(thrown), $"a thrown Swift error, not a trap: {thrown.GetType().Name}");
+        // CocoaError(.fileReadCorruptFile), RevertPreview.swift:33, :36; ED-100 identity.
+        var error = Assert.IsType<CocoaError>(thrown);
+        Assert.Equal(CocoaError.ErrorCode.FileReadCorruptFile, error.ErrorCodeValue);
+        Assert.Equal("NSCocoaErrorDomain", error.Domain);
+        Assert.Equal(259L, error.Code);
         Assert.Null(SwiftTry.Optional(() => new RevertPreview(numstat)));
         return error;
     }
@@ -185,9 +190,25 @@ public sealed class RevertPreviewTests
         };
         foreach (var error in errors)
         {
-            Assert.Equal(errors[0].GetType(), error.GetType());
+            Assert.Equal(errors[0].Domain, error.Domain);
+            Assert.Equal(errors[0].Code, error.Code);
             Assert.Equal(errors[0].Message, error.Message);
         }
+    }
+
+    [Fact]
+    [Trait("Req", "PR-GIT-099")] // failure_cases: the message editor shows the error's description
+    [Trait("Decision", "ED-100")]
+    [Trait("Rule", "R-ERR-2")]
+    [Trait("Oracle", "O-25")]
+    public void The_corrupt_file_error_describes_itself_with_Foundations_text()
+    {
+        var error = AssertCorruptFile("12\t3\0");
+        // U+2019 RIGHT SINGLE QUOTATION MARK twice, as Foundation writes it (ED-100, UNVERIFIED as O-25).
+        const string expected = "The file couldn\U00002019t be opened because it isn\U00002019t in the correct format."; // U+2019 RIGHT SINGLE QUOTATION MARK
+        Assert.Equal(expected, SwiftErrors.LocalizedDescription(error));
+        Assert.Equal(expected, error.Message);
+        Assert.Equal(2, SwiftErrors.LocalizedDescription(error).Count(c => c == '\u2019')); // U+2019 RIGHT SINGLE QUOTATION MARK
     }
 
     [Fact]
