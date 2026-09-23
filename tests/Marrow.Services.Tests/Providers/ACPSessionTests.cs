@@ -1921,4 +1921,514 @@ public sealed class ACPSessionTests
         Assert.Equal("opt-e", approval.Options[4].Title); // no name: label falls back to the raw optionId
         Assert.DoesNotContain(approval.Options, o => o.OptionRole == ApprovalRequest.Option.Role.Cancel);
     }
+
+    // ===== Part 5 of 8: the permission map's key, the approval card's kind/title/detail, finishPrompt's
+    // guard and outcome classification, handleClose's turn-failure and exited paths, and the static title
+    // helpers (kind, status, fallbackTitle, isFallbackTitle, isBareToolName, cleanTitle, subject) plus
+    // makeToolCall's path/command/read/edit titling (PR-PROVACP-098..121).
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-098")] // ACPSession.swift:576; Core/Support/JSONRPC.swift:23-28
+    public void Pending_permission_is_keyed_by_the_RPCIDs_string_rendering_and_an_int_and_string_id_collide()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        var parameters = JSONValue.FromDictionaryLiteral(
+            ("options", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("kind", "allow_once"), ("optionId", "opt-1")))),
+            ("toolCall", JSONValue.FromDictionaryLiteral(("toolCallId", "t1"), ("kind", "read"))));
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(7), "session/request_permission", parameters);
+        var pending = Private<Dictionary<string, RPCID>>(session, "pendingPermissions", field: true);
+        Assert.Single(pending);
+        Assert.Equal("7", Assert.Single(pending.Keys));
+        Assert.IsType<RPCID.Int>(pending["7"]);
+
+        InvokePrivate(session, "HandleRequest", new RPCID.String("7"), "session/request_permission", parameters);
+        Assert.Single(pending); // an int id 7 and a string id "7" collide on the same key
+        Assert.IsType<RPCID.String>(pending["7"]); // the later request replaces the earlier one
+
+        Assert.Equal(2, events.Count);
+        Assert.Equal("7", Assert.IsType<ProviderEvent.Approval>(events[0]).Value.Id);
+        Assert.Equal("7", Assert.IsType<ProviderEvent.Approval>(events[1]).Value.Id);
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-099")] // ACPSession.swift:577-581; Core/Models/Requests.swift:34-42
+    [InlineData("execute", ApprovalRequest.Kind.Command, "Run this command?")]
+    [InlineData("edit", ApprovalRequest.Kind.FileChange, "Apply these changes?")]
+    [InlineData("delete", ApprovalRequest.Kind.FileChange, "Apply these changes?")]
+    [InlineData("move", ApprovalRequest.Kind.FileChange, "Apply these changes?")]
+    [InlineData("read", ApprovalRequest.Kind.Tool, "Allow this action?")]
+    [InlineData("search", ApprovalRequest.Kind.Tool, "Allow this action?")]
+    [InlineData("fetch", ApprovalRequest.Kind.Tool, "Allow this action?")]
+    [InlineData(null, ApprovalRequest.Kind.Tool, "Allow this action?")]
+    public void Approval_kind_is_command_fileChange_or_tool_from_the_tool_calls_kind(string? toolKind, ApprovalRequest.Kind expectedKind, string expectedHeadline)
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        var toolCallFields = new List<(string, JSONValue)> { ("toolCallId", "t1") };
+        if (toolKind is not null) toolCallFields.Add(("kind", toolKind));
+        var parameters = JSONValue.FromDictionaryLiteral(
+            ("options", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("kind", "allow_once"), ("optionId", "opt-1")))),
+            ("toolCall", JSONValue.FromDictionaryLiteral(toolCallFields.ToArray())));
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(1), "session/request_permission", parameters);
+        var approval = Assert.IsType<ProviderEvent.Approval>(Assert.Single(events)).Value;
+        Assert.Equal(expectedKind, approval.RequestKind);
+        Assert.Equal(expectedHeadline, approval.Headline);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-100")] // ACPSession.swift:560-562,582-589
+    public void Approval_event_carries_title_detail_and_toolCallId_with_a_null_toolCall_falling_back_to_a_generic_Tool_card()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        var options = JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("kind", "allow_once"), ("optionId", "opt-1")));
+
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(1), "session/request_permission", JSONValue.FromDictionaryLiteral(
+            ("options", options),
+            ("toolCall", JSONValue.FromDictionaryLiteral(("toolCallId", "tool-42"), ("kind", "search"), ("rawInput", JSONValue.FromDictionaryLiteral(("pattern", "TODO")))))));
+        var withPattern = Assert.IsType<ProviderEvent.Approval>(Assert.Single(events)).Value;
+        Assert.Equal("TODO", withPattern.Title);
+        Assert.Equal("tool-42", withPattern.ToolItemID);
+        Assert.Null(withPattern.Reason); // ApprovalRequest.reason is never set by this area
+
+        events.Clear();
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(2), "session/request_permission", JSONValue.FromDictionaryLiteral(
+            ("options", options),
+            ("toolCall", JSONValue.FromDictionaryLiteral(("toolCallId", "t3"), ("kind", "unknownkind"), ("title", "Custom Title"), ("rawInput", JSONValue.FromDictionaryLiteral(("path", "docs/file.txt")))))));
+        var withDetail = Assert.IsType<ProviderEvent.Approval>(Assert.Single(events)).Value;
+        Assert.Equal("Custom Title", withDetail.Title);
+        Assert.Equal("docs/file.txt", withDetail.Detail);
+
+        events.Clear();
+        InvokePrivate(session, "HandleRequest", new RPCID.Int(3), "session/request_permission", JSONValue.FromDictionaryLiteral(("options", options))); // no toolCall member at all
+        var fallback = Assert.IsType<ProviderEvent.Approval>(Assert.Single(events)).Value;
+        Assert.Equal("Tool", fallback.Title); // null toolCall -> makeToolCall(.null) -> kind .other -> fallback "Tool"
+        Assert.Equal(ApprovalRequest.Kind.Tool, fallback.RequestKind);
+        Assert.Null(fallback.ToolItemID);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-101")] // ACPSession.swift:604-606
+    public void FinishPrompt_only_runs_once_per_turn_a_second_call_is_a_no_op()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        SetField(session, "promptActive", true);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "FinishPrompt", (string?)null, (Exception?)null);
+        Assert.Single(events);
+        Assert.False(Private<bool>(session, "promptActive", field: true));
+
+        events.Clear();
+        InvokePrivate(session, "FinishPrompt", "cancelled", null); // a second call, whatever the arguments, is a no-op
+        Assert.Empty(events);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-102")] // ACPSession.swift:607-612
+    public void Finishing_a_turn_clears_todo_routing_and_cancels_every_open_permission()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " + EndOnBye);
+        SetField(session, "promptActive", true);
+        var todoIds = Private<HashSet<string>>(session, "todoToolCallIDs", field: true);
+        todoIds.Add("tool-1");
+        var pending = Private<Dictionary<string, RPCID>>(session, "pendingPermissions", field: true);
+        pending["7"] = new RPCID.Int(7);
+        pending["s"] = new RPCID.String("s");
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "FinishPrompt", (string?)null, (Exception?)null);
+        Assert.Empty(todoIds);
+        Assert.Empty(pending);
+        var resolved = events.OfType<ProviderEvent.RequestResolved>().Select(e => e.Id).OrderBy(x => x).ToList();
+        Assert.Equal(new[] { "7", "s" }, resolved); // order unspecified (R-COLL-2): compared sorted
+        Assert.Contains(events, e => e is ProviderEvent.TurnCompleted);
+        Assert.True(SpinWait.SpinUntil(() => Lines(process.ErrorTail).Count >= 2, Bound)); // both cancel responses reach the wire
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-103")] // ACPSession.swift:613-614
+    public void Turn_is_interrupted_when_cancel_was_requested_or_stopReason_is_cancelled_even_with_an_error()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        SetField(session, "promptActive", true);
+        SetField(session, "cancelRequested", true);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "FinishPrompt", (string?)null, new ProviderError(new ProviderError.Case.Failed("boom")));
+        var completed = Assert.IsType<ProviderEvent.TurnCompleted>(Assert.Single(events));
+        Assert.Equal(TurnStatus.Interrupted, completed.Status);
+        Assert.Null(completed.Error); // this test comes first: interrupted even though the prompt also threw
+
+        SetField(session, "promptActive", true);
+        SetField(session, "cancelRequested", false);
+        events.Clear();
+        InvokePrivate(session, "FinishPrompt", "cancelled", null); // the literal "cancelled" (double l), no cancelRequested needed
+        var completed2 = Assert.IsType<ProviderEvent.TurnCompleted>(Assert.Single(events));
+        Assert.Equal(TurnStatus.Interrupted, completed2.Status);
+        Assert.Null(completed2.Error);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-104")] // ACPSession.swift:615-616
+    public void Turn_fails_with_the_errors_localized_description_when_the_prompt_threw()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        SetField(session, "promptActive", true);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "FinishPrompt", (string?)null, new RPCError(1, "agent says no"));
+        var completed = Assert.IsType<ProviderEvent.TurnCompleted>(Assert.Single(events));
+        Assert.Equal(TurnStatus.Failed, completed.Status);
+        Assert.Equal("agent says no", completed.Error); // RPCError's own message is shown verbatim
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-105")] // ACPSession.swift:617-618
+    public void A_refusal_stop_reason_fails_the_turn_with_a_fixed_sentence()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        SetField(session, "promptActive", true);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "FinishPrompt", "refusal", null);
+        var completed = Assert.IsType<ProviderEvent.TurnCompleted>(Assert.Single(events));
+        Assert.Equal(TurnStatus.Failed, completed.Status);
+        Assert.Equal("The agent declined this request.", completed.Error);
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-106")] // ACPSession.swift:619-622
+    [InlineData(null)]
+    [InlineData("end_turn")]
+    [InlineData("max_tokens")]
+    [InlineData("something_new")]
+    public void Every_other_stop_reason_completes_the_turn_and_cancelRequested_resets(string? stopReason)
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        SetField(session, "promptActive", true);
+        SetField(session, "cancelRequested", true); // set beforehand: must still be cleared
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "FinishPrompt", stopReason, null);
+        var completed = Assert.IsType<ProviderEvent.TurnCompleted>(Assert.Single(events));
+        Assert.Equal(TurnStatus.Completed, completed.Status);
+        Assert.Null(completed.Error);
+        Assert.False(Private<bool>(session, "cancelRequested", field: true));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-107")] // ACPSession.swift:625-628; Core/Support/Text.swift:17-24
+    public void A_close_during_an_active_turn_fails_it_with_the_last_four_non_empty_lines_of_stderr_or_a_fixed_message()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        SetField(session, "promptActive", true);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "HandleClose", "line1\n\nline2\nline3\nline4\nline5\n");
+        var completed = Assert.IsType<ProviderEvent.TurnCompleted>(events.OfType<ProviderEvent.TurnCompleted>().Single());
+        Assert.Equal(TurnStatus.Failed, completed.Status);
+        Assert.Equal("line2\nline3\nline4\nline5", completed.Error); // last four non-empty trimmed lines, joined by \n
+
+        SetField(session, "promptActive", true);
+        events.Clear();
+        InvokePrivate(session, "HandleClose", "\n\n   \n");
+        var completedEmpty = Assert.IsType<ProviderEvent.TurnCompleted>(events.OfType<ProviderEvent.TurnCompleted>().Single());
+        Assert.Equal("The agent exited.", completedEmpty.Error); // no non-empty lines: the turn-failure fallback
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-108")] // ACPSession.swift:629-630
+    public void An_unexpected_close_emits_exited_with_the_stderr_tail_and_nil_when_empty_but_a_deliberate_stop_emits_nothing()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        InvokePrivate(session, "HandleClose", "err line\n");
+        var exited = Assert.IsType<ProviderEvent.Exited>(Assert.Single(events));
+        Assert.Equal("err line", exited.Error);
+
+        events.Clear();
+        InvokePrivate(session, "HandleClose", "\n\n");
+        var exitedNull = Assert.IsType<ProviderEvent.Exited>(Assert.Single(events));
+        Assert.Null(exitedNull.Error); // no non-empty lines: nil here, NOT "The agent exited." (that fallback is turn-only)
+
+        SetField(session, "isStopping", true);
+        events.Clear();
+        InvokePrivate(session, "HandleClose", "err line\n");
+        Assert.Empty(events); // stop() set isStopping: nothing further is emitted
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-109")] // ACPSession.swift:855-864; Core/Models/Timeline.swift:151-160
+    [InlineData("read", ToolCall.Kind.Read)]
+    [InlineData("edit", ToolCall.Kind.Edit)]
+    [InlineData("delete", ToolCall.Kind.Edit)]
+    [InlineData("move", ToolCall.Kind.Edit)]
+    [InlineData("search", ToolCall.Kind.Search)]
+    [InlineData("execute", ToolCall.Kind.Command)]
+    [InlineData("fetch", ToolCall.Kind.Web)]
+    [InlineData("mcp", ToolCall.Kind.Other)]
+    [InlineData("agent", ToolCall.Kind.Other)]
+    [InlineData("unknown", ToolCall.Kind.Other)]
+    [InlineData(null, ToolCall.Kind.Other)]
+    public void Kind_maps_six_ACP_strings_and_falls_everything_else_including_mcp_and_agent_to_other(string? raw, ToolCall.Kind expected)
+    {
+        Assert.Equal(expected, InvokeStatic<ToolCall.Kind>("Kind", raw));
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-110")] // ACPSession.swift:889-895
+    [InlineData("completed", ToolCall.Status.Completed)]
+    [InlineData("failed", ToolCall.Status.Failed)]
+    [InlineData("pending", ToolCall.Status.Running)]
+    [InlineData("in_progress", ToolCall.Status.Running)]
+    [InlineData("mystery-status", ToolCall.Status.Running)]
+    public void Status_maps_completed_and_failed_and_treats_everything_else_as_running(string raw, ToolCall.Status expected)
+    {
+        Assert.Equal(expected, InvokeStatic<ToolCall.Status>("Status", raw));
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-111")] // ACPSession.swift:866-877
+    [InlineData(ToolCall.Kind.Command, "Run command")]
+    [InlineData(ToolCall.Kind.Read, "Read file")]
+    [InlineData(ToolCall.Kind.Edit, "Edit file")]
+    [InlineData(ToolCall.Kind.Search, "Search")]
+    [InlineData(ToolCall.Kind.Web, "Fetch")]
+    [InlineData(ToolCall.Kind.Mcp, "Tool")]
+    [InlineData(ToolCall.Kind.Agent, "Agent")]
+    [InlineData(ToolCall.Kind.Other, "Tool")]
+    public void FallbackTitle_returns_exactly_eight_verbatim_strings(ToolCall.Kind kind, string expected)
+    {
+        Assert.Equal(expected, InvokeStatic<string>("FallbackTitle", kind));
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-112")] // ACPSession.swift:879-887
+    [InlineData("Run Command", true)]
+    [InlineData("READ FILE", true)]
+    [InlineData("Edit File", true)]
+    [InlineData("Write File", true)]
+    [InlineData("Search", true)]
+    [InlineData("Fetch", true)]
+    [InlineData("Tool", true)]
+    [InlineData("Agent", true)]
+    [InlineData("File", true)]
+    [InlineData("Files", true)]
+    [InlineData("READ", true)] // not one of the ten literals: delegates to isBareToolName
+    [InlineData("Read file.ts", false)]
+    [InlineData("Something else", false)]
+    public void IsFallbackTitle_rejects_ten_generic_labels_lowercased_and_delegates_to_isBareToolName(string title, bool expected)
+    {
+        Assert.Equal(expected, InvokeStatic<bool>("IsFallbackTitle", title));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-113")] // ACPSession.swift:830-838
+    public void IsBareToolName_recognizes_exactly_thirty_five_identifiers_case_insensitively()
+    {
+        string[] names =
+        [
+            "read", "write", "edit", "multiedit", "patch", "bash", "shell", "list", "ls", "glob", "grep", "search",
+            "webfetch", "websearch", "fetch", "todowrite", "todoread", "task", "tool", "apply_patch", "read_file",
+            "write_file", "edit_file", "list_files", "search_files", "run_command", "run_terminal_cmd", "web_search",
+            "web_fetch", "codebase_search", "file_search", "grep_search", "list_dir", "view_file", "replace_file_content",
+        ];
+        Assert.Equal(35, names.Length);
+        foreach (var name in names)
+        {
+            Assert.True(InvokeStatic<bool>("IsBareToolName", name), name);
+            Assert.True(InvokeStatic<bool>("IsBareToolName", name.ToUpperInvariant()), name);
+        }
+        Assert.False(InvokeStatic<bool>("IsBareToolName", "cmd")); // Windows-flavoured names are not invented additions
+        Assert.False(InvokeStatic<bool>("IsBareToolName", "powershell"));
+        Assert.False(InvokeStatic<bool>("IsBareToolName", "readme"));
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-114")] // ACPSession.swift:851-853
+    [InlineData(null, "")]
+    [InlineData("`path/to/file`", "path/to/file")]
+    [InlineData("  spaced  ", "spaced")]
+    [InlineData("\ntitle\n", "title")]
+    [InlineData("`\n mixed \n`", "mixed")]
+    [InlineData("kept\r", "kept\r")] // carriage return is NOT in the trimmed set
+    [InlineData("kept\t", "kept\t")] // tab is NOT in the trimmed set
+    public void CleanTitle_trims_only_backticks_spaces_and_newlines_from_both_ends(string? title, string expected)
+    {
+        Assert.Equal(expected, InvokeStatic<string>("CleanTitle", title));
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-115")] // ACPSession.swift:788-792,809-813
+    [InlineData("searched web for cats", ToolCall.Kind.Web, "cats")]
+    [InlineData("search web for cats", ToolCall.Kind.Web, "cats")]
+    [InlineData("searching web for cats", ToolCall.Kind.Web, "cats")]
+    [InlineData("searched the web for cats", ToolCall.Kind.Web, "cats")]
+    [InlineData("search the web for cats", ToolCall.Kind.Web, "cats")]
+    [InlineData("searched for cats", ToolCall.Kind.Search, "cats")]
+    [InlineData("searching for cats", ToolCall.Kind.Search, "cats")]
+    [InlineData("search for cats", ToolCall.Kind.Search, "cats")]
+    [InlineData("reading file a.txt", ToolCall.Kind.Read, "a.txt")]
+    [InlineData("read file a.txt", ToolCall.Kind.Read, "a.txt")]
+    [InlineData("listed directory src", ToolCall.Kind.Read, "src")]
+    [InlineData("listing directory src", ToolCall.Kind.Read, "src")]
+    [InlineData("list directory src", ToolCall.Kind.Read, "src")]
+    [InlineData("listed files in src", ToolCall.Kind.Read, "src")]
+    [InlineData("list files in src", ToolCall.Kind.Read, "src")]
+    [InlineData("listing files in src", ToolCall.Kind.Read, "src")]
+    public void Subject_strips_at_most_one_of_sixteen_phrases_the_first_the_lowered_title_starts_with(string title, ToolCall.Kind kind, string expected)
+    {
+        Assert.Equal(expected, InvokeStatic<string>("Subject", title, kind));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-115")] // ACPSession.swift:786-787,809-813
+    public void Subject_phrase_stripping_never_applies_outside_read_edit_search_and_web_kinds()
+    {
+        Assert.Equal("search for cats", InvokeStatic<string>("Subject", "search for cats", ToolCall.Kind.Command));
+        Assert.Equal("search for cats", InvokeStatic<string>("Subject", "search for cats", ToolCall.Kind.Mcp));
+        Assert.Equal("search for cats", InvokeStatic<string>("Subject", "search for cats", ToolCall.Kind.Agent));
+        Assert.Equal("search for cats", InvokeStatic<string>("Subject", "search for cats", ToolCall.Kind.Other));
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-116")] // ACPSession.swift:793-799,814-818
+    [InlineData("Fetched https://example.com", ToolCall.Kind.Web, "https://example.com")]
+    [InlineData("Fetched", ToolCall.Kind.Web, "Fetched")] // remainder would be empty: the verb is kept
+    [InlineData("Read a.txt", ToolCall.Kind.Read, "a.txt")]
+    [InlineData("Browsed https://x", ToolCall.Kind.Web, "https://x")]
+    [InlineData("Opened file.txt", ToolCall.Kind.Read, "file.txt")]
+    public void Subject_strips_one_leading_verb_when_no_phrase_matched_and_something_remains(string title, ToolCall.Kind kind, string expected)
+    {
+        Assert.Equal(expected, InvokeStatic<string>("Subject", title, kind));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-116")] // ACPSession.swift:793-799
+    public void Subject_recognizes_exactly_forty_eight_verbs()
+    {
+        string[] verbs =
+        [
+            "read", "reading", "viewed", "viewing", "view", "fetched", "fetching", "fetch", "browsed", "browsing",
+            "searched", "searching", "search", "grep", "glob", "listed", "listing", "list", "wrote", "writing",
+            "write", "edited", "editing", "edit", "modified", "modifying", "modify", "updated", "updating", "update",
+            "created", "creating", "create", "deleted", "deleting", "delete", "ran", "running", "run", "executed",
+            "executing", "execute", "called", "calling", "call", "opened", "opening", "open",
+        ];
+        Assert.Equal(48, verbs.Length);
+        foreach (var verb in verbs)
+            Assert.True("x" == InvokeStatic<string>("Subject", $"{verb} x", ToolCall.Kind.Read), verb);
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-117")] // ACPSession.swift:819-825
+    [InlineData("'devin'", "devin")]
+    [InlineData("\"devin\"", "devin")]
+    [InlineData("“devin”", "devin")] // U+201C LEFT / U+201D RIGHT DOUBLE QUOTATION MARK
+    [InlineData("`devin`", "devin")]
+    [InlineData("'", "'")] // one character: the length check fails, left alone
+    [InlineData("''", "")] // exactly two characters: unwraps to empty
+    [InlineData("'mismatched\"", "'mismatched\"")] // mismatched pair: not unwrapped
+    public void Subject_unwraps_one_matching_pair_of_four_delimiter_kinds(string title, string expected)
+    {
+        Assert.Equal(expected, InvokeStatic<string>("Subject", title, ToolCall.Kind.Read));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-117")] // ACPSession.swift:819-825 (for ... where, no break)
+    public void Subject_unwraps_more_than_one_kind_of_quote_when_nested_because_the_loop_never_breaks()
+    {
+        // '"x"' : single-quote pair strips first ('"x"' -> "x"), then the double-quote pair strips again ("x" -> x).
+        Assert.Equal("x", InvokeStatic<string>("Subject", "'\"x\"'", ToolCall.Kind.Read));
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-118")] // ACPSession.swift:801-804
+    [InlineData(null, "")]
+    [InlineData("", "")]
+    [InlineData("read", "")]
+    [InlineData("READ", "")]
+    [InlineData("todowrite", "")]
+    public void Subject_returns_empty_for_a_bare_tool_name_before_any_phrase_or_verb_stripping(string? title, string expected)
+    {
+        Assert.Equal(expected, InvokeStatic<string>("Subject", title, ToolCall.Kind.Read));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-119")] // ACPSession.swift:773,714-715,775-780
+    public void MakeToolCall_path_takes_the_first_non_empty_of_seven_rawInput_keys_in_order_then_locations()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        ToolCall CallWithRaw(params (string, JSONValue)[] rawFields) =>
+            InvokePrivateValue<ToolCall>(session, "MakeToolCall", JSONValue.FromDictionaryLiteral(
+                ("kind", "read"), ("rawInput", JSONValue.FromDictionaryLiteral(rawFields))));
+
+        Assert.Equal("a.txt", CallWithRaw(("filePath", "a.txt"), ("file_path", "b.txt"), ("path", "c.txt")).Title);
+        Assert.Equal("b.txt", CallWithRaw(("file_path", "b.txt"), ("path", "c.txt")).Title);
+        Assert.Equal("c.txt", CallWithRaw(("path", "c.txt"), ("file", "d.txt")).Title);
+        Assert.Equal("d.txt", CallWithRaw(("file", "d.txt"), ("notebook_path", "e.ipynb")).Title);
+        Assert.Equal("e.ipynb", CallWithRaw(("notebook_path", "e.ipynb"), ("target_file", "f.txt")).Title);
+        Assert.Equal("f.txt", CallWithRaw(("target_file", "f.txt"), ("targetFile", "g.txt")).Title);
+        Assert.Equal("g.txt", CallWithRaw(("targetFile", "g.txt")).Title);
+        Assert.Equal("g.txt", CallWithRaw(("filePath", "   "), ("targetFile", "g.txt")).Title); // whitespace-only value skipped
+
+        var withLocation = InvokePrivateValue<ToolCall>(session, "MakeToolCall", JSONValue.FromDictionaryLiteral(
+            ("kind", "read"),
+            ("locations", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("path", "from-location.txt"))))));
+        Assert.Equal("from-location.txt", withLocation.Title); // none of the seven keys: falls to locations[0].path
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-120")] // ACPSession.swift:719-720; ProviderSession.swift:180-192
+    [InlineData("/bin/zsh -lc 'echo hi'", "echo hi")]
+    [InlineData("/bin/bash -lc \"echo hi\"", "echo hi")]
+    [InlineData("bash -lc 'echo hi'", "echo hi")]
+    [InlineData("zsh -lc 'echo hi'", "echo hi")]
+    [InlineData("/bin/sh -c 'echo hi'", "echo hi")]
+    [InlineData("sh -c 'echo hi'", "echo hi")]
+    [InlineData("plain command", "plain command")] // no matching prefix: shown unwrapped
+    public void MakeToolCall_titles_a_command_row_from_the_unwrapped_shell_command(string command, string expected)
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var call = InvokePrivateValue<ToolCall>(session, "MakeToolCall", JSONValue.FromDictionaryLiteral(
+            ("kind", "execute"), ("rawInput", JSONValue.FromDictionaryLiteral(("command", command)))));
+        Assert.Equal(expected, call.Title);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-120")] // ACPSession.swift:719-720
+    public void MakeToolCall_falls_back_to_the_cleaned_title_when_rawInput_command_is_not_a_string()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var call = InvokePrivateValue<ToolCall>(session, "MakeToolCall", JSONValue.FromDictionaryLiteral(
+            ("kind", "execute"), ("title", "Run something")));
+        Assert.Equal("Run something", call.Title); // .command is never phrase/verb-stripped
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-121")] // ACPSession.swift:721-722
+    public void MakeToolCall_titles_read_and_edit_rows_by_path_falling_back_to_the_cleaned_title_with_no_detail()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+
+        var withPath = InvokePrivateValue<ToolCall>(session, "MakeToolCall", JSONValue.FromDictionaryLiteral(
+            ("kind", "read"), ("rawInput", JSONValue.FromDictionaryLiteral(("path", "src/a.ts"))), ("title", "Reading something")));
+        Assert.Equal("src/a.ts", withPath.Title); // the path wins over the agent's title
+        Assert.Null(withPath.Detail);
+
+        var noPath = InvokePrivateValue<ToolCall>(session, "MakeToolCall", JSONValue.FromDictionaryLiteral(
+            ("kind", "edit"), ("title", "Edited b.ts")));
+        Assert.Equal("b.ts", noPath.Title); // no path found: falls back to the (verb-stripped) cleaned title
+        Assert.Null(noPath.Detail);
+    }
 }
