@@ -75,9 +75,15 @@ public sealed class InMemoryCredentialBackend : ICredentialBackend
         return ErrorNotFound;
     }
 
+    /// <summary>
+    /// Runs before a delete is applied, with the target name as passed. A test uses it to read the store mid-delete.
+    /// </summary>
+    public Action<string>? BeforeDelete { get; set; }
+
     public int Delete(string targetName)
     {
         Operations.Add("delete " + targetName);
+        BeforeDelete?.Invoke(targetName);
         return credentials.Remove(targetName) ? ErrorSuccess : ErrorNotFound;
     }
 

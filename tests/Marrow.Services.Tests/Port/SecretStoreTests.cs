@@ -481,8 +481,184 @@ public sealed class SecretStoreTests
 
         AssertRefusedStatus(store.Add(Service, "MCP notes oauth", Bytes(Chunk + 1)));
 
+        // OD-0008 A6 (decision_batch_20260922.md:22): fail closed, store nothing. No continuation holding part of
+        // the secret is left behind.
+        Assert.Empty(backend.TargetNames);
         Assert.Equal(SecretStoreStatus.ItemNotFound, store.CopyMatching(Service, "MCP notes oauth", out _));
         Assert.Null(store.Read(Service, "MCP notes oauth"));
+    }
+
+    // A refused continuation write. For a 2561-byte value the only write that is not the primary is its one
+    // continuation (`<target>#2` under ED-093); the predicate refuses every non-primary write so it holds whatever
+    // continuation names ED-093 settles on. The primary must never be written: a port that ignores the continuation's
+    // error and writes the primary anyway would report a value that can never be read back.
+    private Func<GenericCredential, int> RefuseEveryContinuationOf(string target) => credential =>
+        string.Equals(credential.TargetName, target, StringComparison.OrdinalIgnoreCase)
+            ? InMemoryCredentialBackend.ErrorSuccess
+            : InMemoryCredentialBackend.ErrorAccessDenied;
+
+    [Fact]
+    [Trait("Decision", "ED-093")]
+    public void A_chunked_add_whose_continuation_write_is_refused_reports_a_failure_and_never_writes_the_primary()
+    {
+        var store = NewStore();
+        var target = SecretStore.TargetName(Service, "MCP notes oauth");
+        backend.BeforeWrite = RefuseEveryContinuationOf(target);
+
+        AssertRefusedStatus(store.Add(Service, "MCP notes oauth", Bytes(Chunk + 1)));
+
+        Assert.DoesNotContain("write " + target, backend.Operations);
+        Assert.Empty(backend.TargetNames); // OD-0008 A6: store nothing
+        Assert.Equal(SecretStoreStatus.ItemNotFound, store.CopyMatching(Service, "MCP notes oauth", out _));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SEC-1")]
+    [Trait("Decision", "ED-093")]
+    public void SetUpdating_whose_continuation_write_is_refused_reports_false_and_never_writes_the_primary()
+    {
+        // MCPKeychain.swift:42-49: the update finds nothing, so SecItemAdd runs and its failure is false.
+        var store = NewStore();
+        var target = SecretStore.TargetName(Service, "MCP notes oauth");
+        backend.BeforeWrite = RefuseEveryContinuationOf(target);
+
+        Assert.False(store.SetUpdating(Service, "MCP notes oauth", new string('v', Chunk + 1)));
+
+        Assert.DoesNotContain("write " + target, backend.Operations);
+        Assert.Empty(backend.TargetNames); // OD-0008 A6: store nothing
+        Assert.Equal(SecretStoreStatus.ItemNotFound, store.CopyMatching(Service, "MCP notes oauth", out _));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SEC-1")]
+    [Trait("Decision", "ED-093")]
+    public void SetReplacing_a_chunked_value_whose_continuation_write_is_refused_reports_false_and_leaves_nothing()
+    {
+        // APIKeychain.swift:34 deletes the old item first; :39 returns SecItemAdd == errSecSuccess, so false. After
+        // the refusal the account holds nothing, the old value included (OD-0008 A6).
+        var store = NewStore();
+        var target = SecretStore.TargetName(Service, "MCP notes oauth");
+        Assert.True(store.SetReplacing(Service, "MCP notes oauth", new string('o', 2 * Chunk + 1)));
+        backend.Operations.Clear();
+        backend.BeforeWrite = RefuseEveryContinuationOf(target);
+
+        Assert.False(store.SetReplacing(Service, "MCP notes oauth", new string('v', Chunk + 1)));
+
+        Assert.DoesNotContain("write " + target, backend.Operations);
+        Assert.Empty(backend.TargetNames);
+        Assert.Equal(SecretStoreStatus.ItemNotFound, store.CopyMatching(Service, "MCP notes oauth", out _));
+        Assert.Null(store.Read(Service, "MCP notes oauth"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SEC-1")]
+    [Trait("Decision", "ED-093")]
+    public void SetReplacing_a_chunked_value_whose_primary_write_is_refused_reports_false_and_leaves_nothing()
+    {
+        // APIKeychain.swift:34, :39 as above, with the refusal on the primary instead.
+        var store = NewStore();
+        var target = SecretStore.TargetName(Service, "MCP notes oauth");
+        Assert.True(store.SetReplacing(Service, "MCP notes oauth", new string('o', 2 * Chunk + 1)));
+        backend.BeforeWrite = credential =>
+            string.Equals(credential.TargetName, target, StringComparison.OrdinalIgnoreCase)
+                ? InMemoryCredentialBackend.ErrorAccessDenied
+                : InMemoryCredentialBackend.ErrorSuccess;
+
+        Assert.False(store.SetReplacing(Service, "MCP notes oauth", new string('v', Chunk + 1)));
+
+        Assert.Empty(backend.TargetNames);
+        Assert.Null(store.Read(Service, "MCP notes oauth"));
+    }
+
+    // ---- A chunked value updated to another chunked value (MCPOAuth.swift:712 rewrites the OAuth JSON on every
+    // token refresh). SecItemUpdate is atomic: a reader sees the old value or the new one, and a refused update
+    // leaves the item as it was (MCPKeychain.swift:42-44). These tests observe only Read, CopyMatching and the set
+    // of target names, never the continuation names, so they hold for any encoding ED-093 settles on.
+    // NOTE (reported to the orchestrator): ED-093 as written writes continuations in place at the fixed names
+    // <target>#2, #3 before the primary, which overwrites the old #2 while the old primary still points at it, so
+    // the first two tests below cannot pass under ED-093 as written; they wait for an ED-093 amendment. ----
+
+    [Fact]
+    [Trait("Rule", "R-SEC-1")]
+    [Trait("Decision", "ED-093")]
+    public void A_reader_during_a_two_chunk_to_two_chunk_update_sees_only_the_old_value_until_the_primary_is_replaced()
+    {
+        var store = NewStore();
+        var old = new string('o', Chunk + 10);
+        var updated = new string('n', Chunk + 20);
+        Assert.True(store.SetUpdating(Service, "MCP notes oauth", old));
+        var seenBeforeWrites = new List<string?>();
+        var seenBeforeDeletes = new List<string?>();
+        backend.BeforeWrite = _ =>
+        {
+            seenBeforeWrites.Add(store.Read(Service, "MCP notes oauth"));
+            return InMemoryCredentialBackend.ErrorSuccess;
+        };
+        backend.BeforeDelete = _ => seenBeforeDeletes.Add(store.Read(Service, "MCP notes oauth"));
+
+        Assert.True(store.SetUpdating(Service, "MCP notes oauth", updated));
+
+        Assert.NotEmpty(seenBeforeWrites);
+        Assert.All(seenBeforeWrites, seen => Assert.Equal(old, seen));
+        Assert.All(seenBeforeDeletes, seen => Assert.True(seen == old || seen == updated, "a reader never sees a torn value"));
+        backend.BeforeWrite = null;
+        backend.BeforeDelete = null;
+        Assert.Equal(updated, store.Read(Service, "MCP notes oauth"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SEC-1")]
+    [Trait("Decision", "ED-093")]
+    public void A_two_chunk_to_two_chunk_update_whose_primary_write_is_refused_reports_false_and_keeps_the_old_value()
+    {
+        // MCPKeychain.swift:42-44: SecItemUpdate fails with a status other than errSecItemNotFound, so false, and the
+        // atomic update left the item untouched; like the one-chunk case in
+        // A_refused_update_through_SetUpdating_reports_false_and_keeps_the_old_value.
+        var store = NewStore();
+        var target = SecretStore.TargetName(Service, "MCP notes oauth");
+        var old = new string('o', Chunk + 10);
+        Assert.True(store.SetUpdating(Service, "MCP notes oauth", old));
+        var namesBefore = backend.TargetNames.ToList();
+        backend.BeforeWrite = credential =>
+            string.Equals(credential.TargetName, target, StringComparison.OrdinalIgnoreCase)
+                ? InMemoryCredentialBackend.ErrorAccessDenied
+                : InMemoryCredentialBackend.ErrorSuccess;
+
+        Assert.False(store.SetUpdating(Service, "MCP notes oauth", new string('n', Chunk + 20)));
+
+        backend.BeforeWrite = null;
+        Assert.Equal(old, store.Read(Service, "MCP notes oauth"));
+        Assert.Equal(namesBefore, backend.TargetNames); // nothing of the refused value is left behind (OD-0008 A6)
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SEC-1")]
+    [Trait("Decision", "ED-093")]
+    public void A_reader_during_a_three_chunk_to_one_chunk_update_never_gets_item_not_found()
+    {
+        var store = NewStore();
+        var old = new string('o', 2 * Chunk + 1);
+        const string updated = "short";
+        Assert.True(store.SetUpdating(Service, "MCP notes oauth", old));
+        var statuses = new List<SecretStoreStatus>();
+        var values = new List<string?>();
+        void Look()
+        {
+            statuses.Add(store.CopyMatching(Service, "MCP notes oauth", out _));
+            values.Add(store.Read(Service, "MCP notes oauth"));
+        }
+        backend.BeforeWrite = _ => { Look(); return InMemoryCredentialBackend.ErrorSuccess; };
+        backend.BeforeDelete = _ => Look();
+
+        Assert.True(store.SetUpdating(Service, "MCP notes oauth", updated));
+
+        Assert.NotEmpty(statuses);
+        Assert.All(statuses, status => Assert.Equal(SecretStoreStatus.Success, status));
+        Assert.All(values, seen => Assert.True(seen == old || seen == updated, "a reader never sees a torn value"));
+        backend.BeforeWrite = null;
+        backend.BeforeDelete = null;
+        Assert.Equal(updated, store.Read(Service, "MCP notes oauth"));
+        Assert.Single(backend.TargetNames);
     }
 
     [Fact]
@@ -641,6 +817,57 @@ public sealed class SecretStoreTests
 
     [Fact]
     [Trait("Rule", "R-SEC-1")]
+    [Trait("Rule", "R-STR-7")]
+    [Trait("Rule", "R-TEST-4")]
+    public void Read_trims_with_Foundation_whitespace_and_newlines_not_String_Trim()
+    {
+        // APIKeychain.swift:54-55 and MCPKeychain.swift:24-25 trim with Text.swift:132 .whitespacesAndNewlines,
+        // which holds U+200B and U+0085 (R-STR-7). Stored bytes E2 80 8B | 61 62 63 | C2 85 | E2 80 8B are
+        // U+200B "abc" U+0085 U+200B.
+        var store = NewStore();
+        Assert.Equal(SecretStoreStatus.Success, store.Add(Service, "DeepSeek API Key",
+            [0xE2, 0x80, 0x8B, 0x61, 0x62, 0x63, 0xC2, 0x85, 0xE2, 0x80, 0x8B]));
+
+        // Negative control: String.Trim() stops at U+200B, so it leaves the text as it is.
+        var decoded = "\U0000200Babc\U00000085\U0000200B"; // U+200B ZERO WIDTH SPACE, U+0085 NEXT LINE
+        Assert.Equal(decoded, decoded.Trim());
+
+        Assert.Equal("abc", store.Read(Service, "DeepSeek API Key"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SEC-1")]
+    [Trait("Rule", "R-STR-7")]
+    [Trait("Rule", "R-TEST-4")]
+    public void Read_treats_a_stored_zero_width_space_as_absent()
+    {
+        // APIKeychain.swift:54 and MCPKeychain.swift:24: U+200B (bytes E2 80 8B) trims to empty, so nil.
+        var store = NewStore();
+        Assert.Equal(SecretStoreStatus.Success, store.Add(Service, "Meta API Key", [0xE2, 0x80, 0x8B]));
+
+        // Negative controls: neither String.Trim() nor string.IsNullOrWhiteSpace treats U+200B as white space.
+        Assert.Equal("\U0000200B", "\U0000200B".Trim()); // U+200B ZERO WIDTH SPACE
+        Assert.False(string.IsNullOrWhiteSpace("\U0000200B")); // U+200B ZERO WIDTH SPACE
+
+        Assert.Null(store.Read(Service, "Meta API Key"));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-STR-8")]
+    [Trait("Oracle", "O-15")]
+    public void Read_keeps_a_leading_byte_order_mark()
+    {
+        // UNVERIFIED (O-15, R-TEST-6): R-STR-8 says String(data:encoding: .utf8) keeps a BOM, the decode at
+        // APIKeychain.swift:53 and MCPKeychain.swift:23; U+FEFF is not in .whitespacesAndNewlines, so the trim at
+        // :54-55 / :24-25 keeps it. A StreamReader or encoding detection would strip it (R-STR-8).
+        var store = NewStore();
+        Assert.Equal(SecretStoreStatus.Success, store.Add(Service, "Z.ai API Key", [0xEF, 0xBB, 0xBF, 0x61]));
+
+        Assert.Equal("\U0000FEFFa", store.Read(Service, "Z.ai API Key")); // U+FEFF ZERO WIDTH NO-BREAK SPACE, then "a"
+    }
+
+    [Fact]
+    [Trait("Rule", "R-SEC-1")]
     public void Read_treats_a_stored_blank_value_as_absent()
     {
         // APIKeychain.swift:54 and MCPKeychain.swift:24: !value.trimmed.isEmpty else { return nil }.
@@ -728,21 +955,15 @@ public sealed class SecretStoreTests
     public void A_refused_write_stores_the_value_nowhere_else(bool deleteFirst)
     {
         // OD-0008 A6 (BLK-0006): fail closed, store nothing; the key is never written in plain text. Upstream's
-        // fallback was the caller's defaults write (AppSettings.swift:479-486); the store adds none of its own:
-        // no settings write and no file under the data folder.
+        // fallback was the caller's defaults write (AppSettings.swift:479-486); the store adds none of its own: no
+        // settings write and no credential. The store is given no path, so there is no folder of its own to scan.
         using var runtime = new TestRuntime();
-        var dataDirectory = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
-        Assert.False(string.IsNullOrEmpty(dataDirectory), "MARROW_PORT_DATA_DIR must name a throwaway folder (R-TEST-9)");
-        Directory.CreateDirectory(dataDirectory!);
-        var before = Directory.GetFileSystemEntries(dataDirectory!, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal).ToArray();
         var store = NewStore();
         backend.BeforeWrite = _ => InMemoryCredentialBackend.ErrorAccessDenied;
 
         Assert.False(Set(store, deleteFirst, "Meta API Key", "sk-not-a-real-key"));
 
         Assert.Empty(runtime.Defaults.Writes);
-        var after = Directory.GetFileSystemEntries(dataDirectory!, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal).ToArray();
-        Assert.Equal(before, after);
         Assert.Empty(backend.TargetNames);
     }
 
@@ -804,9 +1025,26 @@ public sealed class SecretStoreTests
         }
         finally
         {
-            foreach (var account in accounts) store.Delete(service, account);
+            // A write that failed after its continuations but before its primary leaves chunks that Delete, finding
+            // no primary, cannot know about; remove them by name too (ED-093 "deletes in finally", R-TEST-9).
+            foreach (var account in accounts)
+            {
+                store.Delete(service, account);
+                var target = SecretStore.TargetName(service, account);
+                live.Delete(target + "#2");
+                live.Delete(target + "#3");
+            }
             live.Delete(probe);
         }
-        Assert.Equal(SecretStoreStatus.ItemNotFound, store.CopyMatching(service, accounts[1], out _));
+
+        // Nothing is left in the user's Credential Manager: 1168 is ERROR_NOT_FOUND.
+        List<string> leftovers = [probe];
+        foreach (var account in accounts)
+        {
+            var target = SecretStore.TargetName(service, account);
+            leftovers.AddRange([target, target + "#2", target + "#3"]);
+        }
+        foreach (var name in leftovers)
+            Assert.Equal(1168, live.Read(name, out _));
     }
 }
