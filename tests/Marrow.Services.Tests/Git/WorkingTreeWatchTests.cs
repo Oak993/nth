@@ -88,8 +88,8 @@ public sealed class WorkingTreeWatchTests
     }
 
     [Fact]
-    [Trait("Req", "PR-GIT-076")] // Services/Git/WorkingTreeWatch.swift:15-18,246-273; Windows verification item
-    public async Task Write_through_an_open_handle_is_counted_before_its_cookie()
+    [Trait("Req", "PR-GIT-076")] // Services/Git/WorkingTreeWatch.swift:15-18,241-273; ED-161
+    public async Task Write_through_a_handle_closed_before_the_cookie_is_counted()
     {
         using var folder = new ScratchFolder();
         var git = folder.Child(".git");
@@ -100,10 +100,59 @@ public sealed class WorkingTreeWatchTests
         var count = 0;
         Task<string> Capture(string? _, IReadOnlyList<string>? __) => Task.FromResult($"tree-{++count}");
         Assert.Equal("tree-1", await watch.CurrentTree(folder.Child("index"), Capture));
-        using var handle = new FileStream(tracked, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
-        handle.WriteByte((byte)'b');
-        handle.Flush();
+        using (var handle = new FileStream(tracked, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete))
+        {
+            handle.WriteByte((byte)'b');
+            handle.Flush();
+        }
         Assert.Equal("tree-2", await watch.CurrentTree(folder.Child("index"), Capture));
+        Assert.Equal(2, count);
+    }
+
+    [Fact]
+    [Trait("Oracle", "O-55")] // Services/Git/WorkingTreeWatch.swift:15-18,241-273
+    [Trait("Decision", "ED-161")]
+    public async Task Write_through_a_handle_still_open_is_counted_once_the_handle_closes()
+    {
+        using var folder = new ScratchFolder();
+        var git = folder.Child(".git");
+        Directory.CreateDirectory(git);
+        var tracked = folder.Child("tracked.txt");
+        File.WriteAllText(tracked, "a");
+        var watch = WorkingTreeWatch.Shared(folder.Root, git)!;
+        var count = 0;
+        Task<string> Capture(string? _, IReadOnlyList<string>? __) => Task.FromResult($"tree-{++count}");
+        Assert.Equal("tree-1", await watch.CurrentTree(folder.Child("index"), Capture));
+        var handle = new FileStream(tracked, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
+        try
+        {
+            handle.WriteByte((byte)'b');
+            handle.Flush();
+            Assert.Equal("tree-1", await watch.CurrentTree(folder.Child("index"), Capture));
+            Assert.Equal(1, count);
+        }
+        finally
+        {
+            handle.Dispose();
+        }
+        Assert.Equal("tree-2", await watch.CurrentTree(folder.Child("index"), Capture));
+        Assert.Equal(2, count);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-GIT-076")] // Services/Git/WorkingTreeWatch.swift:246-273; ED-161
+    public async Task A_leftover_cookie_file_does_not_force_a_fresh_capture()
+    {
+        using var folder = new ScratchFolder();
+        var git = folder.Child(".git");
+        Directory.CreateDirectory(git);
+        File.WriteAllBytes(Path.Combine(git, "droppy-code-sync-1"), []);
+        var watch = WorkingTreeWatch.Shared(folder.Root, git)!;
+        var count = 0;
+        Task<string> Capture(string? _, IReadOnlyList<string>? __) => Task.FromResult($"tree-{++count}");
+        Assert.Equal("tree-1", await watch.CurrentTree(folder.Child("index"), Capture));
+        Assert.Equal("tree-1", await watch.CurrentTree(folder.Child("index"), Capture));
+        Assert.Equal(1, count);
     }
 
     [Fact]
