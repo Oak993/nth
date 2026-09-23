@@ -49,6 +49,11 @@ public sealed class MCPStoreTests
         runtime.Loop.RunUntil(() => true);
     }
 
+    /// File.WriteAllText(path, text, Encoding.UTF8) writes a BOM, which JsonSerializer.Deserialize(byte[]) does
+    /// not skip; load()'s JsonSerializer.Deserialize calls need bytes with no BOM, as FileOps.WriteAtomic (used by
+    /// save/saveCustoms) itself writes (Encoding.UTF8.GetBytes never emits one).
+    private static void WriteNoBom(string path, string text) => File.WriteAllBytes(path, Encoding.UTF8.GetBytes(text));
+
     // ===== PR-MCP-050: allEntries =====
 
     [Fact]
@@ -789,14 +794,12 @@ public sealed class MCPStoreTests
     {
         using var harness = new MCPStoreDirectHarness();
         Directory.CreateDirectory(Path.GetDirectoryName(MCPPaths.CustomsURL)!);
-        File.WriteAllText(MCPPaths.CustomsURL,
+        WriteNoBom(MCPPaths.CustomsURL,
             "[{\"id\":\"restored-tool\",\"name\":\"Restored Tool\",\"kind\":\"stdio\"," +
-            "\"command\":\"marrow-store-test-nonexistent-cmd-93a1\",\"args\":[],\"env\":[],\"url\":\"\",\"headers\":[]}]",
-            Encoding.UTF8);
-        File.WriteAllText(MCPPaths.ConnectionsURL,
+            "\"command\":\"marrow-store-test-nonexistent-cmd-93a1\",\"args\":[],\"env\":[],\"url\":\"\",\"headers\":[]}]");
+        WriteNoBom(MCPPaths.ConnectionsURL,
             "[{\"catalogID\":\"restored-tool\",\"connectedAt\":\"2026-01-02T03:04:05Z\",\"isEnabled\":true," +
-            "\"serverVersion\":\"9.9\",\"tools\":[{\"name\":\"t1\"}],\"values\":{}}]",
-            Encoding.UTF8);
+            "\"serverVersion\":\"9.9\",\"tools\":[{\"name\":\"t1\"}],\"values\":{}}]");
 
         var store = new MCPStore(); // :22-23 init calls load() first
 
@@ -814,10 +817,9 @@ public sealed class MCPStoreTests
     {
         using var harness = new MCPStoreDirectHarness();
         Directory.CreateDirectory(Path.GetDirectoryName(MCPPaths.CustomsURL)!);
-        File.WriteAllText(MCPPaths.CustomsURL, "not json", Encoding.UTF8); // :247 decode fails, customs stays empty
-        File.WriteAllText(MCPPaths.ConnectionsURL,
-            "[{\"catalogID\":\"x\",\"connectedAt\":\"not-a-date\",\"isEnabled\":true,\"serverVersion\":null,\"tools\":[],\"values\":{}}]",
-            Encoding.UTF8); // :253 iso8601 decode fails, connections stays empty
+        WriteNoBom(MCPPaths.CustomsURL, "not json"); // :247 decode fails, customs stays empty
+        WriteNoBom(MCPPaths.ConnectionsURL,
+            "[{\"catalogID\":\"x\",\"connectedAt\":\"not-a-date\",\"isEnabled\":true,\"serverVersion\":null,\"tools\":[],\"values\":{}}]"); // :253 iso8601 decode fails, connections stays empty
 
         var store = new MCPStore(); // must not throw
 
@@ -833,16 +835,19 @@ public sealed class MCPStoreTests
     public void Save_writes_mcp_json_pretty_printed_sorted_keys_and_sorted_by_catalogID()
     {
         using var harness = new MCPStoreHarness();
-        var store = harness.Runtime.OnMain(() => new MCPStore());
-        var zeta = StdioCustom("Zeta");
-        var alpha = StdioCustom("Alpha");
-        harness.Runtime.OnMain(() => Assert.Null(store.SaveCustom(zeta)));
-        harness.Runtime.OnMain(() => Assert.Null(store.SaveCustom(alpha)));
-        var zetaEntry = harness.Runtime.OnMain(() => store.Entry(zeta.Id)!);
-        var alphaEntry = harness.Runtime.OnMain(() => store.Entry(alpha.Id)!);
-        // RunOneStep, not OnMain: connect spawns StartProbe's task, which must not run (R-TEST-10).
-        RunOneStep(harness.Runtime, () => store.Connect(zetaEntry));
-        RunOneStep(harness.Runtime, () => store.Connect(alphaEntry));
+        harness.Runtime.OnMain(() =>
+        {
+            var store = new MCPStore();
+            var zeta = StdioCustom("Zeta", env: [new("token", IsSecret: false)]);
+            var alpha = StdioCustom("Alpha", env: [new("token", IsSecret: false)]);
+            Assert.Null(store.SaveCustom(zeta));
+            Assert.Null(store.SaveCustom(alpha));
+            var zetaEntry = store.Entry(zeta.Id)!;
+            var alphaEntry = store.Entry(alpha.Id)!;
+            // SaveCustomValues, not Connect: a connection row with no spawned probe task (R-TEST-10), Zeta first.
+            Assert.True(store.SaveCustomValues([("token", "v", false)], zetaEntry.Id, zetaEntry));
+            Assert.True(store.SaveCustomValues([("token", "v", false)], alphaEntry.Id, alphaEntry));
+        });
 
         const string expected =
             "[\n" +
@@ -853,7 +858,7 @@ public sealed class MCPStoreTests
             "\n" +
             "    ],\n" +
             "    \"values\" : {\n" +
-            "\n" +
+            "      \"token\" : \"v\"\n" +
             "    }\n" +
             "  },\n" +
             "  {\n" +
@@ -863,11 +868,11 @@ public sealed class MCPStoreTests
             "\n" +
             "    ],\n" +
             "    \"values\" : {\n" +
-            "\n" +
+            "      \"token\" : \"v\"\n" +
             "    }\n" +
             "  }\n" +
             "]";
-        // "custom-alpha" sorts before "custom-zeta" though Zeta was connected first (:266, sorted by catalogID).
+        // "custom-alpha" sorts before "custom-zeta" though Zeta was written first (:266, sorted by catalogID).
         Assert.Equal(expected, File.ReadAllText(MCPPaths.ConnectionsURL));
     }
 
@@ -945,11 +950,23 @@ public sealed class MCPStoreTests
         await WaitWhileConnecting(store, entry.Id);
         Assert.True(store.State(entry.Id) is MCPConnectionState.Connected);
         // A successful probe calls exportAll (:343): the enabled, connected server is now in claude.json (:286).
-        Assert.True(File.Exists(MCPPaths.ClaudeConfigURL));
-        Assert.Contains(entry.Id, File.ReadAllText(MCPPaths.ClaudeConfigURL));
+        // The write itself lands a moment after the state flips (both on the probe's own continuation, but observed
+        // from this thread through the file system), so poll rather than assert the instant WaitWhileConnecting returns.
+        await WaitForFile(MCPPaths.ClaudeConfigURL, exists: true);
+        Assert.Contains(entry.Id, File.ReadAllText(MCPPaths.ClaudeConfigURL), StringComparison.Ordinal);
 
         store.Disconnect(entry); // :133 also calls exportAll, with enabledServers empty again
-        Assert.False(File.Exists(MCPPaths.ClaudeConfigURL)); // :149-153 WriteAll removes every provider file when empty
+        await WaitForFile(MCPPaths.ClaudeConfigURL, exists: false); // :149-153 WriteAll removes every provider file when empty
+    }
+
+    private static async Task WaitForFile(string path, bool exists, TimeSpan? timeout = null)
+    {
+        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(10));
+        while (File.Exists(path) != exists)
+        {
+            if (DateTime.UtcNow > deadline) throw new TimeoutException($"{path} did not reach exists={exists}.");
+            await Task.Delay(20);
+        }
     }
 
     // ===== PR-MCP-083: init loads, starts the proxy and exports, in that order, before construction returns =====
@@ -960,14 +977,12 @@ public sealed class MCPStoreTests
     {
         using var harness = new MCPStoreDirectHarness();
         Directory.CreateDirectory(Path.GetDirectoryName(MCPPaths.CustomsURL)!);
-        File.WriteAllText(MCPPaths.CustomsURL,
+        WriteNoBom(MCPPaths.CustomsURL,
             "[{\"id\":\"preloaded-tool\",\"name\":\"Preloaded Tool\",\"kind\":\"stdio\"," +
-            "\"command\":\"marrow-store-test-nonexistent-cmd-93a1\",\"args\":[],\"env\":[],\"url\":\"\",\"headers\":[]}]",
-            Encoding.UTF8);
-        File.WriteAllText(MCPPaths.ConnectionsURL,
+            "\"command\":\"marrow-store-test-nonexistent-cmd-93a1\",\"args\":[],\"env\":[],\"url\":\"\",\"headers\":[]}]");
+        WriteNoBom(MCPPaths.ConnectionsURL,
             "[{\"catalogID\":\"preloaded-tool\",\"connectedAt\":\"2026-01-02T03:04:05Z\",\"isEnabled\":true," +
-            "\"serverVersion\":null,\"tools\":[],\"values\":{}}]",
-            Encoding.UTF8);
+            "\"serverVersion\":null,\"tools\":[],\"values\":{}}]");
 
         var store = new MCPStore(); // :23 load(); :26 MCPProxy start; :27 exportAll(), all before this call returns
 
@@ -975,6 +990,6 @@ public sealed class MCPStoreTests
         // already reflects the persisted, connected server, not an empty list.
         Assert.Contains("preloaded-tool", store.EnabledServers.Select(s => s.Id));
         Assert.True(File.Exists(MCPPaths.ClaudeConfigURL));
-        Assert.Contains("preloaded-tool", File.ReadAllText(MCPPaths.ClaudeConfigURL));
+        Assert.Contains("preloaded-tool", File.ReadAllText(MCPPaths.ClaudeConfigURL), StringComparison.Ordinal);
     }
 }
