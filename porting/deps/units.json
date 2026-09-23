@@ -3,6 +3,31 @@
  "part_size": 24,
  "units": [
   {
+   "id": "F.SymbolImage",
+   "kind": "foundation",
+   "swift": null,
+   "target": "src/Marrow.UI/Port/SwiftImage.cs",
+   "project": "Marrow.UI",
+   "test_project": "tests/Marrow.UI.Tests",
+   "level": -1,
+   "component": null,
+   "component_members": [],
+   "deps": [],
+   "intra_deps": [],
+   "noMerge": false,
+   "base": null,
+   "records_total": 0,
+   "records_todo": [],
+   "parts": [
+    []
+   ],
+   "packets": [],
+   "risk": "STANDARD",
+   "spec": "ED-179 and ED-182: Image(systemName:) as Lucide icons (OD-0010, porting/icons) through an SVG-subset converter, Image(_ name:) for the three asset images, sizing, fill, composition and effects per ED-182 (oracle O-63).",
+   "extends_existing": true,
+   "status": "DONE"
+  },
+  {
    "id": "F.URLComponents",
    "kind": "foundation",
    "swift": null,
@@ -2270,6 +2295,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Theme.AppTheme"
    ],
    "intra_deps": [
@@ -2466,6 +2492,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Theme.AppTheme"
    ],
    "intra_deps": [
@@ -2798,6 +2825,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [],
@@ -2926,6 +2954,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers"
    ],
@@ -3251,6 +3280,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [],
@@ -3324,6 +3354,7 @@
    "deps": [
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [],
@@ -3356,6 +3387,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Chrome.ProjectSymbolCatalogue"
    ],
@@ -3531,6 +3563,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "F.URL",
     "UI.Chrome.Chrome"
    ],
@@ -3648,6 +3681,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [],
@@ -4121,6 +4155,7 @@
     "Core.Models.Provider",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Common.Components"
    ],
@@ -4194,6 +4229,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Common.HydraGlyph"
    ],
@@ -4262,6 +4298,7 @@
     "Core.Models.FileChangeSummary",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Common.AttachmentPreviewPanel"
    ],
@@ -9231,6 +9268,7 @@
     "App.Views.Composer.ComposerWorkingDots",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
     "UI.Common.AttachmentPreviewPanel"
@@ -9337,6 +9375,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "Services.Git.Git",
     "Services.Providers.TextGeneration",
     "UI.Chrome.Chrome",
@@ -9908,6 +9947,7 @@
     "Core.Models.Hydra",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Common.HydraGlyph"
    ],
@@ -10038,6 +10078,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Common.HydraGlyph"
    ],
@@ -10199,6 +10240,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
     "UI.Common.Components",
@@ -10371,6 +10413,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Common.Components",
     "UI.Common.MCPGlyph",
@@ -10507,6 +10550,7 @@
     "F.StyledText",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
     "UI.Common.HydraGlyph",
@@ -10655,6 +10699,7 @@
    "deps": [
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "Services.Git.RevertPreview",
     "UI.Chrome.Chrome",
     "UI.Common.Components"
@@ -11033,6 +11078,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Chrome.WindowChrome",
     "UI.Common.RenderBudget",
@@ -11452,6 +11498,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "F.URL",
     "Services.Git.DiffParser",
     "UI.Chrome.Chrome",
@@ -11870,6 +11917,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "Services.Git.Git",
     "Services.Providers.PlanLimits",
     "Services.Providers.ProviderCredits",
@@ -12199,6 +12247,7 @@
     "App.Views.Composer.AttachmentFlight",
     "Core.Models.Timeline",
     "F.SwiftColor",
+    "F.SymbolImage",
     "UI.Common.AttachmentPreviewPanel"
    ],
    "intra_deps": [
@@ -12297,6 +12346,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "Services.Providers.ProviderRegistry",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
@@ -12622,6 +12672,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Chrome.RowDrag",
     "UI.Common.AttachmentPreviewPanel"
@@ -12869,6 +12920,7 @@
     "Core.Models.Timeline",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "Services.Store.Storage",
     "UI.Chrome.Chrome",
     "UI.Common.AttachmentPreviewPanel",
@@ -12985,6 +13037,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers"
    ],
@@ -13123,6 +13176,7 @@
     "Core.Models.Requests",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [
@@ -13242,6 +13296,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "Services.Git.DiffParser",
     "Services.Git.TouchedPaths",
     "UI.Chrome.Chrome",
@@ -13404,6 +13459,7 @@
     "Core.Models.Shortcuts",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Chrome.ProjectIconPicker"
    ],
@@ -13566,6 +13622,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "Services.Store.Storage",
     "UI.Chrome.Chrome",
     "UI.Chrome.ChromeVisualPicker",
@@ -13747,6 +13804,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
     "UI.Common.RenderBudget"
@@ -13961,6 +14019,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Chrome.HydraPairMark"
    ],
@@ -14062,6 +14121,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "Services.Providers.ProviderRegistry",
     "UI.Chrome.Chrome",
     "UI.Chrome.ChromeSegmentedPicker",
@@ -14248,6 +14308,7 @@
     "F.StyledText",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "F.URL",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers"
@@ -14374,6 +14435,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "F.URL",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
@@ -14680,6 +14742,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "F.URL",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
@@ -14807,6 +14870,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
     "UI.Chrome.RowDrag",
@@ -14959,6 +15023,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "F.URL",
     "Services.Providers.PlanLimits",
     "Services.Providers.ProviderCredits",
@@ -15518,6 +15583,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [
@@ -15799,6 +15865,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome",
     "UI.Chrome.Popovers",
     "UI.Chrome.ProjectIconPicker",
@@ -16275,6 +16342,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [
@@ -16838,6 +16906,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "Services.Providers.PlanLimits",
     "Services.Providers.ProviderCredits",
     "UI.Chrome.Chrome",
@@ -17494,6 +17563,7 @@
     "F.SwiftAnimation",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "F.URL",
     "UI.Chrome.Chrome",
     "UI.Common.AttachmentPreviewPanel",
@@ -18765,6 +18835,7 @@
     "Core.Models.Timeline",
     "F.SwiftColor",
     "F.SwiftFont",
+    "F.SymbolImage",
     "UI.Chrome.Chrome"
    ],
    "intra_deps": [],
