@@ -536,4 +536,277 @@ public sealed class ProviderTests
         Assert.Equal(2, parts.Count);
         Assert.Equal(JSONValue.FromDictionaryLiteral(("type", "text"), ("text", "$review the diff")), parts[0]);
     }
+
+    // --- Part 3 of 5: loginCommand for the four remaining cases, installURL for every case, and the
+    // capability tables (isAPIKeyBased, usesACP, acceptsAPIKey, apiHost, apiKeySource, apiKeyEnvVar,
+    // supportsRewind, supportsCompact, supportsImages). Every expected string and flag is transcribed from
+    // Core/Models/Provider.swift, never from the C# under test. The Settings-view text these records also
+    // cite (section expansion, the Command Code API-key row detail with its Credential Manager deviation,
+    // the "Get X" link labels) is App/Views/Settings/SettingsView.swift behaviour, a different file and a
+    // different unit; only the ProviderKind member values this file owns are proven here.
+
+    [Trait("Req", "PR-PROVREG-037")] // Core/Models/Provider.swift:74
+    [Fact]
+    public void Antigravity_loginCommand_is_the_bare_word_agy() => Assert.Equal("agy", ProviderKind.Antigravity.LoginCommand);
+
+    [Trait("Req", "PR-PROVREG-038")] // Core/Models/Provider.swift:75
+    [Fact]
+    public void Copilot_loginCommand_is_copilot_login() => Assert.Equal("copilot login", ProviderKind.Copilot.LoginCommand);
+
+    // PR-PROVREG-039: only the loginCommand value ("cmd login", :76) is this file's behaviour; the
+    // Settings API-key row detail that also embeds this string in backticks (SettingsView.swift:718,
+    // OD-0012 G2 Keychain -> Credential Manager) is view-layer text out of scope for Provider.swift.
+    [Trait("Req", "PR-PROVREG-039")] // Core/Models/Provider.swift:76
+    [Fact]
+    public void Commandcode_loginCommand_is_cmd_login() => Assert.Equal("cmd login", ProviderKind.Commandcode.LoginCommand);
+
+    [Trait("Req", "PR-PROVREG-040")] // Core/Models/Provider.swift:77
+    [Fact]
+    public void Pi_loginCommand_is_the_bare_word_pi() => Assert.Equal("pi", ProviderKind.Pi.LoginCommand);
+
+    // installURL identity table for PR-PROVREG-041 to 053 (:82-97). Every URL is asserted against its
+    // absoluteString, exact scheme, host, path and trailing slash included.
+    public static IEnumerable<object[]> InstallURLCases =>
+    [
+        [ProviderKind.Codex, "https://developers.openai.com/codex/cli", "PR-PROVREG-041"],
+        [ProviderKind.Claude, "https://claude.com/product/claude-code", "PR-PROVREG-042"],
+        [ProviderKind.Cursor, "https://cursor.com/cli", "PR-PROVREG-043"],
+        [ProviderKind.Opencode, "https://opencode.ai", "PR-PROVREG-044"],
+        [ProviderKind.Grok, "https://x.ai/cli", "PR-PROVREG-045"],
+        [ProviderKind.Deepseek, "https://platform.deepseek.com/api_keys", "PR-PROVREG-046"],
+        [ProviderKind.Meta, "https://dev.meta.ai/", "PR-PROVREG-047"],
+        [ProviderKind.Zai, "https://z.ai/manage-apikey/apikey-list", "PR-PROVREG-048"],
+        [ProviderKind.Devin, "https://cli.devin.ai", "PR-PROVREG-049"],
+        [ProviderKind.Antigravity, "https://antigravity.google/docs/cli/overview", "PR-PROVREG-050"],
+        [ProviderKind.Copilot, "https://github.com/github/copilot-cli", "PR-PROVREG-051"],
+        [ProviderKind.Commandcode, "https://commandcode.ai/docs/quickstart", "PR-PROVREG-052"],
+        [ProviderKind.Pi, "https://pi.dev/docs/latest", "PR-PROVREG-053"],
+    ];
+
+    [Theory]
+    [MemberData(nameof(InstallURLCases))]
+    public void ProviderKind_installURL_is_exact(ProviderKind kind, string url, string req)
+    {
+        _ = req; // asserted individually below so req_verify (R-TEST-2) finds every id
+        Assert.Equal(url, kind.InstallURL.AbsoluteString);
+    }
+
+    [Trait("Req", "PR-PROVREG-041")] // Core/Models/Provider.swift:83
+    [Fact]
+    public void Codex_installURL_is_developers_openai_com_codex_cli() =>
+        Assert.Equal("https://developers.openai.com/codex/cli", ProviderKind.Codex.InstallURL.AbsoluteString);
+
+    [Trait("Req", "PR-PROVREG-042")] // Core/Models/Provider.swift:84
+    [Fact]
+    public void Claude_installURL_is_claude_com_product_claude_code() =>
+        Assert.Equal("https://claude.com/product/claude-code", ProviderKind.Claude.InstallURL.AbsoluteString);
+
+    [Trait("Req", "PR-PROVREG-043")] // Core/Models/Provider.swift:85
+    [Fact]
+    public void Cursor_installURL_is_cursor_com_cli() =>
+        Assert.Equal("https://cursor.com/cli", ProviderKind.Cursor.InstallURL.AbsoluteString);
+
+    [Trait("Req", "PR-PROVREG-044")] // Core/Models/Provider.swift:86
+    [Fact]
+    public void Opencode_installURL_is_opencode_ai_with_no_trailing_path() =>
+        Assert.Equal("https://opencode.ai", ProviderKind.Opencode.InstallURL.AbsoluteString);
+
+    [Trait("Req", "PR-PROVREG-045")] // Core/Models/Provider.swift:88
+    [Fact]
+    public void Grok_installURL_is_x_ai_cli() =>
+        Assert.Equal("https://x.ai/cli", ProviderKind.Grok.InstallURL.AbsoluteString);
+
+    [Trait("Req", "PR-PROVREG-046")] // Core/Models/Provider.swift:89
+    [Fact]
+    public void Deepseek_installURL_is_platform_deepseek_com_api_keys() =>
+        Assert.Equal("https://platform.deepseek.com/api_keys", ProviderKind.Deepseek.InstallURL.AbsoluteString);
+
+    // PR-PROVREG-047: the trailing slash after dev.meta.ai is part of the literal and must survive.
+    [Trait("Req", "PR-PROVREG-047")] // Core/Models/Provider.swift:90
+    [Fact]
+    public void Meta_installURL_is_dev_meta_ai_including_trailing_slash()
+    {
+        Assert.Equal("https://dev.meta.ai/", ProviderKind.Meta.InstallURL.AbsoluteString);
+        Assert.EndsWith("/", ProviderKind.Meta.InstallURL.AbsoluteString);
+    }
+
+    [Trait("Req", "PR-PROVREG-048")] // Core/Models/Provider.swift:91
+    [Fact]
+    public void Zai_installURL_is_z_ai_manage_apikey_apikey_list() =>
+        Assert.Equal("https://z.ai/manage-apikey/apikey-list", ProviderKind.Zai.InstallURL.AbsoluteString);
+
+    [Trait("Req", "PR-PROVREG-049")] // Core/Models/Provider.swift:92
+    [Fact]
+    public void Devin_installURL_is_cli_devin_ai() =>
+        Assert.Equal("https://cli.devin.ai", ProviderKind.Devin.InstallURL.AbsoluteString);
+
+    [Trait("Req", "PR-PROVREG-050")] // Core/Models/Provider.swift:93
+    [Fact]
+    public void Antigravity_installURL_is_antigravity_google_docs_cli_overview() =>
+        Assert.Equal("https://antigravity.google/docs/cli/overview", ProviderKind.Antigravity.InstallURL.AbsoluteString);
+
+    [Trait("Req", "PR-PROVREG-051")] // Core/Models/Provider.swift:94
+    [Fact]
+    public void Copilot_installURL_is_github_github_copilot_cli() =>
+        Assert.Equal("https://github.com/github/copilot-cli", ProviderKind.Copilot.InstallURL.AbsoluteString);
+
+    [Trait("Req", "PR-PROVREG-052")] // Core/Models/Provider.swift:95
+    [Fact]
+    public void Commandcode_installURL_is_commandcode_ai_docs_quickstart() =>
+        Assert.Equal("https://commandcode.ai/docs/quickstart", ProviderKind.Commandcode.InstallURL.AbsoluteString);
+
+    [Trait("Req", "PR-PROVREG-053")] // Core/Models/Provider.swift:96
+    [Fact]
+    public void Pi_installURL_is_pi_dev_docs_latest() =>
+        Assert.Equal("https://pi.dev/docs/latest", ProviderKind.Pi.InstallURL.AbsoluteString);
+
+    // --- Capability flags, PR-PROVREG-054 to 060 (:100-158) ---
+
+    // PR-PROVREG-054: Codex is a CLI provider (no API key, no ACP), supports rewind (:144) and images
+    // (:158), and has no apiHost/apiKeySource/apiKeyEnvVar (:112-141 default nil).
+    [Trait("Req", "PR-PROVREG-054")] // Core/Models/Provider.swift:101,104,109,144,158,112-141
+    [Fact]
+    public void Codex_capability_flags_are_exact()
+    {
+        Assert.False(ProviderKind.Codex.IsAPIKeyBased);
+        Assert.False(ProviderKind.Codex.UsesACP);
+        Assert.False(ProviderKind.Codex.AcceptsAPIKey);
+        Assert.True(ProviderKind.Codex.SupportsRewind);
+        Assert.True(ProviderKind.Codex.SupportsImages);
+        Assert.Null(ProviderKind.Codex.ApiHost);
+        Assert.Null(ProviderKind.Codex.ApiKeySource);
+        Assert.Null(ProviderKind.Codex.ApiKeyEnvVar);
+    }
+
+    // PR-PROVREG-055: Claude, same shape as Codex - CLI provider, supports rewind and images.
+    [Trait("Req", "PR-PROVREG-055")] // Core/Models/Provider.swift:101,104,109,144,158,112-141
+    [Fact]
+    public void Claude_capability_flags_are_exact()
+    {
+        Assert.False(ProviderKind.Claude.IsAPIKeyBased);
+        Assert.False(ProviderKind.Claude.UsesACP);
+        Assert.False(ProviderKind.Claude.AcceptsAPIKey);
+        Assert.True(ProviderKind.Claude.SupportsRewind);
+        Assert.True(ProviderKind.Claude.SupportsImages);
+        Assert.Null(ProviderKind.Claude.ApiHost);
+        Assert.Null(ProviderKind.Claude.ApiKeySource);
+        Assert.Null(ProviderKind.Claude.ApiKeyEnvVar);
+    }
+
+    // PR-PROVREG-056: Cursor is an ACP provider, no rewind, supports images.
+    [Trait("Req", "PR-PROVREG-056")] // Core/Models/Provider.swift:101,104,109,144,158,112-141
+    [Fact]
+    public void Cursor_capability_flags_are_exact()
+    {
+        Assert.False(ProviderKind.Cursor.IsAPIKeyBased);
+        Assert.True(ProviderKind.Cursor.UsesACP);
+        Assert.False(ProviderKind.Cursor.AcceptsAPIKey);
+        Assert.False(ProviderKind.Cursor.SupportsRewind);
+        Assert.True(ProviderKind.Cursor.SupportsImages);
+        Assert.Null(ProviderKind.Cursor.ApiHost);
+        Assert.Null(ProviderKind.Cursor.ApiKeySource);
+        Assert.Null(ProviderKind.Cursor.ApiKeyEnvVar);
+    }
+
+    // PR-PROVREG-057: OpenCode Zen is an ACP provider, no rewind, no local compact (:149-154 default arm),
+    // supports images.
+    [Trait("Req", "PR-PROVREG-057")] // Core/Models/Provider.swift:101,104,144,149-154,158,112-141
+    [Fact]
+    public void Opencode_capability_flags_are_exact()
+    {
+        Assert.False(ProviderKind.Opencode.IsAPIKeyBased);
+        Assert.True(ProviderKind.Opencode.UsesACP);
+        Assert.False(ProviderKind.Opencode.AcceptsAPIKey);
+        Assert.False(ProviderKind.Opencode.SupportsRewind);
+        Assert.False(ProviderKind.Opencode.SupportsCompact);
+        Assert.True(ProviderKind.Opencode.SupportsImages);
+        Assert.Null(ProviderKind.Opencode.ApiHost);
+        Assert.Null(ProviderKind.Opencode.ApiKeySource);
+        Assert.Null(ProviderKind.Opencode.ApiKeyEnvVar);
+    }
+
+    // PR-PROVREG-058: Grok is an ACP provider, no rewind, and supportsImages is false (:156-158) - the only
+    // case besides antigravity where image attachments turn off.
+    [Trait("Req", "PR-PROVREG-058")] // Core/Models/Provider.swift:101,104,109,144,156-158,112-141
+    [Fact]
+    public void Grok_capability_flags_are_exact_and_images_are_off()
+    {
+        Assert.False(ProviderKind.Grok.IsAPIKeyBased);
+        Assert.True(ProviderKind.Grok.UsesACP);
+        Assert.False(ProviderKind.Grok.AcceptsAPIKey);
+        Assert.False(ProviderKind.Grok.SupportsRewind);
+        Assert.False(ProviderKind.Grok.SupportsImages);
+        Assert.Null(ProviderKind.Grok.ApiHost);
+        Assert.Null(ProviderKind.Grok.ApiKeySource);
+        Assert.Null(ProviderKind.Grok.ApiKeyEnvVar);
+    }
+
+    // PR-PROVREG-059: DeepSeek is an API-key provider with host api.deepseek.com, source
+    // platform.deepseek.com and env var DEEPSEEK_API_KEY, supports images, not rewind.
+    [Trait("Req", "PR-PROVREG-059")] // Core/Models/Provider.swift:101,114,124,135,109,144,158
+    [Fact]
+    public void Deepseek_capability_flags_are_exact()
+    {
+        Assert.True(ProviderKind.Deepseek.IsAPIKeyBased);
+        Assert.False(ProviderKind.Deepseek.UsesACP);
+        Assert.True(ProviderKind.Deepseek.AcceptsAPIKey);
+        Assert.False(ProviderKind.Deepseek.SupportsRewind);
+        Assert.True(ProviderKind.Deepseek.SupportsImages);
+        Assert.Equal("api.deepseek.com", ProviderKind.Deepseek.ApiHost);
+        Assert.Equal("platform.deepseek.com", ProviderKind.Deepseek.ApiKeySource);
+        Assert.Equal("DEEPSEEK_API_KEY", ProviderKind.Deepseek.ApiKeyEnvVar);
+    }
+
+    // PR-PROVREG-060: Meta is an API-key provider with host api.meta.ai/v1 (the /v1 path segment kept),
+    // source dev.meta.ai and env var MODEL_API_KEY (not META_API_KEY).
+    [Trait("Req", "PR-PROVREG-060")] // Core/Models/Provider.swift:101,115,125,137,109,144,158
+    [Fact]
+    public void Meta_capability_flags_are_exact()
+    {
+        Assert.True(ProviderKind.Meta.IsAPIKeyBased);
+        Assert.False(ProviderKind.Meta.UsesACP);
+        Assert.True(ProviderKind.Meta.AcceptsAPIKey);
+        Assert.False(ProviderKind.Meta.SupportsRewind);
+        Assert.True(ProviderKind.Meta.SupportsImages);
+        Assert.Equal("api.meta.ai/v1", ProviderKind.Meta.ApiHost);
+        Assert.Equal("dev.meta.ai", ProviderKind.Meta.ApiKeySource);
+        Assert.Equal("MODEL_API_KEY", ProviderKind.Meta.ApiKeyEnvVar);
+        Assert.NotEqual("META_API_KEY", ProviderKind.Meta.ApiKeyEnvVar);
+    }
+
+    // Cross-cutting checks over the whole capability table, not tied to one record but useful evidence for
+    // the boundary lines in :101,:104,:144,:149-154,:158 that the per-provider tests above already prove
+    // pointwise. Kept minimal: acceptsAPIKey for commandcode (the one non-isAPIKeyBased case that still
+    // accepts a key, :109) and supportsCompact's full true set (:150-152), since neither is asserted above.
+    [Trait("Req", "PR-PROVREG-059")] // Core/Models/Provider.swift:109 - commandcode is the acceptsAPIKey exception
+    [Fact]
+    public void Commandcode_acceptsAPIKey_without_being_isAPIKeyBased()
+    {
+        Assert.False(ProviderKind.Commandcode.IsAPIKeyBased);
+        Assert.True(ProviderKind.Commandcode.AcceptsAPIKey);
+        Assert.Equal("commandcode.ai/studio", ProviderKind.Commandcode.ApiKeySource);
+        Assert.Equal("COMMAND_CODE_API_KEY", ProviderKind.Commandcode.ApiKeyEnvVar);
+    }
+
+    [Trait("Req", "PR-PROVREG-054")] // Core/Models/Provider.swift:149-154 - the full supportsCompact true set
+    [Fact]
+    public void SupportsCompact_is_true_only_for_the_seven_named_providers()
+    {
+        ProviderKind[] expectedTrue =
+        [
+            ProviderKind.Codex, ProviderKind.Claude, ProviderKind.Copilot,
+            ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai, ProviderKind.Pi,
+        ];
+        foreach (var kind in SwiftEnum<ProviderKind>.AllCases)
+            Assert.Equal(expectedTrue.Contains(kind), kind.SupportsCompact);
+    }
+
+    [Trait("Req", "PR-PROVREG-058")] // Core/Models/Provider.swift:158 - supportsImages is false only for grok and antigravity
+    [Fact]
+    public void SupportsImages_is_false_only_for_grok_and_antigravity()
+    {
+        ProviderKind[] expectedFalse = [ProviderKind.Grok, ProviderKind.Antigravity];
+        foreach (var kind in SwiftEnum<ProviderKind>.AllCases)
+            Assert.Equal(!expectedFalse.Contains(kind), kind.SupportsImages);
+    }
 }
