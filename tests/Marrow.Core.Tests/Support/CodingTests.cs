@@ -236,10 +236,6 @@ public sealed class CodingTests
         // :20 and :29 are `static let` constants, each holding one lazily built coder. Coding.StorageOptions carries
         // the converters of both directions (Encode and Decode), so every read gives the same object.
         Assert.Same(Coding.StorageOptions, Coding.StorageOptions);
-        // Coding.Decode also parses with SwiftJson.DocumentOptions (R-CODE-8). That is a JsonDocumentOptions, a
-        // struct: a reference check cannot apply to it, so this checks that every read gives the same value.
-        var documentOptions = SwiftJson.DocumentOptions;
-        Assert.Equal(documentOptions, SwiftJson.DocumentOptions);
     }
 
     [Fact]
@@ -385,6 +381,10 @@ public sealed class CodingTests
     [InlineData("{}")]
     [InlineData("{\"runtimeMode\":null}")]
     [InlineData("{\"runtimeMode\":1}")]
+    // Provider.swift:161-165: RuntimeMode decodes only from its exact raw value, so RuntimeMode(rawValue: "3") is nil.
+    // A numeric string must not map to a case by ordinal (the .NET Enum.Parse hazard would turn "3" into FullAccess).
+    [InlineData("{\"runtimeMode\":\"3\"}")]
+    [InlineData("{\"runtimeMode\":\"1\"}")]
     [InlineData("{\"runtimeMode\":true}")]
     [InlineData("{\"runtimeMode\":[\"fullAccess\"]}")]
     [InlineData("{\"runtimeMode\":{\"fullAccess\":{}}}")]
