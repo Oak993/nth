@@ -17,6 +17,50 @@ public sealed class ResizeStretchTests(HeadlessSession headless)
 {
     [Fact]
     [Trait("Decision", "ED-101")]
+    public void Repeated_application_keeps_one_parked_visual_and_restores_the_real_visual_on_close()
+    {
+        var r = RealWin32.Run(nameof(RealWindowDriver.ApplyTwiceClose));
+
+        Assert.Equal("True", r["first.applied"]);
+        Assert.Equal("True", r["second.is.first"]);
+        Assert.Equal("True", r["attached.is.first"]);
+        Assert.Equal("0", r["logs"]);
+        Assert.Equal("False", r["after.parked.is.content"]);
+        Assert.Equal("True", r["after.visual.is.parked"]);
+        Assert.Equal("False", r["after.parked.disposed"]);
+        Assert.Equal("False", r["after.content.disposed"]);
+        Assert.Equal("0,0", r["after.content.size"]);
+        Assert.Equal("1,1", r["after.content.relative"]);
+        Assert.Equal("Fill", r["after.stretch"]);
+        Assert.Equal("True", r["closed.surface.released"]);
+        Assert.Equal("True", r["closed.visual.is.content"]);
+        Assert.Equal("True", r["closed.content.disposed"]);
+        Assert.Equal("True", r["closed.parked.disposed"]);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-101")]
+    public void Each_missing_member_leaves_the_real_window_unchanged_and_logs_the_cause()
+    {
+        var r = RealWin32.Run(nameof(RealWindowDriver.EachMemberMissing));
+
+        foreach (var member in ResizeStretch.RequiredMembers)
+        {
+            string key = "missing." + member + ".";
+            Assert.Equal("False", r[key + "applied"]);
+            Assert.Equal("1", r[key + "logs"]);
+            Assert.Contains(member, r[key + "log"], StringComparison.Ordinal);
+            Assert.Equal("True", r[key + "visual.is.content"]);
+            Assert.Equal(r["before.client.px"], r[key + "content.size"]);
+            Assert.Equal("0,0", r[key + "content.relative"]);
+            Assert.Equal("Uniform", r[key + "stretch"]);
+        }
+        Assert.Equal("True", r["closed.surface.released"]);
+        Assert.Equal("True", r["closed.content.disposed"]);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-101")]
     public void Avalonia_12_1_2_has_every_member_the_remedy_resolves()
     {
         var readings = RealWin32.Run(nameof(RealWindowDriver.Members));

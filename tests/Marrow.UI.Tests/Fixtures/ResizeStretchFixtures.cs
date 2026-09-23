@@ -340,6 +340,97 @@ public static class RealWindowDriver
         lines.Add("closed.content.disposed=" + IsDisposed(real));
     });
 
+    /// <summary>
+    /// Apply, Apply again and Attach on one real window after its first frame (ED-101; RESULT.md steps 2 and 4): one
+    /// remedy, one parked visual, and on close the real visual back in `_visual` and released by Avalonia.
+    /// </summary>
+    public static string[] ApplyTwiceClose() => OnUi(async lines =>
+    {
+        var window = NewWindow();
+        window.Show();
+        var (surface, cw, sync) = await FirstFrame(window, lines);
+        object real, brush;
+        lock (sync)
+        {
+            real = Field(cw, "_visual")!;
+            brush = Field(cw, "_surfaceBrush")!;
+        }
+
+        var logs = new List<string>();
+        ResizeStretch? first, second, attached;
+        object parked;
+        using (ResizeStretch.Log.Override(new ResizeStretchLog(logs.Add)))
+        {
+            first = ResizeStretch.Apply(window);
+            lock (sync) parked = Field(cw, "_visual")!;
+            second = ResizeStretch.Apply(window);
+            attached = await ResizeStretch.Attach(window);
+        }
+        lines.Add("first.applied=" + (first != null));
+        lines.Add("second.is.first=" + ReferenceEquals(first, second));
+        lines.Add("attached.is.first=" + ReferenceEquals(first, attached));
+        lines.Add("logs=" + logs.Count);
+        lock (sync)
+        {
+            lines.Add("after.parked.is.content=" + ReferenceEquals(parked, real));
+            lines.Add("after.visual.is.parked=" + ReferenceEquals(Field(cw, "_visual"), parked));
+            lines.Add("after.parked.disposed=" + IsDisposed(parked));
+            lines.Add("after.content.disposed=" + IsDisposed(real));
+            lines.Add("after.content.size=" + Size(real));
+            lines.Add("after.content.relative=" + Relative(real));
+            lines.Add("after.stretch=" + Stretch(brush));
+        }
+
+        window.Close();
+        lines.Add("closed.surface.released=" + await Until(() => Field(surface, "_window") == null, 200));
+        lines.Add("closed.visual.is.content=" + ReferenceEquals(Field(cw, "_visual"), real));
+        lines.Add("closed.content.disposed=" + IsDisposed(real));
+        lines.Add("closed.parked.disposed=" + IsDisposed(parked));
+    });
+
+    /// <summary>
+    /// For each of ResizeStretch.RequiredMembers in turn, Apply on one real window after its first frame while that one
+    /// member does not resolve (ResizeStretch.Unresolved), then read what the attempt logged and left behind.
+    /// Readings are keyed "missing.&lt;member&gt;.&lt;reading&gt;".
+    /// </summary>
+    public static string[] EachMemberMissing() => OnUi(async lines =>
+    {
+        var window = NewWindow();
+        window.Show();
+        var (surface, cw, sync) = await FirstFrame(window, lines);
+        object real, brush;
+        lock (sync)
+        {
+            real = Field(cw, "_visual")!;
+            brush = Field(cw, "_surfaceBrush")!;
+            lines.Add("before.client.px=" + ClientPx(window));
+        }
+
+        foreach (var member in ResizeStretch.RequiredMembers)
+        {
+            var logs = new List<string>();
+            ResizeStretch? applied;
+            using (ResizeStretch.Log.Override(new ResizeStretchLog(logs.Add)))
+            using (ResizeStretch.Unresolved.Override(new HashSet<string>(StringComparer.Ordinal) { member }))
+                applied = ResizeStretch.Apply(window);
+            string key = "missing." + member + ".";
+            lines.Add(key + "applied=" + (applied != null));
+            lines.Add(key + "logs=" + logs.Count);
+            lines.Add(key + "log=" + string.Join(" | ", logs));
+            lock (sync)
+            {
+                lines.Add(key + "visual.is.content=" + ReferenceEquals(Field(cw, "_visual"), real));
+                lines.Add(key + "content.size=" + Size(real));
+                lines.Add(key + "content.relative=" + Relative(real));
+                lines.Add(key + "stretch=" + Stretch(brush));
+            }
+        }
+
+        window.Close();
+        lines.Add("closed.surface.released=" + await Until(() => Field(surface, "_window") == null, 200));
+        lines.Add("closed.content.disposed=" + IsDisposed(real));
+    });
+
     // ---- helpers ----
 
     private static Window NewWindow() => new StretchSubjectWindow
