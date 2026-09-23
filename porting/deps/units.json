@@ -2557,29 +2557,13 @@
    ],
    "intra_deps": [],
    "records_total": 6,
-   "records_todo": [
-    "PR-MCP-193",
-    "PR-MCP-194",
-    "PR-MCP-195",
-    "PR-MCP-196",
-    "PR-MCP-197",
-    "PR-MCP-198"
-   ],
-   "parts": [
-    [
-     "PR-MCP-193",
-     "PR-MCP-194",
-     "PR-MCP-195",
-     "PR-MCP-196",
-     "PR-MCP-197",
-     "PR-MCP-198"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-001"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.CommandCodeKeychain",

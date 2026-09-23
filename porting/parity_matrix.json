@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 531,
+      "IMPLEMENTED": 537,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 3348,
+      "SPECIFIED": 3342,
       "RETIRED": 6,
       "DISCOVERED": 28
     },
@@ -31020,7 +31020,7 @@
       "cancellation": "not cancellable",
       "windows_path": "macOS writes to <Application Support>/<AppName>/MCP while the provider configs live in <Storage.root>/mcp; on a case-insensitive filesystem those collapse, so write droppy-mcp-bridge.mjs into %LOCALAPPDATA%\\<AppName>\\mcp\\ and derive the base from the OS app-data root rather than the capture-aware storage root. Keep the write-only-if-changed check. The path handed to Pi and Command Code must be importable by Node: a bare drive-letter path fails in a dynamic import, so hand them a file:// URL. That is a genuine porting decision, not a parity break, since the macOS POSIX path works as is.",
       "verification_method": "integration test asserting the file is written once and not rewritten on an unchanged relaunch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -31046,7 +31046,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The variable name is persisted contract with shipped JavaScript and keeps the DROPPY_CODE_ prefix exactly. The value is a Windows path read with the Node filesystem API, which accepts it directly.",
       "verification_method": "integration test with the variable unset, pointing at a missing file, and pointing at a valid one",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -31074,7 +31074,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce: the bridge .mjs must not kill children and must stay sequential. On Windows the leak is worse, since an orphaned npx or node child of a host process survives with no process-group kill to catch it. Record it as an upstream defect rather than fixing it inside shipped text.",
       "verification_method": "integration test with a hung stand-in server asserting the 15-second skip and the surviving child",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "14",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -31102,7 +31102,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Copy the bridge text character for character, except that the clientInfo name is \"Marrow\" (OD-0012 F1), including the missing header, the version-less clientInfo, the lowercase session header, the result-or-error SSE rule and the \"[image]\" catch-all. Normalizing the three clients would change what remote servers see from Pi and Command Code.",
       "verification_method": "contract fixture capturing the bridge's wire traffic against a stub server",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -31132,7 +31132,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Shipped JavaScript: copy verbatim. Note the spawn call passes a bare command name, which on Windows requires shell resolution for .cmd shims such as npx - that is a real platform boundary in text that must otherwise stay byte-identical, and it must be escalated rather than silently edited.",
       "verification_method": "integration test against a scripted stdio stand-in server",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -31157,7 +31157,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Shipped JavaScript: copy verbatim.",
       "verification_method": "contract fixture against a stub remote server",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
