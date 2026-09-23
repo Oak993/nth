@@ -2152,4 +2152,143 @@ public sealed class ShortcutsTests
     [Trait("Req", "PR-WIN-138")] // Core/Models/Shortcuts.swift:109, :159-160, :171, :195, :219 (ED-099)
     public void StopTurn_titled_Stop_the_running_turn_stored_under_stopTurn_ships_Ctrl_period() =>
         AssertShortcut(AppShortcut.StopTurn, AppShortcut.CommandPalette);
+
+    // ------------------------------------------------------------------ part 3 of 3: PR-WIN-139 to PR-WIN-153, UI-TERM-034, UI-TERM-035.
+
+    [Fact]
+    [Trait("Req", "PR-WIN-139")] // Core/Models/Shortcuts.swift:110, :159-160, :172, :196, :220 (ED-099)
+    public void QueueChat_titled_Queue_a_chat_stored_under_queueChat_ships_Ctrl_Return() =>
+        AssertShortcut(AppShortcut.QueueChat, AppShortcut.CommandPalette);
+
+    [Fact]
+    [Trait("Req", "PR-WIN-140")] // Core/Models/Shortcuts.swift:111, :159-160, :173, :197, :221 (ED-099)
+    public void TogglePlanMode_titled_Plan_mode_stored_under_togglePlanMode_ships_Ctrl_Shift_P() =>
+        AssertShortcut(AppShortcut.TogglePlanMode, AppShortcut.CommandPalette);
+
+    [Fact]
+    [Trait("Req", "PR-WIN-141")] // Core/Models/Shortcuts.swift:112, :159-160, :174, :198, :222 (ED-099)
+    public void PreviousThread_titled_Previous_thread_stored_under_previousThread_ships_Ctrl_Shift_Tab() =>
+        AssertShortcut(AppShortcut.PreviousThread, AppShortcut.CommandPalette);
+
+    [Fact]
+    [Trait("Req", "PR-WIN-142")] // Core/Models/Shortcuts.swift:113, :159-160, :175, :199, :223 (ED-099)
+    public void NextThread_titled_Next_thread_stored_under_nextThread_ships_Ctrl_Tab() =>
+        AssertShortcut(AppShortcut.NextThread, AppShortcut.CommandPalette);
+
+    [Fact]
+    [Trait("Req", "PR-WIN-143")] // Core/Models/Shortcuts.swift:114, :159-160, :176, :200, :224 (ED-099)
+    public void RunScript_titled_Run_top_script_stored_under_runScript_ships_Ctrl_R() =>
+        AssertShortcut(AppShortcut.RunScript, AppShortcut.CommandPalette);
+
+    [Fact]
+    [Trait("Req", "PR-WIN-144")] // Core/Models/Shortcuts.swift:115-117, :159-160, :177, :201, :225 (ED-099)
+    public void FinishThread_titled_Finish_thread_stored_under_archiveThread_ships_Ctrl_Shift_Delete() =>
+        AssertShortcut(AppShortcut.FinishThread, AppShortcut.CommandPalette);
+
+    [Fact]
+    [Trait("Req", "PR-WIN-145")] // Core/Models/Shortcuts.swift:118-119, :159-160, :178, :202, :226 (ED-099)
+    public void ArchiveThread_titled_Archive_thread_stored_under_archiveThreadPrompt_ships_Ctrl_W() =>
+        AssertShortcut(AppShortcut.ArchiveThread, AppShortcut.CommandPalette);
+
+    [Fact]
+    [Trait("Req", "PR-WIN-146")] // Core/Models/Shortcuts.swift:120-121, :159-160, :179, :203, :227 (ED-099)
+    public void SettleThread_titled_Settle_thread_stored_under_settleThread_ships_Ctrl_S() =>
+        AssertShortcut(AppShortcut.SettleThread, AppShortcut.CommandPalette);
+
+    [Fact]
+    [Trait("Req", "PR-WIN-147")] // Core/Models/Shortcuts.swift:122, :161-162, :180, :204, :228 (ED-099)
+    public void CommandPalette_titled_Command_palette_stored_under_commandPalette_ships_Ctrl_K() =>
+        AssertShortcut(AppShortcut.CommandPalette, AppShortcut.ToggleSidebar);
+
+    [Fact]
+    [Trait("Req", "PR-WIN-148")] // Core/Models/Shortcuts.swift:123, :161-162, :181, :205, :229 (ED-099)
+    public void ToggleSidebar_titled_Toggle_sidebar_stored_under_toggleSidebar_ships_Ctrl_B() =>
+        AssertShortcut(AppShortcut.ToggleSidebar, AppShortcut.CommandPalette);
+
+    [Fact]
+    [Trait("Req", "PR-WIN-149")] // Core/Models/Shortcuts.swift:124, :161-162, :182, :206, :230 (ED-099)
+    public void ToggleTerminal_titled_Toggle_terminal_stored_under_toggleTerminal_ships_Ctrl_J() =>
+        AssertShortcut(AppShortcut.ToggleTerminal, AppShortcut.CommandPalette);
+
+    [Fact]
+    [Trait("Req", "PR-WIN-150")] // Core/Models/Shortcuts.swift:125, :161-162, :183, :207, :231 (ED-099)
+    public void ToggleChanges_titled_Toggle_changes_stored_under_toggleChanges_ships_Ctrl_D() =>
+        AssertShortcut(AppShortcut.ToggleChanges, AppShortcut.CommandPalette);
+
+    [Fact]
+    [Trait("Req", "PR-WIN-151")] // Core/Models/Shortcuts.swift:126, :161-162, :184, :208, :232 (ED-099)
+    public void ToggleActivityView_titled_Activity_view_stored_under_toggleActivityView_ships_Ctrl_Alt_U() =>
+        AssertShortcut(AppShortcut.ToggleActivityView, AppShortcut.CommandPalette);
+
+    [Fact]
+    [Trait("Req", "PR-WIN-152")] // Core/Models/Shortcuts.swift:127, :161-162, :185, :209, :233 (OD-0002, OD-0012 F1, OD-0012 G6)
+    public void ShowMainWindow_titled_Show_Marrow_stored_under_showMainWindow_ships_with_no_chord() =>
+        AssertShortcut(AppShortcut.ShowMainWindow, AppShortcut.CommandPalette);
+
+    [Fact]
+    [Trait("Req", "PR-WIN-153")] // Core/Models/Shortcuts.swift:128, :161-162, :186, :210, :234 (ED-099)
+    public void OpenSettings_titled_Settings_stored_under_openSettings_ships_Ctrl_comma() =>
+        AssertShortcut(AppShortcut.OpenSettings, AppShortcut.CommandPalette);
+
+    // UI-TERM-034 and UI-TERM-035 describe a settings-page row; the row control itself belongs to a later UI
+    // unit (none exists yet in this tree), so what is testable here at the model layer is the row's exact
+    // text, its section placement, its default chord's rendering, and the "customized" and "cleared" states
+    // ShortcutStore drives (:246, :277, :289, :296, :300-306, :312-314); the refusal rules those states rest
+    // on are proven for every key by PR-WIN-118 to PR-WIN-133.
+
+    [Fact]
+    [Trait("Req", "UI-TERM-034")] // Core/Models/Shortcuts.swift:124, :161-162, :182, :206, :230 (OD-0008 B7, ED-099)
+    public void Toggle_terminal_row_reads_its_title_and_detail_in_Window_and_panels_with_Ctrl_J_and_tracks_customized_and_cleared_states()
+    {
+        var row = Row(AppShortcut.ToggleTerminal);
+        Assert.Equal(Utf8("Toggle terminal / Shows or hides the thread's terminal."), Utf8(row.Title + " / " + row.Detail));
+        Assert.Equal(AppShortcutSection.Window, row.Section);
+        Assert.Equal(Utf8("Window and panels"), Utf8(row.Section.Title()));
+
+        using var runtime = new TestRuntime();
+        var store = Load(runtime);
+        OnMain(runtime, store, () =>
+        {
+            Assert.False(store.IsCustomized(AppShortcut.ToggleTerminal)); // default, not yet customized (:312-314)
+            Assert.Equal(Utf8("Ctrl+J"), Utf8(ShortcutStore.Label(AppShortcut.ToggleTerminal)!));
+
+            store.Set(new KeyChord(0x25, Ctrl), AppShortcut.ToggleTerminal); // customized (:300-302, :312-314)
+            Assert.True(store.IsCustomized(AppShortcut.ToggleTerminal));
+            Assert.Equal(Utf8("Ctrl+K"), Utf8(ShortcutStore.Label(AppShortcut.ToggleTerminal)!));
+
+            store.Set(null, AppShortcut.ToggleTerminal); // cleared: no chord, no label, an empty hint (:246, :277, :289, :296)
+            Assert.Null(store.Chord(AppShortcut.ToggleTerminal));
+            Assert.Null(ShortcutStore.Label(AppShortcut.ToggleTerminal));
+            Assert.Equal("", ShortcutStore.Hint(AppShortcut.ToggleTerminal));
+            Assert.True(store.IsCustomized(AppShortcut.ToggleTerminal)); // a stored empty chord still counts as customized
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-TERM-035")] // Core/Models/Shortcuts.swift:114, :159-160, :176, :200, :224 (OD-0008 B7, ED-099)
+    public void Run_top_script_row_reads_its_title_and_detail_in_Threads_with_Ctrl_R_and_tracks_customized_and_cleared_states()
+    {
+        var row = Row(AppShortcut.RunScript);
+        Assert.Equal(Utf8("Run top script / Runs the first project script in the selected thread's terminal."), Utf8(row.Title + " / " + row.Detail));
+        Assert.Equal(AppShortcutSection.Threads, row.Section);
+        Assert.Equal(Utf8("Threads"), Utf8(row.Section.Title()));
+
+        using var runtime = new TestRuntime();
+        var store = Load(runtime);
+        OnMain(runtime, store, () =>
+        {
+            Assert.False(store.IsCustomized(AppShortcut.RunScript)); // default, not yet customized (:312-314)
+            Assert.Equal(Utf8("Ctrl+R"), Utf8(ShortcutStore.Label(AppShortcut.RunScript)!));
+
+            store.Set(new KeyChord(0x25, Ctrl | Alt), AppShortcut.RunScript); // customized (:300-302, :312-314)
+            Assert.True(store.IsCustomized(AppShortcut.RunScript));
+            Assert.Equal(Utf8("Ctrl+Alt+K"), Utf8(ShortcutStore.Label(AppShortcut.RunScript)!));
+
+            store.Set(null, AppShortcut.RunScript); // cleared: no chord, no label, an empty hint (:246, :277, :289, :296)
+            Assert.Null(store.Chord(AppShortcut.RunScript));
+            Assert.Null(ShortcutStore.Label(AppShortcut.RunScript));
+            Assert.Equal("", ShortcutStore.Hint(AppShortcut.RunScript));
+            Assert.True(store.IsCustomized(AppShortcut.RunScript)); // a stored empty chord still counts as customized
+        });
+    }
 }
