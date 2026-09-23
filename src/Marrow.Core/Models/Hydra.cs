@@ -42,6 +42,18 @@ namespace Marrow.Core.Models;
 // written for ordinary module-internal/private members; these are Swift file-private members with no public
 // caller yet in this part) so this part's own tests can assert their exact text directly, via the
 // Marrow.Core.Tests InternalsVisibleTo grant already declared in Support/HangWatchdog.cs.
+// Unit Core.Models.Hydra part 3 of 4 (PR-HYDRA-053, 054, 056 to 059, 061 to 079) implemented CodexConfig,
+// TeamStatus, both FallbackPolicy overloads, MergeStatus, DelegationRequest, FallbackTurnNote,
+// FallbackReportNote, FallbackPreamble/FallbackReportPreamble, HeldBackMessage, UnreadableBlockMessage (its
+// VerificationMarkers table too, for WithoutVerificationSteps), WithoutVerificationSteps, DelegatedHeadPrompt,
+// QueuedHeadPrompt, and ReportMessage with its private helpers LandingLine, Duration, Listed and Quoted (:1397-
+// 1433, not declared until now per this file's own header note). PR-HYDRA-054 (workerPrompt/scoutPrompt) was
+// already implemented in part 2 (ClaudeAgents/CopilotAgents read it directly); this part only adds its test
+// coverage. HydraDelegationBudget (CanDelegate, BeginTurn, ChargeRound, Refuse, NoteDropped, TakeDropNotice) and
+// DelegationBlockRange/HasDelegationBlock/HasDelegationOpener/Delegations/WithoutDelegationBlock/
+// HasSentDelegationBlock/HasLeavingDelegationBlock/MarkingDelegationBlockLeaving/MarkingDelegationBlockSent/
+// InterruptedBlockMessage/DroppedBlockNotice are not named by any record in this part and stay MARROW_STUB for
+// part 4.
 
 // :17-51. Codable is synthesized (no CodingKeys, no custom init(from:)/encode(to:)): id and name are strictly
 // required in declaration order, provider/model/effort are decodeIfPresent/encodeIfPresent (R-CODE-1).
@@ -1125,47 +1137,217 @@ public static class HydraPrompts
         return new ValueList<JSONValue>(agents);
     }
 
-    public static ValueMap<string, JSONValue> CodexConfig(HydraLaunch launch) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:894");
+    // :894-904. Codex's model test is only `!model.isEmpty`: there is no "default"/"auto" sentinel here, unlike
+    // Claude (Policy, :753-758) and Copilot (CopilotAgents, :1092-1093).
+    public static ValueMap<string, JSONValue> CodexConfig(HydraLaunch launch)
+    {
+        var agents = new ValueDictionary();
+        if (launch.MaxHeads is { } cap) agents["max_concurrent_threads_per_session"] = cap;
+        if (launch.WorkerModel is { Length: > 0 } model) agents["default_subagent_model"] = model;
+        if (launch.WorkerEffort is { Length: > 0 } effort) agents["default_subagent_reasoning_effort"] = effort;
+        var features = new ValueDictionary { ["multi_agent"] = true };
+        if (NativeRoutableProfiles(launch).Count != 0)
+        {
+            features["multi_agent_v2"] = new JSONValue.Object(new ValueMap<string, JSONValue>(
+                new ValueDictionary { ["expose_spawn_agent_model_overrides"] = true }));
+        }
+        return new ValueMap<string, JSONValue>(new ValueDictionary
+        {
+            ["agents"] = new JSONValue.Object(new ValueMap<string, JSONValue>(agents)),
+            ["features"] = new JSONValue.Object(new ValueMap<string, JSONValue>(features)),
+        });
+    }
 
     public const long MaxDelegationRounds = 3; // :912
 
-    // :916. The Swift default `now: Date = .now` is a null default.
-    public static string? TeamStatus(IReadOnlyList<HydraHeadInfo> heads, DateTimeOffset? now = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:916");
+    // :916-936. The Swift default `now: Date = .now` is a null default.
+    public static string? TeamStatus(IReadOnlyList<HydraHeadInfo> heads, DateTimeOffset? now = null)
+    {
+        if (heads.Count == 0) return null;
+        var current = now ?? SwiftDate.Now;
+        var parts = heads.Select(info =>
+        {
+            var name = info.Persona.Name;
+            switch (info.HydraHeadInfoStatus)
+            {
+                case HydraHeadInfo.Status.Running:
+                    var minutes = SwiftNumber.TruncatingToInt(SwiftDate.TimeIntervalSince(current, info.StartedAt) / 60);
+                    return minutes > 0 ? $"{name} (working for {minutes}m)" : $"{name} (working)";
+                case HydraHeadInfo.Status.Completed:
+                    if (info.Landing is { } landing)
+                    {
+                        if (landing.IsEmpty) return $"{name} (done, changed nothing)";
+                        if (landing.Landed) return $"{name} (done, landed {(landing.Files.Count == 1 ? "1 file" : $"{landing.Files.Count} files")})";
+                        return $"{name} (done, patch kept)";
+                    }
+                    return $"{name} (done)";
+                case HydraHeadInfo.Status.Failed:
+                    return $"{name} (failed)";
+                case HydraHeadInfo.Status.Stopped:
+                    return $"{name} (stopped)";
+                default:
+                    throw new UnreachableException();
+            }
+        });
+        return "Your heads so far: " + string.Join(", ", parts) + ".";
+    }
 
-    // :941. The Swift defaults `projects: []` and `profiles: []` are null defaults.
+    // :941-969. The Swift defaults `projects: []` and `profiles: []` are null defaults. DEVIATION OD-0012 F1
+    // (x2): "Droppy Code lands its changes" -> "Marrow lands its changes" (:943), and "is from Droppy Code, not
+    // the user." -> "is from Marrow, not the user." (:967); every other byte, including the nine-space run
+    // before "Finish your reply" and the embedded ```hydra example, is unchanged (PR-HYDRA-056).
     public static string FallbackPolicy(long? maxHeads, bool isolated, bool autoMerges = false, bool reviewsHeads = false,
         string? heads = null, IReadOnlyList<HydraProjectRef>? projects = null,
-        IReadOnlyList<HydraHeadProfile>? profiles = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:941");
+        IReadOnlyList<HydraHeadProfile>? profiles = null)
+    {
+        projects ??= [];
+        profiles ??= [];
+        // :942-944
+        var whereHeadsWork = isolated
+            ? "Each head works in a copy of its project of its own and Marrow lands its changes in that project's checkout when it reports"
+            : "The heads work in your checkout";
+        // :945
+        var team = maxHeads is { } cap ? $"a team of up to {cap} helper agents" : "a team of helper agents";
+        // :950-952
+        var whoTheHeadsAre = heads is { } label
+            ? $" Your heads run on {label}, a different model from yours: it is quick, so give each one a well-bounded task with everything it needs written down, and keep the design, the judgement calls and the integration for yourself. The block is the only way to send heads out: never use an agent, task or sub-agent tool of your own, which would run heads on your own model instead of the one the user chose."
+            : "";
+        // :955
+        const string whatHeadsCanDo = " Every head, whatever its provider, can read files, edit files and run commands in its copy, with no permission prompts to wait on; brief it to do the work, not just to describe it.";
+        // :959
+        var profileRule = profiles.Count == 0
+            ? ""
+            : $" Some heads are tuned for a purpose: {string.Join(", ", profiles.Select(p => p.BriefLabel))}. Route a task to one with \"profile\", as in `{{\"task\": \"...\", \"prompt\": \"...\", \"profile\": \"{profiles[0].Name}\"}}`; a task that fits none of them goes without a profile and runs on the heads' shared model, as does one whose profile names none of these.";
+        var reviewTail = reviewsHeads ? " " + ReviewRule : "";
+        var autoMergeTail = autoMerges ? " " + AutoMergeRule : "";
+        // :960-968
+        return
+            "[Hydra is on] You lead " + team + " (\"heads\"). Delegate first, work second: anything bigger than a single obvious change to a single file is a job for heads. Audits, reviews, a feature across several files, a refactor, \"check everything\", research across many files, several tasks in one message: in your first reply, look at the code only long enough to write good briefs, a minute and a handful of files rather than ten, and then send the heads out, all of them in that one block. Never spend minutes reading before you delegate, and never do inline what heads could be doing in parallel. Only a truly single-focus request, one file and one obvious change, is yours to do alone, and size the team to the work rather than to how many heads are free: a small job whose pieces depend on each other is one head's task, or your own, not a team of heads.         Finish your reply with one fenced block\n" +
+            "\n" +
+            "```hydra\n" +
+            "[{\"task\": \"short title\", \"prompt\": \"complete, self-contained instructions with the exact files and acceptance criteria\"}]\n" +
+            "```\n" +
+            "\n" +
+            "and stop there: do not wait, poll or verify anything after it. When a request is yours to do alone, do it and end with no block at all: an empty block sends no heads and is not needed. An entry may also carry its head's announced name, as in `{\"task\": \"...\", \"prompt\": \"...\", \"name\": \"Otto\"}`: the announced name is authoritative and the spawned head carries exactly it, so repeating the same block spawns the same names. An entry for work in another project carries `\"project\"` with that project's name or path, as in `{\"task\": \"...\", \"prompt\": \"...\", \"project\": \"gaze-site\"}`. Name new heads with the next roster names in order after the team listed above (Hank, Walter, Ada, Otto, Nova, Remy, Iris, Milo, Juno, Ezra, Lena, Bo, Kai, Vera, Finn, Mira, Odin, Suki, Rex, Zola, Pip, Ivo, Lux, Tova, Gus, then Hank 2 and so on), and omit the name when unsure: the next heads in order go out instead. Never invent names outside the roster: there is no head called Ives (the roster has Ivo), and an unknown name falls back to the next head in order rather than renaming anyone." +
+            profileRule +
+            " Inside a prompt never open a fenced code block of your own (three backticks would end the hydra block early and no head would go out): describe code in words, quote identifiers with single backticks, or indent a snippet by four spaces. Each entry goes out to a head the moment its closing brace streams, before the block is finished, so write the entries in the order the heads should start and complete one entry before beginning the next. " +
+            whereHeadsWork +
+            "; heads never see your context, so write every prompt for a capable colleague who has read nothing yet, with the exact files, symbols and acceptance criteria, give no two heads the same file, and give no head work that rests on another head's unfinished changes: they run in parallel and never see each other's work. Keep each brief bounded: one head, one task, one report you can act on. " +
+            BriefRule + " " + VerificationRule + " " + ProjectRule(projects) +
+            " A head can be sent to read and report as well as to change files, so the reading goes out in parallel too. Say in one line which heads you sent out and what each one does." +
+            whoTheHeadsAre + whatHeadsCanDo +
+            " The reports arrive as a later message with the work already in place: build on them, do not redo them, never send out heads to verify or redo other heads, and never use git status or git diff to check on heads, since the checkout changes under you while they work. A message that opens with [Hydra] is from Marrow, not the user." +
+            reviewTail + autoMergeTail + " " + ReportStyleRule;
+    }
 
+    // :974-976. Forwards launch.headProfiles UNFILTERED (unlike Policy's NativeRoutableProfiles(launch)).
     public static string FallbackPolicy(HydraLaunch launch) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:974");
+        FallbackPolicy(launch.MaxHeads, launch.IsolatesHeads, launch.AutoMerges, launch.ReviewsHeads,
+            launch.HeadsLabel, launch.Projects, launch.HeadProfiles);
 
-    // :979. The Swift default `now: Date = .now` is a null default.
-    public static string? MergeStatus(IReadOnlyList<HydraMergeRecord> merges, long unmergedFiles, DateTimeOffset? now = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:979");
+    // :979-1018. The Swift default `now: Date = .now` is a null default.
+    public static string? MergeStatus(IReadOnlyList<HydraMergeRecord> merges, long unmergedFiles, DateTimeOffset? now = null)
+    {
+        // :980
+        static string Files(long count) => count == 1 ? "1 file" : $"{count} files";
+        // :981. `date.formatted(date: .omitted, time: .shortened)`.
+        static string When(DateTimeOffset date) =>
+            SwiftFormatters.Formatted(date, DateFormatStyle.Of(DateFormatStyle.DateStyle.Omitted, DateFormatStyle.TimeStyle.Shortened));
+        // :982-986
+        string Merged(HydraMergeRecord record)
+        {
+            var linkParts = new List<string>();
+            if (record.Label is { } label) linkParts.Add(label);
+            if (record.Url?.AbsoluteString is { } url) linkParts.Add(url);
+            var link = string.Join(" ", linkParts);
+            var scope = record.Project is { } project ? $" in {project}" : "";
+            return $"the team's work already merged as {link}{scope} at {When(record.At)} ({Files(record.Files)}).";
+        }
+        // :987-990
+        string PendingLine(string prefix)
+        {
+            var one = unmergedFiles == 1;
+            return $"{prefix} {(one ? "is" : "are")} not merged yet; {(one ? "it goes" : "they go")} out by {(one ? "itself" : "themselves")} once you finish this answer with every head back.";
+        }
+        // :991-993
+        var pending = unmergedFiles > 0
+            ? PendingLine($"{Files(unmergedFiles)} changed since then")
+            : "Nothing has changed since, so no merge is pending and none is coming.";
+        // :994-997
+        if (merges.Count == 0)
+        {
+            if (unmergedFiles <= 0) return null;
+            return $"Merge state: {PendingLine($"{Files(unmergedFiles)} changed in this chat")}";
+        }
+        var last = merges[merges.Count - 1];
+        // :998-1017
+        switch (last.HydraMergeRecordOutcome)
+        {
+            case HydraMergeRecord.Outcome.Merged: // :999-1000
+                return $"Merge state: {Merged(last)} {pending}";
+            case HydraMergeRecord.Outcome.Failed: // :1001-1002
+                return $"Merge state: the last merge failed at {When(last.At)}: {last.Detail ?? "no reason recorded"}. The work is still in the checkout and is retried once you finish this answer; if the reason needs the user (a sign-in, a conflict), say exactly that.";
+            case HydraMergeRecord.Outcome.Held: // :1003-1007
+                if (unmergedFiles <= 0)
+                    return "Merge state: the earlier wait has no recorded files left to merge. Do not claim a new merge or promise another one.";
+                return $"Merge state: the merge is waiting at {When(last.At)}: {last.Detail ?? "another chat holds this job's files"} The work is still in the checkout. Explain the recorded dependency without assuming a completed chat needs more work: active work must finish, while completed jobs merge in order. Hydra retries automatically while this job remains eligible. Do not claim a successful merge.";
+            case HydraMergeRecord.Outcome.Settled: // :1008-1009
+                return $"Merge state: at {When(last.At)}, Hydra found no recorded files left to merge. {pending} Do not describe this as a new merge.";
+            case HydraMergeRecord.Outcome.Stray: // :1010-1016
+                var parts = new List<string> { "Merge state:" };
+                var landed = merges.LastOrDefault(m => m.HydraMergeRecordOutcome == HydraMergeRecord.Outcome.Merged);
+                if (landed is not null) parts.Add(Merged(landed));
+                parts.Add($"At {When(last.At)} {last.Detail ?? "files were changed outside every project"}");
+                parts.Add(pending);
+                return string.Join(" ", parts);
+            default:
+                throw new UnreachableException();
+        }
+    }
 
-    public static string DelegationRequest(HydraLaunch launch) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1023");
+    // :1023-1035. DEVIATION OD-0012 F1: "so Droppy Code runs the selected heads" -> "so Marrow runs the selected
+    // heads" in the fallback route; the native route is unchanged.
+    public static string DelegationRequest(HydraLaunch launch)
+    {
+        var route = launch.RunsNatively
+            ? "Use the configured Hydra agent tools and head profiles."
+            : "Delegate through the final hydra block so Marrow runs the selected heads; do not use native agent tools.";
+        return "[Hydra setting: enabled]\n" +
+            $"Use Hydra heads for this request when it involves multiple files, an audit, broad research, or independent tasks. Keep a single obvious change in one file with the lead. {route} Follow any explicit request below to work alone or limit delegation.\n" +
+            "\n---\n\n";
+    }
 
-    public static string FallbackTurnNote(string? team, string? merge = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1038");
+    // :1038-1042
+    public static string FallbackTurnNote(string? team, string? merge = null)
+    {
+        var parts = new[] { team, merge }.Where(p => p is not null).Cast<string>().ToList();
+        return parts.Count == 0 ? "" : "[Hydra] " + string.Join(" ", parts) + "\n\n---\n\n";
+    }
 
-    // :1047. Swift order is (team, merge = nil, canDelegate); the defaulted merge goes last here.
-    public static string FallbackReportNote(string? team, bool canDelegate, string? merge = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1047");
+    // :1047-1052. Swift order is (team, merge = nil, canDelegate); the defaulted merge goes last here. `team`/
+    // `merge` are tested for presence (not emptiness), so a present-but-empty string still contributes its
+    // leading space; never collapse the resulting run of spaces.
+    public static string FallbackReportNote(string? team, bool canDelegate, string? merge = null)
+    {
+        var more = canDelegate
+            ? "If the reports open up the next stage of the work, or a head failed, or a piece of the user's request is still undone, send heads out again for exactly that, with the same ```hydra block at the end of your reply; never for verifying, redoing or finishing what a head already did."
+            : "Send out no more heads for this request; whatever is left, do yourself.";
+        return "[Hydra] Your heads reported back below." + (team is { } t ? " " + t : "") + (merge is { } m ? " " + m : "") + " " + more + "\n\n---\n\n";
+    }
 
+    // :1056-1058. fallbackTurnNote is evaluated twice, exactly as the Swift does (an inefficiency, not a
+    // behaviour to fix).
     public static string FallbackPreamble(HydraLaunch launch, string? team, string? merge = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1056");
+        FallbackPolicy(launch) + "\n\n" + (FallbackTurnNote(team, merge).Length == 0 ? "---\n\n" : FallbackTurnNote(team, merge));
 
-    // :1060. Swift order is (launch, team, merge = nil, canDelegate); the defaulted merge goes last here.
+    // :1060-1062. Swift order is (launch, team, merge = nil, canDelegate); the defaulted merge goes last here.
     public static string FallbackReportPreamble(HydraLaunch launch, string? team, bool canDelegate, string? merge = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1060");
+        FallbackPolicy(launch) + "\n\n" + FallbackReportNote(team, canDelegate, merge);
 
+    // :1066-1071
     public static string HeldBackMessage(long count) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1066");
+        $"Hydra held back {(count == 1 ? "a head" : $"{count} heads")}.\n" +
+        $"None of the heads you asked for went out: this request has had all {MaxDelegationRounds} of its rounds of heads already. Do the rest yourself now, without git status or git diff on the heads' work, and answer the user.";
 
     public static string InterruptedBlockMessage(bool stopped) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1075");
@@ -1205,14 +1387,62 @@ public static class HydraPrompts
     public static string MarkingDelegationBlockSent(string text) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1200");
 
-    public static string UnreadableBlockMessage(string? reason) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1207");
+    // :1207-1213. The single call site (ThreadRuntime.swift:2846) always passes nil, so the reason branch is
+    // ported for structural parity only; it is unreachable in shipped code.
+    public static string UnreadableBlockMessage(string? reason)
+    {
+        var message = "[Hydra] Your delegation block could not be read, so no heads went out.";
+        if (reason?.Trimmed() is { Length: > 0 } trimmedReason)
+        {
+            var lastCharacter = SwiftString.Suffix(trimmedReason, 1);
+            var endsWithTerminalPunctuation = lastCharacter is "." or "!" or "?";
+            message += " " + trimmedReason + (endsWithTerminalPunctuation ? "" : ".");
+        }
+        return message + " Write the block again at the end of your reply: one fenced block whose info string is hydra, holding a JSON array of objects with a task string and a prompt string. Inside a prompt never open a fenced code block of your own (no three backticks): describe code in words, quote identifiers with single backticks, or indent snippets. This does not count as a round of heads.";
+    }
 
-    public static string WithoutVerificationSteps(string prompt) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1230");
+    // :1217-1226. All 34 markers, in Swift's order, including the trailing space in "tsc ".
+    private static readonly string[] VerificationMarkers =
+    [
+        "xcodebuild", "swift build", "swift test", "swiftlint", "npm test", "npm run build",
+        "npm run test", "yarn build", "yarn test", "pnpm test", "cargo build", "cargo test",
+        "go test", "pytest", "gradle", "eslint", "tsc ", "build succeeded", "run the build",
+        "run the tests", "run the test suite", "build and prove", "prove it builds",
+        "prove it compiles", "check that it builds", "check it still builds",
+        "make sure it builds", "make sure it compiles", "confirm the build",
+        "verify the build", "verify that it builds", "make sure nothing else broke",
+        "run the suite", "build verification",
+    ];
 
+    // :1230-1238. Matching is an unanchored, case-insensitive substring test, never word-bounded.
+    public static string WithoutVerificationSteps(string prompt)
+    {
+        var lines = SwiftString.Split(prompt, "\n", omittingEmptySubsequences: false);
+        var kept = lines.Where(line =>
+        {
+            var lowered = SwiftString.Lowercased(line);
+            return !VerificationMarkers.Any(marker => lowered.Contains(marker, StringComparison.Ordinal));
+        }).ToList();
+        if (kept.Count == lines.Count) return prompt;
+        return string.Join("\n", kept) + "\nMake the assigned edits and report; the lead handles all validation.";
+    }
+
+    // :1241-1257. DEVIATION OD-0012 F1: "a Hydra head in Droppy Code:" -> "a Hydra head in Marrow:"; the
+    // sections and headings are unchanged.
     public static string DelegatedHeadPrompt(HydraPersona persona, HydraDelegation delegation, Workplace workplace) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1241");
+        $"You are {persona.Name}, a Hydra head in Marrow: one of several helpers working in parallel for a lead agent. The lead delegated this task to you.\n" +
+        "\n" +
+        $"## Your task: {delegation.Task}\n" +
+        $"{WithoutVerificationSteps(delegation.Prompt)}\n" +
+        "\n" +
+        "## Where you work\n" +
+        $"{WorkplaceRules(workplace)}\n" +
+        "\n" +
+        "## How to work\n" +
+        $"{HowToWork}\n" +
+        "\n" +
+        "## Your report\n" +
+        $"{HowToReport}";
 
     // :1262-1266
     public sealed record ChatContext
@@ -1222,12 +1452,182 @@ public static class HydraPrompts
         public ValueList<string> TouchedPaths { get; init; } = ValueList<string>.Empty; // :1265
     }
 
+    // :1271-1305. DEVIATION OD-0012 F1: "a Hydra head in Droppy Code:" -> "a Hydra head in Marrow:". The task is
+    // interpolated raw: unlike DelegatedHeadPrompt, it is NOT passed through WithoutVerificationSteps.
     public static string QueuedHeadPrompt(HydraPersona persona, string task, ChatContext context, Workplace workplace,
-        bool leadIsWorking = true) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1271");
+        bool leadIsWorking = true)
+    {
+        var lines = new List<string>();
+        // :1273-1275
+        if (context.LastUserPrompt is { Length: > 0 } prompt)
+            lines.Add($"- The user last asked the lead: {Quoted(prompt, 1_200)}");
+        // :1276-1278
+        if (context.LastReply is { Length: > 0 } reply)
+            lines.Add($"- The lead's latest reply{(leadIsWorking ? " so far" : "")}: {Quoted(reply, 800)}");
+        // :1279-1282
+        if (leadIsWorking && context.TouchedPaths.Count > 0)
+        {
+            var paths = string.Join(", ", context.TouchedPaths.Take(20));
+            lines.Add($"- Files the lead is changing in its current turn: {paths}. Leave these alone; if your task cannot be done without touching one, keep the change minimal and say so in your report.");
+        }
+        // :1283
+        var contextBlock = lines.Count == 0 ? "The lead has not said anything yet." : string.Join("\n", lines);
+        // :1284-1286
+        var handoff = leadIsWorking
+            ? "The user queued this task for you while the lead works on something else."
+            : "The user sent this task straight to you; the lead is idle and will hear your report.";
+        return
+            $"You are {persona.Name}, a Hydra head in Marrow: a helper running in parallel with the lead agent. {handoff}\n" +
+            "\n" +
+            "## What is going on in the main chat\n" +
+            $"{contextBlock}\n" +
+            "\n" +
+            "## Your task\n" +
+            $"{task}\n" +
+            "\n" +
+            "## Where you work\n" +
+            $"{WorkplaceRules(workplace)}\n" +
+            "\n" +
+            "## How to work\n" +
+            $"{HowToWork}\n" +
+            "\n" +
+            "## Your report\n" +
+            $"{HowToReport}";
+    }
 
-    // :1310. The Swift default `stillWorking: []` is a null default.
+    // :1310-1393. The Swift default `stillWorking: []` is a null default.
     public static string ReportMessage(IReadOnlyList<HydraReport> reports, IReadOnlyList<string>? stillWorking = null,
-        bool reviewsHeads = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:1310");
+        bool reviewsHeads = false)
+    {
+        stillWorking ??= [];
+
+        // :1311-1315
+        var names = reports.Select(r => HydraRoster.Persona(r.HeadIndex).Name).ToList();
+        var opening = $"Hydra reports: {Listed(names)} finished.";
+        if (stillWorking.Count > 0)
+        {
+            opening += $" {Listed(stillWorking)} {(stillWorking.Count == 1 ? "is" : "are")} still at work; {(stillWorking.Count == 1 ? "its report comes" : "their reports come")} as a later message.";
+        }
+
+        // :1317-1335
+        var sections = new List<string>();
+        foreach (var report in reports)
+        {
+            var persona = HydraRoster.Persona(report.HeadIndex);
+            var outcome = report.Status switch
+            {
+                HydraHeadInfo.Status.Completed => "",
+                HydraHeadInfo.Status.Failed => " (failed)",
+                HydraHeadInfo.Status.Stopped => " (stopped by the user before finishing)",
+                HydraHeadInfo.Status.Running => "",
+                _ => throw new UnreachableException(),
+            };
+            var effort = new List<string>();
+            if (report.Elapsed is { } elapsed && elapsed >= 1) effort.Add(Duration(elapsed));
+            if (report.ToolCalls > 0) effort.Add(report.ToolCalls == 1 ? "1 tool" : $"{report.ToolCalls} tools");
+            var took = effort.Count == 0 ? "" : " (" + string.Join(", ", effort) + ")";
+            var lines = new List<string> { $"## {persona.Name}: {report.Task}{outcome}{took}" };
+            if (LandingLine(report) is { } landingLine) lines.Add(landingLine);
+            var body = report.Text.Trimmed();
+            lines.Add(body.Length == 0 ? "No report." : body);
+            sections.Add(string.Join("\n", lines));
+        }
+
+        // :1337-1384
+        var closing = new List<string>();
+        if (reports.Any(r => r.Landing?.Landed == true)) // :1338-1340
+            closing.Add("The changes listed above are in your checkout already; nothing needs applying.");
+        if (reports.Any(r => r.CopyPath is null && r.Status == HydraHeadInfo.Status.Completed)) // :1341-1343
+            closing.Add("The heads worked in your checkout, so their changes are there already.");
+        if (reports.Any(r => r.Landing is { } l && l.Conflicts.Count > 0)) // :1344-1346
+            closing.Add("A file listed with conflicts was merged three-way and keeps conflict markers: resolve those first, and tell the user in one line that you settled them, so the landing card above does not read as broken.");
+
+        // :1349-1357
+        var owners = new Dictionary<string, List<string>>();
+        foreach (var report in reports)
+        foreach (var file in report.Landing?.Files ?? ValueList<HydraLanding.File>.Empty)
+        {
+            if (!owners.TryGetValue(file.Path, out var owned)) owners[file.Path] = owned = [];
+            owned.Add(HydraRoster.Persona(report.HeadIndex).Name);
+        }
+        foreach (var pair in owners.OrderBy(kv => kv.Key, SwiftStringComparer.Instance))
+            if (pair.Value.Count > 1)
+                closing.Add($"{Listed(pair.Value)} both changed {pair.Key}: read it as it is now before you build on it.");
+
+        // :1358-1361
+        foreach (var report in reports)
+        {
+            if (report.Landing?.PatchPath is not { } path) continue;
+            closing.Add($"{HydraRoster.Persona(report.HeadIndex).Name}'s changes would not apply on their own; the patch is at {path}. Apply it with `git apply --3way {path}` and settle what conflicts.");
+        }
+
+        if (reports.Any(r => r.Status == HydraHeadInfo.Status.Failed)) // :1362-1364
+            closing.Add("A head that failed leaves its part to you: do it yourself or send it out again.");
+        if (reports.Any(r => r.Status == HydraHeadInfo.Status.Stopped)) // :1365-1367
+            closing.Add("A head the user stopped leaves its part alone unless the user asks for it.");
+        if (reports.Any(r => r.Origin == HydraHeadInfo.Origin.Queued)) // :1368-1370
+            closing.Add("The user queued that work for the heads while you were busy; take it into account and carry on with the main job.");
+        if (reports.Any(r => r.Origin == HydraHeadInfo.Origin.Sent)) // :1371-1373
+            closing.Add("The user sent that work straight to the heads instead of to you; take it into account, and reply to the user on it as if they had asked you.");
+
+        // :1376-1380
+        closing.Add(reviewsHeads
+            ? "Do not check any of this with git status or git diff: the checkout changes under you while heads work, and the user may be editing too. Do not reconcile or revert anything. " + ReviewRule
+            : "Do not check any of this with git status or git diff: the checkout changes under you while heads work, and the user may be editing too. Do not reconcile, revert or redo anything. Build on the reports, read the files they name if something matters, run one verification if it matters, and finish the job.");
+        closing.Add(ReportStyleRule); // :1381
+        if (stillWorking.Count > 0) // :1382-1384
+            closing.Add($"Do not wait for {Listed(stillWorking)} and do not take over {(stillWorking.Count == 1 ? "its" : "their")} tasks; tell the user {(stillWorking.Count == 1 ? "it is" : "they are")} still at work and that you will hear from {(stillWorking.Count == 1 ? "it" : "them")}.");
+
+        // :1386-1392
+        return opening + "\n\n" + string.Join("\n\n", sections) + "\n\n" + string.Join(" ", closing);
+    }
+
+    // :1397-1414. Nothing for a head that worked in the checkout itself: its changes are simply there.
+    private static string? LandingLine(HydraReport report)
+    {
+        if (report.Landing is not { } landing)
+        {
+            if (report.CopyPath is not { } path) return null;
+            return report.Status == HydraHeadInfo.Status.Completed ? "Changed nothing." : $"Nothing landed; its unfinished work is in its copy at {path}.";
+        }
+        if (landing.IsEmpty) return "Changed nothing.";
+        var files = landing.Files.Take(25).Select(file =>
+        {
+            var line = $"{file.Path} (+{file.Additions} −{file.Deletions})"; // U+2212 MINUS SIGN
+            if (landing.Conflicts.Contains(file.Path)) line += " with conflicts";
+            return line;
+        }).ToList();
+        var listed = string.Join(", ", files) + (landing.Files.Count > 25 ? $", and {landing.Files.Count - 25} more" : "");
+        var omitted = landing.DroppedBuildOutputFiles == 0
+            ? ""
+            : $"; {landing.DroppedBuildOutputFiles} build-output file{(landing.DroppedBuildOutputFiles == 1 ? " was" : "s were")} left out";
+        // patchPath is tested BEFORE error, so a landing carrying both reports the patch form.
+        if (landing.PatchPath is not null) return $"Did not land: {listed}{omitted}.";
+        if (landing.Error is { } error) return $"Did not land ({error}): {listed}{omitted}.";
+        return $"Landed in your checkout: {listed}{omitted}.";
+    }
+
+    // :1416-1419
+    private static string Duration(double seconds)
+    {
+        var total = SwiftNumber.TruncatingToInt(seconds);
+        return total < 60 ? $"{total}s" : $"{total / 60}m {total % 60}s";
+    }
+
+    // :1421-1427. No Oxford comma: two names are "A and B", three or more are "A, B and C".
+    private static string Listed(IReadOnlyList<string> names) => names.Count switch
+    {
+        0 => "",
+        1 => names[0],
+        _ => string.Join(", ", names.Take(names.Count - 1)) + " and " + names[^1],
+    };
+
+    // :1429-1433. U+201C LEFT DOUBLE QUOTATION MARK, U+201D RIGHT DOUBLE QUOTATION MARK, U+2026 HORIZONTAL
+    // ELLIPSIS. Counts Characters (grapheme clusters), not UTF-16 units.
+    private static string Quoted(string text, int limit)
+    {
+        var trimmed = text.Trimmed();
+        var cut = SwiftString.Count(trimmed) > limit ? SwiftString.Prefix(trimmed, limit) + "…" : trimmed;
+        return "“" + cut + "”";
+    }
 }
