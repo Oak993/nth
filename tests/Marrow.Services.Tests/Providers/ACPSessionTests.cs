@@ -2430,4 +2430,471 @@ public sealed class ACPSessionTests
         Assert.Equal("b.ts", noPath.Title); // no path found: falls back to the (verb-stripped) cleaned title
         Assert.Null(noPath.Detail);
     }
+
+    // ===== Part 6 of 8: the rest of makeToolCall/makeToolUpdate's title/detail synthesis (search, web,
+    // mcp/agent/other, the fallback and isFallbackTitle tables, diffs()) and the catalog probe, probeModels
+    // and probeModelEfforts (PR-PROVACP-122..138, UI-PROVACP-001..007).
+
+    private static ValueMap<string, string> Env(params (string Key, string Value)[] pairs) =>
+        new(pairs.ToDictionary(p => p.Key, p => p.Value));
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-122")] // ACPSession.swift:723-726
+    [Trait("Req", "UI-PROVACP-001")] // ACPSession.swift:706-737, :801-826
+    public void MakeToolCall_titles_a_search_row_from_five_keys_in_order_with_a_four_part_detail_condition()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var wd = Private<string>(session, "WorkingDirectory");
+        ToolCall Call(params (string Key, JSONValue Value)[] rawInput) => InvokePrivateValue<ToolCall>(session, "MakeToolCall",
+            JSONValue.FromDictionaryLiteral(("kind", "search"), ("rawInput", JSONValue.FromDictionaryLiteral(rawInput))));
+
+        // Key priority: pattern beats query beats glob beats regex beats search.
+        Assert.Equal("P", Call(("pattern", "P"), ("query", "Q"), ("glob", "G"), ("regex", "R"), ("search", "S")).Title);
+        Assert.Equal("Q", Call(("query", "Q"), ("glob", "G"), ("regex", "R"), ("search", "S")).Title);
+        Assert.Equal("G", Call(("glob", "G"), ("regex", "R"), ("search", "S")).Title);
+        Assert.Equal("R", Call(("regex", "R"), ("search", "S")).Title);
+        Assert.Equal("S", Call(("search", "S")).Title);
+
+        // A pattern found, a differing path: detail is set.
+        var withPattern = Call(("pattern", "TODO"), ("path", "src/other.ts"));
+        Assert.Equal("TODO", withPattern.Title);
+        Assert.Equal("src/other.ts", withPattern.Detail); // != workingDirectory, != title
+
+        // No pattern, but a non-empty agent title: still qualifies for detail, and the title is the agent title.
+        var noPatternWithTitle = InvokePrivateValue<ToolCall>(session, "MakeToolCall", JSONValue.FromDictionaryLiteral(
+            ("kind", "search"), ("title", "Searched for widgets"),
+            ("rawInput", JSONValue.FromDictionaryLiteral(("path", "src/other.ts")))));
+        Assert.Equal("widgets", noPatternWithTitle.Title); // "searched for " phrase stripped
+        Assert.Equal("src/other.ts", noPatternWithTitle.Detail);
+
+        // No pattern and an empty agent title: falls to path as the TITLE itself, so no detail (path == title).
+        var noPatternNoTitle = Call(("path", "src/other.ts"));
+        Assert.Equal("src/other.ts", noPatternNoTitle.Title);
+        Assert.Null(noPatternNoTitle.Detail);
+
+        // Path equal to the working directory: no detail even with a pattern.
+        var pathIsWd = InvokePrivateValue<ToolCall>(session, "MakeToolCall", JSONValue.FromDictionaryLiteral(
+            ("kind", "search"), ("rawInput", JSONValue.FromDictionaryLiteral(("pattern", "TODO"), ("path", wd)))));
+        Assert.Equal("TODO", pathIsWd.Title);
+        Assert.Null(pathIsWd.Detail);
+
+        // Path equal to the chosen title: no detail.
+        var pathIsTitle = Call(("pattern", "same"), ("path", "same"));
+        Assert.Equal("same", pathIsTitle.Title);
+        Assert.Null(pathIsTitle.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-123")] // ACPSession.swift:727-728
+    public void MakeToolCall_titles_a_web_row_from_url_query_or_prompt_in_order_with_no_detail_ever()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        ToolCall Call(params (string Key, JSONValue Value)[] rawInput) => InvokePrivateValue<ToolCall>(session, "MakeToolCall",
+            JSONValue.FromDictionaryLiteral(("kind", "fetch"), ("rawInput", JSONValue.FromDictionaryLiteral(rawInput))));
+
+        Assert.Equal("https://x", Call(("url", "https://x"), ("query", "q"), ("prompt", "p")).Title);
+        Assert.Equal("q", Call(("query", "q"), ("prompt", "p")).Title);
+        Assert.Equal("p", Call(("prompt", "p")).Title);
+        Assert.Null(Call(("prompt", "p")).Detail);
+
+        var fallsToTitle = InvokePrivateValue<ToolCall>(session, "MakeToolCall", JSONValue.FromDictionaryLiteral(
+            ("kind", "fetch"), ("title", "Fetched https://y"), ("rawInput", JSONValue.FromDictionaryLiteral(("path", "ignored")))));
+        Assert.Equal("https://y", fallsToTitle.Title); // "fetched " verb stripped; the path key is not tried for .web
+        Assert.Null(fallsToTitle.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-124")] // ACPSession.swift:729-732
+    public void MakeToolCall_titles_an_other_row_from_the_agent_title_with_a_three_part_path_detail()
+    {
+        // ACP kind() never maps to .mcp or .agent, so this branch is exercised through .other (an unknown kind string).
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var wd = Private<string>(session, "WorkingDirectory");
+
+        var withPath = InvokePrivateValue<ToolCall>(session, "MakeToolCall", JSONValue.FromDictionaryLiteral(
+            ("kind", "unknown-kind"), ("title", "Called a tool"), ("rawInput", JSONValue.FromDictionaryLiteral(("path", "src/x.ts")))));
+        Assert.Equal("Called a tool", withPath.Title); // .other never strips a verb (rowHasVerb excludes it): no path substitution either
+        Assert.Equal("src/x.ts", withPath.Detail);
+
+        var pathIsWd = InvokePrivateValue<ToolCall>(session, "MakeToolCall", JSONValue.FromDictionaryLiteral(
+            ("kind", "unknown-kind"), ("title", "Called a tool"), ("rawInput", JSONValue.FromDictionaryLiteral(("path", wd)))));
+        Assert.Null(pathIsWd.Detail); // path == workingDirectory
+
+        var pathIsTitle = InvokePrivateValue<ToolCall>(session, "MakeToolCall", JSONValue.FromDictionaryLiteral(
+            ("kind", "unknown-kind"), ("title", "same"), ("rawInput", JSONValue.FromDictionaryLiteral(("path", "same")))));
+        Assert.Null(pathIsTitle.Detail); // path == title
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-125")] // ACPSession.swift:733
+    [InlineData("read", null, "Read file")]
+    [InlineData("edit", null, "Edit file")]
+    [InlineData("execute", null, "Run command")]
+    [InlineData("frobnicate", null, "Tool")] // .other
+    [InlineData("read", "src/a.ts", "src/a.ts")]
+    public void MakeToolCall_falls_back_to_the_path_then_the_kind_fallback_label_when_titling_left_it_empty(string kind, string? path, string expected)
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var raw = path is null ? JSONValue.FromDictionaryLiteral() : JSONValue.FromDictionaryLiteral(("path", path));
+        var call = InvokePrivateValue<ToolCall>(session, "MakeToolCall", JSONValue.FromDictionaryLiteral(("kind", kind), ("rawInput", raw)));
+        Assert.Equal(expected, call.Title);
+        Assert.NotEqual("", call.Title); // a tool row is never blank
+    }
+
+    [Theory]
+    [Trait("Req", "UI-PROVACP-002")] // ACPSession.swift:868
+    [Trait("Req", "UI-PROVACP-003")] // ACPSession.swift:869
+    [Trait("Req", "UI-PROVACP-004")] // ACPSession.swift:870
+    [Trait("Req", "UI-PROVACP-005")] // ACPSession.swift:871
+    [Trait("Req", "UI-PROVACP-006")] // ACPSession.swift:872
+    [Trait("Req", "UI-PROVACP-007")] // ACPSession.swift:873,875
+    [InlineData(ToolCall.Kind.Command, "Run command")]
+    [InlineData(ToolCall.Kind.Read, "Read file")]
+    [InlineData(ToolCall.Kind.Edit, "Edit file")]
+    [InlineData(ToolCall.Kind.Search, "Search")]
+    [InlineData(ToolCall.Kind.Web, "Fetch")]
+    [InlineData(ToolCall.Kind.Mcp, "Tool")]
+    [InlineData(ToolCall.Kind.Agent, "Agent")]
+    [InlineData(ToolCall.Kind.Other, "Tool")]
+    public void FallbackTitle_is_the_exact_byte_for_byte_label_per_kind(ToolCall.Kind kind, string expected) =>
+        Assert.Equal(expected, InvokeStatic<string>("FallbackTitle", kind));
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-126")] // ACPSession.swift:840-849
+    public void Diffs_reads_only_diff_blocks_with_a_path_makes_it_relative_and_empties_missing_text()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var content = JSONValue.FromArrayLiteral(
+            JSONValue.FromDictionaryLiteral(("type", "diff"), ("path", "src/a.ts"), ("oldText", "old"), ("newText", "new")),
+            JSONValue.FromDictionaryLiteral(("type", "diff"), ("path", "src/b.ts"))); // no oldText/newText: both ""
+        var withNoPath = JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("type", "diff"), ("oldText", "x"))); // no path: dropped
+        var wrongType = JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("type", "content"), ("path", "src/c.ts")));
+
+        var edits = InvokePrivateValue<ValueList<FileEdit>>(session, "Diffs", content);
+        Assert.Equal(2, edits.Count);
+        Assert.Equal("src/a.ts", edits[0].Path);
+        Assert.Equal(new FileEdit("src/a.ts", "old", "new"), edits[0]); // built from the same old/new text
+        Assert.Equal("src/b.ts", edits[1].Path);
+        Assert.Equal(new FileEdit("src/b.ts", "", ""), edits[1]); // missing oldText/newText become "", not nil
+
+        Assert.Empty(InvokePrivateValue<ValueList<FileEdit>>(session, "Diffs", withNoPath));
+        Assert.Empty(InvokePrivateValue<ValueList<FileEdit>>(session, "Diffs", wrongType));
+    }
+
+    private static ToolUpdate Update6(ACPSession session, params (string Key, JSONValue Value)[] fields) =>
+        InvokePrivateValue<ToolUpdate>(session, "MakeToolUpdate", JSONValue.FromDictionaryLiteral(fields));
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-127")] // ACPSession.swift:741-742
+    public void MakeToolUpdate_leaves_Kind_nil_without_a_kind_field_and_the_missing_kind_default_skips_verb_stripping()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var noKind = Update6(session, ("title", "Read something.txt"));
+        Assert.Null(noKind.Kind); // never resets an existing row's kind
+        Assert.Equal("Read something.txt", noKind.Title); // .other default: no verb stripping
+
+        var withKind = Update6(session, ("kind", "read"), ("title", "Read something.txt"));
+        Assert.Equal(ToolCall.Kind.Read, withKind.Kind);
+        Assert.Equal("something.txt", withKind.Title); // .read: the "Read " verb IS stripped
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-128")] // ACPSession.swift:743-745
+    public void MakeToolUpdate_a_generic_or_bare_title_never_overwrites_the_rows_title()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        Assert.Null(Update6(session, ("kind", "edit"), ("title", "Edit file")).Title); // one of the ten generic labels
+        Assert.Null(Update6(session, ("kind", "edit"), ("title", "bash")).Title); // a bare tool name
+        Assert.Null(Update6(session, ("kind", "edit"), ("title", "")).Title); // empty after cleaning
+        Assert.Equal("src/thing.ts", Update6(session, ("kind", "edit"), ("title", "src/thing.ts")).Title); // a real subject survives
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-129")] // ACPSession.swift:746
+    public void MakeToolUpdate_rawInput_command_always_wins_the_title_unconditionally()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var withOtherTitle = InvokePrivateValue<ToolUpdate>(session, "MakeToolUpdate", JSONValue.FromDictionaryLiteral(
+            ("kind", "edit"), ("title", "src/thing.ts"), ("rawInput", JSONValue.FromDictionaryLiteral(("command", "bash -lc 'ls'")))));
+        Assert.Equal("ls", withOtherTitle.Title); // command wins over the already-set title, and is unwrapped
+
+        var emptyCommand = InvokePrivateValue<ToolUpdate>(session, "MakeToolUpdate", JSONValue.FromDictionaryLiteral(
+            ("title", "src/thing.ts"), ("rawInput", JSONValue.FromDictionaryLiteral(("command", "")))));
+        Assert.Equal("", emptyCommand.Title); // an empty command string still overwrites, with an empty title
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-130")] // ACPSession.swift:747-752
+    public void MakeToolUpdate_a_path_that_only_arrives_with_the_update_names_an_untitled_read_or_edit_row()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var wd = Private<string>(session, "WorkingDirectory");
+
+        var named = InvokePrivateValue<ToolUpdate>(session, "MakeToolUpdate", JSONValue.FromDictionaryLiteral(
+            ("kind", "read"), ("locations", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("path", "src/a.ts"))))));
+        Assert.Equal("src/a.ts", named.Title);
+
+        // The row equal to the working directory itself: nothing is set.
+        var isWd = InvokePrivateValue<ToolUpdate>(session, "MakeToolUpdate", JSONValue.FromDictionaryLiteral(
+            ("kind", "edit"), ("locations", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("path", wd))))));
+        Assert.Null(isWd.Title);
+
+        // A title already set from an earlier step: the location is never consulted.
+        var alreadyTitled = InvokePrivateValue<ToolUpdate>(session, "MakeToolUpdate", JSONValue.FromDictionaryLiteral(
+            ("kind", "read"), ("title", "src/keep.ts"),
+            ("locations", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("path", "src/other.ts"))))));
+        Assert.Equal("src/keep.ts", alreadyTitled.Title);
+
+        // Neither .read nor .edit: locations is never consulted, even with no kind (defaults to .other).
+        var otherKind = InvokePrivateValue<ToolUpdate>(session, "MakeToolUpdate", JSONValue.FromDictionaryLiteral(
+            ("kind", "execute"), ("locations", JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("path", "src/a.ts"))))));
+        Assert.Null(otherKind.Title);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-131")] // ACPSession.swift:756-765
+    public void MakeToolUpdate_output_is_joined_from_content_blocks_and_only_falls_back_to_rawOutput_when_empty()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var content = JSONValue.FromArrayLiteral(
+            JSONValue.FromDictionaryLiteral(("type", "content"), ("content", JSONValue.FromDictionaryLiteral(("text", "line1")))),
+            JSONValue.FromDictionaryLiteral(("type", "other")), // wrong type: skipped
+            JSONValue.FromDictionaryLiteral(("type", "content"), ("content", JSONValue.FromDictionaryLiteral(("text", "line2")))));
+        var withContent = InvokePrivateValue<ToolUpdate>(session, "MakeToolUpdate", JSONValue.FromDictionaryLiteral(
+            ("content", content), ("rawOutput", JSONValue.FromDictionaryLiteral(("stdout", "ignored")))));
+        Assert.Equal("line1\nline2", withContent.Output); // content blocks always win over rawOutput
+
+        var fallback = InvokePrivateValue<ToolUpdate>(session, "MakeToolUpdate", JSONValue.FromDictionaryLiteral(
+            ("rawOutput", JSONValue.FromDictionaryLiteral(("stdout", "out"), ("stderr", "err"), ("output", "o")))));
+        Assert.Equal("out\nerr\no", fallback.Output); // stdout, stderr, output, in that order
+
+        var partial = InvokePrivateValue<ToolUpdate>(session, "MakeToolUpdate", JSONValue.FromDictionaryLiteral(
+            ("rawOutput", JSONValue.FromDictionaryLiteral(("stderr", ""), ("output", "o")))));
+        Assert.Equal("o", partial.Output); // absent stdout, empty stderr both dropped
+
+        var nullRawOutput = InvokePrivateValue<ToolUpdate>(session, "MakeToolUpdate", JSONValue.FromDictionaryLiteral(
+            ("rawOutput", new JSONValue.Null())));
+        Assert.Null(nullRawOutput.Output);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-132")] // ACPSession.swift:766
+    public void MakeToolUpdate_reads_exitCode_from_rawOutput_exitCode_or_metadata_exit_even_when_content_supplied_output()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var content = JSONValue.FromArrayLiteral(
+            JSONValue.FromDictionaryLiteral(("type", "content"), ("content", JSONValue.FromDictionaryLiteral(("text", "hi")))));
+
+        var direct = InvokePrivateValue<ToolUpdate>(session, "MakeToolUpdate", JSONValue.FromDictionaryLiteral(
+            ("content", content), ("rawOutput", JSONValue.FromDictionaryLiteral(("exitCode", 7L)))));
+        Assert.Equal(7L, direct.ExitCode); // runs even though content supplied the output
+
+        var viaMetadata = InvokePrivateValue<ToolUpdate>(session, "MakeToolUpdate", JSONValue.FromDictionaryLiteral(
+            ("rawOutput", JSONValue.FromDictionaryLiteral(("metadata", JSONValue.FromDictionaryLiteral(("exit", 9L)))))));
+        Assert.Equal(9L, viaMetadata.ExitCode); // exitCode wins over metadata.exit when both present
+
+        var both = InvokePrivateValue<ToolUpdate>(session, "MakeToolUpdate", JSONValue.FromDictionaryLiteral(
+            ("rawOutput", JSONValue.FromDictionaryLiteral(("exitCode", 1L), ("metadata", JSONValue.FromDictionaryLiteral(("exit", 2L)))))));
+        Assert.Equal(1L, both.ExitCode);
+
+        var neither = InvokePrivateValue<ToolUpdate>(session, "MakeToolUpdate", JSONValue.FromDictionaryLiteral(
+            ("rawOutput", JSONValue.FromDictionaryLiteral(("stdout", "x")))));
+        Assert.Null(neither.ExitCode);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-133")] // ACPSession.swift:768
+    public void MakeToolUpdate_suppresses_the_exact_literal_no_output_placeholder_but_not_a_padded_variant()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var content = JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(
+            ("type", "content"), ("content", JSONValue.FromDictionaryLiteral(("text", "(no output)")))));
+        Assert.Null(Update6(session, ("content", content)).Output);
+
+        var padded = JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(
+            ("type", "content"), ("content", JSONValue.FromDictionaryLiteral(("text", " (no output)")))));
+        Assert.Equal(" (no output)", Update6(session, ("content", padded)).Output); // exact match only, whitespace not trimmed first
+
+        Assert.Null(Update6(session).Output); // nothing collected at all
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVACP-134")] // ACPSession.swift:769
+    [InlineData("completed", 1L, ToolCall.Status.Failed)]
+    [InlineData("completed", 0L, ToolCall.Status.Completed)]
+    [InlineData("running", 1L, ToolCall.Status.Running)]
+    [InlineData("failed", 1L, ToolCall.Status.Failed)]
+    public void MakeToolUpdate_downgrades_only_a_completed_status_with_a_nonzero_exit_code(string status, long exitCode, ToolCall.Status expected)
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var update = InvokePrivateValue<ToolUpdate>(session, "MakeToolUpdate", JSONValue.FromDictionaryLiteral(
+            ("status", status), ("rawOutput", JSONValue.FromDictionaryLiteral(("exitCode", exitCode)))));
+        Assert.Equal(expected, update.Status);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-134")] // ACPSession.swift:769 (no status at all: stays nil even with a nonzero exit)
+    public void MakeToolUpdate_with_no_status_stays_nil_even_with_a_nonzero_exit_code()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        var update = InvokePrivateValue<ToolUpdate>(session, "MakeToolUpdate", JSONValue.FromDictionaryLiteral(
+            ("rawOutput", JSONValue.FromDictionaryLiteral(("exitCode", 1L)))));
+        Assert.Null(update.Status);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-135")] // ACPSession.swift:754-755, contrast with :734
+    public void MakeToolUpdate_edits_stays_nil_without_a_diff_block_while_MakeToolCall_edits_is_always_assigned()
+    {
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        Assert.Null(Update6(session).Edits); // no content at all: nil, never clears a row's existing edits
+
+        var content = JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(
+            ("type", "diff"), ("path", "a.ts"), ("oldText", "o"), ("newText", "n")));
+        var withEdits = Update6(session, ("content", content));
+        Assert.NotNull(withEdits.Edits);
+        Assert.Single(withEdits.Edits!);
+
+        var call = InvokePrivateValue<ToolCall>(session, "MakeToolCall", JSONValue.FromDictionaryLiteral(("kind", "read")));
+        Assert.NotNull(call.Edits); // ToolCall.Edits is a non-nullable ValueList, always assigned
+        Assert.Empty(call.Edits); // empty, since no diff blocks were present
+    }
+
+    // ----- The catalog probe (PR-PROVACP-136, 137, 138). LaunchArguments is fixed per provider (e.g. the
+    // literal ["acp"]) with no room to inject the -EncodedCommand/-File scripted stand-in the rest of this
+    // file drives through OpenSession/ApplySelection (see the file's part 1 header note), so ProbeModels
+    // cannot be driven end to end with a live agent. Tested here via extraction (PrepareProbeCatalogDirectory,
+    // ProbeConfiguration), a failing Start() to prove propagation, and probeModelEfforts exercised directly
+    // against a live scripted agent the same way ApplySelection/SetConfigOption already are.
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-136")] // ACPSession.swift:229-230
+    public void PrepareProbeCatalogDirectory_creates_marrow_catalog_under_the_system_temp_folder_and_swallows_a_failure()
+    {
+        var expected = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "marrow-catalog");
+        if (System.IO.Directory.Exists(expected)) System.IO.Directory.Delete(expected, recursive: true);
+        if (System.IO.File.Exists(expected)) System.IO.File.Delete(expected);
+
+        var path = InvokeStatic<string>("PrepareProbeCatalogDirectory");
+        Assert.Equal(expected, path); // DEVIATION OD-0008 (OD-PENDING-17): "marrow-catalog", not "droppy-code-catalog"
+        Assert.True(System.IO.Directory.Exists(path));
+
+        // A creation failure (a plain FILE already occupying the path) is swallowed, not thrown.
+        System.IO.Directory.Delete(expected, recursive: true);
+        System.IO.File.WriteAllText(expected, "blocking");
+        try
+        {
+            var swallowed = InvokeStatic<string>("PrepareProbeCatalogDirectory");
+            Assert.Equal(expected, swallowed); // no exception, same path returned regardless
+        }
+        finally
+        {
+            System.IO.File.Delete(expected);
+            System.IO.Directory.CreateDirectory(expected);
+        }
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-136")] // ACPSession.swift:231-238; :898-920 (the convenience init's nil fields)
+    public void ProbeConfiguration_is_always_supervised_and_build_with_no_resume_model_or_effort()
+    {
+        var executable = SwiftURL.Create("file:///" + ACPSessionFixtures.PowerShell.Replace('\\', '/'))!;
+        var directoryPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "marrow-catalog-config-test");
+        var env = Env(("K", "V"));
+        var config = (SessionConfiguration)typeof(ACPSession).GetMethod("ProbeConfiguration", BindingFlags.Static | BindingFlags.NonPublic)!
+            .Invoke(null, [ProviderKind.Cursor, executable, directoryPath, env])!;
+        Assert.Equal(ProviderKind.Cursor, config.Provider);
+        Assert.Equal(executable, config.Executable);
+        Assert.Equal(RuntimeMode.Supervised, config.RuntimeMode); // never launches with a permissive flag
+        Assert.Equal(InteractionMode.Build, config.InteractionMode);
+        Assert.Null(config.ResumeID);
+        Assert.Null(config.ResumeAt);
+        Assert.Null(config.Model);
+        Assert.Null(config.Effort);
+        Assert.Equal(env, config.Environment);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-136")] // ACPSession.swift:228-247 (start() throwing propagates out of probeModels)
+    [Trait("Req", "PR-PROVACP-137")] // ACPSession.swift:239-246 (defer runs a stop on every exit path, including a throw)
+    public async Task ProbeModels_propagates_a_failure_from_Start()
+    {
+        var missing = SwiftURL.Create("file:///" + System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+            "marrow-missing-" + Guid.NewGuid().ToString("N"), "nope.exe").Replace('\\', '/'))!;
+        await Assert.ThrowsAnyAsync<Exception>(() => ACPSession.ProbeModels(ProviderKind.Grok, missing, ValueMap<string, string>.Empty));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-138")] // ACPSession.swift:288 (no modelConfigID: returns immediately)
+    public void ProbeModelEfforts_without_a_modelConfigID_returns_immediately_leaving_the_current_model_untouched()
+    {
+        using var runtime = new TestRuntime();
+        var session = Session(ProviderKind.Grok, RuntimeMode.Supervised);
+        SetField(session, "models", new ValueList<ModelOption>([new ModelOption("m1", "M1")]));
+        SetField(session, "currentModel", "orig");
+        RunOnMain(runtime, session, "ProbeModelEfforts");
+        Assert.Equal("orig", Private<string?>(session, "currentModel", field: true));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-138")] // ACPSession.swift:289-296
+    public void ProbeModelEfforts_walks_only_models_with_empty_efforts_and_restores_a_different_original_by_base_id()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " +
+            "if($l.Contains('\"method\":\"session/set_config_option\"')){ $rid=[regex]::Match($l,'\"id\":(\\d+)').Groups[1].Value; " +
+            "$o.WriteLine('{\"jsonrpc\":\"2.0\",\"id\":'+$rid+',\"result\":{}}'); $o.Flush() } " + EndOnBye);
+        SetField(session, "modelConfigID", "model-opt");
+        SetField(session, "currentModel", "m0"); // the original: differs by base id from the last model walked
+        SetField(session, "models", new ValueList<ModelOption>([
+            new ModelOption("m1", "M1"), // efforts empty: walked
+            new ModelOption("m2", "M2", efforts: new ValueList<string>(["low", "high"])), // efforts non-empty: skipped
+        ]));
+        RunOnMain(runtime, session, "ProbeModelEfforts");
+        var frames = Lines(process.ErrorTail).Select(l => JSONValue.Parse(l)!).ToList();
+        Assert.Equal(2, frames.Count); // one walk request for m1 (m2 skipped), one restore request for m0
+        Assert.Equal("m1", frames[0]["params"]!["value"]!.JSONValueString);
+        Assert.Equal("m0", frames[1]["params"]!["value"]!.JSONValueString);
+        Assert.Equal("m0", Private<string?>(session, "currentModel", field: true)); // restored
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-138")] // ACPSession.swift:294 (same base id: no restore request is sent)
+    public void ProbeModelEfforts_skips_the_restore_request_when_the_walk_ends_on_the_same_base_id()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Cursor,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " +
+            "if($l.Contains('\"method\":\"session/set_config_option\"')){ $rid=[regex]::Match($l,'\"id\":(\\d+)').Groups[1].Value; " +
+            "$o.WriteLine('{\"jsonrpc\":\"2.0\",\"id\":'+$rid+',\"result\":{}}'); $o.Flush() } " + EndOnBye);
+        SetField(session, "modelConfigID", "model-opt");
+        SetField(session, "currentModel", "gpt-5[effort=high]"); // same base id as the model walked below
+        SetField(session, "models", new ValueList<ModelOption>([new ModelOption("gpt-5", "GPT-5")]));
+        RunOnMain(runtime, session, "ProbeModelEfforts");
+        var frames = Lines(process.ErrorTail).Select(l => JSONValue.Parse(l)!).ToList();
+        Assert.Single(frames); // only the walk request; no restore
+        Assert.Equal("gpt-5", frames[0]["params"]!["value"]!.JSONValueString);
+        Assert.Equal("gpt-5", Private<string?>(session, "currentModel", field: true));
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-138")] // ACPSession.swift:294 (original is nil: no restore is attempted)
+    public void ProbeModelEfforts_attempts_no_restore_when_there_was_no_original_current_model()
+    {
+        using var runtime = new TestRuntime();
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok,
+            Pipes + "while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); " +
+            "if($l.Contains('\"method\":\"session/set_config_option\"')){ $rid=[regex]::Match($l,'\"id\":(\\d+)').Groups[1].Value; " +
+            "$o.WriteLine('{\"jsonrpc\":\"2.0\",\"id\":'+$rid+',\"result\":{}}'); $o.Flush() } " + EndOnBye);
+        SetField(session, "modelConfigID", "model-opt");
+        SetField(session, "currentModel", null);
+        SetField(session, "models", new ValueList<ModelOption>([new ModelOption("m1", "M1")]));
+        RunOnMain(runtime, session, "ProbeModelEfforts");
+        Assert.Single(Lines(process.ErrorTail)); // only the one walk request
+        Assert.Equal("m1", Private<string?>(session, "currentModel", field: true)); // left on the last model walked
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
 }
