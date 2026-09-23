@@ -7,7 +7,7 @@ namespace Marrow.Core.Tests.Fixtures;
 
 // Support for StackSamplerTests and HangWatchdogTests (ED-162, ED-163). Helper types live in fixture files, never
 // inside a test class (R-TEST-3). The nettrace writer produces the layout the runtime wrote in the probe
-// (probe-tmp/probe-final.log: "Nettrace", "!FastSerialization.1", a version 4 "Trace" object, then MetadataBlock,
+// (the unit's EventPipe probe on .NET 10.0.12: "Nettrace", "!FastSerialization.1", a version 4 "Trace" object, then MetadataBlock,
 // StackBlock, EventBlock and SPBlock objects with compressed event headers, then the NullReference end tag).
 
 /// <summary>The live self-capture samples every thread of the process, so it runs alone.</summary>
@@ -246,7 +246,7 @@ public sealed class ScriptedDiagnosticsServer : IDisposable
         if (data.Length == 0) return;
         pipe.Write(data);
         pipe.Flush();
-        pipe.WaitForPipeDrain();
+        if (OperatingSystem.IsWindows()) pipe.WaitForPipeDrain();
     }
 
     private static byte[] ReadMessage(Stream pipe)
