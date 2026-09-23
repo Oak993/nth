@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 1210,
+      "IMPLEMENTED": 1221,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 2679,
+      "SPECIFIED": 2668,
       "RETIRED": 6,
       "DISCOVERED": 18
     },
@@ -9417,7 +9417,7 @@
       "cancellation": "not cancellable",
       "windows_path": "U+2212 verbatim; the same hues as every other plus/minus in the app, so a theme recolours the tab with the diffs it stands for. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison and a byte check of the minus character",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -9443,7 +9443,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings; the chord label renders in Windows notation from the stored shortcut (OD-0008 B7). Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "verification_method": "unit test of the help string with the chord set and cleared",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -13703,7 +13703,7 @@
       "cancellation": "The refresh checks the revision again after the parse and abandons a stale result.",
       "windows_path": "Direct port.",
       "verification_method": "interaction test asserting the tab appears after the first file-changing turn and not before",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -30208,7 +30208,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Byte-compatible JSON; do not normalize the four writers into one, because they differ deliberately on exactly these omissions.",
       "verification_method": "contract fixture comparing the file against a frozen expectation",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "23",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -30234,7 +30234,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact key names; codex rejects its whole configuration on an unexpected shape.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "23",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -30259,7 +30259,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Always write the empty maps here even though Claude and Codex omit them.",
       "verification_method": "contract fixture asserting empty headers and env survive",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "23",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -30285,7 +30285,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact key names, including httpUrl and the always-present empty headers.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "23",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -30311,7 +30311,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four names, same delete-on-empty rule, same atomic replace. Never delete proxy-port here.",
       "verification_method": "integration test toggling the last server off and asserting all four files are gone",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -30336,7 +30336,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shapes, including the empty env array and the \"<key>: <value>\" header string. It must run AFTER writeAll, because it reads the file.",
       "verification_method": "contract fixture over both capability values",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -30362,7 +30362,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same line parser and the same six-character rejection set. The home directory is the Windows user profile; the path is %USERPROFILE%\\.codex\\config.toml.",
       "verification_method": "unit over quoted, dotted, commented and malformed table headers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -30391,7 +30391,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same nil-on-empty contract. copilotConfigJSON hands the whole compact JSON as a single argument value, not a file path, so it must survive command-line construction unmangled.",
       "verification_method": "unit over present, empty and missing files",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

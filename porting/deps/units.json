@@ -3336,28 +3336,14 @@
    ],
    "intra_deps": [],
    "records_total": 5,
-   "records_todo": [
-    "PR-COMPOSER-199",
-    "PR-COMPOSER-200",
-    "PR-GIT-142",
-    "UI-COMPOSER-046",
-    "UI-GIT-023"
-   ],
-   "parts": [
-    [
-     "PR-COMPOSER-199",
-     "PR-COMPOSER-200",
-     "PR-GIT-142",
-     "UI-COMPOSER-046",
-     "UI-GIT-023"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-113",
     "T-M7-114"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.MCP.MCPSessionOverrides",

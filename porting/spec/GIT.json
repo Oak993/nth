@@ -3818,7 +3818,7 @@
       "cancellation": "The refresh checks the revision again after the parse and abandons a stale result.",
       "windows_path": "Direct port.",
       "verification_method": "interaction test asserting the tab appears after the first file-changing turn and not before",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4643,7 +4643,8 @@
         "decision": "OD-0005",
         "upstream": "`.glassEffect(.regular.interactive(), in: shape)` (DroppyCode/App/Views/Composer/ThreadChangesTab.swift:38), macOS Liquid Glass",
         "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-024",

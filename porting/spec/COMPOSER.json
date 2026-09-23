@@ -4564,7 +4564,7 @@
       "cancellation": "not cancellable",
       "windows_path": "U+2212 verbatim; the same hues as every other plus/minus in the app, so a theme recolours the tab with the diffs it stands for. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison and a byte check of the minus character",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4589,7 +4589,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings; the chord label renders in Windows notation from the stored shortcut (OD-0008 B7). Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "verification_method": "unit test of the help string with the chord set and cleared",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5919,7 +5919,8 @@
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/App/Views/Composer/ThreadChangesTab.swift:43 `.help(\"Show this thread's changes\\(ShortcutStore.hint(for: .toggleChanges))\")`, \"Show this thread's changes (⌘D)\" by default; DroppyCode/Core/Models/Shortcuts.swift:32-34 description is KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode), and :43-50 modifierSymbols concatenates \"⌃\", \"⌥\", \"⇧\", \"⌘\" with no separator",
         "port": "Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl): \"Show this thread's changes (Ctrl+D)\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-COMPOSER-047",

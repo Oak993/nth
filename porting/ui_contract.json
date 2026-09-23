@@ -3142,7 +3142,8 @@
         "decision": "OD-0008 B7",
         "upstream": "DroppyCode/App/Views/Composer/ThreadChangesTab.swift:43 `.help(\"Show this thread's changes\\(ShortcutStore.hint(for: .toggleChanges))\")`, \"Show this thread's changes (⌘D)\" by default; DroppyCode/Core/Models/Shortcuts.swift:32-34 description is KeyNames.modifierSymbols(modifierFlags) + KeyNames.label(for: keyCode), and :43-50 modifierSymbols concatenates \"⌃\", \"⌥\", \"⇧\", \"⌘\" with no separator",
         "port": "Chords render in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl): \"Show this thread's changes (Ctrl+D)\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -4524,7 +4525,8 @@
         "decision": "OD-0005",
         "upstream": "`.glassEffect(.regular.interactive(), in: shape)` (DroppyCode/App/Views/Composer/ThreadChangesTab.swift:38), macOS Liquid Glass",
         "port": "Acrylic-class Windows system material where the window shows the desktop, without lensing, refraction or chromatic fringing; over the app's own content a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
