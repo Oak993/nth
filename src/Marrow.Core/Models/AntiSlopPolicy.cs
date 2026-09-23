@@ -3,9 +3,18 @@ namespace Marrow.Core.Models;
 // Source: DroppyCode/Core/Models/AntiSlopPolicy.swift (B2 1fbf81e), :1-19.
 //
 // Requirements: PR-STORE-129 (the enabled text), PR-STORE-130 (the disabled text), PR-HYDRA-055 (the text the Hydra
-// head prompts end with). This file owns the two texts and the selector. The delivery points the records name
-// (Hydra.swift claudeAgents and copilotAgents, ThreadRuntime.swift:1323-1334 and :1365-1367, and the Claude, Codex,
-// Copilot and OpenAI-compatible session launches) are ported with those files' units and call Instructions(enabled:).
+// head prompts end with). This file owns the two texts and the selector, and nothing else: it joins no prompt. The
+// delivery points the records name are not in this file and are not ported by this unit; each is owed by its own
+// file's unit, which calls Instructions(enabled:) and byte-compares the assembled prompt, off branch included:
+// Hydra.swift:808-816 (claudeAgents) and :843 (copilotAgents), joined after a blank line; ThreadRuntime.swift:1323-1334
+// and :1365-1367 (the user-prompt prefix, once per session epoch, never on a slash command); ClaudeSession.swift:121-128,
+// CodexSession.swift:249-257, CopilotSession.swift:147-156 and OpenAICompatibleSession.swift:1188-1195 (the
+// session-level instructions at launch). Until those units land, no C# caller exists (verification of the earlier
+// pass, waveA.json findings 2 and 4).
+//
+// The U+2019 RIGHT SINGLE QUOTATION MARK after "product" and the US spelling "colors" (:6) go against the porting repository's house style; they
+// are model-visible text and are reproduced byte for byte (PR-HYDRA-055 upstream_defect,
+// porting/extracts/hydra-prompt-corpus.md section 16 item 11).
 //
 // Each Swift multi-line literal is written as the string it evaluates to (R-STR-9): the closing delimiter's
 // indentation stripped, lines joined by LF, no trailing newline. The one non-ASCII character is an eight-digit escape.
