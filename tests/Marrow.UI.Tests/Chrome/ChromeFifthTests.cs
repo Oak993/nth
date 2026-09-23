@@ -44,6 +44,8 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 {
     private static Window Show(Control content, ThemeVariant? theme = null, double width = 400, double height = 300)
     {
+        content.HorizontalAlignment = HorizontalAlignment.Left;
+        content.VerticalAlignment = VerticalAlignment.Top;
         var window = new Window { Width = width, Height = height, Content = content };
         if (theme is not null) window.RequestedThemeVariant = theme;
         window.Show();
@@ -76,15 +78,8 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
     /// <summary>Overrides Chrome.ReduceMotionPlatform for one call.</summary>
     private static void WithReduceMotion(bool enabled, Action body)
     {
-        using var _ = Chrome.ReduceMotionPlatform.Override(new FakePlatform(enabled));
+        using var _ = Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform(reduceMotion: enabled));
         body();
-    }
-
-    private sealed class FakePlatform(bool reduceMotion) : IGeniePlatform
-    {
-        public bool AccessibilityDisplayShouldReduceMotion => reduceMotion;
-        public double? MainScreenBackingScaleFactor => null;
-        public Avalonia.Media.IImage? RenderImage(Control content, double scale) => null;
     }
 
     // ---- Tokens, :36-120 (PR-WIN-211) ----
@@ -123,7 +118,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-209")] // Chrome.swift:85-96
-    public void Accent_falls_back_to_the_system_control_accent_when_the_theme_has_none()
+    public void Accent_falls_back_to_the_system_control_accent_when_the_theme_has_none() => headless.OnUiThread(() =>
     {
         var original = ThemeManager.Current;
         try
@@ -133,7 +128,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
             Assert.Equal(SwiftColor.ControlAccentColor.Resolve(ThemeVariant.Light), Chrome.AccentNSColor.Resolve(ThemeVariant.Light));
         }
         finally { ThemeManager.Current = original; }
-    }
+    });
 
     [Fact]
     [Trait("Req", "PR-WIN-209")] // Chrome.swift:91-92, re-read from ThemeManager.Spec on every access
@@ -203,7 +198,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-208")] // Chrome.swift:958-961
     public void SoftAppear_is_a_0_32_second_smooth_curve_with_no_branch()
     {
-        Near(0.32, Marrow.UI.Port.Animation.SoftAppear.Duration);
+        Near(Marrow.UI.Port.Animation.Smooth(duration: 0.32).Duration, Marrow.UI.Port.Animation.SoftAppear.Duration);
     }
 
     // ---- PR-WIN-206: SoftAppearModifier and the .softAppear transition ----
@@ -228,46 +223,71 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-206")] // Chrome.swift:947-955: insertion animates on softAppear, removal is a plain 0.12s ease-out fade
     public void SoftAppear_transition_arrives_softly_and_leaves_with_a_quick_fade() => headless.OnUiThread(() =>
     {
+        using var clocks = new AnimationClocks();
         var host = new Canvas();
         var window = Show(host);
-        var child = new LayoutProbe(new Size(20, 20)).Transition(Marrow.UI.Chrome.Chrome.SoftAppear);
+        var child = new LayoutProbe(new Size(20, 20)).Transition(SwiftTransition.SoftAppear);
         SwiftTransition.Insert(host, 0, child);
         Dispatcher.UIThread.RunJobs();
         Assert.Contains(child, host.Children);
         window.Close();
     });
 
-    // ---- PR-WIN-207: SettleGlideModifier and the .settleGlide transition ----
+    // ---- PR-WIN-207: SettleGlideModifier's math, read through the public .settleGlide transition since the
+    // modifier itself is a `file` type (ED-095/ED-098 skeleton decision, Chrome.swift:963). The spring's own
+    // progress at each elapsed time (response 0.6, damping 0.86, GlideSpring) is the value
+    // SwiftAnimationTransitionTests.cs's equivalent spring test already fixes: 0.1s -> 0.30155107726937647
+    // (below the 0.45 smoothstep edge, so fade 0), 0.6s -> 1.0049814577061145 (above the 0.92 edge, so fade 1,
+    // clamped), 0.8s -> settled at 1 and the control leaves the panel.
+    [Fact]
+    [Trait("Req", "PR-WIN-207")] // Chrome.swift:975-982: holds through the first half, 22pt drop, 4% shrink, gone by settling
+    public void SettleGlide_holds_then_glides_down_and_shrinks_while_fading_out() => headless.OnUiThread(() => WithReduceMotion(false, () =>
+    {
+        using var clocks = new AnimationClocks();
+        var panel = new Canvas { Width = 300, Height = 200 };
+        var window = Show(panel);
+        var child = new LayoutProbe(new Size(20, 20)).Transition(SwiftTransition.SettleGlide);
+        SwiftTransition.Insert(panel, 0, child);
+        window.UpdateLayout();
+        Assert.Contains(child, panel.Children);
+
+        SwiftTransition.Remove(panel, child); // outside withAnimation: the transition's own spring animates it
+        clocks.Frame(0.1); // spring progress 0.30155107726937647, below the 0.45 smoothstep edge
+        Assert.Equal(1, child.Opacity, 6); // holds through the first half
+        var group1 = Assert.IsType<TransformGroup>(child.RenderTransform);
+        Near(22 * 0.30155107726937647, ((TranslateTransform)group1.Children[0]).Y);
+        Near(1 - 0.04 * 0.30155107726937647, ((ScaleTransform)group1.Children[1]).ScaleX);
+
+        clocks.Frame(0.5); // 0.6s total: spring progress 1.0049814577061145, above the 0.92 smoothstep edge
+        Assert.Equal(0, child.Opacity, 6); // gone before it would land
+        var group2 = Assert.IsType<TransformGroup>(child.RenderTransform);
+        Near(22 * 1.0049814577061145, ((TranslateTransform)group2.Children[0]).Y);
+        Near(1 - 0.04 * 1.0049814577061145, ((ScaleTransform)group2.Children[1]).ScaleX);
+
+        clocks.Frame(0.2); // 0.8s: past the 0.767s settling duration, the control leaves
+        Assert.DoesNotContain(child, panel.Children);
+        window.Close();
+    }));
 
     [Fact]
-    [Trait("Req", "PR-WIN-207")] // Chrome.swift:975-982: holds through the first half, smoothstep(0.45, 0.92) over the second, 22pt drop, 4% shrink
-    public void SettleGlideModifier_holds_then_fades_and_glides_down_while_shrinking() => WithReduceMotion(false, () =>
+    [Trait("Req", "PR-WIN-207")] // Chrome.swift:976: with Reduce Motion, a linear fade in place, no movement, no scaling
+    public void SettleGlide_fades_linearly_in_place_under_reduce_motion() => headless.OnUiThread(() => WithReduceMotion(true, () =>
     {
-        var probe = new LayoutProbe(new Size(10, 10));
-        new SettleGlideModifier(0).Update(probe);
-        Assert.Equal(1, probe.Opacity); // fully present at rest
-        new SettleGlideModifier(0.45).Update(probe);
-        Assert.Equal(1, probe.Opacity); // the face holds through the first half
-        new SettleGlideModifier(1).Update(probe);
-        Assert.Equal(0, probe.Opacity); // gone at the end
-        var group = Assert.IsType<TransformGroup>(probe.RenderTransform);
-        var translate = Assert.IsType<TranslateTransform>(group.Children[0]);
-        Near(22, translate.Y);
-        var scale = Assert.IsType<ScaleTransform>(group.Children[1]);
-        Near(0.96, scale.ScaleX);
-    });
+        using var clocks = new AnimationClocks();
+        var panel = new Canvas { Width = 300, Height = 200 };
+        var window = Show(panel);
+        var child = new LayoutProbe(new Size(20, 20)).Transition(SwiftTransition.SettleGlide);
+        SwiftTransition.Insert(panel, 0, child);
+        window.UpdateLayout();
 
-    [Fact]
-    [Trait("Req", "PR-WIN-207")] // Chrome.swift:976-982: with Reduce Motion, a linear fade in place, no movement, no scaling
-    public void SettleGlideModifier_fades_linearly_in_place_under_reduce_motion() => WithReduceMotion(true, () =>
-    {
-        var probe = new LayoutProbe(new Size(10, 10));
-        new SettleGlideModifier(0.3).Update(probe);
-        Near(0.7, probe.Opacity);
-        var group = Assert.IsType<TransformGroup>(probe.RenderTransform);
+        SwiftTransition.Remove(panel, child);
+        clocks.Frame(0.1); // spring progress 0.30155107726937647; under reduce motion fade == progress, no movement
+        Near(1 - 0.30155107726937647, child.Opacity);
+        var group = Assert.IsType<TransformGroup>(child.RenderTransform);
         Near(0, ((TranslateTransform)group.Children[0]).Y);
         Near(1, ((ScaleTransform)group.Children[1]).ScaleX);
-    });
+        window.Close();
+    }));
 
     // ---- PR-WIN-227: ChromeQuietButtonStyle ----
 
@@ -635,7 +655,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
         var field = new TextBlock { Text = "field" };
         var surface = field.ChromeGlassFieldCapsule();
         var window = Show(surface);
-        var fill = Assert.Single(VisualQuery.Descendants<Border>(surface).Where(b => SwiftGlass.GetEffect(b) is not null));
+        var fill = Assert.Single(VisualQuery.Descendants<Border>(surface), b => SwiftGlass.GetEffect(b) is not null);
         var glass = SwiftGlass.GetEffect(fill)!;
         Assert.False(glass.IsInteractive);
         Assert.Equal(0.3, glass.TintOpacity);
