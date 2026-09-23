@@ -93,7 +93,7 @@ public sealed class ShellLoginEnvironmentTests
         // Windows ordinal table (ED-137) do not, so the micro-sign folder's .local\bin is another folder and does not count.
         var micro = "C:\\Users\\\U000000B5\\.local\\bin"; // U+00B5 MICRO SIGN
         var home = "C:\\Users\\\U0000039C"; // U+039C GREEK CAPITAL LETTER MU
-        Assert.True(string.Equals(micro, Path.Join(home, ".local", "bin"), StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(0, string.Compare(micro, Path.Join(home, ".local", "bin"), StringComparison.OrdinalIgnoreCase));
         var augmented = LoginEnvironment.AugmentedPath(micro, home).Split(';');
         Assert.Equal(new[] { micro }.Concat(LoginEnvironmentSamples.HomeEntries(home)), augmented);
     }
@@ -287,7 +287,8 @@ public sealed class ShellLoginEnvironmentTests
     {
         // ED-127 (2): the %SystemRoot% exclusion is the Command Code resolver's, not which's.
         var environment = LoginEnvironmentSamples.Environment(("PATH", System.Environment.SystemDirectory), ("PATHEXT", ".COM;.EXE;.BAT;.CMD"));
-        Assert.Equal(Path.Join(System.Environment.SystemDirectory, "cmd.exe"), LoginEnvironment.Which("cmd", environment, Home));
+        // The extension is appended as PATHEXT spells it (ED-129).
+        Assert.Equal(Path.Join(System.Environment.SystemDirectory, "cmd.EXE"), LoginEnvironment.Which("cmd", environment, Home));
     }
 
     [Fact]

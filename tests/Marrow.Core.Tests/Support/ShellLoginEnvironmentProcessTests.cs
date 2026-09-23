@@ -20,20 +20,20 @@ public sealed class ShellLoginEnvironmentProcessTests
         var empty = LoginEnvironmentSamples.Environment(("PATH", folder), ("PATHEXT", ""));
         using (new ProcessVariable("PATHEXT", ".CMD"))
         {
-            Assert.Equal(Path.Join(folder, "tool.cmd"), LoginEnvironment.Which("tool", absent));
-            Assert.Equal(Path.Join(folder, "tool.cmd"), LoginEnvironment.Which("tool", empty));
+            Assert.Equal(Path.Join(folder, "tool.CMD"), LoginEnvironment.Which("tool", absent));
+            Assert.Equal(Path.Join(folder, "tool.CMD"), LoginEnvironment.Which("tool", empty));
             // The environment's own PATHEXT still comes first.
-            Assert.Equal(Path.Join(folder, "tool.exe"),
+            Assert.Equal(Path.Join(folder, "tool.EXE"),
                 LoginEnvironment.Which("tool", LoginEnvironmentSamples.Environment(("PATH", folder), ("PATHEXT", ".EXE"))));
         }
         using (new ProcessVariable("PATHEXT", null))
         {
-            // .COM;.EXE;.BAT;.CMD: .EXE before .CMD.
-            Assert.Equal(Path.Join(folder, "tool.exe"), LoginEnvironment.Which("tool", absent));
-            Assert.Equal(Path.Join(folder, "tool.exe"), LoginEnvironment.Which("tool", empty));
+            // .COM;.EXE;.BAT;.CMD: .EXE before .CMD, appended as spelled there (ED-129).
+            Assert.Equal(Path.Join(folder, "tool.EXE"), LoginEnvironment.Which("tool", absent));
+            Assert.Equal(Path.Join(folder, "tool.EXE"), LoginEnvironment.Which("tool", empty));
             ProcessTestFolders.Touch(folder, "only.bat");
             ProcessTestFolders.Touch(folder, "only.com");
-            Assert.Equal(Path.Join(folder, "only.com"), LoginEnvironment.Which("only", absent));
+            Assert.Equal(Path.Join(folder, "only.COM"), LoginEnvironment.Which("only", absent));
             ProcessTestFolders.Touch(folder, "script.vbs");
             Assert.Null(LoginEnvironment.Which("script", absent));
         }
