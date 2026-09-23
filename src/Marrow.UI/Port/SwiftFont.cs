@@ -5,7 +5,14 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Media;
 using Avalonia.Media.Fonts;
 using System.Diagnostics;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using Marrow.Core.Port;
 using AvaloniaFontWeight = Avalonia.Media.FontWeight;
+
+// ED-175: App.Views.Terminal.TerminalFont (Marrow.App) scripts the installed-font-family seam (InstalledFontFamilyNames)
+// from its own tests, which live in Marrow.App.Tests rather than this assembly's own Marrow.UI.Tests.
+[assembly: InternalsVisibleTo("Marrow.App.Tests")]
 
 namespace Marrow.UI.Port;
 
@@ -78,6 +85,11 @@ public sealed record SwiftFont
     private bool IsItalic { get; init; }
     private bool HasMonospacedDigit { get; init; }
 
+    /// <summary>NSFont.familyName (ED-175 (1)): set only by <see cref="Named"/>, for TerminalFont's nerdSibling
+    /// (TerminalFont.swift :106) to build the family's "nf" sibling name. Null for every design-based font,
+    /// which has no family of its own on this port (ED-107).</summary>
+    public string? FamilyName { get; private init; }
+
     private SwiftFont()
     {
     }
@@ -103,6 +115,20 @@ public sealed record SwiftFont
     /// <summary>AppKit <c>NSFont.monospacedSystemFont(ofSize:weight:)</c> (LinkParagraphView.swift:117).</summary>
     public static SwiftFont MonospacedSystemFont(double ofSize, Weight weight) =>
         new() { Size = ofSize, FontWeightValue = weight, FontDesign = Design.Monospaced };
+
+    /// <summary>
+    /// AppKit <c>NSFont(name:size:)</c> (TerminalFont.swift resolve(), :121-124 and :129; ED-175 (1)). Non-null
+    /// only when an installed family's name equals <paramref name="name"/> case-insensitively, checked against the
+    /// same seam <see cref="AvailableFontFamilies"/> reads (unfiltered, so this can still match the app's own
+    /// embedded Inter or Cascadia Mono face if a genuine system font of that name is also installed): Avalonia's
+    /// silent substitution of a missing family (ED-107 finding 1) is never taken as a match. PostScript names do
+    /// not resolve on Windows, since Avalonia matches family names only (ED-175 (1), a named deviation).
+    /// </summary>
+    public static SwiftFont? Named(string name, double size)
+    {
+        var family = InstalledFontFamilyNames.Current.FirstOrDefault(candidate => string.Equals(candidate, name, StringComparison.OrdinalIgnoreCase));
+        return family is null ? null : new SwiftFont { FamilyName = family, Size = size };
+    }
 
     // SwiftUI's static text-style fonts: Font.largeTitle ... Font.caption2 (.font(.caption) at UI/Common/Components.swift:54,
     // .font(.headline) at App/Views/Composer/RequestCards.swift:13).
@@ -133,12 +159,59 @@ public sealed record SwiftFont
     /// <summary>SwiftUI <c>Font.monospacedDigit()</c>: the tnum feature (ED-091; HydraButton.swift:630).</summary>
     public SwiftFont MonospacedDigit() => this with { HasMonospacedDigit = true };
 
+    /// <summary>NSFont.pointSize (ED-175 (1)): the size this value resolves to, a text style's ED-059 size when
+    /// none was given directly. Used by TerminalFont's nerdSibling and firstInstalledNerdFont
+    /// (TerminalFont.swift :106-119) to keep a Nerd Font match at the configured font's own size.</summary>
+    public double PointSize => Size ?? StyleSize(Style!.Value);
+
+    /// <summary>
+    /// NSFont.coveredCharacterSet.contains(_:) (TerminalFont.swift hasNerdGlyphs, :94-101; ED-175 (1)): whether
+    /// this font's regular (400, upright) face has a glyph for the codepoint, through Avalonia's glyph map rather
+    /// than the boolean TryGetGlyphTypeface alone (ED-107 finding 1: that returns true even for a silently
+    /// substituted face). Always the regular face, regardless of this value's own weight and italic trait,
+    /// exactly as coveredCharacterSet does not vary with them.
+    /// </summary>
+    public bool Covers(int codepoint)
+    {
+        var family = FamilyName is { } familyName ? new FontFamily(familyName) : Resolve().FontFamily;
+        var typeface = new Typeface(family, FontStyle.Normal, AvaloniaFontWeight.Normal);
+        return FontManager.Current.TryGetGlyphTypeface(typeface, out var glyphTypeface)
+            && glyphTypeface.SupportedUnicodeRange.IsInRange(codepoint);
+    }
+
+    /// <summary>
+    /// PORT-ONLY test seam behind NSFontManager.shared.availableFontFamilies and the family search inside
+    /// NSFont(name:size:) (ED-175): production reads Avalonia's installed system fonts once per process;
+    /// Marrow.UI.Tests scripts this list (Oracle O-61) so a font test never depends on what is actually installed
+    /// on the machine it runs on.
+    /// </summary>
+    internal static Ambient<IReadOnlyList<string>> InstalledFontFamilyNames { get; } =
+        new(() => FontManager.Current.SystemFonts.Select(static family => family.Name).ToArray());
+
+    /// <summary>
+    /// NSFontManager.shared.availableFontFamilies (TerminalFont.swift :106-129; ED-175 (1)): the installed family
+    /// names, sorted ordinal case-insensitively (Oracle O-61: macOS's own order is unspecified), with the app's
+    /// embedded Inter and Cascadia Mono (ED-107) excluded so a configured "Inter" or "Cascadia Mono" never matches
+    /// the port's own bundled face instead of a genuine installed one.
+    /// </summary>
+    public static IReadOnlyList<string> AvailableFontFamilies =>
+        InstalledFontFamilyNames.Current
+            .Where(static name => !IsEmbeddedFace(name))
+            .OrderBy(static name => name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+    private static bool IsEmbeddedFace(string name) =>
+        string.Equals(name, "Inter", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(name, "Cascadia Mono", StringComparison.OrdinalIgnoreCase);
+
     // ---- Resolution ----
 
-    /// <summary>The Avalonia family, size, weight, style and features for this font (ED-091, ED-107).</summary>
+    /// <summary>The Avalonia family, size, weight, style and features for this font (ED-091, ED-107, ED-175).
+    /// A font obtained through <see cref="Named"/> resolves to its own family (its FamilyName) rather than the
+    /// design-based Inter or Cascadia Mono key.</summary>
     public ResolvedFont Resolve() => new(
-        FontDesign == Design.Monospaced ? CascadiaMonoFamily : InterFamily,
-        Size ?? PointSize(Style!.Value),
+        FamilyName is { } familyName ? new FontFamily(familyName) : FontDesign == Design.Monospaced ? CascadiaMonoFamily : InterFamily,
+        Size ?? StyleSize(Style!.Value),
         (AvaloniaFontWeight)WeightClass(ResolvedWeight),
         IsItalic ? FontStyle.Italic : FontStyle.Normal,
         HasMonospacedDigit ? new FontFeatureCollection { new FontFeature { Tag = "tnum", Value = 1 } } : null);
@@ -171,7 +244,7 @@ public sealed record SwiftFont
         FontWeightValue ?? (Style == TextStyle.Headline ? Weight.Bold : Weight.Regular);
 
     // ED-059: B1:DroppyCode/UI/Common/ChatZoom.swift:44-57, chatBaseSize, one point to one DIP (ED-071).
-    private static double PointSize(TextStyle style) => style switch
+    private static double StyleSize(TextStyle style) => style switch
     {
         TextStyle.LargeTitle => 26, // B1:DroppyCode/UI/Common/ChatZoom.swift:47
         TextStyle.Title => 22, // B1:DroppyCode/UI/Common/ChatZoom.swift:48
