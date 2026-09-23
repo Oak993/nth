@@ -705,7 +705,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Add the explicit flag with a false decode default and the force-true migration, and set it true on load. Seed new chats by reading the raw settings key at construction time.",
       "verification_method": "restart test over a pre-switch record and a post-switch record",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

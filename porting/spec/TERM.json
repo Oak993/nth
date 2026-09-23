@@ -1429,7 +1429,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field names and defaults in the persisted library.",
       "verification_method": "restart test round-tripping a script",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1451,7 +1451,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same tolerances and the same two required fields.",
       "verification_method": "unit test over each partial record",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

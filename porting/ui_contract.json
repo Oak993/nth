@@ -18558,7 +18558,8 @@
       "notes": "One constant, ChatThread.untitled, serves three roles: the stored decode default, the value a new chat is created with, and the displayed placeholder (port_impacts.md entry 112). Exactly \"New thread\": capital N, lowercase t, a single space, no ellipsis and no trailing punctuation.",
       "screen": "Sidebar thread row, activity list row, command palette row and the chat header",
       "element": "Title of a chat that has never been titled",
-      "role": "label"
+      "role": "label",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18632,7 +18633,8 @@
       "notes": "Storage-side fact: the mark is one persisted string, \"emoji:<value>\" or \"symbol:<name>\", and a bare value with neither prefix is read as a symbol name. nil is not a stored value; it is the absence of the key, or the result of an empty string failing to decode.",
       "screen": "Activity list project row and the sidebar project header",
       "element": "Project mark for a project with no icon chosen",
-      "role": "icon"
+      "role": "icon",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18656,7 +18658,8 @@
       "notes": "The persisted field is the SF Symbol name itself, not the friendly key from droppy-code.json: the six friendly keys are mapped to symbol names at read time and the symbol name is what is stored. A Windows port maps the stored symbol names to its own icons and must keep the stored strings unchanged.",
       "screen": "Project script buttons in the sidebar and the worktree creation flow",
       "element": "Icon on a project script button with no icon set",
-      "role": "icon"
+      "role": "icon",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18679,7 +18682,8 @@
       "notes": "Storage-side fact only: isSettled and settledAt are the two persisted fields that drive this row, both survive a restart, and isSettled true with settledAt nil is a decodable state. The literal grey and the row metrics belong to the sidebar area and are not specified here.",
       "screen": "Sidebar thread list",
       "element": "Settled thread row",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
@@ -18704,7 +18708,8 @@
       "notes": "Only expandsHelpers is persisted; foldsHelpers is a computed inverse and must not be written to disk under its own name, or every existing library inverts. The exact wording of the folded line belongs to the sidebar area.",
       "screen": "Sidebar thread list",
       "element": "Folded helpers line under a chat that has helper threads",
-      "role": "row"
+      "role": "row",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "STORE",
