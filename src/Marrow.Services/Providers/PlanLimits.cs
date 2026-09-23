@@ -147,7 +147,7 @@ public static partial class PlanLimitsReader
             ProviderKind.Pi => Task.FromResult<PlanLimits?>(null),
     };
 
-    // :92-102. PR-PROVREG-173.
+    // :92-102. PR-PROVREG-173, PR-USAGE-078 (USAGE.json duplicates PROVREG.json's record for these lines).
     public static string WindowTitle(long? minutes)
     {
         if (minutes is not { } value) return "Usage limit";
@@ -400,7 +400,8 @@ public static partial class PlanLimitsReader
     }
 
     // :292-329. The `limits` rows (session, weekly, weekly per model), falling back to the top-level
-    // `five_hour` and `seven_day` windows, plus extra usage when it is turned on. PR-PROVREG-185, 186, 187, 188.
+    // `five_hour` and `seven_day` windows, plus extra usage when it is turned on. PR-PROVREG-185, 186, 187, 188,
+    // PR-USAGE-079 (USAGE.json duplicates PROVREG.json's record for these lines).
     public static PlanLimits? ParseClaudeUsage(JSONValue root, IReadOnlyList<JSONValue> limits, string? planName, string? titlePrefix = null)
     {
         var windows = new List<PlanLimits.Window>();
