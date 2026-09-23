@@ -183,20 +183,20 @@ namespace Marrow.UI.Chrome
     {
         /// <summary>
         /// Observable hover state model to enable animation tracking (R-OBS-1, ED-070).
-        /// Stores a simple boolean to indicate hover state, which animates when changed within Transaction.WithAnimation.
+        /// Stores hover opacity that animates from 0 (not hovering) to 0.08 (hovering).
         /// </summary>
         private sealed class HoverState : MainActorModel
         {
-            private bool isHovering;
+            private double hoverOpacity = 0;
 
             /// <summary>
-            /// Whether the segment is currently being hovered.
-            /// This boolean is animated when changed within a Transaction.WithAnimation block (0.1 seconds ease-out).
+            /// The hover state as an opacity value between 0 (not hovering) and 0.08 (hovering).
+            /// This value is animated when changed within a Transaction.WithAnimation block.
             /// </summary>
-            public bool IsHovering
+            public double HoverOpacity
             {
-                get => Read(isHovering);
-                set => Set(ref isHovering, value);
+                get => Read(hoverOpacity);
+                set => Set(ref hoverOpacity, value);
             }
         }
         // :48-51 The segment's state and data.
@@ -242,10 +242,10 @@ namespace Marrow.UI.Chrome
                 () => EqualityComparer<TValue>.Default.Equals(_option.Value, _selection.Value),
                 isNowSelected => UpdateSelected(isNowSelected));
 
-            // Track hover state changes and update background with animation (R-VIEW-5).
-            // The IsHovering boolean is animated when changed within Transaction.WithAnimation blocks.
+            // Track hover opacity changes and update background with animation (R-VIEW-5).
+            // The HoverOpacity is animated when changed within Transaction.WithAnimation blocks.
             this.Track(
-                () => _hoverState.IsHovering,
+                () => _hoverState.HoverOpacity,
                 _ => UpdateBackgroundColor());
         }
 
@@ -306,14 +306,11 @@ namespace Marrow.UI.Chrome
 
             // :67-69 .onHover { hovering in ... }
             // Track hover state changes and animate the background color (R-VIEW-4, R-VIEW-5).
-            // Use the OnHover extension method which provides proper hover event handling.
-            // The IsHovering boolean will be animated over 0.1 seconds when changed.
+            // The HoverOpacity will be animated from 0 to 0.08 (or vice versa) over 0.1 seconds.
             _button.OnHover(hovering =>
             {
                 Transaction.WithAnimation(Chrome.Hover, () =>
-                {
-                    _hoverState.IsHovering = hovering;
-                });
+                    _hoverState.HoverOpacity = hovering ? 0.08 : 0);
             });
 
             // :71 .accessibilityLabel(Text(verbatim: title))
@@ -339,6 +336,7 @@ namespace Marrow.UI.Chrome
                 {
                     Text = _option.Title,
                     MaxLines = 1,
+                    HorizontalAlignment = HorizontalAlignment.Left,  // Size to content, don't stretch
                 };
                 return text;
             }
@@ -374,8 +372,8 @@ namespace Marrow.UI.Chrome
         /// <summary>
         /// Update the background color based on selection and hover state.
         /// :63 .background(Capsule(...).fill(isSelected ? Chrome.accent.opacity(0.22) : Chrome.overlay(isHovering ? 0.08 : 0)))
-        /// When the IsHovering boolean is animated through a Transaction.WithAnimation block, the background color
-        /// smoothly transitions over 0.1 seconds from no-fill to 8% opacity (or vice versa).
+        /// The _hoverState.HoverOpacity is animated between 0 (not hovering) and 0.08 (hovering) over 0.1 seconds,
+        /// allowing smooth opacity transitions as the user moves the pointer in and out.
         /// </summary>
         private void UpdateBackgroundColor()
         {
@@ -390,9 +388,9 @@ namespace Marrow.UI.Chrome
             }
             else
             {
-                // :63 When not selected, show label color at opacity based on hover state
-                // The IsHovering boolean is animated, so this update will be animated
-                bgColor = Chrome.Overlay(_hoverState.IsHovering ? 0.08 : 0);
+                // :63 When not selected, show label color at opacity interpolated by animated hover state
+                // HoverOpacity is animated between 0 and 0.08, providing smooth visual feedback
+                bgColor = Chrome.Overlay(_hoverState.HoverOpacity);
             }
             _capsuleBorder.Background = bgColor.Brush(_capsuleBorder);
         }
