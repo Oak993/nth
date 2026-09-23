@@ -322,6 +322,19 @@ public sealed class AttachmentPreviewSecondTests(HeadlessSession headless)
         var root = NewRoot();
         var path = Path.Combine(root, "read.bmp");
         WriteBmp(path, 20, 10);
+        // ThumbnailFor's decode genuinely completes off the UI thread (ThumbnailCache is an Actor over the
+        // thread pool: Marrow.Core/Support/ThumbnailCache.cs:26-46); the awaited continuation resumes by
+        // posting back through AvaloniaSynchronizationContext to Dispatcher.UIThread. HeadlessUnitTestSession
+        // runs under AvaloniaTestIsolationLevel.PerTest (its default): every separate headless.OnUiThread call
+        // tears the Avalonia Application and Dispatcher down (Dispatcher.ResetForUnitTests, which only drains
+        // jobs already queued at that moment) and rebuilds a fresh one on the next call. A PumpUntil-style
+        // series of separate dispatches after Show() therefore polls a DIFFERENT, brand-new Dispatcher than the
+        // one the decode's continuation was posted to, and never observes it (confirmed: the continuation's
+        // own Task completes and a plain ContinueWith on it fires, but the compiler-generated await inside the
+        // ToolImagePreview task body never resumes, and it does resume once the whole body below runs inside
+        // one dispatch). So the whole wait has to run inside the same OnUiThread call that starts the load,
+        // exactly as Image_branch_shows_a_loading_mark_then_fades_the_thumbnail_in above already does for the
+        // same reason.
         ToolImagePreview preview = null!;
         headless.OnUiThread(() =>
         {
@@ -332,10 +345,14 @@ public sealed class AttachmentPreviewSecondTests(HeadlessSession headless)
             var name = VisualQuery.Descendants<MiddleTruncatingTextBlock>(preview).Single();
             Assert.Equal("read.bmp", name.FullText); // :423 lastPathComponent
             Assert.Contains(VisualQuery.Descendants<Button>(preview), b => (b.Content as TextBlock)?.Text == "Open"); // :429-433, no reveal link here
-        });
-        PumpUntil(() => VisualQuery.Descendants<Image>(preview).Any(i => i.Source is not null));
-        headless.OnUiThread(() =>
-        {
+
+            var deadline = DateTime.UtcNow.AddSeconds(4);
+            while (!VisualQuery.Descendants<Image>(preview).Any(i => i.Source is not null))
+            {
+                if (DateTime.UtcNow > deadline) throw new TimeoutException("The thumbnail never loaded.");
+                Dispatcher.UIThread.RunJobs();
+                Thread.Sleep(15);
+            }
             var image = VisualQuery.Descendants<Image>(preview).First(i => i.Source is not null);
             Assert.Equal(1, image.Opacity);
         });
