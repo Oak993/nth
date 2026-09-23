@@ -195,4 +195,8 @@ public static class StringExtensions
 {
     // Text.swift:127-129; whitespace-only strings are present values.
     public static string? NilIfEmpty(this string text) => text.Length == 0 ? null : text;
+
+    // Text.swift:132 var trimmed. SKELETON (cycle c4): stub until the Text.swift unit ports it.
+    public static string Trimmed(this string text) =>
+        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Support/Text.swift:132");
 }
