@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 800,
+      "IMPLEMENTED": 811,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 3081,
+      "SPECIFIED": 3070,
       "RETIRED": 6,
       "DISCOVERED": 26
     },
@@ -40118,7 +40118,7 @@
       "cancellation": "not cancellable",
       "windows_path": "This is the confinement boundary for read, list, write, edit and search and must not be weakened. On Windows the check must additionally account for drive letters, UNC paths, case-insensitive comparison, 8.3 short names, alternate data streams and directory junctions, none of which the macOS prefix test covers. The two messages stay verbatim.",
       "verification_method": "unit with an escape corpus, plus a security review",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -40140,7 +40140,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same rules, with the Windows separator and case-insensitive prefix matching.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -40164,7 +40164,7 @@
       "cancellation": "Cancellation is checked before the read, before every chunk and after the loop.",
       "windows_path": "Same limit, same chunk size and the same two messages.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -40187,7 +40187,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same two-step decode in the same order, so a file's rendered contents match byte for byte.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -40208,7 +40208,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same clamps, the same default of 200 and both header strings verbatim. Lines are split on the newline character only, so a CRLF file keeps its carriage returns inside the slice; reproduce that rather than normalizing.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -40229,7 +40229,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same two-stage check on bytes then characters, and the same message with its leading U+2026.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -40257,7 +40257,7 @@
       "cancellation": "Cancellation is checked before entering the actor, on entry, before creating directories and before writing.",
       "windows_path": "Same global serialization and the same atomic replace semantics; on Windows an atomic replace must handle an existing read-only or locked file explicitly rather than leaving a partial file.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -40284,7 +40284,7 @@
       "cancellation": "Checked before the scan, on every scan iteration, after it and before writing.",
       "windows_path": "Same literal matching, the same non-overlapping count and the same three messages. Line endings are matched byte for byte, so a model that copied a line from a CRLF file must send the carriage returns too; reproduce that rather than normalizing.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -40310,7 +40310,7 @@
       "cancellation": "Checked before the listing and on every entry.",
       "windows_path": "Same two messages.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -40336,7 +40336,7 @@
       "cancellation": "Checked on every entry.",
       "windows_path": "Same ten names, the same 300 cap and the same marker. 'Hidden' on Windows means the hidden file attribute as well as a leading dot, and 'package descendants' has no Windows equivalent; both are platform boundaries to record.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -40359,7 +40359,7 @@
       "cancellation": "Checked before the loop and on every entry.",
       "windows_path": "Same sort, the same trailing slash marker and the same skip set. The '.DS_Store' prefix test is a macOS artifact that is reproduced verbatim rather than dropped, and the recursive and non-recursive branches differ in hidden-file handling; reproduce that difference.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

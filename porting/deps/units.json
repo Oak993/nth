@@ -2181,40 +2181,14 @@
    ],
    "intra_deps": [],
    "records_total": 11,
-   "records_todo": [
-    "PR-PROVAPI-176",
-    "PR-PROVAPI-177",
-    "PR-PROVAPI-178",
-    "PR-PROVAPI-179",
-    "PR-PROVAPI-180",
-    "PR-PROVAPI-181",
-    "PR-PROVAPI-182",
-    "PR-PROVAPI-183",
-    "PR-PROVAPI-184",
-    "PR-PROVAPI-185",
-    "PR-PROVAPI-186"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-176",
-     "PR-PROVAPI-177",
-     "PR-PROVAPI-178",
-     "PR-PROVAPI-179",
-     "PR-PROVAPI-180",
-     "PR-PROVAPI-181",
-     "PR-PROVAPI-182",
-     "PR-PROVAPI-183",
-     "PR-PROVAPI-184",
-     "PR-PROVAPI-185",
-     "PR-PROVAPI-186"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-098",
     "T-M4-099"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.TextGeneration",
