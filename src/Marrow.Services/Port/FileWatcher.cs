@@ -89,7 +89,16 @@ public sealed class FileWatcher
                 // :172-176 the callback's paths, each the changed entry's own path (:142 FileEvents).
                 watcher.Created += (_, e) => tree.Note([Join(root, e.Name)], lost: false);
                 watcher.Deleted += (_, e) => tree.Note([Join(root, e.Name)], lost: false);
-                watcher.Changed += (_, e) => tree.Note([Join(root, e.Name)], lost: false);
+                // ED-166 (oracle O-56): ReadDirectoryChangesW reports a directory as Changed (its last write) whenever
+                // an entry inside it is created or deleted; FSEvents file events report only the entries (:142), and
+                // the cookie inside the git directory (:195-196) relies on that. A Changed event whose path is an
+                // existing directory is dropped; the directory's own create, delete and rename still arrive.
+                watcher.Changed += (_, e) =>
+                {
+                    var path = Join(root, e.Name);
+                    if (Directory.Exists(path)) return;
+                    tree.Note([path], lost: false);
+                };
                 // FSEvents reports ItemRenamed on both the old and the new path.
                 watcher.Renamed += (_, e) => tree.Note([Join(root, e.OldName), Join(root, e.Name)], lost: false);
                 // :180-189 the loss flags, and ED-114 (a): an overflow (InternalBufferOverflowException, P8) and every
