@@ -121,8 +121,9 @@ public sealed class SwiftSoundTests
         Assert.Equal(44100u, sound.Format.SampleRate);
         Assert.Equal(16, sound.Format.BitsPerSample);
         Assert.Equal(2, sound.Format.BlockAlign);
-        // ToneSynth.swift:28,63-67: Int(44100 * 0.7) = 30870 samples after the 44-byte header
-        Assert.Equal(30870 * 2, sound.Samples.Length);
+        // ToneSynth.swift:28,63-67: Int(44100 * 0.7) samples after the 44-byte header. 44100 * 0.7 is
+        // 30869.999999999996 in binary floating point and Int() truncates, so 30869 (as ToneSynthTests asserts).
+        Assert.Equal(30869 * 2, sound.Samples.Length);
         Assert.Equal(wave[44..], sound.Samples.ToArray());
         Assert.False(sound.IsPlaying);
     }
