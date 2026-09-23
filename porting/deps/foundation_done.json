@@ -8,6 +8,9 @@
     "F.Sound",
     "F.SwiftColor",
     "F.SwiftFont",
-    "F.PathIdentity"
+    "F.PathIdentity",
+    "F.ResizeStretch",
+    "F.ProcessLauncher",
+    "F.URL"
   ]
 }
