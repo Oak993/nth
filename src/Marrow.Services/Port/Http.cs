@@ -560,9 +560,10 @@ public sealed class URLSession
         Timeout = System.Threading.Timeout.InfiniteTimeSpan,
     };
 
-    // Reported to the orchestrator as an open item (no O item yet): URLSession ends a longer chain with
-    // URLError(.httpTooManyRedirects); CFNetwork's limit is not documented. 16 is the value commonly reported for it.
-    private const int MaximumRedirects = 16;
+    // UNVERIFIED O-48: URLSession follows 20 redirects and fails the 21st with URLError(.httpTooManyRedirects);
+    // swift-corelibs-foundation swift-6.2-RELEASE FoundationNetworking/URLSession/HTTP/HTTPURLProtocol.swift:459-465
+    // ("This value mirrors Darwin"); CFNetwork's value is not documented.
+    private const int MaximumRedirects = 20;
 
     // ED-118: the constant Accept-Language (UNVERIFIED O-27; the app ships English only, project.pbxproj:107-112).
     private const string AcceptLanguage = "en-US,en;q=0.9";
@@ -631,7 +632,7 @@ public sealed class URLSession
         // timeoutIntervalForRequest; a request that sets its own interval keeps it (MCPProxy.swift:315 on the shared session).
         var idle = request.TimeoutInterval == URLRequest.DefaultTimeoutInterval ? timeoutIntervalForRequest : request.TimeoutInterval;
         var exchange = new Exchange(clock, SwiftTask.Seconds(idle), SwiftTask.Seconds(timeoutIntervalForResource), task);
-        var hop = new Hop(request.Url, request.HttpMethod, request.HttpBody, [.. request.AllHTTPHeaderFields]);
+        var hop = new Hop(request.Url, request.HttpMethod, request.HttpBody, [.. request.AllHTTPHeaderFields], LeftOrigin: false);
         var readsCache = urlCache is not null && requestCachePolicy == URLRequest.CachePolicy.UseProtocolCachePolicy;
         for (var redirects = 0; ; redirects++)
         {
@@ -694,7 +695,13 @@ public sealed class URLSession
             else fields.Add((name, value));
         }
         bool Has(string name) => fields.Exists(f => URLRequest.SameName(f.Name, name));
-        foreach (var (name, value) in additionalHeaders) Put(name, value);
+        foreach (var (name, value) in additionalHeaders)
+        {
+            // UNVERIFIED O-29 (safety default): once a chain has left an origin, a configuration Authorization is
+            // not sent again, as for a request field. ED-152.
+            if (hop.LeftOrigin && name.Equals("Authorization", StringComparison.OrdinalIgnoreCase)) continue;
+            Put(name, value);
+        }
         foreach (var (name, value) in hop.Fields) Put(name, value);
         // DEVIATION OD-0012|ED-088: the default User-Agent is "Marrow/<AppInfo.version>", not the source's
         // "Droppy%20Code/<build> CFNetwork/<v> Darwin/<v>" (ED-118 item 1); one set by the configuration or the request replaces it.
@@ -735,7 +742,8 @@ public sealed class URLSession
     /// <summary>
     /// The next hop: 303 becomes GET (RFC 9110 15.4.4), and so does a POST answered with 301 or 302 (15.4.2, 15.4.3);
     /// 307 and 308 repeat the method and body. A body dropped takes its content fields with it. UNVERIFIED O-29:
-    /// to the same origin every other field is kept; to another origin (scheme, host and port) Authorization is dropped.
+    /// to the same origin every other field is kept; after leaving the first origin (scheme, host and port),
+    /// Authorization is dropped for the rest of the chain, including configuration headers (ED-152).
     /// </summary>
     private static Hop Redirected(Hop hop, int status, Uri target)
     {
@@ -752,7 +760,7 @@ public sealed class URLSession
                          string.Equals(hop.Url.IdnHost, target.IdnHost, StringComparison.OrdinalIgnoreCase) &&
                          hop.Url.Port == target.Port;
         if (!sameOrigin) fields.RemoveAll(f => f.Name.Equals("Authorization", StringComparison.OrdinalIgnoreCase));
-        return new Hop(target, method, body, [.. fields]);
+        return new Hop(target, method, body, [.. fields], hop.LeftOrigin || !sameOrigin);
     }
 
     /// <summary>allHeaderFields: every field as received; a repeated one joined with ", " in arrival order (O-30).</summary>
@@ -772,7 +780,7 @@ public sealed class URLSession
         return fields;
     }
 
-    private sealed record Hop(Uri Url, string Method, byte[]? Body, (string Name, string Value)[] Fields);
+    private sealed record Hop(Uri Url, string Method, byte[]? Body, (string Name, string Value)[] Fields, bool LeftOrigin);
 
     /// <summary>
     /// One task's limits and end (R-NET-1, ED-068): the inactivity timer, re-armed before the request is written, at
