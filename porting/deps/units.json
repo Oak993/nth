@@ -2654,50 +2654,14 @@
    ],
    "intra_deps": [],
    "records_total": 16,
-   "records_todo": [
-    "PR-THEME-089",
-    "PR-THEME-090",
-    "PR-THEME-091",
-    "PR-THEME-092",
-    "PR-THEME-093",
-    "PR-THEME-094",
-    "PR-THEME-095",
-    "PR-THEME-096",
-    "PR-THEME-097",
-    "PR-THEME-098",
-    "PR-THEME-099",
-    "PR-THEME-100",
-    "PR-THEME-101",
-    "PR-THEME-102",
-    "PR-THEME-103",
-    "PR-THEME-104"
-   ],
-   "parts": [
-    [
-     "PR-THEME-089",
-     "PR-THEME-090",
-     "PR-THEME-091",
-     "PR-THEME-092",
-     "PR-THEME-093",
-     "PR-THEME-094",
-     "PR-THEME-095",
-     "PR-THEME-096",
-     "PR-THEME-097",
-     "PR-THEME-098",
-     "PR-THEME-099",
-     "PR-THEME-100",
-     "PR-THEME-101",
-     "PR-THEME-102",
-     "PR-THEME-103",
-     "PR-THEME-104"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-052",
     "T-M5-053"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Theme.AppTheme",

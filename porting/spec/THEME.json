@@ -2194,7 +2194,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A hand-written block parser in shared code. Do not substitute a CommonMark library: the grammar below differs from CommonMark in several load-bearing ways and the differences are user-visible in agent output.",
       "verification_method": "contract fixture: a corpus of agent outputs parses to a recorded block tree",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2216,7 +2216,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows agents emit CRLF far more often than macOS ones, so this rule is exercised constantly. A lone CR is deliberately not a break.",
       "verification_method": "unit: the same text with LF and with CRLF produces identical blocks",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2239,7 +2239,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The stable count is not just an optimization: it is the equality key the block views use (PR-THEME-105), so getting it wrong changes what repaints during a stream.",
       "verification_method": "unit: for a growing text, blocks below the reported stable index never change in a later parse",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2261,7 +2261,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Offsets are UTF-8 bytes here, unlike the veil's character offsets. Mixing the two units is the likeliest porting mistake.",
       "verification_method": "unit: incremental parse of a growing text equals a full parse at every step",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2285,7 +2285,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A hard recursion cap protecting against unbounded model output; keep it at 8 so pathological output renders identically.",
       "verification_method": "unit: nine levels of '>' render as eight quotes with the ninth marker visible in the text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2308,7 +2308,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Note the closing test requires only that the line start with the fence and be all fence characters, so a longer closing run closes a shorter opener; and a fence of a different character does not close it.",
       "verification_method": "unit: mixed-marker fences, a longer closing run, an unclosed fence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2331,7 +2331,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The closing-hash strip is a side effect of trimming the character set \"# \" from both ends, so it also removes hashes that were meant as text at the end of a heading. Reproduce it.",
       "verification_method": "unit: \"#Title\", \"####### Title\", \"## Title ##\", \"###\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2354,7 +2354,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The byte-level test also means a tab between the characters disqualifies the line, because only 0x20 is allowed.",
       "verification_method": "unit: \"---\", \"- - -\", \"--\", \"-*-\", \"- \\t -\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2376,7 +2376,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Only one space after the marker is eaten; this matters for code indented inside a quote.",
       "verification_method": "unit: nested quotes, a quote containing a list, a quote split by a blank line",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2401,7 +2401,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Column alignment is parsed away and never applied. Every cell renders leading-aligned regardless of the colons; that is the shipped behaviour.",
       "verification_method": "unit: a table with alignment colons renders leading-aligned; ragged rows; a pipe line with no delimiter",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2424,7 +2424,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Note the asymmetry: an unordered marker accepts a tab after it, an ordered one accepts only a space or nothing.",
       "verification_method": "unit: \"-x\", \"-\\tx\", \"1.x\", \"1234567890. x\", \"1.\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2446,7 +2446,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the three-part condition exactly; simplifying it changes how ordinary prose renders.",
       "verification_method": "unit: a paragraph line followed by \"2. text\" stays one paragraph; the same after a blank line becomes a list starting at 2",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2470,7 +2470,7 @@
       "cancellation": "not cancellable",
       "windows_path": "This is the most intricate part of the grammar and the part a CommonMark library will get differently. It must be ported rule by rule and covered by fixtures.",
       "verification_method": "contract fixture: a list corpus covering loose lists, nested code, mixed markers and blank lines",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2492,7 +2492,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Note the lower-casing is applied to the whole item text just to test the prefix, which is wasteful but harmless; only the prefix test is case-insensitive, the removal is a fixed four characters.",
       "verification_method": "unit: \"[ ] a\", \"[x] a\", \"[X] a\", \"[] a\", \"[ ]a\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2517,7 +2517,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Interior newlines survive into the block text; the inline parse is asked to preserve whitespace (PR-THEME-124), so soft line breaks inside a paragraph are real breaks in the rendered text.",
       "verification_method": "unit: a two-line paragraph keeps its newline; a whitespace-only line produces nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2540,7 +2540,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The fast path is an optimization with no behavioural difference; a port may trim unconditionally, but must trim the full Unicode whitespace set, not just ASCII.",
       "verification_method": "unit: a line surrounded by U+00A0 is trimmed; an ASCII line is returned identically",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
