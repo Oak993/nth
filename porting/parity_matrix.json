@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "SPECIFIED": 3724,
+      "SPECIFIED": 3719,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
       "DISCOVERED": 34,
       "RETIRED": 6,
-      "IMPLEMENTED": 149
+      "IMPLEMENTED": 154
     },
     "by_area": {
       "CHAT": 193,
@@ -78788,7 +78788,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the hard-coded 2x rather than substituting the Windows DPI scale: changing it changes memory use and image sharpness across every attachment row. Same key format, same two limits.",
       "verification_method": "unit on the key format plus a capture comparison of an attachment row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78815,7 +78815,7 @@
       "cancellation": "Cancelling a caller returns nil to that caller only; the shared decode is deliberately not cancelled.",
       "windows_path": "Same coalescing by key, the same deliberate refusal to cancel a shared decode, and the same cost measure. The decodes counter is a test hook and must remain readable by tests.",
       "verification_method": "unit asserting one decode for fifteen simultaneous requests",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78842,7 +78842,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four decode behaviours. Immediate decoding is load-bearing: a lazily decoded bitmap would move the decode cost onto the UI thread at draw time, which is exactly what this cache exists to avoid.",
       "verification_method": "unit over a rotated JPEG fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78865,7 +78865,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same formula, same ceiling and the same literal 2048 clamp.",
       "verification_method": "unit over a 4:1 image",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -78888,7 +78888,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two separate caches with two separate key formats, exactly as the source has them, including the collision. Merging them changes what is drawn.",
       "verification_method": "unit on both key formats",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

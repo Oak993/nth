@@ -138,8 +138,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "SwiftUI Text as a value (ED-092 part 3). StyledText is an immutable list of runs, each a string with optional SwiftFont, SwiftColor, weight, italic, underline, strikethrough, monospacedDigit and baseline offset; modifiers return new values; + concatenates; Render(TextBlock) writes the runs as Avalonia inlines. AttributedString is not part of this unit. First tests: concatenation keeps each run style, modifiers apply to every run of the receiver, and a rendered TextBlock has one Run per run with the resolved font and brush.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.SwiftAnimation",
@@ -315,8 +315,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "HTTP client matching URLSession as the source uses it (R-NET-1): inactivity timeout, decompression, redirects, status handling, the User-Agent of OD-0012 F1. First tests: a loopback server. URLSessionConfiguration.ephemeral, URLRequest.CachePolicy and URLCache as UpdateChecker.swift:101-110 uses them (ED-119); network defaults per ED-118.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.SecretStore",
@@ -442,8 +442,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "ICU formatters through Windows icu.dll (ED-073, ED-094 Calendar.current, ED-096 the accepted API): udat skeletons, ureldatefmt, unum spell-out, currency, Int.formatted(); ByteCountFormatter from its documented rules (R-FMT-2). First tests: the O-23 fixtures, marked Oracle until settled.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.URL",
@@ -1936,30 +1936,14 @@
    ],
    "intra_deps": [],
    "records_total": 6,
-   "records_todo": [
-    "PR-STORE-123",
-    "PR-STORE-124",
-    "PR-STORE-125",
-    "PR-STORE-126",
-    "PR-STORE-127",
-    "UI-STORE-005"
-   ],
-   "parts": [
-    [
-     "PR-STORE-123",
-     "PR-STORE-124",
-     "PR-STORE-125",
-     "PR-STORE-126",
-     "PR-STORE-127",
-     "UI-STORE-005"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-077",
     "T-M2-078"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Git.FileChangeSummary_Diff",
