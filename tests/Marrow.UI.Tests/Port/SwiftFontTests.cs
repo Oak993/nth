@@ -22,13 +22,12 @@ public sealed class SwiftFontTests(HeadlessSession headless)
     private const string TextFace = "Inter";
     private static readonly Uri TextFaceSource = new("fonts:Inter");
 
-    // OPEN, not proven: ED-091 and OD-0009 name Cascadia Mono, but no decision says where the port gets that face.
-    // probes/p9/RESULT.md section 2: it is not installed on Windows and resolves by name only while Windows Terminal
-    // registers it; section 8 recommends shipping it in the app through a FontCollectionBase. Until a ruling fixes the
-    // source (a bundled face with a fonts: key, or a named-lookup deviation), these tests check only the family name,
-    // which cannot tell a working port from a Segoe UI fallback. The key check and a glyph-typeface resolution test
-    // are to be added once that ruling exists.
+    // ED-107 (3): Cascadia Mono (OD-0009) ships inside the app (porting/probes/p9/CASCADIA.md) and is reached as
+    // fonts:CascadiaMono#Cascadia Mono through CascadiaMonoFontCollection (key fonts:CascadiaMono), never by name:
+    // probes/p9/RESULT.md section 2, it is not an inbox font, and a family Avalonia cannot find silently becomes Segoe UI.
+    // So the key is checked as well as the name.
     private const string MonospacedFace = "Cascadia Mono";
+    private static readonly Uri MonospacedFaceSource = new("fonts:CascadiaMono");
 
     private static void AssertTextFace(FontFamily family)
     {
@@ -36,7 +35,11 @@ public sealed class SwiftFontTests(HeadlessSession headless)
         Assert.Equal(TextFaceSource, family.Key?.Source);
     }
 
-    private static void AssertMonospacedFace(FontFamily family) => Assert.Equal(MonospacedFace, family.Name);
+    private static void AssertMonospacedFace(FontFamily family)
+    {
+        Assert.Equal(MonospacedFace, family.Name);
+        Assert.Equal(MonospacedFaceSource, family.Key?.Source);
+    }
 
     private static void AssertSameFace(FontFamily expected, FontFamily actual)
     {
@@ -752,5 +755,104 @@ public sealed class SwiftFontTests(HeadlessSession headless)
         plainA.FontFeatures?.Add(new FontFeature { Tag = "tnum", Value = 1 });
         Assert.True(HasNoFeatures(plainB.FontFeatures));
         Assert.True(HasNoFeatures(SwiftFont.Body.Resolve().FontFeatures));
+    });
+
+    // ---- The faces resolve to real glyph typefaces (ED-107 (6), OD-0009) ----
+    // Rasterisation stays UNVERIFIED under OD-0001; these tests check which face Avalonia picks, not how it draws.
+
+    // ED-107 (6): the face is the typographic family name, or the family name when that is empty. Inter's static
+    // Medium and SemiBold files name themselves 'Inter Medium' and 'Inter SemiBold' in name ID 1 and 'Inter' in
+    // name ID 16 (probes/p9/INTER.md section 5).
+    private static string FaceName(GlyphTypeface g) =>
+        string.IsNullOrEmpty(g.TypographicFamilyName) ? g.FamilyName : g.TypographicFamilyName;
+
+    private static GlyphTypeface ResolveGlyphTypeface(SwiftFont font)
+    {
+        var resolved = font.Resolve();
+        var typeface = new Typeface(resolved.FontFamily, resolved.FontStyle, resolved.FontWeight);
+        Assert.True(FontManager.Current.TryGetGlyphTypeface(typeface, out var g));
+        return g!;
+    }
+
+    [Theory]
+    [Trait("Decision", "ED-107")]
+    [Trait("Decision", "ED-091")]
+    [InlineData(SwiftFont.Weight.Regular, 400)]
+    [InlineData(SwiftFont.Weight.Medium, 500)]
+    [InlineData(SwiftFont.Weight.Semibold, 600)]
+    [InlineData(SwiftFont.Weight.Bold, 700)]
+    public void The_default_design_resolves_to_a_real_Inter_face_at_the_requested_weight_without_simulation(SwiftFont.Weight weight, int weightClass) => headless.OnUiThread(() =>
+    {
+        // probes/p9/INTER.md section 5 (E:/Droppy/work/font-p9/run2.txt:1078-1081): fonts:Inter#Inter resolves 400, 500,
+        // 600 and 700 to the package's static files with sim=None. Only these four weights were measured (ED-107 (6)).
+        // App/Views/Chat/ChatBadge.swift:28 (.medium), ChatView.swift:1204 (.semibold), HydraButton.swift:630 (.bold).
+        var g = ResolveGlyphTypeface(SwiftFont.System(SwiftFont.TextStyle.Body, weight: weight));
+        Assert.Equal(TextFace, FaceName(g));
+        Assert.Equal(weightClass, (int)g.Weight);
+        Assert.Equal(FontSimulations.None, g.FontSimulations);
+        Assert.Equal(FontStyle.Normal, g.Style);
+
+        // The fixed-size and NSFont factories reach the same face.
+        var sized = ResolveGlyphTypeface(SwiftFont.SystemFont(ofSize: 13, weight: weight));
+        Assert.Equal(TextFace, FaceName(sized));
+        Assert.Equal(weightClass, (int)sized.Weight);
+        Assert.Equal(FontSimulations.None, sized.FontSimulations);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-107")]
+    [Trait("Decision", "ED-091")]
+    public void The_monospaced_design_resolves_to_the_bundled_fixed_pitch_Cascadia_Mono_regular_without_simulation() => headless.OnUiThread(() =>
+    {
+        // ED-107 (6) and probes/p9/RESULT.md section 2: Cascadia Mono at 400 with IsFixedPitch true.
+        // App/Views/Chat/ChatView.swift:1550 .system(.subheadline, design: .monospaced);
+        // UI/Markdown/LinkParagraphView.swift:117 monospacedSystemFont(ofSize:weight: .regular).
+        foreach (var font in new[]
+                 {
+                     SwiftFont.System(SwiftFont.TextStyle.Subheadline, design: SwiftFont.Design.Monospaced),
+                     SwiftFont.MonospacedSystemFont(ofSize: 12, weight: SwiftFont.Weight.Regular),
+                 })
+        {
+            var g = ResolveGlyphTypeface(font);
+            Assert.Equal(MonospacedFace, FaceName(g));
+            Assert.Equal(400, (int)g.Weight);
+            Assert.Equal(FontStyle.Normal, g.Style);
+            Assert.Equal(FontSimulations.None, g.FontSimulations);
+            Assert.True(g.Metrics.IsFixedPitch);
+        }
+    });
+
+    [Theory]
+    [Trait("Decision", "ED-107")]
+    [Trait("Decision", "ED-091")]
+    [InlineData(SwiftFont.Weight.Semibold, 600, false)]
+    [InlineData(SwiftFont.Weight.Bold, 700, false)]
+    [InlineData(SwiftFont.Weight.Regular, 400, true)]
+    public void The_monospaced_design_resolves_semibold_bold_and_italic_to_bundled_Cascadia_Mono_files_without_simulation(SwiftFont.Weight weight, int weightClass, bool italic) => headless.OnUiThread(() =>
+    {
+        // ED-107 (1) and (6): markdown inline code reaches monospaced text at 600, 700 and italic
+        // (UI/Markdown/MarkdownView.swift:1192-1196, headings :302-304 and :376-380). porting/probes/p9/CASCADIA.md
+        // records CascadiaMono-SemiBold.ttf, -Bold.ttf and -Italic.ttf as present in release v2407.24 and shipped.
+        var font = SwiftFont.MonospacedSystemFont(ofSize: 12, weight: weight);
+        if (italic) font = font.Italic();
+        var g = ResolveGlyphTypeface(font);
+        Assert.Equal(MonospacedFace, FaceName(g));
+        Assert.Equal(weightClass, (int)g.Weight);
+        Assert.Equal(italic ? FontStyle.Italic : FontStyle.Normal, g.Style);
+        Assert.Equal(FontSimulations.None, g.FontSimulations);
+        Assert.True(g.Metrics.IsFixedPitch);
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")]
+    [Trait("Decision", "ED-107")]
+    public void A_family_looked_up_by_name_resolves_even_when_the_face_is_missing_so_the_key_and_the_face_are_checked() => headless.OnUiThread(() =>
+    {
+        // probes/p9/RESULT.md section 2, finding 1: a by-name FontFamily("SF Mono") gets TryGetGlyphTypeface true, but
+        // Avalonia substitutes another face. The boolean proves nothing; the fonts: key and the resolved name do.
+        var typeface = new Typeface(new FontFamily("SF Mono"), FontStyle.Normal, Avalonia.Media.FontWeight.Normal);
+        Assert.True(FontManager.Current.TryGetGlyphTypeface(typeface, out var g));
+        Assert.NotEqual("SF Mono", FaceName(g!));
+        Assert.NotEqual("SF Mono", g!.FamilyName);
     });
 }
