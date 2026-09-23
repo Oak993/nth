@@ -1924,7 +1924,7 @@
       "cancellation": "Dismissing the popover clears the anchor.",
       "windows_path": "Windows has no control-click convention; the trigger is the right mouse button and the context-menu key. The overlay must still be transparent to every other event.",
       "verification_method": "interaction test that a left click on a link inside a message still opens the link",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

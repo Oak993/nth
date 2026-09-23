@@ -2280,19 +2280,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-CHAT-087"
-   ],
-   "parts": [
-    [
-     "PR-CHAT-087"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-039"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Composer.ComposerTextView",
@@ -2416,50 +2410,14 @@
    ],
    "intra_deps": [],
    "records_total": 16,
-   "records_todo": [
-    "PR-SETTINGS-212",
-    "PR-SETTINGS-213",
-    "PR-SETTINGS-214",
-    "PR-SETTINGS-215",
-    "PR-SETTINGS-216",
-    "PR-SETTINGS-217",
-    "PR-SETTINGS-218",
-    "PR-SETTINGS-220",
-    "PR-SETTINGS-221",
-    "PR-SETTINGS-222",
-    "UI-SETTINGS-043",
-    "UI-SETTINGS-044",
-    "UI-SETTINGS-045",
-    "UI-SETTINGS-046",
-    "UI-SETTINGS-047",
-    "UI-SETTINGS-048"
-   ],
-   "parts": [
-    [
-     "PR-SETTINGS-212",
-     "PR-SETTINGS-213",
-     "PR-SETTINGS-214",
-     "PR-SETTINGS-215",
-     "PR-SETTINGS-216",
-     "PR-SETTINGS-217",
-     "PR-SETTINGS-218",
-     "PR-SETTINGS-220",
-     "PR-SETTINGS-221",
-     "PR-SETTINGS-222",
-     "UI-SETTINGS-043",
-     "UI-SETTINGS-044",
-     "UI-SETTINGS-045",
-     "UI-SETTINGS-046",
-     "UI-SETTINGS-047",
-     "UI-SETTINGS-048"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-182",
     "T-M7-183"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Sidebar.RowGlide",
@@ -2538,57 +2496,15 @@
    ],
    "intra_deps": [],
    "records_total": 19,
-   "records_todo": [
-    "PR-UPDATE-099",
-    "PR-UPDATE-100",
-    "PR-UPDATE-101",
-    "PR-UPDATE-102",
-    "PR-UPDATE-103",
-    "PR-UPDATE-104",
-    "PR-UPDATE-105",
-    "PR-UPDATE-106",
-    "UI-UPDATE-036",
-    "UI-UPDATE-037",
-    "UI-UPDATE-038",
-    "UI-UPDATE-039",
-    "UI-UPDATE-040",
-    "UI-UPDATE-041",
-    "UI-UPDATE-042",
-    "UI-UPDATE-043",
-    "UI-UPDATE-044",
-    "UI-UPDATE-045",
-    "UI-UPDATE-054"
-   ],
-   "parts": [
-    [
-     "PR-UPDATE-099",
-     "PR-UPDATE-100",
-     "PR-UPDATE-101",
-     "PR-UPDATE-102",
-     "PR-UPDATE-103",
-     "PR-UPDATE-104",
-     "PR-UPDATE-105",
-     "PR-UPDATE-106",
-     "UI-UPDATE-036",
-     "UI-UPDATE-037",
-     "UI-UPDATE-038",
-     "UI-UPDATE-039",
-     "UI-UPDATE-040",
-     "UI-UPDATE-041",
-     "UI-UPDATE-042",
-     "UI-UPDATE-043",
-     "UI-UPDATE-044",
-     "UI-UPDATE-045",
-     "UI-UPDATE-054"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-224",
     "T-M7-225",
     "T-M7-226"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.MCP",

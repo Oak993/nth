@@ -5422,7 +5422,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three sections in the same order with the same symbols. The Composer section's rows describe composer keys that the port must keep working, but they are not settings.",
       "verification_method": "capture comparison of the whole page; unit test on the section table",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5450,7 +5450,7 @@
       "cancellation": "not cancellable and not undoable",
       "windows_path": "Same header and the same conditional Reset with no confirmation.",
       "verification_method": "interaction test: clear one shortcut, assert Reset appears; click it, assert every shortcut in the section is back to its default and the pill is gone",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5474,7 +5474,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same metrics. Note these rows are NOT ChromeRow: the padding is a uniform 12 rather than 16/10/11, and the detail is a tooltip rather than a line.",
       "verification_method": "capture comparison; interaction test asserting the tooltip carries the detail sentence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5499,7 +5499,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same fixed 168 x 24 control and the same \"Record shortcut\" wording. The chord reads in Windows notation (OD-0008 B7, ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl), modifiers in the order Ctrl, Alt, Shift, so a chord always reads the same way; key labels keep upstream's US-position table (OD-0008 B9).",
       "verification_method": "capture comparison of a set and a cleared row; unit test on the modifier symbol order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5528,7 +5528,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same nine fill values and the same three-state ink rule. Do not substitute the glass capsule used elsewhere in settings: the flat wash is a deliberate choice for a page with nineteen of these.",
       "verification_method": "capture comparison across the three states and their hover and pressed variants",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5553,7 +5553,7 @@
       "cancellation": "Dismissing the popover, pressing bare Escape, the application losing focus, or the row disappearing all cancel the session.",
       "windows_path": "Same popover contents. The key capture is a window-level keydown/keyup/modifier listener with preventDefault on every captured event; see the session requirement.",
       "verification_method": "interaction test opening and dismissing the recorder",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5589,7 +5589,7 @@
       "cancellation": "Bare Escape, dismissing the popover, the row disappearing, or the app resigning active. The 300ms commit task is cancelled by all of them.",
       "windows_path": "A window-level capture-phase key listener with preventDefault and stopPropagation on every keydown, keyup and modifier change while the popover is open, plus a blur handler that cancels. port_impacts.md:424 entry 208 records that this is one of five separate Escape policies in the family and must be decided on its own: here bare Escape cancels and Escape with a modifier is recordable. The haptics become a no-op shim; do not substitute a sound or an animation.",
       "verification_method": "interaction test covering accept, refuse, replace-while-held, bare Escape, modified Escape, blur, and the 300ms commit delay",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5650,7 +5650,7 @@
       "cancellation": "not cancellable once clicked",
       "windows_path": "Same two labels, the same presence conditions and the same distinction between clearing and resetting. Every shortcut in the table ships with a default chord, so the second condition's defaultChord check never fails today; keep it anyway.",
       "verification_method": "unit test over the four combinations of has-chord and is-customised; restart test asserting a cleared shortcut stays cleared",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5676,7 +5676,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the cap visuals. Modifier caps follow the Windows notation of OD-0008 B7 (Ctrl, Alt, Shift, with Command read as Ctrl per ED-050) while keeping the symbol-over-name layout and the fixed slot order; which glyph and which name each Windows cap draws is not fixed by the ruling and is UNRESOLVED, not invented here. Key labels keep upstream's US-position table (OD-0008 B9), re-keyed from Windows scan codes.",
       "verification_method": "capture comparison of a neutral, a rejected and an accepted cap set",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5706,7 +5706,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same six rows verbatim apart from the three modifier chords, which render in Windows notation (OD-0008 B7, ED-050 mapping; key labels per OD-0008 B9). The underlying composer keys belong to the composer area and must be kept in sync with the reserved chord list as one unit.",
       "verification_method": "unit test comparing all eighteen strings; capture comparison of the card",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -8142,7 +8142,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51, :53 chatBaseSize - .body 13, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Section symbols: \"bubble.left.and.bubble.right.fill\", \"macwindow\", \"text.cursor\".",
-      "b2_change": "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:29-30 at 1fbf81e6: title `.system(.body, weight: .semibold)` in Chrome.secondaryText (was `.system(size: 13, weight: .semibold)` in `.secondary`); :272 Reset label `.system(.subheadline, weight: .semibold)`."
+      "b2_change": "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:29-30 at 1fbf81e6: title `.system(.body, weight: .semibold)` in Chrome.secondaryText (was `.system(size: 13, weight: .semibold)` in `.secondary`); :272 Reset label `.system(.subheadline, weight: .semibold)`.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-044",
@@ -8174,7 +8175,8 @@
         "decision": "OD-0008 B7",
         "upstream": "ShortcutsSettingsPage.swift:165-172 draw one glyph per modifier (⌃ ⌥ ⇧ ⌘) then the key label",
         "port": "The chord reads in Windows notation, Ctrl, Alt, Shift then the key, joined with \"+\"."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-045",
@@ -8203,7 +8205,8 @@
         "decision": "OD-0008 B7",
         "upstream": "ShortcutsSettingsPage.swift:296-315 modifier caps \"⌃ ctrl\", \"⌥ opt\", \"⇧ shift\", \"⌘ cmd\"",
         "port": "Windows notation (Ctrl, Alt, Shift); the exact per-cap text is UNRESOLVED."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-046",
@@ -8233,7 +8236,8 @@
         "decision": "OD-0008 B7; OD-0008 B8",
         "upstream": "Core/Models/Shortcuts.swift:326 \"Add ⌘, ⌃ or ⌥ so typing still works.\" Core/Models/Shortcuts.swift:329 \"macOS or Droppy Code already uses this chord.\"",
         "port": "\"Add Ctrl or Alt so typing still works.\" \"Windows or Marrow already uses this chord.\""
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-047",
@@ -8257,7 +8261,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 chatBaseSize - .callout 12 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Clear persists a cleared state (an override holding nil); Reset removes the override. The two are not the same and must not be merged.",
-      "b2_change": "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:452 `.system(size: 12, weight: .semibold)` -> `.system(.callout, weight: .semibold)` at 1fbf81e6."
+      "b2_change": "DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift:452 `.system(size: 12, weight: .semibold)` -> `.system(.callout, weight: .semibold)` at 1fbf81e6.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-048",
@@ -8284,7 +8289,8 @@
         "decision": "OD-0008 B7",
         "upstream": "ShortcutsSettingsPage.swift:70, :73, :74 \"⇧ Return\", \"⌘ Return\", \"⌘ 1–9\"",
         "port": "\"Shift+Return\", \"Ctrl+Return\", \"Ctrl+1–9\""
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-049",
