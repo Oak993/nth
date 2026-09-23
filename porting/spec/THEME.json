@@ -865,7 +865,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: Windows has no Liquid Glass. The tint colour and its per-site opacity are the parity contract; the backdrop material underneath is specified by the WIN area. Whatever material Windows uses, the theme surface must be composited over it at exactly these opacities. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field. ED-063 (probe P2): the glass needs the GPU; with no GPU context at startup the app degrades the glass as a named deviation rather than running the scene in software. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "verification_method": "unit: token resolution per theme; capture comparison per theme against reference_captures for structure",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
