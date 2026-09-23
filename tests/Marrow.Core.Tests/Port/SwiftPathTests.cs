@@ -378,7 +378,6 @@ public sealed class SwiftPathTests
     [InlineData(@"\", false)]
     [InlineData("/x", false)]
     [InlineData("/", false)]
-    [InlineData("//server/share", false)]
     [InlineData(@"\\\server\share", false)]
     [InlineData("C:", false)]
     [InlineData("C:x", false)]
@@ -395,11 +394,31 @@ public sealed class SwiftPathTests
     {
         // ED-036/038/045: absolute iff /^[A-Za-z]:[\\/]/, or /^\\\\[^\\/]+[\\/][^\\/]+/, or begins \\?\ ;
         // a bare leading "\" is not absolute; case-insensitive only in the drive letter. Read literally: the UNC
-        // form needs two backslashes (so "//server/share" is not absolute), its server name may not begin with a
+        // form needs two backslashes (its forward-slash spelling "//server/share" is ED-173's fourth form, moved to
+        // IsAbsolute_accepts_a_forward_slash_UNC_path below), its server name may not begin with a
         // separator (so "\\\server\share" is not), and the drive letter is ASCII (a char.IsLetter port fails the
         // U+00C4 row). Replaces `hasPrefix("/")` at TouchedPaths.swift:24, TurnDiff.swift:34, :41,
         // AppModel+Hydra.swift:329, AppModel+HydraMerge.swift:498, :537. ED-138: IsAbsolute is exactly these three
         // forms and replaces only `hasPrefix("/")`; the "~" and "://" clauses stay at their call sites.
+        Assert.Equal(expected, SwiftPath.IsAbsolute(path));
+    }
+
+    [Theory]
+    [Trait("Decision", "ED-173")]
+    [InlineData("//server/share", true)] // was false under ED-138/ED-142; changed by ED-173
+    [InlineData("//server/share/dir/f.txt", true)]
+    [InlineData(@"//server\share", true)]
+    [InlineData("//", false)]
+    [InlineData("//server", false)]
+    [InlineData("//server/", false)]
+    [InlineData("///server/share", false)]
+    public void IsAbsolute_accepts_a_forward_slash_UNC_path(string path, bool expected)
+    {
+        // ED-173 (amending ED-138's three forms and ED-142's committed row): IsAbsolute also accepts
+        // /^\/\/[^\\/]+[\\/][^\\/]+/. TurnDiff.swift:34 and :41 test hasPrefix("/") on reportedPath's output
+        // (TurnDiff.swift:8-9), which TouchedPaths.normalize forward-slashes (ED-019 (3)), so a UNC file outside the
+        // root arrives as "//srv/share/...". A lone "//" or "//server" without a share stays false, as the backslash
+        // form does, and the server name may not begin with a separator, as in the backslash form.
         Assert.Equal(expected, SwiftPath.IsAbsolute(path));
     }
 
