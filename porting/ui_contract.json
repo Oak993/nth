@@ -12095,7 +12095,8 @@
         "DroppyCode/Services/Providers/CommandCodeSession.swift:727",
         "DroppyCode/Services/Providers/PiSession.swift:629"
       ],
-      "notes": "The option id is \"allow\" in all four providers, but the wire effect differs: Claude sends a behavior object, Copilot a decision kind, Command Code writes a reply FILE and Pi sends the literal string \"Allow\". Codex uses different ids entirely (see UI-PROVCLI-006 and UI-PROVCLI-009)."
+      "notes": "The option id is \"allow\" in all four providers, but the wire effect differs: Claude sends a behavior object, Copilot a decision kind, Command Code writes a reply FILE and Pi sends the literal string \"Allow\". Codex uses different ids entirely (see UI-PROVCLI-006 and UI-PROVCLI-009).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12122,7 +12123,8 @@
         "DroppyCode/Services/Providers/CommandCodeSession.swift:728",
         "DroppyCode/Services/Providers/PiSession.swift:630"
       ],
-      "notes": "A porter will be tempted to show this button unconditionally because two of the four providers do. Claude and Copilot hide it, and hiding it is the only signal the user gets that the CLI cannot remember that decision."
+      "notes": "A porter will be tempted to show this button unconditionally because two of the four providers do. Claude and Copilot hide it, and hiding it is the only signal the user gets that the CLI cannot remember that decision.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12148,7 +12150,8 @@
         "DroppyCode/Services/Providers/PiSession.swift:631",
         "DroppyCode/Services/Providers/CodexSession.swift:1000,:961"
       ],
-      "notes": "The option ID differs between providers (\"deny\" versus \"decline\") while the LABEL is identical. Pi resolves by ROLE rather than by id, so an unrecognized id there also declines."
+      "notes": "The option ID differs between providers (\"deny\" versus \"decline\") while the LABEL is identical. Pi resolves by ROLE rather than by id, so an unrecognized id there also declines.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12171,7 +12174,8 @@
         "DroppyCode/Services/Providers/ClaudeSession.swift:649",
         "DroppyCode/Services/Providers/CopilotSession.swift:763"
       ],
-      "notes": "The approval's title is \"Implement this plan\" while the button reads \"Implement plan\" - the two strings differ and both are verbatim."
+      "notes": "The approval's title is \"Implement this plan\" while the button reads \"Implement plan\" - the two strings differ and both are verbatim.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12193,7 +12197,8 @@
         "DroppyCode/Services/Providers/ClaudeSession.swift:650,:270",
         "DroppyCode/Services/Providers/CopilotSession.swift:764,:296-299"
       ],
-      "notes": "The same sentence is sent by two providers through two different wire shapes; it must stay identical in both."
+      "notes": "The same sentence is sent by two providers through two different wire shapes; it must stay identical in both.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12387,7 +12392,8 @@
         "DroppyCode/Services/Providers/ClaudeSession.swift:647",
         "DroppyCode/Services/Providers/CopilotSession.swift:761"
       ],
-      "notes": "\"Implement this plan\" (title) and \"Implement plan\" (button) differ by one word; both are verbatim and neither may be normalized to the other."
+      "notes": "\"Implement this plan\" (title) and \"Implement plan\" (button) differ by one word; both are verbatim and neither may be normalized to the other.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12583,7 +12589,8 @@
       "source_evidence": [
         "DroppyCode/Services/Providers/ClaudeSession.swift:169-181,:222-226"
       ],
-      "notes": "Claude's catalog arrives inside the session's own initialize response as well as from the static probe, and the probe's commands guard can destroy it entirely (PR-PROVCLI-026)."
+      "notes": "Claude's catalog arrives inside the session's own initialize response as well as from the static probe, and the probe's commands guard can destroy it entirely (PR-PROVCLI-026).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12734,7 +12741,8 @@
         "DroppyCode/Services/Providers/CommandCodeSession.swift:403-407",
         "DroppyCode/Services/Providers/PiSession.swift:332-334"
       ],
-      "notes": "Six different strings for one concept, including two without trailing periods and one with an ellipsis. A porter normalizing them would change five user-visible strings at once."
+      "notes": "Six different strings for one concept, including two without trailing periods and one with an ellipsis. A porter normalizing them would change five user-visible strings at once.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12775,7 +12783,8 @@
         "decision": "OD-0012 F1",
         "upstream": "CodexSession.swift:985: \"\\(server) asked for input, which Droppy Code cannot show yet.\"",
         "port": "\"<server> asked for input, which Marrow cannot show yet.\"; every other notice in this record is unchanged."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12806,7 +12815,8 @@
         "DroppyCode/Services/Providers/CopilotSession.swift:719,:729",
         "DroppyCode/Services/Providers/CodexSession.swift:911"
       ],
-      "notes": "Several of these embed a shell command in backticks (`cmd login`, `copilot login`, `codex login`, `agy`) and two name a Settings path with U+2192 arrows. Whether those instructions are correct on Windows is a product question tied to UNK-0006, not something to reword from here."
+      "notes": "Several of these embed a shell command in backticks (`cmd login`, `copilot login`, `codex login`, `agy`) and two name a Settings path with U+2192 arrows. Whether those instructions are correct on Windows is a product question tied to UNK-0006, not something to reword from here.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12838,7 +12848,8 @@
         "DroppyCode/Services/Providers/PiSession.swift:425-447",
         "DroppyCode/Services/Providers/AntigravitySession.swift:636-675"
       ],
-      "notes": "Note \"Subagent\" (Claude, Copilot) versus \"Sub-agent\" (Command Code) versus \"Head\" (Codex spawn) - three spellings for one idea, all verbatim. Note also that Command Code's humanize capitalizes only the first word while Antigravity's uses Swift's capitalized on the first word, which also lowercases its remaining characters; the two helpers must not be shared."
+      "notes": "Note \"Subagent\" (Claude, Copilot) versus \"Sub-agent\" (Command Code) versus \"Head\" (Codex spawn) - three spellings for one idea, all verbatim. Note also that Command Code's humanize capitalizes only the first word while Antigravity's uses Swift's capitalized on the first word, which also lowercases its remaining characters; the two helpers must not be shared.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVCLI",
@@ -12923,7 +12934,8 @@
         "DroppyCode/Services/Providers/ClaudeSession.swift:499-519"
       ],
       "notes": "Before this filter existed the chat drew \"No response requested.\" as a reply from the lead. The two placeholder strings must be matched exactly, including the trailing period on the first and the parentheses on the second.",
-      "b2_change": "MOVED: B1 ClaudeSession.swift:495-515 -> B2 :499-519 (4 comment lines added above at :402-405). The two placeholder strings at :503 are unchanged."
+      "b2_change": "MOVED: B1 ClaudeSession.swift:495-515 -> B2 :499-519 (4 comment lines added above at :402-405). The two placeholder strings at :503 are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVREG",
