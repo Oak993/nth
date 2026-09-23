@@ -123,7 +123,11 @@ public sealed record SwiftTransition
         state.Stop();
         var wrapper = state.Wrapper ?? child;
         var animation = state.Transition.ForRemove().OwnAnimation() ?? Transaction.Current;
-        if (animation is null)
+        // A removal half that touches nothing (`.identity`, alone or as the removal half of `.asymmetric`) leaves at
+        // once even under an animation: App/Views/Chat/ChatView.swift:283-288 relies on it ("must replace in place,
+        // never slide or fade"), as do UI/Markdown/MarkdownView.swift:46-53 and App/Views/Chat/ThreadTimeline.swift:316-320.
+        // Documented SwiftUI behaviour, UNVERIFIED under OD-0001 as ED-092 records.
+        if (animation is null || !state.Transition.Touches(inserting: false))
         {
             panel.Children.Remove(wrapper);
             state.RemovingFrom = null;
@@ -147,6 +151,16 @@ public sealed record SwiftTransition
     private SwiftTransition ForRemove() => kind == Kind.Asym ? second! : this;
     private Marrow.UI.Port.Animation? OwnAnimation() => kind == Kind.Animated ? animation :
         kind == Kind.Pair ? first!.OwnAnimation() ?? second!.OwnAnimation() : null;
+
+    // Whether the half in play for this direction changes anything: a leaf effect or a modifier (Gather's walk).
+    private bool Touches(bool inserting) => kind switch
+    {
+        Kind.None => false,
+        Kind.Animated => first!.Touches(inserting),
+        Kind.Pair => first!.Touches(inserting) || second!.Touches(inserting),
+        Kind.Asym => inserting ? first!.Touches(inserting) : second!.Touches(inserting),
+        _ => true,
+    };
 
     // The modifier transitions in the tree, counted in the order CreateBody and Gather walk it.
     private int ModifierCount() => kind switch
