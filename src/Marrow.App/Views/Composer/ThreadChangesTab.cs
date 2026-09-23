@@ -85,9 +85,12 @@ public sealed class ThreadChangesTab : Button
         // :39-40 AttachmentAnchorCapture in the background for anchor capture
         anchorCapture = new AttachmentAnchorCapture(onResolve: anchor);
 
-        // :38 Apply glass effect (.glassEffect(.regular.interactive(), in: shape))
-        // MARROW_DEFERRED ED-180: The app-drawn material and interactive() press response
-        // The glass styling is applied through the border structure
+        // :38 .glassEffect(.regular.interactive(), in: shape). GlassShape has no uneven-rectangle
+        // kind (SwiftShapes/SwiftGlass only draw RoundedRectangle, Capsule, Circle, ED-180/ED-181),
+        // so the closest available shape (12pt rounded rectangle, matching the top corners this
+        // border actually draws) records the tint-less, interactive glass as data on the layer.
+        // MARROW_DEFERRED ED-180: the app-drawn material and the .interactive() press response.
+        SwiftGlass.SetEffect(borderControl, GlassEffect.Regular(GlassShape.RoundedRectangle(12, RoundedCornerStyle.Continuous)).Interactive());
 
         // Build the final control
         var grid = new Grid();
@@ -122,15 +125,9 @@ public sealed class ThreadChangesTab : Button
     private void SetTooltip()
     {
         // :43 .help("Show this thread's changes\(ShortcutStore.hint(for: .toggleChanges))")
-        var tooltipText = "Show this thread's changes";
-
-        // Get the shortcut hint (this would come from ShortcutStore in the real app)
-        var shortcutHint = GetShortcutHint();
-        if (!string.IsNullOrEmpty(shortcutHint))
-        {
-            tooltipText += $" ({shortcutHint})";
-        }
-
+        // ShortcutStore.Hint already returns " (<label>)" with its own leading space and
+        // parentheses, or "" once the chord is cleared (Core/Models/Shortcuts.cs:292-298).
+        var tooltipText = "Show this thread's changes" + ShortcutStore.Hint(AppShortcut.ToggleChanges);
         ToolTip.SetTip(this, tooltipText);
     }
 
@@ -142,12 +139,4 @@ public sealed class ThreadChangesTab : Button
         AutomationProperties.SetName(this, label);
     }
 
-    private static string GetShortcutHint()
-    {
-        // This would normally come from ShortcutStore.hint(for: .toggleChanges)
-        // For now, return a default hint that can be overridden by the caller
-        // The actual shortcut would be "Ctrl+D" on Windows (OD-0008 B7)
-        // TODO: Integrate with ShortcutStore once available
-        return "Ctrl+D"; // Default chord
-    }
 }
