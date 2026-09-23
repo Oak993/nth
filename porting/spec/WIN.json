@@ -5062,7 +5062,7 @@
       "persistence": "Nothing persisted by the table itself; the setting is stored by the settings area under the key \"appZoom\" (AppSettings.swift:131, :253-254).",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5083,7 +5083,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5105,7 +5105,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5125,7 +5125,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5145,7 +5145,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7411,7 +7411,8 @@
         "DroppyCode/UI/Common/AppZoom.swift:18-51",
         "DroppyCode/App/Window/WindowManager.swift:173-175",
         "DroppyCode/App/Views/RootView.swift:276-282"
-      ]
+      ],
+      "status": "IMPLEMENTED"
     }
   ]
 }
