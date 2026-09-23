@@ -264,6 +264,82 @@ public static class RealWindowDriver
         window.Close();
     });
 
+    /// <summary>A read-back of RelativeSizeAdjustment that differs from (1,1) (RESULT.md step 3).</summary>
+    public static string[] RelativeReadBackDiffers() =>
+        LeftAsAvaloniaMadeIt(() => ResizeStretch.ReadBack.Override((_, stretch) => (Vector2.Zero, stretch)));
+
+    /// <summary>A read-back of the brush Stretch that differs from Fill (RESULT.md step 3).</summary>
+    public static string[] StretchReadBackDiffers() =>
+        LeftAsAvaloniaMadeIt(() => ResizeStretch.ReadBack.Override((relative, stretch) => (relative, Enum.Parse(stretch.GetType(), "Uniform"))));
+
+    /// <summary>A read-back that fails with an exception after every value has been changed.</summary>
+    public static string[] ReadBackThrows() =>
+        LeftAsAvaloniaMadeIt(() => ResizeStretch.ReadBack.Override((_, _) => throw new InvalidOperationException("read-back refused")));
+
+    /// <summary>A member that the Avalonia.Win32 in use lacks, on a real WindowImpl whose first frame is drawn.</summary>
+    public static string[] MemberMissing() => LeftAsAvaloniaMadeIt(() => ResizeStretch.Unresolved.Override(
+        new HashSet<string>(StringComparer.Ordinal) { "Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow._surfaceBrush" }));
+
+    /// <summary>
+    /// ED-101: "if any member is missing or a read-back differs it logs once and leaves the window as Avalonia made it".
+    /// Applies twice under the given seam after the first frame, then reads the composition state, resizes and closes.
+    /// </summary>
+    private static string[] LeftAsAvaloniaMadeIt(Func<IDisposable> seam) => OnUi(async lines =>
+    {
+        var window = NewWindow();
+        window.Show();
+        var (surface, cw, sync) = await FirstFrame(window, lines);
+        object real, brush;
+        lock (sync)
+        {
+            real = Field(cw, "_visual")!;
+            brush = Field(cw, "_surfaceBrush")!;
+            lines.Add("before.client.px=" + ClientPx(window));
+            lines.Add("before.content.size=" + Size(real));
+            lines.Add("before.content.relative=" + Relative(real));
+            lines.Add("before.stretch=" + Stretch(brush));
+        }
+
+        var logs = new List<string>();
+        ResizeStretch? first, second;
+        using (ResizeStretch.Log.Override(new ResizeStretchLog(logs.Add)))
+        using (seam())
+        {
+            first = ResizeStretch.Apply(window);
+            second = ResizeStretch.Apply(window);
+        }
+        lines.Add("applied=" + (first != null || second != null));
+        lines.Add("logs=" + logs.Count);
+        lines.Add("log=" + string.Join(" | ", logs));
+
+        lock (sync)
+        {
+            lines.Add("after.visual.is.content=" + ReferenceEquals(Field(cw, "_visual"), real));
+            lines.Add("after.content.disposed=" + IsDisposed(real));
+            lines.Add("after.client.px=" + ClientPx(window));
+            lines.Add("after.content.size=" + Size(real));
+            lines.Add("after.content.relative=" + Relative(real));
+            lines.Add("after.stretch=" + Stretch(brush));
+        }
+
+        // Avalonia's own ResizeIfNeeded still sizes the real content visual.
+        string restPx = ClientPx(window);
+        window.Width = 560;
+        window.Height = 380;
+        bool resized = await Frames(window, () => { lock (sync) return ClientPx(window) != restPx && Size(real) == ClientPx(window); }, 600);
+        lock (sync)
+        {
+            lines.Add("resized.seen=" + resized);
+            lines.Add("resized.visual.is.content=" + ReferenceEquals(Field(cw, "_visual"), real));
+            lines.Add("resized.content.relative=" + Relative(real));
+            lines.Add("resized.stretch=" + Stretch(brush));
+        }
+
+        window.Close();
+        lines.Add("closed.surface.released=" + await Until(() => Field(surface, "_window") == null, 200));
+        lines.Add("closed.content.disposed=" + IsDisposed(real));
+    });
+
     // ---- helpers ----
 
     private static Window NewWindow() => new StretchSubjectWindow

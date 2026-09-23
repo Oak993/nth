@@ -122,6 +122,46 @@ public sealed class ResizeStretchTests(HeadlessSession headless)
         Assert.Equal(r["after.client.px"], r["after.scene.px"]);
     }
 
+    // ED-101: "if any member is missing or a read-back differs it logs once and leaves the window as Avalonia made it";
+    // RESULT.md step 3. Each case changes nothing but what the remedy sees (ResizeStretch.ReadBack, ResizeStretch.Unresolved)
+    // on a real Win32 window after its first frame, and applies twice: the window must be exactly as before, with
+    // Avalonia's content visual in `_visual`, its absolute size equal to the client area, RelativeSizeAdjustment (0,0)
+    // and the brush Uniform, and one log that names the cause.
+    [Theory]
+    [Trait("Decision", "ED-101")]
+    [InlineData(nameof(RealWindowDriver.RelativeReadBackDiffers), "RelativeSizeAdjustment (0,0)")]
+    [InlineData(nameof(RealWindowDriver.StretchReadBackDiffers), "Stretch Uniform")]
+    [InlineData(nameof(RealWindowDriver.ReadBackThrows), "read-back refused")]
+    [InlineData(nameof(RealWindowDriver.MemberMissing), "Avalonia.Win32.WinRT.Composition.WinUiCompositedWindow._surfaceBrush")]
+    public void When_a_member_is_missing_or_a_read_back_differs_it_logs_once_and_leaves_the_real_window_as_Avalonia_made_it(
+        string scenario, string cause)
+    {
+        var r = RealWin32.Run(scenario);
+
+        // As Avalonia made it before the attempt.
+        Assert.Equal(r["before.client.px"], r["before.content.size"]);
+        Assert.Equal("0,0", r["before.content.relative"]);
+        Assert.Equal("Uniform", r["before.stretch"]);
+        // Not applied, logged once.
+        Assert.Equal("False", r["applied"]);
+        Assert.Equal("1", r["logs"]);
+        Assert.Contains(cause, r["log"], StringComparison.Ordinal);
+        // Left as Avalonia made it.
+        Assert.Equal("True", r["after.visual.is.content"]);
+        Assert.Equal("False", r["after.content.disposed"]);
+        Assert.Equal(r["before.client.px"], r["after.client.px"]);
+        Assert.Equal(r["after.client.px"], r["after.content.size"]);
+        Assert.Equal("0,0", r["after.content.relative"]);
+        Assert.Equal("Uniform", r["after.stretch"]);
+        // Avalonia's ResizeIfNeeded keeps sizing its own content visual, and close releases it as usual.
+        Assert.Equal("True", r["resized.seen"]);
+        Assert.Equal("True", r["resized.visual.is.content"]);
+        Assert.Equal("0,0", r["resized.content.relative"]);
+        Assert.Equal("Uniform", r["resized.stretch"]);
+        Assert.Equal("True", r["closed.surface.released"]);
+        Assert.Equal("True", r["closed.content.disposed"]);
+    }
+
     [Fact]
     [Trait("Decision", "ED-101")]
     public void Without_the_Win32_composition_members_it_logs_once_and_leaves_the_window_as_Avalonia_made_it() => headless.OnUiThread(() =>
