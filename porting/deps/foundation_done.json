@@ -10,6 +10,7 @@
     "F.SwiftFont",
     "F.PathIdentity",
     "F.ResizeStretch",
-    "F.ProcessLauncher"
+    "F.ProcessLauncher",
+    "F.URL"
   ]
 }

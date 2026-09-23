@@ -85,7 +85,7 @@ def project(f):
 
 def target(f):
     m = re.match(r'^DroppyCode/(Core|Services|UI|App)/(.+)\.swift$', f)
-    return f'src/{project(f)}/{m.group(2).replace("+", ".")}.cs'
+    return f'src/{project(f)}/{m.group(2)}.cs'
 
 
 def uid(f):
