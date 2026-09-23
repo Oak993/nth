@@ -21,14 +21,21 @@ namespace Marrow.Core.Tests.Models;
 // naming its arguments (ED-095 parameter order).
 // Not Codable in Swift, so there is no decoding path to test; not cancellable, and no error path exists.
 // Held by other units, not by this file: the plan-state write where only .approve accepts a plan and
-// .approveAlways dismisses it (App/Runtime/ThreadRuntime.swift:1725, PR-RUNTIME-138), the masked input for
-// isSecret (App/Views/Composer/QuestionTab.swift:231-232), and the card geometry, colours and glyph drawing of
-// UI-RUNTIME-005 (App/Views/Composer/RequestCards.swift:3-65).
+// .approveAlways dismisses it (App/Runtime/ThreadRuntime.swift:1725, PR-RUNTIME-138), and the masked input for
+// isSecret (App/Views/Composer/QuestionTab.swift:231-232).
+// UI-RUNTIME-005 is only partly proven here. The Req traits for it in this file prove its exact_text
+// (Requests.swift:34-42) and its symbol mapping (Requests.swift:44-52), nothing more. Its geometry
+// (RequestCards.swift:8 VStack spacing 10, :9 HStack spacing 8, :14 Spacer, :62 padding 16, :64 continuous
+// rect cornerRadius 20), typography (:13 .font(.headline), 13 pt Inter by ED-059), colours (:11 Chrome.warning,
+// :64 tint Chrome.warning.opacity(0.1)) and states have NO test in this unit or any other: Marrow.Core tests
+// cannot reach the view layer, and no other unit holds the record. The record has to be split or reassigned
+// so that App.Views.Composer.RequestCards covers RequestCards.swift:8-15 and :62-64; until then these traits
+// must not be counted as verifying the whole record.
 public sealed class RequestsTests
 {
     [Theory]
     [Trait("Req", "PR-RUNTIME-017")] // Core/Models/Requests.swift:34-42
-    [Trait("Req", "UI-RUNTIME-005")] // App/Views/Composer/RequestCards.swift:12 Text(request.headline)
+    [Trait("Req", "UI-RUNTIME-005")] // Core/Models/Requests.swift:34-42 (exact_text only), read at RequestCards.swift:12
     [InlineData(Kind.Command, "Run this command?")]
     [InlineData(Kind.FileChange, "Apply these changes?")]
     [InlineData(Kind.Tool, "Allow this action?")]
@@ -47,7 +54,7 @@ public sealed class RequestsTests
 
     [Theory]
     [Trait("Req", "PR-RUNTIME-018")] // Core/Models/Requests.swift:44-52
-    [Trait("Req", "UI-RUNTIME-005")] // App/Views/Composer/RequestCards.swift:10 Image(systemName: request.symbol)
+    [Trait("Req", "UI-RUNTIME-005")] // Core/Models/Requests.swift:44-52 (symbol mapping only), read at RequestCards.swift:10
     [InlineData(Kind.Command, "terminal")]
     [InlineData(Kind.FileChange, "doc.badge.plus")]
     [InlineData(Kind.Tool, "wrench.and.screwdriver")]
@@ -82,14 +89,15 @@ public sealed class RequestsTests
     }
 
     [Theory]
-    [Trait("Req", "PR-RUNTIME-018")] // OD-0010, porting/icons/sf-symbols-to-lucide.json
-    [Trait("Req", "UI-RUNTIME-005")] // notes: the five icons follow OD-0010
-    [InlineData(Kind.Command, "square-terminal")]
-    [InlineData(Kind.FileChange, "file-plus")]
-    [InlineData(Kind.Tool, "wrench")]
-    [InlineData(Kind.Permissions, "shield-lock")]
-    [InlineData(Kind.Plan, "list-checks")]
-    public void Each_symbol_maps_one_for_one_through_the_OD_0010_table_to_a_shipped_Lucide_icon(Kind kind, string lucide)
+    [Trait("Req", "PR-RUNTIME-018")] // Core/Models/Requests.swift:44-52, mapped by OD-0010
+    [Trait("Req", "UI-RUNTIME-005")] // Core/Models/Requests.swift:44-52 (symbol mapping only), mapped by OD-0010
+    [InlineData(Kind.Command, "square-terminal", 46)]
+    [InlineData(Kind.FileChange, "file-plus", 47)]
+    [InlineData(Kind.Tool, "wrench", 48)]
+    [InlineData(Kind.Permissions, "shield-lock", 49)]
+    [InlineData(Kind.Plan, "list-checks", 50)]
+    public void Each_symbol_maps_one_for_one_through_the_OD_0010_table_to_a_shipped_Lucide_icon(Kind kind, string lucide,
+        int line)
     {
         var symbol = Sample(kind).Symbol;
         var porting = Path.Combine(RepositoryRoot(), "porting", "icons");
@@ -99,8 +107,10 @@ public sealed class RequestsTests
             .Where(e => e.GetProperty("sf").GetString() == symbol).ToList();
         var entry = Assert.Single(entries);
         Assert.Equal(lucide, entry.GetProperty("lucide").GetString());
-        Assert.Contains(entry.GetProperty("sites").EnumerateArray(),
-            s => (s.GetString() ?? "").StartsWith("DroppyCode/Core/Models/Requests.swift:", StringComparison.Ordinal));
+        // The entry is filed against this kind's own case line, not merely against Requests.swift.
+        var requestsSites = entry.GetProperty("sites").EnumerateArray().Select(s => s.GetString() ?? "")
+            .Where(s => s.StartsWith("DroppyCode/Core/Models/Requests.swift:", StringComparison.Ordinal)).ToList();
+        Assert.Equal("DroppyCode/Core/Models/Requests.swift:" + line, Assert.Single(requestsSites));
         Assert.True(File.Exists(Path.Combine(porting, "lucide", lucide + ".svg")), lucide + ".svg is shipped");
     }
 
@@ -156,7 +166,7 @@ public sealed class RequestsTests
     [Trait("Req", "PR-RUNTIME-016")] // Core/Models/Requests.swift:29-32 optionals; memberwise init defaults them to nil
     public void Approval_request_omitted_optionals_are_nil_as_the_Swift_memberwise_init_gives()
     {
-        // Services/Providers/CopilotSession.swift:867 omits detail, reason and toolItemID.
+        // Services/Providers/CopilotSession.swift:866 omits detail, reason and toolItemID.
         var request = new ApprovalRequest(Id: "", RequestKind: Kind.Tool, Title: "Manage an extension",
             Options: ValueList<Option>.Empty);
 
@@ -398,6 +408,32 @@ public sealed class RequestsTests
     }
 
     [Fact]
+    [Trait("Req", "PR-RUNTIME-016")] // Core/Models/Requests.swift:26-32 seven stored fields, :34-52 headline and symbol
+    public void Approval_request_declares_exactly_its_seven_fields_and_the_two_computed_members()
+    {
+        Assert.Equal(
+            new[] { "Detail", "Headline", "Id", "Options", "Reason", "RequestKind", "Symbol", "Title", "ToolItemID" },
+            DeclaredPublicProperties<ApprovalRequest>());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-RUNTIME-019")] // Core/Models/Requests.swift:21-23 three fields: id, title, role
+    public void Option_declares_exactly_its_three_fields()
+    {
+        Assert.Equal(new[] { "Id", "OptionRole", "Title" }, DeclaredPublicProperties<Option>());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-RUNTIME-020")] // Core/Models/Requests.swift:58-64 seven fields, :68-69 two, :72-73 two
+    public void Question_request_question_and_choice_declare_exactly_their_source_fields()
+    {
+        Assert.Equal(new[] { "AllowsMultiple", "AllowsOther", "Choices", "Header", "Id", "IsSecret", "Prompt" },
+            DeclaredPublicProperties<Question>());
+        Assert.Equal(new[] { "Detail", "Label" }, DeclaredPublicProperties<Choice>());
+        Assert.Equal(new[] { "Id", "Questions" }, DeclaredPublicProperties<QuestionRequest>());
+    }
+
+    [Fact]
     [Trait("Rule", "R-ENUM-1")] // Core/Models/Requests.swift:35-41, :45-51 exhaustive switches with no default
     public void Headline_and_symbol_switches_have_no_invented_fallback_arm()
     {
@@ -409,6 +445,16 @@ public sealed class RequestsTests
 
     private static ApprovalRequest Sample(Kind kind) =>
         new(Id: "id", RequestKind: kind, Title: "title", Options: ValueList<Option>.Empty);
+
+    // The public instance properties the type itself declares, sorted ordinally. A record's compiler-generated
+    // EqualityContract is protected, and it is excluded by name as well so the set holds only source fields.
+    private static string[] DeclaredPublicProperties<T>() =>
+        typeof(T).GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance |
+                                System.Reflection.BindingFlags.DeclaredOnly)
+            .Select(p => p.Name)
+            .Where(n => n != "EqualityContract")
+            .OrderBy(n => n, StringComparer.Ordinal)
+            .ToArray();
 
     private static string RepositoryRoot([CallerFilePath] string path = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path)!, "..", "..", ".."));
