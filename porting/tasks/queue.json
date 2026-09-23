@@ -1906,7 +1906,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 TESTS_REVIEW: Reviewed eight pure-helper requirements PR-STORE-105..112 against all 129 Swift lines; AppInfo PR-STORE-008/009 remain pending. Tests independently cover exact hunks, UTF8 cap boundaries, grapheme lengths, ANSI pattern, prescan and throughput. | 2026-09-22 DONE: All ten requirements reviewed against Text.swift 1..129 and project.yml metadata. 47 packet tests plus one MCP regression; solution 236 passing. Preserves UTF8 prescan, graphemes, fixed ANSI pattern semantics, 120/119 ellipsis, 200000 input cap and source diff quirks. AssemblyMetadata adapter uses source keys and Debug/Release build channel; OD-0002 Marrow rename. Existing seven runtime call sites await their own packets. Latest Text.swift adds only trimmed helper, no change to covered logic. Self-review caught Swift regex normalization mismatch; separate failing tests committed before fix."
     },
@@ -1926,7 +1926,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 TESTS_REVIEW: Reviewed exact Text.swift 114..129 convenience construction and nilIfEmpty, plus unchanged Timeline.swift 170..175 carrier fields. Tests cover source hunk, >200000 cap, no trimming, same-object strings and strict Codable carrier shape. | 2026-09-22 DONE: 15 tests pass; source convenience initializer computes stats once and preserves path; nilIfEmpty preserves all nonempty strings. Minimal FileEdit carrier read from Timeline.swift 170..175, unchanged by latest diff. Exact JSON field keys, strict nonoptional decoding and nil diff omission covered. Director source/diff review; no tests modified after approval. 251 total tests, protected/A/B/quarantine and build floor pass; integration remains unverified."
     },
@@ -5919,7 +5919,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -11541,7 +11541,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -11558,7 +11558,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "ui",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },

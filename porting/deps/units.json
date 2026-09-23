@@ -509,24 +509,14 @@
    ],
    "intra_deps": [],
    "records_total": 3,
-   "records_todo": [
-    "PR-COMPOSER-083",
-    "PR-COMPOSER-084",
-    "UI-COMPOSER-080"
-   ],
-   "parts": [
-    [
-     "PR-COMPOSER-083",
-     "PR-COMPOSER-084",
-     "UI-COMPOSER-080"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-071",
     "T-M7-072"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Terminal.TerminalFont",
@@ -938,25 +928,13 @@
    ],
    "intra_deps": [],
    "records_total": 4,
-   "records_todo": [
-    "PR-PROVREG-219",
-    "PR-PROVREG-220",
-    "PR-PROVREG-221",
-    "PR-PROVREG-222"
-   ],
-   "parts": [
-    [
-     "PR-PROVREG-219",
-     "PR-PROVREG-220",
-     "PR-PROVREG-221",
-     "PR-PROVREG-222"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-141"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Chrome.ProjectSymbolCatalogue",
@@ -1880,46 +1858,14 @@
     "Core.Models.Timeline"
    ],
    "records_total": 14,
-   "records_todo": [
-    "PR-STORE-008",
-    "PR-STORE-009",
-    "PR-STORE-105",
-    "PR-STORE-106",
-    "PR-STORE-107",
-    "PR-STORE-108",
-    "PR-STORE-109",
-    "PR-STORE-110",
-    "PR-STORE-111",
-    "PR-STORE-112",
-    "PR-STORE-113",
-    "PR-STORE-114",
-    "PR-STORE-167",
-    "PR-UPDATE-112"
-   ],
-   "parts": [
-    [
-     "PR-STORE-008",
-     "PR-STORE-009",
-     "PR-STORE-105",
-     "PR-STORE-106",
-     "PR-STORE-107",
-     "PR-STORE-108",
-     "PR-STORE-109",
-     "PR-STORE-110",
-     "PR-STORE-111",
-     "PR-STORE-112",
-     "PR-STORE-113",
-     "PR-STORE-114",
-     "PR-STORE-167",
-     "PR-UPDATE-112"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-075",
     "T-M2-076"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.ThumbnailCache",
