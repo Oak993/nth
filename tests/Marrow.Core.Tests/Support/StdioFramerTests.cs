@@ -494,12 +494,15 @@ public sealed class StdioFramerTests
         Assert.Equal(Bytes("tail"), tail);
     }
 
-    // Swift's separator is a Character, not a UTF-16 code unit: ":" followed by an Extend scalar or ZWJ is one
-    // Character, so the line has no ":" separator and is skipped, and the next line decides.
+    // Swift's separator is a Character, not a UTF-16 code unit: ":" followed by an Extend scalar or ZWJ (UAX29 GB9)
+    // or a SpacingMark (GB9a) is one Character, so the line has no ":" separator and is skipped, and the next line
+    // decides. The supplementary-plane Extend case guards against a port that inspects only the next UTF-16 unit.
     [Theory]
     [Trait("Req", "PR-PROVACP-152")] // StdioFramer.swift:73-74
     [InlineData("\U00000301")] // U+0301 COMBINING ACUTE ACCENT
     [InlineData("\U0000200D")] // U+200D ZERO WIDTH JOINER
+    [InlineData("\U00000903")] // U+0903 DEVANAGARI SIGN VISARGA (Mc, SpacingMark, GB9a)
+    [InlineData("\U000E0100")] // U+E0100 VARIATION SELECTOR-17 (Mn, Extend, GB9, supplementary plane)
     public void A_colon_joined_to_the_next_scalar_is_not_a_colon_separator(string joiner)
     {
         var framer = new StdioFramer(StdioFramer.Framing.ContentLength);
