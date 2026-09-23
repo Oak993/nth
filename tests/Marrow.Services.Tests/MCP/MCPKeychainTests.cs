@@ -497,7 +497,8 @@ public sealed class MCPKeychainTests
         Assert.True(MCPKeychain.DeleteAll(server: GitHub(new MCPField("token", "Personal access token", "", MCPField.Kind.Secret))));
 
         Assert.Null(MCPKeychain.Value(server: "github", field: "token"));
-        Assert.Equal([Target("MCP github oauth"), Target("MCP github oauth-client")],
+        // Both sides in ordinal order: the assertion is that exactly these two items remain.
+        Assert.Equal(new[] { Target("MCP github oauth"), Target("MCP github oauth-client") }.Order(StringComparer.Ordinal).ToList(),
             memory.TargetNames.Order(StringComparer.Ordinal).ToList());
     }
 
@@ -508,6 +509,8 @@ public sealed class MCPKeychainTests
         // :64 iterates an empty list.
         using var scope = UseStore();
         Seed("MCP github token", "ghp-made-up-value");
+        // The seeding write's own continuation sweep (ED-120 (2)) is not DeleteAll's; count from here.
+        memory.Operations.Clear();
 
         Assert.True(MCPKeychain.DeleteAll(server: GitHub()));
 
