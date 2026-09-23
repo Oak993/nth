@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 997,
+      "IMPLEMENTED": 1009,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 2885,
+      "SPECIFIED": 2876,
       "RETIRED": 6,
-      "DISCOVERED": 25
+      "DISCOVERED": 22
     },
     "by_area": {
       "CHAT": 193,
@@ -4327,7 +4327,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: bundle identifiers have no Windows counterpart, so each entry needs a Windows detection key, which is not yet decided (see open_question). OD-0012 G4 settles the substitutions: \"Terminal\" is Windows Terminal, and Xcode and iTerm are left out because they do not exist on Windows. G4 names only Finder, Terminal, Xcode and iTerm, so \"Visual Studio Code\", \"Cursor\", \"Zed\" and \"Ghostty\" stay, with their display names verbatim.",
       "verification_method": "contract fixture over the five display names and their order, and over each entry's Windows detection key once it is decided",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4361,7 +4361,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The once-per-launch resolution is deliberate and must survive: the menu is rebuilt on every chrome render, so a per-render installed-application query is exactly the cost the source is avoiding. The stale-after-install and stale-after-uninstall consequences above are upstream behaviour, not defects to repair. The icon cache keyed by the Windows detection key, resized once, carries over unchanged.",
       "verification_method": "unit test that the resolution runs once and the icon cache is consulted on the second build; interaction test that an uninstalled editor's item opens nothing",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -57275,7 +57275,7 @@
       "cancellation": "not cancellable once the terminal opens; the app does not track the shell.",
       "windows_path": "PLATFORM BOUNDARY: the zsh shebang, the .command extension, the POSIX permission bits and the workspace open verb all have no Windows equivalent. The Windows build must launch the command in a Windows terminal, and the per-CLI file naming rule should be preserved if a script file is used at all. The token derivation rule is a source fact and must be kept if file names are kept. OD-0012 F1: the temporary folder is named \"marrow-login\" in place of \"droppy-code-login\".",
       "verification_method": "interaction test asserting the derived file name and the launched command",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -73259,7 +73259,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Tabular figures for the monospaced digits; the abbreviated month comes from the Windows locale and is therefore not a fixed string.",
       "verification_method": "unit test at each boundary (59 s, 60 s, 3599 s, 3600 s, 86399 s, 86400 s, 604799 s, 604800 s) and for a negative interval.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -74908,7 +74908,7 @@
       "cancellation": "A relaunch cancels the previous glide for the same thread without running its finish, so its hiding flag is inherited by the new one.",
       "windows_path": "Reduce Motion maps to the Windows client-area-animation system setting. Platform boundary: accessibility settings.",
       "verification_method": "interaction test with the system reduced-motion setting on and off.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -74932,7 +74932,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct translation of the 0.5 s window and the direction match.",
       "verification_method": "unit test on the guard, plus a capture comparison with the destination scrolled out of view.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -74957,7 +74957,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Per-thread observation granularity must be preserved, or every glide re-renders the whole list.",
       "verification_method": "capture comparison at the handover, plus a unit test that only two rows re-render per glide.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -74980,7 +74980,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Every literal threshold and the smoothstep formula must be reproduced. The keyframe animator runs its closure off the main actor, which is why the check insets are declared nonisolated; the Windows implementation may evaluate wherever it likes but must not read live UI state from inside the interpolation.",
       "verification_method": "capture comparison at sampled progress values against a reference recording.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -75003,7 +75003,7 @@
       "cancellation": "not cancellable",
       "windows_path": "These two insets (36 and 16) are separate constants from the row's own check insets (26 and 6) and must not be unified with them. By owner ruling OD-0010 `checkmark.circle` and `checkmark.circle.fill` are both drawn as the Lucide icon `circle-check` from the published table porting/icons/sf-symbols-to-lucide.json, the filled form with the table's fill rendering (fill=currentColor on closed shapes) so the two stay distinct.",
       "verification_method": "capture comparison at sampled progress values.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -75034,7 +75034,7 @@
       "cancellation": "Task cancellation aborts both sleeps.",
       "windows_path": "The spring's settling duration must be computed the same way for the timing to line up. Platform boundary: spring solver. The 0.12 s handover is literal.",
       "verification_method": "unit test on the timing with a controlled clock.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -75055,7 +75055,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A non-hit-testable, non-accessible overlay above the window content.",
       "verification_method": "interaction test clicking through a flight.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84378,7 +84378,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two literal colours. These are the only colours in the theme area declared in floating-point components; they are declared without an explicit colour space and so take the framework default, which is sRGB, the same space AppTheme's hex colours use.",
       "verification_method": "unit: the two component triples",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

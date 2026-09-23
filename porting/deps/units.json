@@ -2526,36 +2526,14 @@
    ],
    "intra_deps": [],
    "records_total": 9,
-   "records_todo": [
-    "PR-SIDEBAR-136",
-    "PR-SIDEBAR-137",
-    "PR-SIDEBAR-138",
-    "PR-SIDEBAR-139",
-    "PR-SIDEBAR-140",
-    "PR-SIDEBAR-141",
-    "PR-SIDEBAR-142",
-    "UI-SIDEBAR-050",
-    "UI-SIDEBAR-051"
-   ],
-   "parts": [
-    [
-     "PR-SIDEBAR-136",
-     "PR-SIDEBAR-137",
-     "PR-SIDEBAR-138",
-     "PR-SIDEBAR-139",
-     "PR-SIDEBAR-140",
-     "PR-SIDEBAR-141",
-     "PR-SIDEBAR-142",
-     "UI-SIDEBAR-050",
-     "UI-SIDEBAR-051"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-192",
     "T-M7-193"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Terminal.TerminalStore",
@@ -3055,19 +3033,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "UI-SETTINGS-030"
-   ],
-   "parts": [
-    [
-     "UI-SETTINGS-030"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-077"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Chrome.ProjectIconPicker",
@@ -3339,28 +3311,14 @@
    ],
    "intra_deps": [],
    "records_total": 5,
-   "records_todo": [
-    "PR-CHAT-181",
-    "PR-CHAT-182",
-    "PR-PROVREG-233",
-    "PR-SIDEBAR-074",
-    "UI-GIT-007"
-   ],
-   "parts": [
-    [
-     "PR-CHAT-181",
-     "PR-CHAT-182",
-     "PR-PROVREG-233",
-     "PR-SIDEBAR-074",
-     "UI-GIT-007"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-035",
     "T-M5-036"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Common.HydraGlyph",
@@ -3479,22 +3437,14 @@
    ],
    "intra_deps": [],
    "records_total": 2,
-   "records_todo": [
-    "PR-THEME-043",
-    "UI-THEME-048"
-   ],
-   "parts": [
-    [
-     "PR-THEME-043",
-     "UI-THEME-048"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-072",
     "T-M5-073"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Composer.DownloadsPopover",
