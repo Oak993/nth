@@ -183,7 +183,6 @@ namespace Marrow.UI.Chrome
     {
         /// <summary>
         /// Observable hover state model to enable animation tracking (R-OBS-1, ED-070).
-        /// Stores hover opacity that animates from 0 (not hovering) to 0.08 (hovering).
         /// </summary>
         private sealed class HoverState : MainActorModel
         {
@@ -257,7 +256,6 @@ namespace Marrow.UI.Chrome
                 Padding = new Thickness(0),
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Left,
-                Background = Brushes.Transparent, // Ensure hit testing works
             };
 
             // :56 Build label content first
@@ -288,7 +286,12 @@ namespace Marrow.UI.Chrome
             // Setup animated background color
             _animatedBackground = new AnimatedColor(_capsuleBorder);
             _capsuleBorder.Background = _animatedBackground.Brush;
-            UpdateBackgroundColor();
+
+            // Initialize background color for current state (no animation at init time)
+            var initialColor = _isSelected
+                ? Chrome.Accent.Opacity(0.22)
+                : Chrome.Overlay(_hoverState.IsHovering ? 0.08 : 0);
+            _animatedBackground.Set(initialColor, animation: null);
 
             // :64 .contentShape(Capsule(...)) - the capsule is the hit shape
             // :66 .buttonStyle(.plain)
@@ -309,7 +312,7 @@ namespace Marrow.UI.Chrome
                 Transaction.WithAnimation(Chrome.Hover, () =>
                 {
                     _hoverState.IsHovering = hovering;
-                    UpdateBackgroundColor(); // Call directly within animation block so Transaction.Current is set
+                    UpdateBackgroundColor();
                 });
             });
 
@@ -372,7 +375,8 @@ namespace Marrow.UI.Chrome
         /// <summary>
         /// Update the background color based on selection and hover state.
         /// :63 .background(Capsule(...).fill(isSelected ? Chrome.accent.opacity(0.22) : Chrome.overlay(isHovering ? 0.08 : 0)))
-        /// When hovering changes, the color animates from one overlay opacity to another over Chrome.Hover duration.
+        /// When the hover state changes, the color animates from one fill to another over Chrome.Hover duration
+        /// using AnimatedColor.Set() with Transaction.Current.
         /// </summary>
         private void UpdateBackgroundColor()
         {
@@ -391,8 +395,7 @@ namespace Marrow.UI.Chrome
                 bgColor = Chrome.Overlay(_hoverState.IsHovering ? 0.08 : 0);
             }
 
-            // Use AnimatedColor.Set with the animation from Transaction.Current
-            // This will animate the color change if we're within a Transaction.WithAnimation block
+            // Use AnimatedColor.Set with Transaction.Current, which should be set by the OnHover handler
             _animatedBackground.Set(bgColor, Transaction.Current);
         }
 
@@ -409,7 +412,13 @@ namespace Marrow.UI.Chrome
                 ApplyLabelStyling(_labelContent);
             }
 
-            // Update background color when selection changes (no animation, uses current transaction if any)
+            // Reset hover state when selection changes
+            if (isNowSelected)
+            {
+                _hoverState.IsHovering = false;
+            }
+
+            // Update background color when selection changes (animation uses current transaction if any)
             UpdateBackgroundColor();
 
             // :70 .accessibilityAddTraits(isSelected ? .isSelected : [])
