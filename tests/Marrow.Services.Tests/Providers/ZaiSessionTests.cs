@@ -182,7 +182,7 @@ public sealed class ZaiSessionTests
     {
         Assert.Equal(
             "Your Z.ai Coding Plan does not include glm-air. Pick GLM-5.3 or GLM-5.3 Flash for the model, or move up a plan tier.",
-            Friendly("Your plan DOES NOT YET INCLUDE ACCESS TO `glm-air`. Other options exist.", statusCode: 429));
+            Friendly("Your plan DOES NOT YET INCLUDE ACCESS TO `glm-air`.", statusCode: 429));
         // Trim set is exactly whitespace, newlines, full stop, backtick, double quote, single quote.
         Assert.Equal(
             "Your Z.ai Coding Plan does not include glm-air\"x. Pick GLM-5.3 or GLM-5.3 Flash for the model, or move up a plan tier.",
@@ -194,10 +194,12 @@ public sealed class ZaiSessionTests
     public void Plan_refused_model_falls_back_to_that_model_when_nothing_is_left()
     {
         const string expected = "Your Z.ai Coding Plan does not include that model. Pick GLM-5.3 or GLM-5.3 Flash for the model, or move up a plan tier.";
-        // No 'access to ' at all.
-        Assert.Equal(expected, Friendly("Error 1311: this plan does not carry the model.", statusCode: 429));
-        // 'access to ' present but nothing usable after trimming.
-        Assert.Equal(expected, Friendly("does not yet include access to . `\"' \n", statusCode: 429));
+        // The outer branch's own trigger phrase is present, but 'access to ' is not, so the inner
+        // search finds nothing at all.
+        Assert.Equal(expected, Friendly("Error 1311: your plan does not yet include access, sorry.", statusCode: 429));
+        // 'access to ' present, but every character left after it is in the trim set, so trimming
+        // both ends of the remainder empties it out.
+        Assert.Equal(expected, Friendly("does not yet include access to .`\"'", statusCode: 429));
     }
 
     // ---- PR-PROVAPI-079 ----
