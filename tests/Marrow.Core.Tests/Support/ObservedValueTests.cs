@@ -15,16 +15,9 @@ namespace Marrow.Core.Tests.Support;
 // Hashable, Sendable {" ... "var id: UUID" ... "var title: String") kept in Fixtures/ObservationSamples.cs. ChatThread
 // is Hashable, so Equatable: record equality models it, and two equal values really are equal Swift values.
 //
-// PARTIAL PROOF, PENDING A RULING (STOP Core.Support.ObservedValue #1). The Req("PR-STORE-128") traits in this file
-// prove only the ObservedValue.swift:4-13 clauses of the record: per-item re-render isolation (:4-5), exactly one
-// property (:9), main-actor isolation (:6) and init storing the value (:11-13). The record's other clauses, "is
-// created once per item" and "Cells are built inside AppModel.init because property observers do not fire there"
-// (DroppyCode/App/AppModel.swift:137-139; the record cites :138-140), are not proven here, and no stand-in AppModel
-// is written. No other unit owns them: porting/deps/units.json gives PR-STORE-128 to this unit alone, and
-// req_verify.mjs marks a record VERIFIED as soon as every Req test for it passes. The orchestrator chooses between
-// (a) splitting the record, so that these traits prove only the :4-13 clauses and a new id owned by App.AppModel
-// takes the other two, or (b) adding PR-STORE-128 to App.AppModel's records and removing the Req traits here until
-// that unit's test exists. Until that ruling, a green run of this file must not be read as verifying the record.
+// The Req("PR-STORE-128") traits in this file prove the whole of PR-STORE-128 as split by the ruling on STOP
+// Core.Support.ObservedValue #1. Cell creation in AppModel.init and the sync that writes only changed items
+// (AppModel.swift:137-140, :148-177) are PR-STORE-171, owned by App.AppModel.
 public sealed class ObservedValueTests
 {
     private static readonly Guid A = Guid.Parse("00000000-0000-0000-0000-00000000000A");
