@@ -26,8 +26,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "ED-169: Foundation URLComponents and URLQueryItem as port types, built on SwiftURL parsing and percent-coding (swift-foundation 6.2), members exactly as the call sites use them; oracle items O-57 to O-60.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.HTTPMove",
