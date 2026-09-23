@@ -1,4 +1,5 @@
 using Marrow.Core.Models;
+using Marrow.Core.Port;
 
 namespace Marrow.Core.Tests.Models;
 
@@ -60,7 +61,8 @@ public sealed class MCPCatalogFinalTests
     public void Categories_and_their_members_preserve_both_source_orders()
     {
         var groups = MCPCatalog.ByCategory;
-        Assert.Equal(Enum.GetValues<MCPCategory>(), groups.Select(group => group.Category));
+        // R-ENUM-1: never Enum.GetValues on a ported Swift enum; use SwiftEnum<T>.AllCases.
+        Assert.Equal(SwiftEnum<MCPCategory>.AllCases, groups.Select(group => group.Category));
         string[] expected = ["github,gitlab,filesystem,git,sentry", "playwright,chrome-devtools,fetch,firecrawl", "brave-search,tavily,exa,perplexity", "slack,notion,linear,atlassian,figma,stripe,resend", "supabase,postgres,sqlite,mongodb", "vercel,cloudflare,netlify,aws-docs", "context7,memory,sequential-thinking,huggingface,deepwiki"];
         Assert.Equal(expected, groups.Select(group => string.Join(',', group.Entries.Select(entry => entry.Id))));
         Assert.All(groups, group => Assert.NotEmpty(group.Entries));
