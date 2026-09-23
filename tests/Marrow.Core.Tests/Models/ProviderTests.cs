@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -808,5 +809,446 @@ public sealed class ProviderTests
         ProviderKind[] expectedFalse = [ProviderKind.Grok, ProviderKind.Antigravity];
         foreach (var kind in SwiftEnum<ProviderKind>.AllCases)
             Assert.Equal(!expectedFalse.Contains(kind), kind.SupportsImages);
+    }
+
+    // --- Part 4: capability flags PR-PROVREG-061 to 074, ModelOption PR-PROVREG-157 to 161, OpenCode Go
+    // PR-PROVREG-240 to 244 ---
+
+    // PR-PROVREG-061: Z.ai is an API-key provider with host api.z.ai/api/coding/paas/v4, source
+    // z.ai/manage-apikey/apikey-list and env var ZAI_API_KEY; no rewind, supports images.
+    [Trait("Req", "PR-PROVREG-061")] // Core/Models/Provider.swift:101,116,126,138,144,158
+    [Fact]
+    public void Zai_capability_flags_are_exact()
+    {
+        Assert.True(ProviderKind.Zai.IsAPIKeyBased);
+        Assert.False(ProviderKind.Zai.UsesACP);
+        Assert.True(ProviderKind.Zai.AcceptsAPIKey);
+        Assert.False(ProviderKind.Zai.SupportsRewind);
+        Assert.True(ProviderKind.Zai.SupportsImages);
+        Assert.Equal("api.z.ai/api/coding/paas/v4", ProviderKind.Zai.ApiHost);
+        Assert.Equal("z.ai/manage-apikey/apikey-list", ProviderKind.Zai.ApiKeySource);
+        Assert.Equal("ZAI_API_KEY", ProviderKind.Zai.ApiKeyEnvVar);
+    }
+
+    // PR-PROVREG-062: Devin is an ACP provider, no rewind, supports images, no API key.
+    [Trait("Req", "PR-PROVREG-062")] // Core/Models/Provider.swift:104,144,158
+    [Fact]
+    public void Devin_capability_flags_are_exact()
+    {
+        Assert.False(ProviderKind.Devin.IsAPIKeyBased);
+        Assert.True(ProviderKind.Devin.UsesACP);
+        Assert.False(ProviderKind.Devin.AcceptsAPIKey);
+        Assert.False(ProviderKind.Devin.SupportsRewind);
+        Assert.True(ProviderKind.Devin.SupportsImages);
+        Assert.Null(ProviderKind.Devin.ApiHost);
+        Assert.Null(ProviderKind.Devin.ApiKeySource);
+        Assert.Null(ProviderKind.Devin.ApiKeyEnvVar);
+    }
+
+    // PR-PROVREG-063: Antigravity is a CLI provider (not ACP despite being a CLI), no rewind, and
+    // supportsImages is false - the composer keeps image attachments off for it.
+    [Trait("Req", "PR-PROVREG-063")] // Core/Models/Provider.swift:104,144,156-158
+    [Fact]
+    public void Antigravity_capability_flags_are_exact_and_images_are_off()
+    {
+        Assert.False(ProviderKind.Antigravity.IsAPIKeyBased);
+        Assert.False(ProviderKind.Antigravity.UsesACP);
+        Assert.False(ProviderKind.Antigravity.AcceptsAPIKey);
+        Assert.False(ProviderKind.Antigravity.SupportsRewind);
+        Assert.False(ProviderKind.Antigravity.SupportsImages);
+        Assert.Null(ProviderKind.Antigravity.ApiHost);
+        Assert.Null(ProviderKind.Antigravity.ApiKeySource);
+        Assert.Null(ProviderKind.Antigravity.ApiKeyEnvVar);
+    }
+
+    // PR-PROVREG-064: Copilot is a CLI provider, not ACP, supports rewind and images, no API key.
+    [Trait("Req", "PR-PROVREG-064")] // Core/Models/Provider.swift:104,144,158
+    [Fact]
+    public void Copilot_capability_flags_are_exact()
+    {
+        Assert.False(ProviderKind.Copilot.IsAPIKeyBased);
+        Assert.False(ProviderKind.Copilot.UsesACP);
+        Assert.False(ProviderKind.Copilot.AcceptsAPIKey);
+        Assert.True(ProviderKind.Copilot.SupportsRewind);
+        Assert.True(ProviderKind.Copilot.SupportsImages);
+        Assert.Null(ProviderKind.Copilot.ApiHost);
+        Assert.Null(ProviderKind.Copilot.ApiKeySource);
+        Assert.Null(ProviderKind.Copilot.ApiKeyEnvVar);
+    }
+
+    // PR-PROVREG-065: Command Code is a CLI provider that ALSO accepts an optional API key (acceptsAPIKey
+    // true while isAPIKeyBased false), source commandcode.ai/studio, env var COMMAND_CODE_API_KEY, and no
+    // apiHost even though it accepts a key.
+    [Trait("Req", "PR-PROVREG-065")] // Core/Models/Provider.swift:101,109,112-119,127,138,144,158
+    [Fact]
+    public void Commandcode_capability_flags_are_exact()
+    {
+        Assert.False(ProviderKind.Commandcode.IsAPIKeyBased);
+        Assert.False(ProviderKind.Commandcode.UsesACP);
+        Assert.True(ProviderKind.Commandcode.AcceptsAPIKey);
+        Assert.False(ProviderKind.Commandcode.SupportsRewind);
+        Assert.True(ProviderKind.Commandcode.SupportsImages);
+        Assert.Null(ProviderKind.Commandcode.ApiHost);
+        Assert.Equal("commandcode.ai/studio", ProviderKind.Commandcode.ApiKeySource);
+        Assert.Equal("COMMAND_CODE_API_KEY", ProviderKind.Commandcode.ApiKeyEnvVar);
+    }
+
+    // PR-PROVREG-066: Pi is a CLI provider, not ACP, no rewind, supports images, no API key.
+    [Trait("Req", "PR-PROVREG-066")] // Core/Models/Provider.swift:104,144,158
+    [Fact]
+    public void Pi_capability_flags_are_exact()
+    {
+        Assert.False(ProviderKind.Pi.IsAPIKeyBased);
+        Assert.False(ProviderKind.Pi.UsesACP);
+        Assert.False(ProviderKind.Pi.AcceptsAPIKey);
+        Assert.False(ProviderKind.Pi.SupportsRewind);
+        Assert.True(ProviderKind.Pi.SupportsImages);
+        Assert.Null(ProviderKind.Pi.ApiHost);
+        Assert.Null(ProviderKind.Pi.ApiKeySource);
+        Assert.Null(ProviderKind.Pi.ApiKeyEnvVar);
+    }
+
+    // PR-PROVREG-067: isAPIKeyBased is true for EXACTLY deepseek, meta and zai - false for the other
+    // eleven, including opencodeGo (B2 gained opencodeGo, so this is eleven false cases, not ten).
+    [Trait("Req", "PR-PROVREG-067")] // Core/Models/Provider.swift:101
+    [Fact]
+    public void IsAPIKeyBased_is_true_for_exactly_three_providers()
+    {
+        ProviderKind[] expectedTrue = [ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai];
+        Assert.Equal(14, SwiftEnum<ProviderKind>.AllCases.Count);
+        foreach (var kind in SwiftEnum<ProviderKind>.AllCases)
+            Assert.Equal(expectedTrue.Contains(kind), kind.IsAPIKeyBased);
+        Assert.False(ProviderKind.OpencodeGo.IsAPIKeyBased);
+    }
+
+    // PR-PROVREG-068: usesACP is true for EXACTLY cursor, opencode, opencodeGo, grok and devin - the B2
+    // set grew from four to five with opencodeGo.
+    [Trait("Req", "PR-PROVREG-068")] // Core/Models/Provider.swift:103-104
+    [Fact]
+    public void UsesACP_is_true_for_exactly_five_providers_including_opencodeGo()
+    {
+        ProviderKind[] expectedTrue =
+        [
+            ProviderKind.Cursor, ProviderKind.Opencode, ProviderKind.OpencodeGo, ProviderKind.Grok, ProviderKind.Devin,
+        ];
+        foreach (var kind in SwiftEnum<ProviderKind>.AllCases)
+            Assert.Equal(expectedTrue.Contains(kind), kind.UsesACP);
+    }
+
+    // PR-PROVREG-069: acceptsAPIKey (isAPIKeyBased OR commandcode) is true for EXACTLY four providers.
+    [Trait("Req", "PR-PROVREG-069")] // Core/Models/Provider.swift:106-109
+    [Fact]
+    public void AcceptsAPIKey_is_true_for_exactly_four_providers()
+    {
+        ProviderKind[] expectedTrue = [ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai, ProviderKind.Commandcode];
+        foreach (var kind in SwiftEnum<ProviderKind>.AllCases)
+            Assert.Equal(expectedTrue.Contains(kind), kind.AcceptsAPIKey);
+    }
+
+    // PR-PROVREG-070: apiHost is non-null for EXACTLY three providers - deepseek, meta, zai - and null for
+    // the other eleven, including commandcode (which accepts a key but has no apiHost) and opencodeGo.
+    [Trait("Req", "PR-PROVREG-070")] // Core/Models/Provider.swift:111-119
+    [Fact]
+    public void ApiHost_is_non_null_for_exactly_three_providers()
+    {
+        foreach (var kind in SwiftEnum<ProviderKind>.AllCases)
+        {
+            var expected = kind switch
+            {
+                ProviderKind.Deepseek => "api.deepseek.com",
+                ProviderKind.Meta => "api.meta.ai/v1",
+                ProviderKind.Zai => "api.z.ai/api/coding/paas/v4",
+                _ => null,
+            };
+            Assert.Equal(expected, kind.ApiHost);
+        }
+        Assert.Null(ProviderKind.Commandcode.ApiHost);
+        Assert.Null(ProviderKind.OpencodeGo.ApiHost);
+    }
+
+    // PR-PROVREG-071: apiKeySource is non-null for EXACTLY the four acceptsAPIKey providers, each with the
+    // exact source string; this test proves only the model-level table (:121-130). The Settings row detail
+    // line template with its "the provider dashboard" fallback and the Windows Credential Manager wording
+    // (OD-0012 G2) belongs to SettingsView.swift, a different Swift file and a different unit, and is not
+    // testable here.
+    [Trait("Req", "PR-PROVREG-071")] // Core/Models/Provider.swift:121-130
+    [Fact]
+    public void ApiKeySource_table_is_exact_for_the_four_acceptsAPIKey_providers()
+    {
+        Assert.Equal("platform.deepseek.com", ProviderKind.Deepseek.ApiKeySource);
+        Assert.Equal("dev.meta.ai", ProviderKind.Meta.ApiKeySource);
+        Assert.Equal("z.ai/manage-apikey/apikey-list", ProviderKind.Zai.ApiKeySource);
+        Assert.Equal("commandcode.ai/studio", ProviderKind.Commandcode.ApiKeySource);
+        foreach (var kind in SwiftEnum<ProviderKind>.AllCases.Except(
+            [ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai, ProviderKind.Commandcode]))
+        {
+            Assert.Null(kind.ApiKeySource);
+        }
+    }
+
+    // PR-PROVREG-072: apiKeyEnvVar is non-null for EXACTLY the same four providers, each with the exact env
+    // var name; this test proves only the model-level table (:132-141). Reading the var from the captured
+    // environment and trimming it (AppSettings.apiKey(for:), :914-915) is a different Swift file and a
+    // different unit, and is not testable here.
+    [Trait("Req", "PR-PROVREG-072")] // Core/Models/Provider.swift:132-141
+    [Fact]
+    public void ApiKeyEnvVar_table_is_exact_for_the_four_acceptsAPIKey_providers()
+    {
+        Assert.Equal("DEEPSEEK_API_KEY", ProviderKind.Deepseek.ApiKeyEnvVar);
+        Assert.Equal("MODEL_API_KEY", ProviderKind.Meta.ApiKeyEnvVar);
+        Assert.Equal("ZAI_API_KEY", ProviderKind.Zai.ApiKeyEnvVar);
+        Assert.Equal("COMMAND_CODE_API_KEY", ProviderKind.Commandcode.ApiKeyEnvVar);
+        foreach (var kind in SwiftEnum<ProviderKind>.AllCases.Except(
+            [ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai, ProviderKind.Commandcode]))
+        {
+            Assert.Null(kind.ApiKeyEnvVar);
+        }
+    }
+
+    // PR-PROVREG-073: supportsRewind is true for EXACTLY codex, claude and copilot - false for the other
+    // eleven, including opencodeGo.
+    [Trait("Req", "PR-PROVREG-073")] // Core/Models/Provider.swift:143-144
+    [Fact]
+    public void SupportsRewind_is_true_for_exactly_three_providers()
+    {
+        ProviderKind[] expectedTrue = [ProviderKind.Codex, ProviderKind.Claude, ProviderKind.Copilot];
+        foreach (var kind in SwiftEnum<ProviderKind>.AllCases)
+            Assert.Equal(expectedTrue.Contains(kind), kind.SupportsRewind);
+        Assert.False(ProviderKind.OpencodeGo.SupportsRewind);
+    }
+
+    // PR-PROVREG-074: supportsImages is true for every provider EXCEPT grok and antigravity - true for
+    // twelve providers including opencodeGo, since the predicate is a negation (self != grok && self !=
+    // antigravity) and so defaults to true for a case added later.
+    [Trait("Req", "PR-PROVREG-074")] // Core/Models/Provider.swift:156-158
+    [Fact]
+    public void SupportsImages_is_true_for_twelve_providers_including_opencodeGo()
+    {
+        var trueCount = SwiftEnum<ProviderKind>.AllCases.Count(k => k.SupportsImages);
+        Assert.Equal(12, trueCount);
+        Assert.True(ProviderKind.OpencodeGo.SupportsImages);
+    }
+
+    // --- ModelOption, PR-PROVREG-157 to 161 (:216-291) ---
+
+    // PR-PROVREG-157: init(from:) requires id and name strictly typed; detail, defaultEffort and fastTier
+    // decode as optional; efforts defaults to the empty array and isDefault to false when absent, so a row
+    // written by an older build without either still decodes.
+    [Trait("Req", "PR-PROVREG-157")] // Core/Models/Provider.swift:244-253
+    [Fact]
+    public void ModelOption_decode_tolerates_missing_optional_fields_with_fixed_defaults()
+    {
+        var element = JsonDocument.Parse("""{"id":"gpt-5.6","name":"GPT-5.6"}""").RootElement;
+
+        var option = ModelOption.Decode(element);
+
+        Assert.Equal("gpt-5.6", option.Id);
+        Assert.Equal("GPT-5.6", option.Name);
+        Assert.Null(option.Detail);
+        Assert.Empty(option.Efforts);
+        Assert.Null(option.DefaultEffort);
+        Assert.False(option.IsDefault);
+        Assert.Null(option.FastTier);
+    }
+
+    [Trait("Req", "PR-PROVREG-157")] // Core/Models/Provider.swift:246-247 - missing id or name fails the whole decode
+    [Fact]
+    public void ModelOption_decode_throws_when_id_or_name_is_missing()
+    {
+        Assert.Throws<DecodingError>(() => ModelOption.Decode(JsonDocument.Parse("""{"name":"GPT-5.6"}""").RootElement));
+        Assert.Throws<DecodingError>(() => ModelOption.Decode(JsonDocument.Parse("""{"id":"gpt-5.6"}""").RootElement));
+    }
+
+    [Trait("Req", "PR-PROVREG-157")] // Core/Models/Provider.swift:244-253 - every field present decodes exactly
+    [Fact]
+    public void ModelOption_decode_reads_every_field_when_present()
+    {
+        var element = JsonDocument.Parse("""
+            {"id":"opus","name":"Opus (1M context)","detail":"Best for hard problems",
+             "efforts":["low","medium","high"],"defaultEffort":"medium","isDefault":true,"fastTier":"fast"}
+            """).RootElement;
+
+        var option = ModelOption.Decode(element);
+
+        Assert.Equal("opus", option.Id);
+        Assert.Equal("Opus (1M context)", option.Name);
+        Assert.Equal("Best for hard problems", option.Detail);
+        Assert.Equal(["low", "medium", "high"], option.Efforts);
+        Assert.Equal("medium", option.DefaultEffort);
+        Assert.True(option.IsDefault);
+        Assert.Equal("fast", option.FastTier);
+    }
+
+    // PR-PROVREG-158: supportsFast is fastTier != nil, including when it is the empty string.
+    [Trait("Req", "PR-PROVREG-158")] // Core/Models/Provider.swift:223-224,255
+    [Fact]
+    public void ModelOption_supportsFast_is_true_only_when_fastTier_is_non_null()
+    {
+        Assert.False(new ModelOption(id: "x", name: "X").SupportsFast);
+        Assert.True(new ModelOption(id: "x", name: "X", fastTier: "fast").SupportsFast);
+        Assert.True(new ModelOption(id: "x", name: "X", fastTier: "").SupportsFast);
+    }
+
+    // PR-PROVREG-159: shortName strips a leading "gpt-" case-insensitively (dropping exactly 4 characters)
+    // and turns every remaining hyphen into a space.
+    [Trait("Req", "PR-PROVREG-159")] // Core/Models/Provider.swift:257-262
+    [Fact]
+    public void ModelOption_shortName_strips_gpt_dash_prefix_and_spaces_hyphens()
+    {
+        Assert.Equal("5.6 Terra", new ModelOption(id: "x", name: "GPT-5.6-Terra").ShortName);
+        Assert.Equal("5.6 Terra", new ModelOption(id: "x", name: "gpt-5.6-Terra").ShortName); // case-insensitive test
+        Assert.Equal("Opus (1M context)", new ModelOption(id: "x", name: "Opus (1M context)").ShortName); // no prefix, no hyphen
+    }
+
+    [Trait("Req", "PR-PROVREG-159")] // Core/Models/Provider.swift:260 - exactly "gpt-" becomes empty
+    [Fact]
+    public void ModelOption_shortName_of_bare_gpt_dash_is_empty()
+    {
+        Assert.Equal("", new ModelOption(id: "x", name: "gpt-").ShortName);
+    }
+
+    // PR-PROVREG-160: chipName cuts at the FIRST of six separators (the loop continues over the rest of the
+    // list against the shortened text), then drops the first matching vendor prefix among ten, and falls
+    // back to shortName when the cleaned result is empty. Examples from the source comment (:264-267).
+    [Trait("Req", "PR-PROVREG-160")] // Core/Models/Provider.swift:264-282
+    [Fact]
+    public void ModelOption_chipName_examples_from_source_comment()
+    {
+        Assert.Equal("Opus", new ModelOption(id: "x", name: "Opus (1M context)").ChipName);
+        Assert.Equal("3.8 Flash", new ModelOption(id: "x", name: "Gemini 3.8 Flash").ChipName);
+        Assert.Equal("V4.1 Flash", new ModelOption(id: "x", name: "V4.1 Flash").ChipName); // unchanged: no separator, no vendor prefix
+    }
+
+    // Every separator except the ASCII hyphen one is reachable from chipName, because chipName's text
+    // always starts from shortName (:269), and shortName has ALREADY replaced every "-" with " " (:261)
+    // before chipName's separator loop ever runs (:270-272 tests for " - ", space-hyphen-space, against
+    // text that by then contains no hyphen character at all). So " · ", " — " (em dash, U+2014) and " – "
+    // (en dash, U+2013) and ": " each still work, because none of those separator characters is the ASCII
+    // hyphen shortName strips; only " - " is unreachable code, transcribed as written (never invented,
+    // never "fixed").
+    [Trait("Req", "PR-PROVREG-160")] // Core/Models/Provider.swift:270-272 - the middle-dot, em-dash, en-dash and colon separators
+    [Fact]
+    public void ModelOption_chipName_applies_the_non_hyphen_separators()
+    {
+        Assert.Equal("Claude", new ModelOption(id: "x", name: "Claude · Sonnet").ChipName); // " · "
+        Assert.Equal("Claude", new ModelOption(id: "x", name: "Claude — Sonnet").ChipName); // " — " em dash
+        Assert.Equal("Claude", new ModelOption(id: "x", name: "Claude – Sonnet").ChipName); // " – " en dash
+        Assert.Equal("Claude", new ModelOption(id: "x", name: "Claude: Sonnet").ChipName); // ": "
+    }
+
+    // The ASCII " - " separator can never fire, because shortName (:261) already
+    // turned "Claude - Sonnet" into "Claude   Sonnet" (three spaces) before chipName's separator loop runs,
+    // so no separator cuts the text there; instead the vendor loop (:274-279) matches the "claude " prefix
+    // (7 characters, text longer than the prefix) and drops it, leaving "  Sonnet", trimmed to "Sonnet".
+    // This is the real, if surprising, output of the algorithm as written - never corrected to "Claude".
+    [Trait("Req", "PR-PROVREG-160")] // Core/Models/Provider.swift:261, 270-272, 274-279 - the ASCII hyphen separator is unreachable
+    [Fact]
+    public void ModelOption_chipName_ascii_hyphen_separator_is_unreachable_because_shortName_already_removed_it()
+    {
+        var option = new ModelOption(id: "x", name: "Claude - Sonnet");
+        Assert.Equal("Claude   Sonnet", option.ShortName); // the hyphen became a space, not cut away
+        Assert.Equal("Sonnet", option.ChipName); // the vendor-prefix loop drops "Claude ", not the separator loop
+    }
+
+    [Trait("Req", "PR-PROVREG-160")] // Core/Models/Provider.swift:275 - the length guard leaves a bare vendor prefix alone
+    [Fact]
+    public void ModelOption_chipName_leaves_a_text_equal_to_a_vendor_prefix_alone()
+    {
+        Assert.Equal("Claude", new ModelOption(id: "x", name: "Claude ").ChipName);
+    }
+
+    // PR-PROVREG-160: when the FIRST separator match is at the very start of the text, the cut leaves the
+    // empty string, so cleaning still yields empty and chipName falls back to the raw, unprocessed
+    // shortName - here still carrying the " (" the separator loop could not remove anything around.
+    [Trait("Req", "PR-PROVREG-160")] // Core/Models/Provider.swift:281 - empty after cleaning falls back to shortName
+    [Fact]
+    public void ModelOption_chipName_falls_back_to_shortName_when_cleaned_result_is_empty()
+    {
+        var option = new ModelOption(id: "x", name: " (foo)");
+        Assert.Equal(" (foo)", option.ShortName);
+        Assert.Equal(" (foo)", option.ChipName);
+    }
+
+    // PR-PROVREG-161: effortTitle maps "xhigh" and "extra-high" (only those two of the four extra-high
+    // spellings) to "Extra High", the empty string to "Default", and otherwise upper-cases only the first
+    // character.
+    [Trait("Req", "PR-PROVREG-161")] // Core/Models/Provider.swift:284-290
+    [Fact]
+    public void ModelOption_effortTitle_maps_exact_special_cases_and_capitalises_otherwise()
+    {
+        Assert.Equal("Extra High", ModelOption.EffortTitle("xhigh"));
+        Assert.Equal("Extra High", ModelOption.EffortTitle("extra-high"));
+        Assert.Equal("Default", ModelOption.EffortTitle(""));
+        Assert.Equal("Medium", ModelOption.EffortTitle("medium"));
+        Assert.Equal("Extra_high", ModelOption.EffortTitle("extra_high")); // NOT special-cased
+        Assert.Equal("Extra high", ModelOption.EffortTitle("extra high")); // NOT special-cased
+    }
+
+    // --- OpenCode Go, PR-PROVREG-240 to 244 ---
+
+    // PR-PROVREG-240: displayName is exactly "OpenCode Go"; iconName is exactly "provider-opencode", never
+    // "provider-opencodeGo" - the one case whose icon name is not "provider-" + rawValue.
+    [Trait("Req", "PR-PROVREG-240")] // Core/Models/Provider.swift:8,27,59-60
+    [Fact]
+    public void OpencodeGo_displayName_and_iconName_are_exact()
+    {
+        Assert.Equal("OpenCode Go", ProviderKind.OpencodeGo.DisplayName);
+        Assert.Equal("provider-opencode", ProviderKind.OpencodeGo.IconName);
+        Assert.NotEqual("provider-opencodeGo", ProviderKind.OpencodeGo.IconName);
+    }
+
+    // PR-PROVREG-241: OpenCode Go's executableName is the bare "opencode", the same CLI name as OpenCode
+    // Zen. This test proves only the model-level ProviderKind.executableName value (:46); the PATH lookup,
+    // the fallback-locations table and the per-rawValue custom-path storage (ProviderRegistry.swift,
+    // AppSettings.swift) are a different Swift file and a different unit, out of scope here.
+    [Trait("Req", "PR-PROVREG-241")] // Core/Models/Provider.swift:45-46
+    [Fact]
+    public void OpencodeGo_executableName_is_the_bare_opencode()
+    {
+        Assert.Equal("opencode", ProviderKind.OpencodeGo.ExecutableName);
+        Assert.Equal(ProviderKind.Opencode.ExecutableName, ProviderKind.OpencodeGo.ExecutableName);
+    }
+
+    // PR-PROVREG-242: OpenCode Go's loginCommand is exactly "opencode auth login", the same string as
+    // OpenCode Zen. This test proves only the model-level ProviderKind.loginCommand value (:68); the
+    // terminal-launching and login-script-file behaviour (SettingsView.swift, Components.swift) is a
+    // different Swift file and a different unit, out of scope here.
+    [Trait("Req", "PR-PROVREG-242")] // Core/Models/Provider.swift:67-68
+    [Fact]
+    public void OpencodeGo_loginCommand_is_opencode_auth_login()
+    {
+        Assert.Equal("opencode auth login", ProviderKind.OpencodeGo.LoginCommand);
+        Assert.Equal(ProviderKind.Opencode.LoginCommand, ProviderKind.OpencodeGo.LoginCommand);
+    }
+
+    // PR-PROVREG-243: OpenCode Go's installURL is exactly https://opencode.ai, the same URL as OpenCode
+    // Zen, with no trailing path. This test proves only the model-level ProviderKind.installURL value
+    // (:87); the Install row's detail text and link label (SettingsView.swift) are a different Swift file
+    // and a different unit, out of scope here.
+    [Trait("Req", "PR-PROVREG-243")] // Core/Models/Provider.swift:86-87
+    [Fact]
+    public void OpencodeGo_installURL_is_opencode_dot_ai_with_no_trailing_path()
+    {
+        Assert.Equal("https://opencode.ai", ProviderKind.OpencodeGo.InstallURL.AbsoluteString);
+        Assert.Equal(ProviderKind.Opencode.InstallURL.AbsoluteString, ProviderKind.OpencodeGo.InstallURL.AbsoluteString);
+    }
+
+    // PR-PROVREG-244: OpenCode Go's capability flags are the same shape as OpenCode Zen - ACP provider, no
+    // API key, no rewind, no local compact, supports images. exposesLimits and exposesCredits are a
+    // different Swift file (PlanLimits.swift, ProviderCredits.swift) and a different unit, out of scope
+    // here.
+    [Trait("Req", "PR-PROVREG-244")] // Core/Models/Provider.swift:101,104,109,144,149-154,158
+    [Fact]
+    public void OpencodeGo_capability_flags_match_OpencodeZens_shape()
+    {
+        Assert.False(ProviderKind.OpencodeGo.IsAPIKeyBased);
+        Assert.True(ProviderKind.OpencodeGo.UsesACP);
+        Assert.False(ProviderKind.OpencodeGo.AcceptsAPIKey);
+        Assert.False(ProviderKind.OpencodeGo.SupportsRewind);
+        Assert.False(ProviderKind.OpencodeGo.SupportsCompact);
+        Assert.True(ProviderKind.OpencodeGo.SupportsImages);
+        Assert.Null(ProviderKind.OpencodeGo.ApiHost);
+        Assert.Null(ProviderKind.OpencodeGo.ApiKeySource);
+        Assert.Null(ProviderKind.OpencodeGo.ApiKeyEnvVar);
     }
 }
