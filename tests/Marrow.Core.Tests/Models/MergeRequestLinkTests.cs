@@ -16,7 +16,7 @@ namespace Marrow.Core.Tests.Models;
 // every non-empty string (percent-encoding what RFC 3986 does not allow), so Url(text) asserts a URL exists.
 // Rows under a Req trait give the same result whichever way url.pathComponents (:24) splits and decodes the path.
 // Rows whose result depends on that (an encoded "/", an empty, "." or ".." segment, "\", a relative reference) are
-// in the Oracle-labelled tests at the end (R-TEST-6): no recorded item settles pathComponents yet.
+// in the Oracle-labelled tests at the end (R-TEST-6, O-44 and ED-143).
 public sealed class MergeRequestLinkTests
 {
     private static SwiftURL Url(string text)
@@ -56,7 +56,6 @@ public sealed class MergeRequestLinkTests
     [InlineData("https://github.com/owner/repo/pull/95", MergeRequestLink.Forge.Github, 95L, "#95")]
     [InlineData("https://github.com/owner/repo/pull/95/", MergeRequestLink.Forge.Github, 95L, "#95")]
     [InlineData("https://enterprise.example/owner/repo/pull/+95/files?x=1#discussion", MergeRequestLink.Forge.Github, 95L, "#95")]
-    [InlineData("https://host/o/r/pull/%2B95", MergeRequestLink.Forge.Github, 95L, "#95")]
     [InlineData("https://codeberg.org/owner/repo/pulls/95", MergeRequestLink.Forge.Gitea, 95L, "#95")]
     [InlineData("https://forgejo.example/owner/repo/pulls/9223372036854775807", MergeRequestLink.Forge.Gitea, long.MaxValue, "#9223372036854775807")]
     [InlineData("https://github.com/owner/repo/pull/1000", MergeRequestLink.Forge.Github, 1000L, "#1000")]
@@ -151,7 +150,6 @@ public sealed class MergeRequestLinkTests
     [InlineData("HTTPS://GitHub.COM:443/o/r/pull/5", MergeRequestLink.Forge.Github, "5", "#5")]
     [InlineData("https://GitLab.Example/Group/Project/-/merge_requests/95/diffs?view=inline#note_1", MergeRequestLink.Forge.Gitlab, "95", "!95")]
     [InlineData("https://codeberg.org/o/r/pulls/7#issuecomment-3", MergeRequestLink.Forge.Gitea, "7", "#7")]
-    [InlineData("https://host/o/r/pull/%2B95", MergeRequestLink.Forge.Github, "95", "#95")]
     [InlineData("https://host/o/r/pull/+95", MergeRequestLink.Forge.Github, "95", "#95")]
     public void Prompt_first_line_carries_the_url_text_as_given(string text, MergeRequestLink.Forge forge, string number, string label)
     {
@@ -210,9 +208,7 @@ public sealed class MergeRequestLinkTests
     }
 
     // UNVERIFIED (R-TEST-6). Every row below rests on how url.pathComponents (:24) splits and decodes the path, and
-    // no recorded item settles that: grep pathComponents over engineering_decisions.md, platform_adaptations.md,
-    // unknowns.md and the Appendix B oracle list finds nothing. No O-nn is registered for it yet; the orchestrator
-    // assigns one and this label is replaced by it. No Req trait until then.
+    // O-44 and ED-143 record a swift-foundation 6.2 reading, pending macOS 26 capture. No Req trait until then.
     // Parked expectation, a source reading and not a capture (the macOS 26 transfer question of ED-086 applies):
     // swift-foundation tag swift-6.2-RELEASE, Sources/FoundationEssentials/URL/URL_Swift.swift:641-647 takes
     // absolutePath(percentEncoded: true).pathComponents and percent-decodes each component, and
@@ -221,7 +217,7 @@ public sealed class MergeRequestLinkTests
     // character, so it is percent-encoded and stays inside one component. Older Foundation split the decoded path
     // instead, which gives GitHub 5 for both encoded-slash rows.
     [Theory]
-    [Trait("Oracle", "O-pending-URL.pathComponents")] // Core/Models/MergeRequestLink.swift:24, :25-37
+    [Trait("Oracle", "O-44")] // Core/Models/MergeRequestLink.swift:24, :25-37
     [InlineData("https://host/o/r/pull%2F5")] // components o, r, "pull/5": fewer than four
     [InlineData("https://host/o/r%2Fpull/5")] // components o, "r/pull", 5: fewer than four
     [InlineData("https://host/x/o/r/../pull/5")] // ".." kept: parts[2] is "r"
@@ -235,9 +231,12 @@ public sealed class MergeRequestLinkTests
     // slashes is dropped, and a relative reference (no leading "/") splits into its four components. The prompt row
     // also pins that :57 writes the relative text as given.
     [Theory]
-    [Trait("Oracle", "O-pending-URL.pathComponents")] // Core/Models/MergeRequestLink.swift:24, :29, :57
+    [Trait("Oracle", "O-44")] // Core/Models/MergeRequestLink.swift:24, :29, :57
     [InlineData("https://host/o//r/pull/95", 95L, "95", "#95")]
     [InlineData("o/r/pull/5", 5L, "5", "#5")]
+    [InlineData("https://host/o/r/pull/%2B95", 95L, "95", "#95")]
+    [InlineData("https://host/o/%FF/pull/5", 5L, "5", "#5")]
+    [InlineData("https://host/o/%2F/r/pull/5", 5L, "5", "#5")]
     public void Oracle_path_shapes_that_pathComponents_decides_are_github(string text, long number, string digits, string label)
     {
         var link = Link(text);
