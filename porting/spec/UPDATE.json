@@ -1196,7 +1196,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-way precedence for any child process the Windows install path runs, so the alert text has the same shape.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

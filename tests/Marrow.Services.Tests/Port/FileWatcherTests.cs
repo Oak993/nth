@@ -51,6 +51,10 @@ namespace Marrow.Services.Tests.Port;
 // working-tree watch starts no watcher at all. Across roots only arrival is asserted; within one root, order is.
 //
 // Every test waits with ManualMainLoop.RunUntil (condition-driven, bounded), never with a fixed sleep (R-TEST-5).
+//
+// ED-167: the class runs in the FileWatcherTests collection, which xUnit never runs in parallel with anything, so the
+// forced-overflow burst cannot starve another class's thread-pool work (Fixtures/FileWatcherCollection.cs).
+[Collection(FileWatcherCollection.Name)]
 public sealed class FileWatcherTests
 {
     [Fact]
@@ -141,6 +145,49 @@ public sealed class FileWatcherTests
             runtime.Loop.RunUntil(() => log.SawAll(expected));
             Assert.True(log.AllOnTheirQueueOutsideAnyTask);
             Assert.False(log.Everything);
+        }
+        finally
+        {
+            watch.Cancel();
+        }
+    }
+
+    [Fact]
+    [Trait("Rule", "R-GCD-3")]
+    [Trait("Decision", "ED-166")]
+    [Trait("Oracle", "O-56")]
+    public void A_file_created_or_deleted_in_a_subdirectory_is_reported_by_its_own_path_never_by_the_subdirectory_path()
+    {
+        // ED-166: WorkingTreeWatch.swift:142 kFSEventStreamCreateFlagFileEvents reports the changed entries' own
+        // paths; the Swift's cookie files inside the git directory (:195-196, skipped by the gitPrefix match only) and
+        // its cached-tree reuse only work if the directory whose entries changed is not reported too. That expectation
+        // rests on the open oracle item O-56 (UNVERIFIED on macOS), hence the Oracle trait and no Req. On Windows,
+        // ReadDirectoryChangesW with LastWrite in the tree filter reports the holding directory as Changed; WatchTree
+        // drops a Changed event whose path is an existing directory. A sentinel written after both changes, in the
+        // same root, is delivered after them (ED-113 keeps order within one root), so once it arrives any report of
+        // the subdirectory caused by them has arrived too.
+        using var runtime = new TestRuntime();
+        using var folder = new ScratchFolder();
+        var directory = folder.Child("sub");
+        Directory.CreateDirectory(directory);
+        var deleted = folder.Child("sub", "gone.txt");
+        File.WriteAllBytes(deleted, [1]);
+        var queue = new SerialQueue("test", runtime.Loop);
+        var log = new WatchLog(queue);
+        var watch = FileWatcher.WatchTree([folder.Root], queue, log.Record);
+        Assert.NotNull(watch);
+        try
+        {
+            var created = folder.Child("sub", "new.txt");
+            File.WriteAllBytes(created, [1]);
+            File.Delete(deleted);
+            var sentinel = folder.Child("sentinel.txt");
+            File.WriteAllBytes(sentinel, [1]);
+            runtime.Loop.RunUntil(() => log.SawAll([created, deleted, sentinel]));
+            runtime.RunUntilIdle();
+            Assert.False(log.Saw(directory));
+            Assert.False(log.Everything);
+            Assert.True(log.AllOnTheirQueueOutsideAnyTask);
         }
         finally
         {

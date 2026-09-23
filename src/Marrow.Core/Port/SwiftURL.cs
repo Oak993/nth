@@ -2,6 +2,8 @@
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Marrow.Core.Port;
 
@@ -23,6 +25,7 @@ namespace Marrow.Core.Port;
 // becomes U+FFFD as it does when an NSString is bridged.
 
 /// <summary>Foundation <c>URL</c> as <c>URL(string:)</c> builds it (R-PATH-1). Equality is textual.</summary>
+[JsonConverter(typeof(SwiftURL.JsonConverter))]
 public sealed class SwiftURL : IEquatable<SwiftURL>
 {
     private readonly URLParseInfo _parseInfo; // URL_Swift.swift:90; _baseURL is always nil (:91) and _encoding .utf8 (:92)
@@ -34,6 +37,15 @@ public sealed class SwiftURL : IEquatable<SwiftURL>
     public static SwiftURL? Create(string text)
     {
         if (text.Length == 0) return null; // :96
+        return CreateStringOrEmpty(text); // :97
+    }
+
+    /// <summary>
+    /// <c>URL(stringOrEmpty:)</c> with no base, the init <c>URLComponents.url</c> takes (URLComponents.swift:765-773,
+    /// URL.swift:682-685): as <see cref="Create"/> but "" makes a URL. URL_Swift.swift:83-93, :75-77.
+    /// </summary>
+    internal static SwiftURL? CreateStringOrEmpty(string text)
+    {
         // :84-89 compatibility is false, so parse(string:) with encodingInvalidCharacters: true (:83, :75-77)
         var parseInfo = RFC3986Parser.Parse(text, encodingInvalidCharacters: true, allowEmptyScheme: true);
         return parseInfo is null ? null : new SwiftURL(parseInfo);
@@ -202,6 +214,38 @@ public sealed class SwiftURL : IEquatable<SwiftURL>
     public static bool operator ==(SwiftURL? left, SwiftURL? right) => left is null ? right is null : left.Equals(right);
 
     public static bool operator !=(SwiftURL? left, SwiftURL? right) => !(left == right);
+
+    /// <summary>
+    /// Foundation's URL Codable (Codable.swift): a keyed container with an optional "base" (encodeIfPresent /
+    /// decodeIfPresent, omitted when there is no base) and a required "relative" string; the value is
+    /// <c>URL(string: relative, relativeTo: base)</c>. Every <see cref="SwiftURL"/> this port builds has no base
+    /// (Create never takes one), so "base" is never written and, if a stored document somehow carried one, it is
+    /// read and then dropped: URL(string:relativeTo:) only resolves a relative reference against it, and every
+    /// URL this port parses is written absolute.
+    /// </summary>
+    public sealed class JsonConverter : JsonConverter<SwiftURL>
+    {
+        public override SwiftURL Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            using var document = JsonDocument.ParseValue(ref reader);
+            return Decode(document.RootElement);
+        }
+
+        internal static SwiftURL Decode(JsonElement element)
+        {
+            var relative = SwiftDecoding.Decode(element, "relative", SwiftDecoding.ReadString);
+            return Create(relative) ?? throw new DecodingError("dataCorrupted", "Invalid URL string.");
+        }
+
+        public override void Write(Utf8JsonWriter writer, SwiftURL value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+        internal static void WriteMembers(Utf8JsonWriter writer, SwiftURL value)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("relative", value.RelativeString);
+            writer.WriteEndObject();
+        }
+    }
 
     // URLComponents.Component, the cases RFC3986Parser.percentEncode switches on (URLParser.swift:207-226)
     internal enum URLComponent { Scheme, User, Password, Host, Port, Path, Query, QueryItem, Fragment }
@@ -433,6 +477,29 @@ public sealed class SwiftURL : IEquatable<SwiftURL>
         }
 
         // ---- Validation (URLParser.swift:339-585) ----
+
+        /// <summary>
+        /// URLParser.swift:341-363 <c>validate(_:component:percentEncodingAllowed:)</c>, the string entry URLComponents'
+        /// setters call; nil is valid (:342). A native String's UTF-8 is contiguous (:366-368).
+        /// </summary>
+        internal static bool Validate(string? text, URLComponent component, bool percentEncodingAllowed = true)
+        {
+            if (text is null) return true; // :342
+            var utf8 = Encoding.UTF8.GetBytes(text);
+            return component switch
+            {
+                URLComponent.Scheme => ValidateSchemeBuffer(utf8), // :420-429 an ALPHA first, then the scheme set
+                URLComponent.User => Validate(utf8, URLComponentSet.User, percentEncodingAllowed), // :431-433
+                URLComponent.Password => Validate(utf8, URLComponentSet.Password, percentEncodingAllowed), // :435-437
+                URLComponent.Host => ValidateHost(utf8), // :471-476
+                URLComponent.Port => ValidatePortBuffer(utf8, ReadOnlySpan<byte>.Empty, hasScheme: false), // :506-510 digits only
+                URLComponent.Path => Validate(utf8, URLComponentSet.Path, percentEncodingAllowed), // :512-514
+                URLComponent.Query => Validate(utf8, URLComponentSet.Query, percentEncodingAllowed), // :516-518
+                URLComponent.QueryItem => Validate(utf8, URLComponentSet.QueryItem, percentEncodingAllowed), // :520-522
+                URLComponent.Fragment => Validate(utf8, URLComponentSet.Fragment, percentEncodingAllowed), // :524-526
+                _ => throw new ArgumentOutOfRangeException(nameof(component)),
+            };
+        }
 
         // :365-406 over UTF-8 code units (withContiguousStorageIfAvailable on a native String)
         private static bool Validate(ReadOnlySpan<byte> buffer, byte component, bool percentEncodingAllowed = true)
