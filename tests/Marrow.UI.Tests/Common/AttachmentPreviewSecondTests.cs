@@ -23,7 +23,7 @@ namespace Marrow.UI.Tests.Common;
 public sealed class AttachmentPreviewSecondTests(HeadlessSession headless)
 {
     private static string NewRoot() =>
-        Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, Guid.NewGuid().ToString("N"))).FullName;
+        Directory.CreateDirectory(Path.Combine(Marrow.Testing.TestDataDirectory.Read()!, Guid.NewGuid().ToString("N"))).FullName;
 
     private static void WriteBmp(string path, int width, int height)
     {

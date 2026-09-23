@@ -11,7 +11,7 @@ public sealed class ThumbnailCacheTests
     [Trait("Req", "PR-STORE-123")] // DroppyCode/Core/Support/ThumbnailCache.swift:16, :22-26
     public async Task Point_size_uses_fixed_two_times_ceiling_and_missing_files_retry()
     {
-        var root = Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, Guid.NewGuid().ToString("N"))).FullName;
+        var root = Directory.CreateDirectory(Path.Combine(Marrow.Testing.TestDataDirectory.Read()!, Guid.NewGuid().ToString("N"))).FullName;
         var path = Path.Combine(root, "small.bmp");
         WriteBmp(path, 8, 2);
         var cache = new ThumbnailCache();
@@ -29,7 +29,7 @@ public sealed class ThumbnailCacheTests
     [Trait("Req", "PR-STORE-124")] // DroppyCode/Core/Support/ThumbnailCache.swift:27-42
     public async Task Concurrent_identical_requests_share_a_single_decode()
     {
-        var root = Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, Guid.NewGuid().ToString("N"))).FullName;
+        var root = Directory.CreateDirectory(Path.Combine(Marrow.Testing.TestDataDirectory.Read()!, Guid.NewGuid().ToString("N"))).FullName;
         var path = Path.Combine(root, "large.bmp");
         WriteBmp(path, 2400, 1600);
         var cache = new ThumbnailCache();
@@ -63,7 +63,7 @@ public sealed class ThumbnailCacheTests
     [Trait("Req", "UI-STORE-005")] // DroppyCode/Core/Support/ThumbnailCache.swift:22-42, :44-62
     public async Task Full_image_is_decoded_eagerly_and_never_upscaled()
     {
-        var root = Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, Guid.NewGuid().ToString("N"))).FullName;
+        var root = Directory.CreateDirectory(Path.Combine(Marrow.Testing.TestDataDirectory.Read()!, Guid.NewGuid().ToString("N"))).FullName;
         var path = Path.Combine(root, "source.bmp");
         WriteBmp(path, 8, 2);
         var cache = new ThumbnailCache();
@@ -80,7 +80,7 @@ public sealed class ThumbnailCacheTests
     [Trait("Req", "UI-STORE-005")] // DroppyCode/Core/Support/ThumbnailCache.swift:44-62
     public async Task Exif_orientation_rotates_the_decoded_pixels()
     {
-        var root = Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, Guid.NewGuid().ToString("N"))).FullName;
+        var root = Directory.CreateDirectory(Path.Combine(Marrow.Testing.TestDataDirectory.Read()!, Guid.NewGuid().ToString("N"))).FullName;
         var path = Path.Combine(root, "oriented.tif");
         WriteOrientedTiff(path);
         var image = (await new ThumbnailCache().ThumbnailFor(path, 20))!.Image;
@@ -96,7 +96,7 @@ public sealed class ThumbnailCacheTests
     public async Task An_svg_file_yields_no_thumbnail_and_is_decoded_again_next_time()
     {
         // Rests on open item O-54: the macOS value for SVG is unsettled; parked nil.
-        var root = Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, Guid.NewGuid().ToString("N"))).FullName;
+        var root = Directory.CreateDirectory(Path.Combine(Marrow.Testing.TestDataDirectory.Read()!, Guid.NewGuid().ToString("N"))).FullName;
         var path = Path.Combine(root, "red.svg");
         File.WriteAllText(path, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><rect width=\"16\" height=\"16\" fill=\"red\"/></svg>");
         var cache = new ThumbnailCache();
@@ -109,7 +109,7 @@ public sealed class ThumbnailCacheTests
     [Trait("Req", "PR-STORE-126")] // DroppyCode/Core/Support/ThumbnailCache.swift:46-53
     public async Task Square_fill_multiplies_by_aspect_ratio_and_caps_the_long_edge_at_2048()
     {
-        var root = Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, Guid.NewGuid().ToString("N"))).FullName;
+        var root = Directory.CreateDirectory(Path.Combine(Marrow.Testing.TestDataDirectory.Read()!, Guid.NewGuid().ToString("N"))).FullName;
         var path = Path.Combine(root, "wide.bmp");
         WriteBmp(path, 3000, 10);
         var cache = new ThumbnailCache();

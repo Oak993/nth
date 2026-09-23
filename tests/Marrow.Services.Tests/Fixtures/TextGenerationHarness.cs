@@ -19,7 +19,7 @@ public static class TextGenerationHarness
 {
     public static string TestFolder()
     {
-        var root = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")
+        var root = Marrow.Testing.TestDataDirectory.Read()
             ?? throw new InvalidOperationException("Set MARROW_PORT_DATA_DIR to a throwaway folder before running the tests (R-TEST-9).");
         var folder = Path.Join(root, "text-generation-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
@@ -61,5 +61,5 @@ public static class TextGenerationHarness
     public static byte[] Utf8(string text) => Encoding.UTF8.GetBytes(text);
 
     public static string ExpectedTemporaryDirectory =>
-        Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR") ?? Path.GetTempPath();
+        Marrow.Testing.TestDataDirectory.Read() ?? Path.GetTempPath();
 }
