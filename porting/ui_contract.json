@@ -12011,7 +12011,8 @@
         "DroppyCode/Services/Providers/ZaiAPI.swift:49-63",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:130 zaiSeed"
       ],
-      "notes": "These are the only two providers' rows whose preselected effort is 'max' rather than 'high'."
+      "notes": "These are the only two providers' rows whose preselected effort is 'max' rather than 'high'.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "PROVAPI",

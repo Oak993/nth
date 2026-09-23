@@ -4946,55 +4946,15 @@
     "Services.Providers.PlanLimits"
    ],
    "records_total": 18,
-   "records_todo": [
-    "PR-PROVAPI-056",
-    "PR-PROVAPI-057",
-    "PR-PROVAPI-058",
-    "PR-PROVAPI-059",
-    "PR-PROVAPI-060",
-    "PR-PROVAPI-061",
-    "PR-PROVAPI-062",
-    "PR-PROVAPI-063",
-    "PR-PROVAPI-064",
-    "PR-PROVAPI-065",
-    "PR-PROVAPI-066",
-    "PR-PROVAPI-067",
-    "PR-PROVAPI-068",
-    "PR-PROVAPI-069",
-    "PR-PROVAPI-070",
-    "PR-PROVAPI-071",
-    "PR-PROVAPI-072",
-    "UI-PROVAPI-028"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-056",
-     "PR-PROVAPI-057",
-     "PR-PROVAPI-058",
-     "PR-PROVAPI-059",
-     "PR-PROVAPI-060",
-     "PR-PROVAPI-061",
-     "PR-PROVAPI-062",
-     "PR-PROVAPI-063",
-     "PR-PROVAPI-064",
-     "PR-PROVAPI-065",
-     "PR-PROVAPI-066",
-     "PR-PROVAPI-067",
-     "PR-PROVAPI-068",
-     "PR-PROVAPI-069",
-     "PR-PROVAPI-070",
-     "PR-PROVAPI-071",
-     "PR-PROVAPI-072",
-     "UI-PROVAPI-028"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-142",
     "T-M4-143",
     "T-M4-144"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.CommandCodeSession",
