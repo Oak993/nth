@@ -174,7 +174,7 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-081")] // DownloadsPopover.swift:134, :139
     [Trait("Req", "UI-COMPOSER-027")]
     [Trait("Req", "UI-COMPOSER-028")]
-    [Trait("Decision", "OD-0008")] // "Show in Finder" -> "Show in File Explorer"
+    // "Show in Finder" -> "Show in File Explorer" (OD-0008 B1)
     public void The_footer_rows_read_Show_in_File_Explorer_and_Choose_Files() => headless.OnUiThread(() =>
     {
         using var directed = Directed(null);
