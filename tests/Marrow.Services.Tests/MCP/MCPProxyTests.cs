@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Marrow.Core.Port;
 using Marrow.Services.MCP;
+using Marrow.Services.Port;
 using Marrow.Services.Tests.Fixtures;
 using Xunit;
 
@@ -14,15 +15,29 @@ using Xunit;
 // MCPProxy.Port, and keeps that scratch folder alive for the whole class (R-TEST-9). Every test in this class
 // shares the one running proxy and the one route table, so server ids are unique per test (GUID-based) and
 // xUnit runs the methods of one class sequentially, never in parallel with each other.
+//
+// R-TEST-9: the OAuth tests (An_OAuth_route_adds_a_fresh_bearer_token and its neighbours) write through
+// MCPKeychain, which reaches SecretStore.Shared.Current (Ambient<T>/AsyncLocal). The proxy's own background accept
+// loop was started inside the fixture's Override(fixture.Store) scope, so it is permanently bound to that in-memory
+// backend; overriding the same instance here, for this constructor's flow, makes every test method see it too
+// (xUnit builds a fresh MCPProxyTests per test method, constructor through Dispose, one flow), so a Set here and
+// the proxy's AccessToken read agree, and neither one reaches the real Windows Credential Manager.
 namespace Marrow.Services.Tests.MCP;
 
 [Collection("MCPProxy singleton")]
-public sealed class MCPProxyTests : IClassFixture<MCPProxySingletonFixture>
+public sealed class MCPProxyTests : IClassFixture<MCPProxySingletonFixture>, IDisposable
 {
     private readonly MCPProxySingletonFixture fixture;
+    private readonly IDisposable secretStoreScope;
     private MCPProxy Proxy => MCPProxy.Shared.Current;
 
-    public MCPProxyTests(MCPProxySingletonFixture fixture) => this.fixture = fixture;
+    public MCPProxyTests(MCPProxySingletonFixture fixture)
+    {
+        this.fixture = fixture;
+        secretStoreScope = SecretStore.Shared.Override(fixture.Store);
+    }
+
+    public void Dispose() => secretStoreScope.Dispose();
 
     private static string NewID() => "t-" + Guid.NewGuid().ToString("N");
 

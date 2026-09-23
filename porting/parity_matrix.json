@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 1256,
+      "IMPLEMENTED": 1259,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 2633,
+      "SPECIFIED": 2630,
       "RETIRED": 6,
       "DISCOVERED": 18
     },
@@ -30418,7 +30418,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order and the same conditional flag. The JSON argument must be passed as one argv element; a shell-quoted command line would mangle it.",
       "verification_method": "unit over the three argument groups plus a launch test asserting the argument vector",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -30445,7 +30445,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key names, the command-as-array shape and the \"environment\" spelling. The whole JSON must survive environment-block construction; Windows environment variables have a large but finite size, so a very long configuration is a real limit to note. It applies to OpenCode Go as well as OpenCode.",
       "verification_method": "contract fixture comparing the emitted JSON string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -43923,7 +43923,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A whole JSON document as one argv token is the hardest Windows quoting case in this area: it contains double quotes, backslashes in any Windows paths inside it, and possibly a trailing backslash before the closing quote. Escaping is the port's problem; the source uses a process API with no shell and must not gain one (port_impacts.md entry 5 of the ordering list).",
       "verification_method": "contract fixture asserting the child receives the exact JSON text, with a config containing Windows paths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

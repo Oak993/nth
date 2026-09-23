@@ -22,7 +22,7 @@ public static class TerminalTestFolders
 
     public static string Create(string label)
     {
-        var root = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
+        var root = Marrow.Testing.TestDataDirectory.Read();
         if (string.IsNullOrEmpty(root))
             throw new InvalidOperationException("Set MARROW_PORT_DATA_DIR to a throwaway folder before running the tests (R-TEST-9).");
         var folder = Path.Join(root, "terminal-store", label + " " + Guid.NewGuid().ToString("N"));

@@ -168,11 +168,24 @@ public sealed class TourViewTests(HeadlessSession headless)
 
         Assert.Equal(TourView.EmptyStateHeight, view.Bounds.Height);
         Assert.Equal(220, TourView.EmptyStateHeight);
-        var text = view.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == "No tour pages"); // :105
-        Assert.Equal(FontWeight.SemiBold, TextElement.GetFontWeight(text)); // .headline resolves semibold
+        Assert.Contains(view.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "No tour pages"); // :105
         var glyph = view.GetVisualDescendants().OfType<SwiftImage>().Single();
         Assert.Equal("rectangle.stack", glyph.SymbolName); // :102
         Assert.Empty(view.GetVisualDescendants().OfType<Button>()); // no primary button, no icon controls
+    });
+
+    // R-TEST-6: an expectation resting on open oracle item O-64 cannot also carry UI-UPDATE-045's Req trait, so the
+    // title's weight is pinned here, apart from the structural facts above.
+    [Fact]
+    [Trait("Decision", "ED-186")]
+    [Trait("Oracle", "O-64")]
+    public void The_empty_state_titles_plain_headline_stays_bold() => headless.OnUiThread(() =>
+    {
+        var view = new TourView([]);
+        ShowInFrame(view);
+
+        var text = view.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == "No tour pages"); // :106
+        Assert.Equal(FontWeight.Bold, TextElement.GetFontWeight(text)); // plain .headline is the system style (ED-186); O-64 unresolved
     });
 
     // PR-UPDATE-104: only the initial index is clamped into range.

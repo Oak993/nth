@@ -179,7 +179,7 @@ public sealed class TimelineTests
     [Trait("Req", "PR-CHAT-005")] // Core/Models/Timeline.swift:102-111
     public async Task Base64Images_drops_a_non_image_and_a_file_it_cannot_read_and_keeps_the_rest_in_order()
     {
-        var root = Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, Guid.NewGuid().ToString("N"))).FullName;
+        var root = Directory.CreateDirectory(Path.Combine(Marrow.Testing.TestDataDirectory.Read()!, Guid.NewGuid().ToString("N"))).FullName;
         var smallPath = Path.Combine(root, "small.bmp");
         WriteBmp(smallPath, 4, 2);
         var attachments = new[]
@@ -200,7 +200,7 @@ public sealed class TimelineTests
     [Trait("Req", "PR-CHAT-190")] // Core/Models/Timeline.swift:113-137
     public async Task An_image_past_2000_pixels_on_its_longest_side_is_sent_as_a_downscaled_JPEG()
     {
-        var root = Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, Guid.NewGuid().ToString("N"))).FullName;
+        var root = Directory.CreateDirectory(Path.Combine(Marrow.Testing.TestDataDirectory.Read()!, Guid.NewGuid().ToString("N"))).FullName;
         var bigPath = Path.Combine(root, "big.bmp");
         WriteBmp(bigPath, 2500, 500); // 2500 > 2000 on the longest side; aspect ratio 5:1
         var attachment = new Attachment { Name = "big", Path = bigPath, MimeType = "image/bmp" };
@@ -231,7 +231,7 @@ public sealed class TimelineTests
     [Trait("Req", "PR-CHAT-190")] // Core/Models/Timeline.swift:113-137: nothing is written to disk
     public void DownscaleToJpeg_returns_null_for_an_image_already_at_or_under_the_threshold()
     {
-        var root = Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, Guid.NewGuid().ToString("N"))).FullName;
+        var root = Directory.CreateDirectory(Path.Combine(Marrow.Testing.TestDataDirectory.Read()!, Guid.NewGuid().ToString("N"))).FullName;
         var path = Path.Combine(root, "exact.bmp");
         WriteBmp(path, 2000, 1000); // exactly maxPixelSize on the longest side: strictly greater is required
         var data = File.ReadAllBytes(path);

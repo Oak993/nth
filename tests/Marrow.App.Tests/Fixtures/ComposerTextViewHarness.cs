@@ -156,7 +156,7 @@ public sealed class ComposerTextViewHarness
     /// <summary>Temporary files for paste and drop tests, in a fresh folder under MARROW_PORT_DATA_DIR (R-TEST-9).</summary>
     public static string[] TemporaryFiles(params string[] names)
     {
-        var root = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
+        var root = Marrow.Testing.TestDataDirectory.Read();
         if (string.IsNullOrEmpty(root)) throw new Xunit.Sdk.XunitException("MARROW_PORT_DATA_DIR must point at a throwaway folder (R-TEST-9)");
         var folder = Path.Join(root, "ComposerTextViewTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);

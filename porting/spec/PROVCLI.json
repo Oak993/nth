@@ -3297,7 +3297,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A whole JSON document as one argv token is the hardest Windows quoting case in this area: it contains double quotes, backslashes in any Windows paths inside it, and possibly a trailing backslash before the closing quote. Escaping is the port's problem; the source uses a process API with no shell and must not gain one (port_impacts.md entry 5 of the ordering list).",
       "verification_method": "contract fixture asserting the child receives the exact JSON text, with a config containing Windows paths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

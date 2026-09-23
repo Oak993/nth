@@ -15,7 +15,7 @@ public sealed class ScratchFolder : IDisposable
 {
     public ScratchFolder()
     {
-        var dataDirectory = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
+        var dataDirectory = Marrow.Testing.TestDataDirectory.Read();
         if (string.IsNullOrEmpty(dataDirectory))
             throw new InvalidOperationException("Set MARROW_PORT_DATA_DIR to a throwaway folder before running the tests (R-TEST-9).");
         Root = dataDirectory.TrimEnd('\\', '/') + "\\FileWatcherTests\\" + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
