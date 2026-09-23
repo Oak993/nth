@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "file": "src/Marrow.Core/Support/Coding.cs",
+    "pattern": "WriteNumberValue(",
+    "text": "public override void Write(Utf8JsonWriter writer, long value, JsonSerializerOptions options) => writer.WriteNumberValue(value);",
+    "swift": "DroppyCode/Core/Support/Coding.swift:19-26"
+  },
+  {
+    "file": "src/Marrow.App/Window/ThreadWindow.cs",
+    "pattern": "_ =>",
+    "text": "_ => null,",
+    "swift": "DroppyCode/App/Window/ThreadWindow.swift:13-59"
+  }
+]

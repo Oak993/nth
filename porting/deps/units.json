@@ -417,8 +417,8 @@
    "packets": [],
    "risk": "HIGH",
    "spec": "Process launcher: ADR-0002 CreateProcessW with a Job Object and ConPTY in one attribute list (probe P5), the three termination shapes of probe P6 (1 s, 3 s, none); PA-0007, PA-0008, PA-0009, PA-0010, PA-0016; ED-020, ED-024, ED-027, ED-047; rules R-PROC-1 to R-PROC-3. First tests: the ladders under the manual clock; environment block order; argument quoting round trip; the 32,767 character command-line limit.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.ICUFormatters",
@@ -467,8 +467,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "URL(string:): the macOS 14 leniency, host case and brackets, decoded path (R-PATH-1). First tests: \"foo bar\", IPv6 hosts, MarkdownView.swift:677. url.pathComponents is SwiftURL.PathComponents (ED-143): the swift-foundation 6.2 split of the encoded path on runs of \"/\", each component percent-decoded as UTF-8, a final \"/\" dropped, \"\\\" kept percent-encoded; its tests carry Oracle O-44.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.PathIdentity",
@@ -630,25 +630,13 @@
    ],
    "intra_deps": [],
    "records_total": 4,
-   "records_todo": [
-    "PR-GIT-052",
-    "PR-GIT-053",
-    "PR-GIT-054",
-    "PR-GIT-055"
-   ],
-   "parts": [
-    [
-     "PR-GIT-052",
-     "PR-GIT-053",
-     "PR-GIT-054",
-     "PR-GIT-055"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-031"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.Requests",
@@ -851,29 +839,13 @@
    ],
    "intra_deps": [],
    "records_total": 6,
-   "records_todo": [
-    "PR-GIT-083",
-    "PR-GIT-084",
-    "PR-GIT-085",
-    "PR-GIT-086",
-    "PR-GIT-087",
-    "PR-GIT-088"
-   ],
-   "parts": [
-    [
-     "PR-GIT-083",
-     "PR-GIT-084",
-     "PR-GIT-085",
-     "PR-GIT-086",
-     "PR-GIT-087",
-     "PR-GIT-088"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M3-001"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Git.RevertPreview",
@@ -1878,56 +1850,14 @@
    ],
    "intra_deps": [],
    "records_total": 19,
-   "records_todo": [
-    "PR-PROVACP-154",
-    "PR-PROVACP-155",
-    "PR-PROVACP-156",
-    "PR-PROVACP-157",
-    "PR-PROVACP-158",
-    "PR-PROVACP-159",
-    "PR-PROVACP-160",
-    "PR-PROVACP-161",
-    "PR-PROVACP-162",
-    "PR-PROVACP-163",
-    "PR-TERM-107",
-    "PR-TERM-108",
-    "PR-TERM-109",
-    "PR-TERM-110",
-    "PR-TERM-111",
-    "PR-TERM-112",
-    "PR-TERM-113",
-    "PR-TERM-114",
-    "PR-TERM-115"
-   ],
-   "parts": [
-    [
-     "PR-PROVACP-154",
-     "PR-PROVACP-155",
-     "PR-PROVACP-156",
-     "PR-PROVACP-157",
-     "PR-PROVACP-158",
-     "PR-PROVACP-159",
-     "PR-PROVACP-160",
-     "PR-PROVACP-161",
-     "PR-PROVACP-162",
-     "PR-PROVACP-163",
-     "PR-TERM-107",
-     "PR-TERM-108",
-     "PR-TERM-109",
-     "PR-TERM-110",
-     "PR-TERM-111",
-     "PR-TERM-112",
-     "PR-TERM-113",
-     "PR-TERM-114",
-     "PR-TERM-115"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-072",
     "T-M2-073"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.Text",
@@ -2034,7 +1964,7 @@
   {
    "id": "Services.Git.FileChangeSummary_Diff",
    "swift": "DroppyCode/Services/Git/FileChangeSummary+Diff.swift",
-   "target": "src/Marrow.Services/Git/FileChangeSummary.Diff.cs",
+   "target": "src/Marrow.Services/Git/FileChangeSummary+Diff.cs",
    "project": "Marrow.Services",
    "test_project": "tests/Marrow.Services.Tests",
    "level": 1,
@@ -2046,19 +1976,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-GIT-092"
-   ],
-   "parts": [
-    [
-     "PR-GIT-092"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M3-002"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Sound.FinishChime",
@@ -19972,7 +19896,7 @@
   {
    "id": "App.AppModel_Hydra",
    "swift": "DroppyCode/App/AppModel+Hydra.swift",
-   "target": "src/Marrow.App/AppModel.Hydra.cs",
+   "target": "src/Marrow.App/AppModel+Hydra.cs",
    "project": "Marrow.App",
    "test_project": "tests/Marrow.App.Tests",
    "level": 10,
@@ -20125,7 +20049,7 @@
   {
    "id": "App.AppModel_HydraMerge",
    "swift": "DroppyCode/App/AppModel+HydraMerge.swift",
-   "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+   "target": "src/Marrow.App/AppModel+HydraMerge.cs",
    "project": "Marrow.App",
    "test_project": "tests/Marrow.App.Tests",
    "level": 10,
@@ -20373,7 +20297,7 @@
   {
    "id": "App.AppModel_HydraPairs",
    "swift": "DroppyCode/App/AppModel+HydraPairs.swift",
-   "target": "src/Marrow.App/AppModel.HydraPairs.cs",
+   "target": "src/Marrow.App/AppModel+HydraPairs.cs",
    "project": "Marrow.App",
    "test_project": "tests/Marrow.App.Tests",
    "level": 10,
@@ -20418,7 +20342,7 @@
   {
    "id": "App.HydraCookbook_Resolve",
    "swift": "DroppyCode/App/HydraCookbook+Resolve.swift",
-   "target": "src/Marrow.App/HydraCookbook.Resolve.cs",
+   "target": "src/Marrow.App/HydraCookbook+Resolve.cs",
    "project": "Marrow.App",
    "test_project": "tests/Marrow.App.Tests",
    "level": 10,
