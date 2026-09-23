@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
+using ValueDictionary = System.Collections.Generic.Dictionary<string, Marrow.Core.Support.JSONValue>;
 
 namespace Marrow.Core.Models;
 
@@ -25,6 +27,21 @@ namespace Marrow.Core.Models;
 // later part. PR-HYDRA-016 (the in-turn budget check order and the out-of-turn backstop allowance) describes
 // AppModel+Hydra.swift / ThreadRuntime.swift runtime behaviour, not anything in this file, and is untestable
 // here; it is left for the unit that owns the turn loop.
+// Unit Core.Models.Hydra part 2 of 4 (PR-HYDRA-025 to 052, excluding 029/030/041/042 which are not named by
+// this part's records) implemented HydraMentionTarget.Url/ThreadIDIn, HydraLanding.IsEmpty/Landed,
+// HydraMergeStage.Words, HydraPrompts' private word-for-word texts (HowToWork, HowToReport, BriefRule,
+// VerificationRule, ProjectRule, AutoMergeRule, ReviewRule, ReportStyleRule, WorkplaceRules), the native
+// Policy(for:launch:) (howToSpawn/howToWait/profileRule per provider, the conditional review and auto-merge
+// insertions), NativeRoutableProfiles, WorkerAgentName/ScoutAgentName/WorkerAgentNameFor/ProfileName, and
+// ClaudeAgents/CopilotAgents. WorkerPrompt and ScoutPrompt (:793-805) are not named by any PR-HYDRA-0xx record
+// in this part, but ClaudeAgents (051) and CopilotAgents (052) both read them directly, so they are implemented
+// here too, word for word with OD-0012 F1's "Droppy Code" -> "Marrow" applied (they are sent to the head's own
+// CLI, so they are app-sent text). The private HydraPrompts members that this part's own callers (Policy,
+// WorkerPrompt) do not reach - HowToWork and WorkplaceRules, consumed only by DelegatedHeadPrompt (:1241) and
+// QueuedHeadPrompt (:1271), a later part's work - are declared `internal` rather than `private` (R-NAME-6 is
+// written for ordinary module-internal/private members; these are Swift file-private members with no public
+// caller yet in this part) so this part's own tests can assert their exact text directly, via the
+// Marrow.Core.Tests InternalsVisibleTo grant already declared in Support/HangWatchdog.cs.
 
 // :17-51. Codable is synthesized (no CodingKeys, no custom init(from:)/encode(to:)): id and name are strictly
 // required in declaration order, provider/model/effort are decodeIfPresent/encodeIfPresent (R-CODE-1).
@@ -597,10 +614,18 @@ public sealed record HydraMentionTarget
 
     public const string Scheme = "droppycode-head"; // :444
 
-    public SwiftURL Url => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:445");
+    // :445. `URL(string:)` never fails for this exact scheme://uppercase-UUID form, so the
+    // `URL(fileURLWithPath: "/")` fallback is unreachable in practice; SwiftURL.Create("file:///")
+    // is its equivalent (there is no FileURLWithPath helper) and is never actually returned.
+    public SwiftURL Url => SwiftURL.Create($"{Scheme}://{SwiftUUID.UuidString(ThreadID)}") ?? SwiftURL.Create("file:///")!;
 
-    public static Guid? ThreadIDIn(SwiftURL url) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:447");
+    // :447-450
+    public static Guid? ThreadIDIn(SwiftURL url)
+    {
+        if (url.Scheme is not { } scheme || !SwiftString.Equal(scheme, Scheme)) return null;
+        if (url.HostComponent() is not { } host) return null;
+        return SwiftUUID.Parse(host);
+    }
 }
 
 // :455-487. Custom init(from:) at :477-485 (every field lenient with the in-source default); encode(to:) is
@@ -624,8 +649,8 @@ public sealed record HydraLanding
     public string? PatchPath { get; init; }                                       // :469
     public string? Error { get; init; }                                           // :470
 
-    public bool IsEmpty => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:473");
-    public bool Landed => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:475");
+    public bool IsEmpty => Files.Count == 0 && PatchPath is null && Error is null; // :473
+    public bool Landed => Files.Count != 0 && PatchPath is null && Error is null;  // :475
 
     // :486
     public HydraLanding() { }
@@ -725,12 +750,32 @@ public enum HydraMergeStage
 
 public static class HydraMergeStageExtensions
 {
-    public static IReadOnlyList<HydraMergeStage> AllCases =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:509");
+    // :509-517. Plain Int enum, no [RawValue]: CaseIterable synthesizes declaration order.
+    public static IReadOnlyList<HydraMergeStage> AllCases { get; } =
+    [
+        HydraMergeStage.Gathering,
+        HydraMergeStage.Committing,
+        HydraMergeStage.Describing,
+        HydraMergeStage.Pushing,
+        HydraMergeStage.Opening,
+        HydraMergeStage.Merging,
+        HydraMergeStage.Syncing,
+    ];
 
     extension(HydraMergeStage stage)
     {
-        public string Words => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:519");
+        // :519-528
+        public string Words => stage switch
+        {
+            HydraMergeStage.Gathering => "Gathering the team\U00002019s files", // :521, U+2019 RIGHT SINGLE QUOTATION MARK
+            HydraMergeStage.Committing => "Writing the commit",                 // :522
+            HydraMergeStage.Describing => "Writing the commit message",         // :523
+            HydraMergeStage.Pushing => "Pushing the branch",                    // :524
+            HydraMergeStage.Opening => "Opening the merge request",             // :525
+            HydraMergeStage.Merging => "Merging",                               // :526
+            HydraMergeStage.Syncing => "Bringing the checkout up to date",      // :527
+            _ => throw new UnreachableException(),
+        };
     }
 }
 
@@ -785,19 +830,24 @@ public sealed record HydraDelegationBudget
 // :620-1434.
 public static class HydraPrompts
 {
-    public static string WorkerAgentName => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:621");
-    public static string ScoutAgentName => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:622");
+    public const string WorkerAgentName = "droppy-worker"; // :621
+    public const string ScoutAgentName = "droppy-scout";    // :622
 
-    // :627 static func workerAgentName(for:). C# cannot give a method the name of the property
-    // WorkerAgentName, so it is WorkerAgentNameFor.
-    public static string WorkerAgentNameFor(HydraHeadProfile @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:627");
+    // :627-629. C# cannot give a method the name of the const WorkerAgentName, so it is WorkerAgentNameFor.
+    public static string WorkerAgentNameFor(HydraHeadProfile @for) => $"{WorkerAgentName}-{@for.AgentSlug}";
 
-    public static string? ProfileName(string? forAgentName) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:633");
+    // :633-636
+    public static string? ProfileName(string? forAgentName)
+    {
+        if (forAgentName is not { } agentName || !SwiftString.HasPrefix(agentName, $"{WorkerAgentName}-")) return null;
+        return SwiftString.DropFirst(agentName, WorkerAgentName.Length + 1);
+    }
 
+    // :642-647
     public static ValueList<HydraHeadProfile> NativeRoutableProfiles(HydraLaunch of) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:642");
+        new(of.HeadProfiles.Where(profile =>
+            (profile.Provider is null || profile.Provider == of.HeadsProvider) &&
+            (profile.Model is not null || profile.Effort is not null)));
 
     // :652-655
     public abstract record Workplace
@@ -808,18 +858,272 @@ public static class HydraPrompts
         public sealed record Shared(string Path) : Workplace;  // :654
     }
 
-    public static string Policy(ProviderKind @for, HydraLaunch launch) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:722");
+    // :659-670. Swift `private`; kept internal for this part's own tests (see the file header note).
+    // DEVIATION OD-0012 F1 (x2): "Droppy Code made for you" -> "Marrow made for you", and "Droppy Code
+    // carries your changes" -> "Marrow carries your changes"; the rest of both cases is unchanged.
+    internal static string WorkplaceRules(Workplace workplace) => workplace switch
+    {
+        Workplace.OwnCopy(var path) => string.Join("\n",
+            $"You have your own copy of the project at {path}: a git worktree Marrow made for you from the project's checkout as it was when you were sent out, uncommitted work included. Work in it directly, on the files as they are; your tools already run there. When you report, Marrow carries your changes into that checkout itself. So never commit, branch, stash, push, check out, reset, restore or clean anything, and never make or remove worktrees, whatever the project's own guidelines say about agents and worktrees: this copy already is yours. Do not use git to check your work either.",
+            "Never build, test or verify anything in your copy: the lead runs every check itself, in its own checkout. Anything under the project folder that git does not ignore lands in the lead's checkout, so leave no build output there."),
+        Workplace.Shared(var path) =>
+            $"You work in the lead's checkout at {path}, alongside the lead and the other heads, who are changing other files at the same time. Changes you did not make are expected there: leave every one of them alone, never stash, check out, reset, restore or clean anything, and never move work into a branch or worktree, whatever the project's own guidelines say about agents and worktrees. Do not use git status or git diff to check your work: they show everyone's changes, and the lead does the verifying.",
+        _ => throw new UnreachableException(),
+    };
 
-    public static string WorkerPrompt => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:793");
+    // :674-680. Swift `private`; kept internal for this part's own tests (see the file header note).
+    internal const string HowToWork =
+        "- Start on the task right away: read what you need and no more, then make the change.\n" +
+        "- A brief that names the file, the line and the change needs no second reading: make that edit first, then the next. Think briefly between tool calls; if you find yourself weighing designs for minutes, take the simplest reading of the brief and do it, and mention the choice in your report.\n" +
+        "- Do exactly this task and only this. Do not widen it, do not touch files it does not name unless it cannot be done otherwise, and never revert, reformat or clean up work that is not yours.\n" +
+        "- Never run a build, a test, a lint, a type check or any other check of your work, and never wait on one: the lead runs every check itself, in its own checkout. Make the edits your brief names and report.\n" +
+        "- If something blocks you, stop and say so instead of guessing or working around it.";
 
-    public static string ScoutPrompt => throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:800");
+    // :682. Swift `private`.
+    internal const string HowToReport =
+        "Report the result, the files you changed and material blockers once, in a few lines the lead can act on: what changed, where, and anything still open or uncertain. Name the caveats and the unfinished work plainly rather than leaving them out. No preamble, no restating the brief, no logs. The lead handles validation.";
 
-    public static JSONValue ClaudeAgents(HydraLaunch launch) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:807");
+    // :688. Swift `private`.
+    internal const string BriefRule =
+        "Write each brief as numbered, executable steps naming the file, symbol or line anchor, and exact change. Resolve design choices first; ask no questions and offer no alternatives. Give enough context to begin editing within a few tool calls.";
 
-    public static ValueList<JSONValue> CopilotAgents(HydraLaunch launch) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:842");
+    // :692. Swift `private`.
+    internal const string VerificationRule =
+        "Heads edit or research and report; they never build, test, lint or verify. Do not assign checks or request pass reports. Run required validation yourself in the checkout after the heads return.";
+
+    // :698-703. Swift `private`. DEVIATION OD-0012 F1: "which Droppy Code then adds to the sidebar" ->
+    // "which Marrow then adds to the sidebar"; "on this Mac" is not one of the OD-0008 B4/OD-0012 G1 strings
+    // and stays verbatim (see PR-HYDRA-035 windows_path).
+    internal static string ProjectRule(IReadOnlyList<HydraProjectRef> projects)
+    {
+        var own = projects.Count > 0 ? $"this chat's project, {projects[0].Name} (`{projects[0].Path}`)" : "this chat's project";
+        var others = projects.Skip(1).ToList();
+        var named = others.Count == 0
+            ? ""
+            : " The other projects in the sidebar: " + string.Join(", ", others.Select(p => $"{p.Name} (`{p.Path}`)")) + ".";
+        return $"Heads may work in any project. A head works in {own} unless it is sent to another: an entry of the delegation block names it with \"project\" (a sidebar project's name or path, or the absolute path of any git repository on this Mac, which Marrow then adds to the sidebar), and a head spawned with your own agent tool is told the project's folder in its prompt.{named} Whatever a head changes lands in the checkout of the project it worked in, and the team's work is merged per project, one merge request each. Your own tools run in this chat's checkout, and you may read and edit files in any project all the same: what you change elsewhere is merged along with that project's work. Run your own checks in the checkout itself: never make a worktree or a copy of the project for them.";
+    }
+
+    // :708. Swift `private`. DEVIATION OD-0012 F1: "Droppy Code handles branches" -> "Marrow handles
+    // branches"; the rest of the paragraph is unchanged.
+    internal const string AutoMergeRule =
+        "Marrow handles branches, commits and merge requests after all heads return and you finish. Never run or delegate those operations. For merge/status questions, use only the current [Hydra] note: if merged, give its link; if files remain, say they land when your answer ends; if merging failed or files are outside every project, give the stated reason and required user action. If nothing is pending, promise no merge. Never claim a merge without the note confirming it.";
+
+    // :713. Swift `private`.
+    internal const string ReviewRule =
+        "Read every changed file named in the reports and its affected callers. Correct integration issues yourself, run the narrowest required build in the checkout, and disclose your corrections. Never delegate this review.";
+
+    // :718. Swift `private`.
+    internal const string ReportStyleRule =
+        "For each head, give one plain sentence starting with its name and describing the user-visible result; add the file details only when useful, and keep the whole account bounded to a line or two per head. Omit repeated summaries, audit jargon and decorative symbols. Say plainly what you still need from the user and what you settled or fixed yourself.";
+
+    // :722-790. DEVIATION OD-0012 F1 (x2): "Droppy Code shows each one" -> "Marrow shows each one", and
+    // "Droppy Code names the heads" -> "Marrow names the heads", and "Droppy Code still sends those heads
+    // out" -> "Marrow still sends those heads out"; every other byte, including the contradiction at :782
+    // between "never through a fenced hydra block" and "still sends those heads out as threads of their own"
+    // (PR-HYDRA-047, reproduced upstream defect), is unchanged.
+    public static string Policy(ProviderKind @for, HydraLaunch launch)
+    {
+        var maxHeads = launch.MaxHeads;
+        var autoMerges = launch.AutoMerges;
+        var reviewsHeads = launch.ReviewsHeads;
+        var projects = launch.Projects;
+        var profiles = NativeRoutableProfiles(launch);
+        string profileRule;
+        if (profiles.Count == 0)
+        {
+            profileRule = "";
+        }
+        else
+        {
+            switch (@for)
+            {
+                case ProviderKind.Claude:
+                case ProviderKind.Copilot:
+                    var variants = string.Join(", ", profiles.Select(profile => $"`{WorkerAgentNameFor(profile)}` for {profile.Name}"));
+                    profileRule = $" Some heads are tuned for a purpose: route the task to {variants} instead of the plain `{WorkerAgentName}` when the work belongs to that purpose.";
+                    break;
+                case ProviderKind.Codex:
+                    var routes = string.Join(", ", profiles.Select(profile =>
+                    {
+                        var parts = new List<string>();
+                        if (profile.Model is { } model) parts.Add($"`model` = {model}");
+                        if (profile.Effort is { } effort) parts.Add($"`reasoning_effort` = {effort}");
+                        return $"{profile.Name} (pass {string.Join(" and ", parts)})";
+                    }));
+                    // :745. Plain ASCII apostrophe in "profile's"; U+2014 EM DASH, twice, each surrounded by
+                    // a single space.
+                    profileRule = $" Some heads are tuned for a purpose: route the task by passing the profile's own knobs in `spawn_agent` \U00002014 {routes} \U00002014 when the work belongs to that purpose.";
+                    break;
+                default:
+                    profileRule = "";
+                    break;
+            }
+        }
+        string howToSpawn;
+        string howToWait;
+        switch (@for)
+        {
+            case ProviderKind.Claude:
+                howToSpawn = $"Two agent types are yours: `{WorkerAgentName}` (edits files, runs commands) and `{ScoutAgentName}` (read-only research). Spawn them with the Agent tool and prefer them over other agents while Hydra is on: they run on the model and effort the user chose for heads.{profileRule}";
+                howToWait = "Launch every head for a job in one message so they run in parallel, in the foreground" +
+                    (maxHeads is { } cap1 ? $", and run at most {cap1} at once." : ".");
+                break;
+            case ProviderKind.Codex:
+                howToSpawn = $"Spawn heads with `spawn_agent`: the `worker` agent for anything that edits files or runs commands, the `explorer` agent for read-only research.{profileRule}";
+                howToWait = "Spawn every head for a job before waiting, so they run in parallel, and collect them with `wait_agent`; never leave a head running when you answer." +
+                    (maxHeads is { } cap2 ? $" Run at most {cap2} at once." : "");
+                break;
+            case ProviderKind.Copilot:
+                howToSpawn = $"Two agents are yours: `{WorkerAgentName}` (edits files, runs commands) and `{ScoutAgentName}` (read-only research). Start them with the task tool and prefer them over other agents while Hydra is on: they run on the model and effort the user chose for heads.{profileRule}";
+                howToWait = "Start every head for a job at once so they run in parallel" +
+                    (maxHeads is { } cap3 ? $", and run at most {cap3} at a time." : ".");
+                break;
+            default:
+                howToSpawn = "";
+                howToWait = maxHeads is { } cap4 ? $"Run at most {cap4} heads at once." : "Send every head for a job out at once so they run in parallel.";
+                break;
+        }
+        var reviewBullet = reviewsHeads ? "- " + ReviewRule + "\n" : "";
+        var autoMergeBlock = autoMerges ? "\n" + AutoMergeRule + "\n" : "";
+        var lines = new[]
+        {
+            "# Hydra",
+            "",
+            $"The user switched on Hydra for this chat: you lead a team of helper agents, called heads, that work in parallel in your checkout. Switching Hydra on is the user asking you to use them, so it overrides any standing rule that says not to spawn agents unless asked. {howToSpawn} The agents you spawn this way are the Hydra heads themselves: Marrow shows each one in the team's panel under a roster name and posts its outcome in the chat. There is no other launcher and no other kind of head, so never tell the user that Hydra heads cannot be started here; when the user asks for heads, spawn them this way.",
+            "",
+            "Delegate first, work second. Anything bigger than a single obvious change to a single file is a job for heads: audits, reviews, a feature that spans files, a refactor, \"check everything\", research across many files or sources, several tasks in one message. In your first reply, look at the code only long enough to write good briefs, a minute and a handful of files rather than ten, then send out scouts for the reading and workers for the changes, all in that same message. Never spend minutes reading before you delegate, and never do inline what heads could be doing in parallel. Only a truly single-focus request, one file and one obvious change, is yours to do alone, and size the team to the work rather than to how many heads are free: a handful of independent pieces is a team, where three tiny steps that depend on each other are one head's task, or your own.",
+            "",
+            "When you delegate:",
+            $"- {howToWait}",
+            "- Give each head one self-contained task with the exact files, symbols and acceptance criteria it needs. Heads share the checkout but not your context, so write the task as if to a capable colleague who has read nothing yet.",
+            $"- {BriefRule}",
+            $"- {VerificationRule}",
+            $"- {ProjectRule(projects)}",
+            "- Split the work so no two heads edit the same file and no head's task rests on another head's unfinished changes: they run in parallel and never see each other's work. Keep integration, verification and the final answer for yourself: never send out a head to verify, redo or finish another head's work.",
+            "- Tell the user in one line which heads you sent out and what each one does. Marrow names the heads in roster order (Hank, Walter, Ada, Otto, Nova, Remy, Iris, Milo, Juno, Ezra, Lena, Bo, Kai, Vera, Finn, Mira, Odin, Suki, Rex, Zola, Pip, Ivo, Lux, Tova, Gus, then Hank 2 and so on): announce each head by its task and use exactly those names in that order, never invented ones. There is no head called Ives; the roster has Ivo.",
+            "- After delegating, yield until reports arrive.",
+            "- Heads go out through the tools above, never through a fenced hydra block: that is the delegation format for providers without agent tools of their own. If you end a reply with one anyway, Marrow still sends those heads out as threads of their own, but your turn ends there and their reports come back as a later message.",
+            "",
+            "When they report back:",
+            "- The checkout changes under you while heads work, and the user may be editing too. Never use git status or git diff to check on a head, and never reconcile, revert, stash or move changes you did not make.",
+            "- Take a report as done work: read the files it names if something matters, but do not redo the task and do not start it over because the tree looks different from what you expected. A head that failed leaves its part to you: do it or send it out again. A head the user stopped leaves its part alone unless the user asks.",
+            $"{reviewBullet}- Then finish the job: integrate, run one verification if it matters, and answer the user. {ReportStyleRule}",
+            autoMergeBlock,
+        };
+        return string.Join("\n", lines);
+    }
+
+    // :793-798. Not named by any PR-HYDRA-0xx record in this part, but ClaudeAgents/CopilotAgents (051, 052)
+    // both read it directly (see the file header note). DEVIATION OD-0012 F1: "in Droppy Code:" -> "in
+    // Marrow:"; the rest is unchanged.
+    public static string WorkerPrompt =>
+        "You are a Hydra head in Marrow: one of several helpers working in parallel for a lead agent, in the lead's own checkout, where the lead and the other heads are changing other files at the same time. Do exactly the task you were given, and only that: do not widen it, do not touch files it does not name unless the task cannot be done otherwise, and never revert, reformat or clean up work that is not yours. Changes you did not make are expected in the checkout: leave them alone, never stash, check out, reset, restore or clean anything, and never move work into a branch or worktree, whatever the project's own guidelines say about agents and worktrees. Do not use git status or git diff to check your work: they show everyone's changes. Never run a build, a test, a lint or any other check of your work: the lead runs every check itself. Make the edits your brief names and report. If something blocks you, say so instead of guessing.\n\n" +
+        HowToReport;
+
+    // :800-805. Not named by any PR-HYDRA-0xx record in this part; see WorkerPrompt above. DEVIATION
+    // OD-0012 F1: "in Droppy Code:" -> "in Marrow:"; the rest is unchanged.
+    public static string ScoutPrompt =>
+        "You are a Hydra head in Marrow: a read-only researcher working in parallel for a lead agent, in the lead's own checkout, where the lead and other heads are changing files at the same time; uncommitted changes there are theirs and expected. Answer exactly the question you were given, from the code and sources you can read. Change nothing.\n\n" +
+        "Reply with a short report the lead can act on: the findings, with file paths and line references, and anything that contradicts what the lead assumed. No preamble.";
+
+    // :807-839
+    public static JSONValue ClaudeAgents(HydraLaunch launch)
+    {
+        var antiSlop = AntiSlopPolicy.Instructions(launch.AntiSlopEnabled);
+        var worker = new ValueDictionary
+        {
+            ["description"] = "Hydra head that implements one delegated task: edits files, runs commands. Use proactively when a request splits into independent pieces or touches several parts of the codebase.",
+            ["prompt"] = WorkerPrompt + "\n\n" + antiSlop,
+            ["background"] = false,
+        };
+        var scout = new ValueDictionary
+        {
+            ["description"] = "Hydra head for read-only research: finds files, reads code, gathers facts and reports back. Use proactively when a job needs many files or sources read.",
+            ["prompt"] = ScoutPrompt + "\n\n" + antiSlop,
+            ["tools"] = new JSONValue.Array(new ValueList<JSONValue>(new JSONValue[]
+                { "Read", "Grep", "Glob", "WebFetch", "WebSearch" })),
+            ["background"] = false,
+        };
+        if (launch.WorkerModel is { } model && model != "default")
+        {
+            worker["model"] = model;
+            scout["model"] = model;
+        }
+        if (launch.WorkerEffort is { } effort && effort.Length != 0)
+        {
+            worker["effort"] = effort;
+            scout["effort"] = effort;
+        }
+        var agents = new ValueDictionary
+        {
+            [WorkerAgentName] = new JSONValue.Object(new ValueMap<string, JSONValue>(worker)),
+            [ScoutAgentName] = new JSONValue.Object(new ValueMap<string, JSONValue>(scout)),
+        };
+        foreach (var profile in NativeRoutableProfiles(launch))
+        {
+            var variant = new ValueDictionary(worker)
+            {
+                ["description"] = $"Hydra head that implements one delegated task, tuned as the '{profile.Name}' profile. Prefer it for work that belongs to '{profile.Name}' over the plain {WorkerAgentName}.",
+            };
+            if (profile.Model is { } profileModel && profileModel != "default") variant["model"] = profileModel;
+            if (profile.Effort is { } profileEffort && profileEffort.Length != 0) variant["effort"] = profileEffort;
+            agents[WorkerAgentNameFor(profile)] = new JSONValue.Object(new ValueMap<string, JSONValue>(variant));
+        }
+        return new JSONValue.Object(new ValueMap<string, JSONValue>(agents));
+    }
+
+    // :842-888. dead_code.md item 17: the Swift `tools` parameter of the local `agent` helper is dead (both
+    // call sites pass `tools: nil`), so the port omits the parameter and the tools concept entirely.
+    public static ValueList<JSONValue> CopilotAgents(HydraLaunch launch)
+    {
+        var antiSlop = AntiSlopPolicy.Instructions(launch.AntiSlopEnabled);
+
+        JSONValue Agent(string name, string display, string description, string prompt)
+        {
+            var obj = new ValueDictionary
+            {
+                ["name"] = name,
+                ["displayName"] = display,
+                ["description"] = description,
+                ["prompt"] = prompt,
+                ["infer"] = true,
+            };
+            if (launch.WorkerModel is { } model && model != "auto") obj["model"] = model;
+            if (launch.WorkerEffort is { } effort && effort.Length != 0) obj["reasoningEffort"] = effort;
+            return new JSONValue.Object(new ValueMap<string, JSONValue>(obj));
+        }
+
+        var worker = Agent(
+            WorkerAgentName,
+            "Hydra worker",
+            "Hydra head that implements one delegated task: edits files, runs commands. Use when a request splits into independent pieces.",
+            WorkerPrompt + "\n\n" + antiSlop);
+
+        var agents = new List<JSONValue>
+        {
+            worker,
+            Agent(
+                ScoutAgentName,
+                "Hydra scout",
+                "Hydra head for read-only research: finds files, reads code and reports back. Use when a job needs many files or sources read.",
+                ScoutPrompt + "\n\n" + antiSlop),
+        };
+
+        foreach (var profile in NativeRoutableProfiles(launch))
+        {
+            if (worker is not JSONValue.Object workerObject) continue;
+            var variant = new ValueDictionary(workerObject.Value);
+            variant["name"] = WorkerAgentNameFor(profile);
+            variant["displayName"] = $"Hydra worker \U000000B7 {profile.Name}"; // :881, U+00B7 MIDDLE DOT
+            variant["description"] = $"Hydra head that implements one delegated task, tuned as the '{profile.Name}' profile. Prefer it for work that belongs to '{profile.Name}' over the plain {WorkerAgentName}.";
+            if (profile.Model is { } profileModel && profileModel != "auto") variant["model"] = profileModel;
+            if (profile.Effort is { } profileEffort && profileEffort.Length != 0) variant["reasoningEffort"] = profileEffort;
+            agents.Add(new JSONValue.Object(new ValueMap<string, JSONValue>(variant)));
+        }
+
+        return new ValueList<JSONValue>(agents);
+    }
 
     public static ValueMap<string, JSONValue> CodexConfig(HydraLaunch launch) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/Core/Models/Hydra.swift:894");
