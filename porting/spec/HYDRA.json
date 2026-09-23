@@ -3659,7 +3659,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Ten exact records. A recipe names models, not providers: each side lists the providers that serve its model and the first one set up on this machine whose catalogue has the model is the one the pair runs on.",
       "verification_method": "unit asserting all ten ids, titles, caps and sides in order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3680,7 +3680,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Ten exact strings.",
       "verification_method": "contract fixture over all ten",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3700,7 +3700,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure function.",
       "verification_method": "unit over all four branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3720,7 +3720,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Four-field comparison over headsProvider, not workerProvider.",
       "verification_method": "unit including a pair differing only by effort",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
