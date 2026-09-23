@@ -136,7 +136,7 @@ public sealed class CopilotSessionTests
         using var runtime = new TestRuntime();
         var script = new CopilotScript("framing");
         Started(runtime, Config(script));
-        Assert.True(script.WaitFor(s => s.Methods().Contains("session.commands.list")));
+        runtime.Loop.RunUntil(() => script.Methods().Contains("session.commands.list"), Bound);
         // The stand-in only records frames it parsed from a Content-Length header.
         var messages = script.Messages();
         Assert.Equal(["ping", "session.create", "session.commands.list"], messages.Select(m => m["method"]!.JSONValueString!).ToList());
@@ -418,7 +418,7 @@ public sealed class CopilotSessionTests
         var script = new CopilotScript("modes-after-create");
         script.Reply("session.permissions.setMode", "{\"mode\":\"allow-all\"}");
         Started(runtime, Config(script, runtimeMode: RuntimeMode.FullAccess, interactionMode: InteractionMode.Plan));
-        Assert.True(script.WaitFor(s => s.Methods().Contains("session.commands.list")));
+        runtime.Loop.RunUntil(() => script.Methods().Contains("session.commands.list"), Bound);
         Assert.Equal(["ping", "session.create", "session.permissions.setMode", "session.mode.set", "session.commands.list"], script.Methods());
     }
 
@@ -431,7 +431,7 @@ public sealed class CopilotSessionTests
         script.Reply("session.permissions.setMode", "{\"mode\":\"allow-all\"}");
         var (_, _, id) = Started(runtime, Config(script, resumeID: "r-1", runtimeMode: RuntimeMode.FullAccess, interactionMode: InteractionMode.Plan));
         Assert.Equal("r-1", id);
-        Assert.True(script.WaitFor(s => s.Methods().Contains("session.commands.list")));
+        runtime.Loop.RunUntil(() => script.Methods().Contains("session.commands.list"), Bound);
         Assert.Equal(["ping", "session.resume", "session.permissions.setMode", "session.mode.set", "session.commands.list"], script.Methods());
     }
 
@@ -841,7 +841,7 @@ public sealed class CopilotSessionTests
         var failing = new CopilotScript("commands-error");
         failing.Error("session.commands.list", -32601, "no");
         var (session, events, _) = Started(runtime, Config(failing));
-        Assert.True(failing.WaitFor(s => s.Methods().Contains("session.commands.list")));
+        runtime.Loop.RunUntil(() => failing.Methods().Contains("session.commands.list"), Bound);
         runtime.RunUntilIdle();
         runtime.Loop.Run(() => session.Send(Turn("/review")), Bound);
         Assert.Empty(events.OfType<ProviderEvent.Commands>());
@@ -850,10 +850,12 @@ public sealed class CopilotSessionTests
 
         var owned = new CopilotScript("commands-own-only");
         owned.Reply("session.commands.list", "{\"commands\":[{\"name\":\"model\"}]}");
-        var (_, ownEvents, _) = Started(runtime, Config(owned));
-        Assert.True(owned.WaitFor(s => s.Methods().Contains("session.commands.list")));
-        runtime.RunUntilIdle();
+        var (ownSession, ownEvents, _) = Started(runtime, Config(owned));
+        runtime.Loop.RunUntil(() => owned.Methods().Contains("session.commands.list"), Bound);
+        // Replies come back in order: once a later request is answered, the command list has been handled.
+        runtime.Loop.Run(() => ownSession.Compact(), Bound);
         Assert.Empty(ownEvents.OfType<ProviderEvent.Commands>());
+        Assert.Empty(Field<HashSet<string>>(ownSession, "commandNames"));
     }
 
     // ---- PR-PROVCLI-155, 156 ----
@@ -909,7 +911,7 @@ public sealed class CopilotSessionTests
         AddPending(session, "question-41", Pending("Question", new RPCID.Int(41), new ValueList<string>(["a", "b"])));
         AddPending(session, "plan-p-9", Pending("PlanExit", new RPCID.String("p-9")));
         runtime.Loop.Run(() => session.Interrupt(), Bound);
-        Assert.True(script.WaitFor(s => s.Requests("session.permissions.handlePendingPermissionRequest").Count == 1 && s.Responses().Count == 2 && s.Requests("session.abort").Count == 1));
+        runtime.Loop.RunUntil(() => script.Requests("session.permissions.handlePendingPermissionRequest").Count == 1 && script.Responses().Count == 2 && script.Requests("session.abort").Count == 1, Bound);
 
         Assert.Empty((IDictionary)typeof(CopilotSession).GetField("pendingRequests", Instance)!.GetValue(session)!);
         Assert.Equal(["perm-1", "plan-p-9", "question-41"],
