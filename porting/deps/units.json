@@ -3180,33 +3180,13 @@
    ],
    "intra_deps": [],
    "records_total": 8,
-   "records_todo": [
-    "PR-MCP-165",
-    "PR-MCP-166",
-    "PR-MCP-167",
-    "PR-MCP-168",
-    "PR-MCP-169",
-    "PR-MCP-170",
-    "PR-MCP-171",
-    "PR-MCP-172"
-   ],
-   "parts": [
-    [
-     "PR-MCP-165",
-     "PR-MCP-166",
-     "PR-MCP-167",
-     "PR-MCP-168",
-     "PR-MCP-169",
-     "PR-MCP-170",
-     "PR-MCP-171",
-     "PR-MCP-172"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-010"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Chrome.HydraPairMark",
