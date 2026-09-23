@@ -15,6 +15,12 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- OD-0015: the Marrow icon, carried over from the owner's Marrow app (its resources/icon.svg and build/icon.ico). -->
+    <ApplicationIcon>Assets/icon.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets/icon.png" />
+  </ItemGroup>
 
 </Project>
