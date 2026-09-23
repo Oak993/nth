@@ -16,6 +16,7 @@
     "F.ICUFormatters",
     "F.StyledText",
     "F.URLComponents",
-    "F.SettingsStore"
+    "F.SettingsStore",
+    "F.SwiftAnimation"
   ]
 }
