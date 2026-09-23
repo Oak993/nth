@@ -2389,19 +2389,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-SETTINGS-019"
-   ],
-   "parts": [
-    [
-     "PR-SETTINGS-019"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-160"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Settings.ShortcutsSettingsPage",
@@ -3518,22 +3512,14 @@
    ],
    "intra_deps": [],
    "records_total": 2,
-   "records_todo": [
-    "PR-HYDRA-197",
-    "UI-HYDRA-035"
-   ],
-   "parts": [
-    [
-     "PR-HYDRA-197",
-     "UI-HYDRA-035"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-045",
     "T-M5-046"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Composer.ThreadChangesTab",
