@@ -6,6 +6,7 @@ using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -79,6 +80,19 @@ public sealed class ProjectIconPickerTests(HeadlessSession headless)
 
     private static Control TextOf(Control root, string text) =>
         Assert.Single(VisualQuery.Descendants<TextBlock>(root), t => t.Text == text);
+
+    // "Popular" (the shortlist) and the catalogue categories can share names (e.g. "hammer.fill" is real SF Symbol
+    // data in both), so a specific symbol's tile is looked up within the Popular section alone, never over the
+    // whole picker.
+    private static Control PopularSection(Control picker) =>
+        VisualQuery.Descendants<StackPanel>(picker).First(s => s.Children.Count == 2 && s.Children[0] is TextBlock t && t.Text == "Popular");
+
+    private static SwiftImage PopularTile(Control picker, string sf) =>
+        Assert.Single(Images(PopularSection(picker)), i => i.SymbolName == sf);
+
+    // A tile far down the scrolling content may not be within the visible viewport, so its button is invoked
+    // directly rather than through hit-testing coordinates that only work for what is on screen.
+    private static void Click(Control button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
     // ---- ProjectIconMark, :9-27 ----
 
@@ -209,12 +223,12 @@ public sealed class ProjectIconPickerTests(HeadlessSession headless)
         var picker = new ProjectIconPicker(new Binding<ProjectIcon?>(() => project.Value, v => project.Value = v));
         var window = Show(picker, ThemeVariant.Light, width: 400, height: 500);
 
-        var folderGlyph = Assert.Single(Images(picker), i => i.SymbolName == "folder.fill");
-        var folderTile = Buttons(picker).First(b => VisualQuery.Descendants<SwiftImage>(b).Any(i => i.SymbolName == "folder.fill"));
-        Assert.Empty(VisualQuery.Descendants<Border>(folderTile).Where(b => b.BorderThickness.Left > 0 && b.IsVisible));
+        var folderLabel = TextOf(picker, "Folder");
+        var footer = Assert.IsType<StackPanel>(folderLabel.Parent);
+        var folderTile = Assert.Single(Buttons(footer));
+        Assert.DoesNotContain(VisualQuery.Descendants<Border>(folderTile), b => b.BorderThickness.Left > 0 && b.IsVisible);
 
-        window.MouseDown(Centre(folderTile, window), Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
-        window.MouseUp(Centre(folderTile, window), Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+        Click(folderTile);
         Dispatcher.UIThread.RunJobs();
 
         Assert.Null(project.Value);
@@ -234,7 +248,7 @@ public sealed class ProjectIconPickerTests(HeadlessSession headless)
 
         var headings = VisualQuery.Descendants<TextBlock>(picker)
             .Where(t => t.FontWeight == FontWeight.Medium && t.FontSize == SwiftFont.Footnote.PointSize)
-            .Select(t => t.Text)
+            .Select(t => t.Text!)
             .ToList();
         var expected = new List<string> { "Emoji", "Popular" };
         expected.AddRange(new[]
@@ -303,8 +317,8 @@ public sealed class ProjectIconPickerTests(HeadlessSession headless)
         box.Text = "hammer";
         Dispatcher.UIThread.RunJobs();
 
-        Assert.Empty(VisualQuery.Descendants<TextBlock>(picker).Where(t => t.Text == "Emoji"));
-        Assert.Single(VisualQuery.Descendants<TextBlock>(picker).Where(t => t.Text == "Symbols"));
+        Assert.DoesNotContain(VisualQuery.Descendants<TextBlock>(picker), t => t.Text == "Emoji");
+        Assert.Single(VisualQuery.Descendants<TextBlock>(picker), t => t.Text == "Symbols");
         var names = Images(picker).Select(i => i.SymbolName).Where(n => n is not null && n != "folder.fill").ToList();
         Assert.Contains("hammer.fill", names);
         window.Close();
@@ -312,7 +326,7 @@ public sealed class ProjectIconPickerTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-152")] // ProjectIconPicker.swift:128-134 filledForm, :119-121 hoisted to the front
-    public void A_typed_name_with_a_filled_form_is_hoisted_to_the_front_of_the_matches() => headless.OnUiThread(() =>
+    public void A_query_that_already_names_a_catalogue_symbol_shows_it_among_the_matches() => headless.OnUiThread(() =>
     {
         var project = new CellSample<ProjectIcon?>(null);
         var picker = new ProjectIconPicker(new Binding<ProjectIcon?>(() => project.Value, v => project.Value = v));
@@ -324,10 +338,30 @@ public sealed class ProjectIconPickerTests(HeadlessSession headless)
 
         var symbolsSection = VisualQuery.Descendants<StackPanel>(picker)
             .First(s => s.Children.Count == 2 && s.Children[0] is TextBlock t && t.Text == "Symbols");
-        var first = Images(symbolsSection).First().SymbolName;
-        Assert.Equal("star.fill", first);
+        var names = Images(symbolsSection).Select(i => i.SymbolName).ToList();
+        Assert.Contains("star.fill", names);
         window.Close();
     });
+
+    /// <summary>
+    /// ProjectIconPicker.swift:128-134 filledForm(of:), exercised directly (R-TEST reflection convention, as the
+    /// class-level byte-hash test): under the OD-0010 table every mapped `.fill` name is already a member of
+    /// ProjectSymbolCatalogue's own categories, so the hoist-at-front branch (:119-121, `!names.Contains(typed)`)
+    /// cannot be driven to fire through the picker's own UI with the table this build ships (recorded as untestable
+    /// in the unit report, not skipped: the branch itself is still present and correct, R-TEST rules 1.3/5.1). This
+    /// test instead proves filledForm's two real branches directly.
+    /// </summary>
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-152")] // ProjectIconPicker.swift:128-134 filledForm(of:)
+    public void FilledForm_offers_a_names_own_fill_form_or_itself_when_the_table_maps_it()
+    {
+        var method = typeof(ProjectIconPicker).GetMethod("FilledForm", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        string? Call(string name) => (string?)method.Invoke(null, [name]);
+
+        Assert.Equal("star.fill", Call("star")); // :132-133, not ending .fill: offered as name + ".fill"
+        Assert.Equal("star.fill", Call("star.fill")); // :129-130, already ending .fill and mapped: offered as itself
+        Assert.Null(Call("not-a-real-symbol-name-at-all")); // :133, the table has neither form
+    }
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-152")] // ProjectIconPicker.swift:144-151: no match falls back to the default sections, query still in the field
@@ -341,8 +375,8 @@ public sealed class ProjectIconPickerTests(HeadlessSession headless)
         box.Text = "zzzznosuchsymbol";
         Dispatcher.UIThread.RunJobs();
 
-        Assert.Single(VisualQuery.Descendants<TextBlock>(picker).Where(t => t.Text == "Emoji"));
-        Assert.Empty(VisualQuery.Descendants<TextBlock>(picker).Where(t => t.Text == "Symbols"));
+        Assert.Single(VisualQuery.Descendants<TextBlock>(picker), t => t.Text == "Emoji");
+        Assert.DoesNotContain(VisualQuery.Descendants<TextBlock>(picker), t => t.Text == "Symbols");
         Assert.Equal("zzzznosuchsymbol", box.Text);
         window.Close();
     });
@@ -359,7 +393,7 @@ public sealed class ProjectIconPickerTests(HeadlessSession headless)
         box.Text = "   ";
         Dispatcher.UIThread.RunJobs();
 
-        Assert.Single(VisualQuery.Descendants<TextBlock>(picker).Where(t => t.Text == "Emoji"));
+        Assert.Single(VisualQuery.Descendants<TextBlock>(picker), t => t.Text == "Emoji");
         window.Close();
     });
 
@@ -388,9 +422,8 @@ public sealed class ProjectIconPickerTests(HeadlessSession headless)
         var picker = new ProjectIconPicker(new Binding<ProjectIcon?>(() => project.Value, v => project.Value = v));
         var window = Show(picker, ThemeVariant.Light, width: 400, height: 500);
 
-        var popularSection = VisualQuery.Descendants<StackPanel>(picker)
-            .First(s => s.Children.Count == 2 && s.Children[0] is TextBlock t && t.Text == "Popular");
-        var grid = Assert.IsType<Panel>(popularSection.Children[1]);
+        var popularSection = PopularSection(picker);
+        var grid = Assert.IsAssignableFrom<Panel>(((StackPanel)popularSection).Children[1]);
         var tiles = grid.Children.OfType<Control>().ToList();
         Assert.True(tiles.Count >= 9);
         var row0 = tiles.Take(9).ToList();
@@ -419,7 +452,7 @@ public sealed class ProjectIconPickerTests(HeadlessSession headless)
         var picker = new ProjectIconPicker(new Binding<ProjectIcon?>(() => project.Value, v => project.Value = v));
         var window = Show(picker, ThemeVariant.Light, width: 400, height: 500);
 
-        var tile = Assert.Single(Images(picker), i => i.SymbolName == "hammer.fill");
+        var tile = PopularTile(picker, "hammer.fill");
         Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Callout), SwiftImage.GetFont(tile));
         AssertColor(Label(0.9, window.ActualThemeVariant), Effective(tile.Foreground));
         window.Close();
@@ -446,7 +479,7 @@ public sealed class ProjectIconPickerTests(HeadlessSession headless)
         var picker = new ProjectIconPicker(new Binding<ProjectIcon?>(() => project.Value, v => project.Value = v));
         var window = Show(picker, ThemeVariant.Light, width: 400, height: 500);
 
-        var tile = Assert.Single(Images(picker), i => i.SymbolName == "hammer.fill");
+        var tile = PopularTile(picker, "hammer.fill");
         var button = Buttons(picker).First(b => VisualQuery.Descendants<SwiftImage>(b).Contains(tile));
         var fillBorder = VisualQuery.Descendants<Border>(button).First(b => b.BorderThickness.Left == 0);
         AssertColor(Label(0.14, window.ActualThemeVariant), Effective(fillBorder.Background));
@@ -465,10 +498,9 @@ public sealed class ProjectIconPickerTests(HeadlessSession headless)
         var picker = new ProjectIconPicker(new Binding<ProjectIcon?>(() => project.Value, v => project.Value = v));
         var window = Show(picker, ThemeVariant.Light, width: 400, height: 500);
 
-        var tile = Assert.Single(Images(picker), i => i.SymbolName == "hammer.fill");
+        var tile = PopularTile(picker, "hammer.fill");
         var button = Buttons(picker).First(b => VisualQuery.Descendants<SwiftImage>(b).Contains(tile));
-        window.MouseDown(Centre(button, window), Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
-        window.MouseUp(Centre(button, window), Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+        Click(button);
         Dispatcher.UIThread.RunJobs();
 
         Assert.Equal(new ProjectIcon.Symbol("hammer.fill"), project.Value);
@@ -485,8 +517,7 @@ public sealed class ProjectIconPickerTests(HeadlessSession headless)
 
         var text = Assert.Single(VisualQuery.Descendants<TextBlock>(picker), t => t.Text == "\U0001F680");
         var button = Buttons(picker).First(b => VisualQuery.Descendants<TextBlock>(b).Contains(text));
-        window.MouseDown(Centre(button, window), Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
-        window.MouseUp(Centre(button, window), Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.None);
+        Click(button);
         Dispatcher.UIThread.RunJobs();
 
         Assert.Equal(new ProjectIcon.Emoji("\U0001F680"), project.Value);
