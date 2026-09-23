@@ -602,4 +602,163 @@ public sealed class SwiftAnimationTransitionTests(HeadlessSession headless)
         Assert.Single(bodies);
         window.Close();
     });
+
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")]
+    [Trait("Decision", "ED-011")]
+    [Trait("Decision", "ED-092")]
+    [Trait("Decision", "ED-098")]
+    public void Both_modifier_halves_of_the_settle_glide_shape_wrap_the_content_and_each_updates_its_own_wrapper() => headless.OnUiThread(() =>
+    {
+        // UI/Chrome/Chrome.swift:994-999 settleGlide, whole: insertion `.modifier(active: SoftAppearModifier(isVisible:
+        // false), identity: SoftAppearModifier(isVisible: true)).animation(.softAppear)` (:960 `.smooth(duration: 0.32)`),
+        // removal `.modifier(active: SettleGlideModifier(progress: 1), identity: SettleGlideModifier(progress: 0))
+        // .animation(.spring(Chrome.glideSpring))`. Each modifier wraps the content itself; the fixture's Update asserts
+        // it is handed the wrapper its own Body built. SoftAppearModifier is stood in by a second SettleGlideSample with
+        // its own logs (one animatable value from 1 to 0). smooth(duration: 0.32) is the critically damped spring,
+        // 1 - e^(-wt)(1 + wt) with w = 2 pi / 0.32: 0.5840232690915959 at 0.1 s; it settles in 0.3518 s.
+        using var clocks = new AnimationClocks();
+        var (window, panel) = Host();
+        List<Control> appearBodies = [];
+        List<double> appearUpdates = [];
+        List<Control> glideBodies = [];
+        List<double> glideUpdates = [];
+        var child = Box().Transition(SwiftTransition.Asymmetric(
+            insertion: SwiftTransition.Modifier(active: new SettleGlideSample(1, appearBodies, appearUpdates), identity: new SettleGlideSample(0, appearBodies, appearUpdates))
+                .Animation(Animation.Smooth(duration: 0.32)),
+            removal: SwiftTransition.Modifier(active: new SettleGlideSample(1, glideBodies, glideUpdates), identity: new SettleGlideSample(0, glideBodies, glideUpdates))
+                .Animation(Animation.Spring(new Spring(response: 0.6, dampingRatio: 0.86)))));
+        SwiftTransition.Insert(panel, 0, child);
+        window.UpdateLayout();
+        Assert.Single(appearBodies);
+        Assert.Single(glideBodies);
+        Assert.True(IsUnder(child, appearBodies[0]));
+        Assert.True(IsUnder(child, glideBodies[0]));
+        Assert.True(IsUnder(child, panel));
+        Assert.Equal(1, appearUpdates[^1]);
+        Assert.Equal(0, glideUpdates[^1]);
+        clocks.Frame(0.1);
+        Assert.Equal(1 - 0.5840232690915959, appearUpdates[^1], Tolerance);
+        clocks.Frame(0.3); // 0.4 s: past the 0.3518 s settling duration
+        Assert.Equal(0, appearUpdates[^1], Tolerance);
+        Assert.Equal(0, clocks.Frames.Pending);
+        SwiftTransition.Remove(panel, child);
+        clocks.Frame(0.1);
+        Assert.Equal(0.30155107726937647, glideUpdates[^1], Tolerance);
+        Assert.Equal(0, appearUpdates[^1], Tolerance);
+        Assert.True(IsUnder(child, panel));
+        clocks.Frame(0.7); // 0.8 s: past the 0.767 s settling duration
+        Assert.Equal(1, glideUpdates[^1], Tolerance);
+        Assert.False(IsUnder(child, panel));
+        Assert.Empty(panel.Children);
+        Assert.Equal(0, clocks.Frames.Pending);
+        Assert.Single(appearBodies);
+        Assert.Single(glideBodies);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")]
+    [Trait("Decision", "ED-092")]
+    [Trait("Decision", "ED-159")]
+    public void Reinserting_a_child_during_its_animated_removal_keeps_it_once_under_the_panel() => headless.OnUiThread(() =>
+    {
+        // A conditional view whose state flips back before its removal ends, e.g. App/Views/Chat/HydraButton.swift:42
+        // `.transition(.scale(scale: 0.6).combined(with: .opacity))`. The removal is cancelled; the view is inserted
+        // again and the removal's frames never take it out. (ED-159 follow-up: how an interrupted transition continues
+        // is not ruled, so only the end state is asserted.)
+        using var clocks = new AnimationClocks();
+        var (window, panel) = Host();
+        var child = Box().Transition(SwiftTransition.Opacity);
+        SwiftTransition.Insert(panel, 0, child);
+        window.UpdateLayout();
+        Transaction.WithAnimation(Animation.EaseOut(duration: 0.2), () => SwiftTransition.Remove(panel, child));
+        clocks.Frame(0.05);
+        Transaction.WithAnimation(Animation.EaseOut(duration: 0.2), () => SwiftTransition.Insert(panel, 0, child));
+        window.UpdateLayout();
+        Assert.Single(panel.Children);
+        Assert.True(IsUnder(child, panel));
+        clocks.Frame(0.25); // past both 0.2 s curves
+        Assert.Single(panel.Children);
+        Assert.True(IsUnder(child, panel));
+        Assert.Equal(1, EffectiveOpacity(child, panel), Tolerance);
+        Assert.Equal(0, clocks.Frames.Pending);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")]
+    [Trait("Decision", "ED-092")]
+    public void Reinserting_a_child_without_an_animation_during_its_animated_removal_cancels_the_removal() => headless.OnUiThread(() =>
+    {
+        using var clocks = new AnimationClocks();
+        var (window, panel) = Host();
+        var child = Box().Transition(SwiftTransition.Opacity);
+        SwiftTransition.Insert(panel, 0, child);
+        window.UpdateLayout();
+        Transaction.WithAnimation(Animation.EaseOut(duration: 0.2), () => SwiftTransition.Remove(panel, child));
+        clocks.Frame(0.05);
+        SwiftTransition.Insert(panel, 0, child);
+        window.UpdateLayout();
+        Assert.Single(panel.Children);
+        Assert.Equal(1, EffectiveOpacity(child, panel), Tolerance);
+        Assert.Equal(0, clocks.Frames.Pending);
+        clocks.Frame(0.25);
+        Assert.Single(panel.Children);
+        Assert.True(IsUnder(child, panel));
+        Assert.Equal(1, EffectiveOpacity(child, panel), Tolerance);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")]
+    [Trait("Decision", "ED-092")]
+    public void A_child_without_a_transition_fades_in_and_out_under_an_animation() => headless.OnUiThread(() =>
+    {
+        // SwiftUI's default transition for a view with no `.transition(_:)` is `.opacity`: documented SwiftUI behaviour,
+        // platform knowledge rather than a B2 fact, UNVERIFIED under OD-0001 as ED-092 records for the other defaults.
+        // Many B2 conditional views inside withAnimation carry no `.transition`.
+        using var clocks = new AnimationClocks();
+        var (window, panel) = Host();
+        var child = Box();
+        InsertAnimated(window, panel, child);
+        Assert.True(IsUnder(child, panel));
+        Assert.Equal(0, EffectiveOpacity(child, panel), Tolerance);
+        AssertCorners(child, panel, new Point(0, 0), new Point(100, 40));
+        clocks.Frame(0.0685);
+        Assert.Equal(0.5, EffectiveOpacity(child, panel), 1e-6);
+        clocks.Frame(0.1315);
+        Assert.Equal(1, EffectiveOpacity(child, panel), Tolerance);
+        Assert.Equal(0, clocks.Frames.Pending);
+        Transaction.WithAnimation(Animation.EaseOut(duration: 0.2), () => SwiftTransition.Remove(panel, child));
+        Assert.True(IsUnder(child, panel));
+        Assert.Equal(1, EffectiveOpacity(child, panel), Tolerance);
+        clocks.Frame(0.0685);
+        Assert.Equal(0.5, EffectiveOpacity(child, panel), 1e-6);
+        Assert.True(IsUnder(child, panel));
+        clocks.Frame(0.1315);
+        Assert.False(IsUnder(child, panel));
+        Assert.Empty(panel.Children);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Rule", "R-VIEW-4")]
+    [Trait("Decision", "ED-092")]
+    public void A_child_never_inserted_through_the_applier_still_fades_out_under_an_animation() => headless.OnUiThread(() =>
+    {
+        // The same `.opacity` default (UNVERIFIED under OD-0001, ED-092) for a child added to the panel directly.
+        using var clocks = new AnimationClocks();
+        var (window, panel) = Host();
+        var child = Box();
+        panel.Children.Add(child);
+        window.UpdateLayout();
+        Transaction.WithAnimation(Animation.EaseOut(duration: 0.2), () => SwiftTransition.Remove(panel, child));
+        Assert.True(IsUnder(child, panel));
+        clocks.Frame(0.0685);
+        Assert.Equal(0.5, EffectiveOpacity(child, panel), 1e-6);
+        clocks.Frame(0.1315);
+        Assert.False(IsUnder(child, panel));
+        window.Close();
+    });
 }
