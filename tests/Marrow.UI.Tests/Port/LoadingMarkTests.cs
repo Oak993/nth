@@ -630,6 +630,32 @@ public sealed class LoadingMarkTests
         Assert.Equal(last + .35, boot.StageClosesAt(2.5), 9);
     }
 
+    [Fact]
+    [Trait("Decision", "ED-103")]
+    public void The_content_scale_follows_out_cubic_of_the_content_opacity_in_mid_flight()
+    {
+        // ED-103 (5): the content's scale goes .985 to 1; the curve is boot_sequence.html:247,
+        // s = .985 + .015 * outCubic(content), with outCubic(t) = 1 - (1 - t)^3 (:85). Review point 2: the ends alone
+        // do not pin the curve, so the mid-flight frames are checked where the content is strictly between 0 and 1.
+        var boot = new BootSequence(ReferenceWindow(), reduceMotion: false);
+        var dis = BootSequence.FinalRest(2.5) + .1;
+        var midFlight = 0;
+        for (var td = .5; td <= 1.6; td += .05)
+        {
+            var frame = boot.At(dis + td, 2.5);
+            var all = boot.WindowParticles.Sum(p => Smooth(.85, 1, p.Fly(td))) / 300;
+            var content = Smooth(.45, 1, all);
+            Assert.Equal(.985 + .015 * (1 - Math.Pow(1 - content, 3)), frame.ContentScale, 9);
+            if (content > .05 && content < .95)
+            {
+                midFlight++;
+                // a linear curve would give .985 + .015 * content, which is below the out-cubic value here
+                Assert.True(frame.ContentScale - (.985 + .015 * content) > 1e-4);
+            }
+        }
+        Assert.True(midFlight >= 3, $"only {midFlight} mid-flight frames");
+    }
+
     // ---- ED-102 (5), ED-103 (6): reduce motion ----
 
     [Fact]

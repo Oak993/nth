@@ -412,4 +412,169 @@ public sealed class LoadingMarkHeadlessTests(HeadlessSession headless)
         Assert.True(sumB > 200, $"glow blue sum {sumB}");
         Assert.InRange(sumR / sumB, .55, .68);
     });
+
+    // ---- review point 1: trail and glow blur as a Gaussian standard deviation (ED-102 (2), (7); ED-103 (5)) ----
+
+    private static WriteableBitmap Copy(RenderTargetBitmap bitmap)
+    {
+        var copy = new WriteableBitmap(bitmap.PixelSize, bitmap.Dpi,
+            bitmap.Format ?? Avalonia.Platform.PixelFormat.Rgba8888, Avalonia.Platform.AlphaFormat.Premul);
+        using (var buffer = copy.Lock())
+            bitmap.CopyPixels(new PixelRect(bitmap.PixelSize), buffer.Address, buffer.RowBytes * buffer.Size.Height, buffer.RowBytes);
+        return copy;
+    }
+
+    private static byte[,] Alpha(WriteableBitmap bitmap)
+    {
+        var size = bitmap.PixelSize;
+        var alpha = new byte[size.Width, size.Height];
+        using var buffer = bitmap.Lock();
+        var row = new byte[buffer.RowBytes];
+        for (var y = 0; y < size.Height; y++)
+        {
+            System.Runtime.InteropServices.Marshal.Copy(buffer.Address + y * buffer.RowBytes, row, 0, buffer.RowBytes);
+            for (var x = 0; x < size.Width; x++) alpha[x, y] = row[x * 4 + 3];
+        }
+        return alpha;
+    }
+
+    // The standard deviation (device px) of a 2 px white bar drawn under the effect at the given scale, less the bar's
+    // own spread (a 2 px box has variance 1/3).
+    private static double MeasuredSigma(double sigma, double scale)
+    {
+        using var bitmap = new RenderTargetBitmap(new PixelSize(600, 20));
+        using (var context = bitmap.CreateDrawingContext())
+        {
+            context.FillRectangle(Brushes.Black, new Rect(0, 0, 600, 20));
+            using (context.PushTransform(Matrix.CreateScale(scale, scale)))
+            using (context.PushEffect(CometPainter.GaussianBlur(sigma), new Rect(0, 0, 600 / scale, 20 / scale)))
+                context.FillRectangle(Brushes.White, new Rect(299 / scale, 0, 2 / scale, 20 / scale));
+        }
+        using var copy = Copy(bitmap);
+        double sum = 0, mean = 0, square = 0;
+        for (var x = 0; x < 600; x++)
+        {
+            var w = (double)Pixel(copy, x, 10).R;
+            sum += w;
+            mean += w * (x + .5);
+        }
+        mean /= sum;
+        for (var x = 0; x < 600; x++) square += Pixel(copy, x, 10).R * Math.Pow(x + .5 - mean, 2);
+        return Math.Sqrt(square / sum - 1.0 / 3);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-102")]
+    [Trait("Decision", "ED-103")]
+    public void The_blur_is_a_gaussian_whose_standard_deviation_is_the_blur_value_in_drawing_units_at_every_scale() => headless.OnUiThread(() =>
+    {
+        // ED-102 (2): the trails are "blurred by 10 and 20 units"; the reference draws them with ctx.filter =
+        // blur(blurUnits * S px) (boot_sequence.html:188), and a CSS blur() length is the Gaussian's standard deviation,
+        // so the drawn sigma is 10 and 20 icon units, scaled with the mark (S = 210/1024 on the boot stage). The window
+        // glow is a canvas shadowBlur of 14 DIP (:284), whose standard deviation is half of it, 7 DIP.
+        foreach (var (sigma, scale) in new[] { (10.0, 1.0), (20.0, 1.0), (7.0, 1.0), (20.0, .5), (20.0, 210 / 1024.0), (10.0, 210 / 1024.0) })
+        {
+            var expected = sigma * scale;
+            var measured = MeasuredSigma(sigma, scale);
+            Assert.True(Math.Abs(measured - expected) <= Math.Max(.1 * expected, .3),
+                $"sigma {sigma} at scale {scale}: measured {measured:F2} px, expected {expected:F2} px");
+        }
+    });
+
+    // Chamfer (3-4) distance, in px, from each pixel to the nearest pixel set in the mask.
+    private static double[,] Distance(bool[,] inside)
+    {
+        int w = inside.GetLength(0), h = inside.GetLength(1);
+        var d = new double[w, h];
+        for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++) d[x, y] = inside[x, y] ? 0 : 1e9;
+        void Relax(int x, int y, int nx, int ny, double step)
+        {
+            if (nx >= 0 && ny >= 0 && nx < w && ny < h && d[nx, ny] + step < d[x, y]) d[x, y] = d[nx, ny] + step;
+        }
+        for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+            {
+                Relax(x, y, x - 1, y, 3); Relax(x, y, x, y - 1, 3); Relax(x, y, x - 1, y - 1, 4); Relax(x, y, x + 1, y - 1, 4);
+            }
+        for (var y = h - 1; y >= 0; y--)
+            for (var x = w - 1; x >= 0; x--)
+            {
+                Relax(x, y, x + 1, y, 3); Relax(x, y, x, y + 1, 3); Relax(x, y, x + 1, y + 1, 4); Relax(x, y, x - 1, y + 1, 4);
+            }
+        for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++) d[x, y] /= 3;
+        return d;
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-102")]
+    public void The_comet_trails_are_soft_smears_that_reach_about_one_standard_deviation_past_the_arms() => headless.OnUiThread(() =>
+    {
+        // ED-102 (2): trail copies rotated back 14 and 30 degrees at opacity .42 and .2 (times a trail factor of 1 here),
+        // blurred with sigma 10 and 20 units. Drawn at half scale (1 px = 2 units) on a transparent bitmap.
+        const double scale = .5;
+        var reveals = new double[] { 1, 1, 1 };
+        byte[,] Render(CometState state, bool main)
+        {
+            using var bitmap = new RenderTargetBitmap(new PixelSize(512, 512));
+            using (var context = bitmap.CreateDrawingContext())
+            using (context.PushTransform(Matrix.CreateScale(scale, scale)))
+                CometPainter.DrawArms(context, reveals, state, main);
+            using var copy = Copy(bitmap);
+            return Alpha(copy);
+        }
+        // The unblurred copies: the main pass alone (trail factor 0 draws no trails) turned back 14 and 30 degrees.
+        var back14 = Render(new CometState(-14 * Math.PI / 180, 0, 0, 1, .55, 1, null, null), main: true);
+        var back30 = Render(new CometState(-30 * Math.PI / 180, 0, 0, 1, .55, 1, null, null), main: true);
+        var shapes = new bool[512, 512];
+        for (var y = 0; y < 512; y++)
+            for (var x = 0; x < 512; x++) shapes[x, y] = back14[x, y] >= 128 || back30[x, y] >= 128;
+        var distance = Distance(shapes);
+        var trails = Render(new CometState(0, 2, 1, 1, .55, 1, null, null), main: false);
+        double Band(double from, double to)
+        {
+            double sum = 0;
+            var count = 0;
+            for (var y = 0; y < 512; y++)
+                for (var x = 0; x < 512; x++)
+                {
+                    var units = distance[x, y] / scale;
+                    if (units < from || units > to) continue;
+                    sum += trails[x, y];
+                    count++;
+                }
+            Assert.True(count > 500, $"band {from}-{to}: {count} px");
+            return sum / count;
+        }
+        // One sigma (20 units) past the copies a straight edge keeps .2 * .5 * erfc(1/sqrt 2) = .032 of the 30 degree
+        // copy and .42 * .5 * erfc(sqrt 2) = .0096 of the 14 degree copy: between 2.4 and 10.7 of 255. A blur three
+        // times too narrow leaves under .01 of 255 there. Three sigma out (60 units) under .1 of 255 remains.
+        var near = Band(18, 22);
+        var far = Band(56, 64);
+        Assert.True(near >= 1.5 && near <= 12, $"alpha 18-22 units past the arms: {near:F2}");
+        Assert.True(far < 1, $"alpha 56-64 units past the arms: {far:F2}");
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-103")]
+    public void The_window_outline_glow_falls_off_as_a_gaussian_of_seven_dip() => headless.OnUiThread(() =>
+    {
+        // ED-103 (5) "a 14 DIP glow": boot_sequence.html:284 draws it as ctx.shadowBlur = px(14), and a canvas
+        // shadowBlur of 14 is a Gaussian of standard deviation 7. The 1.5 DIP line blurred that way falls from 3 to 10 DIP
+        // off the edge by exp(-(10^2 - 3^2) / (2 * (49 + 1.5^2 / 12))) = .40 (a sigma of 4.5 would give .11).
+        var layout = new BootWindowLayout(new Rect(50.5, 100.5, 300, 200), 14, [new Rect(60, 110, 280, 180)]);
+        using var bitmap = new RenderTargetBitmap(new PixelSize(400, 400));
+        using (var context = bitmap.CreateDrawingContext()) BootStage.DrawOutline(context, layout, 1);
+        using var copy = Copy(bitmap);
+        var alpha = Alpha(copy);
+        double at3 = 0, at10 = 0;
+        for (var x = 150; x <= 250; x++)
+        {
+            at3 += alpha[x, 97];
+            at10 += alpha[x, 90];
+        }
+        Assert.True(at3 > 500, $"glow 3 DIP off the edge: {at3}");
+        Assert.InRange(at10 / at3, .33, .47);
+    });
 }
