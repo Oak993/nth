@@ -51,6 +51,10 @@ namespace Marrow.Services.Tests.Port;
 // working-tree watch starts no watcher at all. Across roots only arrival is asserted; within one root, order is.
 //
 // Every test waits with ManualMainLoop.RunUntil (condition-driven, bounded), never with a fixed sleep (R-TEST-5).
+//
+// ED-167: the class runs in the FileWatcherTests collection, which xUnit never runs in parallel with anything, so the
+// forced-overflow burst cannot starve another class's thread-pool work (Fixtures/FileWatcherCollection.cs).
+[Collection(FileWatcherCollection.Name)]
 public sealed class FileWatcherTests
 {
     [Fact]
