@@ -14,6 +14,15 @@ namespace Marrow.UI.Tests.Sound;
 // - Golden SHA-256 digests, lengths, headers and spot samples were computed by a transcription of ToneSynth.swift:27-68
 //   in Node.js 24 (V8's libm), and the same digests were reproduced by a separate .NET 10 transcription; both agree
 //   byte for byte. No Swift-recorded buffer exists in porting/ (searched for ToneSynth, FinishChime and .wav).
+// - Why Apple's libm must give the same bytes: the only step that turns doubles into bytes is ToneSynth.swift:66
+//   `Int16((sample * scale * Double(Int16.max)).rounded())`. Across both chimes the scaled value that comes closest
+//   to a .5 rounding boundary is 2.86e-6 away from it (finish, index 17544, -3499.4999971) and 1.53e-4 (settle,
+//   index 3936, 1019.4998473). A 1-ulp difference in sin, cos or exp, carried through the sums, the fade and the
+//   peak, moves a scaled value by about 1e-11 at this magnitude (|value| <= 29490.3), five orders of magnitude less,
+//   so no faithfully rounded libm can move any sample across a boundary, and the peak (the normalisation divisor)
+//   only rescales every value by a relative 1e-16. The golden therefore rests on the Swift formula, not on V8's or
+//   .NET's maths library. The same check on the 11025 Hz fixtures below gives margins of 3.26e-4 (peak in the fade,
+//   index 4026) and 2.95e-4 (count equal to fade, index 821), and their loudest sample leads the next by 2.96 and 1.08.
 // - Reference() below is the verification_method of PR-THEME-079 ("sample-by-sample comparison against the formula"),
 //   transcribed from ToneSynth.swift:27-46,66-67 with the Swift evaluation order kept.
 // - The 11025 Hz fixtures put every odd sample on a sine crest, where sin() is exactly +1 or -1 in any faithfully
@@ -275,6 +284,29 @@ public sealed class ToneSynthTests
     }
 
     [Fact]
+    [Trait("Req", "PR-THEME-080")] // DroppyCode/UI/Sound/ToneSynth.swift:41-45 the fade runs before the peak is found
+    public void The_peak_is_found_after_the_fade_so_a_note_inside_the_fade_is_normalised_to_29490()
+    {
+        // Onset 0.09 s: 0.09 * 44100 is exactly 3969, inside the fade window 882..4409 of the 4410 samples. The note
+        // is still in its 6 ms attack where the fade has already brought it down, so the loudest faded sample is at
+        // index 4176, and :45-46 scale that sample to 0.9 of full scale.
+        var samples = Samples(ToneSynth.Wave(new[] { new ToneSynth.Note(11025, 0.09, 1) }, SteadySine, 0.1));
+
+        Assert.Equal(3969.0, 0.09 * 44_100.0);
+        Assert.Equal(4410, samples.Length);
+        Assert.All(samples[..3969], sample => Assert.Equal(0, sample));
+        Assert.Equal(new short[] { 0, 2, 0, -20, 0, 55, 0 }, samples[3969..3976]);
+        Assert.Equal(29490, samples.Max(sample => Math.Abs((int)sample)));
+        Assert.Equal(-29490, samples[4176]);
+        Assert.Equal(
+            new short[] { 29447, 0, -29473, 0, 29487, 0, -29490, 0, 29482, 0, -29462, 0, 29430 },
+            samples[4170..4183]);
+        Assert.Equal(new short[] { 568, 0, -284, 0 }, samples[^4..]);
+        // A port that finds the peak before the fade (or normalises, then fades) divides by the unfaded crest of 1,
+        // and its loudest written sample is 1736 at index 4174 instead.
+    }
+
+    [Fact]
     [Trait("Req", "PR-THEME-080")] // DroppyCode/UI/Sound/ToneSynth.swift:45-46
     public void A_silent_buffer_scales_to_zero_instead_of_dividing_by_zero()
     {
@@ -321,6 +353,41 @@ public sealed class ToneSynthTests
 
         Assert.NotNull(trap);
         Assert.False(SwiftTry.IsThrownError(trap));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-079")] // DroppyCode/UI/Sound/ToneSynth.swift:28,31-32, empty `start..<count`
+    [Trait("Rule", "R-ERR-1")]
+    public void A_note_whose_onset_is_exactly_the_end_adds_nothing_and_does_not_trap()
+    {
+        // 0.1 * 44100 and 44100 * 0.1 are both exactly 4410: start == count, so the note's loop runs zero times and
+        // the buffer stays silent (scale 0 at :46). Past the end (start > count) it traps: see the onset trap test.
+        var data = ToneSynth.Wave(new[] { new ToneSynth.Note(11025, 0.1, 1) }, SteadySine, 0.1);
+
+        Assert.Equal(4410.0, 0.1 * 44_100.0);
+        Assert.Equal(4410.0, 44_100.0 * 0.1);
+        Assert.Equal(44 + 4410 * 2, data.Length);
+        Assert.Equal(36u + 4410u * 2u, BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(4)));
+        Assert.All(data[44..], value => Assert.Equal(0, value));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-080")] // DroppyCode/UI/Sound/ToneSynth.swift:28,41-44 `(count - fade)..<count` is 0..<3528
+    [Trait("Rule", "R-ERR-1")]
+    public void A_duration_of_exactly_the_80_ms_fade_fades_the_whole_buffer_and_does_not_trap()
+    {
+        // 44100 * 0.08 and 0.08 * 44100 are both exactly 3528: count == fade, so every sample i is multiplied by
+        // (3528 - i) / 3528, and the loudest faded crest is at index 261, still inside the 6 ms attack.
+        var samples = Samples(ToneSynth.Wave(new[] { new ToneSynth.Note(11025, 0, 1) }, SteadySine, 0.08));
+
+        Assert.Equal(3528.0, 44_100.0 * 0.08);
+        Assert.Equal(3528.0, 0.08 * 44_100.0);
+        Assert.Equal(3528, samples.Length);
+        Assert.Equal(new short[] { 0, 1, 0, -10, 0, 28 }, samples[..6]);
+        Assert.Equal(29490, samples.Max(sample => Math.Abs((int)sample)));
+        Assert.Equal(29490, samples[261]);
+        Assert.Equal(new short[] { -29489, 0, 29490, 0, -29483, 0, 29468, 0, -29450 }, samples[259..268]);
+        Assert.Equal(new short[] { 0, 27, 0, -9 }, samples[^4..]);
     }
 
     // ---------------------------------------------------------------- helpers
