@@ -354,6 +354,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-196")] // Chrome.swift:590: `if progress > 0`
+    [Trait("Req", "UI-WIN-047")] // UI/Chrome/Chrome.swift:579-627 pane top veil: progress 0 draws nothing
     [Trait("Req", "UI-CHAT-058")]
     public void PaneTopVeil_draws_nothing_at_zero_progress() => headless.OnUiThread(() =>
     {
@@ -367,6 +368,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-196")] // Chrome.swift:41, :622-623
+    [Trait("Req", "UI-WIN-047")] // UI/Chrome/Chrome.swift:41 veilHeight 72
     [Trait("Req", "UI-CHAT-058")]
     public void PaneTopVeil_is_72_points_tall_and_its_opacity_tracks_progress() => headless.OnUiThread(() =>
     {
@@ -382,6 +384,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-196")] // Chrome.swift:587-588, :596: dark scrim = 0.14 + 0.18*progress over black
+    [Trait("Req", "UI-WIN-047")] // UI/Chrome/Chrome.swift:587-588, :596 dark scrim formula with progress
     public void PaneTopVeil_dark_base_gradient_starts_at_the_scrim_alpha_over_black() => headless.OnUiThread(() =>
     {
         var model = new ChromeScrollModel();
@@ -405,6 +408,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-197")] // Chrome.swift:638-644
+    [Trait("Req", "UI-WIN-048")] // UI/Chrome/Chrome.swift:630-647 compact chrome title offset and opacity
     [Trait("Req", "PR-WIN-231")]
     public void ChromeCompactTitle_opacity_equals_progress_and_offset_runs_from_5_to_0() => headless.OnUiThread(() =>
     {
@@ -430,6 +434,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-198")] // Chrome.swift:661-667: fitted into symbolSize * scale, monochrome
+    [Trait("Req", "UI-WIN-050")] // UI/Chrome/Chrome.swift:661-667 glyph fitted 14pt times scale, monochrome
     public void SidebarSymbol_is_fitted_into_symbolSize_times_scale_monochrome() => headless.OnUiThread(() =>
     {
         var normal = new SidebarSymbol("gearshape");
@@ -450,6 +455,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-199")] // Chrome.swift:674-678: a 20-point box at 0.85 of the label colour, nothing behind it
+    [Trait("Req", "UI-WIN-050")] // UI/Chrome/Chrome.swift:674-678 badge box 20x20, primary label 0.85, nothing behind
     public void SidebarIconBadge_is_a_20_point_box_at_0_85_opacity_with_no_background() => headless.OnUiThread(() =>
     {
         var glyph = new TextBlock { Text = "x" };
@@ -467,6 +473,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-200")] // Chrome.swift:722-728: 28pt row, radius 7, three fills, trailing padding reserves the accessory
+    [Trait("Req", "UI-WIN-049")] // UI/Chrome/Chrome.swift:681-757 sidebar row 28pt tall, radius 7
     public void SidebarRow_is_28_points_tall_with_the_three_fill_states() => headless.OnUiThread(() =>
     {
         var row = new SidebarRow("Chat", () => { }, () => new TextBlock { Text = "i" }, _ => new TextBlock(), isSelected: false, accessoryWidth: 10);
@@ -479,6 +486,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-200")] // Chrome.swift:742: fill = overlay(0.12) when selected
+    [Trait("Req", "UI-WIN-049")] // UI/Chrome/Chrome.swift:742 fill selected 0.12
     public void SidebarRow_selected_fill_is_the_label_colour_at_0_12() => headless.OnUiThread(() =>
     {
         var row = new SidebarRow("Chat", () => { }, () => new TextBlock(), isSelected: true);
@@ -490,6 +498,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-200")] // Chrome.swift:717-718: medium and full opacity when selected, regular and 0.92 otherwise
+    [Trait("Req", "UI-WIN-049")] // UI/Chrome/Chrome.swift:717-718 title weight and opacity states
     public void SidebarRow_title_weight_and_opacity_follow_selection() => headless.OnUiThread(() =>
     {
         var selected = new SidebarRow("Chat", () => { }, () => new TextBlock(), isSelected: true);
@@ -507,6 +516,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-200")] // Chrome.swift:709, :729-730: the row is a Button and answers its action
+    [Trait("Req", "UI-WIN-049")] // UI/Chrome/Chrome.swift:709, :729-730 row is a button, runs its action
     public void SidebarRow_is_a_button_that_runs_its_action() => headless.OnUiThread(() =>
     {
         var ran = false;
@@ -522,6 +532,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-200")] // Chrome.swift:738: AddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+    [Trait("Req", "UI-WIN-049")] // UI/Chrome/Chrome.swift:738 Button role plus Selected when selected
     public void SidebarRow_reports_isSelected_through_the_selection_item_provider() => headless.OnUiThread(() =>
     {
         var selected = new SidebarRow("Chat", () => { }, () => new TextBlock(), isSelected: true);
@@ -553,6 +564,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-201")] // Chrome.swift:767-771: a semibold subheadline glyph in Chrome.secondaryText, in a 20x20 hit box
+    [Trait("Req", "UI-WIN-051")] // UI/Chrome/Chrome.swift:759-773 row accessory icon 20x20, subheadline semibold secondaryText
     public void RowAccessoryIcon_is_20_by_20_with_secondaryText_glyph() => headless.OnUiThread(() =>
     {
         var icon = new RowAccessoryIcon("chevron.right");
@@ -569,6 +581,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-202")] // Chrome.swift:1014-1020: continuous rounded-16 fill at overlay(0.03)
+    [Trait("Req", "UI-WIN-052")] // UI/Chrome/Chrome.swift:1006-1021 chrome card fill 0.03, radius 16
     public void ChromeCard_is_a_16_radius_fill_at_0_03() => headless.OnUiThread(() =>
     {
         var row = new TextBlock { Text = "row" };
@@ -585,6 +598,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-203")] // Chrome.swift:1034-1036: semibold body heading in secondaryText
+    [Trait("Req", "UI-WIN-053")] // UI/Chrome/Chrome.swift:1023-1047 chrome section header semibold body, secondaryText
     [Trait("Req", "PR-WIN-231")]
     public void ChromeSection_heading_is_semibold_body_in_secondaryText() => headless.OnUiThread(() =>
     {
@@ -598,6 +612,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-203")] // Chrome.swift:1037-1041: accessory after the title, trailing pushed to the far right with 8pt before it
+    [Trait("Req", "UI-WIN-053")] // UI/Chrome/Chrome.swift:1023-1047 accessory and trailing control layout
     public void ChromeSection_places_an_accessory_and_a_trailing_control() => headless.OnUiThread(() =>
     {
         var accessory = new TextBlock { Text = "info" };
@@ -614,6 +629,7 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-204")] // Chrome.swift:1058-1064: body title, subheadline detail only when non-nil and non-empty
+    [Trait("Req", "UI-WIN-054")] // UI/Chrome/Chrome.swift:1049-1074 chrome row title and detail typography/colors
     [Trait("Req", "PR-WIN-231")]
     public void ChromeRow_shows_the_detail_only_when_present_and_non_empty() => headless.OnUiThread(() =>
     {

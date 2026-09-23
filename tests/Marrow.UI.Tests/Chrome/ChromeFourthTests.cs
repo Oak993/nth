@@ -127,6 +127,7 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-183")] // UI/Chrome/Chrome.swift:340-343 Image(systemName: symbol).font(Chrome.iconFont).foregroundStyle(foreground).frame(28, 28)
+    [Trait("Req", "UI-WIN-038")] // UI/Chrome/Chrome.swift:340-343 icon button symbol font and foreground
     public void An_icon_label_draws_its_symbol_at_the_callout_semibold_icon_font_centred_in_its_square() => headless.OnUiThread(() =>
     {
         var label = new ChromeIconLabel(symbol: "terminal");
@@ -157,6 +158,7 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-186")] // UI/Chrome/Chrome.swift:422-425 Image(systemName: symbol).font(Chrome.iconFont).foregroundStyle(primary 0.92).frame(32, 32)
+    [Trait("Req", "UI-WIN-040")] // UI/Chrome/Chrome.swift:422-425 circle button symbol font and foreground
     public void A_circle_button_draws_its_symbol_at_the_icon_font_centred_in_its_32_point_circle() => headless.OnUiThread(() =>
     {
         var control = new ChromeCircleButton(symbol: "arrow.down", help: "Jump to latest", action: () => { });
@@ -171,6 +173,7 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-187")] // UI/Chrome/Chrome.swift:452-455 Image(systemName: symbol).font(Chrome.iconFont) in the 32 point circle
+    [Trait("Req", "UI-WIN-041")] // UI/Chrome/Chrome.swift:452-455 circle menu symbol in the 32pt circle
     public void A_circle_menu_draws_its_symbol_at_the_icon_font_centred_in_its_circle() => headless.OnUiThread(() =>
     {
         var control = new ChromeCircleMenu(symbol: "hand.raised", help: "Supervised", content: () => new Border());
@@ -184,6 +187,7 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-188")] // UI/Chrome/Chrome.swift:486-494 HStack(spacing: 6) { Image(symbol).font(inlineIconFont); Text; Image("chevron.down").font(chevronFont).foregroundStyle(secondaryText) }
+    [Trait("Req", "UI-WIN-042")] // UI/Chrome/Chrome.swift:486-494 symbol, title, chevron typography and secondaryText
     public void A_text_menu_draws_its_symbol_then_the_title_then_a_secondary_chevron_down() => headless.OnUiThread(() =>
     {
         var control = new ChromeTextMenu(symbol: "arrow.triangle.branch", title: "Detached", help: "Branch", content: () => new Border());
@@ -207,6 +211,7 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-189")] // UI/Chrome/Chrome.swift:530-532 HStack(spacing: 6) { Image(systemName: symbol).font(Chrome.inlineIconFont); Text }, no chevron
+    [Trait("Req", "UI-WIN-043")] // UI/Chrome/Chrome.swift:530-532 symbol and title, no chevron
     public void A_text_button_draws_its_symbol_before_the_title_and_no_chevron() => headless.OnUiThread(() =>
     {
         var control = new ChromeTextButton(symbol: "trash", title: "Delete all", help: "Delete every archived thread", action: () => { });
@@ -221,6 +226,7 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-190")] // UI/Chrome/Chrome.swift:835-838 magnifyingglass .callout semibold in secondaryText, hidden; :849-851 xmark.circle.fill .callout at secondaryText 0.8
+    [Trait("Req", "UI-WIN-044")] // UI/Chrome/Chrome.swift:835-838 magnifier, :849-851 clear glyph secondaryText 0.8
     public void The_chrome_search_field_draws_a_hidden_magnifier_and_a_clear_glyph_in_secondary_text() => headless.OnUiThread(() =>
     {
         var query = new CellSample<string>("fix");
@@ -244,6 +250,9 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-191")] // UI/Chrome/Chrome.swift:786-788 magnifyingglass .callout medium at secondaryText 0.85; :800-802 xmark.circle.fill .callout at secondaryText 0.75
+    [Trait("Req", "UI-WIN-045")] // UI/Chrome/Chrome.swift:786-788 magnifier secondaryText 0.85, :800-802 clear secondaryText 0.75
+    [Trait("Req", "UI-SIDEBAR-002")]
+    [Trait("Req", "UI-SIDEBAR-003")]
     [Trait("Req", "PR-SIDEBAR-007")] // UI/Chrome/Chrome.swift:796-806 the clear glyph exists only while the field has text
     public void The_sidebar_search_field_draws_its_magnifier_and_a_clear_glyph_only_while_it_has_text() => headless.OnUiThread(() =>
     {
@@ -276,6 +285,7 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-192")] // UI/Chrome/Chrome.swift:896-900 Image(systemName: symbol).font(.system(.callout, weight: .medium)).foregroundStyle(secondaryText); :905-907 chevron.down
+    [Trait("Req", "UI-WIN-046")] // UI/Chrome/Chrome.swift:896-900 symbol, :905-907 chevron secondaryText
     public void A_picker_draws_the_selections_symbol_before_the_title_and_the_chevron_after_it() => headless.OnUiThread(() =>
     {
         var kind = new CellSample<int>(0);
@@ -304,6 +314,7 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-192")] // UI/Chrome/Chrome.swift:890-895 `if let name = asset(selection) { Image(name).resizable().aspectRatio(contentMode: .fit).frame(width: 14, height: 14) }`
+    [Trait("Req", "UI-WIN-046")] // UI/Chrome/Chrome.swift:890-895 optional asset image 14x14 before the symbol
     public void A_picker_draws_the_selections_asset_resizable_to_fit_in_a_14_point_square_before_the_title() => headless.OnUiThread(() =>
     {
         (string Value, string Title)[] choices = [("automatic", "Automatic"), ("claude", "Claude"), ("codex", "Codex"), ("off", "Off")];

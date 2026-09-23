@@ -138,6 +138,7 @@ public sealed class ChromeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-059")] // UI/Chrome/Chrome.swift:211-215
+    [Trait("Req", "UI-WIN-034")] // UI/Chrome/Chrome.swift:202-273 window backdrop scrim formula input, :211-215
     public void The_scrim_is_none_at_zero_the_stock_value_at_the_midpoint_and_solid_at_one()
     {
         Assert.Equal(0, WindowBackdrop.Scrim(0, isDark: true));
@@ -174,6 +175,7 @@ public sealed class ChromeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-058")] // UI/Chrome/Chrome.swift:8, :218 RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style: .continuous)
+    [Trait("Req", "UI-WIN-034")] // UI/Chrome/Chrome.swift:8, :218 continuous rounded rect radius 26 window backdrop shape
     public void The_window_backdrop_corner_radius_is_26_points()
     {
         Assert.Equal(26, Chrome.WindowCornerRadius);
@@ -181,6 +183,7 @@ public sealed class ChromeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-061")] // UI/Chrome/Chrome.swift:232-240 Image(nsImage:).resizable().interpolation(.high).aspectRatio(contentMode: .fill).opacity(opacity)
+    [Trait("Req", "UI-WIN-034")] // UI/Chrome/Chrome.swift:232-240 wallpaper image aspect-filled at opacity, no scrim
     public void A_wallpaper_is_painted_aspect_fill_with_high_interpolation_at_the_settings_own_opacity() => headless.OnUiThread(() =>
     {
         foreach (var setting in new[] { 0.0, 0.4, 0.98, 1.0 })
@@ -233,6 +236,7 @@ public sealed class ChromeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-078")] // UI/Chrome/Chrome.swift:195-196, dark: Color.black.opacity(0.22), then Chrome.glassTint.opacity(0.22)
+    [Trait("Req", "UI-WIN-035")] // UI/Chrome/Chrome.swift:187-199 detail sheet dark: black 0.22 then theme surface 0.22
     [Trait("Req", "PR-THEME-038")]
     public void In_dark_the_detail_sheet_is_black_at_0_22_then_the_theme_surface_at_0_22() => headless.OnUiThread(() =>
     {
@@ -248,6 +252,7 @@ public sealed class ChromeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-078")] // UI/Chrome/Chrome.swift:195-196, light: Color.white.opacity(0.3), then Chrome.glassTint.opacity(0.16)
+    [Trait("Req", "UI-WIN-035")] // UI/Chrome/Chrome.swift:187-199 detail sheet light: white 0.3 then theme surface 0.16
     [Trait("Req", "PR-THEME-038")]
     public void In_light_the_detail_sheet_is_white_at_0_3_then_the_theme_surface_at_0_16() => headless.OnUiThread(() =>
     {
@@ -412,6 +417,7 @@ public sealed class ChromeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-193")] // UI/Chrome/Chrome.swift:1095 acceptsFirstMouse true; port_impacts entry 165 and ED-063: the region is a caption to the hit test
+    [Trait("Req", "UI-WIN-005")] // UI/Chrome/Chrome.swift:1085-1102 window drag region: press begins caption move
     public void A_window_drag_region_takes_the_activating_click_and_is_a_caption_to_the_hit_test() => headless.OnUiThread(() =>
     {
         var area = new WindowDragArea();
@@ -424,6 +430,7 @@ public sealed class ChromeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-193")] // UI/Chrome/Chrome.swift:1097-1101: mouseDown performs the drag and mouseUp is empty, so neither travels on
+    [Trait("Req", "UI-WIN-005")] // UI/Chrome/Chrome.swift:1097-1101 release swallowed, never reaches behind
     public void Neither_the_press_nor_the_release_on_a_window_drag_region_reaches_what_is_behind_it() => headless.OnUiThread(() =>
     {
         var reached = new List<string>();
@@ -490,6 +497,7 @@ public sealed class ChromeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-181")] // UI/Chrome/Chrome.swift:315-316 .padding(.horizontal, 3).padding(.vertical, 2), with :34 and :36
+    [Trait("Req", "UI-WIN-036")] // UI/Chrome/Chrome.swift:308-322 chrome capsule row zero spacing, padding
     public void A_chrome_capsule_insets_its_content_3_points_across_and_2_points_down() => headless.OnUiThread(() =>
     {
         var content = new LayoutProbe(new Size(56, 28));
@@ -520,6 +528,7 @@ public sealed class ChromeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-182")] // UI/Chrome/Chrome.swift:328-329 .frame(width: 1, height: Chrome.dividerHeight).accessibilityHidden(true), with :37
+    [Trait("Req", "UI-WIN-037")] // UI/Chrome/Chrome.swift:324-331 chrome divider 1x14 radius 0.5
     public void A_chrome_divider_is_1_by_14_points_and_hidden_from_assistive_technology() => headless.OnUiThread(() =>
     {
         var divider = new ChromeDivider();
@@ -534,6 +543,7 @@ public sealed class ChromeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-183")] // UI/Chrome/Chrome.swift:343 .frame(width: Chrome.capsuleContentHeight, height: Chrome.capsuleContentHeight), :351 .contentShape(.rect)
+    [Trait("Req", "UI-WIN-038")] // UI/Chrome/Chrome.swift:333-383 chrome icon button 28x28 hit area
     public void An_icon_label_is_a_28_point_square_that_takes_the_hit_everywhere() => headless.OnUiThread(() =>
     {
         var label = new ChromeIconLabel(symbol: "terminal");
@@ -550,6 +560,7 @@ public sealed class ChromeTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Req", "PR-WIN-183")] // UI/Chrome/Chrome.swift:354-358: disabled 0.32, then active full, then hover full, else 0.92
+    [Trait("Req", "UI-WIN-038")] // UI/Chrome/Chrome.swift:354-358 disabled/active/hover/rest precedence
     [InlineData(false, false, false, 0.32)]
     [InlineData(false, true, true, 0.32)]
     [InlineData(false, false, true, 0.32)]
@@ -672,6 +683,7 @@ public sealed class ChromeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-185")] // UI/Chrome/Chrome.swift:394-397 isPresented.toggle(), ChromeIconLabel(isActive: isPresented); :405 .popover(isPresented:, arrowEdge: .bottom)
+    [Trait("Req", "UI-WIN-039")] // UI/Chrome/Chrome.swift:385-410 chrome menu button open state
     public void Clicking_a_menu_button_presents_its_menu_below_it_and_shows_the_button_active_while_open() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
@@ -744,6 +756,7 @@ public sealed class ChromeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-186")] // UI/Chrome/Chrome.swift:425 .frame(width: Chrome.capsuleHeight, height: Chrome.capsuleHeight), :38 capsuleHeight = 28 + 2 * 2
+    [Trait("Req", "UI-WIN-040")] // UI/Chrome/Chrome.swift:412-437 chrome circle button 32x32
     public void A_circle_button_is_32_points_square_with_a_no_drag_region_behind_it() => headless.OnUiThread(() =>
     {
         Assert.Equal(32, Chrome.CapsuleHeight);
@@ -804,6 +817,7 @@ public sealed class ChromeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-187")] // UI/Chrome/Chrome.swift:449-454 toggle and `isHovering || isPresented ? 1 : 0.92`, :465 .popover(arrowEdge: .bottom)
+    [Trait("Req", "UI-WIN-041")] // UI/Chrome/Chrome.swift:439-470 chrome circle menu open state
     public void A_circle_menu_stays_fully_opaque_while_its_menu_is_open() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();

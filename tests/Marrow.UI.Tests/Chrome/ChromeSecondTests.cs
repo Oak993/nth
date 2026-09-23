@@ -160,6 +160,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-188")] // UI/Chrome/Chrome.swift:489-491 Text(verbatim: title).font(.system(size: 12.5, weight: .medium)).lineLimit(1)
+    [Trait("Req", "UI-WIN-042")] // UI/Chrome/Chrome.swift:473-514 chrome text menu geometry and typography
     public void A_text_menu_title_is_the_verbatim_title_at_12_5_point_medium_on_one_line() => headless.OnUiThread(() =>
     {
         var menu = new ChromeTextMenu(symbol: "arrow.triangle.branch", title: "feature/*wip*", help: "Branch", content: () => new Border());
@@ -204,6 +205,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-188")] // UI/Chrome/Chrome.swift:496 `.foregroundStyle(Chrome.primaryText.opacity(isHovering || isPresented ? 1 : 0.92))`
+    [Trait("Req", "UI-WIN-042")] // UI/Chrome/Chrome.swift:496 foreground states hovered/open vs rest
     public void A_text_menu_label_is_0_92_at_rest_and_full_while_hovered_or_open() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
@@ -240,6 +242,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-188")] // UI/Chrome/Chrome.swift:508 .help(help) and no .accessibilityLabel; :512 the no-drag background
+    [Trait("Req", "UI-WIN-042")] // UI/Chrome/Chrome.swift:508 help only, no accessibilityLabel
     public void A_text_menu_has_its_help_as_a_tooltip_but_not_as_its_accessible_name() => headless.OnUiThread(() =>
     {
         var menu = new ChromeTextMenu(symbol: "arrow.triangle.branch", title: "Detached", help: "Branch", content: () => new Border());
@@ -258,6 +261,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-189")] // UI/Chrome/Chrome.swift:533-541: the text menu's title, paddings and height, :545 .fixedSize()
+    [Trait("Req", "UI-WIN-043")] // UI/Chrome/Chrome.swift:516-560 chrome text button geometry
     public void A_text_button_has_the_text_menus_title_and_geometry() => headless.OnUiThread(() =>
     {
         var control = new ChromeTextButton(symbol: "trash", title: "Delete all", help: "Delete every archived thread", action: () => { });
@@ -279,6 +283,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Req", "PR-WIN-189")] // UI/Chrome/Chrome.swift:555-559: disabled 0.32 first, then danger when destructive, else primary; 1 hovered, 0.92 at rest
+    [Trait("Req", "UI-WIN-043")] // UI/Chrome/Chrome.swift:555-559 disabled/destructive/ordinary states
     [InlineData(true, false, false, false, 0.92)]
     [InlineData(true, false, true, false, 1.0)]
     [InlineData(true, true, false, true, 0.92)]
@@ -309,6 +314,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-189")] // UI/Chrome/Chrome.swift:529 Button(action:), :544 .disabled(!isEnabled), :550-551 help and accessibility label, :552 no-drag
+    [Trait("Req", "UI-WIN-043")] // UI/Chrome/Chrome.swift:544 disabled, :550-551 help and accessibility label
     public void A_text_button_acts_when_enabled_and_carries_its_help_as_tooltip_and_accessible_name() => headless.OnUiThread(() =>
     {
         using var source = FrameClock.Source.Override(new ManualFrameSource()); // a click also hovers, and the hover animates (ED-117)
@@ -337,6 +343,8 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-191")] // UI/Chrome/Chrome.swift:777 prompt "Search", :789-792 TextField(prompt, text:).font(.system(.body)).frame(maxWidth: .infinity)
+    [Trait("Req", "UI-WIN-045")] // UI/Chrome/Chrome.swift:775-823 sidebar search field geometry and typography
+    [Trait("Req", "UI-SIDEBAR-002")]
     public void The_sidebar_search_field_prompts_Search_in_the_body_style() => headless.OnUiThread(() =>
     {
         var cell = new CellSample<string>("");
@@ -376,6 +384,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-007")] // UI/Chrome/Chrome.swift:796-806 `if !text.isEmpty { Button { text = "" } ... .accessibilityLabel(Text("Clear search")) }`
+    [Trait("Req", "UI-SIDEBAR-003")] // UI/Chrome/Chrome.swift:796-806 clear button conditionally laid out
     [Trait("Req", "PR-WIN-191")]
     public void The_sidebar_clear_button_exists_only_while_the_field_has_text() => headless.OnUiThread(() =>
     {
@@ -397,6 +406,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-007")] // UI/Chrome/Chrome.swift:797-799 `text = ""`
+    [Trait("Req", "UI-SIDEBAR-003")] // UI/Chrome/Chrome.swift:797-799 clear sets text to empty string
     public void The_sidebar_clear_button_empties_the_field_and_goes_away() => headless.OnUiThread(() =>
     {
         var cell = new CellSample<string>("claude");
@@ -417,6 +427,8 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-008")] // UI/Chrome/Chrome.swift:814-815 `.onExitCommand { text = "" }`
+    [Trait("Req", "UI-WIN-045")] // UI/Chrome/Chrome.swift:814-815 Escape empties the field
+    [Trait("Req", "UI-SIDEBAR-002")]
     [Trait("Req", "PR-WIN-191")]
     public void Escape_in_the_sidebar_search_field_empties_it_and_goes_no_further() => headless.OnUiThread(() =>
     {
@@ -437,6 +449,8 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-191")] // UI/Chrome/Chrome.swift:794-795 onKeyPress(.upArrow) move(-1), (.downArrow) move(1); :818-822 handled when onMove is set
+    [Trait("Req", "UI-WIN-045")] // UI/Chrome/Chrome.swift:794-795 up/down walk results
+    [Trait("Req", "UI-SIDEBAR-002")]
     public void Up_and_down_in_the_sidebar_search_field_walk_the_results_one_step_per_press() => headless.OnUiThread(() =>
     {
         var cell = new CellSample<string>("a");
@@ -460,6 +474,8 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-191")] // UI/Chrome/Chrome.swift:819 `guard let onMove else { return .ignored }`
+    [Trait("Req", "UI-WIN-045")] // UI/Chrome/Chrome.swift:819 no onMove -> ignored
+    [Trait("Req", "UI-SIDEBAR-002")]
     public void Without_a_move_handler_the_arrows_stay_the_fields_own() => headless.OnUiThread(() =>
     {
         var cell = new CellSample<string>("a");
@@ -481,6 +497,8 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-191")] // UI/Chrome/Chrome.swift:778 onSubmit, :793 .onSubmit(onSubmit)
+    [Trait("Req", "UI-WIN-045")] // UI/Chrome/Chrome.swift:778, :793 Return calls onSubmit
+    [Trait("Req", "UI-SIDEBAR-002")]
     public void Return_in_the_sidebar_search_field_submits() => headless.OnUiThread(() =>
     {
         var cell = new CellSample<string>("main");
@@ -501,6 +519,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-190")] // UI/Chrome/Chrome.swift:828 width 200, :862-865 .frame(width: 200, height: 28).padding(.vertical, 2)....fixedSize()
+    [Trait("Req", "UI-WIN-044")] // UI/Chrome/Chrome.swift:825-869 chrome search field 200pt fixed width
     public void The_chrome_search_field_is_a_fixed_200_by_32_capsule() => headless.OnUiThread(() =>
     {
         Assert.Equal(200, ChromeSearchField.Width);
@@ -518,6 +537,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-190")] // UI/Chrome/Chrome.swift:831 prompt "Search", :839-845 TextField(prompt, text: $query).font(.system(size: 12.5)).foregroundStyle(Chrome.primaryText)
+    [Trait("Req", "UI-WIN-044")] // UI/Chrome/Chrome.swift:836 magnifier, :839-845 text field prompt
     public void The_chrome_search_field_prompts_Search_at_12_5_points_in_the_primary_colour() => headless.OnUiThread(() =>
     {
         var cell = new CellSample<string>("");
@@ -538,6 +558,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-190")] // UI/Chrome/Chrome.swift:846-859: always laid out; opacity 0, disabled and hidden while the query is empty; label "Clear search"
+    [Trait("Req", "UI-WIN-044")] // UI/Chrome/Chrome.swift:846-859 clear button always laid out, transparent when empty
     public void The_chrome_clear_button_is_always_laid_out_but_invisible_disabled_and_hidden_while_empty() => headless.OnUiThread(() =>
     {
         var cell = new CellSample<string>("");
@@ -569,6 +590,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-190")] // UI/Chrome/Chrome.swift:846-848 `query = ""`, :866 `.onExitCommand { query = "" }`
+    [Trait("Req", "UI-WIN-044")] // UI/Chrome/Chrome.swift:846-848 clear, :866 Escape empties query
     public void The_chrome_search_field_empties_on_its_clear_button_and_on_Escape() => headless.OnUiThread(() =>
     {
         var cell = new CellSample<string>("diff");
@@ -597,6 +619,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-192")] // UI/Chrome/Chrome.swift:885 `options.first { $0.value == selection }?.title ?? ""`
+    [Trait("Req", "UI-WIN-046")] // UI/Chrome/Chrome.swift:885 selection matching no option -> empty title
     public void A_picker_shows_the_title_of_the_first_option_matching_the_selection_or_nothing() => headless.OnUiThread(() =>
     {
         var cell = new CellSample<int>(2);
@@ -618,6 +641,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-192")] // UI/Chrome/Chrome.swift:901-904 12.5 medium, lineLimit(1), truncationMode(.tail); :910-911 12 point insets, 28 tall
+    [Trait("Req", "UI-WIN-046")] // UI/Chrome/Chrome.swift:901-904, :910-911 typography and padding
     public void A_picker_title_is_12_5_point_medium_on_one_tail_truncated_line_in_a_28_point_capsule() => headless.OnUiThread(() =>
     {
         var picker = new GlassPickerButton<int>(options: Efforts, selection: Binding<int>.Constant(1));
@@ -674,6 +698,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-192")] // UI/Chrome/Chrome.swift:886-888 toggle, :909 `isHovering || isPresented ? 1 : 0.92`, :921 .popover(arrowEdge: .bottom), :930 no-drag
+    [Trait("Req", "UI-WIN-046")] // UI/Chrome/Chrome.swift:886-888 toggle, :909 states, :921 popover
     public void A_picker_opens_its_options_below_it_and_reads_full_while_open() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
