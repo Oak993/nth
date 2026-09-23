@@ -1311,6 +1311,13 @@ public sealed class ShortcutsTests
         Assert.Equal(new KeyChord(0x31, Ctrl), new KeyChord(0x31, Ctrl | Win));
         Assert.Equal(new KeyChord(0x31, ChordModifiers.None), new KeyChord(0x31, Win));
 
+        // Masking is an INTERSECTION with the allowed set (:13 `modifiers.intersection(Self.allowedModifiers)`),
+        // not merely "clear the Win bit": other disallowed bits (an arbitrary middle bit and the top bit) are
+        // cleared too, leaving only Control.
+        var noisy = new KeyChord(0x31, (ChordModifiers)0x10 | (ChordModifiers)0x80000000 | Ctrl);
+        Assert.Equal(2UL, (ulong)noisy.Modifiers);
+        Assert.Equal(new KeyChord(0x31, Ctrl), noisy);
+
         // The synthesized decoder assigns the raw stored bits directly, bypassing the masking init (:5, :8-9), so a
         // stored value can carry bits outside the allowed set; ModifierFlags masks again on every read (:16-18).
         Seed(runtime, "{\"toggleTerminal\":{\"chord\":{\"keyCode\":49,\"modifiers\":4294967298}}}");
@@ -1320,6 +1327,13 @@ public sealed class ShortcutsTests
             var chord = store.Chord(AppShortcut.ToggleTerminal)!;
             Assert.Equal(4294967298UL, (ulong)chord.Modifiers); // raw, unmasked
             Assert.Equal(Ctrl, chord.ModifierFlags); // masked again on read: only bit 2 (Control) is allowed
+
+            // Equality is the synthesized Equatable of `struct KeyChord: Codable, Hashable` (:5), which compares
+            // the stored raw modifiers (:9), not modifierFlags. The decoded chord carries raw modifiers
+            // 4294967298 and does NOT equal a chord built through the masking init with the same key and the
+            // same ModifierFlags: the "masked set" wording of the record's expected_result holds only for chords
+            // built through the masking init (:11-14), not for one assigned directly by the decoder.
+            Assert.NotEqual(new KeyChord(49, Ctrl), chord);
         });
     }
 
@@ -1380,10 +1394,23 @@ public sealed class ShortcutsTests
         // The fallback (:72): an unmapped scan code, for example numpad * (0x37), reads "Key <decimal>", and the
         // failure_cases note says such a chord is not rejected: it is still stored and still fires.
         Assert.Equal("Key 55", KeyNames.Label(0x37));
+
+        // Extended-flag and numpad aliasing negatives (ED-099 (2)): stripping the 0xE000 extended flag or
+        // conflating a numpad code with its non-numpad neighbour must NOT land in the special table.
+        Assert.Equal("Key 71", KeyNames.Label(0x47)); // numpad 7, not Home (0xE047)
+        Assert.Equal("Key 57372", KeyNames.Label(0xE01C)); // numpad Enter, not Return (0x1C)
+        Assert.Equal("Key 83", KeyNames.Label(0x53)); // numpad '.', not Del (0x53 has no entry; 117 macOS is 0xE053)
+
         using var runtime = new TestRuntime();
         var store = Load(runtime);
-        OnMain(runtime, store, () => store.Set(new KeyChord(0x37, Ctrl), AppShortcut.ToggleTerminal));
-        Assert.Equal(Utf8("Ctrl+Key 55"), Utf8(ShortcutStore.Label(AppShortcut.ToggleTerminal)!));
+        OnMain(runtime, store, () =>
+        {
+            store.Set(new KeyChord(0x37, Ctrl), AppShortcut.ToggleTerminal);
+            // The Shared ambient is only overridden for the duration of OnMain's scope, and Label reads
+            // Shared.Current (:288-290): the assertion must run inside that scope, not after it is disposed,
+            // or it reads the process-wide lazy default store instead of the store under test (R-TEST-5).
+            Assert.Equal(Utf8("Ctrl+Key 55"), Utf8(ShortcutStore.Label(AppShortcut.ToggleTerminal)!));
+        });
     }
 
     [Fact]
@@ -1391,7 +1418,9 @@ public sealed class ShortcutsTests
     public void A_key_converts_to_its_menu_equivalent_through_three_tiers_or_to_nothing_at_all()
     {
         // Character keys convert to their lower-case character (:81); the lower-case letters below are transcribed
-        // independently, in the same declaration order as CharacterCodes (:52-58, ED-099 (2)).
+        // independently, in the same declaration order as CharacterCodes (:52-58, ED-099 (2)). The expected value
+        // is the literal SwiftUI spelling (ED-099 (6)), never a port-side factory, so the test does not depend on
+        // KeyEquivalent.Character existing or being implemented correctly.
         char[] characterEquivalents =
         [
             'a', 's', 'd', 'f', 'h', 'g', 'z', 'x', 'c', 'v', 'b', 'q',
@@ -1402,33 +1431,59 @@ public sealed class ShortcutsTests
         ];
         Assert.Equal(CharacterCodes.Length, characterEquivalents.Length);
         for (var i = 0; i < CharacterCodes.Length; i++)
-            Assert.Equal(KeyEquivalent.Character(characterEquivalents[i]), KeyNames.KeyEquivalent(CharacterCodes[i]));
+            Assert.Equal(new KeyEquivalent(characterEquivalents[i].ToString()), KeyNames.KeyEquivalent(CharacterCodes[i]));
 
-        // The fourteen named keys convert to their named equivalents (:83-96).
+        // The fourteen named keys convert to their named equivalents (:83-96), literal SwiftUI spellings
+        // (ED-099 (6), Shortcuts.swift:81-99): tab, space, escape, home, end, pageUp and pageDown are not pinned
+        // by Port/Keyboard.cs's own KeyboardTests.cs, so they must be pinned here.
         (long Code, KeyEquivalent Expected)[] named =
         [
-            (0x1C, KeyEquivalent.Return), (0x0F, KeyEquivalent.Tab), (0x39, KeyEquivalent.Space),
-            (0x0E, KeyEquivalent.Delete), (0x01, KeyEquivalent.Escape), (0xE053, KeyEquivalent.DeleteForward),
-            (0xE04B, KeyEquivalent.LeftArrow), (0xE04D, KeyEquivalent.RightArrow), (0xE050, KeyEquivalent.DownArrow),
-            (0xE048, KeyEquivalent.UpArrow), (0xE047, KeyEquivalent.Home), (0xE04F, KeyEquivalent.End),
-            (0xE049, KeyEquivalent.PageUp), (0xE051, KeyEquivalent.PageDown),
+            (0x1C, new KeyEquivalent("return")), (0x0F, new KeyEquivalent("tab")), (0x39, new KeyEquivalent("space")),
+            (0x0E, new KeyEquivalent("delete")), (0x01, new KeyEquivalent("escape")), (0xE053, new KeyEquivalent("deleteForward")),
+            (0xE04B, new KeyEquivalent("leftArrow")), (0xE04D, new KeyEquivalent("rightArrow")), (0xE050, new KeyEquivalent("downArrow")),
+            (0xE048, new KeyEquivalent("upArrow")), (0xE047, new KeyEquivalent("home")), (0xE04F, new KeyEquivalent("end")),
+            (0xE049, new KeyEquivalent("pageUp")), (0xE051, new KeyEquivalent("pageDown")),
         ];
         Assert.Equal(14, named.Length);
         foreach (var (code, expected) in named)
             Assert.Equal(expected, KeyNames.KeyEquivalent(code));
 
-        // Function keys convert through the private-use scalar convention, F1 to F12 (:97-99).
-        (long Code, int Number)[] functions =
+        // Function keys convert through the private-use scalar convention, F1 to F12 (:97-99), literal spellings
+        // "F1".."F12" (ED-099 (6)); F2..F11 are not pinned by KeyboardTests.cs, so they must be pinned here.
+        (long Code, string Name)[] functions =
         [
-            (0x3B, 1), (0x3C, 2), (0x3D, 3), (0x3E, 4), (0x3F, 5), (0x40, 6),
-            (0x41, 7), (0x42, 8), (0x43, 9), (0x44, 10), (0x57, 11), (0x58, 12),
+            (0x3B, "F1"), (0x3C, "F2"), (0x3D, "F3"), (0x3E, "F4"), (0x3F, "F5"), (0x40, "F6"),
+            (0x41, "F7"), (0x42, "F8"), (0x43, "F9"), (0x44, "F10"), (0x57, "F11"), (0x58, "F12"),
         ];
-        foreach (var (code, number) in functions)
-            Assert.Equal(KeyEquivalent.Function(number), KeyNames.KeyEquivalent(code));
+        foreach (var (code, name) in functions)
+            Assert.Equal(new KeyEquivalent(name), KeyNames.KeyEquivalent(code));
 
         // Every other key code converts to nothing (:99): numpad * and Scroll Lock, both outside the three tables.
         Assert.Null(KeyNames.KeyEquivalent(0x37));
         Assert.Null(KeyNames.KeyEquivalent(0x46));
+        // Extended-flag/numpad aliasing negative (ED-099 (2)): numpad Enter (0xE01C) is not Return (0x1C).
+        Assert.Null(KeyNames.KeyEquivalent(0xE01C));
+
+        // The evidence at :22 (`guard let key = KeyNames.keyEquivalent(for: keyCode) else { return nil }`): a
+        // chord on a key with no menu equivalent carries no keyboardShortcut either, whatever its modifiers.
+        Assert.Null(new KeyChord(0x37, Ctrl).KeyboardShortcut);
+
+        // Modifier pass-through (:23-29): control, option, shift and command (both read as Control, ED-099 (3))
+        // each insert their own EventModifiers flag; F1 with all three carries all three through.
+        Assert.Equal(
+            new KeyboardShortcut(new KeyEquivalent("F1"), Ctrl | Alt | Shift),
+            new KeyChord(0x3B, Ctrl | Alt | Shift).KeyboardShortcut);
+
+        // A command overridden to a chord with no menu equivalent has a non-null Chord but a null
+        // KeyboardShortcut (:281-283): the store "simply carries no menu shortcut" for it.
+        using var runtime = new TestRuntime();
+        var store = Load(runtime);
+        OnMain(runtime, store, () =>
+        {
+            store.Set(new KeyChord(0x37, Ctrl), AppShortcut.ToggleTerminal);
+            Assert.NotNull(store.Chord(AppShortcut.ToggleTerminal));
+            Assert.Null(store.KeyboardShortcut(AppShortcut.ToggleTerminal));
+        });
     }
 
     [Fact]
@@ -1443,6 +1498,15 @@ public sealed class ShortcutsTests
         // A handful of ordinary keys are not modifier keys.
         foreach (var code in new long[] { 0x1E, 0x31, 0x1C, 0x3B, 0xE047 })
             Assert.False(KeyNames.IsModifierKey(code));
+
+        // isModifierKey is an EXACT set (:40, the ten-member Contains), not a range test: sweep every scan code
+        // and its extended form and require the predicate to agree with the exact set on every one of them, so an
+        // extra key such as NumLock (0x45), Scroll Lock (0x46) or Apps (0xE05D) is caught if wrongly included.
+        var modifierSet = ModifierKeyCodes.ToHashSet();
+        for (long code = 0x00; code <= 0x7F; code++)
+            Assert.Equal(modifierSet.Contains(code), KeyNames.IsModifierKey(code));
+        for (long code = 0xE000; code <= 0xE07F; code++)
+            Assert.Equal(modifierSet.Contains(code), KeyNames.IsModifierKey(code));
     }
 
     [Fact]
@@ -1462,6 +1526,25 @@ public sealed class ShortcutsTests
         // Modifier keys are not typing keys either.
         foreach (var code in ModifierKeyCodes)
             Assert.False(KeyNames.TypesText(code));
+
+        // typesText is the exact union of the character table and the ten caret codes (:77 `characters[code] !=
+        // nil || [...].contains(code)`), not a range test: sweep every scan code and its extended form.
+        var typingSet = CharacterCodes.Concat(CaretCodes).ToHashSet();
+        for (long code = 0x00; code <= 0x7F; code++)
+            Assert.Equal(typingSet.Contains(code), KeyNames.TypesText(code));
+        for (long code = 0xE000; code <= 0xE07F; code++)
+            Assert.Equal(typingSet.Contains(code), KeyNames.TypesText(code));
+
+        // The record's expected_result: "F5 on its own is an acceptable chord" (:325-327), because function keys,
+        // Home and Page Down are not typesText, so a bare or shift-only chord on them is never refused for typing.
+        using var runtime = new TestRuntime();
+        var store = Load(runtime);
+        OnMain(runtime, store, () =>
+        {
+            Assert.Null(store.Refusal(new KeyChord(0x3F, ChordModifiers.None), AppShortcut.NewThread)); // bare F5
+            Assert.Null(store.Refusal(new KeyChord(0xE047, ChordModifiers.None), AppShortcut.NewThread)); // bare Home
+            Assert.Null(store.Refusal(new KeyChord(0xE051, Shift), AppShortcut.NewThread)); // bare Shift+PgDn
+        });
     }
 
     [Fact]
@@ -1471,10 +1554,15 @@ public sealed class ShortcutsTests
         Assert.Equal(new[] { AppShortcutSection.Threads, AppShortcutSection.Window }, SwiftEnum<AppShortcutSection>.AllCases); // :131-132
         Assert.Equal(Utf8("Threads"), Utf8(AppShortcutSection.Threads.Title())); // :138
         Assert.Equal(Utf8("Window and panels"), Utf8(AppShortcutSection.Window.Title())); // :139
-        // The SF Symbol names the UI maps to Lucide icons (OD-0010): messages-square for the Threads symbol,
-        // app-window-mac for the Window symbol.
+        // The SF Symbol names, kept verbatim as the Core-layer value (:145-146).
         Assert.Equal("bubble.left.and.bubble.right.fill", AppShortcutSection.Threads.Symbol()); // :145
         Assert.Equal("macwindow", AppShortcutSection.Window.Symbol()); // :146
+        // DEVIATION OD-0010: the port draws these as the Lucide icons messages-square (for
+        // bubble.left.and.bubble.right.fill) and app-window-mac (for macwindow) via porting/icons/sf-symbols-to-lucide.json.
+        // A Marrow.Core test has no dependency on that porting-evidence file or on the UI icon renderer (R-FILE-2,
+        // layer boundary); the Lucide half of this record is proven by the UI unit that reads AppShortcutSection.Symbol()
+        // and draws the section header, App/Views/Settings/ShortcutsSettingsPage.swift's port (UI.Views.Settings.ShortcutsSettingsPage),
+        // not here.
 
         AppShortcut[] expectedThreads =
         [
@@ -1533,6 +1621,43 @@ public sealed class ShortcutsTests
             }
         });
         Assert.Empty(runtime.Defaults.Writes); // loading never writes (:267-274)
+
+        // A blob with one entry that decodes and one that does not still falls back to empty in full: the decode
+        // is one `JSONDecoder().decode([String: Override].self, from: data)` for the WHOLE dictionary (:269), never
+        // per entry, so the "valid" entry (toggleTerminal) is lost too, not merely the invalid one (newThread,
+        // whose modifiers is -1, not a UInt).
+        using (var runtime2 = new TestRuntime())
+        {
+            Seed(runtime2,
+                "{\"toggleTerminal\":{\"chord\":{\"keyCode\":36,\"modifiers\":2}},\"newThread\":{\"chord\":{\"keyCode\":49,\"modifiers\":-1}}}");
+            var mixed = Load(runtime2);
+            OnMain(runtime2, mixed, () =>
+            {
+                Assert.False(mixed.IsCustomized(AppShortcut.ToggleTerminal));
+                Assert.Equal(AppShortcut.ToggleTerminal.DefaultChord(), mixed.Chord(AppShortcut.ToggleTerminal));
+                Assert.False(mixed.IsCustomized(AppShortcut.NewThread));
+                Assert.Equal(AppShortcut.NewThread.DefaultChord(), mixed.Chord(AppShortcut.NewThread));
+            });
+        }
+
+        // "Rewritten in full on every change" (:239, :261-263 the didSet re-encoding the whole `overrides`): two
+        // separate mutations each write once, and the stored bytes end up holding BOTH entries in one of the two
+        // Swift-correct dictionary orders (R-CODE-4 PlainEncoder has no fixed key order).
+        using (var runtime3 = new TestRuntime())
+        {
+            var store3 = Load(runtime3);
+            OnMain(runtime3, store3, () => store3.Set(null, AppShortcut.ToggleTerminal));
+            Assert.Single(runtime3.Defaults.Writes);
+            OnMain(runtime3, store3, () => store3.Set(null, AppShortcut.NewThread));
+            Assert.Equal(2, runtime3.Defaults.Writes.Count);
+            byte[][] orders =
+            [
+                Utf8("{\"toggleTerminal\":{},\"newThread\":{}}"),
+                Utf8("{\"newThread\":{},\"toggleTerminal\":{}}"),
+            ];
+            var finalStored = Stored(runtime3);
+            Assert.Contains(orders, o => o.AsSpan().SequenceEqual(finalStored));
+        }
     }
 
     [Fact]
@@ -1606,12 +1731,23 @@ public sealed class ShortcutsTests
             Assert.False(store.IsCustomized(AppShortcut.ToggleTerminal));
             Assert.True(store.IsCustomized(AppShortcut.ToggleSidebar)); // untouched
 
-            // reset(_: AppShortcutSection) removes every entry in that section (:308-310), so the section no longer
-            // reports customisations even though it did (:312-318).
+            // reset(_: AppShortcutSection) removes every entry in THAT section only (:308-310 `for shortcut in
+            // section.shortcuts`): a Threads command's customisation must survive a Window reset.
+            store.Set(new KeyChord(0x31, Ctrl | Shift), AppShortcut.NewThread); // Threads command
+            Assert.True(store.IsCustomized(AppShortcut.ToggleSidebar));
             Assert.True(store.HasCustomizations(AppShortcutSection.Window));
+            var writesBeforeReset = runtime.Defaults.Writes.Count;
             store.Reset(AppShortcutSection.Window);
             Assert.False(store.IsCustomized(AppShortcut.ToggleSidebar));
             Assert.False(store.HasCustomizations(AppShortcutSection.Window));
+            Assert.True(store.IsCustomized(AppShortcut.NewThread)); // untouched by the Window reset
+            Assert.True(store.HasCustomizations(AppShortcutSection.Threads));
+            // One write per command in the reset section (:309 fires the didSet on every assignment): the Window
+            // section holds exactly 7 commands (:161-162), so the reset grows Writes by exactly 7, not one for
+            // the whole reset (no recorded ruling authorizes coalescing).
+            Assert.Equal(7, AppShortcutSection.Window.Shortcuts().Count);
+            Assert.Equal(writesBeforeReset + 7, runtime.Defaults.Writes.Count);
+            store.Reset(AppShortcut.NewThread); // leave the store clean for the assertions below
 
             // A cleared (null) override still counts as customised (:313 `!= nil`).
             store.Set(null, AppShortcut.ToggleTerminal);
@@ -1665,6 +1801,22 @@ public sealed class ShortcutsTests
             var reserved = new KeyChord(0x2E, Ctrl); // Ctrl+C, reserved
             store.Set(reserved, AppShortcut.ToggleSidebar);
             Assert.Null(store.Refusal(reserved, AppShortcut.ToggleSidebar));
+
+            // The typing check (:325-327) is bypassed too: a bare typing key already held by the command.
+            var typing = new KeyChord(0x31, ChordModifiers.None); // bare N, would otherwise fail the typing check
+            store.Set(typing, AppShortcut.ToggleSidebar);
+            Assert.Null(store.Refusal(typing, AppShortcut.ToggleSidebar));
+
+            // The menu check (:328) is bypassed too: a key with no menu equivalent already held by the command.
+            var noMenu = new KeyChord(0x37, Ctrl); // numpad *, chord.keyboardShortcut is nil
+            store.Set(noMenu, AppShortcut.ToggleSidebar);
+            Assert.Null(store.Refusal(noMenu, AppShortcut.ToggleSidebar));
+
+            // The conflict check (:330-333) is bypassed too: without the early return, Ctrl+K would name
+            // CommandPalette (its default holder), but it is being re-recorded for the command that now holds it.
+            var ctrlK = new KeyChord(0x25, Ctrl); // Ctrl+K, CommandPalette's default
+            store.Set(ctrlK, AppShortcut.ToggleSidebar);
+            Assert.Null(store.Refusal(ctrlK, AppShortcut.ToggleSidebar));
         });
     }
 
@@ -1700,6 +1852,12 @@ public sealed class ShortcutsTests
             Assert.Null(store.Refusal(new KeyChord(0x31, Ctrl), AppShortcut.NewThread));
             Assert.Null(store.Refusal(new KeyChord(0x31, Alt), AppShortcut.NewThread));
             Assert.Null(store.Refusal(new KeyChord(0x39, Alt | Shift), AppShortcut.NewThread));
+
+            // The typing check (the second check) wins over the conflict check (the fifth, :330-333): with another
+            // command already holding the bare chord, the typing refusal still comes back, not the conflict message.
+            var bareN = new KeyChord(0x31, ChordModifiers.None);
+            store.Set(bareN, AppShortcut.ToggleSidebar);
+            Assert.Equal(Utf8(TypingRefusal), Utf8(store.Refusal(bareN, AppShortcut.NewThread)!));
         });
     }
 
@@ -1714,9 +1872,15 @@ public sealed class ShortcutsTests
         {
             foreach (var code in new long[] { 0x37, 0x46 }) // numpad * and Scroll Lock: outside all three tables
                 Assert.Equal(Utf8(MenuRefusal), Utf8(store.Refusal(new KeyChord(code, Ctrl), AppShortcut.NewThread)!));
-            // The modifier-key and typing checks run first, so those refusals win over this one on their own keys.
+            // The modifier-key check runs first, so its refusal wins over this one on a modifier key.
             Assert.Equal(Utf8(ModifierRefusal), Utf8(store.Refusal(new KeyChord(0x2A, ChordModifiers.None), AppShortcut.NewThread)!));
-            Assert.Equal(Utf8(TypingRefusal), Utf8(store.Refusal(new KeyChord(0x31, ChordModifiers.None), AppShortcut.NewThread)!));
+
+            // The menu check (the third check) wins over the conflict check (the fifth, :330-333): with another
+            // command already holding a chord that has no menu equivalent, the menu refusal still comes back, not
+            // the conflict message.
+            var noMenu = new KeyChord(0x37, Ctrl);
+            store.Set(noMenu, AppShortcut.ToggleSidebar);
+            Assert.Equal(Utf8(MenuRefusal), Utf8(store.Refusal(noMenu, AppShortcut.NewThread)!));
         });
     }
 
@@ -1734,8 +1898,35 @@ public sealed class ShortcutsTests
             Assert.Equal(new[] { "Ctrl+Q", "Ctrl+H", "Ctrl+M", "Ctrl+C", "Ctrl+V", "Ctrl+X", "Ctrl+A", "Ctrl+Z", "Ctrl+Shift+Z",
                 "Ctrl+1", "Ctrl+2", "Ctrl+3", "Ctrl+4", "Ctrl+5", "Ctrl+6", "Ctrl+7", "Ctrl+8", "Ctrl+9" },
                 Reserved.Select(r => r.Rendered));
+            // Each fixture row's Rendered string is checked against the port's own Description (:32-34, PR-WIN-117),
+            // not against itself, so this exercises Description over the reserved table's codes and modifiers.
+            foreach (var (code, mods, rendered) in Reserved)
+                Assert.Equal(Utf8(rendered), Utf8(new KeyChord(code, mods).Description));
+
             foreach (var (code, mods, _) in Reserved)
                 Assert.Equal(Utf8(ReservedRefusal), Utf8(store.Refusal(new KeyChord(code, mods), AppShortcut.NewThread)!));
+
+            // Near misses: chords that resemble a reserved entry but are not one of the exact 18 (:329 `contains`
+            // is exact-chord equality) are free. Ctrl+Y (0x15) proves ED-099 (4) withdraws ED-050 (b)'s Ctrl+Y
+            // variant of the reserved list.
+            (long Code, ChordModifiers Mods)[] free =
+            [
+                (0x15, Ctrl), // Ctrl+Y
+                (0x0B, Ctrl), // Ctrl+0
+                (0x10, Ctrl | Shift), // Ctrl+Shift+Q
+                (0x02, Ctrl | Shift), // Ctrl+Shift+1
+                (0x2C, Ctrl | Alt), // Ctrl+Alt+Z
+                (0x10, Alt), // Alt+Q
+            ];
+            foreach (var (code, mods) in free)
+                Assert.Null(store.Refusal(new KeyChord(code, mods), AppShortcut.NewThread));
+
+            // The reserved check (the fourth check) wins over the conflict check (the fifth, :330-333): with
+            // another command already holding a reserved chord, the reserved refusal still comes back, not the
+            // conflict message.
+            var ctrlC = new KeyChord(0x2E, Ctrl);
+            store.Set(ctrlC, AppShortcut.ToggleSidebar);
+            Assert.Equal(Utf8(ReservedRefusal), Utf8(store.Refusal(ctrlC, AppShortcut.NewThread)!));
         });
     }
 
