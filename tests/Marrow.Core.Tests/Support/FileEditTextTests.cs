@@ -82,4 +82,28 @@ public sealed class FileEditTextTests
     [Fact]
     [Trait("Req", "PR-STORE-114")]
     public void Nil_if_empty_returns_null_for_only_the_empty_string() => Assert.Null("".NilIfEmpty());
+
+    [Theory] // Text.swift:130-132: trimmingCharacters(in: .whitespacesAndNewlines), leaving inner text untouched.
+    [Trait("Req", "PR-STORE-167")]
+    [InlineData("  \t\r\nhello world\n\t ", "hello world")]
+    [InlineData("kept  inner  spaces", "kept  inner  spaces")]
+    [InlineData("   \r\n\t", "")]
+    [InlineData("", "")]
+    public void Trimmed_removes_leading_and_trailing_whitespace_and_newlines_only(string text, string expected) =>
+        Assert.Equal(expected, text.Trimmed());
+
+
+    // The Foundation set is an explicit table, not .NET's char.IsWhiteSpace: U+200B ZWSP is a member,
+    // U+2060 WORD JOINER is not, and every .whitespaces / .newlines table member trims from both edges.
+    // Built from code points at runtime (not \u escapes in the literal) to keep every character unambiguous.
+    [Fact]
+    [Trait("Req", "PR-STORE-167")]
+    public void Trimmed_follows_the_Foundation_whitespacesAndNewlines_table_exactly()
+    {
+        foreach (var codePoint in new[] { 0x00A0, 0x200B, 0x3000, 0x2028, 0x2029, 0x0085 }) // .whitespaces / .newlines members
+            Assert.Equal("x", Wrap(codePoint).Trimmed());
+        Assert.Equal(Wrap(0x2060), Wrap(0x2060).Trimmed()); // WORD JOINER is in neither table
+
+        static string Wrap(int codePoint) => new(new[] { (char)codePoint, 'x', (char)codePoint });
+    }
 }

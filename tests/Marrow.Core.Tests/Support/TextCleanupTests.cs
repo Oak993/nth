@@ -77,11 +77,13 @@ public sealed class TextCleanupTests
     [InlineData("\u001B[31", "\u001B[31")]
     [InlineData("\u001B[1:2mX", "\u001B[1:2mX")]
     [InlineData("\u001B[mX", "X")]
-    [InlineData("\u001B[1m\u001B[31merror\u001B[0m", "error")] // Adjacent CSI sequences (bold, then color) are each removed.
-    [InlineData("\u001B[9mX", "X")] // Digit class upper bound: '9'.
-    [InlineData("\u001B[/mX", "X")] // Intermediate-byte class upper bound: '/'.
-    [InlineData("\u001B[@X", "X")] // Final-byte class lower bound: '@'.
-    [InlineData("\u001B[~X", "X")] // Final-byte class upper bound: '~'.
+    // Adjacent CSI sequences (bold, then color) are each removed; the last four cases pin the
+    // pattern's edges: digit '9', intermediate '/', and the final byte's '@' and '~' bounds.
+    [InlineData("\u001B[1m\u001B[31merror\u001B[0m", "error")]
+    [InlineData("\u001B[9mX", "X")]
+    [InlineData("\u001B[/mX", "X")]
+    [InlineData("\u001B[@X", "X")]
+    [InlineData("\u001B[~X", "X")]
     public void ANSI_cleanup_removes_only_the_source_CSI_pattern(string input, string expected) =>
         Assert.Equal(expected, TextCleanup.StripANSI(input));
 
