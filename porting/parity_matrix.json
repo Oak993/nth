@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "SPECIFIED": 3699,
+      "SPECIFIED": 3698,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
       "DISCOVERED": 34,
       "RETIRED": 6,
-      "IMPLEMENTED": 174
+      "IMPLEMENTED": 175
     },
     "by_area": {
       "CHAT": 193,
@@ -23953,7 +23953,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Development-only; not user-visible in a shipped build.",
       "verification_method": "unit test with an injected clock over both line shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
