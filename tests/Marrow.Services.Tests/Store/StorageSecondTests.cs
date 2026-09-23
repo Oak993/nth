@@ -571,8 +571,8 @@ public sealed class StorageSecondTests
             Assert.Equal(TaskStatus.RanToCompletion, task!.Completion.Status);
 
             Assert.Equal(2, current.Count); // the dropped HEIC never lands
-            Assert.Equal("one.md", current[0].Name); // :166 compactMap keeps the surviving order
-            Assert.Equal("two.md", current[1].Name);
+            Assert.Equal(Path.GetFileName(goodOne), current[0].Name); // :166 compactMap keeps the surviving order
+            Assert.Equal(Path.GetFileName(goodTwo), current[1].Name);
         }
         finally
         {

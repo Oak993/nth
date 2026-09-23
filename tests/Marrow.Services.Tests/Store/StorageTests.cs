@@ -337,6 +337,8 @@ public sealed class StorageTests
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-062")] // Services/Store/Storage.swift:189-197
+    [Trait("Req", "PR-STORE-069")] // Services/Store/Storage.swift:189-197: png passes through unchanged
+    [Trait("Req", "UI-STORE-004")] // Services/Store/Storage.swift:197: the literal "Pasted image.png"
     public void ImportSource_ImagePassesThroughPngDataUnchanged()
     {
         using var scratch = new StorageScratchFolder();
@@ -351,6 +353,8 @@ public sealed class StorageTests
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-062")] // Services/Store/Storage.swift:190-195, :203-219
+    [Trait("Req", "PR-STORE-069")] // Services/Store/Storage.swift:190-195: a non-png paste is re-encoded to png
+    [Trait("Req", "UI-STORE-004")] // Services/Store/Storage.swift:197: the literal "Pasted image.png"
     public void ImportSource_TranscodesANonPngPasteToPng()
     {
         using var scratch = new StorageScratchFolder();
@@ -383,6 +387,7 @@ public sealed class StorageTests
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-062")] // Services/Store/Storage.swift:184-185: anything else is copied as it is
+    [Trait("Req", "PR-STORE-068")] // Services/Store/Storage.swift:184-185: every other extension is copied verbatim, no transcode
     public void ImportSource_CopiesANonImageFileAsIs()
     {
         using var scratch = new StorageScratchFolder();
