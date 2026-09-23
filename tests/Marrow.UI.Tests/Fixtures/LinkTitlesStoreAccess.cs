@@ -4,12 +4,12 @@ using Marrow.UI.Markdown;
 
 namespace Marrow.UI.Tests.Fixtures;
 
-// PORT-ONLY test helper: DroppyCode/UI/Markdown/LinkTitles.swift's nested `Store` (B2 1fbf81e, :79-111) is
-// Swift `private`, reachable in production only through `title(forVideo:)`, which this port does not implement
-// (STOP UI.Markdown.LinkTitles #2, PR-THEME-135, missing F.HTTP access from Marrow.UI). Store.Claim, Store.Finish
-// and Store.Title are pure, network-free logic (PR-THEME-135's claim-once memoization and PR-THEME-136's
-// 400-entry flush), so this reaches the same private `LinkTitles.Store.Shared` singleton by reflection, the way
-// StdioFramerTests and StdioProcessTests already reach private port state in this codebase.
+// PORT-ONLY test helper: DroppyCode/UI/Markdown/LinkTitles.swift's nested `Store` (B2 1fbf81e, :79-111) and its
+// private `oembedURL(for:)` (:62-69) are Swift `private`. Store.Claim, Store.Finish and Store.Title are pure,
+// network-free logic (PR-THEME-135's claim-once memoization and PR-THEME-136's 400-entry flush); `TitleForVideo`
+// (public, :43-56) exercises them together with a real fetch, so tests reach the shared `LinkTitles.Store.Shared`
+// singleton and the private `OembedURL` by reflection, the way StdioFramerTests and StdioProcessTests already
+// reach private port state in this codebase.
 
 /// <summary>Reflection access to <c>LinkTitles.Store.Shared</c> for tests that cannot reach it directly.</summary>
 public static class LinkTitlesStoreAccess
@@ -25,6 +25,12 @@ public static class LinkTitlesStoreAccess
     private static readonly MethodInfo FinishMethod = StoreType.GetMethod("Finish", BindingFlags.Public | BindingFlags.Instance)!;
     private static readonly MethodInfo TitleMethod = StoreType.GetMethod("Title", BindingFlags.Public | BindingFlags.Instance)!;
 
+    // :62-69 oembedURL(for:) is `private`; reached here to check the endpoint and query items it builds
+    // without ever sending a request (PR-THEME-135).
+    private static readonly MethodInfo OembedUrlMethod =
+        typeof(LinkTitles).GetMethod("OembedURL", BindingFlags.NonPublic | BindingFlags.Static)
+        ?? throw new InvalidOperationException("LinkTitles.OembedURL was not found; has it been renamed?");
+
     /// <summary>:96-99. True the first time an id is claimed, false every time after.</summary>
     public static bool Claim(string id) => (bool)ClaimMethod.Invoke(Shared, [id])!;
 
@@ -33,6 +39,9 @@ public static class LinkTitlesStoreAccess
 
     /// <summary>:92-94. The title cached for an id, or null.</summary>
     public static string? Title(string id) => (string?)TitleMethod.Invoke(Shared, [id]);
+
+    /// <summary>:62-69. The oEmbed request URL for a video id, or null.</summary>
+    public static Uri? OembedUrl(string id) => (Uri?)OembedUrlMethod.Invoke(null, [id]);
 
     /// <summary>
     /// The raw entry counts of the private `State` behind the lock (:85-88), read without going through

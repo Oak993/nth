@@ -1,4 +1,6 @@
+using System.Text;
 using Marrow.Core.Port;
+using Marrow.Testing;
 using Marrow.UI.Markdown;
 using Marrow.UI.Tests.Fixtures;
 
@@ -15,9 +17,15 @@ namespace Marrow.UI.Tests.Markdown;
 //          false); finish(_:title:) stores a title (discarding every stored title at 400 entries) and always
 //          inserts into claimed, so a losing or failed claim is never retried (upstream defect 48/49,
 //          porting/upstream_defects.md entries 48-49).
-// VideoID's "?v=<id>" fallback (:25-27) and the network fetch title(forVideo:)/oembedURL/OEmbed (:43-69) are
-// not ported: see the STOP notes on LinkTitles.VideoID and LinkTitles (src/Marrow.UI/Markdown/LinkTitles.cs).
-// The Store is Swift `private`, reached here only through LinkTitlesStoreAccess (Fixtures), by reflection.
+//   :25-27 videoID(for:)'s "?v=<id>" fallback: the first "v" query item's value, still passed through checked(_:).
+//   :43-56 title(forVideo:): a known title returns immediately; a losing claim returns nil without a request; a
+//          200 with a decodable, non-empty-after-trim title is cached; anything else is remembered as no title.
+//   :62-69 oembedURL(for:): https://www.youtube.com/oembed with query items url=<canonical watch URL> and
+//          format=json.
+// The oEmbed fetch is exercised against LoopbackHttpServer (R-TEST-10), never the real network: TitleForVideo
+// takes a PORT-ONLY trailing `oembedUrl` override (MetaAPI.cs precedent) that every production call site leaves
+// null. The Store and OembedURL are Swift `private`, reached here only through LinkTitlesStoreAccess (Fixtures),
+// by reflection.
 public sealed class LinkTitlesTests
 {
     private static int idCounter;
@@ -77,12 +85,48 @@ public sealed class LinkTitlesTests
 
     [Fact]
     [Trait("Req", "PR-THEME-134")] // UI/Markdown/LinkTitles.swift:22 segments.count >= 2 && [...].contains(segments[0])
-    public void A_youtube_com_path_whose_first_segment_is_not_a_recognised_prefix_extracts_nothing_today()
+    public void A_youtube_com_path_whose_first_segment_is_not_a_recognised_prefix_falls_back_to_the_query()
     {
-        // Swift also reads this shape from the "?v=<id>" query item (:25-27); that fallback is not ported (see
-        // the STOP note on LinkTitles.VideoID), so only the "no id extracted" half of this input is asserted.
+        // No "v" query item on either link, so the fallback (:25-27) also yields nothing.
         Assert.Null(LinkTitles.VideoID(Url("https://youtube.com/playlist?list=PL1234567890abcdef")));
         Assert.Null(LinkTitles.VideoID(Url("https://youtube.com/results?search_query=cats")));
+    }
+
+    // --- videoID(for:)'s "?v=<id>" fallback (:25-27) ---
+
+    [Theory]
+    [InlineData("https://youtube.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ")]
+    [InlineData("https://youtube.com/watch?foo=bar&v=dQw4w9WgXcQ", "dQw4w9WgXcQ")]
+    [InlineData("https://m.youtube.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ")]
+    [InlineData("https://music.youtube.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ")]
+    [InlineData("https://youtube-nocookie.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ")]
+    [Trait("Req", "PR-THEME-134")] // UI/Markdown/LinkTitles.swift:25-27
+    public void A_v_query_item_supplies_the_id_when_the_path_has_no_recognised_prefix(string link, string expected)
+    {
+        Assert.Equal(expected, LinkTitles.VideoID(Url(link)));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-134")] // UI/Markdown/LinkTitles.swift:26 query?.first(where: { $0.name == "v" })
+    public void The_first_v_query_item_wins_when_there_is_more_than_one()
+    {
+        Assert.Equal("dQw4w9WgXcQ", LinkTitles.VideoID(Url("https://youtube.com/watch?v=dQw4w9WgXcQ&v=zzzzzzzz")));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-134")] // UI/Markdown/LinkTitles.swift:26 guard let value = query?.first(where:)?.value else return nil
+    public void A_youtube_com_link_with_no_v_query_item_carries_no_video_id()
+    {
+        Assert.Null(LinkTitles.VideoID(Url("https://youtube.com/watch?foo=bar")));
+        Assert.Null(LinkTitles.VideoID(Url("https://youtube.com/watch")));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-134")] // UI/Markdown/LinkTitles.swift:27 checked(value) still applies to the fallback
+    public void The_v_query_items_value_is_still_checked_for_length_and_characters()
+    {
+        Assert.Null(LinkTitles.VideoID(Url("https://youtube.com/watch?v=short")));
+        Assert.Null(LinkTitles.VideoID(Url("https://youtube.com/watch?v=dQw4w9Wg.cQ")));
     }
 
     // --- checked(_:), read through videoID(for:) (:71-77) ---
@@ -211,5 +255,149 @@ public sealed class LinkTitlesTests
         // upstream defect 48/49 (porting/upstream_defects.md:109,111): claimed is never cleared by the flush,
         // so a video whose title was just discarded can never be claimed, and so never re-fetched, again.
         Assert.False(LinkTitlesStoreAccess.Claim(survivorId));
+    }
+
+    // --- oembedURL(for:) (:62-69) ---
+
+    [Fact]
+    [Trait("Req", "PR-THEME-135")] // UI/Markdown/LinkTitles.swift:62-69
+    public void The_oembed_request_url_carries_the_canonical_watch_url_and_format_json()
+    {
+        var id = UniqueId("oembedurl");
+        var url = LinkTitlesStoreAccess.OembedUrl(id);
+        Assert.NotNull(url);
+
+        // Read the produced URL back through URLComponents (rather than asserting its exact percent-encoded
+        // bytes, an open oracle item, O-57) to check the decoded shape :63-67 actually builds.
+        var components = URLComponents.Create(url!.AbsoluteUri);
+        Assert.NotNull(components);
+        Assert.Equal("https", components!.Scheme);
+        Assert.Equal("www.youtube.com", components.Host);
+        Assert.Equal("/oembed", components.Path);
+
+        var items = components.QueryItems;
+        Assert.NotNull(items);
+        Assert.Equal(2, items!.Count);
+        Assert.Equal("url", items[0].Name);
+        Assert.Equal($"https://www.youtube.com/watch?v={id}", items[0].Value);
+        Assert.Equal("format", items[1].Name);
+        Assert.Equal("json", items[1].Value);
+    }
+
+    // --- title(forVideo:) (:43-56), against LoopbackHttpServer (R-TEST-10) ---
+
+    private static byte[] Ascii(string text) => Encoding.ASCII.GetBytes(text);
+
+    [Fact]
+    [Trait("Req", "PR-THEME-135")] // UI/Markdown/LinkTitles.swift:44 if let known = Store.shared.title(id) { return known }
+    public async Task A_known_title_is_returned_without_a_request_or_reclaiming()
+    {
+        var id = UniqueId("known");
+        LinkTitlesStoreAccess.Claim(id);
+        LinkTitlesStoreAccess.Finish(id, "Known already");
+
+        var result = await LinkTitles.TitleForVideo(id, new Uri("http://127.0.0.1:1/unreachable"));
+
+        Assert.Equal("Known already", result);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-135")] // UI/Markdown/LinkTitles.swift:45 guard Store.shared.claim(id) else { return nil }
+    public async Task A_losing_claimant_returns_nil_without_a_request()
+    {
+        var id = UniqueId("loseclaim");
+        Assert.True(LinkTitlesStoreAccess.Claim(id)); // some other caller already won the claim
+
+        var result = await LinkTitles.TitleForVideo(id, new Uri("http://127.0.0.1:1/unreachable"));
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-135")] // UI/Markdown/LinkTitles.swift:47-54
+    public async Task A_200_response_with_a_decodable_title_is_trimmed_and_cached()
+    {
+        await using var server = new LoopbackHttpServer();
+        var id = UniqueId("fetchok");
+
+        var pending = LinkTitles.TitleForVideo(id, server.Url("/oembed"));
+        var exchange = await server.NextExchange();
+        Assert.Equal("GET", exchange.Method);
+        await exchange.Respond(200, "OK", Ascii("{\"title\":\"  The Title  \"}"));
+
+        var title = await pending.WaitAsync(LoopbackHttpServer.Guard);
+
+        Assert.Equal("The Title", title); // :53 payload.title.trimmed
+        Assert.Equal("The Title", LinkTitlesStoreAccess.Title(id)); // :54
+        Assert.False(LinkTitlesStoreAccess.Claim(id)); // already claimed
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-135")] // UI/Markdown/LinkTitles.swift:48,50-51
+    public async Task A_non_200_response_is_remembered_as_no_title_and_never_retried()
+    {
+        await using var server = new LoopbackHttpServer();
+        var id = UniqueId("fetch404");
+
+        var pending = LinkTitles.TitleForVideo(id, server.Url("/oembed"));
+        var exchange = await server.NextExchange();
+        await exchange.Respond(404, "Not Found", []);
+
+        var title = await pending.WaitAsync(LoopbackHttpServer.Guard);
+
+        Assert.Null(title);
+        Assert.Null(LinkTitlesStoreAccess.Title(id));
+        Assert.False(LinkTitlesStoreAccess.Claim(id)); // upstream defect 48: never retried
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-135")] // UI/Markdown/LinkTitles.swift:49-51 try? JSONDecoder().decode(OEmbed.self, from: data)
+    public async Task An_undecodable_body_is_remembered_as_no_title()
+    {
+        await using var server = new LoopbackHttpServer();
+        var id = UniqueId("fetchbad");
+
+        var pending = LinkTitles.TitleForVideo(id, server.Url("/oembed"));
+        var exchange = await server.NextExchange();
+        await exchange.Respond(200, "OK", Ascii("not json"));
+
+        var title = await pending.WaitAsync(LoopbackHttpServer.Guard);
+
+        Assert.Null(title);
+        Assert.Null(LinkTitlesStoreAccess.Title(id));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-135")] // UI/Markdown/LinkTitles.swift:49 a body decoding without a "title" field
+    public async Task A_body_with_no_title_field_is_remembered_as_no_title()
+    {
+        await using var server = new LoopbackHttpServer();
+        var id = UniqueId("fetchmiss");
+
+        var pending = LinkTitles.TitleForVideo(id, server.Url("/oembed"));
+        var exchange = await server.NextExchange();
+        await exchange.Respond(200, "OK", Ascii("{\"other\":\"x\"}"));
+
+        var title = await pending.WaitAsync(LoopbackHttpServer.Guard);
+
+        Assert.Null(title);
+        Assert.Null(LinkTitlesStoreAccess.Title(id));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-135")] // UI/Markdown/LinkTitles.swift:53-54 title.isEmpty ? nil : title
+    public async Task An_empty_title_after_trimming_is_remembered_as_no_title()
+    {
+        await using var server = new LoopbackHttpServer();
+        var id = UniqueId("fetchempty");
+
+        var pending = LinkTitles.TitleForVideo(id, server.Url("/oembed"));
+        var exchange = await server.NextExchange();
+        await exchange.Respond(200, "OK", Ascii("{\"title\":\"   \"}"));
+
+        var title = await pending.WaitAsync(LoopbackHttpServer.Guard);
+
+        Assert.Null(title);
+        Assert.Null(LinkTitlesStoreAccess.Title(id));
     }
 }
