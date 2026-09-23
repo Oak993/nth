@@ -103,6 +103,18 @@ public sealed class RevertPreviewTests
         var preview = new RevertPreview("1\t1\tname\r\0" + "2\t2\tline\r\nbreak\0" + "3\t3\tcaf\U000000E9 \U0001F600.md\0"); // U+00E9 LATIN SMALL LETTER E WITH ACUTE, U+1F600 GRINNING FACE
         Assert.Equal(new[] { "name\r", "line\r\nbreak", "caf\U000000E9 \U0001F600.md" }, preview.Files.Select(f => f.Path)); // U+00E9, U+1F600
         Assert.Equal(new byte[] { 0x6E, 0x61, 0x6D, 0x65, 0x0D }, System.Text.Encoding.UTF8.GetBytes(preview.Files[0].Path));
+
+        // :38 String(fields[2]) keeps the path's scalars as they are: a decomposed path stays decomposed. It becomes a git
+        // pathspec (Git.swift:586), so a normalized path would name a different file.
+        var decomposed = new RevertPreview("4\t4\te\U00000301\0"); // U+0301 COMBINING ACUTE ACCENT
+        var path = Assert.Single(decomposed.Files).Path;
+        Assert.Equal(new byte[] { 0x65, 0xCC, 0x81 }, System.Text.Encoding.UTF8.GetBytes(path));
+        Assert.Equal(new byte[] { 0x65, 0xCC, 0x81 }, System.Text.Encoding.UTF8.GetBytes(Assert.Single(decomposed.Files).Id));
+        Assert.False(string.Equals("\U000000E9", path, StringComparison.Ordinal)); // U+00E9 LATIN SMALL LETTER E WITH ACUTE
+        // And the precomposed form stays precomposed.
+        var precomposed = new RevertPreview("4\t4\t\U000000E9\0"); // U+00E9 LATIN SMALL LETTER E WITH ACUTE
+        Assert.Equal(new byte[] { 0xC3, 0xA9 }, System.Text.Encoding.UTF8.GetBytes(Assert.Single(precomposed.Files).Path));
+        Assert.False(string.Equals(precomposed.Files[0].Path, path, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -210,7 +222,7 @@ public sealed class RevertPreviewTests
         const string expected = "The file couldn\U00002019t be opened because it isn\U00002019t in the correct format."; // U+2019 RIGHT SINGLE QUOTATION MARK
         Assert.Equal(expected, SwiftErrors.LocalizedDescription(error));
         Assert.Equal(expected, error.Message);
-        Assert.Equal(2, SwiftErrors.LocalizedDescription(error).Count(c => c == '\u2019')); // U+2019 RIGHT SINGLE QUOTATION MARK
+        Assert.Equal(2, SwiftErrors.LocalizedDescription(error).Count(c => c == '\U00002019')); // U+2019 RIGHT SINGLE QUOTATION MARK
     }
 
     [Fact]
