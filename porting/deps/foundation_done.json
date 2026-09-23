@@ -14,6 +14,11 @@
     "F.URL",
     "F.HTTP",
     "F.ICUFormatters",
-    "F.StyledText"
+    "F.StyledText",
+    "F.URLComponents",
+    "F.SettingsStore",
+    "F.SwiftAnimation",
+    "F.HTTPMove",
+    "F.LoadingMark"
   ]
 }

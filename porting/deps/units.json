@@ -3,6 +3,58 @@
  "part_size": 24,
  "units": [
   {
+   "id": "F.URLComponents",
+   "kind": "foundation",
+   "swift": null,
+   "target": "src/Marrow.Core/Port/URLComponents.cs",
+   "project": "Marrow.Core",
+   "test_project": "tests/Marrow.Core.Tests",
+   "level": -1,
+   "component": null,
+   "component_members": [],
+   "deps": [
+    "F.URL"
+   ],
+   "intra_deps": [],
+   "noMerge": false,
+   "base": null,
+   "records_total": 0,
+   "records_todo": [],
+   "parts": [
+    []
+   ],
+   "packets": [],
+   "risk": "STANDARD",
+   "spec": "ED-169: Foundation URLComponents and URLQueryItem as port types, built on SwiftURL parsing and percent-coding (swift-foundation 6.2), members exactly as the call sites use them; oracle items O-57 to O-60.",
+   "extends_existing": true,
+   "status": "DONE"
+  },
+  {
+   "id": "F.HTTPMove",
+   "kind": "foundation",
+   "swift": null,
+   "target": "src/Marrow.Core/Port/Http.cs",
+   "project": "Marrow.Core",
+   "test_project": "tests/Marrow.Core.Tests",
+   "level": -1,
+   "component": null,
+   "component_members": [],
+   "deps": [],
+   "intra_deps": [],
+   "noMerge": false,
+   "base": null,
+   "records_total": 0,
+   "records_todo": [],
+   "parts": [
+    []
+   ],
+   "packets": [],
+   "risk": "STANDARD",
+   "spec": "ED-168: a pure move of the F.HTTP port types (URLSession and its companions) from Marrow.Services to Marrow.Core, with their tests; code that named them through Marrow.Services.Port gets using Marrow.Core.Port.",
+   "extends_existing": true,
+   "status": "DONE"
+  },
+  {
    "id": "F.Sound",
    "kind": "foundation",
    "swift": null,
@@ -76,8 +128,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "The loading mark and boot sequence of OD-0016 and OD-0018, exactly as ED-097, ED-102 and ED-103 give them in numbers; the reference implementation is porting/design/loading_mark/boot_sequence.html (canvas, frame by frame) and loading_premium.html card B, and where they differ from the EDs the EDs rule. LoadingMark draws the Marrow icon (src/Marrow.App/Assets/icon.svg geometry) with the Comet motion of ED-102 (1) to (3) from the F.FrameClock seam, still under reduce motion, with the 400 ms no-flash rule for in-app sites (ED-097). A BootSequence type drives the ED-103 phases (gather, pulse, turns until ready, disintegration, window formation) as pure functions of time, so tests pin particle positions, reveal shares, pulse times and phase boundaries at fixed times with the manual frame source. First tests: the turn angle and speed at fixed times, one pulse exactly at each rest, the ring radius and opacity curve, the gather reveal share, the final rest after readiness, disintegration pairing by angle without crossings, and reduce motion.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "Core.Repair.ScanClean",
@@ -165,8 +217,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "SwiftUI animation curves and transitions (ED-092 part 2, ED-098, ED-011; R-VIEW-4). Time comes only from the F.FrameClock seam (ED-098 (1)); animatable modifiers implement IAnimatableModifier (ED-098 (2)). Concrete records under the existing abstract Animation in ViewSupport.cs (make it partial if the factories need it): Spring(response, dampingFraction, blendDuration), Spring(duration, bounce), Spring(response, dampingRatio) with SettlingDuration = ln(1000)/(zeta*omega0) per ED-011, Smooth (bounce 0), Snappy (bounce 0.15), EaseIn, EaseOut, EaseInOut (cubic Beziers 0.42,0,1,1 / 0,0,0.58,1 / 0.42,0,0.58,1), Linear, Delay; defaults duration 0.35 for timing curves and 0.5 for smooth, snappy and spring(duration:). A spring is a damped oscillator, omega0 = 2*pi/response, zeta = dampingFraction or 1 - bounce (bounce >= 0) or 1/(1+bounce), exposed as progress(t) and as an Avalonia Easing. SwiftTransition: Identity, Opacity, Scale(scale, anchor), Offset(x, y), Move(edge), BlurReplace, Modifier(active, identity), Asymmetric(insertion, removal), Combined(with), Animation(a); an applier animates insertion from active to identity and removal from identity to active before the control leaves, using Transaction.Current. First tests: the spring progress at fixed times against the closed form, settlingDuration 0.767 s for response 0.6 / damping 0.86, the Bezier curves at known points, delay, and insertion/removal state on a headless control.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.SwiftColor",
@@ -297,9 +349,9 @@
    "id": "F.HTTP",
    "kind": "foundation",
    "swift": null,
-   "target": "src/Marrow.Services/Port/Http.cs",
-   "project": "Marrow.Services",
-   "test_project": "tests/Marrow.Services.Tests",
+   "target": "src/Marrow.Core/Port/Http.cs",
+   "project": "Marrow.Core",
+   "test_project": "tests/Marrow.Core.Tests",
    "level": -1,
    "component": null,
    "component_members": [],
@@ -314,7 +366,7 @@
    ],
    "packets": [],
    "risk": "STANDARD",
-   "spec": "HTTP client matching URLSession as the source uses it (R-NET-1): inactivity timeout, decompression, redirects, status handling, the User-Agent of OD-0012 F1. First tests: a loopback server. URLSessionConfiguration.ephemeral, URLRequest.CachePolicy and URLCache as UpdateChecker.swift:101-110 uses them (ED-119); network defaults per ED-118.",
+   "spec": "HTTP client matching URLSession as the source uses it (R-NET-1): inactivity timeout, decompression, redirects, status handling, the User-Agent of OD-0012 F1. First tests: a loopback server. URLSessionConfiguration.ephemeral, URLRequest.CachePolicy and URLCache as UpdateChecker.swift:101-110 uses them (ED-119); network defaults per ED-118. ED-168 moved the port types to Marrow.Core (UI calls URLSession.shared too: LinkTitles.swift:47, MarkdownView.swift:949).",
    "extends_existing": true,
    "status": "DONE"
   },
@@ -367,8 +419,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "Production settings store behind the UserDefaults seam of ED-079: a per-user JSON store under the Marrow Code data folder (OD-0008 C7), keys and defaults exactly as the source names them, absent versus present kept distinct, integer(forKey:), double(forKey:) and bool(forKey:) conversions as Foundation performs them, atomic writes through F.FileOps. First tests: absent versus present, key names, write order, the type conversions.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.FileOps",
@@ -873,46 +925,14 @@
    ],
    "intra_deps": [],
    "records_total": 14,
-   "records_todo": [
-    "PR-GIT-071",
-    "PR-GIT-072",
-    "PR-GIT-073",
-    "PR-GIT-074",
-    "PR-GIT-075",
-    "PR-GIT-076",
-    "PR-GIT-077",
-    "PR-GIT-078",
-    "PR-GIT-079",
-    "PR-GIT-153",
-    "PR-GIT-154",
-    "PR-GIT-155",
-    "PR-GIT-156",
-    "PR-GIT-157"
-   ],
-   "parts": [
-    [
-     "PR-GIT-071",
-     "PR-GIT-072",
-     "PR-GIT-073",
-     "PR-GIT-074",
-     "PR-GIT-075",
-     "PR-GIT-076",
-     "PR-GIT-077",
-     "PR-GIT-078",
-     "PR-GIT-079",
-     "PR-GIT-153",
-     "PR-GIT-154",
-     "PR-GIT-155",
-     "PR-GIT-156",
-     "PR-GIT-157"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M3-014",
     "T-M3-015"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.UsageLimitSignal",
@@ -2031,80 +2051,8 @@
    ],
    "intra_deps": [],
    "records_total": 33,
-   "records_todo": [
-    "PR-GIT-004",
-    "PR-GIT-006",
-    "PR-TERM-081",
-    "PR-TERM-082",
-    "PR-TERM-083",
-    "PR-TERM-084",
-    "PR-TERM-085",
-    "PR-TERM-086",
-    "PR-TERM-087",
-    "PR-TERM-088",
-    "PR-TERM-089",
-    "PR-TERM-090",
-    "PR-TERM-091",
-    "PR-TERM-092",
-    "PR-TERM-093",
-    "PR-TERM-094",
-    "PR-TERM-095",
-    "PR-TERM-096",
-    "PR-TERM-097",
-    "PR-TERM-098",
-    "PR-TERM-100",
-    "PR-TERM-101",
-    "PR-TERM-102",
-    "PR-TERM-103",
-    "PR-TERM-104",
-    "PR-TERM-105",
-    "PR-TERM-106",
-    "PR-TERM-118",
-    "PR-TERM-119",
-    "PR-TERM-120",
-    "PR-TERM-121",
-    "PR-TERM-122",
-    "PR-UPDATE-048"
-   ],
-   "parts": [
-    [
-     "PR-GIT-004",
-     "PR-GIT-006",
-     "PR-TERM-081",
-     "PR-TERM-082",
-     "PR-TERM-083",
-     "PR-TERM-084",
-     "PR-TERM-085",
-     "PR-TERM-086",
-     "PR-TERM-087",
-     "PR-TERM-088",
-     "PR-TERM-089",
-     "PR-TERM-090",
-     "PR-TERM-091",
-     "PR-TERM-092",
-     "PR-TERM-093",
-     "PR-TERM-094",
-     "PR-TERM-095",
-     "PR-TERM-096",
-     "PR-TERM-097",
-     "PR-TERM-098",
-     "PR-TERM-100",
-     "PR-TERM-101",
-     "PR-TERM-102",
-     "PR-TERM-103"
-    ],
-    [
-     "PR-TERM-104",
-     "PR-TERM-105",
-     "PR-TERM-106",
-     "PR-TERM-118",
-     "PR-TERM-119",
-     "PR-TERM-120",
-     "PR-TERM-121",
-     "PR-TERM-122",
-     "PR-UPDATE-048"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-067",
     "T-M2-068",
@@ -2112,7 +2060,7 @@
     "T-M2-070"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.SwitchLatency",
@@ -2198,6 +2146,7 @@
     "Core.Support.JSONValue",
     "Core.Support.Text",
     "F.HTTP",
+    "F.HTTPMove",
     "F.URL"
    ],
    "intra_deps": [],
@@ -2310,27 +2259,20 @@
    "component": null,
    "component_members": [],
    "deps": [
-    "Core.Support.Text"
+    "Core.Support.Text",
+    "F.HTTP",
+    "F.HTTPMove",
+    "F.URLComponents"
    ],
    "intra_deps": [],
    "records_total": 3,
-   "records_todo": [
-    "PR-THEME-134",
-    "PR-THEME-135",
-    "PR-THEME-136"
-   ],
-   "parts": [
-    [
-     "PR-THEME-134",
-     "PR-THEME-135",
-     "PR-THEME-136"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-051"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Markdown.MarkdownParser",
@@ -2591,23 +2533,13 @@
    ],
    "intra_deps": [],
    "records_total": 3,
-   "records_todo": [
-    "PR-GIT-089",
-    "PR-GIT-090",
-    "PR-GIT-091"
-   ],
-   "parts": [
-    [
-     "PR-GIT-089",
-     "PR-GIT-090",
-     "PR-GIT-091"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M3-013"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.MCP.MCPBridgeSource",
@@ -2625,29 +2557,13 @@
    ],
    "intra_deps": [],
    "records_total": 6,
-   "records_todo": [
-    "PR-MCP-193",
-    "PR-MCP-194",
-    "PR-MCP-195",
-    "PR-MCP-196",
-    "PR-MCP-197",
-    "PR-MCP-198"
-   ],
-   "parts": [
-    [
-     "PR-MCP-193",
-     "PR-MCP-194",
-     "PR-MCP-195",
-     "PR-MCP-196",
-     "PR-MCP-197",
-     "PR-MCP-198"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-001"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.CommandCodeKeychain",
@@ -2665,19 +2581,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-SETTINGS-272"
-   ],
-   "parts": [
-    [
-     "PR-SETTINGS-272"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-067"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.DeepSeekKeychain",
@@ -2695,19 +2605,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-PROVAPI-005"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-005"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-090"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.MetaKeychain",
@@ -2725,19 +2629,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-PROVAPI-006"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-006"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-095"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.NativeFileTools",
@@ -2809,27 +2707,13 @@
    ],
    "intra_deps": [],
    "records_total": 5,
-   "records_todo": [
-    "PR-PROVAPI-187",
-    "PR-PROVAPI-188",
-    "PR-PROVAPI-189",
-    "PR-PROVAPI-190",
-    "PR-PROVAPI-191"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-187",
-     "PR-PROVAPI-188",
-     "PR-PROVAPI-189",
-     "PR-PROVAPI-190",
-     "PR-PROVAPI-191"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-140"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.ZaiKeychain",
@@ -2847,19 +2731,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-PROVAPI-007"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-007"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-145"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Store.Storage",
@@ -2882,11 +2760,12 @@
     "F.PathIdentity"
    ],
    "intra_deps": [],
-   "records_total": 61,
+   "records_total": 63,
    "records_todo": [
     "PR-COMPOSER-061",
     "PR-COMPOSER-062",
     "PR-LAUNCH-070",
+    "PR-MCP-084",
     "PR-STORE-001",
     "PR-STORE-002",
     "PR-STORE-003",
@@ -2895,6 +2774,7 @@
     "PR-STORE-006",
     "PR-STORE-007",
     "PR-STORE-010",
+    "PR-STORE-011",
     "PR-STORE-012",
     "PR-STORE-013",
     "PR-STORE-019",
@@ -2951,6 +2831,7 @@
      "PR-COMPOSER-061",
      "PR-COMPOSER-062",
      "PR-LAUNCH-070",
+     "PR-MCP-084",
      "PR-STORE-001",
      "PR-STORE-002",
      "PR-STORE-003",
@@ -2959,6 +2840,7 @@
      "PR-STORE-006",
      "PR-STORE-007",
      "PR-STORE-010",
+     "PR-STORE-011",
      "PR-STORE-012",
      "PR-STORE-013",
      "PR-STORE-019",
@@ -2969,11 +2851,11 @@
      "PR-STORE-025",
      "PR-STORE-026",
      "PR-STORE-027",
-     "PR-STORE-030",
-     "PR-STORE-031",
-     "PR-STORE-032"
+     "PR-STORE-030"
     ],
     [
+     "PR-STORE-031",
+     "PR-STORE-032",
      "PR-STORE-033",
      "PR-STORE-035",
      "PR-STORE-036",
@@ -2995,11 +2877,11 @@
      "PR-STORE-060",
      "PR-STORE-061",
      "PR-STORE-062",
-     "PR-STORE-063",
-     "PR-STORE-064",
-     "PR-STORE-065"
+     "PR-STORE-063"
     ],
     [
+     "PR-STORE-064",
+     "PR-STORE-065",
      "PR-STORE-066",
      "PR-STORE-067",
      "PR-STORE-068",
@@ -3777,7 +3659,7 @@
     "F.PathIdentity"
    ],
    "intra_deps": [],
-   "records_total": 14,
+   "records_total": 12,
    "records_todo": [],
    "parts": [],
    "packets": [
@@ -3835,80 +3717,24 @@
    "deps": [
     "Core.Support.JSONValue",
     "F.HTTP",
+    "F.HTTPMove",
     "F.SecretStore",
-    "F.URL"
+    "F.URL",
+    "F.URLComponents"
    ],
    "intra_deps": [
     "Services.MCP.MCPKeychain"
    ],
    "records_total": 26,
-   "records_todo": [
-    "PR-MCP-139",
-    "PR-MCP-140",
-    "PR-MCP-141",
-    "PR-MCP-142",
-    "PR-MCP-143",
-    "PR-MCP-144",
-    "PR-MCP-145",
-    "PR-MCP-146",
-    "PR-MCP-147",
-    "PR-MCP-148",
-    "PR-MCP-149",
-    "PR-MCP-150",
-    "PR-MCP-151",
-    "PR-MCP-152",
-    "PR-MCP-153",
-    "PR-MCP-154",
-    "PR-MCP-155",
-    "PR-MCP-156",
-    "PR-MCP-157",
-    "PR-MCP-158",
-    "PR-MCP-159",
-    "PR-MCP-160",
-    "PR-MCP-161",
-    "PR-MCP-162",
-    "PR-MCP-163",
-    "PR-MCP-164"
-   ],
-   "parts": [
-    [
-     "PR-MCP-139",
-     "PR-MCP-140",
-     "PR-MCP-141",
-     "PR-MCP-142",
-     "PR-MCP-143",
-     "PR-MCP-144",
-     "PR-MCP-145",
-     "PR-MCP-146",
-     "PR-MCP-147",
-     "PR-MCP-148",
-     "PR-MCP-149",
-     "PR-MCP-150",
-     "PR-MCP-151",
-     "PR-MCP-152",
-     "PR-MCP-153",
-     "PR-MCP-154",
-     "PR-MCP-155",
-     "PR-MCP-156",
-     "PR-MCP-157",
-     "PR-MCP-158",
-     "PR-MCP-159",
-     "PR-MCP-160",
-     "PR-MCP-161",
-     "PR-MCP-162"
-    ],
-    [
-     "PR-MCP-163",
-     "PR-MCP-164"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-005",
     "T-M4-006",
     "T-M4-007"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.MCP.MCPProxy",
@@ -3928,8 +3754,10 @@
     "Core.Support.Text",
     "F.FileOps",
     "F.HTTP",
+    "F.HTTPMove",
     "F.PathIdentity",
-    "F.URL"
+    "F.URL",
+    "Services.Store.Storage"
    ],
    "intra_deps": [
     "Core.Models.MCP",
@@ -4790,7 +4618,8 @@
    "deps": [
     "Core.Models.MCP",
     "Core.Support.Text",
-    "F.URL"
+    "F.URL",
+    "F.URLComponents"
    ],
    "intra_deps": [],
    "records_total": 10,
@@ -4841,61 +4670,21 @@
     "Core.Support.Text",
     "F.FileOps",
     "F.HTTP",
+    "F.HTTPMove",
     "F.ProcessLauncher",
-    "F.URL"
+    "F.URL",
+    "Services.Store.Storage"
    ],
    "intra_deps": [],
    "records_total": 19,
-   "records_todo": [
-    "PR-MCP-177",
-    "PR-MCP-178",
-    "PR-MCP-179",
-    "PR-MCP-180",
-    "PR-MCP-181",
-    "PR-MCP-182",
-    "PR-MCP-183",
-    "PR-MCP-184",
-    "PR-MCP-185",
-    "PR-MCP-186",
-    "PR-MCP-187",
-    "PR-MCP-188",
-    "PR-MCP-189",
-    "PR-MCP-190",
-    "PR-MCP-191",
-    "PR-MCP-192",
-    "PR-MCP-225",
-    "PR-MCP-226",
-    "PR-MCP-227"
-   ],
-   "parts": [
-    [
-     "PR-MCP-177",
-     "PR-MCP-178",
-     "PR-MCP-179",
-     "PR-MCP-180",
-     "PR-MCP-181",
-     "PR-MCP-182",
-     "PR-MCP-183",
-     "PR-MCP-184",
-     "PR-MCP-185",
-     "PR-MCP-186",
-     "PR-MCP-187",
-     "PR-MCP-188",
-     "PR-MCP-189",
-     "PR-MCP-190",
-     "PR-MCP-191",
-     "PR-MCP-192",
-     "PR-MCP-225",
-     "PR-MCP-226",
-     "PR-MCP-227"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-002",
     "T-M4-003"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.MCP.MCPProbe",
@@ -4913,6 +4702,7 @@
     "Core.Support.Text",
     "F.FileOps",
     "F.HTTP",
+    "F.HTTPMove",
     "F.ProcessLauncher",
     "F.URL"
    ],
@@ -4985,7 +4775,8 @@
     "Core.Support.JSONValue",
     "Core.Support.Shell",
     "F.FileOps",
-    "F.PathIdentity"
+    "F.PathIdentity",
+    "Services.Store.Storage"
    ],
    "intra_deps": [],
    "records_total": 8,
@@ -5213,7 +5004,8 @@
     "Core.Support.Shell",
     "F.FileOps",
     "F.PathIdentity",
-    "Services.MCP.MCPProviderConfig"
+    "Services.MCP.MCPProviderConfig",
+    "Services.Store.Storage"
    ],
    "intra_deps": [],
    "records_total": 3,
@@ -5257,7 +5049,8 @@
     "Services.MCP.MCPOAuth",
     "Services.MCP.MCPProbe",
     "Services.MCP.MCPProviderConfig",
-    "Services.MCP.MCPProxy"
+    "Services.MCP.MCPProxy",
+    "Services.Store.Storage"
    ],
    "intra_deps": [],
    "records_total": 34,
@@ -6014,6 +5807,7 @@
     "Core.Support.Shell",
     "Core.Support.Text",
     "F.HTTP",
+    "F.HTTPMove",
     "F.PathIdentity",
     "Services.MCP.MCPHub",
     "Services.Providers.NativeFileTools",
@@ -6677,6 +6471,7 @@
     "Core.Support.Text",
     "F.FileOps",
     "F.HTTP",
+    "F.HTTPMove",
     "F.PathIdentity",
     "F.URL",
     "Services.Providers.ProviderSession"
@@ -7027,6 +6822,7 @@
     "Core.Support.JSONValue",
     "Core.Support.Text",
     "F.HTTP",
+    "F.HTTPMove",
     "F.URL"
    ],
    "intra_deps": [
@@ -7222,6 +7018,7 @@
     "Core.Support.JSONValue",
     "F.FileOps",
     "F.HTTP",
+    "F.HTTPMove",
     "F.PathIdentity",
     "F.URL"
    ],
@@ -7280,6 +7077,7 @@
     "Core.Support.Text",
     "F.FileOps",
     "F.HTTP",
+    "F.HTTPMove",
     "F.PathIdentity",
     "F.SecretStore",
     "F.URL"
@@ -7750,6 +7548,7 @@
     "Core.Support.JSONValue",
     "Core.Support.Text",
     "F.HTTP",
+    "F.HTTPMove",
     "F.ICUFormatters",
     "F.PathIdentity",
     "F.URL"
@@ -7834,6 +7633,7 @@
     "Services.MCP.MCPBridgeSource",
     "Services.Providers.CommandCodeAPI",
     "Services.Providers.ProviderSession",
+    "Services.Store.Storage",
     "Services.Store.TokenLedger"
    ],
    "intra_deps": [],
@@ -8059,7 +7859,8 @@
     "F.PathIdentity",
     "Services.MCP.MCPBridgeSource",
     "Services.Providers.PiCLI",
-    "Services.Providers.ProviderSession"
+    "Services.Providers.ProviderSession",
+    "Services.Store.Storage"
    ],
    "intra_deps": [],
    "records_total": 36,
@@ -8866,6 +8667,7 @@
     "Core.Support.Text",
     "F.FileOps",
     "F.HTTP",
+    "F.HTTPMove",
     "F.PathIdentity",
     "F.ProcessLauncher",
     "F.SettingsStore"
@@ -9975,6 +9777,7 @@
     "Core.Support.ISO8601",
     "Core.Support.Text",
     "F.HTTP",
+    "F.HTTPMove",
     "F.SettingsStore",
     "F.URL"
    ],
@@ -18385,6 +18188,8 @@
     "Core.Models.Hydra",
     "Core.Support.RecentCache",
     "Core.Support.Text",
+    "F.HTTP",
+    "F.HTTPMove",
     "F.StyledText",
     "F.SwiftAnimation",
     "F.SwiftColor",
@@ -19307,6 +19112,7 @@
     "F.FileOps",
     "F.PathIdentity",
     "F.URL",
+    "F.URLComponents",
     "Services.Git.DiffParser",
     "Services.Git.Git",
     "Services.Git.TouchedPaths",
