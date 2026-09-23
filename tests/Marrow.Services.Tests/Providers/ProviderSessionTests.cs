@@ -3,6 +3,7 @@ using System.Reflection;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Providers;
+using Marrow.Services.Tests.Fixtures;
 using Marrow.Testing;
 using Xunit;
 
@@ -304,24 +305,11 @@ public sealed class ProviderSessionTests
 
     // ---- PR-RUNTIME-008: stopAgent's protocol default ----
 
-    private sealed class MinimalSession : ProviderSession
-    {
-        public Action<ProviderEvent>? OnEvent { get; set; }
-        public bool IsRunning => false;
-        public Task<string> Start() => Task.FromResult("");
-        public Task Send(TurnInput input) => Task.CompletedTask;
-        public Task Interrupt() => Task.CompletedTask;
-        public void ResolveApproval(string requestID, string optionID) { }
-        public void AnswerQuestion(string requestID, ValueMap<string, ValueList<string>> answers) { }
-        public Task Compact() => Task.CompletedTask;
-        public void Stop() { }
-    }
-
     [Fact]
     [Trait("Req", "PR-RUNTIME-008")] // ProviderSession.swift:153-155
     public async Task StopAgent_default_implementation_returns_false_when_not_overridden()
     {
-        ProviderSession session = new MinimalSession();
+        ProviderSession session = new MinimalProviderSession();
         Assert.False(await session.StopAgent("head-1"));
     }
 
