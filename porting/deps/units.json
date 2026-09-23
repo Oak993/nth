@@ -3017,27 +3017,13 @@
    ],
    "intra_deps": [],
    "records_total": 5,
-   "records_todo": [
-    "PR-UPDATE-094",
-    "PR-UPDATE-095",
-    "PR-UPDATE-096",
-    "PR-UPDATE-097",
-    "PR-UPDATE-098"
-   ],
-   "parts": [
-    [
-     "PR-UPDATE-094",
-     "PR-UPDATE-095",
-     "PR-UPDATE-096",
-     "PR-UPDATE-097",
-     "PR-UPDATE-098"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-227"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.MCPCatalog",
