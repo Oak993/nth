@@ -84,9 +84,23 @@ public sealed class ClaudeScript
 
     public void SetExitStatus(int status) => File.WriteAllText(Path.Combine(ControlDirectory, "exit-status.txt"), status.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
-    /// <summary>The raw control_request line the stand-in received for call <paramref name="call"/> (0-based;
-    /// the session process is normally the last call, after the --help probe).</summary>
-    public string CapturedControlRequestLine(int call) => File.ReadAllText(Path.Combine(ControlDirectory, "captured-" + call + ".txt"));
+    /// <summary>The run stops reading stdin (and so exits) right after sending its first reply.</summary>
+    public void SetExitAfterReply() => File.WriteAllText(Path.Combine(ControlDirectory, "exit-after-reply.txt"), "1");
+
+    /// <summary>The raw text of the m-th non-empty stdin line (0-based) call n (0-based) received; the session
+    /// process is normally the last call, after the --help probe.</summary>
+    public string CapturedLine(int call, int message) => File.ReadAllText(Path.Combine(ControlDirectory, "captured-" + call + "-" + message + ".txt"));
+
+    /// <summary>The FIRST line call <paramref name="call"/> received (its initialize control_request).</summary>
+    public string CapturedControlRequestLine(int call) => CapturedLine(call, 0);
+
+    /// <summary>How many non-empty stdin lines call <paramref name="call"/> has received so far.</summary>
+    public int MessageCount(int call)
+    {
+        var count = 0;
+        while (File.Exists(Path.Combine(ControlDirectory, "captured-" + call + "-" + count + ".txt"))) count++;
+        return count;
+    }
 
     /// <summary>The runs recorded so far, in order.</summary>
     public IReadOnlyList<ClaudeCall> Calls()

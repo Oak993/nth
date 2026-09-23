@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -722,6 +723,7 @@ public sealed class ClaudeSessionTests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-022")] // ClaudeSession.swift:203-205 - an initialize response with no commands throws
+    [Trait("Req", "PR-PROVCLI-026")] // ClaudeSession.swift:203-205 - the same guard also destroys the model catalog
     public async Task Handshake_throws_when_the_response_has_no_commands_array()
     {
         using var runtime = new TestRuntime();
@@ -755,4 +757,613 @@ public sealed class ClaudeSessionTests
 
     private static string MinimalHandshakeResponse() =>
         "{\"type\":\"control_response\",\"response\":{\"request_id\":\"__REQUEST_ID__\",\"response\":{\"commands\":[]}}}";
+
+    // ==================================================================================================
+    // Part 2 (PR-PROVCLI-025 to 048): Send, Interrupt, Compact, ResolveApproval, AnswerQuestion, Stop,
+    // StopAgent, and the rest of Handle's dispatch switch (control_request, control_cancel_request,
+    // system, rate_limit_event).
+    // ==================================================================================================
+
+    private static SessionConfiguration MinimalConfig() => new()
+    {
+        Provider = ProviderKind.Claude,
+        WorkingDirectory = FileUrl(Path.GetTempPath()),
+        Environment = ValueMap<string, string>.Empty,
+        RuntimeMode = RuntimeMode.Supervised,
+        InteractionMode = InteractionMode.Build,
+    };
+
+    private static TurnInput Turn(
+        string text = "hi",
+        RuntimeMode runtimeMode = RuntimeMode.Supervised,
+        InteractionMode interactionMode = InteractionMode.Build,
+        string? model = null,
+        IReadOnlyList<Attachment>? images = null) => new()
+    {
+        Text = text,
+        Images = images is null ? ValueList<Attachment>.Empty : new ValueList<Attachment>(images),
+        RuntimeMode = runtimeMode,
+        InteractionMode = interactionMode,
+        Model = model,
+    };
+
+    private static void RunSend(TestRuntime runtime, ClaudeSession session, TurnInput input) =>
+        runtime.Loop.Run(() => session.Send(input), TimeSpan.FromSeconds(10));
+
+    // ---- PR-PROVCLI-028, 029 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-028")] // ClaudeSession.swift:216-221
+    public void Send_sends_set_permission_mode_only_when_the_computed_name_changed()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("send-mode");
+        var session = new ClaudeSession(Config(script, runtimeMode: RuntimeMode.Supervised, interactionMode: InteractionMode.Build));
+        RunStart(runtime, session);
+        RunSend(runtime, session, Turn(runtimeMode: RuntimeMode.FullAccess, interactionMode: InteractionMode.Build));
+        var modeLine = script.CapturedLine(1, 1);
+        Assert.Contains("\"subtype\":\"set_permission_mode\"", modeLine, StringComparison.Ordinal);
+        Assert.Contains("\"mode\":\"bypassPermissions\"", modeLine, StringComparison.Ordinal);
+        var userLine = script.CapturedLine(1, 2);
+        Assert.Contains("\"type\":\"user\"", userLine, StringComparison.Ordinal);
+
+        RunSend(runtime, session, Turn(runtimeMode: RuntimeMode.FullAccess, interactionMode: InteractionMode.Build));
+        // Unchanged mode: the next message is the user write directly, no new set_permission_mode.
+        var nextLine = script.CapturedLine(1, 3);
+        Assert.Contains("\"type\":\"user\"", nextLine, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-029")] // ClaudeSession.swift:222-226
+    public void Send_sends_set_model_with_null_wire_for_default_and_string_otherwise()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("send-model");
+        var session = new ClaudeSession(Config(script, model: null));
+        RunStart(runtime, session);
+        RunSend(runtime, session, Turn(model: "opus"));
+        var setModelLine = script.CapturedLine(1, 1);
+        Assert.Contains("\"subtype\":\"set_model\"", setModelLine, StringComparison.Ordinal);
+        Assert.Contains("\"model\":\"opus\"", setModelLine, StringComparison.Ordinal);
+
+        RunSend(runtime, session, Turn(model: "default"));
+        var toDefaultLine = script.CapturedLine(1, 3); // 2 was the user write from the first send
+        Assert.Contains("\"subtype\":\"set_model\"", toDefaultLine, StringComparison.Ordinal);
+        Assert.Contains("\"model\":null", toDefaultLine, StringComparison.Ordinal);
+
+        RunSend(runtime, session, Turn(model: "default"));
+        // Model unchanged (still "default"): no new set_model call, straight to the user write.
+        var noChangeLine = script.CapturedLine(1, 5); // 4 was the user write from the second send
+        Assert.Contains("\"type\":\"user\"", noChangeLine, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-029")] // ClaudeSession.swift:222-226 - nil to nil sends nothing
+    public void Send_sends_no_set_model_control_request_when_both_are_nil()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("send-model-nil");
+        var session = new ClaudeSession(Config(script, model: null));
+        RunStart(runtime, session);
+        RunSend(runtime, session, Turn(model: null));
+        var line = script.CapturedLine(1, 1);
+        Assert.Contains("\"type\":\"user\"", line, StringComparison.Ordinal);
+        Assert.DoesNotContain("set_model", line, StringComparison.Ordinal);
+    }
+
+    // ---- PR-PROVCLI-030 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-030")] // ClaudeSession.swift:227-235
+    public void Send_puts_image_attachments_first_as_base64_blocks_then_exactly_one_text_block_last()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("send-images");
+        var session = new ClaudeSession(Config(script));
+        RunStart(runtime, session);
+
+        var imagePath = Path.Combine(Path.GetTempPath(), "claude-send-" + Guid.NewGuid().ToString("N") + ".bin");
+        File.WriteAllBytes(imagePath, Encoding.UTF8.GetBytes("not-a-real-image"));
+        var notImagePath = Path.Combine(Path.GetTempPath(), "claude-send-" + Guid.NewGuid().ToString("N") + ".txt");
+        File.WriteAllText(notImagePath, "plain text, not an attachment image");
+        try
+        {
+            var image = new Attachment { Name = "shot.png", Path = imagePath, MimeType = "image/png" };
+            var notImage = new Attachment { Name = "notes.txt", Path = notImagePath, MimeType = "text/plain" };
+            RunSend(runtime, session, Turn(text: "look at this", images: [image, notImage]));
+            var line = script.CapturedLine(1, 1);
+            // Undecodable bytes (WicImageDecoder fails gracefully) keep the original bytes and mimeType.
+            var expectedData = Convert.ToBase64String(Encoding.UTF8.GetBytes("not-a-real-image"));
+            Assert.Contains(
+                "\"content\":[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/png\",\"data\":\"" + expectedData + "\"}},{\"type\":\"text\",\"text\":\"look at this\"}]",
+                line, StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(imagePath);
+            File.Delete(notImagePath);
+        }
+    }
+
+    // ---- PR-PROVCLI-031 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-031")] // ClaudeSession.swift:312-322
+    public void Send_writes_a_user_message_with_empty_session_id_and_null_parent_tool_use_id_and_starts_the_turn()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("send-envelope");
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(Config(script)) { OnEvent = events.Add };
+        RunStart(runtime, session);
+        RunSend(runtime, session, Turn(text: "hello there"));
+        var line = script.CapturedLine(1, 1);
+        Assert.Contains("\"type\":\"user\"", line, StringComparison.Ordinal);
+        Assert.Contains("\"session_id\":\"\"", line, StringComparison.Ordinal);
+        Assert.Contains("\"parent_tool_use_id\":null", line, StringComparison.Ordinal);
+        var started = Assert.Single(events.OfType<ProviderEvent.TurnStarted>());
+        Assert.Null(started.ProviderTurnID);
+    }
+
+    // ---- PR-PROVCLI-032 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-032")] // ClaudeSession.swift:249-252
+    public async Task Compact_throws_notRunning_before_starting_and_sends_bare_compact_string_once_running()
+    {
+        var script = Script("compact");
+        var notRunningSession = new ClaudeSession(Config(script));
+        var error = await Assert.ThrowsAsync<ProviderError>(() => notRunningSession.Compact());
+        Assert.IsType<ProviderError.Case.NotRunning>(error.ErrorCase);
+        Assert.Equal("The agent session is not running.", error.ErrorDescription);
+
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var runningScript = Script("compact-running");
+        var session = new ClaudeSession(Config(runningScript));
+        RunStart(runtime, session);
+        runtime.Loop.Run(() => session.Compact(), TimeSpan.FromSeconds(10));
+        var line = runningScript.CapturedLine(1, 1);
+        Assert.Contains("\"message\":{\"role\":\"user\",\"content\":\"/compact\"}", line, StringComparison.Ordinal);
+    }
+
+    // ---- PR-PROVCLI-033, 034 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-033")] // ClaudeSession.swift:238-247
+    public void Interrupt_with_no_active_turn_sends_nothing()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("interrupt-idle");
+        var session = new ClaudeSession(Config(script));
+        RunStart(runtime, session);
+        runtime.Loop.Run(() => session.Interrupt(), TimeSpan.FromSeconds(10));
+        Assert.Equal(1, script.MessageCount(1)); // only the initialize handshake, nothing more
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-033")] // ClaudeSession.swift:238-247
+    [Trait("Req", "PR-PROVCLI-034")] // ClaudeSession.swift:324-329 - every tool answer, denial included, wraps as a success control_response
+    public void Interrupt_denies_every_pending_tool_with_the_interrupt_flag_then_sends_interrupt()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("interrupt-active");
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(Config(script)) { OnEvent = events.Add };
+        RunStart(runtime, session);
+        session.SeedPendingTool("req-1", "Bash", JSONValue.FromDictionaryLiteral(("command", "ls")));
+        RunSend(runtime, session, Turn()); // sets turnActive
+        runtime.Loop.Run(() => session.Interrupt(), TimeSpan.FromSeconds(10));
+
+        var denyLine = script.CapturedLine(1, 2); // 1: the user write from Send, 2: the tool deny
+        Assert.Contains("\"type\":\"control_response\"", denyLine, StringComparison.Ordinal);
+        Assert.Contains("\"subtype\":\"success\"", denyLine, StringComparison.Ordinal);
+        Assert.Contains("\"request_id\":\"req-1\"", denyLine, StringComparison.Ordinal);
+        Assert.Contains("\"behavior\":\"deny\"", denyLine, StringComparison.Ordinal);
+        Assert.Contains("\"message\":\"The user stopped the turn.\"", denyLine, StringComparison.Ordinal);
+        Assert.Contains("\"interrupt\":true", denyLine, StringComparison.Ordinal);
+        var interruptLine = script.CapturedLine(1, 3);
+        Assert.Contains("\"subtype\":\"interrupt\"", interruptLine, StringComparison.Ordinal);
+        Assert.Contains(events, e => e is ProviderEvent.RequestResolved r && r.Id == "req-1");
+    }
+
+    // ---- PR-PROVCLI-035, 036, 037 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-035")] // ClaudeSession.swift:254-262, :838-842
+    public void ResolveApproval_allow_sends_updatedInput_and_always_adds_session_scoped_permissions()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("approve-allow");
+        var session = new ClaudeSession(Config(script));
+        RunStart(runtime, session);
+
+        session.SeedPendingTool("req-allow", "Write", JSONValue.FromDictionaryLiteral(("path", "a.txt")));
+        session.ResolveApproval("req-allow", "allow");
+        var allowLine = script.CapturedLine(1, 1);
+        Assert.Contains("\"behavior\":\"allow\"", allowLine, StringComparison.Ordinal);
+        Assert.Contains("\"updatedInput\":{\"path\":\"a.txt\"}", allowLine, StringComparison.Ordinal);
+        Assert.DoesNotContain("updatedPermissions", allowLine, StringComparison.Ordinal);
+
+        var suggestions = new JSONValue.Array(new ValueList<JSONValue>(
+        [
+            JSONValue.FromDictionaryLiteral(("type", "edit"), ("path", "a.txt")),
+            new JSONValue.String("not-an-object"),
+        ]));
+        session.SeedPendingTool("req-always", "Write", JSONValue.FromDictionaryLiteral(("path", "b.txt")), suggestions);
+        session.ResolveApproval("req-always", "always");
+        var alwaysLine = script.CapturedLine(1, 2);
+        Assert.Contains(
+            "\"updatedPermissions\":[{\"type\":\"edit\",\"path\":\"a.txt\",\"destination\":\"session\"},\"not-an-object\"]",
+            alwaysLine, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-035")] // ClaudeSession.swift:255 - an unknown requestID returns without sending anything
+    public void ResolveApproval_with_unknown_requestID_sends_nothing()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("approve-unknown");
+        var session = new ClaudeSession(Config(script));
+        RunStart(runtime, session);
+        session.ResolveApproval("missing", "allow");
+        Assert.Equal(1, script.MessageCount(1));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-036")] // ClaudeSession.swift:262-267
+    public void ResolveApproval_approving_ExitPlanMode_switches_to_build_and_resends_permission_mode()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("approve-exit-plan");
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(Config(script, runtimeMode: RuntimeMode.Supervised, interactionMode: InteractionMode.Plan)) { OnEvent = events.Add };
+        RunStart(runtime, session);
+        session.SeedPendingTool("req-plan", "ExitPlanMode", JSONValue.FromDictionaryLiteral(("plan", "do the thing")));
+        session.ResolveApproval("req-plan", "allow");
+        runtime.RunUntilIdle();
+
+        var modeChanged = Assert.Single(events.OfType<ProviderEvent.ModeChanged>());
+        Assert.Equal(InteractionMode.Build, modeChanged.Value);
+        var setModeLine = script.CapturedLine(1, 2); // 1: the allow response, 2: the detached set_permission_mode request
+        Assert.Contains("\"subtype\":\"set_permission_mode\"", setModeLine, StringComparison.Ordinal);
+        // ModeName(runtimeMode: Supervised, interaction: Build) - the STORED runtimeMode, not the still-.plan
+        // configured interaction mode, per Self.modeName(runtimeMode, .build) at :264.
+        Assert.Contains("\"mode\":\"default\"", setModeLine, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-037")] // ClaudeSession.swift:268-273
+    public void ResolveApproval_decline_message_is_plan_specific_for_ExitPlanMode_and_generic_otherwise()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("decline");
+        var session = new ClaudeSession(Config(script));
+        RunStart(runtime, session);
+
+        session.SeedPendingTool("req-decline-plan", "ExitPlanMode", JSONValue.FromDictionaryLiteral(("plan", "x")));
+        session.ResolveApproval("req-decline-plan", "reject");
+        var planDeclineLine = script.CapturedLine(1, 1);
+        Assert.Contains("\"behavior\":\"deny\"", planDeclineLine, StringComparison.Ordinal);
+        Assert.Contains(
+            "\"message\":\"The user wants to keep planning. Wait for their feedback before changing anything.\"",
+            planDeclineLine, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"interrupt\"", planDeclineLine, StringComparison.Ordinal);
+
+        session.SeedPendingTool("req-decline-other", "Bash", JSONValue.FromDictionaryLiteral(("command", "ls")));
+        session.ResolveApproval("req-decline-other", "reject");
+        var otherDeclineLine = script.CapturedLine(1, 2);
+        Assert.Contains("\"message\":\"The user declined this action.\"", otherDeclineLine, StringComparison.Ordinal);
+    }
+
+    // ---- PR-PROVCLI-038 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-038")] // ClaudeSession.swift:277-287
+    public void AnswerQuestion_joins_values_with_comma_space_and_merges_into_the_original_input()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("answer");
+        var session = new ClaudeSession(Config(script));
+        RunStart(runtime, session);
+        session.SeedPendingTool("req-q", "AskUserQuestion", JSONValue.FromDictionaryLiteral(("questions", new JSONValue.Array(ValueList<JSONValue>.Empty))));
+        var answers = new ValueMap<string, ValueList<string>>(new Dictionary<string, ValueList<string>>
+        {
+            ["Which color?"] = new ValueList<string>(["red", "blue"]),
+        });
+        session.AnswerQuestion("req-q", answers);
+        var line = script.CapturedLine(1, 1);
+        Assert.Contains("\"behavior\":\"allow\"", line, StringComparison.Ordinal);
+        Assert.Contains("\"updatedInput\":{\"questions\":[],\"answers\":{\"Which color?\":\"red, blue\"}}", line, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-038")] // ClaudeSession.swift:278 - an unknown requestID sends nothing
+    public void AnswerQuestion_with_unknown_requestID_sends_nothing()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("answer-unknown");
+        var session = new ClaudeSession(Config(script));
+        RunStart(runtime, session);
+        session.AnswerQuestion("missing", ValueMap<string, ValueList<string>>.Empty);
+        Assert.Equal(1, script.MessageCount(1));
+    }
+
+    // ---- PR-PROVCLI-039 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-039")] // ClaudeSession.swift:289-292, :696
+    public void Stop_sets_isStopping_before_terminating_so_no_exited_event_is_reported()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("stop");
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(Config(script)) { OnEvent = events.Add };
+        RunStart(runtime, session);
+        session.Stop();
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (session.IsRunning && DateTime.UtcNow < deadline)
+        {
+            runtime.RunUntilIdle();
+            System.Threading.Thread.Sleep(20);
+        }
+        Assert.False(session.IsRunning);
+        runtime.RunUntilIdle();
+        Assert.Empty(events.OfType<ProviderEvent.Exited>());
+    }
+
+    // ---- PR-PROVCLI-040 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-040")] // ClaudeSession.swift:294-297
+    public void StopAgent_with_no_registered_task_returns_false_and_sends_nothing()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("stopagent-unknown");
+        var session = new ClaudeSession(Config(script));
+        RunStart(runtime, session);
+        var stopped = runtime.Loop.Run(() => session.StopAgent("nope"), TimeSpan.FromSeconds(10));
+        Assert.False(stopped);
+        Assert.Equal(1, script.MessageCount(1));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-040")] // ClaudeSession.swift:294-297, :45
+    [Trait("Req", "PR-PROVCLI-046")] // ClaudeSession.swift:427-447 - registers the head this test then stops
+    public void StopAgent_sends_stop_task_keyed_by_the_registered_task_id()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = Script("stopagent-known");
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(Config(script)) { OnEvent = events.Add };
+        RunStart(runtime, session);
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(
+            ("subtype", "task_started"), ("task_id", "task-9"), ("subagent_type", "droppy-worker-reviewer"), ("tool_use_id", "tool-9")));
+        var started = Assert.Single(events.OfType<ProviderEvent.AgentStarted>());
+        Assert.Equal("tool-9", started.Value.Id);
+
+        var stopped = runtime.Loop.Run(() => session.StopAgent("tool-9"), TimeSpan.FromSeconds(10));
+        Assert.True(stopped);
+        var line = script.CapturedLine(1, 1);
+        Assert.Contains("\"subtype\":\"stop_task\"", line, StringComparison.Ordinal);
+        Assert.Contains("\"task_id\":\"task-9\"", line, StringComparison.Ordinal);
+    }
+
+    // ---- PR-PROVCLI-041, 042, 043 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-041")] // ClaudeSession.swift:346-349 (control_cancel_request case of the dispatch switch :331-386)
+    [Trait("Req", "PR-PROVCLI-043")] // ClaudeSession.swift:346-349
+    public void Handle_control_cancel_request_removes_the_pending_tool_and_sends_no_reply()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig()) { OnEvent = events.Add };
+        session.SeedPendingTool("req-c", "Bash", JSONValue.FromDictionaryLiteral(("command", "ls")));
+        session.Handle(JSONValue.FromDictionaryLiteral(("type", "control_cancel_request"), ("request_id", "req-c")));
+        Assert.Contains(events, e => e is ProviderEvent.RequestResolved r && r.Id == "req-c");
+
+        events.Clear();
+        session.Handle(JSONValue.FromDictionaryLiteral(("type", "control_cancel_request"), ("request_id", "missing")));
+        Assert.Empty(events);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-041")] // ClaudeSession.swift:383-384 - an unrecognized type is silently ignored
+    public void Handle_ignores_an_unrecognized_message_type()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig()) { OnEvent = events.Add };
+        session.Handle(JSONValue.FromDictionaryLiteral(("type", "something_else")));
+        session.Handle(new JSONValue.Object(ValueMap<string, JSONValue>.Empty)); // no "type" at all
+        Assert.Empty(events);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-041")] // ClaudeSession.swift:375-382 - the rate_limit_event case of the same dispatch switch
+    public void Handle_rate_limit_event_emits_a_warning_notice_and_usageLimit_only_when_rejected()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig()) { OnEvent = events.Add };
+
+        session.Handle(JSONValue.FromDictionaryLiteral(("type", "rate_limit_event"), ("rate_limit_info", JSONValue.FromDictionaryLiteral(("status", "ok")))));
+        Assert.Empty(events);
+
+        session.Handle(JSONValue.FromDictionaryLiteral(
+            ("type", "rate_limit_event"),
+            ("rate_limit_info", JSONValue.FromDictionaryLiteral(("status", "rejected"), ("resetsAt", 1700000000.0)))));
+        var notice = Assert.Single(events.OfType<ProviderEvent.Notice>());
+        Assert.Equal(Notice.Level.Warning, notice.Value.NoticeLevel);
+        Assert.StartsWith("Claude hit a usage limit. It resets at ", notice.Value.Message, StringComparison.Ordinal);
+        var limit = Assert.Single(events.OfType<ProviderEvent.UsageLimit>());
+        Assert.Equal(SwiftDate.From1970Seconds(1700000000.0), limit.ResetsAt);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-042")] // ClaudeSession.swift:335-343
+    public async Task Control_resolves_by_matching_request_id_and_throws_for_an_error_subtype()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = new ClaudeScript("control-error");
+        script.SetResponse("{\"type\":\"control_response\",\"response\":{\"request_id\":\"__REQUEST_ID__\",\"subtype\":\"error\",\"error\":\"nope\"}}");
+        var session = new ClaudeSession(Config(script));
+        var error = await Assert.ThrowsAsync<ProviderError>(() => session.Start());
+        Assert.IsType<ProviderError.Case.Failed>(error.ErrorCase);
+        Assert.Equal("nope", error.ErrorDescription);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-042")] // ClaudeSession.swift:340-341 - the fallback message when no error text is given
+    public async Task Control_error_without_a_message_uses_the_verbatim_fallback()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        var script = new ClaudeScript("control-error-fallback");
+        script.SetResponse("{\"type\":\"control_response\",\"response\":{\"request_id\":\"__REQUEST_ID__\",\"subtype\":\"error\"}}");
+        var session = new ClaudeSession(Config(script));
+        var error = await Assert.ThrowsAsync<ProviderError>(() => session.Start());
+        Assert.Equal("Claude rejected the request.", error.ErrorDescription);
+    }
+
+    // ---- PR-PROVCLI-044 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-044")] // ClaudeSession.swift:390-394
+    public void HandleSystem_init_adopts_a_new_session_id_and_emits_sessionReady_only_when_it_differs()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig()) { OnEvent = events.Add };
+        // The session id starts unset (Start() was never called), so any id differs and is adopted.
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(("subtype", "init"), ("session_id", "new-id")));
+        var ready = Assert.Single(events.OfType<ProviderEvent.SessionReady>());
+        Assert.Equal("new-id", ready.SessionID);
+
+        events.Clear();
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(("subtype", "init"), ("session_id", "new-id")));
+        Assert.Empty(events.OfType<ProviderEvent.SessionReady>());
+    }
+
+    // ---- PR-PROVCLI-045 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-045")] // ClaudeSession.swift:395-396
+    public void HandleSystem_compact_boundary_emits_the_verbatim_info_notice()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig()) { OnEvent = events.Add };
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(("subtype", "compact_boundary")));
+        var notice = Assert.Single(events.OfType<ProviderEvent.Notice>());
+        Assert.Equal(Notice.Level.Info, notice.Value.NoticeLevel);
+        Assert.Equal("Context compacted.", notice.Value.Message);
+    }
+
+    // ---- PR-PROVCLI-046 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-046")] // ClaudeSession.swift:427-447
+    public void HandleSystem_task_started_registers_an_agent_only_when_it_qualifies()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig()) { OnEvent = events.Add };
+
+        // No task_id: ignored.
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(("subtype", "task_started")));
+        Assert.Empty(events);
+
+        // skip_transcript true: ignored.
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(
+            ("subtype", "task_started"), ("task_id", "t1"), ("skip_transcript", true), ("subagent_type", "droppy-worker-x")));
+        Assert.Empty(events);
+
+        // Neither subagent_type nor task_type local_agent: a background shell task, ignored.
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(("subtype", "task_started"), ("task_id", "t2")));
+        Assert.Empty(events);
+
+        // task_type local_agent qualifies even with no subagent_type; id falls back to the task id, with defaults.
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(("subtype", "task_started"), ("task_id", "t3"), ("task_type", "local_agent")));
+        var started = Assert.Single(events.OfType<ProviderEvent.AgentStarted>());
+        Assert.Equal("t3", started.Value.Id);
+        Assert.Equal("t3", started.Value.TaskID);
+        Assert.Null(started.Value.ToolUseID);
+        Assert.Equal("Subagent", started.Value.Description);
+        Assert.Null(started.Value.Prompt);
+        Assert.Null(started.Value.Model);
+        Assert.Null(started.Value.Profile);
+        Assert.False(started.Value.IsBackground);
+    }
+
+    // ---- PR-PROVCLI-047 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-047")] // ClaudeSession.swift:399-412
+    public void HandleSystem_task_progress_forwards_summary_lastTool_tokens_and_toolCalls_without_touching_the_ledger()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig()) { OnEvent = events.Add };
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(("subtype", "task_started"), ("task_id", "t1"), ("task_type", "local_agent")));
+        events.Clear();
+
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(
+            ("subtype", "task_progress"), ("task_id", "t1"), ("summary", "reading files"), ("last_tool_name", "Read"),
+            ("usage", JSONValue.FromDictionaryLiteral(("total_tokens", 42L), ("tool_uses", 3L)))));
+        var progress = Assert.Single(events.OfType<ProviderEvent.AgentProgress>());
+        Assert.Equal("t1", progress.AgentID);
+        Assert.Equal("reading files", progress.Summary);
+        Assert.Equal("Read", progress.LastTool);
+        Assert.Equal(42, progress.Tokens);
+        Assert.Equal(3, progress.ToolCalls);
+        Assert.Empty(events.OfType<ProviderEvent.TokenSpend>()); // never added to the ledger, :402-405
+
+        events.Clear();
+        // Unknown task id: nothing.
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(("subtype", "task_progress"), ("task_id", "missing")));
+        Assert.Empty(events);
+    }
+
+    // ---- PR-PROVCLI-048 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-048")] // ClaudeSession.swift:413-421
+    public void HandleSystem_task_notification_maps_status_strings_and_finishes_the_head()
+    {
+        var events = new List<ProviderEvent>();
+        var session = new ClaudeSession(MinimalConfig()) { OnEvent = events.Add };
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(("subtype", "task_started"), ("task_id", "t1"), ("task_type", "local_agent")));
+        events.Clear();
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(("subtype", "task_notification"), ("task_id", "t1"), ("status", "failed"), ("summary", "boom")));
+        var finished = Assert.Single(events.OfType<ProviderEvent.AgentFinished>());
+        Assert.Equal("t1", finished.AgentID);
+        Assert.Equal(TurnStatus.Failed, finished.Status);
+        Assert.Equal("boom", finished.Summary);
+
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(("subtype", "task_started"), ("task_id", "t2"), ("task_type", "local_agent")));
+        events.Clear();
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(("subtype", "task_notification"), ("task_id", "t2"), ("status", "stopped")));
+        Assert.Equal(TurnStatus.Interrupted, Assert.Single(events.OfType<ProviderEvent.AgentFinished>()).Status);
+
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(("subtype", "task_started"), ("task_id", "t3"), ("task_type", "local_agent")));
+        events.Clear();
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(("subtype", "task_notification"), ("task_id", "t3")));
+        Assert.Equal(TurnStatus.Completed, Assert.Single(events.OfType<ProviderEvent.AgentFinished>()).Status);
+
+        events.Clear();
+        session.HandleSystem(JSONValue.FromDictionaryLiteral(("subtype", "task_notification"), ("task_id", "missing")));
+        Assert.Empty(events);
+    }
 }
