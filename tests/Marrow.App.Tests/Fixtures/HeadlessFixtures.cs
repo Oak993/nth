@@ -15,7 +15,8 @@ public sealed class AppTestApp : Application
 {
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<AppTestApp>()
         .UseSkia()
-        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
+        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
+        .WithSwiftFonts(); // ED-107 (5): the one font registration point, shared with the app shell's AppBuilder.
 }
 
 /// <summary>One headless session per test assembly, held by a collection fixture.</summary>
