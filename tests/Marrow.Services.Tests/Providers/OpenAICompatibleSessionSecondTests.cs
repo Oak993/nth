@@ -51,26 +51,7 @@ public sealed class OpenAICompatibleSessionSecondTests
         InteractionMode = InteractionMode.Build,
     };
 
-    private sealed class CapturingSession(OpenAICompatibleSession.Config config, SessionConfiguration configuration)
-        : OpenAICompatibleSession(config, configuration)
-    {
-        public List<ProviderEvent> Events { get; } = [];
-        public int? LastFriendlyErrorStatusCode;
-
-        public CapturingSession Wired()
-        {
-            OnEvent = Events.Add;
-            return this;
-        }
-
-        public override string FriendlyError(string message, int statusCode)
-        {
-            LastFriendlyErrorStatusCode = statusCode;
-            return base.FriendlyError(message, statusCode);
-        }
-    }
-
-    private static async Task RunSend(TestRuntime runtime, CapturingSession session, TurnInput input)
+    private static async Task RunSend(TestRuntime runtime, OpenAICompatibleSessionCapturingSeam session, TurnInput input)
     {
         var task = session.Send(input);
         runtime.Loop.RunUntil(() => task.IsCompleted);
@@ -96,7 +77,7 @@ public sealed class OpenAICompatibleSessionSecondTests
         };
         using var runtime = new TestRuntime();
         using var scratch = new StorageScratchFolder();
-        var session = new CapturingSession(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
         await session.Start();
         await RunSend(runtime, session, MakeTurn("hello there"));
 
@@ -125,7 +106,7 @@ public sealed class OpenAICompatibleSessionSecondTests
         };
         using var runtime = new TestRuntime();
         using var scratch = new StorageScratchFolder();
-        var session = new CapturingSession(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
         session.SeedMcpToolsForTests([new MCPHub.Tool("srv", "tool", "does a thing", JSONValue.FromDictionaryLiteral(("type", "object")))]);
         await session.Start();
         await RunSend(runtime, session, MakeTurn());
@@ -155,7 +136,7 @@ public sealed class OpenAICompatibleSessionSecondTests
         };
         using var runtime = new TestRuntime();
         using var scratch = new StorageScratchFolder();
-        var session = new CapturingSession(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
         session.SeedMcpToolsForTests([new MCPHub.Tool("filesystem", "read", "reads", JSONValue.FromDictionaryLiteral(("type", "object")))]);
         await session.Start();
         await RunSend(runtime, session, MakeTurn());
@@ -178,7 +159,7 @@ public sealed class OpenAICompatibleSessionSecondTests
         };
         using var runtime = new TestRuntime();
         using var scratch = new StorageScratchFolder();
-        var session = new CapturingSession(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
         await session.Start();
         await RunSend(runtime, session, MakeTurn());
 
@@ -197,7 +178,7 @@ public sealed class OpenAICompatibleSessionSecondTests
         };
         using var runtime = new TestRuntime();
         using var scratch = new StorageScratchFolder();
-        var session = new CapturingSession(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
         await session.Start();
         await RunSend(runtime, session, MakeTurn());
 
@@ -215,7 +196,7 @@ public sealed class OpenAICompatibleSessionSecondTests
         };
         using var runtime = new TestRuntime();
         using var scratch = new StorageScratchFolder();
-        var session = new CapturingSession(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
         await session.Start();
         await RunSend(runtime, session, MakeTurn());
 
@@ -230,7 +211,7 @@ public sealed class OpenAICompatibleSessionSecondTests
         await using var server = new FakeUpstreamServer { Handler = _ => new FakeResponse(503, [], []) };
         using var runtime = new TestRuntime();
         using var scratch = new StorageScratchFolder();
-        var session = new CapturingSession(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
         await session.Start();
         await RunSend(runtime, session, MakeTurn());
 
@@ -257,7 +238,7 @@ public sealed class OpenAICompatibleSessionSecondTests
         };
         using var runtime = new TestRuntime();
         using var scratch = new StorageScratchFolder();
-        var session = new CapturingSession(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
         await session.Start();
         await RunSend(runtime, session, MakeTurn());
 
@@ -278,7 +259,7 @@ public sealed class OpenAICompatibleSessionSecondTests
         };
         using var runtime = new TestRuntime();
         using var scratch = new StorageScratchFolder();
-        var session = new CapturingSession(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
         await session.Start();
         await RunSend(runtime, session, MakeTurn());
 
@@ -301,7 +282,7 @@ public sealed class OpenAICompatibleSessionSecondTests
         };
         using var runtime = new TestRuntime();
         using var scratch = new StorageScratchFolder();
-        var session = new CapturingSession(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
         await session.Start();
         await RunSend(runtime, session, MakeTurn());
 
@@ -322,7 +303,7 @@ public sealed class OpenAICompatibleSessionSecondTests
         };
         using var runtime = new TestRuntime();
         using var scratch = new StorageScratchFolder();
-        var session = new CapturingSession(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
         await session.Start();
         await RunSend(runtime, session, MakeTurn());
 
@@ -346,7 +327,7 @@ public sealed class OpenAICompatibleSessionSecondTests
         {
             Handler = _ => new FakeResponse(200, [("Content-Type", "text/event-stream")], [], [raw]),
         };
-        var session = new CapturingSession(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
         var round = await session.PerformStreamForTests("deepseek-chat");
 
         var call = Assert.Single(round.ToolCalls); // index 0 had no name and was dropped
@@ -368,7 +349,7 @@ public sealed class OpenAICompatibleSessionSecondTests
         };
         using var runtime = new TestRuntime();
         using var scratch = new StorageScratchFolder();
-        var session = new CapturingSession(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
         await session.Start();
         await RunSend(runtime, session, MakeTurn());
 
@@ -388,7 +369,7 @@ public sealed class OpenAICompatibleSessionSecondTests
         };
         using var runtime = new TestRuntime();
         using var scratch = new StorageScratchFolder();
-        var session = new CapturingSession(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
         await session.Start();
         await RunSend(runtime, session, MakeTurn());
 
@@ -409,7 +390,7 @@ public sealed class OpenAICompatibleSessionSecondTests
         {
             Handler = _ => SseResponse("""{"choices":[{"delta":{"content":"a","reasoning_content":"r"}}]}""", """{"choices":[{"delta":{"content":"b"}}]}"""),
         };
-        var session = new CapturingSession(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
 
         var first = await session.PerformStreamForTests("deepseek-chat");
         var second = await session.PerformStreamForTests("deepseek-chat");
@@ -442,7 +423,7 @@ public sealed class OpenAICompatibleSessionSecondTests
         };
         using var runtime = new TestRuntime();
         using var scratch = new StorageScratchFolder();
-        var session = new CapturingSession(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri($"{server.BaseUrl}/v1/chat/completions")), MakeSessionConfiguration()).Wired();
         await session.Start();
         // Inject an orphaned tool message directly (no preceding assistant tool_calls entry).
         var messagesField = typeof(OpenAICompatibleSession).GetField("messages", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
