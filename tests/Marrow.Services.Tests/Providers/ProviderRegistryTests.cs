@@ -5,6 +5,7 @@ using Marrow.Core.Support;
 using Marrow.Services.MCP;
 using Marrow.Services.Providers;
 using Marrow.Services.Store;
+using Marrow.Services.Tests.Fixtures;
 using Marrow.Testing;
 using Xunit;
 
@@ -20,18 +21,6 @@ namespace Marrow.Services.Tests.Providers;
 // PR-PROVACP-139); and RefreshAPIProvider (PR-PROVAPI-088).
 public sealed class ProviderRegistryTests
 {
-    private sealed class FakeSettings : ProviderSettings
-    {
-        public Dictionary<ProviderKind, string> Keys { get; } = new();
-        public Dictionary<ProviderKind, string> Paths { get; } = new();
-        public HashSet<ProviderKind> Enabled { get; } = new();
-
-        public bool IsEnabled(ProviderKind provider) => Enabled.Contains(provider);
-        public string BinaryPath(ProviderKind provider) => Paths.TryGetValue(provider, out var p) ? p : "";
-        public string? LastModel(ProviderKind provider) => null;
-        public string ApiKey(ProviderKind provider) => Keys.TryGetValue(provider, out var k) ? k : "";
-    }
-
     private static string TempDir()
     {
         // R-TEST-9: a real folder under MARROW_PORT_DATA_DIR, never a file-system abstraction.
@@ -68,7 +57,7 @@ public sealed class ProviderRegistryTests
         runtime.Defaults.Set("providerModelCatalogs", System.Text.Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload)));
     }
 
-    private static ProviderRegistry MakeRegistry(TestRuntime runtime, FakeSettings settings)
+    private static ProviderRegistry MakeRegistry(TestRuntime runtime, FakeProviderSettings settings)
     {
         SeedUnblockingCache(runtime);
         return new ProviderRegistry(settings);
@@ -184,7 +173,7 @@ public sealed class ProviderRegistryTests
     public void status_returns_a_default_empty_provider_status_for_a_never_probed_provider()
     {
         using var runtime = new TestRuntime();
-        var registry = MakeRegistry(runtime, new FakeSettings());
+        var registry = MakeRegistry(runtime, new FakeProviderSettings());
         var status = registry.Status(ProviderKind.Codex);
         Assert.Null(status.Executable);
         Assert.Null(status.Version);
@@ -201,7 +190,7 @@ public sealed class ProviderRegistryTests
     public async Task counts_as_installed_treats_a_provider_with_no_status_yet_as_installed()
     {
         using var runtime = new TestRuntime();
-        var registry = MakeRegistry(runtime, new FakeSettings());
+        var registry = MakeRegistry(runtime, new FakeProviderSettings());
         // No probe has run: a check that has not happened yet is not a "no".
         Assert.True(registry.CountsAsInstalled(ProviderKind.Claude));
         // Once a status exists (here, an API-key provider refreshed with an empty key, which never
@@ -215,7 +204,7 @@ public sealed class ProviderRegistryTests
     public async Task available_providers_is_enabled_and_counts_as_installed_in_allcases_order()
     {
         using var runtime = new TestRuntime();
-        var settings = new FakeSettings();
+        var settings = new FakeProviderSettings();
         settings.Enabled.Add(ProviderKind.Deepseek);
         settings.Enabled.Add(ProviderKind.Claude);
         settings.Enabled.Add(ProviderKind.Zai);
@@ -226,7 +215,7 @@ public sealed class ProviderRegistryTests
         await registry.RefreshAPIProvider(ProviderKind.Zai);
         Assert.Equal([ProviderKind.Claude], registry.AvailableProviders);
         // Every provider disabled: an empty list.
-        Assert.Empty(MakeRegistry(runtime, new FakeSettings()).AvailableProviders);
+        Assert.Empty(MakeRegistry(runtime, new FakeProviderSettings()).AvailableProviders);
     }
 
     // ---- executable(for:) custom path (PR-PROVREG-094, PA-0016, ED-127) ----------------------------------
@@ -237,7 +226,7 @@ public sealed class ProviderRegistryTests
     {
         using var runtime = new TestRuntime();
         var dir = TempDir();
-        var settings = new FakeSettings();
+        var settings = new FakeProviderSettings();
         var real = WriteExecutable(dir + "/bin", "myclaude.cmd");
         settings.Paths[ProviderKind.Claude] = real;
         var registry = MakeRegistry(runtime, settings);
@@ -253,7 +242,6 @@ public sealed class ProviderRegistryTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-094")] // ProviderRegistry.swift:219-226
-    [Trait("Decision", "PA-0016")]
     [Trait("Decision", "ED-127")]
     public void a_custom_path_naming_the_windows_command_interpreter_is_rejected_for_command_code()
     {
@@ -261,7 +249,7 @@ public sealed class ProviderRegistryTests
         var systemRoot = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
         var cmdExe = Path.Join(systemRoot, "System32", "cmd.exe");
         Assert.True(File.Exists(cmdExe), "This test needs a real Windows System32\\cmd.exe.");
-        var settings = new FakeSettings();
+        var settings = new FakeProviderSettings();
         settings.Paths[ProviderKind.Commandcode] = cmdExe;
         var registry = MakeRegistry(runtime, settings);
         // PA-0016/ED-127: identity-checked and rejected, so Command Code never reports the operating
@@ -284,7 +272,7 @@ public sealed class ProviderRegistryTests
         var dir = TempDir();
         var bin = dir + "/bin";
         WriteExecutable(bin, "claude.cmd");
-        var settings = new FakeSettings();
+        var settings = new FakeProviderSettings();
         settings.Paths[ProviderKind.Claude] = bin + "/claude.cmd";
         var registry = MakeRegistry(runtime, settings);
         var environment = registry.Environment(ProviderKind.Claude);
@@ -301,7 +289,7 @@ public sealed class ProviderRegistryTests
     public void a_non_empty_command_code_key_is_injected_and_an_empty_one_leaves_any_inherited_value_untouched()
     {
         using var runtime = new TestRuntime();
-        var settings = new FakeSettings();
+        var settings = new FakeProviderSettings();
         var registry = MakeRegistry(runtime, settings);
         // Empty key: the variable is not set by this registry (any inherited ambient value, if
         // present, is left alone; here there is none, so it stays absent).
@@ -325,7 +313,7 @@ public sealed class ProviderRegistryTests
     {
         using var runtime = new TestRuntime();
         using var storage = BindStorage();
-        var registry = MakeRegistry(runtime, new FakeSettings());
+        var registry = MakeRegistry(runtime, new FakeProviderSettings());
         var overrides = MCPSessionOverrides.OpencodeEnvironment();
         foreach (var provider in new[] { ProviderKind.Opencode, ProviderKind.OpencodeGo })
         {
@@ -351,7 +339,7 @@ public sealed class ProviderRegistryTests
     {
         using var runtime = new TestRuntime();
         using var storage = BindStorage();
-        var registry = MakeRegistry(runtime, new FakeSettings());
+        var registry = MakeRegistry(runtime, new FakeProviderSettings());
         // With no connected MCP servers, gemini-settings.json holds no mcpServers object (or is
         // absent), so GeminiSettingsPath() returns nil and the variable is not set.
         var result = registry.Environment(ProviderKind.Antigravity);
@@ -412,7 +400,7 @@ public sealed class ProviderRegistryTests
             ["commandcode"] = [new { id = "seed-cc", name = "Seed", efforts = Array.Empty<string>() }],
         });
         runtime.Defaults.Set("providerModelCatalogs", System.Text.Encoding.UTF8.GetBytes(cache));
-        var registry = new ProviderRegistry(new FakeSettings());
+        var registry = new ProviderRegistry(new FakeProviderSettings());
 
         // :172-176: the cached Grok scale is reordered low to high (ACPSession.OrderedEfforts).
         Assert.Equal(["low", "high", "max"], registry.Catalogs[ProviderKind.Grok][0].Efforts.ToArray());
@@ -478,7 +466,7 @@ public sealed class ProviderRegistryTests
     public async Task an_api_key_provider_with_no_key_is_signed_out_and_not_configured_with_no_network_call()
     {
         using var runtime = new TestRuntime();
-        var registry = MakeRegistry(runtime, new FakeSettings());
+        var registry = MakeRegistry(runtime, new FakeProviderSettings());
         foreach (var provider in new[] { ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai })
         {
             await registry.RefreshAPIProvider(provider);
