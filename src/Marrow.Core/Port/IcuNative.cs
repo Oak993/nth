@@ -6,7 +6,7 @@ namespace Marrow.Core.Port;
 // PORT-ONLY. Windows 10 1903 and later ship ICU as %SystemRoot%\System32\icu.dll with unversioned C exports;
 // .NET's own globalization loads the same library on Windows, so this adds no dependency and no package.
 // Used only where .NET has no API for a Unicode property Swift reads: full case mapping, Alphabetic,
-// Numeric_Type, White_Space (ED-073). The ICU version is Windows' own, not Apple's: a named, bounded deviation.
+// Numeric_Type, White_Space (ED-073), and UTS #46 IDNA for SwiftURL's host (Oracle O-40). The ICU version is Windows' own, not Apple's: a named, bounded deviation.
 // Source: draft A (proto-A Support/IcuNative.cs).
 internal static class IcuNative
 {
@@ -40,6 +40,36 @@ internal static class IcuNative
     [DllImport(Library, EntryPoint = "u_getIntPropertyValue")]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     internal static extern int GetIntPropertyValue(int codePoint, int property);
+
+    // ---- UTS #46 IDNA (uidna.h), for SwiftURL's UIDNAHookICU (URLParser+ICU.swift:28-221, swift-foundation 6.2) ----
+
+    /// <summary>ICU <c>UIDNAInfo</c>: int16 size, two UBool bytes, uint32 errors, two reserved int32.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct UIDNAInfo
+    {
+        internal const int ByteSize = 16; // sizeof(UIDNAInfo), MemoryLayout<UIDNAInfo>.size in the Swift
+
+        public short Size;
+        public byte IsTransitionalDifferent;
+        public byte ReservedB3;
+        public uint Errors;
+        public int ReservedI2;
+        public int ReservedI3;
+    }
+
+    [DllImport(Library, EntryPoint = "uidna_openUTS46")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    internal static extern IntPtr UidnaOpenUTS46(uint options, ref int errorCode);
+
+    [DllImport(Library, EntryPoint = "uidna_nameToASCII_UTF8")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    internal static extern int UidnaNameToASCIIUTF8(IntPtr idna, byte[] name, int length, [Out] byte[] dest, int capacity,
+        ref UIDNAInfo info, ref int errorCode);
+
+    [DllImport(Library, EntryPoint = "uidna_nameToUnicodeUTF8")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    internal static extern int UidnaNameToUnicodeUTF8(IntPtr idna, byte[] name, int length, [Out] byte[] dest, int capacity,
+        ref UIDNAInfo info, ref int errorCode);
 
     internal enum CaseMap { Lower, Upper, Fold }
 
