@@ -21,17 +21,18 @@ namespace Marrow.Core.Tests.Port;
 // Where no decision fixes which separator a result carries, the test compares through Normalize, so either
 // separator passes and only the Swift semantics are asserted.
 //
-// Every path in this file is a lexical fixture that does not exist on disk (C:\Repo, C:\r, \\server\share and the
-// rest). NSString.standardizingPath consults the file system (it resolves symbolic links for an absolute path that
-// contains "..", and drops a leading /private only while the file exists, AppModel+HydraMerge.swift:197-200), so the
-// lexical expectations here are the full Swift semantics only for paths that do not exist. Whether a Windows
-// junction or symbolic link is resolved is not decided by any ED; it is an open stop item (F.PathIdentity #5) and
-// no test here asserts either reading.
+// Almost every path in this file is a lexical fixture that does not exist on disk (C:\Repo, C:\r, \\server\share and
+// the rest). On macOS, NSString.standardizingPath consults the file system (it resolves symbolic links for an absolute
+// path that contains "..", and drops a leading /private only while the file exists, AppModel+HydraMerge.swift:197-200).
+// ED-141: on Windows StandardizingPath and StandardizedFileURLPath are purely lexical; they never read the file system
+// and never resolve a junction, symbolic link or /private, so lexical is the full port semantics for existing and
+// missing paths alike (one row checks a real folder under MARROW_PORT_DATA_DIR).
 //
-// Not written, pending rulings (stop items reported with this commit): the U+212A KELVIN SIGN fold row
-// (ED-019 lowercase fold against ED-039 ordinal fold, #1); whether "~" and "://" are part of the one exported
-// predicate (ED-038 against ED-036/ED-045, #2); the \\?\UNC\ long form (#3); URL.pathExtension of a dot-file name
-// or a name ending in "." and URL.deletingLastPathComponent at a root (#4); junction resolution (#5).
+// Rulings these rows rest on: ED-137 (the containment and identity comparison is kernel32 CompareStringOrdinal with
+// bIgnoreCase, never OrdinalIgnoreCase or a lowercase fold); ED-138 (IsAbsolute is exactly the three forms of
+// ED-036/ED-045; "~" and "://" stay at their call sites); ED-139 (\\?\UNC\ normalizes to //); ED-140 (URL.pathExtension
+// follows swift-foundation, oracle items O-42 and O-43); ED-141 (lexical standardization); ED-142 (a path function
+// keeps an absolute input absolute).
 public sealed class SwiftPathTests
 {
     private static string Home => Environment.GetEnvironmentVariable("USERPROFILE")!;
@@ -275,9 +276,10 @@ public sealed class SwiftPathTests
     }
 
     // ---- URL forms: pathExtension, deletingLastPathComponent().path, appendingPathComponent().path ------------
-    // Only rows where Foundation's URL result is settled. URL.pathExtension of a dot-file name (".bashrc") or of a
-    // name ending in "." (the Storage.swift:99 "bin" fallback) and URL.deletingLastPathComponent at a root may
-    // differ from NSString and nothing settles them: stop item #4, no row.
+    // ED-140: URL.pathExtension follows swift-foundation's String.pathExtension on the last component, which differs
+    // from NSString for a dot-file name (".bashrc"), a name ending in "." (the Storage.swift:99 "bin" fallback), a
+    // "." or ".." stem and an extension holding a space or a bidi control. Those rows rest on oracle item O-42, and
+    // URL.deletingLastPathComponent at a root on O-43; they carry the Oracle trait (the O-42 and O-43 tests below).
 
     [Theory]
     [Trait("Rule", "R-PATH-1")]
@@ -396,13 +398,14 @@ public sealed class SwiftPathTests
         // form needs two backslashes (so "//server/share" is not absolute), its server name may not begin with a
         // separator (so "\\\server\share" is not), and the drive letter is ASCII (a char.IsLetter port fails the
         // U+00C4 row). Replaces `hasPrefix("/")` at TouchedPaths.swift:24, TurnDiff.swift:34, :41,
-        // AppModel+Hydra.swift:329, AppModel+HydraMerge.swift:498, :537. No row here contains "~" or "://": which
-        // predicate carries those is stop item #2.
+        // AppModel+Hydra.swift:329, AppModel+HydraMerge.swift:498, :537. ED-138: IsAbsolute is exactly these three
+        // forms and replaces only `hasPrefix("/")`; the "~" and "://" clauses stay at their call sites.
         Assert.Equal(expected, SwiftPath.IsAbsolute(path));
     }
 
     [Theory]
     [Trait("Decision", "ED-036")]
+    [Trait("Decision", "ED-038")]
     [Trait("Decision", "ED-045")]
     [InlineData("~")]
     [InlineData("~/x")]
@@ -411,12 +414,12 @@ public sealed class SwiftPathTests
     [InlineData("https://example.com/a")]
     public void IsAbsolute_is_false_for_tilde_and_URL_forms_under_the_three_form_predicate(string path)
     {
-        // ED-036 and ED-045 give the predicate as exactly three forms (drive-rooted, UNC, \\?\), none of which a
-        // "~" or "://" string matches. ED-038's text instead lists "contains ://" and "begins ~" inside the one
-        // exported predicate; the two readings disagree on every row here, so ED-038 is deliberately not cited
-        // (stop item #2). The source differs by site: AppModel+HydraMerge.swift:498, :537 test
-        // `hasPrefix("/") || hasPrefix("~") || contains("://")`, while TouchedPaths.swift:21-24 rejects "://",
-        // expands "~" and then tests only `hasPrefix("/")`, so "~name/x" is joined onto the root there.
+        // ED-138 (amending ED-038): the exported predicate is the three-form IsAbsolute of ED-036/ED-045 (drive-rooted,
+        // UNC, \\?\), none of which a "~" or "://" string matches. The "~" and "://" clauses stay at the call sites as
+        // the Swift writes them: AppModel+HydraMerge.swift:498, :537 test `hasPrefix("/") || hasPrefix("~") ||
+        // contains("://")`, NativeFileTools.swift:23 and ThreadRuntime.swift:3376 test "/" or "~", and
+        // TouchedPaths.swift:21-24 rejects "://", expands "~" and then tests only `hasPrefix("/")`, so "~name/x" is
+        // joined onto the root there.
         Assert.False(SwiftPath.IsAbsolute(path));
     }
 
@@ -449,7 +452,7 @@ public sealed class SwiftPathTests
     {
         // ED-045: "one path-normalization step (backslashes to forward slashes, \\?\ stripped, drive letter
         // upper-cased) applied before any comparison". Nothing else: the rest of the case, trailing separators and
-        // dot segments are left to the comparison and to standardization. The \\?\UNC\ form is stop item #3.
+        // dot segments are left to the comparison and to standardization. The \\?\UNC\ form is ED-139 (below).
         Assert.Equal(expected, SwiftPath.Normalize(path));
     }
 
@@ -520,9 +523,10 @@ public sealed class SwiftPathTests
     [Trait("Decision", "ED-045")]
     public void StandardizedFileURLPath_keeps_a_UNC_path_and_ignores_the_directory()
     {
-        // No decision fixes which separator a standardized UNC result carries, and the literal UNC predicate
-        // accepts only the backslash form, so this row is compared normalized and absoluteness is not asserted.
+        // Compared normalized, as no decision fixes the separators inside the result. ED-142: the result keeps its
+        // two-backslash UNC lead-in, so it stays absolute and TurnDiff.swift:34, :41 never drop a UNC file.
         Assert.Equal("//srv/share/d/f", SwiftPath.Normalize(SwiftPath.StandardizedFileURLPath(@"\\srv\share\d\.\f", @"C:\Repo")));
+        Assert.True(SwiftPath.IsAbsolute(SwiftPath.StandardizedFileURLPath(@"\\srv\share\d\.\f", @"C:\Repo")));
     }
 
     [Fact]
@@ -639,9 +643,8 @@ public sealed class SwiftPathTests
     public void TailUnder_folds_non_ASCII_letters_too()
     {
         // U+00DC LATIN CAPITAL LETTER U WITH DIAERESIS against U+00FC LATIN SMALL LETTER U WITH DIAERESIS: a pair
-        // with a one-to-one case mapping, on which a lowercase fold (ED-019) and an ordinal case-insensitive
-        // comparison (ED-039) give the same answer. Letters on which the two folds differ (U+212A KELVIN SIGN) are
-        // stop item #1 and have no row.
+        // NTFS treats as one name, and so does the ED-137 comparison (kernel32 CompareStringOrdinal, bIgnoreCase).
+        // Letters where a wider fold and NTFS disagree (U+212A KELVIN SIGN, final sigma) have their own ED-137 rows.
         Assert.Equal("a.txt", SwiftPath.TailUnder("C:\\\U000000DCber\\a.txt", "c:\\\U000000FCber"));
     }
 
@@ -691,11 +694,192 @@ public sealed class SwiftPathTests
     [InlineData(@"C:\Repo\a", @"C:\Repo", false)]
     public void SamePath_compares_standardized_normalized_and_folded(string a, string b, bool expected)
     {
-        // `(p as NSString).standardizingPath == standard` (AppModel+Hydra.swift:326) and
-        // `standardized.path == root.path` (NativeFileTools.swift:27), under the one comparison of ED-019/039/045.
-        // The fixtures do not exist on disk, so standardization is lexical (see the note at the top).
+        // `(p as NSString).standardizingPath == standard` (AppModel+Hydra.swift:326), under the one comparison of
+        // ED-019/039/045 made by ED-137. Standardization is lexical (ED-141, see the note at the top).
         Assert.Equal(expected, SwiftPath.SamePath(a, b));
         Assert.Equal(expected, SwiftPath.SamePath(b, a));
+    }
+
+    // ---- ED-137: CompareStringOrdinal (bIgnoreCase), never OrdinalIgnoreCase --------------------------------------
+
+    [Fact]
+    [Trait("Decision", "ED-039")]
+    [Trait("Decision", "ED-137")]
+    public void TailUnder_and_SamePath_keep_the_Kelvin_sign_apart_from_k()
+    {
+        // ED-137: NTFS keeps U+212A KELVIN SIGN and "k" distinct, and so does CompareStringOrdinal; the folder is not
+        // the checkout. TouchedPaths.swift:26-27, ProviderSession.swift:194-196, AppModel+Hydra.swift:325-326.
+        Assert.Null(SwiftPath.TailUnder("C:\\\U0000212A\\a", @"c:\k")); // U+212A KELVIN SIGN
+        Assert.False(SwiftPath.SamePath("C:\\\U0000212A", @"c:\k"));    // U+212A KELVIN SIGN
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-039")]
+    [Trait("Decision", "ED-137")]
+    public void TailUnder_and_SamePath_keep_final_sigma_apart_from_capital_sigma()
+    {
+        // U+03C2 GREEK SMALL LETTER FINAL SIGMA against U+03A3 GREEK CAPITAL LETTER SIGMA (ED-137).
+        Assert.Null(SwiftPath.TailUnder("C:\\\U000003C2\\a", "c:\\\U000003A3"));
+        Assert.False(SwiftPath.SamePath("C:\\\U000003C2", "c:\\\U000003A3"));
+        Assert.False(SwiftPath.SamePath("c:\\\U000003A3", "C:\\\U000003C2"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-039")]
+    [Trait("Decision", "ED-137")]
+    public void TailUnder_keeps_micro_sign_and_titlecase_dz_apart()
+    {
+        // U+00B5 MICRO SIGN against U+039C GREEK CAPITAL LETTER MU; U+01C5 LATIN CAPITAL LETTER D WITH SMALL LETTER Z
+        // WITH CARON against U+01C6 LATIN SMALL LETTER DZ WITH CARON (ED-137).
+        Assert.Null(SwiftPath.TailUnder("C:\\\U000000B5\\a", "c:\\\U0000039C"));
+        Assert.Null(SwiftPath.TailUnder("C:\\\U000001C5\\a", "c:\\\U000001C6"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-039")]
+    [Trait("Decision", "ED-137")]
+    public void TailUnder_folds_small_sigma_to_capital_sigma()
+    {
+        // Positive control (ED-137): U+03C3 GREEK SMALL LETTER SIGMA is the same NTFS name as U+03A3.
+        Assert.Equal("a", SwiftPath.TailUnder("C:\\\U000003C3\\a", "c:\\\U000003A3"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-137")]
+    public void OrdinalIgnoreCase_calls_final_sigma_and_capital_sigma_equal()
+    {
+        // The pitfall ED-137 names: .NET's OrdinalIgnoreCase is wider than NTFS (409 BMP pairs on this PC).
+        Assert.True(string.Equals("\U000003C2", "\U000003A3", StringComparison.OrdinalIgnoreCase)); // U+03C2, U+03A3
+        Assert.False(SwiftPath.SamePath("C:\\\U000003C2", "C:\\\U000003A3"));
+    }
+
+    // ---- ED-139: the \\?\UNC\ long form ----------------------------------------------------------------------------
+
+    [Theory]
+    [Trait("Decision", "ED-045")]
+    [Trait("Decision", "ED-139")]
+    [InlineData(@"\\?\UNC\srv\Share\a", "//srv/Share/a")]
+    [InlineData(@"\\?\unc\srv\share", "//srv/share")]
+    public void Normalize_turns_the_long_UNC_prefix_into_two_slashes(string path, string expected)
+    {
+        // ED-139: a leading \\?\UNC\ ("UNC" in any ASCII case) becomes //; server and share keep their case.
+        Assert.Equal(expected, SwiftPath.Normalize(path));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-045")]
+    [Trait("Decision", "ED-139")]
+    public void The_long_UNC_form_is_the_same_path_as_its_short_form()
+    {
+        Assert.Equal(@"x\y", SwiftPath.TailUnder(@"\\?\UNC\Server\Share\x\y", @"\\server\share"));
+        Assert.True(SwiftPath.SamePath(@"\\?\UNC\srv\share\d", @"\\srv\share\d"));
+        Assert.True(SwiftPath.SamePath(@"\\srv\share\d", @"\\?\UNC\srv\share\d"));
+        Assert.True(SwiftPath.IsAbsolute(@"\\?\UNC\srv\share\a"));
+    }
+
+    // ---- ED-140: URL.pathExtension (swift-foundation) and deletingLastPathComponent at a root (O-42, O-43) --------
+
+    [Theory]
+    [Trait("Decision", "ED-140")]
+    [Trait("Oracle", "O-42")]
+    [InlineData(@"C:\dir\.bashrc")]
+    [InlineData(@"C:\dir\name.")]
+    [InlineData(@"C:\dir\notes.final draft")]
+    [InlineData(@"C:\dir\..tiff")]
+    [InlineData("C:\\dir\\a.t\U0000200Ext")] // U+200E LEFT-TO-RIGHT MARK
+    public void FileURL_pathExtension_is_empty_where_swift_foundation_rejects_the_extension(string path)
+    {
+        // UNVERIFIED O-42: macOS URL.pathExtension equals swift-foundation's String.pathExtension on the last component:
+        // "" when the component ends in ".", when its last "." is its first character, when the stem is "." or "..",
+        // or when the extension holds U+0020, "/", U+061C, U+200E, U+200F, U+202A-U+202E or U+2066-U+2069 (ED-140).
+        // Callers: Storage.swift:99, :184, Wallpaper.swift:127, DownloadsPopover.swift:70.
+        Assert.Equal("", SwiftPath.FileURLPathExtension(path));
+    }
+
+    [Theory]
+    [Trait("Decision", "ED-140")]
+    [Trait("Oracle", "O-42")]
+    [InlineData("C:\\dir\\a.\U0000061Cx")] // U+061C ARABIC LETTER MARK
+    [InlineData("C:\\dir\\a.x\U0000200F")] // U+200F RIGHT-TO-LEFT MARK
+    [InlineData("C:\\dir\\a.x\U0000202A")] // U+202A LEFT-TO-RIGHT EMBEDDING
+    [InlineData("C:\\dir\\a.x\U0000202E")] // U+202E RIGHT-TO-LEFT OVERRIDE
+    [InlineData("C:\\dir\\a.x\U00002066")] // U+2066 LEFT-TO-RIGHT ISOLATE
+    [InlineData("C:\\dir\\a.x\U00002069")] // U+2069 POP DIRECTIONAL ISOLATE
+    [InlineData(@"C:\dir\...")]
+    public void FileURL_pathExtension_rejects_every_listed_invalid_scalar(string path)
+    {
+        // UNVERIFIED O-42: the same swift-foundation rule (ED-140): each end of the two listed ranges and the other
+        // listed scalars; "..." ends in ".".
+        Assert.Equal("", SwiftPath.FileURLPathExtension(path));
+    }
+
+    [Theory]
+    [Trait("Decision", "ED-140")]
+    [Trait("Oracle", "O-42")]
+    [InlineData(@"C:\dir\a..tiff", "tiff")]
+    [InlineData(@"C:\dir\Photo.PNG", "PNG")]
+    [InlineData("C:\\dir\\a.x\U00002065", "x\U00002065")] // U+2065 (unassigned, outside U+2066-U+2069)
+    [InlineData("C:\\dir\\a.x\U0000202F", "x\U0000202F")] // U+202F NARROW NO-BREAK SPACE (outside U+202A-U+202E)
+    public void FileURL_pathExtension_keeps_an_extension_outside_the_rejected_forms(string path, string expected)
+    {
+        // UNVERIFIED O-42: control rows; the text after the last "." with its case kept (ED-140).
+        Assert.Equal(expected, SwiftPath.FileURLPathExtension(path));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-140")]
+    [Trait("Oracle", "O-43")]
+    public void FileURL_deletingLastPathComponent_at_a_root_is_the_root_itself()
+    {
+        // UNVERIFIED O-43: URL.deletingLastPathComponent() at the root returns the root (swift-foundation outside the
+        // FOUNDATION_FRAMEWORK compatibility1 branch); no reachable caller depends on it (ED-140).
+        Assert.Equal("C:/", SwiftPath.Normalize(SwiftPath.FileURLDeletingLastPathComponentPath(@"C:\")));
+        Assert.Equal("//srv/share", SwiftPath.Normalize(SwiftPath.FileURLDeletingLastPathComponentPath(@"\\srv\share")));
+    }
+
+    // ---- ED-141: lexical standardization on a real folder ------------------------------------------------------
+
+    [Fact]
+    [Trait("Decision", "ED-141")]
+    public void StandardizingPath_is_lexical_on_a_real_folder()
+    {
+        // ED-141: purely lexical for existing and missing paths alike. <tmp>\a\b exists; <tmp>\a\c does not.
+        var data = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
+        Assert.False(string.IsNullOrEmpty(data), "MARROW_PORT_DATA_DIR must point at a throwaway folder (R-TEST-9)");
+        var tmp = System.IO.Path.GetFullPath(System.IO.Path.Combine(data!, "SwiftPathTests-" + Guid.NewGuid().ToString("N")));
+        Directory.CreateDirectory(System.IO.Path.Combine(tmp, "a", "b"));
+        try
+        {
+            Assert.Equal(SwiftPath.Normalize(tmp) + "/a/c", SwiftPath.Normalize(SwiftPath.StandardizingPath(tmp + @"\a\b\..\c")));
+            Assert.Equal(SwiftPath.Normalize(tmp) + "/a/c",
+                SwiftPath.Normalize(SwiftPath.StandardizedFileURLPath(@"a\b\..\c", tmp)));
+        }
+        finally
+        {
+            Directory.Delete(tmp, recursive: true);
+        }
+    }
+
+    // ---- ED-142: a path function keeps an absolute input absolute ------------------------------------------------
+
+    [Fact]
+    [Trait("Decision", "ED-142")]
+    public void Every_path_function_keeps_a_UNC_or_long_form_input_absolute()
+    {
+        // ED-142: StandardizingPath, StandardizedFileURLPath, the FileURL*Path forms, AppendingPathComponent and
+        // DeletingLastPathComponent keep an absolute input's lead-in, so IsAbsolute(result) holds.
+        Assert.True(SwiftPath.IsAbsolute(SwiftPath.StandardizingPath(@"\\srv\share\d\..\e")));
+        Assert.True(SwiftPath.IsAbsolute(SwiftPath.StandardizingPath(@"\\srv\share\..\..")));
+        Assert.True(SwiftPath.IsAbsolute(SwiftPath.StandardizingPath(@"\\?\C:\a\..\b")));
+        Assert.True(SwiftPath.IsAbsolute(SwiftPath.StandardizingPath(@"\\?\UNC\srv\share\a\.\b")));
+        Assert.True(SwiftPath.IsAbsolute(SwiftPath.StandardizedFileURLPath(@"\\?\UNC\srv\share\d", null)));
+        Assert.True(SwiftPath.IsAbsolute(SwiftPath.StandardizedFileURLPath(@"\\srv\share\d\..\..", @"C:\Repo")));
+        Assert.True(SwiftPath.IsAbsolute(SwiftPath.DeletingLastPathComponent(@"\\srv\share\d")));
+        Assert.True(SwiftPath.IsAbsolute(SwiftPath.DeletingLastPathComponent(@"\\?\UNC\srv\share\d")));
+        Assert.True(SwiftPath.IsAbsolute(SwiftPath.FileURLDeletingLastPathComponentPath(@"\\srv\share\d\f")));
+        Assert.True(SwiftPath.IsAbsolute(SwiftPath.AppendingPathComponent(@"\\srv\share", "a")));
+        Assert.True(SwiftPath.IsAbsolute(SwiftPath.FileURLAppendingPathComponentPath(@"\\?\C:\r", "a")));
+        Assert.True(SwiftPath.IsAbsolute(SwiftPath.FileURLAppendingPathComponentPath(@"\\srv\share", "a.txt")));
     }
 
     private static List<string> Walk(string start)
