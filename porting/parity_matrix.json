@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "SPECIFIED": 3837,
+      "SPECIFIED": 3829,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
       "DISCOVERED": 34,
       "RETIRED": 6,
-      "IMPLEMENTED": 36
+      "IMPLEMENTED": 44
     },
     "by_area": {
       "CHAT": 193,
@@ -12522,7 +12522,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Read stdout as bytes and decode UTF-8 with no CRLF translation: -z output carries no newlines and normalising a path containing a carriage return would corrupt it.",
       "verification_method": "unit over a text record, a binary record, an empty input and three malformed shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -12547,7 +12547,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
       "verification_method": "unit with a mixed kept and restorable preview",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -72747,7 +72747,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct translation of the arithmetic. A void-returning move callback would reorder forever past a refused move (port_impacts 154), so the Bool return is mandatory. The fallback height is the literal 29 (Chrome.rowHeight 28 plus the list's 1 pt spacing).",
       "verification_method": "unit test on RowDrag.settle covering multi-row flicks, a refused move, a missing id and both directions.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -99391,7 +99391,7 @@
       "persistence": "Nothing persisted by the table itself; the setting is stored by the settings area under the key \"appZoom\" (AppSettings.swift:131, :253-254).",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -99413,7 +99413,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -99436,7 +99436,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -99457,7 +99457,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -99478,7 +99478,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
