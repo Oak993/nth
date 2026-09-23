@@ -17,6 +17,7 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.Testing;
+using Marrow.Core.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Marrow.UI.Tests.Fixtures;
@@ -74,6 +75,7 @@ public sealed class ChromeTests(HeadlessSession headless)
     {
         for (var i = 0; i < count; i++)
         {
+            (SwiftClock.Provider.Current as ManualTimeProvider)?.Advance(TimeSpan.FromMilliseconds(10));
             frames.Advance(TimeSpan.FromMilliseconds(10));
             Dispatcher.UIThread.RunJobs();
         }
@@ -600,6 +602,8 @@ public sealed class ChromeTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-184")] // UI/Chrome/Chrome.swift:371 Button(action: action), :375 .disabled(!isEnabled)
     public void An_icon_button_acts_once_per_click_and_not_at_all_while_disabled() => headless.OnUiThread(() =>
     {
+        using var source = FrameClock.Source.Override(new ManualFrameSource()); // a click also hovers, and the hover animates (ED-117)
+        using var clock = SwiftClock.Provider.Override(new ManualTimeProvider());
         var runs = 0;
         var enabled = new ChromeIconButton(symbol: "terminal", help: "Terminal", action: () => runs++);
         var window = Show(TopLeft(enabled));
@@ -623,6 +627,7 @@ public sealed class ChromeTests(HeadlessSession headless)
     {
         var frames = new ManualFrameSource();
         using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(new ManualTimeProvider()); // ED-117: animation spans are measured on SwiftClock
         var control = new ChromeIconButton(symbol: "terminal", help: "Terminal", action: () => { });
         var window = Show(TopLeft(control));
         var theme = window.ActualThemeVariant;
@@ -667,6 +672,7 @@ public sealed class ChromeTests(HeadlessSession headless)
     {
         var frames = new ManualFrameSource();
         using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(new ManualTimeProvider()); // ED-117: animation spans are measured on SwiftClock
         var recorder = new PopoverRecorder();
         using var presenter = Presentation.Presenter.Override(recorder);
         var control = new ChromeMenuButton(symbol: "arrow.up.forward.app", help: "Open in another app", content: () => new Border());
@@ -696,6 +702,7 @@ public sealed class ChromeTests(HeadlessSession headless)
     {
         var frames = new ManualFrameSource();
         using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(new ManualTimeProvider()); // ED-117: animation spans are measured on SwiftClock
         var recorder = new PopoverRecorder();
         using var presenter = Presentation.Presenter.Override(recorder);
         var control = new ChromeMenuButton(symbol: "ellipsis", help: "More", content: () => new Border());
@@ -751,6 +758,7 @@ public sealed class ChromeTests(HeadlessSession headless)
     {
         var frames = new ManualFrameSource();
         using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(new ManualTimeProvider()); // ED-117: animation spans are measured on SwiftClock
         var control = new ChromeCircleButton(symbol: "arrow.down", help: "Jump to latest", action: () => { });
         var window = Show(TopLeft(control), ThemeVariant.Dark);
         AssertColor(Label(0.92, ThemeVariant.Dark), Effective(TextElement.GetForeground(Styled(control))));
@@ -769,6 +777,8 @@ public sealed class ChromeTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-186")] // UI/Chrome/Chrome.swift:421 Button(action:), :426 .contentShape(Circle()), :433-434 help and label
     public void A_circle_button_acts_inside_its_circle_but_not_in_the_corners_of_its_square() => headless.OnUiThread(() =>
     {
+        using var source = FrameClock.Source.Override(new ManualFrameSource()); // a click also hovers, and the hover animates (ED-117)
+        using var clock = SwiftClock.Provider.Override(new ManualTimeProvider());
         var runs = 0;
         var control = new ChromeCircleButton(symbol: "arrow.down", help: "Jump to latest", action: () => runs++);
         var window = Show(TopLeft(control));
@@ -794,6 +804,7 @@ public sealed class ChromeTests(HeadlessSession headless)
     {
         var frames = new ManualFrameSource();
         using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(new ManualTimeProvider()); // ED-117: animation spans are measured on SwiftClock
         var recorder = new PopoverRecorder();
         using var presenter = Presentation.Presenter.Override(recorder);
         var control = new ChromeCircleMenu(symbol: "hand.raised", help: "Supervised", content: () => new Border());

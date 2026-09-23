@@ -12,6 +12,8 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Marrow.Core.Port;
+using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Marrow.UI.Tests.Fixtures;
@@ -72,6 +74,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
     {
         for (var i = 0; i < count; i++)
         {
+            (SwiftClock.Provider.Current as ManualTimeProvider)?.Advance(TimeSpan.FromMilliseconds(10));
             frames.Advance(TimeSpan.FromMilliseconds(10));
             Dispatcher.UIThread.RunJobs();
         }
@@ -205,6 +208,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
     {
         var frames = new ManualFrameSource();
         using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(new ManualTimeProvider()); // ED-117: animation spans are measured on SwiftClock
         var recorder = new PopoverRecorder();
         using var presenter = Presentation.Presenter.Override(recorder);
         var menu = new ChromeTextMenu(symbol: "arrow.triangle.branch", title: "Detached", help: "Branch", content: () => new Border());
@@ -285,6 +289,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
     {
         var frames = new ManualFrameSource();
         using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(new ManualTimeProvider()); // ED-117: animation spans are measured on SwiftClock
         foreach (var theme in new[] { ThemeVariant.Light, ThemeVariant.Dark })
         {
             var control = new ChromeTextButton(symbol: "trash", title: "Delete all", help: "Delete every archived thread", action: () => { }, isEnabled: isEnabled, isDestructive: isDestructive);
@@ -306,6 +311,8 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-189")] // UI/Chrome/Chrome.swift:529 Button(action:), :544 .disabled(!isEnabled), :550-551 help and accessibility label, :552 no-drag
     public void A_text_button_acts_when_enabled_and_carries_its_help_as_tooltip_and_accessible_name() => headless.OnUiThread(() =>
     {
+        using var source = FrameClock.Source.Override(new ManualFrameSource()); // a click also hovers, and the hover animates (ED-117)
+        using var clock = SwiftClock.Provider.Override(new ManualTimeProvider());
         var runs = 0;
         var control = new ChromeTextButton(symbol: "trash", title: "Delete all", help: "Delete every archived thread", action: () => runs++, isDestructive: true);
         var window = Show(TopLeft(control));
@@ -671,6 +678,7 @@ public sealed class ChromeSecondTests(HeadlessSession headless)
     {
         var frames = new ManualFrameSource();
         using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(new ManualTimeProvider()); // ED-117: animation spans are measured on SwiftClock
         var recorder = new PopoverRecorder();
         using var presenter = Presentation.Presenter.Override(recorder);
         var picker = new GlassPickerButton<int>(options: Efforts, selection: Binding<int>.Constant(1));

@@ -9,6 +9,8 @@ using Avalonia.Platform;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Marrow.Core.Port;
+using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Marrow.UI.Tests.Fixtures;
@@ -259,6 +261,8 @@ public sealed class ChromeThirdTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-061")] // UI/Chrome/Chrome.swift:205-207 the two inputs; :226 `if let wallpaper`, re-read when the parent passes new ones
     public void Setting_a_wallpaper_on_a_drawn_backdrop_brings_the_picture_in_at_the_new_setting() => headless.OnUiThread(() =>
     {
+        using var source = FrameClock.Source.Override(new ManualFrameSource()); // :262 the change cross-fades
+        using var clock = SwiftClock.Provider.Override(new ManualTimeProvider());
         var backdrop = new WindowBackdrop(opacity: 0.5);
         var window = Show(backdrop, ThemeVariant.Dark);
         Assert.Empty(VisualQuery.Descendants<Image>(backdrop));
@@ -328,6 +332,7 @@ public sealed class ChromeThirdTests(HeadlessSession headless)
         {
             var frames = new ManualFrameSource();
             using var source = FrameClock.Source.Override(frames);
+            using var clock = SwiftClock.Provider.Override(new ManualTimeProvider()); // ED-117: animation spans are measured on SwiftClock
             var control = new ChromeTextButton(symbol: "trash", title: "Delete all", help: "Delete every archived thread", action: () => { });
             var window = Show(TopLeft(control), ThemeVariant.Light);
             var glass = GlassTint(control, ThemeVariant.Light);
@@ -338,6 +343,7 @@ public sealed class ChromeThirdTests(HeadlessSession headless)
             window.MouseMove(centre, RawInputModifiers.None);
             for (var i = 0; i < 30; i++)
             {
+                (SwiftClock.Provider.Current as ManualTimeProvider)?.Advance(TimeSpan.FromMilliseconds(10));
                 frames.Advance(TimeSpan.FromMilliseconds(10));
                 Dispatcher.UIThread.RunJobs();
             }
