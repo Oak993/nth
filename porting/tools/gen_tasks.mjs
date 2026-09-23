@@ -30,7 +30,7 @@ function target(src) {
   const m = src.match(/^DroppyCode\/(Core|Services|UI|App)\/(.+)\.swift$/);
   if (!m) return null;
   const project = { Core: 'Marrow.Core', Services: 'Marrow.Services', UI: 'Marrow.UI', App: 'Marrow.App' }[m[1]];
-  return `src/${project}/${m[2].replace(/\+/g, '.')}.cs`;
+  return `src/${project}/${m[2]}.cs`;
 }
 
 // ---- milestone by source layer -------------------------------------------------------

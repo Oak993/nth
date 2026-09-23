@@ -22,7 +22,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows Credential Manager (OD-0008 B3): one generic credential per account string under the one service name the port uses in place of AppInfo.name. Same order for the live path: the stored value, then the caller's fallback. The capture-run guard is not ported: it is reachable only from a capture launch argument and is dead-code register entry 44 (porting/dead_code.md), which ED-061 excludes from implementation.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -51,7 +51,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Credential Manager delete for the same account (OD-0008 B3); return true, so the caller only removes its settings entry and writes nothing.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -79,7 +79,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows Credential Manager (OD-0008 B3): delete any existing generic credential for the account, then write one holding the UTF-8 bytes of the trimmed key, one credential per account string under the one service name the port uses in place of AppInfo.name, account strings verbatim. kSecAttrAccessibleWhenUnlocked has no Windows analogue; port_impacts.md entry 262 records that substitution. A false return is never followed by a plaintext copy (OD-0008 A6).",
       "verification_method": "unit plus restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -108,7 +108,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Credential Manager read (OD-0008 B3) with the same trimming and blank rejection.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -136,7 +136,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same account string verbatim, as a Windows Credential Manager credential under the one service name the port uses in place of AppInfo.name (OD-0008 B3).",
       "verification_method": "unit plus restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -164,7 +164,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same account string verbatim, as a Windows Credential Manager credential under the one service name the port uses in place of AppInfo.name (OD-0008 B3).",
       "verification_method": "unit plus restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -192,7 +192,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same account string verbatim, as a Windows Credential Manager credential under the one service name the port uses in place of AppInfo.name (OD-0008 B3).",
       "verification_method": "unit plus restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -860,7 +860,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same URLs and constant.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -884,7 +884,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same request.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -908,7 +908,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same parsing and comparator.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -931,7 +931,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two lists and the same exact-id test.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -951,7 +951,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals including the middle dot separators.",
       "verification_method": "unit plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -971,7 +971,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -991,7 +991,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1011,7 +1011,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1031,7 +1031,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1052,7 +1052,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same case-insensitive prefix test.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1072,7 +1072,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same test including the nil-is-true branch, which differs from DeepSeek and Z.ai.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3473,7 +3473,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two file names, the same two limits and the same three sentence forms. The block heading reads exactly: Project guidelines from <directory>. They supplement the rules above; where they conflict, the Marrow rules take priority. (OD-0012 F1). Windows symlink and junction resolution must enforce the same containment check.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4131,7 +4131,7 @@
       "cancellation": "not cancellable",
       "windows_path": "This is the confinement boundary for read, list, write, edit and search and must not be weakened. On Windows the check must additionally account for drive letters, UNC paths, case-insensitive comparison, 8.3 short names, alternate data streams and directory junctions, none of which the macOS prefix test covers. The two messages stay verbatim.",
       "verification_method": "unit with an escape corpus, plus a security review",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4152,7 +4152,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same rules, with the Windows separator and case-insensitive prefix matching.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4175,7 +4175,7 @@
       "cancellation": "Cancellation is checked before the read, before every chunk and after the loop.",
       "windows_path": "Same limit, same chunk size and the same two messages.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4197,7 +4197,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same two-step decode in the same order, so a file's rendered contents match byte for byte.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4217,7 +4217,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same clamps, the same default of 200 and both header strings verbatim. Lines are split on the newline character only, so a CRLF file keeps its carriage returns inside the slice; reproduce that rather than normalizing.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4237,7 +4237,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same two-stage check on bytes then characters, and the same message with its leading U+2026.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4264,7 +4264,7 @@
       "cancellation": "Cancellation is checked before entering the actor, on entry, before creating directories and before writing.",
       "windows_path": "Same global serialization and the same atomic replace semantics; on Windows an atomic replace must handle an existing read-only or locked file explicitly rather than leaving a partial file.",
       "verification_method": "integration",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4290,7 +4290,7 @@
       "cancellation": "Checked before the scan, on every scan iteration, after it and before writing.",
       "windows_path": "Same literal matching, the same non-overlapping count and the same three messages. Line endings are matched byte for byte, so a model that copied a line from a CRLF file must send the carriage returns too; reproduce that rather than normalizing.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4315,7 +4315,7 @@
       "cancellation": "Checked before the listing and on every entry.",
       "windows_path": "Same two messages.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4340,7 +4340,7 @@
       "cancellation": "Checked on every entry.",
       "windows_path": "Same ten names, the same 300 cap and the same marker. 'Hidden' on Windows means the hidden file attribute as well as a leading dot, and 'package descendants' has no Windows equivalent; both are platform boundaries to record.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4362,7 +4362,7 @@
       "cancellation": "Checked before the loop and on every entry.",
       "windows_path": "Same sort, the same trailing slash marker and the same skip set. The '.DS_Store' prefix test is a macOS artifact that is reproduced verbatim rather than dropped, and the recursive and non-recursive branches differ in hidden-file handling; reproduce that difference.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4386,7 +4386,7 @@
       "cancellation": "Bounded by the engine timeout; there is no separate cancellation path.",
       "windows_path": "Same prompt text and the same 4000 character cap; the temporary directory is the Windows user temporary directory.",
       "verification_method": "unit plus a scripted CLI stand-in",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4406,7 +4406,7 @@
       "cancellation": "not applicable",
       "windows_path": "Same lists verbatim, matched case-insensitively on the lowercased title.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4430,7 +4430,7 @@
       "cancellation": "Bounded by the engine timeout.",
       "windows_path": "Same prompt, the same two truncation limits and the same fence stripping.",
       "verification_method": "unit plus a scripted CLI stand-in",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4454,7 +4454,7 @@
       "cancellation": "not cancellable; the 120 second timeout bounds it",
       "windows_path": "Same argument vector. Passing an empty string as an argument value and writing the prompt to standard input both need explicit handling in the Windows process launcher.",
       "verification_method": "contract fixture plus a scripted CLI stand-in",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4479,7 +4479,7 @@
       "cancellation": "not cancellable; the 180 second timeout bounds it",
       "windows_path": "Same argument vector, including the embedded quotes in the config value, which must survive the Windows command-line quoting rules unchanged. The temporary file is named 'marrow-<UUID>.txt' (OD-0012 F1): its path is sent out to the Codex CLI as the --output-last-message argument, and it is neither of the two kept machine contracts (droppy-code.json, DROPPY_CODE_PROJECT_ROOT). It is removed after the run, as upstream.",
       "verification_method": "contract fixture plus a scripted CLI stand-in",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5138,7 +5138,8 @@
         "DroppyCode/Services/Providers/MetaSession.swift:38-49",
         "DroppyCode/Services/Providers/ProviderRegistry.swift:128-129 metaSeed"
       ],
-      "notes": "The separators inside the detail strings are U+00B7 with single spaces. The seed is exactly those five ids in that order."
+      "notes": "The separators inside the detail strings are U+00B7 with single spaces. The seed is exactly those five ids in that order.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-028",

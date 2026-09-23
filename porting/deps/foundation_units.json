@@ -1,50 +1,320 @@
 {
-  "note": "Port-only foundation units from porting/IMPLEMENTING.md section 4.3. Each is built, tests first, before the first Swift unit that uses the API it replaces; a Swift unit depends on a foundation unit when its source matches one of the unit's patterns. Tests carry Rule or Decision traits (no requirement ids).",
-  "units": [
-    {"id": "F.PathIdentity", "project": "Marrow.Core", "target": "src/Marrow.Core/Port/SwiftPath.cs", "risk": "HIGH",
-     "spec": "Path identity: appendingPathComponent, deletingLastPathComponent, pathExtension, standardizedFileURL, .path, absoluteness, normalization, containment. Implements ED-019, ED-026, ED-036, ED-038, ED-039, ED-045 as one predicate and one normalization; rule R-PATH-1. First tests: the cases each ED lists; drive letters, UNC, \\\\?\\ prefixes, a bare backslash, trailing separators.",
-     "patterns": ["appendingPathComponent", "deletingLastPathComponent", "pathExtension", "standardizedFileURL", "fileURLWithPath", "hasPrefix(\"/\")", "lastPathComponent"]},
-    {"id": "F.URL", "project": "Marrow.Core", "target": "src/Marrow.Core/Port/SwiftURL.cs", "risk": "STANDARD",
-     "spec": "URL(string:): the macOS 14 leniency, host case and brackets, decoded path (R-PATH-1). First tests: \"foo bar\", IPv6 hosts, MarkdownView.swift:677.",
-     "patterns": ["URL(string:"]},
-    {"id": "F.ICUFormatters", "project": "Marrow.Core", "target": "src/Marrow.Core/Port/SwiftFormatters.cs", "risk": "STANDARD",
-     "spec": "ICU formatters through Windows icu.dll (ED-073, ED-094 Calendar.current, ED-096 the accepted API): udat skeletons, ureldatefmt, unum spell-out, currency, Int.formatted(); ByteCountFormatter from its documented rules (R-FMT-2). First tests: the O-23 fixtures, marked Oracle until settled.",
-     "patterns": [".formatted(", "DateFormatter", "NumberFormatter", "RelativeDateTimeFormatter", "ByteCountFormatter", "DateComponentsFormatter", "ListFormatter"]},
-    {"id": "F.ProcessLauncher", "project": "Marrow.Core", "target": "src/Marrow.Core/Port/ProcessLauncher.cs", "risk": "HIGH",
-     "spec": "Process launcher: ADR-0002 CreateProcessW with a Job Object and ConPTY in one attribute list (probe P5), the three termination shapes of probe P6 (1 s, 3 s, none); PA-0007, PA-0008, PA-0009, PA-0010, PA-0016; ED-020, ED-024, ED-027, ED-047; rules R-PROC-1 to R-PROC-3. First tests: the ladders under the manual clock; environment block order; argument quoting round trip; the 32,767 character command-line limit.",
-     "patterns": ["Process()", "Pipe()", "FileHandle", "forkpty", "posix_spawn", "kill("]},
-    {"id": "F.FileOps", "project": "Marrow.Core", "target": "src/Marrow.Core/Port/FileOps.cs", "risk": "HIGH",
-     "spec": "File operations: PA-0015 retried replace, rename and delete under Windows sharing violations, read-only clearing, atomic write, verification (R-FS-1). First tests: a handle held open while the helper retries under the manual clock.",
-     "patterns": ["FileManager", "write(to:", "Data(contentsOf:", "contentsOfFile", "atomicWrite", "moveItem", "removeItem", "replaceItem"]},
-    {"id": "F.SettingsStore", "project": "Marrow.Services", "target": "src/Marrow.Services/Port/SettingsStore.cs", "risk": "STANDARD",
-     "spec": "Production settings store behind the UserDefaults seam of ED-079: a per-user JSON store under the Marrow Code data folder (OD-0008 C7), keys and defaults exactly as the source names them, absent versus present kept distinct, integer(forKey:), double(forKey:) and bool(forKey:) conversions as Foundation performs them, atomic writes through F.FileOps. First tests: absent versus present, key names, write order, the type conversions.",
-     "patterns": ["UserDefaults", "defaults.set", "defaults.object", "defaults.string", "defaults.bool", "defaults.integer", "defaults.double", "defaults.data", "defaults.removeObject"]},
-    {"id": "F.SecretStore", "project": "Marrow.Services", "target": "src/Marrow.Services/Port/SecretStore.cs", "risk": "HIGH",
-     "spec": "Secret store in Windows Credential Manager (OD-0008 B3, ADR-0002 deviation 8; R-SEC-1): trimming, empty means delete, the Boolean result the Keychain helpers return, never a plain-text fallback (OD-0008 A6). Credential mapping, case-safe target names, 2560-byte chunking, the SecItem status contract and the backend seam per ED-093. First tests: trimming, empty deletes, the Boolean result, a refused write reports false, case-different accounts stay separate, a 2561-byte value round-trips in chunks, the live test only under MARROW_PORT_CREDMAN_LIVE=1.",
-     "patterns": ["SecItem", "Keychain", "kSecClass"]},
-    {"id": "F.HTTP", "project": "Marrow.Services", "target": "src/Marrow.Services/Port/Http.cs", "risk": "STANDARD",
-     "spec": "HTTP client matching URLSession as the source uses it (R-NET-1): inactivity timeout, decompression, redirects, status handling, the User-Agent of OD-0012 F1. First tests: a loopback server.",
-     "patterns": ["URLSession", "URLRequest", "HTTPURLResponse", "NWListener", "NWConnection"]},
-    {"id": "F.FrameClock", "project": "Marrow.UI", "target": "src/Marrow.UI/Port/FrameClock.cs", "risk": "STANDARD",
-     "spec": "Frame clock (ED-083; R-VIEW-10): frame-driven work runs on Avalonia's frame clock, the system timer resolution is never changed. Every other unit reads time only through this seam (ED-098): a public frame-source interface (request the next frame; the callback gets the frame time), the production source on TopLevel.RequestAnimationFrame, and a public manual source whose Advance(TimeSpan) runs the pending frame callbacks, for headless tests. First tests: a manual frame source.",
-     "patterns": ["TimelineView", "CADisplayLink", "CVDisplayLink", "displayLink"]},
-    {"id": "F.FSWatcher", "project": "Marrow.Services", "target": "src/Marrow.Services/Port/FileWatcher.cs", "risk": "HIGH",
-     "spec": "File-system watcher (R-GCD-3): events posted to the main actor, overflow means rescan (probe P8: FileSystemWatcher.Error with InternalBufferOverflowException maps to everything = true / changed = nil), coalescing. First tests: a real temporary folder, including a forced overflow.",
-     "patterns": ["FSEventStream", "makeFileSystemObjectSource", "DispatchSource.makeFileSystem"]},
-    {"id": "F.SourceScan", "project": "Marrow.Testing", "target": "tests/Marrow.Testing/SourceScan.cs", "risk": "STANDARD",
-     "spec": "Source scan (ED-076; the list in IMPLEMENTING.md section 5.2): one test per test project scans its layer's src folder as text, outside Port/, for the banned patterns, with the protected allowlist. First tests: planted violations are caught.",
-     "patterns": []},
-  {"id": "F.SwiftFont", "project": "Marrow.UI", "target": "src/Marrow.UI/Port/SwiftFont.cs", "risk": "STANDARD",
+ "note": "Port-only foundation units from porting/IMPLEMENTING.md section 4.3. Each is built, tests first, before the first Swift unit that uses the API it replaces; a Swift unit depends on a foundation unit when its source matches one of the unit's patterns. Tests carry Rule or Decision traits (no requirement ids).",
+ "units": [
+  {
+   "id": "F.PathIdentity",
+   "project": "Marrow.Core",
+   "target": "src/Marrow.Core/Port/SwiftPath.cs",
+   "risk": "HIGH",
+   "spec": "Path identity: appendingPathComponent, deletingLastPathComponent, pathExtension, standardizedFileURL, .path, absoluteness, normalization, containment. Implements ED-019, ED-026, ED-036, ED-038, ED-039, ED-045 as one predicate and one normalization; rule R-PATH-1. First tests: the cases each ED lists; drive letters, UNC, \\\\?\\ prefixes, a bare backslash, trailing separators.",
+   "patterns": [
+    "appendingPathComponent",
+    "deletingLastPathComponent",
+    "pathExtension",
+    "standardizedFileURL",
+    "fileURLWithPath",
+    "hasPrefix(\"/\")",
+    "lastPathComponent"
+   ]
+  },
+  {
+   "id": "F.URL",
+   "project": "Marrow.Core",
+   "target": "src/Marrow.Core/Port/SwiftURL.cs",
+   "risk": "STANDARD",
+   "spec": "URL(string:): the macOS 14 leniency, host case and brackets, decoded path (R-PATH-1). First tests: \"foo bar\", IPv6 hosts, MarkdownView.swift:677. url.pathComponents is SwiftURL.PathComponents (ED-143): the swift-foundation 6.2 split of the encoded path on runs of \"/\", each component percent-decoded as UTF-8, a final \"/\" dropped, \"\\\" kept percent-encoded; its tests carry Oracle O-44.",
+   "patterns": [
+    "URL(string:",
+    "pathComponents"
+   ],
+   "dependents": [
+    "Core.Models.MergeRequestLink"
+   ]
+  },
+  {
+   "id": "F.ICUFormatters",
+   "project": "Marrow.Core",
+   "target": "src/Marrow.Core/Port/SwiftFormatters.cs",
+   "risk": "STANDARD",
+   "spec": "ICU formatters through Windows icu.dll (ED-073, ED-094 Calendar.current, ED-096 the accepted API): udat skeletons, ureldatefmt, unum spell-out, currency, Int.formatted(); ByteCountFormatter from its documented rules (R-FMT-2). First tests: the O-23 fixtures, marked Oracle until settled.",
+   "patterns": [
+    ".formatted(",
+    "DateFormatter",
+    "NumberFormatter",
+    "RelativeDateTimeFormatter",
+    "ByteCountFormatter",
+    "DateComponentsFormatter",
+    "ListFormatter"
+   ]
+  },
+  {
+   "id": "F.ProcessLauncher",
+   "project": "Marrow.Core",
+   "target": "src/Marrow.Core/Port/ProcessLauncher.cs",
+   "risk": "HIGH",
+   "spec": "Process launcher: ADR-0002 CreateProcessW with a Job Object and ConPTY in one attribute list (probe P5), the three termination shapes of probe P6 (1 s, 3 s, none); PA-0007, PA-0008, PA-0009, PA-0010, PA-0016; ED-020, ED-024, ED-027, ED-047; rules R-PROC-1 to R-PROC-3. First tests: the ladders under the manual clock; environment block order; argument quoting round trip; the 32,767 character command-line limit.",
+   "patterns": [
+    "Process()",
+    "Pipe()",
+    "FileHandle",
+    "forkpty",
+    "posix_spawn",
+    "kill("
+   ]
+  },
+  {
+   "id": "F.FileOps",
+   "project": "Marrow.Core",
+   "target": "src/Marrow.Core/Port/FileOps.cs",
+   "risk": "HIGH",
+   "spec": "File operations: PA-0015 retried replace, rename and delete under Windows sharing violations, read-only clearing, atomic write, verification (R-FS-1). First tests: a handle held open while the helper retries under the manual clock.",
+   "patterns": [
+    "FileManager",
+    "write(to:",
+    "Data(contentsOf:",
+    "contentsOfFile",
+    "atomicWrite",
+    "moveItem",
+    "removeItem",
+    "replaceItem"
+   ]
+  },
+  {
+   "id": "F.SettingsStore",
+   "project": "Marrow.Services",
+   "target": "src/Marrow.Services/Port/SettingsStore.cs",
+   "risk": "STANDARD",
+   "spec": "Production settings store behind the UserDefaults seam of ED-079: a per-user JSON store under the Marrow Code data folder (OD-0008 C7), keys and defaults exactly as the source names them, absent versus present kept distinct, integer(forKey:), double(forKey:) and bool(forKey:) conversions as Foundation performs them, atomic writes through F.FileOps. First tests: absent versus present, key names, write order, the type conversions.",
+   "patterns": [
+    "UserDefaults",
+    "defaults.set",
+    "defaults.object",
+    "defaults.string",
+    "defaults.bool",
+    "defaults.integer",
+    "defaults.double",
+    "defaults.data",
+    "defaults.removeObject"
+   ]
+  },
+  {
+   "id": "F.SecretStore",
+   "project": "Marrow.Services",
+   "target": "src/Marrow.Services/Port/SecretStore.cs",
+   "risk": "HIGH",
+   "spec": "Secret store in Windows Credential Manager (OD-0008 B3, ADR-0002 deviation 8; R-SEC-1): trimming, empty means delete, the Boolean result the Keychain helpers return, never a plain-text fallback (OD-0008 A6). Credential mapping, case-safe target names, 2560-byte chunking, the SecItem status contract and the backend seam per ED-093. First tests: trimming, empty deletes, the Boolean result, a refused write reports false, case-different accounts stay separate, a 2561-byte value round-trips in chunks, the live test only under MARROW_PORT_CREDMAN_LIVE=1.",
+   "patterns": [
+    "SecItem",
+    "Keychain",
+    "kSecClass"
+   ]
+  },
+  {
+   "id": "F.HTTP",
+   "project": "Marrow.Core",
+   "target": "src/Marrow.Core/Port/Http.cs",
+   "risk": "STANDARD",
+   "spec": "HTTP client matching URLSession as the source uses it (R-NET-1): inactivity timeout, decompression, redirects, status handling, the User-Agent of OD-0012 F1. First tests: a loopback server. URLSessionConfiguration.ephemeral, URLRequest.CachePolicy and URLCache as UpdateChecker.swift:101-110 uses them (ED-119); network defaults per ED-118. ED-168 moved the port types to Marrow.Core (UI calls URLSession.shared too: LinkTitles.swift:47, MarkdownView.swift:949).",
+   "patterns": [
+    "URLSession",
+    "URLRequest",
+    "HTTPURLResponse",
+    "NWListener",
+    "NWConnection",
+    "URLCache"
+   ]
+  },
+  {
+   "id": "F.FrameClock",
+   "project": "Marrow.UI",
+   "target": "src/Marrow.UI/Port/FrameClock.cs",
+   "risk": "STANDARD",
+   "spec": "Frame clock (ED-083; R-VIEW-10): frame-driven work runs on Avalonia's frame clock, the system timer resolution is never changed. Every other unit reads time only through this seam (ED-098): a public frame-source interface (request the next frame; the callback gets the frame time), the production source on TopLevel.RequestAnimationFrame, and a public manual source whose Advance(TimeSpan) runs the pending frame callbacks, for headless tests. First tests: a manual frame source.",
+   "patterns": [
+    "TimelineView",
+    "CADisplayLink",
+    "CVDisplayLink",
+    "displayLink"
+   ]
+  },
+  {
+   "id": "F.FSWatcher",
+   "project": "Marrow.Services",
+   "target": "src/Marrow.Services/Port/FileWatcher.cs",
+   "risk": "HIGH",
+   "spec": "File-system watcher (R-GCD-3): tree watch events on the caller's SerialQueue and directory watch events on main (ED-116); overflow or any Error means rescan (probe P8: FileSystemWatcher.Error with InternalBufferOverflowException maps to everything = true / changed = nil; ED-114); batching of events waiting for the handler, no latency (ED-115); no order between roots (ED-113). First tests: a real temporary folder, including a forced overflow.",
+   "patterns": [
+    "FSEventStream",
+    "makeFileSystemObjectSource",
+    "DispatchSource.makeFileSystem"
+   ]
+  },
+  {
+   "id": "F.SourceScan",
+   "project": "Marrow.Testing",
+   "target": "tests/Marrow.Testing/SourceScan.cs",
+   "risk": "STANDARD",
+   "spec": "Source scan (ED-076; the list in IMPLEMENTING.md section 5.2): one test per test project scans its layer's src folder as text, outside Port/, for the banned patterns, with the protected allowlist. First tests: planted violations are caught.",
+   "patterns": [],
+   "noMerge": true
+  },
+  {
+   "id": "F.SwiftFont",
+   "project": "Marrow.UI",
+   "target": "src/Marrow.UI/Port/SwiftFont.cs",
+   "risk": "STANDARD",
    "spec": "SwiftUI Font model (ED-091, ED-059, OD-0009, PA-0013; R-VIEW-11). One immutable SwiftFont value: text style or fixed size, optional weight, design default or monospaced, monospacedDigit/italic/bold modifiers returning new values; factories System(style, design), System(size, weight, design) and one static per text style; NSFont.systemFont(ofSize:weight:), monospacedSystemFont(ofSize:weight:) and boldSystemFont(ofSize:) through the same type. Resolve() gives Avalonia FontFamily (Inter, or Cascadia Mono for monospaced), FontSize (ED-059 table from B1:DroppyCode/UI/Common/ChatZoom.swift:44-57, or the fixed size), FontWeight (100..900), FontStyle and font features (tnum for monospacedDigit); plus an Apply helper for TextBlock and TemplatedControl. Headline with no weight resolves bold; every other style regular. No zoom. First tests: the size per style, the weight map, the headline default, the monospaced face, the digits feature, and that modifiers do not change the receiver.",
-   "patterns": [".font(", "Font.", "NSFont"]},
-  {"id": "F.SwiftColor", "project": "Marrow.UI", "target": "src/Marrow.UI/Port/SwiftColor.cs", "risk": "STANDARD",
+   "patterns": [
+    ".font(",
+    "Font.",
+    "NSFont"
+   ]
+  },
+  {
+   "id": "F.SwiftColor",
+   "project": "Marrow.UI",
+   "target": "src/Marrow.UI/Port/SwiftColor.cs",
+   "risk": "STANDARD",
    "spec": "SwiftUI Color model (ED-092 part 1, ED-051, ED-062; R-VIEW-11). One immutable SwiftColor: fixed sRGB with alpha (red/green/blue, white, white+alpha, and the Core hex extension), an appearance pair resolved per ActualThemeVariant (NSColor dynamicProvider, the ED-051/ED-062 token pairs), or a named system colour (clear, white, black, primary, secondary, accentColor, yellow, NSColor labelColor, placeholderTextColor, controlAccentColor). Opacity(x) multiplies alpha and returns a new value. Resolve(theme) gives an Avalonia Color; Brush(control) gives a brush that follows the control theme changes. The accent is the Windows personalization accent. System colours with no B2 value use the macOS documented values, UNVERIFIED under OD-0001. First tests: opacity arithmetic, the token pairs in light and dark, a brush updating when the theme flips, hex parsing through the Core extension, and that Opacity does not change the receiver.",
-   "patterns": ["Color(", "Color.", "NSColor", ".foregroundStyle(", ".tint("]},
-  {"id": "F.SwiftAnimation", "project": "Marrow.UI", "target": "src/Marrow.UI/Port/SwiftAnimation.cs", "risk": "STANDARD",
+   "patterns": [
+    "Color(",
+    "Color.",
+    "NSColor",
+    ".foregroundStyle(",
+    ".tint("
+   ]
+  },
+  {
+   "id": "F.SwiftAnimation",
+   "project": "Marrow.UI",
+   "target": "src/Marrow.UI/Port/SwiftAnimation.cs",
+   "risk": "STANDARD",
    "spec": "SwiftUI animation curves and transitions (ED-092 part 2, ED-098, ED-011; R-VIEW-4). Time comes only from the F.FrameClock seam (ED-098 (1)); animatable modifiers implement IAnimatableModifier (ED-098 (2)). Concrete records under the existing abstract Animation in ViewSupport.cs (make it partial if the factories need it): Spring(response, dampingFraction, blendDuration), Spring(duration, bounce), Spring(response, dampingRatio) with SettlingDuration = ln(1000)/(zeta*omega0) per ED-011, Smooth (bounce 0), Snappy (bounce 0.15), EaseIn, EaseOut, EaseInOut (cubic Beziers 0.42,0,1,1 / 0,0,0.58,1 / 0.42,0,0.58,1), Linear, Delay; defaults duration 0.35 for timing curves and 0.5 for smooth, snappy and spring(duration:). A spring is a damped oscillator, omega0 = 2*pi/response, zeta = dampingFraction or 1 - bounce (bounce >= 0) or 1/(1+bounce), exposed as progress(t) and as an Avalonia Easing. SwiftTransition: Identity, Opacity, Scale(scale, anchor), Offset(x, y), Move(edge), BlurReplace, Modifier(active, identity), Asymmetric(insertion, removal), Combined(with), Animation(a); an applier animates insertion from active to identity and removal from identity to active before the control leaves, using Transaction.Current. First tests: the spring progress at fixed times against the closed form, settlingDuration 0.767 s for response 0.6 / damping 0.86, the Bezier curves at known points, delay, and insertion/removal state on a headless control.",
-   "patterns": ["withAnimation", ".animation(", ".transition(", "Spring(", "AnyTransition", ".spring", ".snappy", ".smooth", ".easeOut", ".easeIn", ".linear"]},
-  {"id": "F.StyledText", "project": "Marrow.UI", "target": "src/Marrow.UI/Port/StyledText.cs", "risk": "STANDARD",
+   "patterns": [
+    "withAnimation",
+    ".animation(",
+    ".transition(",
+    "Spring(",
+    "AnyTransition",
+    ".spring",
+    ".snappy",
+    ".smooth",
+    ".easeOut",
+    ".easeIn",
+    ".linear"
+   ]
+  },
+  {
+   "id": "F.StyledText",
+   "project": "Marrow.UI",
+   "target": "src/Marrow.UI/Port/StyledText.cs",
+   "risk": "STANDARD",
    "spec": "SwiftUI Text as a value (ED-092 part 3). StyledText is an immutable list of runs, each a string with optional SwiftFont, SwiftColor, weight, italic, underline, strikethrough, monospacedDigit and baseline offset; modifiers return new values; + concatenates; Render(TextBlock) writes the runs as Avalonia inlines. AttributedString is not part of this unit. First tests: concatenation keeps each run style, modifiers apply to every run of the receiver, and a rendered TextBlock has one Run per run with the resolved font and brush.",
-   "patterns": ["-> Text", ": Text", "+ Text("]}
-  ]
+   "patterns": [
+    "-> Text",
+    ": Text",
+    "+ Text("
+   ]
+  },
+  {
+   "id": "Core.Repair.ScanClean",
+   "project": "Marrow.Core",
+   "target": "src/Marrow.Core (the files the source scan names) and src/Marrow.Services",
+   "risk": "HIGH",
+   "spec": "The source-scan repair of ED-108 (IMPLEMENTING.md 4.4). Branch from unit/F.SourceScan (the scan and its four real-tree tests, committed and reviewed there) and merge current impl/b2. Then clear every finding the Core and Services real-tree SourceScanTests print: each site takes the replacement IMPLEMENTING.md 4.4 lists under its rule (R-ENUM-1/ED-075, R-ENUM-3, R-STR-4, R-STR-6, R-STR-2, R-NUM-1 SwiftNumber.ParseInt, R-CODE-1, R-CODE-3, R-CODE-8, R-STR-9); no allowlist entry except the one ED-108 rules for Coding.cs:92; a banned call must not move into Port/ to escape the scan. The only test edits allowed are R-STR-9 respellings (same evaluated value, eight-digit escape, a comment naming the character) and the new MCPTransport UnionCoverage test ED-108 names. Just before the merge run git merge impl/b2 again and clear any new findings. Merging this branch lands F.SourceScan with it. Tests: tests/Marrow.Core.Tests and tests/Marrow.Services.Tests, all four real-tree SourceScanTests green.",
+   "patterns": [],
+   "deps": [
+    "F.SourceScan",
+    "Core.Support.Coding",
+    "Core.Support.Text",
+    "Core.Support.StdioFramer",
+    "Core.Models.Requests",
+    "Core.Models.MergeRequestLink",
+    "Core.Models.MCP",
+    "Core.Models.MCPCatalog"
+   ],
+   "base": "unit/F.SourceScan"
+  },
+  {
+   "id": "F.LoadingMark",
+   "project": "Marrow.UI",
+   "target": "src/Marrow.UI/Port/LoadingMark.cs",
+   "risk": "STANDARD",
+   "spec": "The loading mark and boot sequence of OD-0016 and OD-0018, exactly as ED-097, ED-102 and ED-103 give them in numbers; the reference implementation is porting/design/loading_mark/boot_sequence.html (canvas, frame by frame) and loading_premium.html card B, and where they differ from the EDs the EDs rule. LoadingMark draws the Marrow icon (src/Marrow.App/Assets/icon.svg geometry) with the Comet motion of ED-102 (1) to (3) from the F.FrameClock seam, still under reduce motion, with the 400 ms no-flash rule for in-app sites (ED-097). A BootSequence type drives the ED-103 phases (gather, pulse, turns until ready, disintegration, window formation) as pure functions of time, so tests pin particle positions, reveal shares, pulse times and phase boundaries at fixed times with the manual frame source. First tests: the turn angle and speed at fixed times, one pulse exactly at each rest, the ring radius and opacity curve, the gather reveal share, the final rest after readiness, disintegration pairing by angle without crossings, and reduce motion.",
+   "patterns": [],
+   "deps": [
+    "F.FrameClock"
+   ],
+   "dependents": [
+    "App.Views.Chat.ThreadTimeline",
+    "App.Views.Diff.DiffInspector",
+    "UI.Common.AttachmentPreview",
+    "App.AppDelegate"
+   ]
+  },
+  {
+   "id": "F.ResizeStretch",
+   "project": "Marrow.UI",
+   "target": "src/Marrow.UI/Port/ResizeStretch.cs",
+   "risk": "HIGH",
+   "spec": "The live-resize remedy of OD-0017 exactly as ED-101 gives it: after a window's first frame, resolve PlatformImpl, _glSurface, _window, _shared (SyncRoot, Compositor), _visual and _surfaceBrush by reflection; under lock(SyncRoot) size the content visual to zero with RelativeSizeAdjustment (1,1), set the surface brush Stretch to Fill, park a detached sprite visual in _visual; read both back and, if a member is missing or a read-back differs, log once and leave the window as Avalonia made it; on close put the real visual back under the lock before Avalonia disposes the surface. Evidence: porting/probes/p4b/RESULT.md section How the production chrome should implement it. First tests: a test pinned to Avalonia 12.1.2 that fails if any member is not found; the read-backs on a real window; the restore on close; nothing changes at rest.",
+   "patterns": [],
+   "dependents": [
+    "UI.Chrome.WindowChrome",
+    "App.Window.WindowManager"
+   ]
+  },
+  {
+   "id": "F.Sound",
+   "project": "Marrow.UI",
+   "target": "src/Marrow.UI/Port/SwiftSound.cs",
+   "risk": "STANDARD",
+   "spec": "NSSound as ED-151 gives it: SwiftSound.Create(byte[]) returning null for data that is not a playable PCM WAV; float Volume; Play() returning false and doing nothing while playing; Stop(); IsPlaying; output through the Ambient<ISoundOutput> seam SoundOutput.Current, production on the Windows waveOut API by P/Invoke with Volume applied to the samples, tests on a fake that records plays, stops and volumes and completes on demand. First tests: Create null for bad data; play then play again while playing is declined; stop then play replays; the volume reaches the output; a playback completes and IsPlaying turns false.",
+   "patterns": [
+    "NSSound"
+   ]
+  },
+  {
+   "id": "F.HTTPMove",
+   "project": "Marrow.Core",
+   "target": "src/Marrow.Core/Port/Http.cs",
+   "risk": "STANDARD",
+   "spec": "ED-168: a pure move of the F.HTTP port types (URLSession and its companions) from Marrow.Services to Marrow.Core, with their tests; code that named them through Marrow.Services.Port gets using Marrow.Core.Port.",
+   "patterns": [
+    "URLSession",
+    "URLRequest",
+    "HTTPURLResponse",
+    "NWListener",
+    "NWConnection",
+    "URLCache"
+   ]
+  },
+  {
+   "id": "F.URLComponents",
+   "project": "Marrow.Core",
+   "target": "src/Marrow.Core/Port/URLComponents.cs",
+   "risk": "STANDARD",
+   "spec": "ED-169: Foundation URLComponents and URLQueryItem as port types, built on SwiftURL parsing and percent-coding (swift-foundation 6.2), members exactly as the call sites use them; oracle items O-57 to O-60.",
+   "deps": [
+    "F.URL"
+   ],
+   "patterns": [
+    "URLComponents",
+    "URLQueryItem"
+   ]
+  },
+  {
+   "id": "F.SymbolImage",
+   "project": "Marrow.UI",
+   "target": "src/Marrow.UI/Port/SwiftImage.cs",
+   "risk": "STANDARD",
+   "spec": "ED-179 and ED-182: Image(systemName:) as Lucide icons (OD-0010, porting/icons) through an SVG-subset converter, Image(_ name:) for the three asset images, sizing, fill, composition and effects per ED-182 (oracle O-63).",
+   "patterns": [
+    "systemName:",
+    "systemImage:",
+    "systemSymbolName:",
+    "Image(\""
+   ]
+  }
+ ]
 }
