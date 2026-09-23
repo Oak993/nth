@@ -17,6 +17,7 @@ namespace Marrow.Core.Tests.Port;
 //   AbsoluteString, Scheme, Host                url.absoluteString, url.scheme, url.host
 //   HostComponent(bool percentEncoded = true)   url.host(percentEncoded:), the host() the source calls
 //   Path                                        url.path
+//   PathComponents (ImmutableArray<string>)     url.pathComponents (ED-143)
 //   Equals, GetHashCode                         URL is Hashable; equality is textual
 // Every non-ASCII character is written as a \U escape (R-STR-9).
 public sealed class SwiftURLTests
@@ -44,8 +45,10 @@ public sealed class SwiftURLTests
         Assert.Null(SwiftURL.Create(""));
     }
 
+    // Oracle O-38: URL(string:) parsing and re-encoding beyond R-PATH-1 (a swift-foundation source reading, not a capture).
     [Fact]
     [Trait("Rule", "R-PATH-1")] // MCPOAuth.swift:201-203 keeps a live nil branch; URLParser.swift:493-504, :859-869
+    [Trait("Oracle", "O-38")]
     public void A_port_that_is_not_all_digits_gives_nil()
     {
         // parse(buffer:) validates the port of an authority: only ASCII digits, unless the scheme is "addressbook".
@@ -53,8 +56,10 @@ public sealed class SwiftURLTests
         Assert.Null(SwiftURL.Create("http://example.com:abc/"));
     }
 
+    // Oracle O-38: URL(string:) parsing and re-encoding beyond R-PATH-1 (a swift-foundation source reading, not a capture).
     [Fact]
     [Trait("Rule", "R-PATH-1")] // MCPOAuth.swift:201-203 guard URL(string: url) != nil keeps a live nil branch
+    [Trait("Oracle", "O-38")]
     public void Text_before_the_first_colon_that_is_not_a_valid_scheme_gives_nil()
     {
         // Everything before the first ":" is the scheme unless "/", "?", "#", "[", "]" or "@" comes first
@@ -64,8 +69,10 @@ public sealed class SwiftURLTests
         Assert.Null(SwiftURL.Create("my server:8080"));
     }
 
+    // Oracle O-38: URL(string:) parsing and re-encoding beyond R-PATH-1 (a swift-foundation source reading, not a capture).
     [Fact]
     [Trait("Rule", "R-PATH-1")] // MCPCustom.swift:85, MCPSettingsPage.swift:1063 host() ?? url; MCPOAuth.swift:201
+    [Trait("Oracle", "O-38")]
     public void An_at_sign_before_the_first_colon_makes_a_relative_reference_with_no_scheme_and_no_host()
     {
         // "@" before any ":" is the authority heuristic of URLParser.swift:811-816: no scheme, and with no leading "//"
@@ -123,9 +130,9 @@ public sealed class SwiftURLTests
     }
 
     [Theory]
-    [Trait("Rule", "R-PATH-1")] // UpdateChecker.swift:68, :70; Provider.swift:83-96; ZaiAPI.swift:11; MarkdownView.swift:743
+    [Trait("Rule", "R-PATH-1")] // UpdateChecker.swift:67, :68, :70; Provider.swift:83-96; ZaiAPI.swift:11; MarkdownView.swift:743
     [InlineData("https://gitlab.com/droppyformac1/droppy-code")]
-    [InlineData("https://gitlab.com/api/v4/projects/123/releases?per_page=20")]
+    [InlineData("https://gitlab.com/api/v4/projects/86415974/releases?per_page=20")]
     [InlineData("https://claude.com/product/claude-code")]
     [InlineData("https://dev.meta.ai/")]
     [InlineData("https://api.z.ai/api/biz/customer-package-reset/list?targetType=PERSONAL")]
@@ -163,8 +170,10 @@ public sealed class SwiftURLTests
         Assert.Equal("/caf" + EAcute, url.Path);
     }
 
+    // Oracle O-38: URL(string:) parsing and re-encoding beyond R-PATH-1 (a swift-foundation source reading, not a capture).
     [Fact]
     [Trait("Rule", "R-PATH-1")] // R-PATH-1 leniency; MarkdownView.swift:677 decodes url.path once more
+    [Trait("Oracle", "O-38")]
     public void An_invalid_path_is_encoded_whole_so_an_existing_escape_becomes_percent_25()
     {
         // URL(string:) takes the non-compatibility parse (URL_Swift.swift:75-76, :83-87). An invalid path is rebuilt
@@ -184,8 +193,10 @@ public sealed class SwiftURLTests
         Assert.Equal("/100%", bare.Path);
     }
 
+    // Oracle O-41: url.path beyond R-PATH-1 and survey 20 (a swift-foundation source reading, not a capture).
     [Fact]
     [Trait("Rule", "R-PATH-1")] // MarkdownView.swift:677 url.path.removingPercentEncoding ?? url.path, :680 host alone
+    [Trait("Oracle", "O-41")]
     public void A_path_whose_escapes_are_not_UTF8_decodes_to_an_empty_path()
     {
         // "%E9" is valid percent-encoding, so the string is kept as written. path is
@@ -212,8 +223,10 @@ public sealed class SwiftURLTests
         Assert.Equal(host, url.HostComponent());
     }
 
+    // Oracle O-40: url.host and host() beyond R-PATH-1 (a swift-foundation source reading, not a capture).
     [Fact]
     [Trait("Rule", "R-PATH-1")] // Hydra.swift:448, MCPCustom.swift:85, MCPSettingsPage.swift:1063 call host(); URL_Swift.swift:444-477
+    [Trait("Oracle", "O-40")]
     public void Host_component_stays_percent_encoded_while_host_is_decoded()
     {
         // URL.host is host(percentEncoded: false) (URL_Swift.swift:444-446); host() defaults percentEncoded to true
@@ -230,16 +243,29 @@ public sealed class SwiftURLTests
 
     [Fact]
     [Trait("Rule", "R-PATH-1")] // MarkdownView.swift:673 url.host?.lowercased(); MCPCustom.swift:85, MCPSettingsPage.swift:1063 host() ?? url
-    public void A_non_ASCII_host_is_IDNA_encoded_and_host_component_percent_encodes_the_decoded_name()
+    public void A_non_ASCII_host_is_IDNA_encoded_in_the_absolute_string()
     {
-        // The host is invalid, not an IP literal, and "https" is not on schemesToPercentEncodeHost
-        // (URLParser.swift:235-253, :264-277), so it is IDNA-encoded (:695-697). url.host then returns the IDNA text
-        // ("Return IDNA-encoded host", URL_Swift.swift:473-475); host() IDNA-decodes and then percent-encodes
-        // (URL_Swift.swift:465-469), UTF-8 bytes in upper-case hex. The IDNA hook exists because the Darwin framework
-        // build returns UIDNAHookICU (URLParser.swift:190-193); without it the host would be percent-encoded (:265-268).
+        // Apple's URL.init(string:) documentation, for apps linked on or after iOS 17 and aligned OS versions: URL
+        // "automatically percent- and IDNA-encodes invalid characters". The source it describes: the host is invalid, not an IP literal, and
+        // "https" is not on schemesToPercentEncodeHost (URLParser.swift:235-253, :264-277), so it is IDNA-encoded
+        // (:695-697) by UIDNAHookICU (URLParser.swift:190-193).
         var url = SwiftURL.Create("https://b" + UUmlaut + "cher.de/");
         Assert.NotNull(url);
         Assert.Equal("https://xn--bcher-kva.de/", url.AbsoluteString);
+    }
+
+    // Oracle O-40: url.host and host() beyond R-PATH-1 (a swift-foundation source reading, not a capture).
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // MarkdownView.swift:673 url.host?.lowercased(); MCPCustom.swift:85, MCPSettingsPage.swift:1063 host() ?? url
+    [Trait("Oracle", "O-40")]
+    public void A_non_ASCII_host_reads_back_as_IDNA_text_and_host_component_percent_encodes_the_decoded_name()
+    {
+        // url.host returns the IDNA text ("Return IDNA-encoded host", URL_Swift.swift:473-475); host() IDNA-decodes and
+        // then percent-encodes (URL_Swift.swift:465-469), UTF-8 bytes in upper-case hex. The IDNA hook exists because
+        // the Darwin framework build returns UIDNAHookICU (URLParser.swift:190-193); without it the host would be
+        // percent-encoded (:265-268).
+        var url = SwiftURL.Create("https://b" + UUmlaut + "cher.de/");
+        Assert.NotNull(url);
         Assert.Equal("xn--bcher-kva.de", url.Host);
         Assert.Equal("b%C3%BCcher.de", url.HostComponent());
         Assert.Equal("b%C3%BCcher.de", url.HostComponent(percentEncoded: true));
@@ -268,9 +294,17 @@ public sealed class SwiftURLTests
     [Trait("Rule", "R-PATH-1")] // MCPProbe.swift:363 "\(url.scheme ?? "https")://\(host)"; URL_Swift.swift:385-388
     public void Scheme_is_returned_as_written()
     {
-        // scheme is String(scheme) over the parsed range (URL_Swift.swift:385-388); the parser only validates it
-        // (URLParser.swift:409-418, :819-824) and never lowercases it.
+        // scheme is String(scheme) over the parsed range (URL_Swift.swift:385-388).
         Assert.Equal("https", SwiftURL.Create("https://gitlab.com/api/v4/mcp")?.Scheme);
+    }
+
+    // Oracle O-38: URL(string:) parsing and re-encoding beyond R-PATH-1 (a swift-foundation source reading, not a capture).
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // MCPProbe.swift:363 "\(url.scheme ?? "https")://\(host)"; URL_Swift.swift:385-388
+    [Trait("Oracle", "O-38")]
+    public void An_upper_case_scheme_is_kept_as_written()
+    {
+        // The parser only validates the scheme (URLParser.swift:409-418, :819-824) and never lowercases it.
         Assert.Equal("HTTPS", SwiftURL.Create("HTTPS://gitlab.com/api/v4/mcp")?.Scheme);
     }
 
@@ -326,16 +360,30 @@ public sealed class SwiftURLTests
     [Theory]
     [Trait("Rule", "R-PATH-1")] // AttachmentPreview.swift:66-67 absolute = URL(string: trimmed)?.path ?? trimmed; survey 20
     [InlineData("file:///Users/me/shot%201.png", "/Users/me/shot 1.png")]
+    public void A_file_URL_path_is_percent_decoded(string text, string path)
+    {
+        // For a file URL, path is the file-system path (URL_Swift.swift:525), decoded (:574-578, :616). Only the POSIX
+        // shape the Swift sees is pinned here; the Windows shape of a file:///C:/... candidate has no engineering
+        // decision yet and is not chosen by this test.
+        var url = SwiftURL.Create(text);
+        Assert.NotNull(url);
+        Assert.Equal("file", url.Scheme);
+        Assert.Equal(path, url.Path);
+        Assert.Equal(text, url.AbsoluteString);
+    }
+
+    // Oracle O-41: url.path beyond R-PATH-1 and survey 20 (a swift-foundation source reading, not a capture).
+    [Theory]
+    [Trait("Rule", "R-PATH-1")] // AttachmentPreview.swift:66-67 absolute = URL(string: trimmed)?.path ?? trimmed; survey 20
+    [Trait("Oracle", "O-41")]
     [InlineData("file:///Users/me/a%2Fb.png", "/Users/me/a%2Fb.png")]
     [InlineData("file:///tmp/a%00b", "/tmp/a%00b")]
     [InlineData("file:///Users/me/dir%2F", "/Users/me/dir%2F")]
     [InlineData("file:///Users/me/dir//", "/Users/me/dir")]
     public void A_file_URL_path_drops_trailing_slashes_then_decodes_all_but_slash_and_NUL(string text, string path)
     {
-        // For a file URL, path is the file-system path (URL_Swift.swift:525): all trailing slashes dropped first
-        // (_droppingTrailingSlashes, not the compatibility singular, :609-614), then decoded with "%2F" and "%00" left
-        // encoded (:574-578, :616). Only the POSIX shape the Swift sees is pinned here; the Windows shape of a
-        // file:///C:/... candidate has no engineering decision yet and is not chosen by this test.
+        // All trailing slashes are dropped first (_droppingTrailingSlashes, not the compatibility singular,
+        // URL_Swift.swift:609-614), then the path is decoded with "%2F" and "%00" left encoded (:574-578, :616).
         var url = SwiftURL.Create(text);
         Assert.NotNull(url);
         Assert.Equal("file", url.Scheme);
@@ -350,16 +398,28 @@ public sealed class SwiftURLTests
     [InlineData("https://example.com/", "/")]
     [InlineData("https://example.com", "")]
     [InlineData("https://example.com?x=1", "")]
+    public void Path_drops_a_trailing_slash_keeps_a_lone_root_and_is_empty_without_one(string text, string path)
+    {
+        // Survey 20: url.path "loses its trailing slash". For a non-file URL the path is decoded first and then the
+        // trailing slash is dropped (URL_Swift.swift:528, String+Path.swift:420-428); a lone "/" stays "/".
+        var url = SwiftURL.Create(text);
+        Assert.NotNull(url);
+        Assert.Equal(path, url.Path);
+    }
+
+    // Oracle O-41: url.path beyond R-PATH-1 and survey 20 (a swift-foundation source reading, not a capture).
+    [Theory]
+    [Trait("Rule", "R-PATH-1")] // MCPProbe.swift:355-357 url.path.lowercased().hasSuffix("/api/v4/mcp"); MCPOAuth.swift:218; survey 20
+    [Trait("Oracle", "O-41")]
     [InlineData("https://example.com/api/v4/mcp//", "/api/v4/mcp")]
     [InlineData("https://example.com//", "/")]
     [InlineData("https://example.com/docs%2F", "/docs")]
-    public void Path_drops_a_trailing_slash_keeps_a_lone_root_and_is_empty_without_one(string text, string path)
+    public void Path_drops_every_trailing_slash_after_decoding(string text, string path)
     {
-        // Survey 20: url.path "loses its trailing slash". For a non-file URL the path is decoded first and then every
-        // trailing slash is dropped (URL_Swift.swift:528, _droppingTrailingSlashes at String+Path.swift:420-428); an
-        // all-slash path becomes "/". The singular _droppingTrailingSlash (String+Path.swift:413-418) belongs only to
-        // compatibility mode (URL_Swift.swift:610-611), so "/api/v4/mcp//" loses both slashes, and "%2F" is decoded
-        // before the drop, so "/docs%2F" gives "/docs".
+        // Every trailing slash is dropped (_droppingTrailingSlashes at String+Path.swift:420-428); an all-slash path
+        // becomes "/". The singular _droppingTrailingSlash (String+Path.swift:413-418) belongs only to compatibility
+        // mode (URL_Swift.swift:610-611), so "/api/v4/mcp//" loses both slashes, and "%2F" is decoded before the drop
+        // (URL_Swift.swift:528), so "/docs%2F" gives "/docs".
         var url = SwiftURL.Create(text);
         Assert.NotNull(url);
         Assert.Equal(path, url.Path);
@@ -397,6 +457,130 @@ public sealed class SwiftURLTests
         Assert.True(first.Equals(second));
         Assert.Equal(first.GetHashCode(), second.GetHashCode());
         Assert.NotEqual(first, SwiftURL.Create("droppycode-head://" + "11111111-2222-3333-4444-555555555555"));
+    }
+
+    // Oracle O-39: "\" and the POSIX file path shape on macOS (a swift-foundation source reading, not a capture).
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // TimelineRows.swift:380, LinkParagraphView.swift:95, MCPHub.swift:423, AttachmentPreview.swift:67
+    [Trait("Oracle", "O-39")]
+    public void A_backslash_is_kept_and_percent_encoded_and_a_file_URL_path_decodes_percent_5C_to_a_backslash()
+    {
+        // The "\" to "/" rewrite of URLParser.swift:632-634 is #if os(Windows) and is not in the macOS build, so "\" is
+        // an invalid path character and the path is percent-encoded (:707-709); url.path decodes it back. A file URL
+        // takes the POSIX path style on macOS (URL.swift:1412-1415): decodeFilePath (URL_Swift.swift:574-578, :616)
+        // turns "%5C" into "\" and nothing turns it into a separator.
+        var url = SwiftURL.Create("https://example.com/a\\b");
+        Assert.NotNull(url);
+        Assert.Equal("https://example.com/a%5Cb", url.AbsoluteString);
+        Assert.Equal("/a\\b", url.Path);
+        Assert.Equal("example.com", url.Host);
+
+        var file = SwiftURL.Create("file:///Users/me/a%5Cb.png");
+        Assert.NotNull(file);
+        Assert.Equal("/Users/me/a\\b.png", file.Path);
+        Assert.Equal("file:///Users/me/a%5Cb.png", file.AbsoluteString);
+    }
+
+    // Oracle O-40: url.host and host() beyond R-PATH-1 (a swift-foundation source reading, not a capture).
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // MCPProbe.swift:362-363, MCPCustom.swift:85, MCPSettingsPage.swift:1063, CopilotSession.swift:888
+    [Trait("Oracle", "O-40")]
+    public void An_empty_host_is_nil_unless_a_user_password_or_port_is_present()
+    {
+        // "//" followed at once by "/" is an empty authority: the host exists but is empty (URLParser.swift:851-853).
+        // host(percentEncoded:) returns nil for an empty host with no user, password or port (URL_Swift.swift:448-457),
+        // and "" when one of them is present.
+        var bare = SwiftURL.Create("https:///x");
+        Assert.NotNull(bare);
+        Assert.Null(bare.Host);
+        Assert.Null(bare.HostComponent());
+
+        var port = SwiftURL.Create("https://:443/x");
+        Assert.NotNull(port);
+        Assert.Equal("", port.Host);
+        Assert.Equal("", port.HostComponent());
+
+        var user = SwiftURL.Create("https://user@/x");
+        Assert.NotNull(user);
+        Assert.Equal("", user.Host);
+        Assert.Equal("", user.HostComponent());
+    }
+
+    // Oracle O-38: URL(string:) parsing and re-encoding beyond R-PATH-1 (a swift-foundation source reading, not a capture).
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // MarkdownView.swift:743
+    [Trait("Oracle", "O-38")]
+    public void An_invalid_query_or_fragment_is_encoded_with_its_own_set_which_keeps_slash_and_question_mark()
+    {
+        // An invalid query or fragment is re-encoded whole (URLParser.swift:714-728) with queryAllowed and
+        // fragmentAllowed, pchar + "/?" (:1217-1219), so "/" and "?" stay and a space or non-ASCII byte is escaped.
+        Assert.Equal("https://example.com/?next=/a%20b?c=1", SwiftURL.Create("https://example.com/?next=/a b?c=1")?.AbsoluteString);
+        Assert.Equal("https://example.com/x#a%20b/c?d", SwiftURL.Create("https://example.com/x#a b/c?d")?.AbsoluteString);
+        Assert.Equal("https://example.com/?q=caf%C3%A9", SwiftURL.Create("https://example.com/?q=caf" + EAcute)?.AbsoluteString);
+    }
+
+    // Oracle O-38: URL(string:) parsing and re-encoding beyond R-PATH-1 (a swift-foundation source reading, not a capture).
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // Git.swift:146 URL(string: remote) of an http remote that may carry user info
+    [Trait("Oracle", "O-38")]
+    public void Invalid_user_info_is_encoded_on_its_own_and_the_valid_host_is_kept_as_written()
+    {
+        // The user is invalid and re-encoded with userinfoAllowed (URLParser.swift:663-678, :1210); the valid host is
+        // copied unchanged (:681-683) and decoded as written by url.host (URL_Swift.swift:477).
+        var url = SwiftURL.Create("https://us er@Host.Example/x");
+        Assert.NotNull(url);
+        Assert.Equal("https://us%20er@Host.Example/x", url.AbsoluteString);
+        Assert.Equal("Host.Example", url.Host);
+        Assert.Equal("Host.Example", url.HostComponent());
+    }
+
+    // Oracle O-38: URL(string:) parsing and re-encoding beyond R-PATH-1 (a swift-foundation source reading, not a capture).
+    [Fact]
+    [Trait("Rule", "R-PATH-1")] // MCPOAuth.swift:201-203 guard URL(string: url) != nil
+    [Trait("Oracle", "O-38")]
+    public void The_empty_scheme_and_the_empty_port_of_allowEmptyScheme_are_accepted()
+    {
+        // URL(string:) parses with allowEmptyScheme: true (URL_Swift.swift:75-76): a leading ":" is an empty scheme
+        // (URLParser.swift:410-412), and a ":" with nothing after it in the authority is an empty port (:944-948).
+        var empty = SwiftURL.Create(":x");
+        Assert.NotNull(empty);
+        Assert.Equal("", empty.Scheme);
+
+        var port = SwiftURL.Create("https://:/x");
+        Assert.NotNull(port);
+        Assert.Equal("https://:/x", port.AbsoluteString);
+        Assert.Equal("", port.Host);
+    }
+
+    // Oracle O-44: URL.pathComponents of a non-file URL (a swift-foundation source reading, not a capture; ED-143).
+    [Theory]
+    [Trait("Rule", "R-PATH-1")] // MergeRequestLink.swift:24 url.pathComponents.filter { $0 != "/" }
+    [Trait("Oracle", "O-44")]
+    [InlineData("https://host/o/r/pull%2F5", new[] { "/", "o", "r", "pull/5" })]
+    [InlineData("https://host/o/r%2Fpull/5", new[] { "/", "o", "r/pull", "5" })]
+    [InlineData("https://host/x/o/r/../pull/5", new[] { "/", "x", "o", "r", "..", "pull", "5" })]
+    [InlineData("https://host/o/r/./pull/5", new[] { "/", "o", "r", ".", "pull", "5" })]
+    [InlineData("https://host/a/../o/r/pull/95", new[] { "/", "a", "..", "o", "r", "pull", "95" })]
+    [InlineData("https://host/o/r\\pull\\5", new[] { "/", "o", "r\\pull\\5" })]
+    [InlineData("https://host/o//r/pull/95", new[] { "/", "o", "r", "pull", "95" })]
+    [InlineData("o/r/pull/5", new[] { "o", "r", "pull", "5" })]
+    [InlineData("https://host/a/%2F/b", new[] { "/", "a", "/", "b" })]
+    [InlineData("https://host/a/%2F", new[] { "/", "a" })]
+    [InlineData("https://host/a/%FF/b", new[] { "/", "a", "", "b" })]
+    [InlineData("https://host/", new[] { "/" })]
+    [InlineData("https://host", new string[0])]
+    [InlineData("https://host/a/b/", new[] { "/", "a", "b" })]
+    public void Path_components_split_the_encoded_path_on_runs_of_slashes_and_decode_each_component(string text, string[] components)
+    {
+        // URL_Swift.swift:641-647 takes absolutePath(percentEncoded: true).pathComponents and percent-decodes each
+        // component as UTF-8 ("" when it does not decode), then drops a final "/" when more than one component
+        // remains. String+Path.swift:49-77 splits: an empty path gives []; a leading run of "/" gives one "/"; the
+        // rest splits on runs of "/" with no empty component, "." and ".." kept; a trailing "/" appends "/". The
+        // Windows "\" conversion (String+Path.swift:31-34, URLParser.swift:632-634) is not in the macOS build, so "\"
+        // stays percent-encoded inside one component until that component is decoded.
+        var url = SwiftURL.Create(text);
+        Assert.NotNull(url);
+        Assert.Equal(components, url.PathComponents.ToArray());
     }
 
     [Fact]
