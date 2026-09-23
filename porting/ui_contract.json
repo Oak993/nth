@@ -3907,7 +3907,8 @@
         "DroppyCode/App/Views/Composer/AttachmentFlight.swift:42-141",
         "DroppyCode/App/Views/Composer/AttachmentFlight.swift:186-207"
       ],
-      "notes": "The armed drop is consumed before the flight decides whether to play, so under reduced motion it is silently discarded; the chip appears regardless."
+      "notes": "The armed drop is consumed before the flight decides whether to play, so under reduced motion it is silently discarded; the chip appears regardless.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
