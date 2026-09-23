@@ -1756,6 +1756,31 @@ public sealed class GitTests
     }
 
     [Fact]
+    [Trait("Req", "PR-GIT-058")] // Services/Git/Git.swift:417-428
+    public async Task A_tree_the_watch_already_holds_a_commit_for_reuses_that_commit_and_runs_no_commit_tree()
+    {
+        using var runtime = new TestRuntime();
+        using var repository = GitRepository.WithCommit();
+        repository.Write("a.txt", "changed\n");
+        var git = new GitValue(repository.Root);
+        var first = GitValue.CheckpointRef(thread: Guid.NewGuid(), turn: 0, phase: "start");
+        await git.CaptureCheckpoint(first);
+        var tree = WorkingTree(repository);
+        Assert.Equal(tree, repository.Git("rev-parse", first + "^{tree}").Trim());
+        // :420-421: a commit the watch remembers for this tree is taken as it is. HEAD's commit, which no checkpoint
+        // could have produced (it has a parent and the test identity), stands in for it, so only reuse can put it on
+        // the second ref.
+        var head = repository.Git("rev-parse", "HEAD").Trim();
+        var watch = WorkingTreeWatch.Shared(repository.Root, repository.Child(".git"));
+        Assert.NotNull(watch);
+        Assert.NotNull(watch.CommitOf(tree));
+        watch.Remember(head, tree);
+        var second = GitValue.CheckpointRef(thread: Guid.NewGuid(), turn: 1, phase: "end");
+        await git.CaptureCheckpoint(second);
+        Assert.Equal(head, repository.Git("rev-parse", second).Trim());
+    }
+
+    [Fact]
     [Trait("Req", "PR-GIT-058")] // Services/Git/Git.swift:417
     public async Task CaptureCheckpoint_throws_outside_a_checkout()
     {

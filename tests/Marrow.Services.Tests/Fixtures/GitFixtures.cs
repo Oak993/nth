@@ -37,6 +37,10 @@ public sealed class GitRepository : IDisposable
         repository.Git("config", "user.email", "port-test@localhost");
         repository.Git("config", "commit.gpgsign", "false");
         repository.Git("config", "core.autocrlf", "false");
+        // Git for Windows marks .git hidden by default (core.hideDotFiles=dotGitOnly), a linked worktree's .git file
+        // included, and .NET cannot rewrite a hidden file in place (CREATE_ALWAYS refuses one). Like autocrlf above, a
+        // Windows-only default the tests neutralise; the code under test reads .git the same either way.
+        repository.Git("config", "core.hideDotFiles", "false");
         return repository;
     }
 

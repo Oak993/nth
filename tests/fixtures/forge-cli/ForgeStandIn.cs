@@ -36,7 +36,12 @@ internal static class ForgeStandIn
         int type = GetFileType(GetStdHandle(-10));
         string stdin = type == 2 ? "char" : type == 3 ? "pipe" : type == 1 ? "disk" : "other-" + type;
         StringBuilder info = new StringBuilder();
-        info.Append("exe=").Append(Path.GetFileName(System.Reflection.Assembly.GetEntryAssembly().Location)).Append('\n');
+        // The image's name as it is on disk: the path a caller launched it by carries whatever case that caller's
+        // PATHEXT spelled (".EXE", ED-171), and Windows file names are case-insensitive, so only the directory entry
+        // says which of glab.exe, gh.exe and tea.exe ran.
+        string image = System.Reflection.Assembly.GetEntryAssembly().Location;
+        string exe = new DirectoryInfo(Path.GetDirectoryName(image)).GetFiles(Path.GetFileName(image))[0].Name;
+        info.Append("exe=").Append(exe).Append('\n');
         info.Append("cwd=").Append(Environment.CurrentDirectory).Append('\n');
         info.Append("stdin=").Append(stdin).Append('\n');
         info.Append("GIT_TERMINAL_PROMPT=").Append(Environment.GetEnvironmentVariable("GIT_TERMINAL_PROMPT") ?? "<unset>").Append('\n');
