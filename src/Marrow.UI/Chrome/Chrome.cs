@@ -21,9 +21,11 @@ using Marrow.UI.Port;
 using Marrow.UI.Theme;
 
 // Source: DroppyCode/UI/Chrome/Chrome.swift (B2 1fbf81e), :1-1140.
-// Part 1 of 4 is ported: the window backdrop (:201-273), the surfaces (:125-199), the chrome controls (:306-560), the
-// scroll model (:564-577), the search fields and the picker (:775-932), the drag regions (:1083-1140) and the tokens they
-// read. Members that still throw MARROW_STUB belong to parts 2 to 4 of this unit.
+// Parts 1 to 3 of 4 are ported: the window backdrop (:201-273), the surfaces (:125-199), the chrome controls
+// (:306-560), the scroll model (:564-577), the search fields and the picker (:775-932), the veil and compact title
+// (:579-647), the sidebar row family (:648-773), the settings card/section/row (:1006-1074), the drag regions
+// (:1083-1140) and the tokens they read. Members that still throw MARROW_STUB (the traffic-light geometry) belong to
+// part 4 of this unit.
 // Forms (ED-095, ED-098): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed
 // record with `Control Body(Control content)`, an IAnimatableModifier where a transition animates it; a Layout is a
 // Panel; an NSView is a Control; NSImage is Avalonia.Media.IImage; AnyView is Control; a @ViewBuilder parameter is a
