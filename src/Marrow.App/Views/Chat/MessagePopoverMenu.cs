@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
@@ -91,7 +92,7 @@ public static class RightClickPopoverExtensions
 /// <summary>:30-40 RightClickCatcher: NSViewRepresentable wrapping RightClickCatcherView (lines :42-83).
 /// A transparent overlay that only claims secondary clicks. It returns nil from hit-testing for every other event,
 /// so text selection, links, buttons and drags in the SwiftUI content underneath behave exactly as if it were absent.</summary>
-internal sealed class RightClickCatcher : ContentControl
+internal sealed class RightClickCatcher : Control
 {
     // :31 var onRightClick: (CGPoint) -> Void
     private readonly Action<Point> onRightClick;
@@ -99,17 +100,32 @@ internal sealed class RightClickCatcher : ContentControl
     public RightClickCatcher(Action<Point> onRightClick)
     {
         this.onRightClick = onRightClick;
-        // Make this control transparent by default; it only becomes hittable for secondary clicks
-        IsHitTestVisible = true;
+        // Don't participate in hit testing; we'll handle events through bubbling
+        IsHitTestVisible = false;
         HorizontalAlignment = HorizontalAlignment.Stretch;
         VerticalAlignment = VerticalAlignment.Stretch;
-        Background = null;
+
+        // Register for pointer events on the tunnel phase so we intercept before content
+        this.AddHandler(InputElement.PointerPressedEvent, OnPointerPressedTunnel, RoutingStrategies.Tunnel, handledEventsToo: true);
+        this.AddHandler(InputElement.PointerReleasedEvent, OnPointerReleasedTunnel, RoutingStrategies.Tunnel, handledEventsToo: true);
     }
 
-
-    /// <summary>:70-72 rightMouseDown: records the point and calls onRightClick. Also handles left mouse down with control modifier.</summary>
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    private void OnPointerPressedTunnel(object? sender, PointerPressedEventArgs e)
     {
+        HandlePointerPressed(e);
+    }
+
+    private void OnPointerReleasedTunnel(object? sender, PointerReleasedEventArgs e)
+    {
+        HandlePointerReleased(e);
+    }
+
+    /// <summary>:70-72 rightMouseDown: records the point and calls onRightClick. Also handles left mouse down with control modifier.
+    /// We handle these events even though we're not hit-test visible by listening on the tunnel phase.</summary>
+    private void HandlePointerPressed(PointerPressedEventArgs e)
+    {
+        // We're marked as IsHitTestVisible = false, but we still register handlers
+        // This allows events to bubble up and reach us
         var properties = e.GetCurrentPoint(this).Properties;
 
         // :64-65 isSecondary check: right mouse button or left mouse button with control modifier
@@ -124,16 +140,10 @@ internal sealed class RightClickCatcher : ContentControl
             onRightClick(point);
             e.Handled = true;
         }
-        else
-        {
-            // Not a secondary click - don't handle it, let it pass through to content underneath
-            // Do NOT call base.OnPointerPressed, just let the event bubble up
-            e.Handled = false;
-        }
     }
 
     /// <summary>:82 rightMouseUp: swallowed (no-op). Also swallows the release from control+click.</summary>
-    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    private void HandlePointerReleased(PointerReleasedEventArgs e)
     {
         var properties = e.GetCurrentPoint(this).Properties;
 
