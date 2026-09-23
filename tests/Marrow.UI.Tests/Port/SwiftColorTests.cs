@@ -25,9 +25,8 @@ namespace Marrow.UI.Tests.Port;
 //   SwiftColor.Rgb(uint hex)                          Core/Models/MCP.swift:255-263 Color(rgb:)
 //   SwiftColor.Hex(string hex)                        UI/Theme/AppTheme.swift:236-248 Color(hex:)
 //   SwiftColor.Dynamic(light, dark)                   NSColor(name:dynamicProvider:) as an appearance pair
-//   SwiftColor.Clear, White, Black, Primary, Secondary, AccentColor, LabelColor, ControlAccentColor
-//   (Yellow and PlaceholderTextColor are held: neither has a B2 value nor a recorded source for one, so both are
-//   reported as STOP items for a ruling and have no test and no implementation until the ruling exists.)
+//   SwiftColor.Clear, White, Black, Primary, Secondary, AccentColor, Yellow, LabelColor, PlaceholderTextColor,
+//   ControlAccentColor
 //   SwiftColor Opacity(double)                        Color.opacity(_:)
 //   Avalonia.Media.Color Resolve(ThemeVariant)        the colour for a light or dark appearance
 //   IBrush Brush(Control)                             a solid brush that follows the control's ActualThemeVariant
@@ -96,15 +95,20 @@ public sealed class SwiftColorTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-092")]
+    [Trait("Decision", "ED-106")]
     public void NSColor_white_alpha_is_a_grey_with_that_alpha()
     {
-        // PENDING RULING (STOP F.SwiftColor #3): these values rest on ED-092's parenthetical, which lists
-        // NSColor(white:alpha:) with Color(white:alpha:), read here as an sRGB grey with every channel equal to white.
-        // They do NOT rest on AppKit semantics: colorWithWhite:alpha: builds the colour in the generic gamma 2.2 grey
-        // space (NSColor.h), where 0.12 converts to about 0.096 in sRGB (24 or 25, not 31). If the ruling picks the
-        // AppKit space, these expectations are replaced with the ruled values.
-        // App/Views/Terminal/TerminalStore.swift:51: NSColor(white: 0.12, alpha: 1), 0.12*255 = 30.6
-        Assert.Equal(Argb(255, 31, 31, 31), new SwiftColor(white: 0.12, opacity: 1).Resolve(Dark));
+        // ED-106: NSColor(white:alpha:) is an sRGB grey with every channel equal to white, served by the same
+        // constructor as Color(white:) and Color(white:opacity:); there is no gamma 2.2 factory. The binding spec
+        // record PR-TERM-045 says the terminal background "matches the panel's own fill exactly", and the panel fill
+        // is the sRGB Color(white:) at App/Views/Terminal/TerminalPanel.swift:107. UNVERIFIED under OD-0001, no O-nn.
+        // App/Views/Terminal/TerminalStore.swift:51: NSColor(white: 0.12, alpha: 1) in the light branch (isDark false),
+        // 0.12*255 = 30.6
+        Assert.Equal(Argb(255, 31, 31, 31), new SwiftColor(white: 0.12, opacity: 1).Resolve(Light));
+        // App/Views/Terminal/TerminalStore.swift:50: NSColor(white: 0.08, alpha: 1) dark, NSColor(white: 0.985, alpha: 1)
+        // light. 0.08*255 = 20.4, 0.985*255 = 251.175
+        Assert.Equal(Argb(255, 20, 20, 20), new SwiftColor(white: 0.08, opacity: 1).Resolve(Dark));
+        Assert.Equal(Argb(255, 251, 251, 251), new SwiftColor(white: 0.985, opacity: 1).Resolve(Light));
         // 0.2*255 = 51, 0.4*255 = 102
         Assert.Equal(Argb(102, 51, 51, 51), new SwiftColor(white: 0.2, opacity: 0.4).Resolve(Light));
     }
@@ -360,6 +364,43 @@ public sealed class SwiftColorTests(HeadlessSession headless)
         Assert.Equal(Color.FromArgb(fadedAlpha, accent.R, accent.G, accent.B), SwiftColor.AccentColor.Opacity(0.4).Resolve(Light));
     });
 
+    [Fact]
+    [Trait("Decision", "ED-092")]
+    [Trait("Decision", "ED-104")]
+    public void Yellow_is_the_documented_system_yellow_pair()
+    {
+        // UNVERIFIED under OD-0001, no O-nn, per ED-104: Apple HIG Default values for Color.yellow, light sRGB
+        // (255, 204, 0) and dark (255, 214, 0), opaque; the increased contrast values are not modelled.
+        // App/Views/Composer/EffortSlider.swift:669 .foregroundStyle(isOn ? Color.yellow : Chrome.secondaryText)
+        Assert.Equal(Argb(255, 255, 204, 0), SwiftColor.Yellow.Resolve(Light));
+        Assert.Equal(Argb(255, 255, 214, 0), SwiftColor.Yellow.Resolve(Dark));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-092")]
+    [Trait("Decision", "ED-104")]
+    public void Yellow_with_opacity_scales_the_alpha_of_both_members()
+    {
+        // UNVERIFIED under OD-0001, no O-nn, per ED-104.
+        // App/Views/Composer/EffortSlider.swift:673 Circle().fill(isOn ? Color.yellow.opacity(0.18) : ...)
+        // 0.18*255 = 45.9
+        Assert.Equal(Argb(46, 255, 204, 0), SwiftColor.Yellow.Opacity(0.18).Resolve(Light));
+        Assert.Equal(Argb(46, 255, 214, 0), SwiftColor.Yellow.Opacity(0.18).Resolve(Dark));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-051")]
+    [Trait("Decision", "ED-105")]
+    public void PlaceholderTextColor_is_the_pinned_quarter_alpha_pair()
+    {
+        // UNVERIFIED under OD-0001, no O-nn, per ED-105: pinned literals in the ED-051 family, light rgba(0,0,0,0.25)
+        // and dark rgba(255,255,255,0.25), not derived from labelColor or from a Windows brush.
+        // App/Views/Composer/ComposerTextView.swift:204 .foregroundColor: NSColor.placeholderTextColor
+        // 0.25*255 = 63.75
+        Assert.Equal(Argb(64, 0, 0, 0), SwiftColor.PlaceholderTextColor.Resolve(Light));
+        Assert.Equal(Argb(64, 255, 255, 255), SwiftColor.PlaceholderTextColor.Resolve(Dark));
+    }
+
     // ---- Opacity arithmetic and immutability ----
 
     [Fact]
@@ -479,6 +520,49 @@ public sealed class SwiftColorTests(HeadlessSession headless)
         scope.RequestedThemeVariant = ThemeVariant.Light;
         Dispatcher.UIThread.RunJobs();
         Assert.Equal(Argb(255, 0xFF, 0xFF, 0xFF), brush.Color);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-092")]
+    [Trait("Decision", "ED-104")]
+    public void A_yellow_brush_follows_the_controls_theme_when_it_flips() => headless.OnUiThread(() =>
+    {
+        // UNVERIFIED under OD-0001, no O-nn, per ED-104.
+        // App/Views/Composer/EffortSlider.swift:669 Color.yellow: green 204 in light, 214 in dark.
+        var target = new Border();
+        var scope = new ThemeVariantScope { RequestedThemeVariant = ThemeVariant.Light, Child = target };
+        var window = Show(scope);
+
+        var brush = Assert.IsAssignableFrom<ISolidColorBrush>(SwiftColor.Yellow.Brush(target));
+        Assert.Equal(Argb(255, 255, 204, 0), brush.Color);
+
+        scope.RequestedThemeVariant = ThemeVariant.Dark;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(Argb(255, 255, 214, 0), brush.Color);
+
+        scope.RequestedThemeVariant = ThemeVariant.Light;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(Argb(255, 255, 204, 0), brush.Color);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-105")]
+    public void A_placeholder_brush_follows_the_controls_theme_when_it_flips() => headless.OnUiThread(() =>
+    {
+        // UNVERIFIED under OD-0001, no O-nn, per ED-105.
+        // App/Views/Composer/ComposerTextView.swift:204 NSColor.placeholderTextColor; 0.25*255 = 63.75
+        var target = new TextBlock();
+        var scope = new ThemeVariantScope { RequestedThemeVariant = ThemeVariant.Dark, Child = target };
+        var window = Show(scope);
+
+        var brush = Assert.IsAssignableFrom<ISolidColorBrush>(SwiftColor.PlaceholderTextColor.Brush(target));
+        Assert.Equal(Argb(64, 255, 255, 255), brush.Color);
+
+        scope.RequestedThemeVariant = ThemeVariant.Light;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(Argb(64, 0, 0, 0), brush.Color);
         window.Close();
     });
 
