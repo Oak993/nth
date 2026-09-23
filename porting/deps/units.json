@@ -1164,27 +1164,13 @@
    ],
    "intra_deps": [],
    "records_total": 5,
-   "records_todo": [
-    "PR-WIN-154",
-    "PR-WIN-155",
-    "PR-WIN-156",
-    "PR-WIN-157",
-    "PR-WIN-158"
-   ],
-   "parts": [
-    [
-     "PR-WIN-154",
-     "PR-WIN-155",
-     "PR-WIN-156",
-     "PR-WIN-157",
-     "PR-WIN-158"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M6-087"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.Hydra",
