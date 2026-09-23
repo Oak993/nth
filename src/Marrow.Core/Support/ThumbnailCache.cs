@@ -45,6 +45,8 @@ public sealed class ThumbnailCache : Actor
         return SwiftTask.IsCancelled ? null : thumbnail;
     });
 
+    // DEVIATION ED-160: WIC decodes; a format whose codec this Windows lacks yields null where ImageIO decodes it.
+    // UNVERIFIED O-53: ImageIO on macOS 26 decodes WebP, AVIF, HEIC/HEIF and YCbCr TIFF and applies their orientation.
     // :44-62
     private static Thumbnail? Decode(string path, long pixels, bool fillingSquare)
     {
