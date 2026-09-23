@@ -7136,7 +7136,8 @@
       "b2_change": "B1 TimelineRows.swift:1050-1086 (fonts at :1063, :1068, :1094 with `zoom: zoom`) -> B2 :1044-1080 (fonts at :1057, :1062, :1088 without zoom). Words, transitions and shimmer are unchanged. Point sizes are the macOS text-style sizes upstream itself tabulated at B1 (B1:DroppyCode/UI/Common/ChatZoom.swift:44-54 chatBaseSize: title2 17, title3 15, headline and body 13, callout 12, subheadline 11, footnote, caption and caption2 10); B2 no longer carries that table.",
       "engineering_decisions": [
         "ED-059: each text style is drawn at the size in upstream's B1 chatBaseSize table: callout 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52). Set in Inter (OD-0009); the size is fixed per style and scales only through the app zoom (DroppyCode/UI/Common/AppZoom.swift), with no hook for a system text-size preference. Visual size parity stays UNVERIFIED under OD-0001."
-      ]
+      ],
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRAMERGE",
