@@ -218,13 +218,36 @@ public sealed class AppZoomTests(HeadlessSession headless)
         Assert.Equal(new Size(ContentWants.Width * scale, ContentWants.Height * scale), zoomed.DesiredSize);
     });
 
-    // PENDING RULING (STOP UI.Common.AppZoom #1, platform gap): AppZoom.swift:36-37 reports the content's size
-    // under the unscaled proposal times the scale with no clamp, so content wanting 700x500 under a 1000x800 host
-    // at 200 would report 1400x1000, and content wanting 1500x1200 at 75 would report 1125x900. Avalonia 12.1.2
-    // Layoutable.MeasureCore clamps DesiredSize to the available size (in the child and again in the zoom panel),
-    // so no faithful Panel can report those sizes. No test encodes that case until an ED or platform-adaptation
-    // ruling is recorded; the expectation is never rewritten to the clamped 1000x800. When the ruling exists,
-    // encode it here with its Req trait and cite the ruling as the deviation.
+    [Theory]
+    [InlineData(200, 700, 500)]
+    [InlineData(75, 1500, 1200)]
+    // DEVIATION ED-150: AppZoom.swift:36-37 would report 1400x1000 at 200 and 1125x900 at 75; Avalonia clamps DesiredSize to the constraint.
+    [Trait("Req", "PR-WIN-220")] // UI/Common/AppZoom.swift:36-37, :40-46, :48-50
+    public void Content_wanting_more_than_the_scaled_host_is_clamped_to_the_host_and_placement_still_keeps_parity(
+        int level, double wantsWidth, double wantsHeight) => headless.OnUiThread(() =>
+    {
+        var scale = ScaleOf(level);
+        var content = new LayoutProbe(new Size(wantsWidth, wantsHeight));
+        var zoomed = new AppZoomModifier(level).Body(content);
+        zoomed.UseLayoutRounding = false;
+
+        zoomed.Measure(new Size(HostWidth, HostHeight));
+
+        var unscaledHost = new Size(HostWidth / scale, HostHeight / scale);
+        Assert.Equal(unscaledHost, content.Measured[^1]);
+        Assert.Equal(unscaledHost, content.DesiredSize);
+        Assert.Equal(new Size(HostWidth, HostHeight), zoomed.DesiredSize);
+
+        zoomed.Arrange(new Rect(0, 0, HostWidth, HostHeight));
+
+        Assert.Equal(unscaledHost, content.Arranged[^1]);
+        var toHost = content.TransformToVisual(zoomed);
+        Assert.NotNull(toHost);
+        Assert.Equal(new Point(0, 0), toHost.Value.Transform(new Point(0, 0)));
+        var farCorner = toHost.Value.Transform(new Point(unscaledHost.Width, unscaledHost.Height));
+        Assert.Equal(HostWidth, farCorner.X, 9);
+        Assert.Equal(HostHeight, farCorner.Y, 9);
+    });
 
     [Fact]
     [Trait("Req", "PR-WIN-220")] // UI/Common/AppZoom.swift:48-50 (proposal.width.map / proposal.height.map)
