@@ -17,8 +17,8 @@ namespace Marrow.App.Tests.Window;
 // Key codes follow ED-099 (1)-(2): the macOS codes of the Swift become Set-1 scan codes (18..25 the digits 1 to 9 as
 // 0x02..0x0A, 48 Tab 0x0F, 53 Esc 0x01, 13 W 0x11), and Command becomes Control (ED-099 (3)). The headless keyboard
 // delivers them as Avalonia physical keys, which is what the window reads.
-// Every probe is a tunnel handler on the window added after the window's own handler, so it is reached only when the
-// window returned the event unconsumed ("follows its normal route").
+// Every probe is a tunnel handler on the window, which runs after the window's own class handler, so it is reached
+// only when the window returned the event unconsumed ("follows its normal route").
 [Collection("Headless")]
 public sealed class ThreadWindowTests(HeadlessSession headless)
 {
@@ -49,7 +49,7 @@ public sealed class ThreadWindowTests(HeadlessSession headless)
     private static void Press(AvaloniaWindow window, Key key, PhysicalKey physical, RawInputModifiers modifiers)
     {
         window.KeyPress(key, modifiers, physical, null);
-        window.KeyRelease(key, modifiers, physical, null);
+        if (window.IsVisible) window.KeyRelease(key, modifiers, physical, null); // a closed window takes no more input
         Dispatcher.UIThread.RunJobs();
     }
 
