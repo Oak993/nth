@@ -72,7 +72,7 @@ public sealed class ProjectGuidanceTests
 
         var block = guidance.SystemPromptBlock();
 
-        Assert.Contains("--- AGENTS.md ---\n" + text, block);
+        Assert.Contains("--- AGENTS.md ---\n" + text, block, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -86,8 +86,8 @@ public sealed class ProjectGuidanceTests
 
         var block = guidance.SystemPromptBlock();
 
-        Assert.Contains("AGENTS.md is too large to include here (16001 bytes).", block);
-        Assert.DoesNotContain("--- AGENTS.md ---", block);
+        Assert.Contains("AGENTS.md is too large to include here (16001 bytes).", block, StringComparison.Ordinal);
+        Assert.DoesNotContain("--- AGENTS.md ---", block, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -103,9 +103,9 @@ public sealed class ProjectGuidanceTests
 
         var block = guidance.SystemPromptBlock();
 
-        Assert.Contains("--- AGENTS.md ---", block);
-        Assert.Contains("CLAUDE.md is too large to include here (10000 bytes).", block);
-        Assert.DoesNotContain("--- CLAUDE.md ---", block);
+        Assert.Contains("--- AGENTS.md ---", block, StringComparison.Ordinal);
+        Assert.Contains("CLAUDE.md is too large to include here (10000 bytes).", block, StringComparison.Ordinal);
+        Assert.DoesNotContain("--- CLAUDE.md ---", block, StringComparison.Ordinal);
     }
 
     // ---- PR-PROVREG-225: re-rendered only when a file's size or modification date changed ---------------------
@@ -137,7 +137,7 @@ public sealed class ProjectGuidanceTests
         var second = guidance.SystemPromptBlock();
 
         Assert.NotEqual(first, second);
-        Assert.Contains("a much longer set of rules than before", second);
+        Assert.Contains("a much longer set of rules than before", second, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public sealed class ProjectGuidanceTests
         var second = guidance.SystemPromptBlock();
 
         Assert.Equal(first, second);
-        Assert.Contains("12345", second); // stale: the cached block from before the edit is reused
+        Assert.Contains("12345", second, StringComparison.Ordinal); // stale: the cached block from before the edit is reused
     }
 
     // ---- PR-PROVREG-226: symlink escaping the root, directories and non-regular files are rejected -----------
@@ -266,8 +266,8 @@ public sealed class ProjectGuidanceTests
 
         var block = guidance.SystemPromptBlock();
 
-        Assert.Contains("where they conflict, the Marrow rules take priority.", block);
-        Assert.DoesNotContain("Droppy Code", block);
+        Assert.Contains("where they conflict, the Marrow rules take priority.", block, StringComparison.Ordinal);
+        Assert.DoesNotContain("Droppy Code", block, StringComparison.Ordinal);
     }
 
     // ---- PR-PROVREG-230: chunked, bounded reading detects an oversized file without reading it whole ----------
@@ -284,8 +284,8 @@ public sealed class ProjectGuidanceTests
 
         var block = guidance.SystemPromptBlock();
 
-        Assert.Contains("--- AGENTS.md ---", block);
-        Assert.Contains("CLAUDE.md is too large to include here (16001 bytes).", block);
+        Assert.Contains("--- AGENTS.md ---", block, StringComparison.Ordinal);
+        Assert.Contains("CLAUDE.md is too large to include here (16001 bytes).", block, StringComparison.Ordinal);
     }
 
     // ---- PR-PROVREG-231: a blank (after trim) or non-UTF-8 file is skipped silently, budget untouched ----------
@@ -324,8 +324,8 @@ public sealed class ProjectGuidanceTests
 
         var block = guidance.SystemPromptBlock();
 
-        Assert.Contains("--- CLAUDE.md ---\nreal rules", block);
-        Assert.DoesNotContain("AGENTS.md", block);
+        Assert.Contains("--- CLAUDE.md ---\nreal rules", block, StringComparison.Ordinal);
+        Assert.DoesNotContain("AGENTS.md", block, StringComparison.Ordinal);
     }
 
     // ---- PR-PROVREG-232: value-type cache lives with the instance; two instances never share it ---------------
@@ -343,8 +343,8 @@ public sealed class ProjectGuidanceTests
         File.WriteAllText(path, "second rules, a different length");
         var secondBlock1 = second.SystemPromptBlock();
 
-        Assert.Contains("first rules", firstBlock1);
-        Assert.Contains("second rules, a different length", secondBlock1);
+        Assert.Contains("first rules", firstBlock1, StringComparison.Ordinal);
+        Assert.Contains("second rules, a different length", secondBlock1, StringComparison.Ordinal);
     }
 
     // ---- PR-PROVAPI-148: end-to-end assembly of the whole block ------------------------------------------------
