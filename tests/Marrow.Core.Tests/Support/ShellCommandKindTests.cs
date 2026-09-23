@@ -283,4 +283,150 @@ public sealed class ShellCommandKindTests
         Assert.False(ShellCommandKind.MayWriteFiles("git remote get-url origin"));
         Assert.False(ShellCommandKind.MayWriteFiles("git --no-pager remote -v"));
     }
+
+    // ---- find and fd, sort, xcodebuild, the interpreters, env (part 2) ----
+
+    [Theory]
+    [InlineData("-delete")]
+    [InlineData("-exec")]
+    [InlineData("-execdir")]
+    [InlineData("-ok")]
+    [InlineData("-okdir")]
+    [InlineData("-x")]
+    [InlineData("-X")]
+    [Trait("Req", "PR-TERM-118")] // Core/Support/Shell.swift:161-162,198-199
+    public void Each_of_the_seven_search_actions_makes_find_and_fd_writers(string action)
+    {
+        Assert.True(ShellCommandKind.MayWriteFiles("find . -name x " + action + " rm {} ;"));
+        Assert.True(ShellCommandKind.MayWriteFiles("find . " + action));
+        Assert.True(ShellCommandKind.MayWriteFiles("fd -e txt " + action + " rm"));
+        Assert.True(ShellCommandKind.MayWriteFiles("/usr/bin/find . " + action));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-118")] // Core/Support/Shell.swift:161-162,198-199
+    public void Find_and_fd_read_unless_a_whole_argument_equals_a_search_action()
+    {
+        Assert.False(ShellCommandKind.MayWriteFiles("find"));
+        Assert.False(ShellCommandKind.MayWriteFiles("find . -name x -type f"));
+        Assert.False(ShellCommandKind.MayWriteFiles("fd -e txt pattern"));
+        // Exact equality over the arguments: no joined form, no other letter case, no quoted text taken apart.
+        Assert.False(ShellCommandKind.MayWriteFiles("find . -exec=rm"));
+        Assert.False(ShellCommandKind.MayWriteFiles("find . -EXEC rm"));
+        Assert.False(ShellCommandKind.MayWriteFiles("find . -name '-delete'"));
+        Assert.False(ShellCommandKind.MayWriteFiles("fd -xargs"));
+        // The list is of arguments, not of the part's text as awk's test is: -delete inside a name does not count.
+        Assert.False(ShellCommandKind.MayWriteFiles("find . -name a-delete"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-118")] // Core/Support/Shell.swift:161-162,198-199
+    [Trait("Decision", "ED-060")]
+    public void Find_also_writes_with_fprint_fprint0_fprintf_or_fls_and_fd_with_exec_or_exec_batch()
+    {
+        foreach (var action in (string[])["-fprint", "-fprint0", "-fprintf", "-fls"])
+            Assert.True(ShellCommandKind.MayWriteFiles("find . " + action + " out.txt"), action);
+        Assert.True(ShellCommandKind.MayWriteFiles("find . -fprintf out.txt '%p'"));
+        Assert.True(ShellCommandKind.MayWriteFiles("find . -fls out.txt"));
+        Assert.True(ShellCommandKind.MayWriteFiles("fd -e txt --exec rm"));
+        Assert.True(ShellCommandKind.MayWriteFiles("fd -e txt --exec-batch rm"));
+        // Each addition is its own tool's (ED-060 (1) for find, (2) for fd); nothing else about the rule changes, so
+        // find with fd's long spellings and fd with find's print actions keep the upstream answer.
+        Assert.False(ShellCommandKind.MayWriteFiles("find . --exec rm"));
+        Assert.False(ShellCommandKind.MayWriteFiles("find . --exec-batch rm"));
+        Assert.False(ShellCommandKind.MayWriteFiles("fd x -fprint out.txt"));
+        Assert.False(ShellCommandKind.MayWriteFiles("fd x -fls out.txt"));
+        Assert.False(ShellCommandKind.MayWriteFiles("find . -fprintf=out.txt"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-119")] // Core/Support/Shell.swift:200-201
+    public void Sort_writes_when_an_argument_starts_with_dash_o()
+    {
+        Assert.True(ShellCommandKind.MayWriteFiles("sort -o out.txt in.txt"));
+        Assert.True(ShellCommandKind.MayWriteFiles("sort -oout.txt in.txt"));
+        Assert.True(ShellCommandKind.MayWriteFiles("sort -o=out.txt in.txt"));
+        Assert.True(ShellCommandKind.MayWriteFiles("sort -r in.txt -o out.txt"));
+        Assert.False(ShellCommandKind.MayWriteFiles("sort"));
+        Assert.False(ShellCommandKind.MayWriteFiles("sort in.txt"));
+        Assert.False(ShellCommandKind.MayWriteFiles("sort -r -n -k 2 in.txt"));
+        Assert.False(ShellCommandKind.MayWriteFiles("sort -O in.txt"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-119")] // Core/Support/Shell.swift:200-201
+    [Trait("Decision", "ED-060")]
+    public void Sort_also_writes_with_an_argument_that_is_output_or_starts_with_output_equals()
+    {
+        Assert.True(ShellCommandKind.MayWriteFiles("sort --output=out.txt in.txt"));
+        Assert.True(ShellCommandKind.MayWriteFiles("sort --output out.txt in.txt"));
+        Assert.True(ShellCommandKind.MayWriteFiles("sort in.txt --output"));
+        // Only those two forms are added; any other double-dash argument keeps the upstream answer.
+        Assert.False(ShellCommandKind.MayWriteFiles("sort --outputs in.txt"));
+        Assert.False(ShellCommandKind.MayWriteFiles("sort --output-file in.txt"));
+        Assert.False(ShellCommandKind.MayWriteFiles("sort --reverse in.txt"));
+        Assert.False(ShellCommandKind.MayWriteFiles("sort --OUTPUT=out.txt in.txt"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-120")] // Core/Support/Shell.swift:205-206
+    public void Xcodebuild_writes_unless_an_argument_is_exactly_one_of_its_four_reporting_flags()
+    {
+        foreach (var flag in (string[])["-showBuildSettings", "-list", "-version", "-showsdks"])
+            Assert.False(ShellCommandKind.MayWriteFiles("xcodebuild " + flag), flag);
+        // One match is enough, even beside a build action.
+        Assert.False(ShellCommandKind.MayWriteFiles("xcodebuild -scheme App -showBuildSettings build"));
+        Assert.True(ShellCommandKind.MayWriteFiles("xcodebuild"));
+        Assert.True(ShellCommandKind.MayWriteFiles("xcodebuild -scheme App build"));
+        // The source's own casing, compared exactly.
+        Assert.True(ShellCommandKind.MayWriteFiles("xcodebuild -showbuildsettings"));
+        Assert.True(ShellCommandKind.MayWriteFiles("xcodebuild -showSDKs"));
+        Assert.True(ShellCommandKind.MayWriteFiles("xcodebuild --version"));
+        Assert.True(ShellCommandKind.MayWriteFiles("xcodebuild -list=1"));
+    }
+
+    [Theory]
+    [InlineData("swift")]
+    [InlineData("swiftc")]
+    [InlineData("node")]
+    [InlineData("npm")]
+    [InlineData("python")]
+    [InlineData("python3")]
+    [Trait("Req", "PR-TERM-121")] // Core/Support/Shell.swift:207-208
+    public void The_six_interpreters_read_only_when_the_whole_argument_list_is_one_version_flag(string tool)
+    {
+        Assert.False(ShellCommandKind.MayWriteFiles(tool + " --version"));
+        Assert.False(ShellCommandKind.MayWriteFiles(tool + " -version"));
+        Assert.False(ShellCommandKind.MayWriteFiles(tool + " -v"));
+        Assert.False(ShellCommandKind.MayWriteFiles("/usr/local/bin/" + tool + " -v"));
+        // Whole-array equality: an empty list, an extra argument or another flag writes.
+        Assert.True(ShellCommandKind.MayWriteFiles(tool));
+        Assert.True(ShellCommandKind.MayWriteFiles(tool + " --version --foo"));
+        Assert.True(ShellCommandKind.MayWriteFiles(tool + " -v -v"));
+        Assert.True(ShellCommandKind.MayWriteFiles(tool + " -V"));
+        Assert.True(ShellCommandKind.MayWriteFiles(tool + " script"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-121")] // Core/Support/Shell.swift:207-208,212-213
+    public void Other_interpreter_names_are_not_in_the_case_and_fall_to_the_reader_table()
+    {
+        foreach (var tool in (string[])["python2", "pip", "npx", "yarn", "Node"])
+            Assert.True(ShellCommandKind.MayWriteFiles(tool + " --version"), tool);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-122")] // Core/Support/Shell.swift:209-211
+    public void Env_reads_only_when_every_argument_starts_with_a_dash()
+    {
+        Assert.False(ShellCommandKind.MayWriteFiles("env"));
+        Assert.False(ShellCommandKind.MayWriteFiles("env -0"));
+        Assert.False(ShellCommandKind.MayWriteFiles("env --null -0"));
+        // Nothing checks that a dash argument is a real env flag.
+        Assert.False(ShellCommandKind.MayWriteFiles("env --no-such-flag"));
+        Assert.True(ShellCommandKind.MayWriteFiles("env FOO=1 ls"));
+        Assert.True(ShellCommandKind.MayWriteFiles("env ls"));
+        Assert.True(ShellCommandKind.MayWriteFiles("env -i ls"));
+        Assert.True(ShellCommandKind.MayWriteFiles("env -u HOME"));
+    }
 }

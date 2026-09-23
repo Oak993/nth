@@ -68,6 +68,18 @@ public sealed class ShellTests
     }
 
     [Fact]
+    [Trait("Req", "PR-UPDATE-048")] // Core/Support/Shell.swift:4-20
+    public void Install_failure_text_is_the_trimmed_stderr_else_the_trimmed_stdout_else_the_exit_code_sentence()
+    {
+        Assert.Equal("npm ERR! code E404", Result(1, "added 0 packages\n", "\nnpm ERR! code E404\n").FailureMessage);
+        Assert.Equal("added 0 packages", Result(1, "\n added 0 packages \n", " \t\r\n").FailureMessage);
+        Assert.Equal("The command failed with exit code 254.", Result(254, "\r\n", "").FailureMessage);
+        // succeeded is status == 0 alone, whatever was printed.
+        Assert.True(Result(0, "", "warning: deprecated").Succeeded);
+        Assert.False(Result(254).Succeeded);
+    }
+
+    [Fact]
     [Trait("Rule", "R-ERR-3")]
     public void ShellError_describes_itself_with_its_message_verbatim()
     {

@@ -3,11 +3,25 @@ using Marrow.Core.Tests.Fixtures;
 
 namespace Marrow.Core.Tests.Support;
 
-// LoginEnvironment (Shell.swift:327-462) where the process's own state is read or changed: the process's PATHEXT that
-// ED-171 falls back to. These run in the "Login environment" collection, alone, and put every variable back.
+// LoginEnvironment (Shell.swift:327-462) where the process's own state is read or changed: the process-wide load, and
+// the process's PATHEXT that ED-171 falls back to. These run in the "Login environment" collection, alone, and put
+// every variable back.
 [Collection("Login environment")]
 public sealed class ShellLoginEnvironmentProcessTests
 {
+    [Fact]
+    [Trait("Req", "PR-TERM-104")] // Core/Support/Shell.swift:341-351,357-365
+    [Trait("Decision", "ED-170")]
+    public async Task Load_leaves_the_process_environment_loaded_and_every_caller_returns()
+    {
+        var before = LoginEnvironment.Current.OrderBy(pair => pair.Key, StringComparer.Ordinal).ToList();
+        await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => Task.Run(LoginEnvironment.Load))).WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.True(LoginEnvironment.IsLoaded);
+        await LoginEnvironment.Load().WaitAsync(TimeSpan.FromSeconds(30));
+        // With no login shell to read (ED-170 (2)), the loaded environment holds what the fallback held.
+        Assert.Equal(before, LoginEnvironment.Current.OrderBy(pair => pair.Key, StringComparer.Ordinal));
+    }
+
     [Fact]
     [Trait("Req", "PR-TERM-100")] // Core/Support/Shell.swift:415-427
     [Trait("Decision", "ED-171")]

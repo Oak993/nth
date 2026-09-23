@@ -191,6 +191,78 @@ public sealed class ShellLoginEnvironmentTests
         Assert.Equal(current.Count, copy.Count);
     }
 
+    // ---- load (:357-365), current and isLoaded (:341-351) ----
+
+    [Fact]
+    [Trait("Req", "PR-TERM-104")] // Core/Support/Shell.swift:331-334,357-365
+    public async Task Concurrent_loads_share_one_task_and_one_read_and_all_return_once_the_environment_is_cached()
+    {
+        var reads = 0;
+        var process = LoginEnvironmentSamples.Pairs(("Path", @"C:\a"));
+        // The loader's augmentedPath runs once per read (:386), so it counts the reads.
+        var loader = new LoginEnvironment.Loader(() => LoginEnvironment.Fallback(process, Home), path =>
+        {
+            Interlocked.Increment(ref reads);
+            return LoginEnvironment.AugmentedPath(path, Home);
+        });
+        Assert.False(loader.IsLoaded);
+        using var start = new ManualResetEventSlim();
+        var racers = Enumerable.Range(0, 8).Select(_ => Task.Run(() =>
+        {
+            start.Wait();
+            return loader.Loading();
+        })).ToArray();
+        start.Set();
+        var handles = await Task.WhenAll(racers).WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.All(handles, handle => Assert.Same(handles[0], handle));
+        await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(loader.Load))).WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.True(loader.IsLoaded);
+        // A later caller gets the same, finished task: the read is never repeated.
+        Assert.Same(handles[0], loader.Loading());
+        await loader.Load().WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.Equal(1, reads);
+        Assert.Equal(Joined([@"C:\a", .. HomeEntries]), loader.Current["PATH"]);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-105")] // Core/Support/Shell.swift:341-347,371
+    public async Task The_fallback_is_built_once_and_is_current_until_the_load_lands()
+    {
+        var builds = 0;
+        var process = LoginEnvironmentSamples.Pairs(("Path", @"C:\a"), ("TERM", "xterm"));
+        var loader = new LoginEnvironment.Loader(() =>
+        {
+            Interlocked.Increment(ref builds);
+            return LoginEnvironment.Fallback(process, Home);
+        }, path => LoginEnvironment.AugmentedPath(path, Home));
+        var before = loader.Current;
+        Assert.Same(before, loader.Current);
+        Assert.False(loader.IsLoaded);
+        Assert.Equal(1, builds);
+        await loader.Load().WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.True(loader.IsLoaded);
+        // read() starts from the same fallback (:371) and never builds another.
+        Assert.Equal(1, builds);
+        Assert.Equal(before.OrderBy(pair => pair.Key, StringComparer.Ordinal), loader.Current.OrderBy(pair => pair.Key, StringComparer.Ordinal));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-105")] // Core/Support/Shell.swift:455-461
+    [Trait("Decision", "ED-170")]
+    [Trait("Decision", "ED-128")]
+    public void Fallback_sets_LANG_to_en_US_UTF8_only_when_the_process_has_no_LANG()
+    {
+        var absent = LoginEnvironment.Fallback(LoginEnvironmentSamples.Pairs(("PATH", @"C:\a")), Home);
+        Assert.Equal("en_US.UTF-8", absent["LANG"]);
+        Assert.Contains("LANG", absent.Keys);
+        // An existing LANG is left alone, under its own spelling (ED-128 (1)).
+        var other = LoginEnvironment.Fallback(LoginEnvironmentSamples.Pairs(("lang", "de_DE.UTF-8")), Home);
+        Assert.Equal("de_DE.UTF-8", other["LANG"]);
+        Assert.Equal(new[] { "PATH", "lang" }, other.Keys.OrderBy(key => key, StringComparer.Ordinal));
+        // `environment["LANG"] == nil` (:459): an empty LANG is present, so it stays empty.
+        Assert.Equal("", LoginEnvironment.Fallback(LoginEnvironmentSamples.Pairs(("LANG", "")), Home)["LANG"]);
+    }
+
     // ---- which (:415-427) ----
 
     [Fact]
