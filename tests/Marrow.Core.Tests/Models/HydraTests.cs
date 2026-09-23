@@ -10,15 +10,12 @@ namespace Marrow.Core.Tests.Models;
 // of 4. Every expected value is transcribed from the cited Swift lines or the record itself, never from the C#
 // under test (R-TEST-4). Records proved: part 1, PR-HYDRA-001 to PR-HYDRA-024; part 2, PR-HYDRA-025 to
 // PR-HYDRA-052 (excluding 029, 030, 041, 042, not named by this part's records); part 4, PR-HYDRA-080, 082,
-// 083, 088 to 093, 097, 248 to 251, PR-HYDRAMERGE-083, UI-HYDRAMERGE-003.
+// 083, 084, 085, 088 to 093, 097, 098, 248 to 251, PR-HYDRAMERGE-083, UI-HYDRAMERGE-003.
 //
-// Part 4 untestable/blocked records: PR-HYDRA-084, PR-HYDRA-085 and PR-HYDRA-098 all describe
-// HydraPrompts.Delegations/the private body parser, which calls delegation(fromEntry:) - an extension
-// declared in a DIFFERENT Swift file, HydraDelegationStream.swift:110-118, whose C# twin (unit
-// Core.Models.HydraDelegationStream) is not yet in this tree. Delegations(string) stays a MARROW_STUB
-// NotImplementedException at this site (see Models/Hydra.cs); no test can exercise behaviour that throws
-// unconditionally without asserting the exception, which would prove nothing about the record. Left
-// unwritten per the packet's stop rule; reported as a blocker, not silently skipped.
+// PR-HYDRA-084, PR-HYDRA-085 and PR-HYDRA-098 (HydraPrompts.Delegations and its private body parser) are
+// proved through Delegations(string) below, which since the orchestrator's ruling on this unit's STOP also
+// exercises HydraPrompts.Delegation(fromEntry:) (src/Marrow.Core/Models/HydraDelegationStream.cs, ported
+// from DroppyCode/Core/Models/HydraDelegationStream.swift:110-118 per R-FILE-1).
 //
 // PR-HYDRA-016 (the fixed order of the in-turn budget checks and the out-of-turn backstop's allowance) describes
 // runtime behaviour in AppModel+Hydra.swift / ThreadRuntime.swift (the turn loop and the backstop timer), not
@@ -2499,6 +2496,135 @@ public sealed class HydraTests
     public void DelegationBlockRange_is_null_with_no_opener_at_all()
     {
         Assert.Null(HydraPrompts.DelegationBlockRange("no block here at all"));
+    }
+
+    // ---- PR-HYDRA-084/085/098: Delegations walks candidate ends backwards; the body parser is tri-state ----
+
+    [Trait("Req", "PR-HYDRA-084")] // DroppyCode/Core/Models/Hydra.swift:1140-1149
+    [Trait("Req", "PR-HYDRA-085")] // DroppyCode/Core/Models/Hydra.swift:1156-1162
+    [Fact]
+    public void Delegations_parses_a_single_bare_object_body_as_one_entry()
+    {
+        var text = "```hydra\n{\"task\": \"t\", \"prompt\": \"p\"}\n```";
+        var result = HydraPrompts.Delegations(text);
+        Assert.NotNull(result);
+        var one = Assert.Single(result!);
+        Assert.Equal("t", one.Task);
+        Assert.Equal("p", one.Prompt);
+    }
+
+    [Trait("Req", "PR-HYDRA-084")] // DroppyCode/Core/Models/Hydra.swift:1140-1149
+    [Fact]
+    public void Delegations_parses_an_array_of_entries_in_order()
+    {
+        var text = "```hydra\n[{\"task\": \"a\", \"prompt\": \"pa\"}, {\"task\": \"b\", \"prompt\": \"pb\"}]\n```";
+        var result = HydraPrompts.Delegations(text);
+        Assert.NotNull(result);
+        Assert.Equal(2, result!.Count);
+        Assert.Equal("a", result[0].Task);
+        Assert.Equal("b", result[1].Task);
+    }
+
+    [Trait("Req", "PR-HYDRA-098")] // DroppyCode/Core/Models/Hydra.swift:1158, 1133-1139, 967
+    [Fact]
+    public void Delegations_returns_an_empty_list_not_null_for_an_explicitly_empty_array()
+    {
+        var text = "```hydra\n[]\n```";
+        var result = HydraPrompts.Delegations(text);
+        Assert.NotNull(result);
+        Assert.Empty(result!);
+    }
+
+    [Trait("Req", "PR-HYDRA-084")] // DroppyCode/Core/Models/Hydra.swift:1140-1149
+    [Fact]
+    public void Delegations_walks_line_start_fences_backwards_skipping_candidates_that_fail_to_parse()
+    {
+        // Two more line-start fences follow the block's real closer (a trailing markdown example the
+        // lead added after its answer). Every candidate that includes that trailing text has non-JSON
+        // content after the array and fails to parse; delegations(in:) must walk backwards past both
+        // of them before it reaches the real closer, whose body is exactly the valid array.
+        var text = "```hydra\n[{\"task\": \"a\", \"prompt\": \"pa\"}]\n```\n"
+            + "Some trailing text with an extra example fence:\n```\nnotjson\n```";
+        var result = HydraPrompts.Delegations(text);
+        Assert.NotNull(result);
+        var one = Assert.Single(result!);
+        Assert.Equal("a", one.Task);
+        Assert.Equal("pa", one.Prompt);
+    }
+
+    [Trait("Req", "PR-HYDRA-085")] // DroppyCode/Core/Models/Hydra.swift:1156-1162
+    [Fact]
+    public void Delegations_with_an_entry_missing_a_prompt_falls_back_to_the_whole_tail_and_still_fails()
+    {
+        // Every candidate body (the whole array, since there is only one fence, the opener) parses as
+        // JSON but every entry lacks "prompt", so delegation(fromEntry:) rejects all of them and
+        // delegations(fromBody:) returns nil (not []), so delegations(in:) exhausts every candidate and
+        // returns null.
+        var text = "```hydra\n[{\"task\": \"t\"}]\n```";
+        Assert.Null(HydraPrompts.Delegations(text));
+    }
+
+    [Trait("Req", "PR-HYDRA-084")] // DroppyCode/Core/Models/Hydra.swift:1140-1149
+    [Fact]
+    public void Delegations_is_null_when_no_candidate_body_parses()
+    {
+        Assert.Null(HydraPrompts.Delegations("```hydra\nnot json at all\n```"));
+    }
+
+    [Trait("Req", "PR-HYDRA-084")] // DroppyCode/Core/Models/Hydra.swift:1140-1149
+    [Fact]
+    public void Delegations_is_null_with_no_opener_at_all()
+    {
+        Assert.Null(HydraPrompts.Delegations("no block here at all"));
+    }
+
+    [Trait("Req", "PR-HYDRA-085")] // DroppyCode/Core/Models/HydraDelegationStream.swift:110-118
+    [Fact]
+    public void Delegations_titles_an_entry_without_a_task_from_the_prompt()
+    {
+        var text = "```hydra\n{\"prompt\": \"fix the login bug\"}\n```";
+        var result = HydraPrompts.Delegations(text);
+        Assert.NotNull(result);
+        var one = Assert.Single(result!);
+        Assert.Equal("fix the login bug", one.Task);
+        Assert.Equal("fix the login bug", one.Prompt);
+        Assert.Null(one.Name);
+        Assert.Null(one.Project);
+        Assert.Null(one.Profile);
+    }
+
+    [Trait("Req", "PR-HYDRA-085")] // DroppyCode/Core/Models/HydraDelegationStream.swift:110-118
+    [Fact]
+    public void Delegations_reads_head_and_repo_as_fallbacks_for_name_and_project()
+    {
+        var text = "```hydra\n{\"prompt\": \"p\", \"head\": \"scout\", \"repo\": \"marrow\", \"profile\": \"fast\"}\n```";
+        var result = HydraPrompts.Delegations(text);
+        Assert.NotNull(result);
+        var one = Assert.Single(result!);
+        Assert.Equal("scout", one.Name);
+        Assert.Equal("marrow", one.Project);
+        Assert.Equal("fast", one.Profile);
+    }
+
+    [Trait("Req", "PR-HYDRA-085")] // DroppyCode/Core/Models/HydraDelegationStream.swift:110-118
+    [Fact]
+    public void Delegations_name_and_project_take_precedence_over_head_and_repo_when_both_are_present()
+    {
+        var text = "```hydra\n{\"prompt\": \"p\", \"name\": \"lead\", \"head\": \"scout\", "
+            + "\"project\": \"app\", \"repo\": \"marrow\"}\n```";
+        var result = HydraPrompts.Delegations(text);
+        Assert.NotNull(result);
+        var one = Assert.Single(result!);
+        Assert.Equal("lead", one.Name);
+        Assert.Equal("app", one.Project);
+    }
+
+    [Trait("Req", "PR-HYDRA-098")] // DroppyCode/Core/Models/Hydra.swift:1158
+    [Fact]
+    public void Delegations_with_a_blank_prompt_rejects_the_entry_and_the_others_all_blank_yields_null()
+    {
+        var text = "```hydra\n[{\"prompt\": \"   \"}]\n```";
+        Assert.Null(HydraPrompts.Delegations(text));
     }
 
     // ---- PR-HYDRA-088: withoutDelegationBlock removes the block's range and trims both ends ----
