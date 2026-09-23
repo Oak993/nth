@@ -48,9 +48,12 @@ public sealed class RecentCacheTests
         var cache = new RecentCache<string, int>(1);
         cache.Insert(1, "a"); cache.Insert(2, "b"); // previous {a}, current {b}
         Assert.True(cache.Contains("a")); // contains reads both maps and moves nothing
-        Assert.True(cache.TryGetValue("b", out var value)); Assert.Equal(2, value); // current hit returns at :23, no insert
-        cache.Insert(3, "c"); // count 1 >= 1: previous {b}, current {c}
+        cache.Insert(3, "c"); // count 1 >= 1: previous {b}, current {c}; a discarded
         Assert.False(cache.Contains("a")); Assert.True(cache.Contains("b"));
+        // Had contains promoted a, the state before c would be previous {b}, current {a}, and c would keep a and drop b.
+        Assert.True(cache.TryGetValue("c", out var value)); Assert.Equal(3, value); // current hit returns at :23, no insert
+        cache.Insert(4, "d"); // count 1 >= 1: previous {c}, current {d}
+        Assert.True(cache.Contains("c")); Assert.False(cache.Contains("b"));
         Assert.False(cache.TryGetValue("missing", out _)); // :24 returns nil
     }
 
