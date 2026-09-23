@@ -1185,7 +1185,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 DONE: 78 tests pass; five exact headlines and symbol identifiers, provider IDs and fields, four role identities, questions and structural equality. Swift Requests.swift unchanged in 417ab7d3. Runtime plan resolution and masked UI belong to later packets; licensed glyphs await UNK-0007. Director diff review passed, approved tests unchanged."
     },
