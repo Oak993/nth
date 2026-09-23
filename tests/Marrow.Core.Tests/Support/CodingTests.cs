@@ -54,6 +54,29 @@ public sealed class CodingTests
     }
 
     [Fact]
+    [Trait("Req", "PR-STORE-017")] // Core/Support/Coding.swift:21-23
+    [Trait("Rule", "R-CODE-3")]
+    public void Printable_ASCII_stays_raw_while_quote_backslash_and_slash_are_escaped()
+    {
+        const string printable = "<>&'+`";
+        Assert.Equal("\"<>&'+`\\\"\\\\\\/\"", Text(Coding.Encode(printable + "\"\\/")));
+        Assert.Equal("{\"<>&'+`\":\"<>&'+`\"}", Text(Coding.Encode(new Dictionary<string, string> { [printable] = printable })));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-CODE-3")]
+    [Trait("Decision", "ED-072")]
+    public void Non_ASCII_single_keys_are_written_as_raw_UTF8_bytes()
+    {
+        foreach (var key in new[] { "caf\U000000E9", "\U0001F600" })
+        {
+            var bytes = Coding.Encode(new Dictionary<string, string> { [key] = "value" });
+            Assert.Equal(Encoding.UTF8.GetBytes("{\"" + key + "\":\"value\"}"), bytes);
+            Assert.DoesNotContain((byte)'\\', bytes);
+        }
+    }
+
+    [Fact]
     [Trait("Req", "PR-STORE-017")] // Core/Support/Coding.swift:23
     public void Text_holding_line_breaks_still_saves_as_one_line()
     {
@@ -419,8 +442,14 @@ public sealed class CodingTests
         Assert.Equal(5L, Coding.Value<long>(root, "x", _ => throw new EncodingError("thrown by a nested initializer"), () => 5L));
         Assert.Equal(5L, Coding.Value<long>(root, "x", _ => throw new FormatException("thrown"), () => 5L));
         Assert.Equal(5L, Coding.Value<long>(root, "x", _ => throw new InvalidOperationException("thrown"), () => 5L));
+        Assert.Equal(5L, Coding.Value<long>(root, "x", _ => throw new ArgumentException("thrown"), () => 5L));
+        Assert.Equal(5L, Coding.Value<long>(root, "x", _ => throw new System.IO.IOException("thrown"), () => 5L));
+        Assert.Equal(5L, Coding.Value<long>(root, "x", _ => throw new Exception("thrown"), () => 5L));
+        Assert.Equal(5L, Coding.Value<long>(root, "x", _ => throw new CancellationError(), () => 5L));
         Assert.Throws<SwiftTrapException>(() => Coding.Value<long>(root, "x", _ => throw SwiftTraps.Fatal("trap"), () => 5L));
         Assert.Throws<OverflowException>(() => Coding.Value<long>(root, "x", _ => throw new OverflowException(), () => 5L));
+        Assert.Throws<IndexOutOfRangeException>(() => Coding.Value<long>(root, "x", _ => throw new IndexOutOfRangeException(), () => 5L));
+        Assert.Throws<InvalidCastException>(() => Coding.Value<long>(root, "x", _ => throw new InvalidCastException(), () => 5L));
     }
 
     [Fact]

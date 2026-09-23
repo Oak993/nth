@@ -9,7 +9,8 @@ namespace Marrow.Core.Tests.Support;
 // decoder and inside value(_:default:). Foundation JSONDecoder's integer slow path accepts an exactly integral JSON
 // number (1.0, 1e3) but never a numeric string, a fraction or a number Int cannot hold (R-CODE-1; swift-6.0-RELEASE
 // JSONDecoder.swift). Int is 64-bit, so the port type is long. Whether a fraction whose parsed Double is exactly
-// integral (1.0000000000000001) is read is open (O-09) and pinned apart, with its Oracle trait.
+// integral (1.0000000000000001), or an out-of-range integer whose parsed Double is -2^63
+// (-9223372036854775809), is read is open (O-09: big integers and number text in JSONDecoder).
 public sealed class CodingIntegerTests
 {
     private static JsonElement Root(string number) => JsonDocument.Parse("{\"x\":" + number + "}").RootElement.Clone();
@@ -34,7 +35,6 @@ public sealed class CodingIntegerTests
     [InlineData("\"1\"")]
     [InlineData("true")]
     [InlineData("9223372036854775808")]
-    [InlineData("-9223372036854775809")]
     [InlineData("1e19")]
     public void A_number_Int_cannot_hold_gives_the_default(string number)
     {
@@ -71,10 +71,29 @@ public sealed class CodingIntegerTests
     [InlineData("true")]
     [InlineData("null")]
     [InlineData("9223372036854775808")]
-    [InlineData("-9223372036854775809")]
     [InlineData("1e19")]
     public void The_storage_decoder_refuses_what_Swift_Int_refuses(string json)
     {
         Assert.ThrowsAny<JsonException>(() => Coding.Decode<long>(Encoding.UTF8.GetBytes(json)));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-CODE-1")]
+    [Trait("Oracle", "O-09")]
+    public void An_out_of_range_negative_integer_gives_the_default_until_the_oracle_answers()
+    {
+        // The parsed Double is exactly -2^63, so Int(exactly:) would give Int.min. The default comes only
+        // from the parked Decimal re-check at 2^53 and above in SwiftDecoding.ReadInt; O-09 settles it.
+        Assert.Equal(-999L, Coding.Value(Root("-9223372036854775809"), "x", SwiftDecoding.ReadInt, () => -999L));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-CODE-1")]
+    [Trait("Oracle", "O-09")]
+    public void The_storage_decoder_refuses_an_out_of_range_negative_integer_until_the_oracle_answers()
+    {
+        // The parsed Double is exactly -2^63, so Int(exactly:) would give Int.min. Rejection comes only
+        // from the parked Decimal re-check at 2^53 and above in SwiftDecoding.ReadInt; O-09 settles it.
+        Assert.ThrowsAny<JsonException>(() => Coding.Decode<long>("-9223372036854775809"u8));
     }
 }
