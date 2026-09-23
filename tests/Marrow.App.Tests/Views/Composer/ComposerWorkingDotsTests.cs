@@ -2,11 +2,11 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Composer;
 using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
-using Marrow.UI.Tests.Fixtures;
 
 namespace Marrow.App.Tests.Views.Composer;
 
@@ -15,9 +15,9 @@ namespace Marrow.App.Tests.Views.Composer;
 [Collection("Headless")]
 public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
 {
-    private static Window ShowInFrame(Control content, double width, double height)
+    private static Avalonia.Controls.Window ShowInFrame(Control content, double width, double height)
     {
-        var window = new Window { Width = width, Height = height, Content = content };
+        var window = new Avalonia.Controls.Window { Width = width, Height = height, Content = content };
         window.Show();
         Dispatcher.UIThread.RunJobs();
         return window;
