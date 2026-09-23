@@ -3,6 +3,117 @@
  "part_size": 24,
  "units": [
   {
+   "id": "F.Sound",
+   "kind": "foundation",
+   "swift": null,
+   "target": "src/Marrow.UI/Port/SwiftSound.cs",
+   "project": "Marrow.UI",
+   "test_project": "tests/Marrow.UI.Tests",
+   "level": -1,
+   "component": null,
+   "component_members": [],
+   "deps": [],
+   "intra_deps": [],
+   "noMerge": false,
+   "base": null,
+   "records_total": 0,
+   "records_todo": [],
+   "parts": [
+    []
+   ],
+   "packets": [],
+   "risk": "STANDARD",
+   "spec": "NSSound as ED-151 gives it: SwiftSound.Create(byte[]) returning null for data that is not a playable PCM WAV; float Volume; Play() returning false and doing nothing while playing; Stop(); IsPlaying; output through the Ambient<ISoundOutput> seam SoundOutput.Current, production on the Windows waveOut API by P/Invoke with Volume applied to the samples, tests on a fake that records plays, stops and volumes and completes on demand. First tests: Create null for bad data; play then play again while playing is declined; stop then play replays; the volume reaches the output; a playback completes and IsPlaying turns false.",
+   "extends_existing": false,
+   "status": "TODO"
+  },
+  {
+   "id": "F.ResizeStretch",
+   "kind": "foundation",
+   "swift": null,
+   "target": "src/Marrow.UI/Port/ResizeStretch.cs",
+   "project": "Marrow.UI",
+   "test_project": "tests/Marrow.UI.Tests",
+   "level": -1,
+   "component": null,
+   "component_members": [],
+   "deps": [],
+   "intra_deps": [],
+   "noMerge": false,
+   "base": null,
+   "records_total": 0,
+   "records_todo": [],
+   "parts": [
+    []
+   ],
+   "packets": [],
+   "risk": "HIGH",
+   "spec": "The live-resize remedy of OD-0017 exactly as ED-101 gives it: after a window's first frame, resolve PlatformImpl, _glSurface, _window, _shared (SyncRoot, Compositor), _visual and _surfaceBrush by reflection; under lock(SyncRoot) size the content visual to zero with RelativeSizeAdjustment (1,1), set the surface brush Stretch to Fill, park a detached sprite visual in _visual; read both back and, if a member is missing or a read-back differs, log once and leave the window as Avalonia made it; on close put the real visual back under the lock before Avalonia disposes the surface. Evidence: porting/probes/p4b/RESULT.md section How the production chrome should implement it. First tests: a test pinned to Avalonia 12.1.2 that fails if any member is not found; the read-backs on a real window; the restore on close; nothing changes at rest.",
+   "extends_existing": false,
+   "status": "TODO"
+  },
+  {
+   "id": "F.LoadingMark",
+   "kind": "foundation",
+   "swift": null,
+   "target": "src/Marrow.UI/Port/LoadingMark.cs",
+   "project": "Marrow.UI",
+   "test_project": "tests/Marrow.UI.Tests",
+   "level": -1,
+   "component": null,
+   "component_members": [],
+   "deps": [
+    "F.FrameClock"
+   ],
+   "intra_deps": [],
+   "noMerge": false,
+   "base": null,
+   "records_total": 0,
+   "records_todo": [],
+   "parts": [
+    []
+   ],
+   "packets": [],
+   "risk": "STANDARD",
+   "spec": "The loading mark and boot sequence of OD-0016 and OD-0018, exactly as ED-097, ED-102 and ED-103 give them in numbers; the reference implementation is porting/design/loading_mark/boot_sequence.html (canvas, frame by frame) and loading_premium.html card B, and where they differ from the EDs the EDs rule. LoadingMark draws the Marrow icon (src/Marrow.App/Assets/icon.svg geometry) with the Comet motion of ED-102 (1) to (3) from the F.FrameClock seam, still under reduce motion, with the 400 ms no-flash rule for in-app sites (ED-097). A BootSequence type drives the ED-103 phases (gather, pulse, turns until ready, disintegration, window formation) as pure functions of time, so tests pin particle positions, reveal shares, pulse times and phase boundaries at fixed times with the manual frame source. First tests: the turn angle and speed at fixed times, one pulse exactly at each rest, the ring radius and opacity curve, the gather reveal share, the final rest after readiness, disintegration pairing by angle without crossings, and reduce motion.",
+   "extends_existing": false,
+   "status": "TODO"
+  },
+  {
+   "id": "Core.Repair.ScanClean",
+   "kind": "foundation",
+   "swift": null,
+   "target": "src/Marrow.Core (the files the source scan names) and src/Marrow.Services",
+   "project": "Marrow.Core",
+   "test_project": "tests/Marrow.Core.Tests",
+   "level": 6,
+   "component": null,
+   "component_members": [],
+   "deps": [
+    "Core.Models.MCP",
+    "Core.Models.MCPCatalog",
+    "Core.Models.MergeRequestLink",
+    "Core.Models.Requests",
+    "Core.Support.Coding",
+    "Core.Support.StdioFramer",
+    "Core.Support.Text",
+    "F.SourceScan"
+   ],
+   "intra_deps": [],
+   "noMerge": false,
+   "base": "unit/F.SourceScan",
+   "records_total": 0,
+   "records_todo": [],
+   "parts": [
+    []
+   ],
+   "packets": [],
+   "risk": "HIGH",
+   "spec": "The source-scan repair of ED-108 (IMPLEMENTING.md 4.4). Branch from unit/F.SourceScan (the scan and its four real-tree tests, committed and reviewed there) and merge current impl/b2. Then clear every finding the Core and Services real-tree SourceScanTests print: each site takes the replacement IMPLEMENTING.md 4.4 lists under its rule (R-ENUM-1/ED-075, R-ENUM-3, R-STR-4, R-STR-6, R-STR-2, R-NUM-1 SwiftNumber.ParseInt, R-CODE-1, R-CODE-3, R-CODE-8, R-STR-9); no allowlist entry except the one ED-108 rules for Coding.cs:92; a banned call must not move into Port/ to escape the scan. The only test edits allowed are R-STR-9 respellings (same evaluated value, eight-digit escape, a comment naming the character) and the new MCPTransport UnionCoverage test ED-108 names. Just before the merge run git merge impl/b2 again and clear any new findings. Merging this branch lands F.SourceScan with it. Tests: tests/Marrow.Core.Tests and tests/Marrow.Services.Tests, all four real-tree SourceScanTests green.",
+   "extends_existing": true,
+   "status": "TODO"
+  },
+  {
    "id": "F.StyledText",
    "kind": "foundation",
    "swift": null,
@@ -13,10 +124,12 @@
    "component": null,
    "component_members": [],
    "deps": [
-    "F.SwiftFont",
-    "F.SwiftColor"
+    "F.SwiftColor",
+    "F.SwiftFont"
    ],
    "intra_deps": [],
+   "noMerge": false,
+   "base": null,
    "records_total": 0,
    "records_todo": [],
    "parts": [
@@ -42,6 +155,8 @@
     "F.FrameClock"
    ],
    "intra_deps": [],
+   "noMerge": false,
+   "base": null,
    "records_total": 0,
    "records_todo": [],
    "parts": [
@@ -65,6 +180,8 @@
    "component_members": [],
    "deps": [],
    "intra_deps": [],
+   "noMerge": false,
+   "base": null,
    "records_total": 0,
    "records_todo": [],
    "parts": [
@@ -88,6 +205,8 @@
    "component_members": [],
    "deps": [],
    "intra_deps": [],
+   "noMerge": false,
+   "base": null,
    "records_total": 0,
    "records_todo": [],
    "parts": [
@@ -111,6 +230,8 @@
    "component_members": [],
    "deps": [],
    "intra_deps": [],
+   "noMerge": true,
+   "base": null,
    "records_total": 0,
    "records_todo": [],
    "parts": [
@@ -134,6 +255,8 @@
    "component_members": [],
    "deps": [],
    "intra_deps": [],
+   "noMerge": false,
+   "base": null,
    "records_total": 0,
    "records_todo": [],
    "parts": [
@@ -141,7 +264,7 @@
    ],
    "packets": [],
    "risk": "HIGH",
-   "spec": "File-system watcher (R-GCD-3): events posted to the main actor, overflow means rescan (probe P8: FileSystemWatcher.Error with InternalBufferOverflowException maps to everything = true / changed = nil), coalescing. First tests: a real temporary folder, including a forced overflow.",
+   "spec": "File-system watcher (R-GCD-3): tree watch events on the caller's SerialQueue and directory watch events on main (ED-116); overflow or any Error means rescan (probe P8: FileSystemWatcher.Error with InternalBufferOverflowException maps to everything = true / changed = nil; ED-114); batching of events waiting for the handler, no latency (ED-115); no order between roots (ED-113). First tests: a real temporary folder, including a forced overflow.",
    "extends_existing": false,
    "status": "TODO"
   },
@@ -157,6 +280,8 @@
    "component_members": [],
    "deps": [],
    "intra_deps": [],
+   "noMerge": false,
+   "base": null,
    "records_total": 0,
    "records_todo": [],
    "parts": [
@@ -180,6 +305,8 @@
    "component_members": [],
    "deps": [],
    "intra_deps": [],
+   "noMerge": false,
+   "base": null,
    "records_total": 0,
    "records_todo": [],
    "parts": [
@@ -187,7 +314,7 @@
    ],
    "packets": [],
    "risk": "STANDARD",
-   "spec": "HTTP client matching URLSession as the source uses it (R-NET-1): inactivity timeout, decompression, redirects, status handling, the User-Agent of OD-0012 F1. First tests: a loopback server.",
+   "spec": "HTTP client matching URLSession as the source uses it (R-NET-1): inactivity timeout, decompression, redirects, status handling, the User-Agent of OD-0012 F1. First tests: a loopback server. URLSessionConfiguration.ephemeral, URLRequest.CachePolicy and URLCache as UpdateChecker.swift:101-110 uses them (ED-119); network defaults per ED-118.",
    "extends_existing": false,
    "status": "TODO"
   },
@@ -203,6 +330,8 @@
    "component_members": [],
    "deps": [],
    "intra_deps": [],
+   "noMerge": false,
+   "base": null,
    "records_total": 0,
    "records_todo": [],
    "parts": [
@@ -228,6 +357,8 @@
     "F.FileOps"
    ],
    "intra_deps": [],
+   "noMerge": false,
+   "base": null,
    "records_total": 0,
    "records_todo": [],
    "parts": [
@@ -251,6 +382,8 @@
    "component_members": [],
    "deps": [],
    "intra_deps": [],
+   "noMerge": false,
+   "base": null,
    "records_total": 0,
    "records_todo": [],
    "parts": [
@@ -274,6 +407,8 @@
    "component_members": [],
    "deps": [],
    "intra_deps": [],
+   "noMerge": false,
+   "base": null,
    "records_total": 0,
    "records_todo": [],
    "parts": [
@@ -297,6 +432,8 @@
    "component_members": [],
    "deps": [],
    "intra_deps": [],
+   "noMerge": false,
+   "base": null,
    "records_total": 0,
    "records_todo": [],
    "parts": [
@@ -320,6 +457,8 @@
    "component_members": [],
    "deps": [],
    "intra_deps": [],
+   "noMerge": false,
+   "base": null,
    "records_total": 0,
    "records_todo": [],
    "parts": [
@@ -327,7 +466,7 @@
    ],
    "packets": [],
    "risk": "STANDARD",
-   "spec": "URL(string:): the macOS 14 leniency, host case and brackets, decoded path (R-PATH-1). First tests: \"foo bar\", IPv6 hosts, MarkdownView.swift:677.",
+   "spec": "URL(string:): the macOS 14 leniency, host case and brackets, decoded path (R-PATH-1). First tests: \"foo bar\", IPv6 hosts, MarkdownView.swift:677. url.pathComponents is SwiftURL.PathComponents (ED-143): the swift-foundation 6.2 split of the encoded path on runs of \"/\", each component percent-decoded as UTF-8, a final \"/\" dropped, \"\\\" kept percent-encoded; its tests carry Oracle O-44.",
    "extends_existing": false,
    "status": "TODO"
   },
@@ -343,6 +482,8 @@
    "component_members": [],
    "deps": [],
    "intra_deps": [],
+   "noMerge": false,
+   "base": null,
    "records_total": 0,
    "records_todo": [],
    "parts": [
@@ -447,23 +588,13 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 3,
-   "records_todo": [
-    "PR-HYDRA-055",
-    "PR-STORE-129",
-    "PR-STORE-130"
-   ],
-   "parts": [
-    [
-     "PR-HYDRA-055",
-     "PR-STORE-129",
-     "PR-STORE-130"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-001"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.FileChangeSummary",
@@ -500,7 +631,9 @@
    "level": 0,
    "component": null,
    "component_members": [],
-   "deps": [],
+   "deps": [
+    "F.URL"
+   ],
    "intra_deps": [],
    "records_total": 4,
    "records_todo": [
@@ -534,14 +667,13 @@
    "component_members": [],
    "deps": [],
    "intra_deps": [],
-   "records_total": 6,
+   "records_total": 5,
    "records_todo": [
     "PR-RUNTIME-016",
     "PR-RUNTIME-017",
     "PR-RUNTIME-018",
     "PR-RUNTIME-019",
-    "PR-RUNTIME-020",
-    "UI-RUNTIME-005"
+    "PR-RUNTIME-020"
    ],
    "parts": [
     [
@@ -549,13 +681,11 @@
      "PR-RUNTIME-017",
      "PR-RUNTIME-018",
      "PR-RUNTIME-019",
-     "PR-RUNTIME-020",
-     "UI-RUNTIME-005"
+     "PR-RUNTIME-020"
     ]
    ],
    "packets": [
-    "T-M2-044",
-    "T-M2-045"
+    "T-M2-044"
    ],
    "risk": "STANDARD",
    "status": "TODO"
@@ -713,14 +843,14 @@
     ]
    ],
    "packets": [
+    "T-M2-045",
     "T-M2-046",
     "T-M2-047",
     "T-M2-048",
     "T-M2-049",
     "T-M2-050",
     "T-M2-051",
-    "T-M2-052",
-    "T-M2-053"
+    "T-M2-052"
    ],
    "risk": "STANDARD",
    "status": "TODO"
@@ -770,7 +900,7 @@
     ]
    ],
    "packets": [
-    "T-M2-059"
+    "T-M2-058"
    ],
    "risk": "STANDARD",
    "status": "TODO"
@@ -800,7 +930,7 @@
     ]
    ],
    "packets": [
-    "T-M2-062"
+    "T-M2-061"
    ],
    "risk": "STANDARD",
    "status": "TODO"
@@ -840,7 +970,7 @@
     ]
    ],
    "packets": [
-    "T-M2-065"
+    "T-M2-064"
    ],
    "risk": "STANDARD",
    "status": "TODO"
@@ -866,7 +996,7 @@
     ]
    ],
    "packets": [
-    "T-M2-066"
+    "T-M2-065"
    ],
    "risk": "STANDARD",
    "status": "TODO"
@@ -883,29 +1013,13 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 6,
-   "records_todo": [
-    "PR-STORE-053",
-    "PR-STORE-054",
-    "PR-STORE-055",
-    "PR-STORE-056",
-    "PR-STORE-057",
-    "PR-STORE-058"
-   ],
-   "parts": [
-    [
-     "PR-STORE-053",
-     "PR-STORE-054",
-     "PR-STORE-055",
-     "PR-STORE-056",
-     "PR-STORE-057",
-     "PR-STORE-058"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
-    "T-M2-067"
+    "T-M2-066"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.StdioFramer",
@@ -936,7 +1050,7 @@
     ]
    ],
    "packets": [
-    "T-M2-072"
+    "T-M2-071"
    ],
    "risk": "HIGH",
    "status": "TODO"
@@ -1110,22 +1224,14 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 2,
-   "records_todo": [
-    "PR-SIDEBAR-164",
-    "UI-SIDEBAR-061"
-   ],
-   "parts": [
-    [
-     "PR-SIDEBAR-164",
-     "UI-SIDEBAR-061"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-019",
     "T-M5-020"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Chrome.RowDrag",
@@ -1274,23 +1380,13 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 3,
-   "records_todo": [
-    "PR-THEME-078",
-    "PR-THEME-079",
-    "PR-THEME-080"
-   ],
-   "parts": [
-    [
-     "PR-THEME-078",
-     "PR-THEME-079",
-     "PR-THEME-080"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-066"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Window.ThreadWindow",
@@ -1852,7 +1948,7 @@
     ]
    ],
    "packets": [
-    "T-M2-054"
+    "T-M2-053"
    ],
    "risk": "STANDARD",
    "status": "TODO"
@@ -1944,9 +2040,9 @@
     ]
    ],
    "packets": [
+    "T-M2-054",
     "T-M2-055",
-    "T-M2-056",
-    "T-M2-057"
+    "T-M2-056"
    ],
    "risk": "STANDARD",
    "status": "TODO"
@@ -1985,7 +2081,7 @@
     ]
    ],
    "packets": [
-    "T-M2-058"
+    "T-M2-057"
    ],
    "risk": "STANDARD",
    "status": "TODO"
@@ -2032,8 +2128,8 @@
     ]
    ],
    "packets": [
-    "T-M2-060",
-    "T-M2-061"
+    "T-M2-059",
+    "T-M2-060"
    ],
    "risk": "STANDARD",
    "status": "TODO"
@@ -2099,8 +2195,8 @@
     ]
    ],
    "packets": [
-    "T-M2-073",
-    "T-M2-074"
+    "T-M2-072",
+    "T-M2-073"
    ],
    "risk": "HIGH",
    "status": "TODO"
@@ -2161,8 +2257,8 @@
     ]
    ],
    "packets": [
-    "T-M2-076",
-    "T-M2-077"
+    "T-M2-075",
+    "T-M2-076"
    ],
    "risk": "STANDARD",
    "status": "TODO"
@@ -2201,8 +2297,8 @@
     ]
    ],
    "packets": [
-    "T-M2-078",
-    "T-M2-079"
+    "T-M2-077",
+    "T-M2-078"
    ],
    "risk": "STANDARD",
    "status": "TODO"
@@ -2246,6 +2342,7 @@
    "component": null,
    "component_members": [],
    "deps": [
+    "F.Sound",
     "UI.Sound.ToneSynth"
    ],
    "intra_deps": [],
@@ -2274,6 +2371,7 @@
    "component": null,
    "component_members": [],
    "deps": [
+    "F.Sound",
     "UI.Sound.ToneSynth"
    ],
    "intra_deps": [],
@@ -2666,8 +2764,8 @@
     ]
    ],
    "packets": [
-    "T-M2-063",
-    "T-M2-064"
+    "T-M2-062",
+    "T-M2-063"
    ],
    "risk": "HIGH",
    "status": "TODO"
@@ -2764,10 +2862,10 @@
     ]
    ],
    "packets": [
+    "T-M2-067",
     "T-M2-068",
     "T-M2-069",
-    "T-M2-070",
-    "T-M2-071"
+    "T-M2-070"
    ],
    "risk": "HIGH",
    "status": "TODO"
@@ -2795,7 +2893,7 @@
     ]
    ],
    "packets": [
-    "T-M2-075"
+    "T-M2-074"
    ],
    "risk": "STANDARD",
    "status": "TODO"
@@ -5151,6 +5249,7 @@
    "component_members": [],
    "deps": [
     "Core.Support.CaptureRun",
+    "F.ResizeStretch",
     "F.SwiftAnimation",
     "F.SwiftColor",
     "UI.Chrome.Chrome"
@@ -5271,6 +5370,7 @@
     "Core.Support.ThumbnailCache",
     "F.FileOps",
     "F.ICUFormatters",
+    "F.LoadingMark",
     "F.PathIdentity",
     "F.SwiftAnimation",
     "F.SwiftColor",
@@ -9332,7 +9432,7 @@
     "App.Runtime.AutoContinue",
     "App.Runtime.ThreadRuntime"
    ],
-   "records_total": 63,
+   "records_total": 64,
    "records_todo": [
     "PR-GIT-063",
     "PR-GIT-064",
@@ -9388,6 +9488,7 @@
     "PR-STORE-085",
     "PR-STORE-101",
     "PR-STORE-102",
+    "PR-STORE-171",
     "PR-TERM-055",
     "PR-TERM-057",
     "PR-TERM-060",
@@ -9458,6 +9559,7 @@
      "PR-STORE-085",
      "PR-STORE-101",
      "PR-STORE-102",
+     "PR-STORE-171",
      "PR-TERM-055",
      "PR-TERM-057",
      "PR-TERM-060",
@@ -12943,6 +13045,7 @@
     "Core.Models.Hydra",
     "Core.Models.Library",
     "Core.Models.Timeline",
+    "F.LoadingMark",
     "F.StyledText",
     "F.SwiftAnimation",
     "F.SwiftColor",
@@ -15042,7 +15145,7 @@
    "intra_deps": [
     "App.Runtime.ThreadRuntime"
    ],
-   "records_total": 11,
+   "records_total": 12,
    "records_todo": [
     "PR-COMPOSER-183",
     "PR-COMPOSER-184",
@@ -15052,6 +15155,7 @@
     "UI-COMPOSER-063",
     "UI-COMPOSER-064",
     "UI-COMPOSER-065",
+    "UI-RUNTIME-005",
     "UI-RUNTIME-006",
     "UI-RUNTIME-007",
     "UI-RUNTIME-008"
@@ -15066,6 +15170,7 @@
      "UI-COMPOSER-063",
      "UI-COMPOSER-064",
      "UI-COMPOSER-065",
+     "UI-RUNTIME-005",
      "UI-RUNTIME-006",
      "UI-RUNTIME-007",
      "UI-RUNTIME-008"
@@ -15149,6 +15254,7 @@
     "Core.Models.FileChangeSummary",
     "Core.Models.Shortcuts",
     "Core.Models.Timeline",
+    "F.LoadingMark",
     "F.StyledText",
     "F.SwiftAnimation",
     "F.SwiftColor",
@@ -19031,6 +19137,7 @@
    "deps": [
     "App.Window.ThreadWindow",
     "Core.Support.Text",
+    "F.ResizeStretch",
     "F.SwiftColor",
     "UI.Chrome.WindowChrome",
     "UI.Common.AppZoom",
@@ -20048,6 +20155,7 @@
     "App.UpdateChecker",
     "App.Views.Tour.TourPages",
     "App.Window.WindowManager",
+    "F.LoadingMark",
     "Services.MCP.MCPHub",
     "Services.Store.TokenLedger"
    ],
