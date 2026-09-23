@@ -126,34 +126,28 @@ public sealed class MCPStoreTests
     [Trait("Req", "PR-MCP-055")] // :293-301
     public async Task EnabledServers_resolves_a_secret_field_from_the_store_overlaid_on_the_connection_values()
     {
-        using var harness = new MCPStoreHarness();
-        var store = harness.Runtime.OnMain(() => new MCPStore());
+        using var harness = new MCPStoreDirectHarness();
+        var store = new MCPStore();
         var custom = StdioCustom("Overlay Tool", command: ProbeProcessScripts.PowerShell,
             args: ProbeProcessScripts.Args(ProbeProcessScripts.EchoArgsAndEnvAndCwd()),
             env: [new("apiKey", IsSecret: true), new("mode", IsSecret: false)]);
-        harness.Runtime.OnMain(() => Assert.Null(store.SaveCustom(custom)));
-        var entry = harness.Runtime.OnMain(() => store.Entry(custom.Id)!);
+        Assert.Null(store.SaveCustom(custom));
+        var entry = store.Entry(custom.Id)!;
         var secretField = entry.Fields.Single(f => f.Key == "apiKey");
         var textField = entry.Fields.Single(f => f.Key == "mode");
 
-        harness.Runtime.OnMain(() =>
-        {
-            store.SetDraft("secret-value", secretField, entry);
-            store.SetDraft("plain-value", textField, entry);
-            store.Connect(entry); // commits the secret to the store, the plain value to the connection
-        });
-        await Task.Run(() => harness.Runtime.Loop.RunUntil(() => store.State(entry.Id) is not MCPConnectionState.Connecting, TimeSpan.FromSeconds(60)));
+        store.SetDraft("secret-value", secretField, entry);
+        store.SetDraft("plain-value", textField, entry);
+        store.Connect(entry); // commits the secret to the store, the plain value to the connection
+        await WaitWhileConnecting(store, entry.Id);
 
-        harness.Runtime.OnMain(() =>
-        {
-            Assert.True(store.State(entry.Id) is MCPConnectionState.Connected);
-            var resolved = store.EnabledServers.Single(s => s.Id == entry.Id);
-            // storedValues (:293-301) overlays the secret store's "apiKey" onto the connection's plain "mode":
-            // both reach the resolved server's env, proving the merge, not just one source or the other.
-            Assert.Equal("secret-value", resolved.Env["apiKey"]);
-            Assert.Equal("plain-value", resolved.Env["mode"]);
-            Assert.False(store.Connection(entry.Id)!.Values.ContainsKey("apiKey")); // never the plaintext connection
-        });
+        Assert.True(store.State(entry.Id) is MCPConnectionState.Connected);
+        var resolved = store.EnabledServers.Single(s => s.Id == entry.Id);
+        // storedValues (:293-301) overlays the secret store's "apiKey" onto the connection's plain "mode":
+        // both reach the resolved server's env, proving the merge, not just one source or the other.
+        Assert.Equal("secret-value", resolved.Env["apiKey"]);
+        Assert.Equal("plain-value", resolved.Env["mode"]);
+        Assert.False(store.Connection(entry.Id)!.Values.ContainsKey("apiKey")); // never the plaintext connection
     }
 
     // ===== PR-MCP-053: setDraft =====
@@ -413,28 +407,37 @@ public sealed class MCPStoreTests
 
     // ===== PR-MCP-064: a successful probe writes tools/version only when the row still exists =====
 
+    /// Polls until the state leaves .connecting, on a real async wait (not ManualMainLoop, which stalls a real
+    /// stdio probe's process I/O; see MCPStoreDirectHarness).
+    private static async Task WaitWhileConnecting(MCPStore store, string id, TimeSpan? timeout = null)
+    {
+        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(30));
+        while (store.State(id) is MCPConnectionState.Connecting)
+        {
+            if (DateTime.UtcNow > deadline) throw new TimeoutException("The probe did not finish.");
+            await Task.Delay(20);
+        }
+    }
+
     [Fact]
     [Trait("Req", "PR-MCP-064")] // :334-343
     public async Task A_successful_probe_writes_connectedAt_version_and_tools_and_marks_connected()
     {
-        using var harness = new MCPStoreHarness();
-        var store = harness.Runtime.OnMain(() => new MCPStore());
+        using var harness = new MCPStoreDirectHarness();
+        var store = new MCPStore();
         var custom = StdioCustom("Success Tool", command: ProbeProcessScripts.PowerShell,
             args: ProbeProcessScripts.Args(ProbeProcessScripts.EchoArgsAndEnvAndCwd()));
-        harness.Runtime.OnMain(() => Assert.Null(store.SaveCustom(custom)));
-        var entry = harness.Runtime.OnMain(() => store.Entry(custom.Id)!);
+        Assert.Null(store.SaveCustom(custom));
+        var entry = store.Entry(custom.Id)!;
 
-        harness.Runtime.OnMain(() => store.Connect(entry));
-        await Task.Run(() => harness.Runtime.Loop.RunUntil(() => store.State(entry.Id) is not MCPConnectionState.Connecting, TimeSpan.FromSeconds(60)));
+        store.Connect(entry);
+        await WaitWhileConnecting(store, entry.Id);
 
-        harness.Runtime.OnMain(() =>
-        {
-            Assert.True(store.State(entry.Id) is MCPConnectionState.Connected(0));
-            var connection = store.Connection(entry.Id)!;
-            Assert.NotNull(connection.ConnectedAt);
-            Assert.NotNull(connection.ServerVersion); // the script echoes $env:MCP_PROBE_TEST_VAR (empty string, not null)
-            Assert.Empty(connection.Tools);
-        });
+        Assert.True(store.State(entry.Id) is MCPConnectionState.Connected(0));
+        var connection = store.Connection(entry.Id)!;
+        Assert.NotNull(connection.ConnectedAt);
+        Assert.NotNull(connection.ServerVersion); // the script echoes (Get-Location).Path, never null
+        Assert.Empty(connection.Tools);
         Assert.True(File.Exists(MCPPaths.ConnectionsURL));
     }
 
@@ -464,7 +467,7 @@ public sealed class MCPStoreTests
 
     [Fact]
     [Trait("Req", "PR-MCP-069")] // :350-353
-    public async Task A_command_missing_probe_error_becomes_failed_with_its_own_message()
+    public void A_command_missing_probe_error_becomes_failed_with_its_own_message()
     {
         using var harness = new MCPStoreHarness();
         var store = harness.Runtime.OnMain(() => new MCPStore());
@@ -473,7 +476,7 @@ public sealed class MCPStoreTests
         var entry = harness.Runtime.OnMain(() => store.Entry(custom.Id)!);
 
         harness.Runtime.OnMain(() => store.Connect(entry));
-        await Task.Run(() => harness.Runtime.Loop.RunUntil(() => store.State(entry.Id) is not MCPConnectionState.Connecting, TimeSpan.FromSeconds(30)));
+        harness.Runtime.Loop.RunUntil(() => store.State(entry.Id) is not MCPConnectionState.Connecting, TimeSpan.FromSeconds(20));
 
         harness.Runtime.OnMain(() =>
         {
@@ -507,9 +510,10 @@ public sealed class MCPStoreTests
             Assert.Equal(saved.Id, store.Customs.Single().Id);
             Assert.Equal("Totally Different Name", store.Customs.Single().Name);
 
-            // A name colliding with a real catalog id is rejected, nothing written.
-            var github = MCPCatalog.Entries.First();
-            var colliding = new MCPCustomServer(github.Id, "Collider", MCPCustomServer.Kind.Stdio) { Command = "x" };
+            // A new custom whose name mints the SAME id as an existing one is rejected, nothing written. The
+            // renamed entry above still carries the ORIGINAL id (minted once, :165, never moved by a rename),
+            // so the collision is with "Spaced Name", not with the entry's current name.
+            var colliding = StdioCustom("Spaced Name");
             var error = store.SaveCustom(colliding);
             Assert.IsType<MCPCustomError.TakenName>(error);
             Assert.Single(store.Customs); // nothing added
@@ -556,43 +560,37 @@ public sealed class MCPStoreTests
 
     [Fact]
     [Trait("Req", "PR-MCP-072")] // :176-189
-    public void SaveCustom_clears_connectedAt_version_and_tools_and_sets_notConnected_for_a_connected_edit()
+    public async Task SaveCustom_clears_connectedAt_version_and_tools_and_sets_notConnected_for_a_connected_edit()
     {
-        using var harness = new MCPStoreHarness();
-        var store = harness.Runtime.OnMain(() => new MCPStore());
+        using var harness = new MCPStoreDirectHarness();
+        var store = new MCPStore();
         var custom = StdioCustom("Edit Tool", command: ProbeProcessScripts.PowerShell,
             args: ProbeProcessScripts.Args(ProbeProcessScripts.EchoArgsAndEnvAndCwd()));
-        harness.Runtime.OnMain(() => Assert.Null(store.SaveCustom(custom)));
-        var entry = harness.Runtime.OnMain(() => store.Entry(custom.Id)!);
+        Assert.Null(store.SaveCustom(custom));
+        var entry = store.Entry(custom.Id)!;
 
-        harness.Runtime.OnMain(() => store.Connect(entry));
-        Assert.True(harness.Runtime.OnMain(() =>
-        {
-            harness.Runtime.Loop.RunUntil(() => store.State(entry.Id) is not MCPConnectionState.Connecting, TimeSpan.FromSeconds(60));
-            return store.State(entry.Id) is MCPConnectionState.Connected;
-        }));
+        store.Connect(entry);
+        await WaitWhileConnecting(store, entry.Id);
+        Assert.True(store.State(entry.Id) is MCPConnectionState.Connected);
 
-        harness.Runtime.OnMain(() =>
-        {
-            var edited = custom with { Args = new ValueList<string>(custom.Args.Append("-extra")) };
-            Assert.Null(store.SaveCustom(edited, replacing: custom.Id));
-            Assert.True(store.State(custom.Id) is MCPConnectionState.NotConnected); // :185
-            var connection = store.Connection(custom.Id)!;
-            Assert.Null(connection.ConnectedAt); // :181
-            Assert.Null(connection.ServerVersion); // :182
-            Assert.Empty(connection.Tools); // :183
-        });
+        var edited = custom with { Args = new ValueList<string>(custom.Args.Append("-extra")) };
+        Assert.Null(store.SaveCustom(edited, replacing: custom.Id));
+        Assert.True(store.State(custom.Id) is MCPConnectionState.NotConnected); // :185
+        var connection = store.Connection(custom.Id)!;
+        Assert.Null(connection.ConnectedAt); // :181
+        Assert.Null(connection.ServerVersion); // :182
+        Assert.Empty(connection.Tools); // :183
         // enabledServers (and so every provider config) excludes it immediately: connectedAt is nil (PR-MCP-049).
-        Assert.DoesNotContain(entry.Id, harness.Runtime.OnMain(() => store.EnabledServers.Select(s => s.Id)));
+        Assert.DoesNotContain(entry.Id, store.EnabledServers.Select(s => s.Id));
     }
 
     // ===== PR-MCP-049: enabledServers (drop-on-missing-entry, via a raw seeded mcp.json) =====
 
     [Fact]
     [Trait("Req", "PR-MCP-049")] // :40-49
-    public void EnabledServers_keeps_only_enabled_connected_rows_resolved_and_sorted_and_drops_missing_entries()
+    public async Task EnabledServers_keeps_only_enabled_connected_rows_resolved_and_sorted_and_drops_missing_entries()
     {
-        using var harness = new MCPStoreHarness();
+        using var harness = new MCPStoreDirectHarness();
         // Seed mcp.json directly with a connection for an id that names neither a custom nor a catalog entry
         // (load() itself is part 2's own record; this only exercises what part 1's enabledServers does with
         // what load() already put in `connections`, the same way the store would see it after a real launch).
@@ -601,21 +599,22 @@ public sealed class MCPStoreTests
             "[{\"catalogID\":\"ghost-not-in-catalog\",\"connectedAt\":\"2024-01-01T00:00:00Z\",\"isEnabled\":true,\"serverVersion\":null,\"tools\":[],\"values\":{}}]",
             Encoding.UTF8);
 
-        var store = harness.Runtime.OnMain(() => new MCPStore());
+        var store = new MCPStore();
         var b = StdioCustom("B Server", command: ProbeProcessScripts.PowerShell, args: ProbeProcessScripts.Args(ProbeProcessScripts.EchoArgsAndEnvAndCwd()));
         var a = StdioCustom("A Server", command: ProbeProcessScripts.PowerShell, args: ProbeProcessScripts.Args(ProbeProcessScripts.EchoArgsAndEnvAndCwd()));
-        harness.Runtime.OnMain(() => { Assert.Null(store.SaveCustom(b)); Assert.Null(store.SaveCustom(a)); });
-        var entryA = harness.Runtime.OnMain(() => store.Entry(a.Id)!);
-        var entryB = harness.Runtime.OnMain(() => store.Entry(b.Id)!);
+        Assert.Null(store.SaveCustom(b));
+        Assert.Null(store.SaveCustom(a));
+        var entryA = store.Entry(a.Id)!;
+        var entryB = store.Entry(b.Id)!;
 
         foreach (var entry in new[] { entryA, entryB })
         {
-            harness.Runtime.OnMain(() => store.Connect(entry));
-            harness.Runtime.OnMain(() => harness.Runtime.Loop.RunUntil(() => store.State(entry.Id) is not MCPConnectionState.Connecting, TimeSpan.FromSeconds(60)));
+            store.Connect(entry);
+            await WaitWhileConnecting(store, entry.Id);
         }
-        harness.Runtime.OnMain(() => store.SetEnabled(false, entryB)); // connected but disabled: excluded
+        store.SetEnabled(false, entryB); // connected but disabled: excluded
 
-        var ids = harness.Runtime.OnMain(() => store.EnabledServers.Select(s => s.Id).ToList());
+        var ids = store.EnabledServers.Select(s => s.Id).ToList();
         Assert.Equal(new[] { a.Id }, ids); // b excluded (disabled), ghost excluded (no entry), sorted (trivially, one item)
         Assert.DoesNotContain("ghost-not-in-catalog", ids);
     }

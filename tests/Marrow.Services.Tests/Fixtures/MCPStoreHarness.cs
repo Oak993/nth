@@ -13,6 +13,16 @@ using Marrow.Testing;
 // (idempotent, loopback only) and every construction here binds a fresh scratch Storage.Root first.
 namespace Marrow.Services.Tests.Fixtures;
 
+/// A MainActor executor that runs everything inline, with no queue and no custom SynchronizationContext: for
+/// the few tests that need a real stdio probe's process I/O to actually complete (ManualMainLoop's own
+/// SynchronizationContext stalls that I/O; this sidesteps it and lets it run exactly as it would with no
+/// TestRuntime at all, matching MCPProbeTests.cs's own successful pattern).
+public sealed class DirectMainExecutor : IMainExecutor
+{
+    public bool CheckAccess() => true;
+    public void Enqueue(Action work) => work();
+}
+
 public sealed class MCPStoreHarness : IDisposable
 {
     private readonly StorageScratchFolder folder;
@@ -38,6 +48,38 @@ public sealed class MCPStoreHarness : IDisposable
 
     public void Dispose()
     {
+        browserScope.Dispose();
+        storeScope.Dispose();
+        folder.Dispose();
+    }
+}
+
+/// Same scratch Storage.Root and in-memory secret store as <see cref="MCPStoreHarness"/>, but MainActor is bound
+/// to <see cref="DirectMainExecutor"/> instead of a TestRuntime, for the handful of tests that need a real
+/// stdio probe (ProbeProcessScripts) to actually finish.
+public sealed class MCPStoreDirectHarness : IDisposable
+{
+    private readonly StorageScratchFolder folder;
+    private readonly IDisposable storeScope;
+    private readonly IDisposable browserScope;
+    private readonly IDisposable executorScope;
+
+    public MCPStoreDirectHarness()
+    {
+        folder = new StorageScratchFolder();
+        Memory = new InMemoryCredentialBackend();
+        Store = new SecretStore(new RefusingCredentialBackend(Memory));
+        storeScope = SecretStore.Shared.Override(Store);
+        browserScope = Workspace.Open.Override(_ => true);
+        executorScope = MainActor.Executor.Override(new DirectMainExecutor());
+    }
+
+    public InMemoryCredentialBackend Memory { get; }
+    public SecretStore Store { get; }
+
+    public void Dispose()
+    {
+        executorScope.Dispose();
         browserScope.Dispose();
         storeScope.Dispose();
         folder.Dispose();
