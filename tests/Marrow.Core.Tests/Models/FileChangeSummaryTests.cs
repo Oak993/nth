@@ -19,7 +19,7 @@ namespace Marrow.Core.Tests.Models;
 //   memberwise initializer stores the totals it is given (nothing in this file computes them; the init(files:) that
 //   sums them is FileChangeSummary+Diff.swift, PR-GIT-092, another unit).
 // - The persisted bytes: the summary lives in ThreadDocument.items (the record's persistence field). Storage.swift:381
-//   writes it with JSONEncoder.storage (Coding.swift:19-26): sorted keys, compact, "/" escaped as "\/", non-ASCII
+//   writes it with JSONEncoder.storage (Coding.swift:19-25): sorted keys, compact, "/" escaped as "\/", non-ASCII
 //   written as raw UTF-8, Int as an integer literal (R-CODE-3, R-CODE-4, R-CODE-5). Storage.swift:73-79
 //   (readDocument) reads it back with a local `JSONDecoder()` whose `.dateDecodingStrategy = .iso8601`, the same
 //   configuration as JSONDecoder.storage (Coding.swift:28-34), so Coding.Decode<T> stands for both. The
@@ -37,17 +37,18 @@ namespace Marrow.Core.Tests.Models;
 //   File(string Path, long Additions, long Deletions, bool IsBinary), persisted through a System.Text.Json converter
 //   so SwiftJson.Encode(value, Coding.StorageOptions, SwiftJsonStyle.Storage) and Coding.Decode<T> reach it.
 //
-// Scope: these tests prove only the part of PR-RUNTIME-264 this file owns: the type, its exact keys, its strict
-// decoding and its value equality. They do NOT prove the record's turn-end-row verification (round-trip a turn-end
-// row with a two-file summary, one of them binary). The other clauses of its expected_result are carried by these
-// records, in the units of the files that own them:
-// - PR-CHAT-012: TurnSummary with `var changes: FileChangeSummary?` (Timeline.swift:259-267);
+// Scope: these tests prove the whole of PR-RUNTIME-264 as narrowed by the ruling on STOP Core.Models.FileChangeSummary
+// #1 (2026-09-23), which split the record down to what FileChangeSummary.swift:3-15 itself decides: the synthesized
+// keys, strict synthesized decoding in declaration order, the totals stored as given through the memberwise init,
+// and value equality. The turn-end-row round trip (a two-file summary, one of them binary, on TurnSummary.changes)
+// moved with the nil cases to PR-CHAT-012, whose fixture it now is. The other clauses of the pre-ruling
+// expected_result are carried by these records, in the units of the files that own them:
+// - PR-CHAT-012: TurnSummary with `var changes: FileChangeSummary?` (Timeline.swift:259-267), and the turn-end-row
+//   fixture itself;
 // - PR-RUNTIME-121: finishTurn copying files.count and the totals (ThreadRuntime.swift:2384-2395);
 // - PR-RUNTIME-161: install's synthetic end marker with nil changes (ThreadRuntime.swift:609);
 // - PR-RUNTIME-200: storeLegacyChanges filling only a nil changes (ThreadRuntime.swift:3751-3757).
-// TurnSummary and TimelineItem do not exist in the C# tree yet, so the turn-end-row fixture for PR-RUNTIME-264 is
-// still owed: a PR-RUNTIME-264 Req test in the Timeline unit once TurnSummary exists, or a recorded ruling that the
-// records above cover it.
+// This file adds no Req traits for those ids and does not define TurnSummary or TimelineItem.
 public sealed class FileChangeSummaryTests
 {
     // A two-file summary, one of them binary, as the record's verification method asks.
@@ -135,7 +136,7 @@ public sealed class FileChangeSummaryTests
     }
 
     [Fact]
-    [Trait("Req", "PR-RUNTIME-264")] // Core/Models/FileChangeSummary.swift:6; Coding.swift:19-26; Storage.swift:73-79; Timeline.swift:39-55
+    [Trait("Req", "PR-RUNTIME-264")] // Core/Models/FileChangeSummary.swift:6; Coding.swift:19-25; Storage.swift:73-79; Timeline.swift:39-55
     public void A_path_keeps_non_ASCII_as_raw_UTF8_and_escapes_only_the_slash()
     {
         // U+00E9, U+2019, U+2014, U+2026 and U+1F600 are written raw; "/" is "\/" (no .withoutEscapingSlashes).
