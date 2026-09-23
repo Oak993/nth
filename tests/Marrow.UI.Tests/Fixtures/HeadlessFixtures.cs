@@ -20,8 +20,24 @@ public sealed class HeadlessSession : IDisposable
 {
     public HeadlessUnitTestSession Session { get; } = HeadlessUnitTestSession.StartNew(typeof(TestApp));
 
-    /// <summary>Runs a test body on the headless UI thread with MainActor bound to Avalonia, and waits for it.</summary>
-    public void OnUiThread(Action body) => Session.Dispatch(() =>
+    /// <summary>Runs a test body on the headless UI thread with MainActor bound to Avalonia, and waits for it.
+    /// Retries once on the transient race documented on <see cref="DispatchOnce"/>: under the full test-project
+    /// run (many other xUnit collections competing for the thread pool at once, confirmed by evidence that a
+    /// full-suite run trips this on a different, unrelated headless test each time, never when this test, or
+    /// even the whole Chrome namespace, runs alone) HeadlessUnitTestSession's own EnsureIsolatedApplication can
+    /// re-enter AppBuilder.SetupUnsafe() at exactly the wrong moment and throw before the dispatched body ever
+    /// runs. That leaves nothing to unwind, so retrying the whole dispatch is safe, and observation shows it
+    /// always succeeds on the very next attempt once the platform has settled.</summary>
+    public void OnUiThread(Action body)
+    {
+        try { DispatchOnce(body); }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("a different thread owns it", StringComparison.Ordinal))
+        {
+            DispatchOnce(body);
+        }
+    }
+
+    private void DispatchOnce(Action body) => Session.Dispatch(() =>
     {
         MainActor.Bind(AvaloniaMainExecutor.Instance);
         body();
