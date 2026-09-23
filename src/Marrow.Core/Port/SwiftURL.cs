@@ -34,6 +34,15 @@ public sealed class SwiftURL : IEquatable<SwiftURL>
     public static SwiftURL? Create(string text)
     {
         if (text.Length == 0) return null; // :96
+        return CreateStringOrEmpty(text); // :97
+    }
+
+    /// <summary>
+    /// <c>URL(stringOrEmpty:)</c> with no base, the init <c>URLComponents.url</c> takes (URLComponents.swift:765-773,
+    /// URL.swift:682-685): as <see cref="Create"/> but "" makes a URL. URL_Swift.swift:83-93, :75-77.
+    /// </summary>
+    internal static SwiftURL? CreateStringOrEmpty(string text)
+    {
         // :84-89 compatibility is false, so parse(string:) with encodingInvalidCharacters: true (:83, :75-77)
         var parseInfo = RFC3986Parser.Parse(text, encodingInvalidCharacters: true, allowEmptyScheme: true);
         return parseInfo is null ? null : new SwiftURL(parseInfo);
@@ -433,6 +442,29 @@ public sealed class SwiftURL : IEquatable<SwiftURL>
         }
 
         // ---- Validation (URLParser.swift:339-585) ----
+
+        /// <summary>
+        /// URLParser.swift:341-363 <c>validate(_:component:percentEncodingAllowed:)</c>, the string entry URLComponents'
+        /// setters call; nil is valid (:342). A native String's UTF-8 is contiguous (:366-368).
+        /// </summary>
+        internal static bool Validate(string? text, URLComponent component, bool percentEncodingAllowed = true)
+        {
+            if (text is null) return true; // :342
+            var utf8 = Encoding.UTF8.GetBytes(text);
+            return component switch
+            {
+                URLComponent.Scheme => ValidateSchemeBuffer(utf8), // :420-429 an ALPHA first, then the scheme set
+                URLComponent.User => Validate(utf8, URLComponentSet.User, percentEncodingAllowed), // :431-433
+                URLComponent.Password => Validate(utf8, URLComponentSet.Password, percentEncodingAllowed), // :435-437
+                URLComponent.Host => ValidateHost(utf8), // :471-476
+                URLComponent.Port => ValidatePortBuffer(utf8, ReadOnlySpan<byte>.Empty, hasScheme: false), // :506-510 digits only
+                URLComponent.Path => Validate(utf8, URLComponentSet.Path, percentEncodingAllowed), // :512-514
+                URLComponent.Query => Validate(utf8, URLComponentSet.Query, percentEncodingAllowed), // :516-518
+                URLComponent.QueryItem => Validate(utf8, URLComponentSet.QueryItem, percentEncodingAllowed), // :520-522
+                URLComponent.Fragment => Validate(utf8, URLComponentSet.Fragment, percentEncodingAllowed), // :524-526
+                _ => throw new ArgumentOutOfRangeException(nameof(component)),
+            };
+        }
 
         // :365-406 over UTF-8 code units (withContiguousStorageIfAvailable on a native String)
         private static bool Validate(ReadOnlySpan<byte> buffer, byte component, bool percentEncodingAllowed = true)
