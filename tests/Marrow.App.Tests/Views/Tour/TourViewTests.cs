@@ -202,7 +202,7 @@ public sealed class TourViewTests(HeadlessSession headless)
         var a = new TourPage("tour-welcome", "Welcome", "Same text");
         var b = new TourPage("tour-welcome", "Welcome", "Same text");
         Assert.NotEqual(a.Id, b.Id);
-        Assert.NotEqual(a, b); // record equality includes Id
+        Assert.NotEqual(a, b); // default structural equality includes Id
     }
 
     // PR-UPDATE-106 / UI-UPDATE-039: the indicator collapses to one accessibility element labelled "Page N of M".
