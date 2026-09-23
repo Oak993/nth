@@ -139,7 +139,7 @@ public sealed class PopoversTests(HeadlessSession headless)
     {
         var recorder = new PopoverRecorder();
         using var presenter = Presentation.Presenter.Override(recorder);
-        var box = new BoolBox();
+        var box = new CellSample<bool>(false);
         var isPresented = new Binding<bool>(() => box.Value, v => box.Value = v);
         var actions = new List<RowAction> { new() { Title = "Rename", Action = () => { } } };
         var control = new RowActionsButton(actions, isPresented);
@@ -320,13 +320,4 @@ public sealed class PopoversTests(HeadlessSession headless)
         menuItem.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent)); // :372 item.action()
         Assert.True(ran); // synchronous: no Dispatcher.UIThread.RunJobs() needed
     });
-
-    /// <summary>An observable bool, standing in for a real <c>@State</c>-backed binding (RowProbe.Expanded's
-    /// shape in Fixtures/HeadlessFixtures.cs): Popup.Track needs a tracked read to notice isPresented change.</summary>
-    private sealed class BoolBox : MainActorModel
-    {
-        private bool stored;
-
-        public bool Value { get => Read(stored); set => Set(ref stored, value); }
-    }
 }
