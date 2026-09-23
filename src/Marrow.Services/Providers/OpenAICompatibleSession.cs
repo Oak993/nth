@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -152,6 +153,10 @@ public class OpenAICompatibleSession : ProviderSession
     internal string SystemPromptForTests() => SystemPrompt();
     internal bool RequiresApprovalForTests(ToolCall.Kind kind) => RequiresApproval(kind);
     internal void SetApproveAllRemainingForTests(bool value) => approveAllRemaining = value;
+    // Test-only seam (InternalsVisibleTo Marrow.Services.Tests, PR-PROVAPI-162..175): drives the
+    // real ExecuteTool body directly, the same way OpenAICompatibleSessionTestSeam overrides it for
+    // the earlier parts' turn-loop tests.
+    internal Task<string> ExecuteToolForTests(PendingToolCall tool) => ExecuteTool(tool);
 
     // Test-only seam (InternalsVisibleTo Marrow.Services.Tests, PR-PROVAPI-113, PR-PROVAPI-114):
     // registers a pending approval continuation exactly as ApproveIfNeeded does at :1082, without
@@ -1097,18 +1102,222 @@ public class OpenAICompatibleSession : ProviderSession
         return [.. outputs]; // :891
     }
 
-    // :894-896. The cancellation guard is real (PR-PROVAPI-108); the six built-in tool bodies and
-    // MCP dispatch (:897-1035) are not cited in this part's packet and land in a later part of
-    // this unit. Exposed as a protected virtual seam so the tool-loop scheduling above is
-    // testable now.
-    protected virtual Task<string> ExecuteTool(PendingToolCall tool)
+    // :894-1033. PR-PROVAPI-162 through PR-PROVAPI-175, UI-PROVAPI-011 through UI-PROVAPI-020. The
+    // cancellation guard at :895 is unchanged from the earlier part; the body below is this part's
+    // real implementation of the six built-in tools and MCP dispatch.
+    protected virtual async Task<string> ExecuteTool(PendingToolCall tool)
     {
-        if (SwiftTask.IsCancelled || interrupted) return Task.FromResult("Stopped."); // :895
-        throw new NotSupportedException(
-            $"{nameof(OpenAICompatibleSession)}.{nameof(ExecuteTool)}: the built-in tool bodies " +
-            "(read_file, list_files, search_text, write_file, edit_file, run_command) and MCP dispatch " +
-            "(Swift :897-1035) land in a later part of this unit; override this seam in a test or wait " +
-            "for that part.");
+        if (SwiftTask.IsCancelled || interrupted) return "Stopped."; // :895
+        var args = JSONValue.Parse(tool.Arguments) ?? new JSONValue.Object(ValueMap<string, JSONValue>.Empty); // :896
+        var callID = tool.Id; // :897
+        if (MCPHub.Parse(tool.Name) is { } parsed) // :898
+        {
+            var (server, name) = (parsed.Server, parsed.Tool);
+            OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, new ToolCall // :899
+            {
+                ToolCallKind = ToolCall.Kind.Mcp,
+                Title = $"{server} \U000000B7 {name}", // U+00B7 MIDDLE DOT
+                Detail = args.IsNull ? null : args.PrettyString,
+            }));
+            if (!await ApproveIfNeeded(ToolCall.Kind.Mcp, $"Call {server} {name}", args.CompactString, null)) // :900-902
+            {
+                return Declined(callID);
+            }
+            try
+            {
+                var result = await MCPHub.Shared.Call(tool.Name, args); // :904
+                if (SwiftTask.IsCancelled || interrupted) return "Stopped."; // :905
+                if (result.IsError) // :906
+                {
+                    OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = result.Text, Status = ToolCall.Status.Failed })); // :907
+                    return result.Text.Length == 0 ? "Error: the MCP tool reported failure with no output." : result.Text; // :908
+                }
+                OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = Summary(result.Text, 12_000), Status = ToolCall.Status.Completed })); // :910
+                return result.Text.Length == 0 ? "(no output)" : result.Text; // :911
+            }
+            catch (Exception error) when (SwiftTry.IsThrownError(error)) // :912
+            {
+                if (SwiftTask.IsCancelled || interrupted) return "Stopped."; // :913
+                var description = SwiftErrors.LocalizedDescription(error);
+                OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = description, Status = ToolCall.Status.Failed })); // :914
+                return $"Error: {description}"; // :915
+            }
+        }
+        switch (tool.Name) // :918
+        {
+            case "read_file": // :919
+            {
+                var path = args["path"]?.JSONValueString ?? ""; // :920
+                var call = new ToolCall { ToolCallKind = ToolCall.Kind.Read, Title = fileTools.DisplayPath(path) }; // :921
+                OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, call)); // :922
+                if (!await ApproveIfNeeded(ToolCall.Kind.Read, $"Read {fileTools.DisplayPath(path)}", path, null)) // :923-925
+                {
+                    return Declined(callID);
+                }
+                try
+                {
+                    var text = await fileTools.ReadFile(path, (int?)args["start_line"]?.JSONValueInt, (int?)args["line_count"]?.JSONValueInt); // :927
+                    if (SwiftTask.IsCancelled || interrupted) return "Stopped."; // :928
+                    OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = Summary(text, 4_000), Status = ToolCall.Status.Completed })); // :929
+                    return text; // :930
+                }
+                catch (Exception error) when (SwiftTry.IsThrownError(error)) // :931
+                {
+                    if (SwiftTask.IsCancelled || interrupted) return "Stopped."; // :932
+                    var description = SwiftErrors.LocalizedDescription(error);
+                    OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = description, Status = ToolCall.Status.Failed })); // :933
+                    return $"Error: {description}"; // :934
+                }
+            }
+            case "list_files": // :936
+            {
+                var path = args["path"]?.JSONValueString ?? ""; // :937
+                // Same shape as Claude's LS row: the folder is the subject. :938
+                var title = path.Length == 0 ? SwiftPath.LastPathComponent(WorkingDirectory) : fileTools.DisplayPath(path); // :939
+                var call = new ToolCall { ToolCallKind = ToolCall.Kind.Search, Title = title };
+                OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, call)); // :940
+                if (!await ApproveIfNeeded(ToolCall.Kind.Search, call.Title, path, null)) // :941-943
+                {
+                    return Declined(callID);
+                }
+                try
+                {
+                    var text = await fileTools.ListFiles(path, args["recursive"]?.JSONValueBool ?? false); // :945
+                    if (SwiftTask.IsCancelled || interrupted) return "Stopped."; // :946
+                    OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = Summary(text, 4_000), Status = ToolCall.Status.Completed })); // :947
+                    return text; // :948
+                }
+                catch (Exception error) when (SwiftTry.IsThrownError(error)) // :949
+                {
+                    if (SwiftTask.IsCancelled || interrupted) return "Stopped."; // :950
+                    var description = SwiftErrors.LocalizedDescription(error);
+                    OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = description, Status = ToolCall.Status.Failed })); // :951
+                    return $"Error: {description}"; // :952
+                }
+            }
+            case "search_text": // :954
+            {
+                var pattern = args["pattern"]?.JSONValueString ?? ""; // :955
+                var path = args["path"]?.JSONValueString ?? ""; // :956
+                var call = new ToolCall // :957
+                {
+                    ToolCallKind = ToolCall.Kind.Search,
+                    Title = pattern.Length == 0 ? "Search" : pattern,
+                    Detail = path.Length == 0 ? null : fileTools.DisplayPath(path),
+                };
+                OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, call)); // :958
+                // U+201C LEFT DOUBLE QUOTATION MARK, U+201D RIGHT DOUBLE QUOTATION MARK.
+                if (!await ApproveIfNeeded(ToolCall.Kind.Search, $"Search for \U0000201C{pattern}\U0000201D", path.Length == 0 ? null : path, null)) // :959-961
+                {
+                    return Declined(callID);
+                }
+                var searchOutput = await SearchText(pattern, path, args["regex"]?.JSONValueBool ?? false); // :962
+                if (SwiftTask.IsCancelled || interrupted) return "Stopped."; // :963
+                OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = Summary(searchOutput, 6_000), Status = ToolCall.Status.Completed })); // :964
+                return searchOutput; // :965
+            }
+            case "write_file": // :966
+            {
+                var path = args["path"]?.JSONValueString ?? ""; // :967
+                var content = args["content"]?.JSONValueString ?? ""; // :968
+                var displayPath = fileTools.DisplayPath(path);
+                var call = new ToolCall // :969-970
+                {
+                    ToolCallKind = ToolCall.Kind.Edit,
+                    Title = displayPath,
+                    Edits = new ValueList<FileEdit>([new FileEdit(displayPath, "", content)]),
+                };
+                OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, call)); // :971
+                if (!await ApproveIfNeeded(ToolCall.Kind.Edit, $"Write {displayPath}", null, null)) // :972-974
+                {
+                    return Declined(callID);
+                }
+                try
+                {
+                    await fileTools.WriteFile(path, content); // :976
+                    var message = $"Wrote {displayPath} ({SwiftString.Utf8Count(content)} bytes)."; // :978
+                    OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate // :977-981
+                    {
+                        Output = message,
+                        Status = ToolCall.Status.Completed,
+                        Edits = new ValueList<FileEdit>([new FileEdit(displayPath, "", content)]),
+                    }));
+                    return message; // :982. PR-PROVAPI-169: no cancellation check on this path, unlike every other tool; reproduced.
+                }
+                catch (Exception error) when (SwiftTry.IsThrownError(error)) // :983
+                {
+                    if (SwiftTask.IsCancelled || interrupted) return "Stopped."; // :984
+                    var description = SwiftErrors.LocalizedDescription(error);
+                    OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = description, Status = ToolCall.Status.Failed })); // :985
+                    return $"Error: {description}"; // :986
+                }
+            }
+            case "edit_file": // :988
+            {
+                var path = args["path"]?.JSONValueString ?? ""; // :989
+                var old = args["old_string"]?.JSONValueString ?? args["old_text"]?.JSONValueString ?? ""; // :990
+                var @new = args["new_string"]?.JSONValueString ?? args["new_text"]?.JSONValueString ?? ""; // :991
+                var displayPath = fileTools.DisplayPath(path);
+                var call = new ToolCall // :992-993
+                {
+                    ToolCallKind = ToolCall.Kind.Edit,
+                    Title = displayPath,
+                    Edits = new ValueList<FileEdit>([new FileEdit(displayPath, old, @new)]),
+                };
+                OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, call)); // :994
+                if (!await ApproveIfNeeded(ToolCall.Kind.Edit, $"Edit {displayPath}", null, null)) // :995-997
+                {
+                    return Declined(callID);
+                }
+                try
+                {
+                    await fileTools.EditFile(path, old, @new); // :999
+                    var message = $"Edited {displayPath}."; // :1001
+                    OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate // :1000-1004
+                    {
+                        Output = message,
+                        Status = ToolCall.Status.Completed,
+                        Edits = new ValueList<FileEdit>([new FileEdit(displayPath, old, @new)]),
+                    }));
+                    return message; // :1005
+                }
+                catch (Exception error) when (SwiftTry.IsThrownError(error)) // :1006
+                {
+                    if (SwiftTask.IsCancelled || interrupted) return "Stopped."; // :1007
+                    var description = SwiftErrors.LocalizedDescription(error);
+                    OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = description, Status = ToolCall.Status.Failed })); // :1008
+                    return $"Error: {description}"; // :1009
+                }
+            }
+            case "run_command": // :1011
+            {
+                var command = ToolTitles.UnwrapShell(args["command"]?.JSONValueString ?? ""); // :1012
+                var call = new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = command.Length == 0 ? "Run command" : command }; // :1013
+                OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, call)); // :1014
+                if (!await ApproveIfNeeded(ToolCall.Kind.Command, command, null, null)) // :1015-1017
+                {
+                    return Declined(callID);
+                }
+                var (output, exitCode) = await RunCommand(command); // :1018
+                // The user stopped the turn while the command ran: say no more about it. :1019-1020
+                if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
+                var update = new ToolUpdate // :1021-1024
+                {
+                    Output = output.Length == 0 ? "" : Summary(output, 12_000),
+                    ExitCode = exitCode,
+                    Status = exitCode == 0 ? ToolCall.Status.Completed : ToolCall.Status.Failed,
+                };
+                OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, update)); // :1025
+                return output.Length == 0 ? $"(exit {exitCode}, no output)" : $"exit {exitCode}\n{Summary(output, 12_000)}"; // :1026
+            }
+            default: // :1027
+            {
+                var call = new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = tool.Name }; // :1028
+                OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, call)); // :1029
+                OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = "Unknown tool.", Status = ToolCall.Status.Failed })); // :1030
+                return $"Error: unknown tool {tool.Name}."; // :1031
+            }
+        }
     }
 
     // :1035-1038. Used by the later part's approveIfNeeded/executeTool bodies; kept here because
@@ -1222,6 +1431,153 @@ public class OpenAICompatibleSession : ProviderSession
             messages[index] = new JSONValue.Object(new ValueMap<string, JSONValue>(updated, SwiftStringComparer.Instance)); // :1113
             total -= SwiftString.Utf8Count(content) - SwiftString.Utf8Count(condensed); // :1114
         }
+    }
+
+    // :1118-1152. PR-PROVAPI-173, PR-PROVAPI-174. DEVIATION OD-0008 C5 / ED-028 (2): upstream :1136
+    // launches /usr/bin/grep (`-R -n -I --exclude-dir=... -E|-F -- <pattern> <target>`); there is no
+    // grep on Windows, so the search walks the file tree in process instead of spawning one, never
+    // through findstr. It keeps the same four excluded directory names, the same fixed-string-versus-
+    // regex choice, the same "--" operand safety (the pattern and path are never parsed as flags,
+    // because they are never handed to a shell), and the same confinement guard as the other file
+    // tools (fileTools.ResolveURL). ENGINEERING DECISION: grep's own binary/text distinction (-I) has
+    // no documented Windows equivalent, so a file is treated as binary, and skipped, exactly when
+    // NativeFileTools' own UTF-8/Latin-1 decode of it fails (the same "readable as text" test the
+    // other file tools already apply); matched lines are reported as "<path relative to the project
+    // root>:<line>:<text>", the same path shape every other tool already shows the model, since the
+    // record's own evidence for a byte-exact grep path was never testable on this platform anyway.
+    private static readonly string[] SearchExcludedDirectories = [".git", "node_modules", ".build", "build"]; // :1137
+
+    private async Task<string> SearchText(string pattern, string path, bool regex)
+    {
+        var trimmed = pattern.Trimmed(); // :1119
+        if (trimmed.Length == 0) return "Error: a search pattern is required."; // :1120
+        string target;
+        if (path.Trimmed().Length == 0) // :1127
+        {
+            target = WorkingDirectory; // :1128
+        }
+        else
+        {
+            try
+            {
+                target = fileTools.ResolveURL(path); // :1131
+            }
+            catch (Exception error) when (SwiftTry.IsThrownError(error)) // :1132
+            {
+                return $"Error: {SwiftErrors.LocalizedDescription(error)}"; // :1133
+            }
+        }
+        Regex? compiled = null;
+        if (regex) // :1138
+        {
+            try
+            {
+                compiled = new Regex(trimmed, RegexOptions.CultureInvariant);
+            }
+            catch (ArgumentException)
+            {
+                return "Search failed."; // :1145, an invalid pattern is a grep launch failure's counterpart.
+            }
+        }
+        bool Matches(string line) => compiled is { } expression ? expression.IsMatch(line) : line.Contains(trimmed, StringComparison.Ordinal); // :1138
+        List<string> matches;
+        try
+        {
+            matches = SearchWalk(target, Matches); // :1136-1143
+        }
+        catch (Exception error) when (SwiftTry.IsThrownError(error))
+        {
+            return "Search failed."; // :1144-1145
+        }
+        if (matches.Count == 0) return "(no matches)"; // :1147-1148
+        var limited = matches.Take(120); // :1150
+        // U+2026 HORIZONTAL ELLIPSIS.
+        return matches.Count > 120
+            ? string.Join("\n", limited) + $"\n\U00002026({matches.Count} matches, truncated)" // :1151
+            : string.Join("\n", matches);
+    }
+
+    private List<string> SearchWalk(string target, Func<string, bool> matches)
+    {
+        var results = new List<string>();
+        if (File.Exists(target))
+        {
+            SearchFile(target, matches, results);
+            return results;
+        }
+        if (!Directory.Exists(target)) return results;
+        var stack = new Stack<string>();
+        stack.Push(target);
+        while (stack.Count > 0) // :1136 -R
+        {
+            SwiftTask.CheckCancellation();
+            var directory = stack.Pop();
+            IEnumerable<string> entries;
+            try
+            {
+                entries = Directory.EnumerateFileSystemEntries(directory);
+            }
+            catch (Exception)
+            {
+                continue;
+            }
+            foreach (var entry in entries)
+            {
+                if (Directory.Exists(entry))
+                {
+                    if (SearchExcludedDirectories.Contains(SwiftPath.LastPathComponent(entry))) continue; // :1137
+                    stack.Push(entry);
+                    continue;
+                }
+                SearchFile(entry, matches, results);
+            }
+        }
+        return results;
+    }
+
+    private void SearchFile(string filePath, Func<string, bool> matches, List<string> results)
+    {
+        byte[] bytes;
+        try
+        {
+            bytes = File.ReadAllBytes(filePath);
+        }
+        catch (Exception)
+        {
+            return;
+        }
+        var text = SwiftText.DecodeUtf8OrNil(bytes); // :1137 -I, see the block comment above.
+        if (text is null) return;
+        var relative = ToolTitles.RelativePath(filePath, WorkingDirectory); // :1141 the path shown to the model.
+        var lines = SwiftString.Split(text, "\n", omittingEmptySubsequences: false); // :1149
+        for (var index = 0; index < lines.Count; index++) // :1142 -n
+        {
+            if (matches(lines[index])) results.Add($"{relative}:{index + 1}:{lines[index]}");
+        }
+    }
+
+    // :1154-1165. PR-PROVAPI-175. DEVIATION OD-0008 C5: upstream :1157 spawns "/bin/zsh -lc
+    // <trimmed>"; there is no zsh on Windows, so the trimmed command runs as the -Command argument
+    // of PowerShell 7 when it is on PATH, otherwise Windows PowerShell (WindowsShellForCommands.Resolve
+    // below), with -NoProfile -NonInteractive (ED-028 (1)). The 120 second timeout, the 24000 byte
+    // cap, the tail-keeping truncation and both failure strings are portable and are reproduced as
+    // written.
+    private async Task<(string Output, int ExitCode)> RunCommand(string command)
+    {
+        var trimmed = command.Trimmed(); // :1155
+        if (trimmed.Length == 0) return ("Error: a command is required.", 1); // :1156
+        var shell = WindowsShellForCommands.Resolve(); // :1157 DEVIATION OD-0008 C5
+        async Task<ShellResult?> Attempt() => await Shell.Run(
+            shell, ["-NoProfile", "-NonInteractive", "-Command", trimmed], WorkingDirectory, LoginEnvironment.Current, timeout: 120, outputLimit: 24_000); // :1159
+        var result = await SwiftTry.OptionalAsync(Attempt);
+        if (result is null) return ("The command could not start.", 1); // :1160-1161
+        var output = (result.Output + (result.ErrorOutput.Length == 0 ? "" : "\n" + result.ErrorOutput)).Trimmed(); // :1162
+        if (SwiftString.Utf8Count(output) > 24_000) // :1163
+        {
+            // U+2026 HORIZONTAL ELLIPSIS.
+            output = "\U00002026" + SwiftString.Suffix(output, 24_000);
+        }
+        return (output, result.Status); // :1164
     }
 
     // MARK: - Messages
@@ -1447,4 +1803,26 @@ public class OpenAICompatibleSession : ProviderSession
     // dozen tool calls. Real work runs until the model answers without tools or the user hits
     // stop; hitting this many rounds means the model is looping, and the turn says so.
     private const int MaxRoundsPerTurn = 200;
+}
+
+/// <summary>
+/// PORT-ONLY: no Swift twin. DEVIATION OD-0008 C5, resolving UNK-0005 (PR-PROVAPI-175's windows_path):
+/// DroppyCode/Services/Providers/OpenAICompatibleSession.swift:1157's <c>/bin/zsh -lc &lt;command&gt;</c>
+/// has no Windows equivalent, so run_command's shell is PowerShell 7 when it is on the login PATH,
+/// otherwise Windows PowerShell, matching the same resolution App/Views/Terminal/Port/TerminalHost.cs's
+/// WindowsShell makes for the terminal (PR-TERM-039); Services cannot reference that App type
+/// (layering, 2.1), so the same small lookup is repeated here rather than shared.
+/// </summary>
+internal static class WindowsShellForCommands
+{
+    public static string Resolve() => Resolve(LoginEnvironment.Current);
+
+    // CreateProcessW does not search PATH for a bare lpApplicationName, so the fallback is resolved
+    // through the same PATH lookup as the preferred one, then an absolute path built from the Windows
+    // system directory (System32\WindowsPowerShell\v1.0\powershell.exe ships with every supported
+    // Windows 11 install).
+    internal static string Resolve(IReadOnlyDictionary<string, string>? environment) =>
+        LoginEnvironment.Which("pwsh.exe", environment)
+        ?? LoginEnvironment.Which("powershell.exe", environment)
+        ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "powershell.exe");
 }
