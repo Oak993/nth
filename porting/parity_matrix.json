@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "SPECIFIED": 3860,
+      "SPECIFIED": 3855,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
       "DISCOVERED": 34,
       "RETIRED": 6,
-      "IMPLEMENTED": 13
+      "IMPLEMENTED": 18
     },
     "by_area": {
       "CHAT": 193,
@@ -58175,12 +58175,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same record. The id must stay a free-form string; provider ids are not UUIDs.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-043",
-      "rework": true
+      "implemented_by_task": "T-M2-043"
     },
     {
       "area": "RUNTIME",
@@ -58199,12 +58198,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five literals.",
       "verification_method": "unit - exact string comparison per kind",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-043",
-      "rework": true
+      "implemented_by_task": "T-M2-043"
     },
     {
       "area": "RUNTIME",
@@ -58223,13 +58221,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: SF Symbols cannot ship on Windows. The port keeps the five-way mapping and, under OD-0010, shows for each identifier its Lucide icon (ISC licence) from the published symbol-by-symbol table, one for one, holding the same semantic per kind; the glyph artwork is an owner-approved deviation, not parity.",
       "verification_method": "unit for the mapping; capture comparison for the glyph is blocked by UNK-0003; the Lucide glyph for each identifier is checked against the published OD-0010 table",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-043",
-      "b2_change": "No source change: Requests.swift is the same at B1 and B2. Owner ruling applied in this refresh: OD-0010 (Lucide) closes the icon half of UNK-0007 (unknowns.md marks UNK-0007 RESOLVED), so depends_on_unknown is cleared and windows_path names the Lucide table.",
-      "rework": true
+      "b2_change": "No source change: Requests.swift is the same at B1 and B2. Owner ruling applied in this refresh: OD-0010 (Lucide) closes the icon half of UNK-0007 (unknowns.md marks UNK-0007 RESOLVED), so depends_on_unknown is cleared and windows_path names the Lucide table."
     },
     {
       "area": "RUNTIME",
@@ -58247,12 +58244,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four roles. Note that approveAlways does NOT count as approve for the plan-state write; reproduce that.",
       "verification_method": "unit - one case per role",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-043",
-      "rework": true
+      "implemented_by_task": "T-M2-043"
     },
     {
       "area": "RUNTIME",
@@ -58271,13 +58267,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Same records. isSecret maps to a masked input, as QuestionTab.swift:231-232 shows it in a SecureField(\"Your answer\"). The pinned source states no logging rule for the value, so none is part of this record.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-043",
-      "spec_fix": "Evidence cited Requests.swift:56-77, but the pinned file has 74 lines -> the doc comment is :55 and QuestionRequest spans :56-74 (Requests.swift at 1fbf81e, wc -l 74); the Windows path said the isSecret value must not be written to any log -> the source only masks the input (QuestionTab.swift:231-232 SecureField(\"Your answer\", text: binding)) and states no logging rule, so that clause is removed as unsupported parity.",
-      "rework": true
+      "spec_fix": "Evidence cited Requests.swift:56-77, but the pinned file has 74 lines -> the doc comment is :55 and QuestionRequest spans :56-74 (Requests.swift at 1fbf81e, wc -l 74); the Windows path said the isSecret value must not be written to any log -> the source only masks the input (QuestionTab.swift:231-232 SecureField(\"Your answer\", text: binding)) and states no logging rule, so that clause is removed as unsupported parity."
     },
     {
       "area": "RUNTIME",
