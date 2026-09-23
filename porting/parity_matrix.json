@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 292,
+      "IMPLEMENTED": 306,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 3582,
+      "SPECIFIED": 3568,
       "RETIRED": 6,
       "DISCOVERED": 33
     },
@@ -26708,12 +26708,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed English strings; no localization layer exists in the source.",
       "verification_method": "unit plus an interaction test reading the seven headers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26736,13 +26735,12 @@
       "windows_path": "Replacement in field order that matches by Unicode canonical equivalence, as Foundation's non-literal replacingOccurrences does (for ASCII-only keys and text, ordinal replacement gives the same result). Do not use a regular expression that would also match tokens for non-fields.",
       "spec_fix": "expected_result and windows_path called the token match literal and prescribed literal string replacement -> the source calls out.replacingOccurrences(of: token, with: value) without the .literal option, a non-literal Foundation search that treats canonically equivalent strings as equal, and looks the value up as values[field.key] in a Swift String dictionary, also canonical equivalence (B2 DroppyCode/Core/Models/MCP.swift:138, :147)",
       "verification_method": "unit with an empty value, a missing value, a repeated token and an unknown token",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-023",
-      "b2_change": "Refactor only, no shift: B1 :141 value = value.trimmingCharacters(in: .whitespacesAndNewlines) -> B2 :141 value = value.trimmed; `trimmed` is defined at B2 DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, so the result is identical.",
-      "rework": true
+      "b2_change": "Refactor only, no shift: B1 :141 value = value.trimmingCharacters(in: .whitespacesAndNewlines) -> B2 :141 value = value.trimmed; `trimmed` is defined at B2 DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, so the result is identical."
     },
     {
       "area": "MCP",
@@ -26764,13 +26762,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Same conditional normalization, and only for tokens directly after \"://\".",
       "verification_method": "unit with whitespace, both schemes, multiple trailing slashes, and a token not preceded by \"://\" (which must be left alone)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-023",
-      "b2_change": "Refactor only, no shift: B1 :141 value = value.trimmingCharacters(in: .whitespacesAndNewlines) -> B2 :141 value = value.trimmed; `trimmed` is defined at B2 DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, so the result is identical.",
-      "rework": true
+      "b2_change": "Refactor only, no shift: B1 :141 value = value.trimmingCharacters(in: .whitespacesAndNewlines) -> B2 :141 value = value.trimmed; `trimmed` is defined at B2 DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, so the result is identical."
     },
     {
       "area": "MCP",
@@ -26792,12 +26789,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The command string is not path-resolved here; resolution to an executable happens in the probe and the hub.",
       "verification_method": "unit with an optional field left blank",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26819,12 +26815,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the \"Bearer \" edge case for context7 and huggingface with no key.",
       "verification_method": "unit asserting \"Bearer \" survives the filter",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26850,12 +26845,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape. The proxy is a loopback HTTP listener in the main process; the route URL string must be byte-identical because it is written into files providers read.",
       "verification_method": "contract fixture comparing a resolved OAuth server against the expected provider-config JSON",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26877,12 +26871,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26904,12 +26897,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Note the asymmetry: an optional-field server never gets the key panel from the card, only from the info popover's \"Change the …\" button.",
       "verification_method": "unit plus interaction tests on gitlab (no panel) and brave-search (panel)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26932,12 +26924,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same derivations; do not persist either flag.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26959,12 +26950,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field names and JSON shape: the file is user-visible and is the migration surface.",
       "verification_method": "restart test plus a JSON schema fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26987,7 +26977,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A discriminated union in the renderer state, mirrored from the main process.",
       "verification_method": "unit plus a restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28035,7 +28025,7 @@
       "cancellation": "not cancellable",
       "windows_path": "<data root> is %LOCALAPPDATA%\\<AppName>\\ and the mcp subdirectory is %LOCALAPPDATA%\\<AppName>\\mcp\\. Putting mcp.json or custom-mcp.json inside mcp\\ silently loses every connection and custom server. The bridge file, which macOS writes to <Application Support>/<AppName>/MCP/, collapses onto the same mcp\\ folder on a case-insensitive filesystem and is written there (PR-MCP-193). managed.json is used only by MCPExternalSync, which is not ported (ED-061, PR-MCP-176), so the port neither reads nor writes it.",
       "verification_method": "restart test plus a file-inventory assertion",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28987,7 +28977,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same six fields. gitLabServerDisabled is the only producer in the shipped source.",
       "verification_method": "unit plus a restart test asserting the state is not restored",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -76025,7 +76015,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One root constant with these eleven names hanging off it, and one migration routine that moves the whole folder rather than named files.",
       "verification_method": "restart test over a populated store, asserting all eleven entries survive a root move",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
