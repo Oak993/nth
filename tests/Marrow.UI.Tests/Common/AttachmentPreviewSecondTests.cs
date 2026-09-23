@@ -117,15 +117,23 @@ public sealed class AttachmentPreviewSecondTests(HeadlessSession headless)
         var path = Path.Combine(root, "photo.bmp");
         WriteBmp(path, 40, 20);
         var attachment = new Attachment { Name = "photo.bmp", Path = path, MimeType = "image/bmp" };
-        AttachmentLargePreview preview = null!;
         headless.OnUiThread(() =>
         {
-            preview = new AttachmentLargePreview(attachment);
+            // FrameClock.Source (LoadingMark, OD-0016) is an Ambient (AsyncLocal-scoped): it must be overridden and
+            // read from the same thread, so the whole test body runs inside this one OnUiThread call.
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            var preview = new AttachmentLargePreview(attachment);
             Show(preview);
+            var deadline = DateTime.UtcNow.AddSeconds(4);
+            while (!VisualQuery.Descendants<Image>(preview).Any(image => image.Source is not null))
+            {
+                if (DateTime.UtcNow > deadline) throw new TimeoutException("The thumbnail never loaded.");
+                Dispatcher.UIThread.RunJobs();
+                Thread.Sleep(15);
+            }
+            var loaded = VisualQuery.Descendants<Image>(preview).First(i => i.Source is not null);
+            Assert.Equal(1, loaded.Opacity);
         });
-        PumpUntil(() => VisualQuery.Descendants<Image>(preview).Any(image => image.Source is not null));
-        var image = VisualQuery.Descendants<Image>(preview).First(i => i.Source is not null);
-        Assert.Equal(1, image.Opacity);
     }
 
     // PR-COMPOSER-075: DroppyCode/UI/Common/AttachmentPreview.swift:390-395, :324-346.
@@ -145,8 +153,11 @@ public sealed class AttachmentPreviewSecondTests(HeadlessSession headless)
             Show(preview);
         });
         PumpUntil(() => VisualQuery.Descendants<TextBlock>(preview).Any(t => (t.Text?.Length ?? 0) > 1000));
-        var textBlock = VisualQuery.Descendants<TextBlock>(preview).First(t => (t.Text?.Length ?? 0) > 1000);
-        Assert.Equal(8_000, textBlock.Text!.Length); // :394 String(text.prefix(8_000))
+        headless.OnUiThread(() =>
+        {
+            var textBlock = VisualQuery.Descendants<TextBlock>(preview).First(t => (t.Text?.Length ?? 0) > 1000);
+            Assert.Equal(8_000, textBlock.Text!.Length); // :394 String(text.prefix(8_000))
+        });
     }
 
     // PR-COMPOSER-075: a file at or over 500,000 bytes falls back to the icon-and-name row, never the text box.
@@ -165,8 +176,11 @@ public sealed class AttachmentPreviewSecondTests(HeadlessSession headless)
             Show(preview);
         });
         PumpUntil(() => VisualQuery.Descendants<TextBlock>(preview).Any(t => t.Text == "big.txt"));
-        // The icon row's 32x32 image (from FileIcons, not the media slot) is present.
-        Assert.Contains(VisualQuery.Descendants<Image>(preview), image => image.Width == 32 && image.Height == 32);
+        headless.OnUiThread(() =>
+        {
+            // The icon row's 32x32 image (from FileIcons, not the media slot) is present.
+            Assert.Contains(VisualQuery.Descendants<Image>(preview), image => image.Width == 32 && image.Height == 32);
+        });
     }
 
     // PR-COMPOSER-076, UI-COMPOSER-078, UI-COMPOSER-079: the footer's name/size text and its two link buttons.
@@ -262,7 +276,7 @@ public sealed class AttachmentPreviewSecondTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             var attachment = new Attachment { Name = "clip.mp4", Path = Path.Combine(NewRoot(), "clip.mp4"), MimeType = "video/mp4" };
-            var thumbnail = new AttachmentVideoThumbnail(attachment, size: 48); // PR-COMPOSER-180's own record covers the caller; this proves the parameter itself
+            var thumbnail = new AttachmentVideoThumbnail(attachment, size: 48); // PR-COMPOSER-180 covers the caller; this proves the size parameter itself
             Assert.Equal(48, thumbnail.Width);
             Assert.Equal(48, thumbnail.Height);
         });
@@ -320,7 +334,10 @@ public sealed class AttachmentPreviewSecondTests(HeadlessSession headless)
             Assert.Contains(VisualQuery.Descendants<Button>(preview), b => (b.Content as TextBlock)?.Text == "Open"); // :429-433, no reveal link here
         });
         PumpUntil(() => VisualQuery.Descendants<Image>(preview).Any(i => i.Source is not null));
-        var image = VisualQuery.Descendants<Image>(preview).First(i => i.Source is not null);
-        Assert.Equal(1, image.Opacity);
+        headless.OnUiThread(() =>
+        {
+            var image = VisualQuery.Descendants<Image>(preview).First(i => i.Source is not null);
+            Assert.Equal(1, image.Opacity);
+        });
     }
 }

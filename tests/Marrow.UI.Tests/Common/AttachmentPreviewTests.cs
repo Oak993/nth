@@ -16,6 +16,16 @@ public sealed class AttachmentPreviewTests
     private static string NewRoot() =>
         Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, Guid.NewGuid().ToString("N"))).FullName;
 
+    // PreviewImages.ResolveToolImagePath, .Attachment and .FileSize, and AttachmentLargePreview's video-size cache,
+    // are all @MainActor (R-ISO-1): run each call on the manual main loop, as MainActorTests does.
+    private static T OnMain<T>(TestRuntime runtime, Func<T> body)
+    {
+        var result = default(T)!;
+        runtime.Loop.Enqueue(() => result = body());
+        runtime.RunUntilIdle();
+        return result;
+    }
+
     // PR-CHAT-103: DroppyCode/UI/Common/AttachmentPreview.swift:9-16 the recognized image extensions.
     [Theory]
     [Trait("Req", "PR-CHAT-103")] // DroppyCode/UI/Common/AttachmentPreview.swift:9-16
@@ -37,7 +47,7 @@ public sealed class AttachmentPreviewTests
         var withSpaces = Path.Combine(root, "my photo.png");
         File.WriteAllBytes(withSpaces, [1]);
         var call = new ToolCall { ToolCallKind = ToolCall.Kind.Read, Title = withSpaces };
-        Assert.Equal(withSpaces, PreviewImages.ResolveToolImagePath(call, null));
+        Assert.Equal(withSpaces, OnMain(runtime, () => PreviewImages.ResolveToolImagePath(call, null)));
     }
 
     // PR-CHAT-103: :54-58 any other kind's title/detail are split on whitespace, newlines and the punctuation set.
@@ -50,7 +60,7 @@ public sealed class AttachmentPreviewTests
         var shot = Path.Combine(root, "shot.png");
         File.WriteAllBytes(shot, [1]);
         var call = new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = "saved to \"" + shot + "\" (done)" };
-        Assert.Equal(shot, PreviewImages.ResolveToolImagePath(call, null));
+        Assert.Equal(shot, OnMain(runtime, () => PreviewImages.ResolveToolImagePath(call, null)));
     }
 
     // PR-CHAT-103: :30-32 no image extension anywhere means no candidate is split for and no cache entry is made.
@@ -60,7 +70,7 @@ public sealed class AttachmentPreviewTests
     {
         using var runtime = new TestRuntime();
         var call = new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = "does not exist at all" };
-        Assert.Null(PreviewImages.ResolveToolImagePath(call, null));
+        Assert.Null(OnMain(runtime, () => PreviewImages.ResolveToolImagePath(call, null)));
     }
 
     // PR-CHAT-103: :64 an absolute path (drive letter, per windows_path) is used as is.
@@ -73,7 +83,7 @@ public sealed class AttachmentPreviewTests
         var path = Path.Combine(root, "a.png");
         File.WriteAllBytes(path, [1]);
         var call = new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = path };
-        Assert.Equal(path, PreviewImages.ResolveToolImagePath(call, null));
+        Assert.Equal(path, OnMain(runtime, () => PreviewImages.ResolveToolImagePath(call, null)));
     }
 
     // PR-CHAT-103: :66-67 a file:// URL is resolved to its path.
@@ -87,7 +97,7 @@ public sealed class AttachmentPreviewTests
         File.WriteAllBytes(path, [1]);
         var url = new Uri(path).AbsoluteUri;
         var call = new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = url };
-        Assert.Equal(path, PreviewImages.ResolveToolImagePath(call, null));
+        Assert.Equal(path, OnMain(runtime, () => PreviewImages.ResolveToolImagePath(call, null)));
     }
 
     // PR-CHAT-103: :70-71 a relative candidate resolves against the thread's working directory.
@@ -99,8 +109,8 @@ public sealed class AttachmentPreviewTests
         var root = NewRoot();
         File.WriteAllBytes(Path.Combine(root, "c.png"), [1]);
         var relative = new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = "c.png" };
-        Assert.Equal(Path.Combine(root, "c.png"), PreviewImages.ResolveToolImagePath(relative, root));
-        Assert.Null(PreviewImages.ResolveToolImagePath(relative, null)); // :72-73 continue: no candidate
+        Assert.Equal(Path.Combine(root, "c.png"), OnMain(runtime, () => PreviewImages.ResolveToolImagePath(relative, root)));
+        Assert.Null(OnMain(runtime, () => PreviewImages.ResolveToolImagePath(relative, null))); // :72-73 continue: no candidate
     }
 
     // PR-CHAT-103: :74-75 only a file that exists counts.
@@ -111,7 +121,7 @@ public sealed class AttachmentPreviewTests
         using var runtime = new TestRuntime();
         var root = NewRoot();
         var call = new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = Path.Combine(root, "missing.png") };
-        Assert.Null(PreviewImages.ResolveToolImagePath(call, null));
+        Assert.Null(OnMain(runtime, () => PreviewImages.ResolveToolImagePath(call, null)));
     }
 
     // PR-CHAT-103: :33-35 the status is part of the cache key: a running call's cached "not found" answer does not
@@ -124,11 +134,11 @@ public sealed class AttachmentPreviewTests
         var root = NewRoot();
         var path = Path.Combine(root, "d.png");
         var running = new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = path, ToolCallStatus = ToolCall.Status.Running };
-        Assert.Null(PreviewImages.ResolveToolImagePath(running, null)); // file does not exist yet: cached null under "running"
+        Assert.Null(OnMain(runtime, () => PreviewImages.ResolveToolImagePath(running, null))); // file does not exist yet: cached null under "running"
         File.WriteAllBytes(path, [1]);
-        Assert.Null(PreviewImages.ResolveToolImagePath(running, null)); // same key: still the cached null
+        Assert.Null(OnMain(runtime, () => PreviewImages.ResolveToolImagePath(running, null))); // same key: still the cached null
         var completed = running with { ToolCallStatus = ToolCall.Status.Completed };
-        Assert.Equal(path, PreviewImages.ResolveToolImagePath(completed, null)); // different key: looked up again
+        Assert.Equal(path, OnMain(runtime, () => PreviewImages.ResolveToolImagePath(completed, null))); // different key: looked up again
     }
 
     // PR-COMPOSER-201: DroppyCode/UI/Common/AttachmentPreview.swift:168-174.
@@ -155,11 +165,10 @@ public sealed class AttachmentPreviewTests
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-201")] // DroppyCode/UI/Common/AttachmentPreview.swift:145-151
-    public void PreviewVideos_rejects_an_extension_outside_the_eight()
+    public void PreviewVideos_rejects_an_extension_outside_the_eight_but_accepts_it_uppercased()
     {
         Assert.False(PreviewVideos.IsVideoPath("clip.mp3"));
-        Assert.False(PreviewVideos.IsVideoPath("clip.MOV")); // case-insensitive via lowercasing
-        Assert.True(PreviewVideos.IsVideoPath("clip.MOV"));
+        Assert.True(PreviewVideos.IsVideoPath("clip.MOV")); // case-insensitive via lowercasing
     }
 
     // PR-COMPOSER-206: DroppyCode/UI/Common/AttachmentPreview.swift:80-93.
@@ -170,8 +179,8 @@ public sealed class AttachmentPreviewTests
         using var runtime = new TestRuntime();
         var root = NewRoot();
         var path = Path.Combine(root, "photo.png");
-        var first = PreviewImages.Attachment(path);
-        var second = PreviewImages.Attachment(path);
+        var first = OnMain(runtime, () => PreviewImages.Attachment(path));
+        var second = OnMain(runtime, () => PreviewImages.Attachment(path));
         Assert.Same(first, second); // load-bearing identity: the preview panel's toggle compares by this
         Assert.Equal("photo.png", first.Name);
         Assert.Equal("image/png", first.MimeType);
@@ -188,7 +197,7 @@ public sealed class AttachmentPreviewTests
         using var runtime = new TestRuntime();
         var root = NewRoot();
         var path = Path.Combine(root, Guid.NewGuid().ToString("N") + "-" + name);
-        Assert.Equal(expectedMime, PreviewImages.Attachment(path).MimeType);
+        Assert.Equal(expectedMime, OnMain(runtime, () => PreviewImages.Attachment(path)).MimeType);
     }
 
     // PR-COMPOSER-076: DroppyCode/UI/Common/AttachmentPreview.swift:96-106 fileSize via ByteCountFormatter(.file).
@@ -198,10 +207,10 @@ public sealed class AttachmentPreviewTests
     {
         using var runtime = new TestRuntime();
         var root = NewRoot();
-        Assert.Null(PreviewImages.FileSize(Path.Combine(root, "missing.bin")));
+        Assert.Null(OnMain(runtime, () => PreviewImages.FileSize(Path.Combine(root, "missing.bin"))));
         var real = Path.Combine(root, "real.bin");
         File.WriteAllBytes(real, new byte[1024]);
-        Assert.NotNull(PreviewImages.FileSize(real));
+        Assert.NotNull(OnMain(runtime, () => PreviewImages.FileSize(real)));
     }
 
     // PR-COMPOSER-202/209/210 (MediaFrameGrabber): a nonexistent or non-video file yields no frame and no size, the
@@ -231,9 +240,11 @@ public sealed class AttachmentPreviewTests
     {
         using var runtime = new TestRuntime();
         var attachment = new Attachment { Name = "a.png", Path = "a.png", MimeType = "image/png" };
-        await Marrow.UI.Common.AttachmentLargePreview.PrefetchVideoSize(attachment);
+        // :269 the guard is before any await, so the returned Task is already completed when Enqueue's work finishes.
+        var task = OnMain(runtime, () => AttachmentLargePreview.PrefetchVideoSize(attachment));
+        await task;
         // No cached size: the panel falls back to the full imageBounds (PR-COMPOSER-210).
-        Assert.Equal(Marrow.UI.Common.AttachmentLargePreview.ImageBounds, Marrow.UI.Common.AttachmentLargePreview.VideoDisplaySize(attachment));
+        Assert.Equal(AttachmentLargePreview.ImageBounds, OnMain(runtime, () => AttachmentLargePreview.VideoDisplaySize(attachment)));
     }
 
     // PR-COMPOSER-210: :283-285 nothing cached falls back to the full 480 by 360 imageBounds.
@@ -243,6 +254,6 @@ public sealed class AttachmentPreviewTests
     {
         using var runtime = new TestRuntime();
         var attachment = new Attachment { Name = "clip.mp4", Path = Path.Combine(NewRoot(), "clip.mp4"), MimeType = "video/mp4" };
-        Assert.Equal(new Avalonia.Size(480, 360), Marrow.UI.Common.AttachmentLargePreview.VideoDisplaySize(attachment));
+        Assert.Equal(new Avalonia.Size(480, 360), OnMain(runtime, () => AttachmentLargePreview.VideoDisplaySize(attachment)));
     }
 }
