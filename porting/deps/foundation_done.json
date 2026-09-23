@@ -12,6 +12,7 @@
     "F.ResizeStretch",
     "F.ProcessLauncher",
     "F.URL",
-    "F.HTTP"
+    "F.HTTP",
+    "F.ICUFormatters"
   ]
 }

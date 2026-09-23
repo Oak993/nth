@@ -442,8 +442,8 @@
    "packets": [],
    "risk": "STANDARD",
    "spec": "ICU formatters through Windows icu.dll (ED-073, ED-094 Calendar.current, ED-096 the accepted API): udat skeletons, ureldatefmt, unum spell-out, currency, Int.formatted(); ByteCountFormatter from its documented rules (R-FMT-2). First tests: the O-23 fixtures, marked Oracle until settled.",
-   "extends_existing": false,
-   "status": "TODO"
+   "extends_existing": true,
+   "status": "DONE"
   },
   {
    "id": "F.URL",
