@@ -2062,7 +2062,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The same four-method interface, so the registry stays testable without the full settings store.",
       "verification_method": "unit with a stub settings object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

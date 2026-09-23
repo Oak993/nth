@@ -1482,23 +1482,13 @@
     "Core.Models.Provider"
    ],
    "records_total": 3,
-   "records_todo": [
-    "PR-USAGE-086",
-    "PR-USAGE-087",
-    "PR-USAGE-088"
-   ],
-   "parts": [
-    [
-     "PR-USAGE-086",
-     "PR-USAGE-087",
-     "PR-USAGE-088"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-057"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.HangWatchdog",
@@ -1991,19 +1981,13 @@
    ],
    "intra_deps": [],
    "records_total": 1,
-   "records_todo": [
-    "PR-PROVREG-083"
-   ],
-   "parts": [
-    [
-     "PR-PROVREG-083"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-043"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.JSONRPC",
@@ -2218,43 +2202,15 @@
    ],
    "intra_deps": [],
    "records_total": 12,
-   "records_todo": [
-    "PR-PROVAPI-034",
-    "PR-PROVAPI-035",
-    "PR-PROVAPI-036",
-    "PR-PROVAPI-037",
-    "PR-PROVAPI-038",
-    "PR-PROVAPI-039",
-    "PR-PROVAPI-040",
-    "PR-PROVAPI-041",
-    "PR-PROVAPI-042",
-    "PR-PROVAPI-043",
-    "PR-PROVAPI-044",
-    "UI-PROVAPI-027"
-   ],
-   "parts": [
-    [
-     "PR-PROVAPI-034",
-     "PR-PROVAPI-035",
-     "PR-PROVAPI-036",
-     "PR-PROVAPI-037",
-     "PR-PROVAPI-038",
-     "PR-PROVAPI-039",
-     "PR-PROVAPI-040",
-     "PR-PROVAPI-041",
-     "PR-PROVAPI-042",
-     "PR-PROVAPI-043",
-     "PR-PROVAPI-044",
-     "UI-PROVAPI-027"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-092",
     "T-M4-093",
     "T-M4-094"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.ProjectGuidance",
@@ -4811,88 +4767,8 @@
    ],
    "intra_deps": [],
    "records_total": 37,
-   "records_todo": [
-    "PR-MCP-001",
-    "PR-MCP-002",
-    "PR-MCP-003",
-    "PR-MCP-004",
-    "PR-MCP-005",
-    "PR-MCP-006",
-    "PR-MCP-007",
-    "PR-MCP-008",
-    "PR-MCP-009",
-    "PR-MCP-010",
-    "PR-MCP-011",
-    "PR-MCP-012",
-    "PR-MCP-013",
-    "PR-MCP-014",
-    "PR-MCP-015",
-    "PR-MCP-016",
-    "PR-MCP-017",
-    "PR-MCP-018",
-    "PR-MCP-019",
-    "PR-MCP-020",
-    "PR-MCP-021",
-    "PR-MCP-022",
-    "PR-MCP-023",
-    "PR-MCP-024",
-    "PR-MCP-025",
-    "PR-MCP-026",
-    "PR-MCP-027",
-    "PR-MCP-028",
-    "PR-MCP-029",
-    "PR-MCP-030",
-    "PR-MCP-031",
-    "PR-MCP-032",
-    "PR-MCP-033",
-    "PR-MCP-034",
-    "PR-MCP-035",
-    "PR-MCP-036",
-    "PR-MCP-037"
-   ],
-   "parts": [
-    [
-     "PR-MCP-001",
-     "PR-MCP-002",
-     "PR-MCP-003",
-     "PR-MCP-004",
-     "PR-MCP-005",
-     "PR-MCP-006",
-     "PR-MCP-007",
-     "PR-MCP-008",
-     "PR-MCP-009",
-     "PR-MCP-010",
-     "PR-MCP-011",
-     "PR-MCP-012",
-     "PR-MCP-013",
-     "PR-MCP-014",
-     "PR-MCP-015",
-     "PR-MCP-016",
-     "PR-MCP-017",
-     "PR-MCP-018",
-     "PR-MCP-019",
-     "PR-MCP-020",
-     "PR-MCP-021",
-     "PR-MCP-022",
-     "PR-MCP-023",
-     "PR-MCP-024"
-    ],
-    [
-     "PR-MCP-025",
-     "PR-MCP-026",
-     "PR-MCP-027",
-     "PR-MCP-028",
-     "PR-MCP-029",
-     "PR-MCP-030",
-     "PR-MCP-031",
-     "PR-MCP-032",
-     "PR-MCP-033",
-     "PR-MCP-034",
-     "PR-MCP-035",
-     "PR-MCP-036",
-     "PR-MCP-037"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-026",
     "T-M2-027",
@@ -4900,7 +4776,7 @@
     "T-M2-029"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.MCPCustom",
@@ -4918,37 +4794,13 @@
    ],
    "intra_deps": [],
    "records_total": 10,
-   "records_todo": [
-    "PR-MCP-085",
-    "PR-MCP-086",
-    "PR-MCP-087",
-    "PR-MCP-088",
-    "PR-MCP-089",
-    "PR-MCP-090",
-    "PR-MCP-091",
-    "PR-MCP-092",
-    "PR-MCP-093",
-    "PR-MCP-094"
-   ],
-   "parts": [
-    [
-     "PR-MCP-085",
-     "PR-MCP-086",
-     "PR-MCP-087",
-     "PR-MCP-088",
-     "PR-MCP-089",
-     "PR-MCP-090",
-     "PR-MCP-091",
-     "PR-MCP-092",
-     "PR-MCP-093",
-     "PR-MCP-094"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-030"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.MCP.MCPExternalSync",
