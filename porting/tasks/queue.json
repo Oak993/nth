@@ -1994,7 +1994,7 @@
       "id": "T-M3-002",
       "milestone": "M3",
       "source": "DroppyCode/Services/Git/FileChangeSummary+Diff.swift",
-      "target": "src/Marrow.Services/Git/FileChangeSummary.Diff.cs",
+      "target": "src/Marrow.Services/Git/FileChangeSummary+Diff.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-GIT-092"
@@ -7939,7 +7939,7 @@
       "id": "T-M6-014",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+Hydra.swift",
-      "target": "src/Marrow.App/AppModel.Hydra.cs",
+      "target": "src/Marrow.App/AppModel+Hydra.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-HYDRA-041",
@@ -7965,7 +7965,7 @@
       "id": "T-M6-015",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+Hydra.swift",
-      "target": "src/Marrow.App/AppModel.Hydra.cs",
+      "target": "src/Marrow.App/AppModel+Hydra.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-HYDRA-106",
@@ -7991,7 +7991,7 @@
       "id": "T-M6-016",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+Hydra.swift",
-      "target": "src/Marrow.App/AppModel.Hydra.cs",
+      "target": "src/Marrow.App/AppModel+Hydra.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-HYDRA-116",
@@ -8017,7 +8017,7 @@
       "id": "T-M6-017",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+Hydra.swift",
-      "target": "src/Marrow.App/AppModel.Hydra.cs",
+      "target": "src/Marrow.App/AppModel+Hydra.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-HYDRA-126",
@@ -8043,7 +8043,7 @@
       "id": "T-M6-018",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+Hydra.swift",
-      "target": "src/Marrow.App/AppModel.Hydra.cs",
+      "target": "src/Marrow.App/AppModel+Hydra.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-HYDRA-136",
@@ -8069,7 +8069,7 @@
       "id": "T-M6-019",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+Hydra.swift",
-      "target": "src/Marrow.App/AppModel.Hydra.cs",
+      "target": "src/Marrow.App/AppModel+Hydra.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-HYDRA-246",
@@ -8087,7 +8087,7 @@
       "id": "T-M6-020",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-CHAT-189",
@@ -8113,7 +8113,7 @@
       "id": "T-M6-021",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-HYDRAMERGE-014",
@@ -8139,7 +8139,7 @@
       "id": "T-M6-022",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-HYDRAMERGE-024",
@@ -8165,7 +8165,7 @@
       "id": "T-M6-023",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-HYDRAMERGE-035",
@@ -8191,7 +8191,7 @@
       "id": "T-M6-024",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-HYDRAMERGE-045",
@@ -8217,7 +8217,7 @@
       "id": "T-M6-025",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-HYDRAMERGE-055",
@@ -8243,7 +8243,7 @@
       "id": "T-M6-026",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-HYDRAMERGE-065",
@@ -8269,7 +8269,7 @@
       "id": "T-M6-027",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-HYDRAMERGE-075",
@@ -8295,7 +8295,7 @@
       "id": "T-M6-028",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [
         "PR-HYDRAMERGE-113",
@@ -8320,7 +8320,7 @@
       "id": "T-M6-029",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraMerge.swift",
-      "target": "src/Marrow.App/AppModel.HydraMerge.cs",
+      "target": "src/Marrow.App/AppModel+HydraMerge.cs",
       "risk": "HIGH",
       "requirements": [],
       "ui": [
@@ -8343,7 +8343,7 @@
       "id": "T-M6-030",
       "milestone": "M6",
       "source": "DroppyCode/App/AppModel+HydraPairs.swift",
-      "target": "src/Marrow.App/AppModel.HydraPairs.cs",
+      "target": "src/Marrow.App/AppModel+HydraPairs.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-HYDRA-143",
@@ -8902,7 +8902,7 @@
       "id": "T-M6-053",
       "milestone": "M6",
       "source": "DroppyCode/App/HydraCookbook+Resolve.swift",
-      "target": "src/Marrow.App/HydraCookbook.Resolve.cs",
+      "target": "src/Marrow.App/HydraCookbook+Resolve.cs",
       "risk": "STANDARD",
       "requirements": [
         "PR-HYDRA-156",
