@@ -396,7 +396,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Post to the UI thread's message queue and timestamp when it runs.",
       "verification_method": "unit test: block the UI thread and assert lastPong stops advancing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -423,7 +423,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same threshold (the literal 4 seconds), same one-report-per-stall latch, writing to the Windows per-user application log location chosen under platform_adaptations PA-0005.",
       "verification_method": "unit test with an injected clock: one report for a 30 s stall, a second report after a recovery and a new stall",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -451,7 +451,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY: there is no /usr/bin/sample. The Windows equivalent must capture every thread's stack for the running process, for example via the debug help APIs on the process itself or a bundled stack-walk helper. The requirement is 'every thread's stack plus the header', not 'the output of a tool named sample'. The two failure bodies name a macOS tool, so their Windows wording is a deliberate, recorded choice.",
       "verification_method": "integration test asserting a stack-bearing report file is produced while the UI thread is blocked",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -479,7 +479,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY (platform_adaptations PA-0005, closed by engineering_decisions.md ED-003) and OD-0008 C7: the folder is %LOCALAPPDATA%\\Marrow Code\\Logs in place of ~/Library/Logs/Droppy Code. ED-003 places it at %LOCALAPPDATA%\\<AppInfo.name>\\Logs, but under OD-0002 AppInfo.name is \"Marrow\" and %LOCALAPPDATA%\\Marrow belongs to the owner's Electron Marrow, which C7 rules the port never touches; the port's data identity \"Marrow Code\" therefore names the folder. The file-name pattern, the timestamp sanitisation (a Windows filename cannot contain ':' either, so the same replacement is required), the three header lines and the blank separator line are all reproduced. Under OD-0012 F1 line 1 reads exactly \"Marrow main thread unresponsive for <x.x>s\", with exactly one fractional digit; lines 2 and 3 are unchanged.",
       "verification_method": "integration test on the written file's name and first four lines",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -512,7 +512,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same 10-file cap, same prefix and suffix filter, same ascending-name ordering.",
       "verification_method": "unit test seeding 13 report files and asserting the 3 oldest are removed and non-matching files survive",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -534,7 +534,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A named logging channel with the same two-part identity, or the port's chosen equivalent; the identity strings follow the approved rename decision rather than being copied blindly.",
       "verification_method": "unit test on the logging channel identity",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -558,7 +558,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce: the watchdog thread is not joined or stopped by the shutdown sequence. It must not, however, keep the process alive - it must be a background or daemon thread so process exit is not blocked.",
       "verification_method": "restart test: the process exits cleanly with the watchdog thread still running",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -632,7 +632,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Development-only; not user-visible in a shipped build.",
       "verification_method": "unit test with an injected clock over both line shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2101,7 +2101,7 @@
       "cancellation": "Only the merge sweep, cancelled and restarted by a subsequent bootstrap, and the idle-stop tasks, cancelled on reselection, are ever cancelled. The rest end with the process.",
       "windows_path": "Direct port of the set and the cadences. Windows timer coalescing may shift wakeups; the cadences are the requirement, not the exact wake instants.",
       "verification_method": "unit test enumerating the started background tasks after a simulated launch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2393,7 +2393,8 @@
         "decision": "OD-0008 C7; OD-0012 F1",
         "upstream": "DroppyCode/Core/Support/HangWatchdog.swift:118-121 reportsFolder() - 'library.appendingPathComponent(\"Logs/Droppy Code\", isDirectory: true)'; HangWatchdog.swift:91 - 'var header = \"Droppy Code main thread unresponsive for \\(String(format: \"%.1f\", stalledFor))s\\n\"'",
         "port": "The report folder is %LOCALAPPDATA%\\Marrow Code\\Logs (OD-0008 C7); OD-0012 F1: line 1 reads \"Marrow main thread unresponsive for <x.x>s\""
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-LAUNCH-009",

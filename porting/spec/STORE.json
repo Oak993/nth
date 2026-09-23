@@ -301,7 +301,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One root constant with these eleven names hanging off it, and one migration routine that moves the whole folder rather than named files.",
       "verification_method": "restart test over a populated store, asserting all eleven entries survive a root move",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "SPECIFIED": 3699,
+      "IMPLEMENTED": 471,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "DISCOVERED": 34,
+      "SPECIFIED": 3403,
       "RETIRED": 6,
-      "IMPLEMENTED": 174
+      "DISCOVERED": 33
     },
     "by_area": {
       "CHAT": 193,
@@ -57,7 +57,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A discriminated-union record type in the Windows model layer, serialized with the same key names and the same single-key-object shape for the union, so a thread written by either build round-trips.",
       "verification_method": "contract fixture: encode/decode round-trip against a pinned JSON fixture per content case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -78,7 +78,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Trim against the same Unicode whitespace and newline set (not ASCII-only), because a redacted reasoning stream can leave non-breaking or line-separator characters behind.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -102,7 +102,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three cases only. Do not extend the cleanup to tool output: a command's stdout containing an em dash must survive verbatim.",
       "verification_method": "unit: one fixture item per content case, asserting only the three named cases change",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -124,7 +124,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the three-way branch and its order. Windows must distinguish an absent hydraHeads key from an empty array: an empty array is a note from Hydra itself and still takes the report row.",
       "verification_method": "unit plus interaction test over the three branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -154,7 +154,7 @@
       "cancellation": "not cancellable",
       "windows_path": "URL(fileURLWithPath:) becomes a Windows absolute path; the stored path is the platform path as captured. Base64 encoding and any downscaling must run off the UI thread: the source comment records that a photo is megabytes and its string a third larger again. The returned copy's mime type must follow the bytes actually sent (image/jpeg after a downscale), because the Claude session sends it as the image's media_type (ClaudeSession.swift:228-232).",
       "verification_method": "unit with a fixture directory holding one unreadable path, one image at most 2000 pixels on its longest side and one larger image, asserting order, skipped entries, returned bytes and returned mime types",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -180,7 +180,7 @@
       "cancellation": "not cancellable",
       "windows_path": "String-valued enums with the identical raw values, so a thread file is interchangeable.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -203,7 +203,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the byte-count guard and the Character-count suffix exactly, including the unit mismatch. Windows string indices are UTF-16 code units: suffix must be taken over grapheme clusters, not code units, or a surrogate pair is split.",
       "verification_method": "unit with an ASCII case, a CJK case and an emoji case at the boundary",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -224,7 +224,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same first-write-wins rule on finishedAt.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -246,7 +246,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical raw values; the todo list is positional, so a step is identified by its index (see PR-CHAT-117).",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -270,7 +270,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep an optional limit on the notice model so the document shape matches, but nothing sets it: the marker is dead in the shipped flow (porting/dead_code.md entry 24, ED-061), and the only view that would read it is dead too (entry 21, PR-CHAT-011).",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -320,7 +320,7 @@
       "cancellation": "not cancellable",
       "windows_path": "duration is seconds as a double, not milliseconds.",
       "verification_method": "contract fixture - (1) round-trip a TimelineItem whose content is .turnEnd(TurnSummary(..., changes: a two-file summary, one of them binary)) through JSONEncoder.storage: assert the exact bytes (content.turnEnd._0 holding additions, changes, deletions, duration, filesChanged, status, turnID in sorted order; changes holding additions, deletions, files; each file holding additions, deletions, isBinary, path) and decode it back equal; (2) the same row with changes nil: assert the changes key is absent and that it decodes back to nil; (3) the same bytes with \"changes\":null decode to changes nil",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -344,7 +344,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Implement the same tolerant per-key read. A strict schema validator here would silently lose a user's turn history.",
       "verification_method": "restart test: write with the new shape, read a fixture missing touchedPaths, tokenSpends and hydraMerged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -365,7 +365,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Integer division must not be used; the ratio is computed in floating point.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -386,7 +386,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same rule, same short-circuit (the source uses the same idiom in PromptEdit.isEmpty at ThreadRuntime.swift:154-156).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -407,7 +407,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Group by bundleID with null treated as ungrouped.",
       "verification_method": "unit",
-      "status": "DISCOVERED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -432,7 +432,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape and same required/optional split.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -453,7 +453,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five raw outcome strings, spelled exactly merged, failed, stray, held and settled.",
       "verification_method": "contract fixture with one record per outcome",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -477,7 +477,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Implement the same per-element tolerant decode. Note the data-loss consequence on the next save; it is upstream behavior and is reproduced.",
       "verification_method": "restart test with a corrupted element in a fixture thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4033,7 +4033,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce. Flagged here because it silently edits stored user-visible content; it is an ordinary parity quirk rather than a destructive or security-sensitive behavior, so it needs no escalation.",
       "verification_method": "restart test with an em dash inside a fenced code block in a reply",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4575,7 +4575,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows needs a decoder that reads the pixel dimensions and the orientation flag, an orientation-aware resize to at most 2000 pixels on the longest side that keeps the aspect ratio, and a JPEG encoder at quality 0.8 (for example Windows Imaging Component). The comparison is strictly greater than 2000.",
       "verification_method": "unit over fixture images: 2000 by 1000 (original bytes and mime), 2001 by 1000 and 4000 by 3000 (JPEG, longest side at most 2000, mime image/jpeg), a photo with a rotating orientation flag (upright JPEG) and a corrupt file (original bytes)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -12273,24 +12273,24 @@
     {
       "area": "GIT",
       "id": "PR-GIT-091",
-      "title": "Merging two diff entries for the same path renumbers every appended hunk to the same id",
+      "title": "Merging two diff entries for the same path renumbers the appended hunks sequentially from the existing last id",
       "source_evidence": [
-        "DroppyCode/Services/Git/TurnDiff.swift:52-64 append(_:to:) - for var hunk in file.hunks { hunk.id = (existing.hunks.last?.id ?? 0) + 1; existing.hunks.append(hunk) }, with the id computed before the append so every hunk in the batch gets the same value",
-        "porting/extracts/git-command-vectors.md section 8.5 - 'the same value for every hunk in the batch, an upstream id collision to reproduce'"
+        "DroppyCode/Services/Git/TurnDiff.swift:52-64 append(_:to:) - for var hunk in file.hunks { hunk.id = (existing.hunks.last?.id ?? 0) + 1; existing.hunks.append(hunk) }, with existing.hunks.last re-read after each append, so the appended hunks get consecutive ids (ED-172)",
+        "porting/extracts/git-command-vectors.md section 8.5 (its collision reading is superseded by ED-172)"
       ],
       "preconditions": "Two entries name the same path.",
       "action": "They are merged.",
-      "expected_result": "The totals are summed into the reported addition and deletion counts, the binary flag becomes the logical or of the two, and every hunk of the incoming file is appended after having its id set to one more than the id of the existing file's last hunk as read before the loop began. Because that value is read once, every appended hunk receives the identical id, colliding with its siblings. Reproduce.",
+      "expected_result": "The totals are summed into the reported addition and deletion counts, the binary flag becomes the logical or of the two, and every hunk of the incoming file is appended after having its id set to one more than the id of the last hunk of the merged entry at that moment (0 when it has none), read again after each append, so the incoming hunks receive consecutive ids L+1, L+2, ... after the existing last id L and never collide with each other.",
       "side_effects": [
         "None"
       ],
       "persistence": "None.",
       "failure_cases": [
-        "Colliding hunk ids make the view's identity for those sections ambiguous; the section id falls back to the first line's id, which keeps rendering working"
+        "None"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Reproduce the collision; do not renumber correctly.",
-      "verification_method": "unit merging two multi-hunk files for one path and asserting the duplicate ids",
+      "windows_path": "Port the loop as written: re-read the last id after each append (ED-172).",
+      "verification_method": "unit merging two multi-hunk files for one path and asserting the consecutive ids",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -12342,7 +12342,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: the absolute test is a leading slash on macOS. On Windows the equivalent is a drive-letter or UNC root, and the upward walk must terminate at the drive or share root. TurnDiff's hasPrefix(\"/\") test must be re-expressed against the same rule.",
       "verification_method": "unit over an in-root relative path, an in-root absolute path and an out-of-root absolute path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -12368,7 +12368,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: the absolute test must accept a drive-letter or UNC root, tilde expansion maps to the user profile, and the standardisation must resolve .. without touching the filesystem. Note a Windows path such as C:/x contains no \"://\" so the URL rejection still behaves.",
       "verification_method": "unit over a URL, a ../ climb, a tilde path, an in-root path and the root itself",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -12395,7 +12395,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the comparison ordinal and case-sensitive despite NTFS being case-insensitive; folding would silently drop a user's Build directory. The macOS-specific entries stay in the set for parity.",
       "verification_method": "unit over each of the seventeen rules plus a negative case for Build and dist",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -12421,7 +12421,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Normalise agent-reported paths to forward slashes before calling, since the rule literally concatenates \"/\".",
       "verification_method": "unit over exact, forward-suffix and reverse-suffix matches, and an oldPath-only match",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13866,7 +13866,7 @@
       "cancellation": "not applicable",
       "windows_path": "Keep the exact key names and the per-field defaulting; a strict decoder would drop the user's history.",
       "verification_method": "restart test over documents missing each field in turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -22331,7 +22331,7 @@
       "cancellation": "n/a",
       "windows_path": "Identical field names and raw values on the wire so documents stay readable across both builds.",
       "verification_method": "contract fixture on the serialized JSON for each of the five outcomes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -23708,7 +23708,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Post to the UI thread's message queue and timestamp when it runs.",
       "verification_method": "unit test: block the UI thread and assert lastPong stops advancing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -23736,7 +23736,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same threshold (the literal 4 seconds), same one-report-per-stall latch, writing to the Windows per-user application log location chosen under platform_adaptations PA-0005.",
       "verification_method": "unit test with an injected clock: one report for a 30 s stall, a second report after a recovery and a new stall",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -23765,7 +23765,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY: there is no /usr/bin/sample. The Windows equivalent must capture every thread's stack for the running process, for example via the debug help APIs on the process itself or a bundled stack-walk helper. The requirement is 'every thread's stack plus the header', not 'the output of a tool named sample'. The two failure bodies name a macOS tool, so their Windows wording is a deliberate, recorded choice.",
       "verification_method": "integration test asserting a stack-bearing report file is produced while the UI thread is blocked",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -23794,7 +23794,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY (platform_adaptations PA-0005, closed by engineering_decisions.md ED-003) and OD-0008 C7: the folder is %LOCALAPPDATA%\\Marrow Code\\Logs in place of ~/Library/Logs/Droppy Code. ED-003 places it at %LOCALAPPDATA%\\<AppInfo.name>\\Logs, but under OD-0002 AppInfo.name is \"Marrow\" and %LOCALAPPDATA%\\Marrow belongs to the owner's Electron Marrow, which C7 rules the port never touches; the port's data identity \"Marrow Code\" therefore names the folder. The file-name pattern, the timestamp sanitisation (a Windows filename cannot contain ':' either, so the same replacement is required), the three header lines and the blank separator line are all reproduced. Under OD-0012 F1 line 1 reads exactly \"Marrow main thread unresponsive for <x.x>s\", with exactly one fractional digit; lines 2 and 3 are unchanged.",
       "verification_method": "integration test on the written file's name and first four lines",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -23828,7 +23828,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same 10-file cap, same prefix and suffix filter, same ascending-name ordering.",
       "verification_method": "unit test seeding 13 report files and asserting the 3 oldest are removed and non-matching files survive",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -23851,7 +23851,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A named logging channel with the same two-part identity, or the port's chosen equivalent; the identity strings follow the approved rename decision rather than being copied blindly.",
       "verification_method": "unit test on the logging channel identity",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -23876,7 +23876,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce: the watchdog thread is not joined or stopped by the shutdown sequence. It must not, however, keep the process alive - it must be a background or daemon thread so process exit is not blocked.",
       "verification_method": "restart test: the process exits cleanly with the watchdog thread still running",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -23953,7 +23953,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Development-only; not user-visible in a shipped build.",
       "verification_method": "unit test with an injected clock over both line shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -25478,7 +25478,7 @@
       "cancellation": "Only the merge sweep, cancelled and restarted by a subsequent bootstrap, and the idle-stop tasks, cancelled on reselection, are ever cancelled. The rest end with the process.",
       "windows_path": "Direct port of the set and the cadences. Windows timer coalescing may shift wakeups; the cadences are the requirement, not the exact wake instants.",
       "verification_method": "unit test enumerating the started background tasks after a simulated launch",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -25558,7 +25558,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static data table in the main process, identical values. The asset name maps to a bundled monochrome SVG named mcp-github. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test comparing the whole catalog table against a frozen fixture derived from source",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25567,8 +25567,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -25590,12 +25589,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical static data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-025",
-      "rework": true
+      "implemented_by_task": "T-M2-025"
     },
     {
       "area": "MCP",
@@ -25617,12 +25615,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. Command resolution must find npx.cmd on Windows (see the LoginEnvironment.which port).",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-025",
-      "rework": true
+      "implemented_by_task": "T-M2-025"
     },
     {
       "area": "MCP",
@@ -25645,12 +25642,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-025",
-      "rework": true
+      "implemented_by_task": "T-M2-025"
     },
     {
       "area": "MCP",
@@ -25673,7 +25669,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture, plus a contract fixture for the resolved header when the key is blank",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25682,8 +25678,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -25706,12 +25701,11 @@
       "cancellation": "not cancellable",
       "windows_path": "defaultValue becomes the Windows user profile directory (the home-directory equivalent). The placeholder string \"/Users/you/Projects\" is a literal and is NOT localized to a Windows path - it is user-visible verbatim text.",
       "verification_method": "unit test against a frozen catalog fixture; the defaultValue is asserted as the resolved home directory, not a literal",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-025",
-      "rework": true
+      "implemented_by_task": "T-M2-025"
     },
     {
       "area": "MCP",
@@ -25734,7 +25728,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. The uvx failure string is the OD-0008 B5 wording, which names winget instead of Homebrew; it is produced by PR-MCP-120.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25743,8 +25737,7 @@
         "decision": "OD-0008 B5",
         "upstream": "Upstream message \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\": DroppyCode/Services/MCP/MCPProbe.swift:22 - :22 case \"uvx\": return \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\"",
         "port": "Marrow message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21 and B2 :22 both have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -25767,12 +25760,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-025",
-      "rework": true
+      "implemented_by_task": "T-M2-025"
     },
     {
       "area": "MCP",
@@ -25795,12 +25787,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-025",
-      "rework": true
+      "implemented_by_task": "T-M2-025"
     },
     {
       "area": "MCP",
@@ -25823,7 +25814,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data; cwd is the Windows user profile directory.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25832,8 +25823,7 @@
         "decision": "OD-0008 B5",
         "upstream": "Upstream message \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\": DroppyCode/Services/MCP/MCPProbe.swift:22 - :22 case \"uvx\": return \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\"",
         "port": "Marrow message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21 and B2 :22 both have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -25860,7 +25850,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data; the key goes to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25869,8 +25859,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -25892,7 +25881,7 @@
       "cancellation": "the probe task is cancelled by a second connect/refresh; the callback listener is cancelled with it",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25901,8 +25890,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -25924,7 +25912,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25933,8 +25921,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -25957,7 +25944,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25966,8 +25953,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -25990,7 +25976,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -25999,8 +25985,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26023,7 +26008,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26032,8 +26017,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26055,7 +26039,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26064,8 +26048,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26087,7 +26070,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26096,8 +26079,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26119,7 +26101,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26128,8 +26110,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26151,7 +26132,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26160,8 +26141,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26183,7 +26163,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26192,8 +26172,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26215,7 +26194,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26224,8 +26203,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26247,7 +26225,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26256,8 +26234,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26279,7 +26256,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26288,8 +26265,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26311,7 +26287,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26320,8 +26296,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26343,7 +26318,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture; contract fixture replaying Stripe's bare resource_metadata challenge",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26352,8 +26327,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26375,7 +26349,7 @@
       "cancellation": "probe task cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26384,8 +26358,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26407,7 +26380,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. Note the DSN reaching argv and the four on-disk provider configs is upstream behavior for every secret field that resolves into args; the Windows port reproduces it. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture; contract fixture for the resolved argv",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26416,8 +26389,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26439,7 +26411,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data; the placeholder \"/path/to/app.db\" stays verbatim.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26448,8 +26420,7 @@
         "decision": "OD-0008 B5",
         "upstream": "Upstream message \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\": DroppyCode/Services/MCP/MCPProbe.swift:22 - :22 case \"uvx\": return \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\"",
         "port": "Marrow message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21 and B2 :22 both have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26472,7 +26443,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data, including the U+2192 arrow in the help string. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture with byte-exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26481,8 +26452,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26504,7 +26474,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data. Secrets go to Windows Credential Manager (OD-0008 B3) under the same account string.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26513,8 +26483,7 @@
         "decision": "OD-0008 B3",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:4-16 - :4 /// Stores MCP secret field values in the macOS Keychain so they never sit | :8 \"MCP \" + server + \" \" + field | :15 kSecAttrService as String: AppInfo.name, | :16 kSecAttrAccount as String: account(server: server, field: field),",
         "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26539,12 +26508,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture; contract fixture asserting the four provider files differ for this server",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-028",
-      "rework": true
+      "implemented_by_task": "T-M2-028"
     },
     {
       "area": "MCP",
@@ -26566,7 +26534,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical data.",
       "verification_method": "unit test against a frozen catalog fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26575,8 +26543,7 @@
         "decision": "OD-0008 B5",
         "upstream": "Upstream message \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\": DroppyCode/Services/MCP/MCPProbe.swift:22 - :22 case \"uvx\": return \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\"",
         "port": "Marrow message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21 and B2 :22 both have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
-      },
-      "rework": true
+      }
     },
     {
       "area": "MCP",
@@ -26599,12 +26566,11 @@
       "cancellation": "not cancellable",
       "windows_path": "One ordered array, not a map, because the order drives the grid within each category section.",
       "verification_method": "unit test on count, order and the OAuth subset",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-028",
-      "rework": true
+      "implemented_by_task": "T-M2-028"
     },
     {
       "area": "MCP",
@@ -26626,12 +26592,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct lookup; must stay case-sensitive.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-028",
-      "rework": true
+      "implemented_by_task": "T-M2-028"
     },
     {
       "area": "MCP",
@@ -26653,12 +26618,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-pass lookup and the same three-rule normalizer. Do not add extra normalization (stripping spaces, removing hyphens): it would change which names resolve.",
       "verification_method": "unit with id and normalized-name lookup, the positive \"Hugging Face\" name fallback, and negative whitespace/punctuation cases; review id-before-name precedence against source",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-028",
-      "rework": true
+      "implemented_by_task": "T-M2-028"
     },
     {
       "area": "MCP",
@@ -26681,12 +26645,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Preserve declaration order explicitly; do not sort alphabetically.",
       "verification_method": "unit asserting the seven-group order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-028",
-      "rework": true
+      "implemented_by_task": "T-M2-028"
     },
     {
       "area": "MCP",
@@ -26708,12 +26671,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed English strings; no localization layer exists in the source.",
       "verification_method": "unit plus an interaction test reading the seven headers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26736,13 +26698,12 @@
       "windows_path": "Replacement in field order that matches by Unicode canonical equivalence, as Foundation's non-literal replacingOccurrences does (for ASCII-only keys and text, ordinal replacement gives the same result). Do not use a regular expression that would also match tokens for non-fields.",
       "spec_fix": "expected_result and windows_path called the token match literal and prescribed literal string replacement -> the source calls out.replacingOccurrences(of: token, with: value) without the .literal option, a non-literal Foundation search that treats canonically equivalent strings as equal, and looks the value up as values[field.key] in a Swift String dictionary, also canonical equivalence (B2 DroppyCode/Core/Models/MCP.swift:138, :147)",
       "verification_method": "unit with an empty value, a missing value, a repeated token and an unknown token",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-023",
-      "b2_change": "Refactor only, no shift: B1 :141 value = value.trimmingCharacters(in: .whitespacesAndNewlines) -> B2 :141 value = value.trimmed; `trimmed` is defined at B2 DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, so the result is identical.",
-      "rework": true
+      "b2_change": "Refactor only, no shift: B1 :141 value = value.trimmingCharacters(in: .whitespacesAndNewlines) -> B2 :141 value = value.trimmed; `trimmed` is defined at B2 DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, so the result is identical."
     },
     {
       "area": "MCP",
@@ -26764,13 +26725,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Same conditional normalization, and only for tokens directly after \"://\".",
       "verification_method": "unit with whitespace, both schemes, multiple trailing slashes, and a token not preceded by \"://\" (which must be left alone)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
       "implemented_by_task": "T-M2-023",
-      "b2_change": "Refactor only, no shift: B1 :141 value = value.trimmingCharacters(in: .whitespacesAndNewlines) -> B2 :141 value = value.trimmed; `trimmed` is defined at B2 DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, so the result is identical.",
-      "rework": true
+      "b2_change": "Refactor only, no shift: B1 :141 value = value.trimmingCharacters(in: .whitespacesAndNewlines) -> B2 :141 value = value.trimmed; `trimmed` is defined at B2 DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, so the result is identical."
     },
     {
       "area": "MCP",
@@ -26792,12 +26752,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The command string is not path-resolved here; resolution to an executable happens in the probe and the hub.",
       "verification_method": "unit with an optional field left blank",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26819,12 +26778,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the \"Bearer \" edge case for context7 and huggingface with no key.",
       "verification_method": "unit asserting \"Bearer \" survives the filter",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26850,12 +26808,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape. The proxy is a loopback HTTP listener in the main process; the route URL string must be byte-identical because it is written into files providers read.",
       "verification_method": "contract fixture comparing a resolved OAuth server against the expected provider-config JSON",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26877,12 +26834,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26904,12 +26860,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Note the asymmetry: an optional-field server never gets the key panel from the card, only from the info popover's \"Change the …\" button.",
       "verification_method": "unit plus interaction tests on gitlab (no panel) and brave-search (panel)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26932,12 +26887,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same derivations; do not persist either flag.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26959,12 +26913,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field names and JSON shape: the file is user-visible and is the migration surface.",
       "verification_method": "restart test plus a JSON schema fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "implemented_by_task": "T-M2-023",
-      "rework": true
+      "implemented_by_task": "T-M2-023"
     },
     {
       "area": "MCP",
@@ -26987,7 +26940,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A discriminated union in the renderer state, mirrored from the main process.",
       "verification_method": "unit plus a restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -27368,7 +27321,7 @@
       "cancellation": "not cancellable once started",
       "windows_path": "Use Windows Credential Manager (OD-0008 B3) and destroy exactly the items the entry declares under the same three-part account string. Check each deletion and report a failure other than \"not found\" (OD-0008 A12). Reached from disconnect (PR-MCP-061) and from a confirmed custom-server Delete (PR-MCP-073, OD-0008 A1). Never fall back to a plaintext store if protected storage is unavailable.",
       "verification_method": "integration test asserting one delete per declared field with the exact account string, a no-op for an entry with no fields, that a custom server's fields are taken from the entry rather than the catalog, and that a store refusing a deletion produces a reported failure instead of success",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null,
@@ -28035,7 +27988,7 @@
       "cancellation": "not cancellable",
       "windows_path": "<data root> is %LOCALAPPDATA%\\<AppName>\\ and the mcp subdirectory is %LOCALAPPDATA%\\<AppName>\\mcp\\. Putting mcp.json or custom-mcp.json inside mcp\\ silently loses every connection and custom server. The bridge file, which macOS writes to <Application Support>/<AppName>/MCP/, collapses onto the same mcp\\ folder on a case-insensitive filesystem and is written there (PR-MCP-193). managed.json is used only by MCPExternalSync, which is not ported (ED-061, PR-MCP-176), so the port neither reads nor writes it.",
       "verification_method": "restart test plus a file-inventory assertion",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28060,7 +28013,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same algorithm character by character. Unicode letters and digits count as letters and numbers, so a non-ASCII name produces a non-ASCII id, which then becomes a JSON key and part of a proxy route path. Protected storage is Windows Credential Manager (OD-0008 B3), under the same account strings.",
       "verification_method": "unit with the three examples plus a non-ASCII name",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -28090,7 +28043,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two forms; the stdio prefix is the OD-0008 B4 wording \"Runs on this PC: \" in place of \"Runs on this Mac: \".",
       "verification_method": "unit on both branches plus a capture of the row text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -28120,7 +28073,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same mapping. The isRequired-true-for-every-variable rule is what makes the key panel's save button demand every variable.",
       "verification_method": "unit over both kinds plus the duplicate-key uniquing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28145,7 +28098,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field names and same tolerance at this level exactly.",
       "verification_method": "unit feeding a record with each optional key missing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -28182,7 +28135,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Tell a missing file apart from one that fails to read or decode; after a failure, keep a flag that stops saveCustoms from writing custom-mcp.json, and surface the failure. Named deviation. BLK-0002 is resolved by OD-0008 A2.",
       "verification_method": "integration test: start the store on a custom-mcp.json whose variable lacks isSecret, assert the failure is surfaced, then add a custom server and assert the file's bytes are unchanged; plus a test that a missing file starts empty with no error; the message text is asserted byte for byte against OD-0012 E3",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "17",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -28214,7 +28167,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same selector, and keep both arrays in the persisted record.",
       "verification_method": "unit switching kinds and asserting both arrays survive a round trip",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28239,7 +28192,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order and the same http-only lowercasing. Note the id is recomputed inside validate from the trimmed name, which for an edit differs from the id saveCustom actually uses.",
       "verification_method": "unit over each branch including the http case-collision case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -28265,7 +28218,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same predicate including Unicode letters and digits.",
       "verification_method": "unit with an ASCII and a non-ASCII case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28290,7 +28243,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim, including the curly quotes.",
       "verification_method": "unit with byte-exact string comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -28315,7 +28268,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four-host allowlist verbatim, including both bracketed and unbracketed IPv6 loopback spellings.",
       "verification_method": "unit over the four allowed hosts, a rejected http host, and an https host",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -28342,7 +28295,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows Credential Manager (OD-0008 B3) keeps the same flat account namespace for the whole app, with the account format \"MCP <server> <field>\" verbatim and the app display name standing for the Keychain service, so the partitioning matches. kSecAttrAccessibleWhenUnlocked has no Credential Manager counterpart; that is recorded, not invented around.",
       "verification_method": "integration test asserting the exact account strings written",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -28371,7 +28324,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same trimming and same nil-on-empty. The capture-run short circuit is capture-mode behavior, not user-reachable runtime behavior, and is recorded in dead_code entry 44; it is not a shipped requirement. Protected storage is Windows Credential Manager (OD-0008 B3), under the same account strings.",
       "verification_method": "unit with a whitespace-only stored value",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "b2_change": "Refactor only, no shift: B1 :24 !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil } | B1 :25 return value.trimmingCharacters(in: .whitespacesAndNewlines) -> B2 :24 !value.trimmed.isEmpty else { return nil } | B2 :25 return value.trimmed; `trimmed` is defined at B2 DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, so the result is identical.",
@@ -28401,7 +28354,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same: empty means delete, and the call still reports success so saveCustomValues does not treat it as a storage failure. Protected storage is Windows Credential Manager (OD-0008 B3), under the same account strings.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "b2_change": "Refactor only, no shift: B1 :31 let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines) -> B2 :31 let trimmed = value.trimmed; `trimmed` is defined at B2 DroppyCode/Core/Support/Text.swift:132 as `var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }`, so the result is identical.",
@@ -28431,7 +28384,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the update-then-add shape and the trimming against Windows Credential Manager (OD-0008 B3). Credential Manager has no accessibility attribute, so defect 21 has no Windows analogue and the attribute has no counterpart; record that rather than inventing one.",
       "verification_method": "unit over the three status outcomes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "21",
       "depends_on_unknown": null,
       "deviation": {
@@ -28461,7 +28414,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same signature: pass the entry, never look the id up in the catalog. The items live in Windows Credential Manager (OD-0008 B3); each deletion is checked (OD-0008 A12).",
       "verification_method": "unit with a custom server asserting its variables are actually deleted; a store refusing a deletion produces a reported failure",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -28987,7 +28940,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same six fields. gitLabServerDisabled is the only producer in the shipped source.",
       "verification_method": "unit plus a restart test asserting the state is not restored",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35308,7 +35261,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, per connection.",
       "verification_method": "contract fixture (id sequence)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35331,7 +35284,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same code and string. Keep both near-identical sentences distinct; they identify different layers.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35352,7 +35305,7 @@
       "cancellation": "This is the cancellation path for a single request.",
       "windows_path": "An AbortSignal-style cancellation that deletes the pending entry and rejects. The agent is not told; that matches the source.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35375,7 +35328,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same elision rule, per port_impacts #1.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35398,7 +35351,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three shapes, with the id type round-tripped.",
       "verification_method": "contract fixture (golden frames)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35421,7 +35374,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-way parse including the truncation, which matters because JSON numbers in JS are all doubles: an integral number must map to the integer branch and a fractional one must be truncated, not rejected.",
       "verification_method": "unit (id-parsing table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35442,7 +35395,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same dispatch.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35465,7 +35418,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the two default values.",
       "verification_method": "unit (reply table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35491,7 +35444,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering and the same fallback string.",
       "verification_method": "contract fixture (two in-flight requests, kill the child, assert both reject with the tail)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -35881,7 +35834,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows Credential Manager (OD-0008 B3): one generic credential per account string under the one service name the port uses in place of AppInfo.name. Same order for the live path: the stored value, then the caller's fallback. The capture-run guard is not ported: it is reachable only from a capture launch argument and is dead-code register entry 44 (porting/dead_code.md), which ED-061 excludes from implementation.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -35911,7 +35864,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Credential Manager delete for the same account (OD-0008 B3); return true, so the caller only removes its settings entry and writes nothing.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -35940,7 +35893,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows Credential Manager (OD-0008 B3): delete any existing generic credential for the account, then write one holding the UTF-8 bytes of the trimmed key, one credential per account string under the one service name the port uses in place of AppInfo.name, account strings verbatim. kSecAttrAccessibleWhenUnlocked has no Windows analogue; port_impacts.md entry 262 records that substitution. A false return is never followed by a plaintext copy (OD-0008 A6).",
       "verification_method": "unit plus restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -35970,7 +35923,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Credential Manager read (OD-0008 B3) with the same trimming and blank rejection.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -36752,7 +36705,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same URLs and constant.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36777,7 +36730,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same request.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36802,7 +36755,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same parsing and comparator.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36826,7 +36779,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two lists and the same exact-id test.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36847,7 +36800,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals including the middle dot separators.",
       "verification_method": "unit plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36868,7 +36821,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36889,7 +36842,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36910,7 +36863,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36931,7 +36884,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literals.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36953,7 +36906,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same case-insensitive prefix test.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -36974,7 +36927,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same test including the nil-is-true branch, which differs from DeepSeek and Z.ai.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -39479,7 +39432,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two file names, the same two limits and the same three sentence forms. The block heading reads exactly: Project guidelines from <directory>. They supplement the rules above; where they conflict, the Marrow rules take priority. (OD-0012 F1). Windows symlink and junction resolution must enforce the same containment check.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -45677,7 +45630,7 @@
       "cancellation": "not cancellable",
       "windows_path": "THIS IS THE NAMED WINDOWS HAZARD. Resolving the bare name \"cmd\" through PATH plus PATHEXT on Windows finds C:\\Windows\\System32\\cmd.exe, the command interpreter, long before any provider CLI; launching it with this provider's argv would open a console that speaks no protocol on stdout and the session would hang at the first read. UNK-0006 is RESOLVED by PA-0016 (ENGINEERING DECISION): resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe or Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected. PA-0016 validates identity before any resolution is accepted, so the fallback which(\"cmd\") is checked too. If nothing else resolves, the provider reports not installed, exactly as the source does when nothing is found, and the user can point the existing binaryPath setting at the executable. The fallback directories are macOS and Unix package-manager paths; where an npm or volta install puts the Command Code CLI on Windows is not in the pinned source and stays a live-verification item under PA-0016, which is unverified against a real Command Code Windows install.",
       "verification_method": "PA-0016's Windows contract test: with no Command Code installed, resolution returns not installed rather than System32\\cmd.exe, and a stub executable whose version resource does not identify the command interpreter IS accepted; plus a unit test on the fallback order; plus a live Windows probe recording where the CLI actually installs",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -47287,7 +47240,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PATH plus PATHEXT resolution (PA-0010); an npm install leaves pi.cmd. The six fallback directories are Unix package-manager paths that do not exist on Windows; where the npm package lands on Windows is not in the source and must be probed rather than guessed (UNK-0005 is marked RESOLVED by OD-0008 C5 (\"PowerShell 7 when installed, otherwise Windows PowerShell\"), but C5 rules only which shell the app's own terminal tabs and project scripts use, so it does not settle install locations).",
       "verification_method": "unit test on the message; a probe recording the real Windows install location",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -48586,7 +48539,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PATH plus PATHEXT resolution (PA-0010). With no fallback list there is nothing else to translate, but it also means a Windows install that is not on PATH is simply undetectable, which is the source's own behavior.",
       "verification_method": "unit test asserting the exact message",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49313,7 +49266,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both name shapes must be accepted. A port that reads only the object form silently loses every bare-string command Claude publishes.",
       "verification_method": "unit test - an object entry, a bare string entry and an unusable entry in one array",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49334,7 +49287,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim string, not a localized or reworded placeholder.",
       "verification_method": "unit test asserting the exact fallback string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49357,7 +49310,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two levels, not one. Reading result[\"skills\"] directly returns nothing for every real Codex response.",
       "verification_method": "unit test with two data entries carrying skills each, and with both keys absent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49378,7 +49331,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not write it as `skill[\"enabled\"]?.bool ?? true == true` by reflex and then treat a non-boolean value differently; the three cases kept are true, absent and non-boolean.",
       "verification_method": "unit test - enabled true, enabled false, key absent, enabled as a string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49402,7 +49355,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both fields required, and the path must survive into the command record.",
       "verification_method": "unit test - a skill missing path is dropped; an accepted one carries skillPath",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49423,7 +49376,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The exact key path interface.shortDescription is part of the contract; a port reading only description silently downgrades every skill that has both.",
       "verification_method": "unit test - a skill with both, with only description, and with neither",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49447,7 +49400,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The text is passed through unmodified on this path, including its leading slash.",
       "verification_method": "unit test - matching text, mismatched text, and a command with no skillPath",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49468,7 +49421,7 @@
       "cancellation": "not cancellable",
       "windows_path": "String surgery on the first character, not a search and replace of the command name.",
       "verification_method": "unit test asserting the exact rewritten string for a slash and for a dollar opener",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -49489,7 +49442,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The part order matters: Codex reads the text part first and the skill part as its qualifier.",
       "verification_method": "contract fixture asserting the two-part array shape byte for byte",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51429,7 +51382,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A TypeScript string-literal union with the same 14 literals in the same declaration order, exported as a frozen ordered array for allCases. No platform boundary.",
       "verification_method": "unit test asserting the ordered array equals the 14 literals",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -51457,7 +51410,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static map plus an SVG under the same asset name.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51484,7 +51437,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static map plus SVG asset.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51511,7 +51464,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static map plus SVG asset.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51538,7 +51491,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static map plus SVG asset.",
       "verification_method": "unit on displayName and iconName, plus a capture comparison of the section header text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -51566,7 +51519,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static map plus SVG asset.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51593,7 +51546,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static map plus SVG asset.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51620,7 +51573,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static map plus SVG asset.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51647,7 +51600,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static map plus SVG asset.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51674,7 +51627,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static map plus SVG asset.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51701,7 +51654,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static map plus SVG asset.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51728,7 +51681,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static map plus SVG asset.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51755,7 +51708,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static map plus SVG asset.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51782,7 +51735,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static map plus SVG asset.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51807,7 +51760,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PATH is split on ';' and each candidate is tried against PATHEXT (codex.cmd, codex.exe) instead of the POSIX execute-bit test. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture over a synthetic PATH",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -51831,7 +51784,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PATHEXT-aware lookup, PATH split on ';'. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -51855,7 +51808,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -51879,7 +51832,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "b2_change": "The name is unchanged (B1 Provider.swift:43 -> B2 :45 `case .opencode: \"opencode\"`), but the provider is now titled OpenCode Zen (B1 Provider.swift:25 \"OpenCode\" -> B2 :26 \"OpenCode Zen\"), and OpenCode Go resolves the same name (B2 :46 `case .opencodeGo: \"opencode\"`)."
@@ -51904,7 +51857,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -51928,7 +51881,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard, no filesystem access.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51952,7 +51905,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -51976,7 +51929,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -52001,7 +51954,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -52025,7 +51978,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -52049,7 +52002,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -52075,7 +52028,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY AND COLLISION, resolved by PA-0016 (DECIDED; resolves UNK-0006). On Windows the bare name cmd resolves to the system command interpreter (C:\\Windows\\System32\\cmd.exe on the probed machine), so a lookup without an identity check would make Command Code read as installed on every Windows PC. Per PA-0016: PATH resolution honours PATHEXT; a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe or Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected; if the only match is rejected, Command Code reports not installed, as the source does when nothing is found, and the user can set an explicit path through the existing Binary path setting. The rule keys on version-resource identity and those two paths, not on the file extension. UNVERIFIED against a real Command Code Windows install (PA-0016 residual risk).",
       "verification_method": "contract fixture plus an interaction test proving a system cmd.exe is never accepted as Command Code",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -52100,7 +52053,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PATHEXT-aware lookup. Platform boundary: executable resolution. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -52126,7 +52079,7 @@
       "cancellation": "not cancellable once the terminal is opened; the app does not track the shell.",
       "windows_path": "Run the same command string in the Windows terminal the port opens. Platform boundary: terminal launching.",
       "verification_method": "interaction test asserting the exact command string handed to the terminal launcher",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52153,7 +52106,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string, Windows terminal launcher.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52180,7 +52133,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string, Windows terminal launcher.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52207,7 +52160,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string, Windows terminal launcher.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52234,7 +52187,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string, Windows terminal launcher.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52260,7 +52213,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Kept verbatim as a display constant. No terminal launch path may reach it.",
       "verification_method": "unit plus an interaction test proving no Login control is offered for API-key providers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -52284,7 +52237,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Display constant only.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -52308,7 +52261,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Display constant only.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -52334,7 +52287,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string, Windows terminal launcher.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52362,7 +52315,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string, Windows terminal launcher.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52389,7 +52342,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string, Windows terminal launcher.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52417,7 +52370,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The command string is kept verbatim including the backticks in the detail text. The launcher must resolve the Command Code CLI rather than the Windows interpreter (see PR-PROVREG-026). Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed. The command string \"cmd login\" is not reworded: PR-PROVREG-026 is settled by PA-0016 (cmd stays a valid invocation name, with executable identity validated), and OD-0008 B6 keeps \"Run `cmd login` in Terminal\" verbatim. OD-0012 G2: the word Keychain in this detail becomes Credential Manager, the store the port uses (PR-PROVREG-088, 239). How a Windows Login button launches the command is PR-PROVREG-233.",
       "verification_method": "interaction test plus capture comparison of the detail string against the OD-0012 G2 wording",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "b2_change": "B2 moved every provider card inside a collapsible section (B1 `ChromeSection(title: provider.displayName) {` -> B2 SettingsView.swift:646-671 header toggle and ChromeRevealLayout, :786-789); with no header click it is expanded only when the provider is signed in (B2 :608), so this row is reached only after its section is expanded.",
@@ -52449,7 +52402,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string, Windows terminal launcher.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52477,7 +52430,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Open with the Windows default browser via the shell open verb. Platform boundary: external link opening.",
       "verification_method": "unit on the URL constant plus an interaction test on the link target",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52504,7 +52457,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows default browser. Platform boundary: external link opening.",
       "verification_method": "unit plus interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52531,7 +52484,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows default browser.",
       "verification_method": "unit plus interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52558,7 +52511,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows default browser.",
       "verification_method": "unit plus interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52585,7 +52538,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows default browser.",
       "verification_method": "unit plus interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52613,7 +52566,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows default browser.",
       "verification_method": "unit plus interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52640,7 +52593,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows default browser.",
       "verification_method": "unit asserting the trailing slash",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52667,7 +52620,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows default browser.",
       "verification_method": "unit plus interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52694,7 +52647,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows default browser.",
       "verification_method": "unit plus interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52721,7 +52674,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows default browser.",
       "verification_method": "unit plus interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52748,7 +52701,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows default browser.",
       "verification_method": "unit plus interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52775,7 +52728,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows default browser.",
       "verification_method": "unit plus interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52802,7 +52755,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows default browser.",
       "verification_method": "unit plus interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52831,7 +52784,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure constants in a capability table. No platform boundary.",
       "verification_method": "unit over the full 14-provider capability table: the eight flags here plus supportsCompact (PR-PROVREG-245)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52860,7 +52813,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure constants.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -52886,7 +52839,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure constants.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -52912,7 +52865,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure constants.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -52937,7 +52890,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure constants.",
       "verification_method": "unit plus an interaction test that the attach control is unavailable on a Grok thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -52966,7 +52919,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure constants. The env var fallback is read from the process and user environment rather than a login shell.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -52992,7 +52945,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure constants.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -53018,7 +52971,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure constants.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -53043,7 +52996,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure constants.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -53068,7 +53021,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure constants.",
       "verification_method": "unit plus an interaction test that the attach control is unavailable on an Antigravity thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -53093,7 +53046,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure constants.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -53120,7 +53073,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure constants.",
       "verification_method": "unit plus capture comparison of the Command Code section which is the only section with both rows",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -53145,7 +53098,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure constants.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -53168,7 +53121,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure predicate.",
       "verification_method": "unit over all 14 providers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -53194,7 +53147,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure predicate.",
       "verification_method": "unit over all 14 providers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -53218,7 +53171,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure predicate.",
       "verification_method": "unit plus capture comparison of which sections show the row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -53241,7 +53194,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure table.",
       "verification_method": "unit over all 14 providers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -53266,7 +53219,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure table plus the same string template, with Keychain reworded to Credential Manager under OD-0012 G2.",
       "verification_method": "unit on the table plus capture comparison of each of the four detail lines",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -53297,7 +53250,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Read from the process environment plus the user and machine registry Environment keys, since Windows has no login-shell capture. Platform boundary: environment capture.",
       "verification_method": "unit with an injected environment",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -53321,7 +53274,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure predicate.",
       "verification_method": "unit over all 14 providers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -53345,7 +53298,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure predicate, kept as the same negation so the default stays true.",
       "verification_method": "unit over all 14 providers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -53553,7 +53506,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The same four-method interface, so the registry stays testable without the full settings store.",
       "verification_method": "unit with a stub settings object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -53692,7 +53645,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows Credential Manager (OD-0008 B3): one credential per account under the one service name the port uses in place of AppInfo.name, keeping the one-container-many-accounts partitioning and the four account strings verbatim, because MCP secrets share the container and are distinguished only by account string. A refused write stores nothing else (PR-PROVREG-239, OD-0008 A6).",
       "verification_method": "restart test on each of the four accounts plus a contract fixture on the account strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "deviation": {
@@ -55443,7 +55396,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same per-field defaults so an imported cache still loads.",
       "verification_method": "unit over partial JSON rows",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -55467,7 +55420,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same predicate.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -55490,7 +55443,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same transformation.",
       "verification_method": "unit over sample names",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -55513,7 +55466,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two loops in the same order, with the same six separators including the em-dash and en-dash variants, and the same ten vendor prefixes each with a trailing space.",
       "verification_method": "unit over the examples in the source comment plus each separator and prefix",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -55536,7 +55489,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same mapping, including that only two of the four extra-high spellings are titled.",
       "verification_method": "unit over every effort string used by any seed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57066,7 +57019,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two names and the same root-only rule. Name comparison must stay exact even though the Windows filesystem is case-insensitive, so a file named agents.md is found by the OS but the injected section header still reads AGENTS.md.",
       "verification_method": "unit over a synthetic project tree",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57091,7 +57044,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two literals and the same ordering-dependent budget. Byte counts, not character counts.",
       "verification_method": "unit at the boundaries 16000, 16001 and a combined 24001",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57118,7 +57071,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same change detection. Windows file times have different resolution, which makes the same-size-same-time miss slightly more likely; that is upstream behavior.",
       "verification_method": "unit touching the files between calls",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57143,7 +57096,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY: the trailing separator is a backslash and the comparison must account for case-insensitive Windows paths. Windows junctions and reparse points must be resolved as symlinks are here, or the containment check can be bypassed.",
       "verification_method": "unit over an escaping symlink, a directory and a regular file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57167,7 +57120,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Transcribe the sentence verbatim including the parentheses, the semicolon and the tool name read_file.",
       "verification_method": "unit with an oversized file, plus capture comparison of the produced prompt",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57192,7 +57145,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Transcribe verbatim. On Windows an open can also fail because another process holds the file with an exclusive share mode, which reaches this same path.",
       "verification_method": "unit with an unreadable file, plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57216,7 +57169,7 @@
       "cancellation": "not cancellable",
       "windows_path": "OD-0012 F1: the product name in the sentence is \"Marrow\" in place of \"Droppy Code\"; the sentence is otherwise verbatim. The directory is a Windows path.",
       "verification_method": "capture comparison of the produced prompt plus unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -57246,7 +57199,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same chunking and the same plus-one allowance.",
       "verification_method": "unit at exactly 16000 and 16001 bytes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57269,7 +57222,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same silent skip. A UTF-8 byte order mark is not stripped anywhere in this file, so it becomes part of the injected text.",
       "verification_method": "unit with a blank file and a non-UTF-8 file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57297,7 +57250,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the per-session ownership rather than introducing a shared cache, which would change when a session picks up an edit.",
       "verification_method": "unit with two instances over one directory",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57526,7 +57479,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Static map plus the one shared SVG asset. The icon-name special case is kept so no second asset is invented.",
       "verification_method": "unit asserting displayName \"OpenCode Go\" and iconName \"provider-opencode\" for opencodeGo, and that every other provider's iconName is \"provider-\" plus its rawValue",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57554,7 +57507,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The same PATHEXT-aware lookup of \"opencode\" as OpenCode Zen (PA-0016), with a separate per-provider custom path. Platform boundary: executable resolution.",
       "verification_method": "contract fixture resolving both providers to one opencode stand-in, plus a unit that setting a custom path for opencodeGo leaves the opencode path unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57583,7 +57536,7 @@
       "cancellation": "not cancellable once the terminal is opened; the app does not track the shell.",
       "windows_path": "Same command string handed to the Windows terminal launcher, and the same shared per-CLI file name if a script file is used at all (PR-PROVREG-233). Platform boundary: terminal launching.",
       "verification_method": "interaction test asserting the exact command string and the derived file name for both OpenCode providers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -57611,7 +57564,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Open with the Windows default browser via the shell open verb. Platform boundary: external link opening.",
       "verification_method": "unit on the URL constant plus an interaction test on the link target and its label",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -57644,7 +57597,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure constants in the capability table.",
       "verification_method": "unit over the capability table row for opencodeGo, compared with the opencode row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -57669,7 +57622,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pure predicate with the same seven members, consulted at the same two places.",
       "verification_method": "unit over all 14 providers, plus an interaction test that the compact suggestion appears for a Claude thread and not for an OpenCode Go thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -61328,7 +61281,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the byte-versus-character mismatch: a UTF-8-heavy output is trimmed to more than 30000 bytes on purpose, because that is what the source does.",
       "verification_method": "unit - ASCII and multi-byte fixtures at the boundary",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -76025,7 +75978,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One root constant with these eleven names hanging off it, and one migration routine that moves the whole folder rather than named files.",
       "verification_method": "restart test over a populated store, asserting all eleven entries survive a root move",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -83417,7 +83370,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A frozen ordered list of 26 string ids in shared code. The ids are the on-disk contract: renaming or reordering breaks saved settings and the theme picker's section order.",
       "verification_method": "unit: the id list equals the 26 tokens in order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83440,7 +83393,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A literal string table beside the id list. No localization exists upstream (dead_code.md entry 45: no .xcstrings, .strings or .lproj in the tree), so these are plain literals, not lookup keys.",
       "verification_method": "unit: display-name table equality, byte for byte including the accented e",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83464,7 +83417,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A literal string table, reproduced verbatim except the system theme's detail: by owner ruling OD-0008 B2 it reads \"Follows Windows\" in place of upstream's \"Follows your Mac\".",
       "verification_method": "unit: detail table equality including the U+00B7 separator and system=\"Follows Windows\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -83493,7 +83446,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: the dynamic surface color must be re-evaluated whenever Windows reports an app-mode change (the immersive light/dark setting), not resolved once at start. The two literals #1E1E20 and #FFFFFF are fixed.",
       "verification_method": "unit: spec(system) returns nil scheme and nil accent; interaction test: toggling the OS light/dark setting repaints the glass tint",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83516,7 +83469,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row; the scheme forces the app's own light/dark regardless of the OS setting.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83539,7 +83492,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83562,7 +83515,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row in shared code.",
       "verification_method": "unit: palette table equality; capture comparison against reference_captures for structure only",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83585,7 +83538,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83608,7 +83561,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83631,7 +83584,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83654,7 +83607,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row. Note nord and cursor share the accent #88C0D0 and the detail \"Dark · Frost\" but differ in surface and status hues.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83677,7 +83630,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83700,7 +83653,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83723,7 +83676,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83746,7 +83699,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row. Do not deduplicate accent and success: a success badge in this theme really is the accent colour.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83769,7 +83722,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83792,7 +83745,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row. Accent and danger are the same colour here; destructive controls are not visually distinct from accented ones in this theme. That is the shipped product.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83815,7 +83768,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83838,7 +83791,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83861,7 +83814,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row. githubDark and codex share success, warning and danger but differ in accent and surface.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83884,7 +83837,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row. Its surface #FFFFFF equals the light theme's, but githubLight also sets an accent and status hues, so the two are not interchangeable.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83907,7 +83860,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83930,7 +83883,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83953,7 +83906,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row; accent and danger coincide, as in rosePine.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83976,7 +83929,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83999,7 +83952,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84022,7 +83975,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84045,7 +83998,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84068,7 +84021,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed palette row.",
       "verification_method": "unit: palette table equality",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84095,7 +84048,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Platform boundary: read the Windows accent colour (the personalization accent) and follow changes to it. The optional must stay an optional in the shared model, because two consumers (PR-THEME-036, PR-THEME-037) deliberately pass the raw nil through.",
       "verification_method": "unit: spec.accent is nil for system/light/dark and non-nil for the other 23; interaction test: changing the OS accent repaints accented controls",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84119,7 +84072,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pick one fixed green, orange and red for the three system-hue themes and keep them constant; the asymmetry with the accent (which follows the OS) is deliberate and must be preserved.",
       "verification_method": "unit: spec.success/warning/danger are always non-nil",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84144,7 +84097,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Implement the same tolerant parse, including the black-on-garbage behaviour, so a future palette typo degrades identically. Colours must be treated as sRGB, not as the display's colour space.",
       "verification_method": "unit: parse table including \"#CBA6F7\", \"CBA6F7\", \" CBA6F7 \" and a deliberately invalid string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -84168,7 +84121,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A two-stop hard-edged linear gradient; a naive two-colour gradient that interpolates across the whole circle is wrong.",
       "verification_method": "capture comparison: the System swatch has a visible vertical seam at its centre",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84192,7 +84145,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Three-stop diagonal gradient; the 0.42 hold is what makes dark themes read dark, so it is load-bearing, not decoration.",
       "verification_method": "capture comparison against reference_captures for structure; unit: gradient stop list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84216,7 +84169,7 @@
       "cancellation": "not cancellable",
       "windows_path": "An inset hairline; at typical Windows scaling 0.5 device-independent points is a sub-pixel stroke and must not be rounded up to 1.",
       "verification_method": "capture comparison; unit: stroke width and opacity",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84247,7 +84200,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A process-wide theme broadcaster with the same unconditional post. port_impacts.md entry 174: reproduce the unconditional re-post; an equality short-circuit changes observable behaviour for layer-backed cells.",
       "verification_method": "unit: assigning the same theme twice posts twice and rebuilds the spec twice",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "60",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -84272,7 +84225,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A resolved token object rebuilt on theme change and read directly by the renderer. Do not resolve palettes inside render functions.",
       "verification_method": "unit: a spy counting hex parses sees zero parses across many reads",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85680,7 +85633,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A hand-written block parser in shared code. Do not substitute a CommonMark library: the grammar below differs from CommonMark in several load-bearing ways and the differences are user-visible in agent output.",
       "verification_method": "contract fixture: a corpus of agent outputs parses to a recorded block tree",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85703,7 +85656,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows agents emit CRLF far more often than macOS ones, so this rule is exercised constantly. A lone CR is deliberately not a break.",
       "verification_method": "unit: the same text with LF and with CRLF produces identical blocks",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85727,7 +85680,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The stable count is not just an optimization: it is the equality key the block views use (PR-THEME-105), so getting it wrong changes what repaints during a stream.",
       "verification_method": "unit: for a growing text, blocks below the reported stable index never change in a later parse",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85750,7 +85703,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Offsets are UTF-8 bytes here, unlike the veil's character offsets. Mixing the two units is the likeliest porting mistake.",
       "verification_method": "unit: incremental parse of a growing text equals a full parse at every step",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85775,7 +85728,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A hard recursion cap protecting against unbounded model output; keep it at 8 so pathological output renders identically.",
       "verification_method": "unit: nine levels of '>' render as eight quotes with the ninth marker visible in the text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85799,7 +85752,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Note the closing test requires only that the line start with the fence and be all fence characters, so a longer closing run closes a shorter opener; and a fence of a different character does not close it.",
       "verification_method": "unit: mixed-marker fences, a longer closing run, an unclosed fence",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85823,7 +85776,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The closing-hash strip is a side effect of trimming the character set \"# \" from both ends, so it also removes hashes that were meant as text at the end of a heading. Reproduce it.",
       "verification_method": "unit: \"#Title\", \"####### Title\", \"## Title ##\", \"###\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85847,7 +85800,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The byte-level test also means a tab between the characters disqualifies the line, because only 0x20 is allowed.",
       "verification_method": "unit: \"---\", \"- - -\", \"--\", \"-*-\", \"- \\t -\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85870,7 +85823,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Only one space after the marker is eaten; this matters for code indented inside a quote.",
       "verification_method": "unit: nested quotes, a quote containing a list, a quote split by a blank line",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85896,7 +85849,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Column alignment is parsed away and never applied. Every cell renders leading-aligned regardless of the colons; that is the shipped behaviour.",
       "verification_method": "unit: a table with alignment colons renders leading-aligned; ragged rows; a pipe line with no delimiter",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85920,7 +85873,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Note the asymmetry: an unordered marker accepts a tab after it, an ordered one accepts only a space or nothing.",
       "verification_method": "unit: \"-x\", \"-\\tx\", \"1.x\", \"1234567890. x\", \"1.\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85943,7 +85896,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the three-part condition exactly; simplifying it changes how ordinary prose renders.",
       "verification_method": "unit: a paragraph line followed by \"2. text\" stays one paragraph; the same after a blank line becomes a list starting at 2",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85968,7 +85921,7 @@
       "cancellation": "not cancellable",
       "windows_path": "This is the most intricate part of the grammar and the part a CommonMark library will get differently. It must be ported rule by rule and covered by fixtures.",
       "verification_method": "contract fixture: a list corpus covering loose lists, nested code, mixed markers and blank lines",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -85991,7 +85944,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Note the lower-casing is applied to the whole item text just to test the prefix, which is wasteful but harmless; only the prefix test is case-insensitive, the removal is a fixed four characters.",
       "verification_method": "unit: \"[ ] a\", \"[x] a\", \"[X] a\", \"[] a\", \"[ ]a\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -86017,7 +85970,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Interior newlines survive into the block text; the inline parse is asked to preserve whitespace (PR-THEME-124), so soft line breaks inside a paragraph are real breaks in the rendered text.",
       "verification_method": "unit: a two-line paragraph keeps its newline; a whitespace-only line produces nothing",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -86041,7 +85994,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The fast path is an optimization with no behavioural difference; a port may trim unconditionally, but must trim the full Unicode whitespace set, not just ASCII.",
       "verification_method": "unit: a line surrounded by U+00A0 is trimmed; an ASCII line is returned identically",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -86496,7 +86449,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the marker strings exactly, including the two-space form for bullets and numbers against the one-space form for checkboxes.",
       "verification_method": "contract fixture: recorded plain-text output for a message containing every block kind",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -88076,7 +88029,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port the three patterns and their order verbatim, and match over user-perceived characters (grapheme clusters), not UTF-16 code units, to reproduce B2 at combining marks. The grapheme-level difference is derived from reading the code and Swift's documented Regex semantics, not from running it on a Mac.",
       "verification_method": "contract fixture: recorded plain-text output for images, titled links, links whose title equals the URL, links with a quoted title attribute, and the three autolink schemes; unit: the text made of `[`, U+0301 COMBINING ACUTE ACCENT and `t](https://a.b)` is left unrewritten",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -93377,7 +93330,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same document field names; the document store belongs to the storage area.",
       "verification_method": "restart test: report usage, reopen the thread, assert the ring and the context row return with the same numbers",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -93400,7 +93353,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same computed property; keeping it derived preserves the implication the floating panel's predicate relies on (PR-USAGE-060).",
       "verification_method": "unit test at windowTokens nil, 0, -1, and used greater than window",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -93425,7 +93378,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field names on the wire; lenient per-field reads with the same defaults.",
       "verification_method": "contract fixture decoding a minimal record and a full record",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -93448,7 +93401,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Enforce in the aggregation code and in any test fixture; the contract is stated only in the doc comment, so it must be carried into the port's own documentation.",
       "verification_method": "unit test summing a mixed lead-and-head spend list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -93471,7 +93424,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same nil-propagating sum; do not use a zero default.",
       "verification_method": "unit test over (both present), (left nil), (right nil), (both nil)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
