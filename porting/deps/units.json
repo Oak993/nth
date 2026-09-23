@@ -586,37 +586,13 @@
    ],
    "intra_deps": [],
    "records_total": 10,
-   "records_todo": [
-    "PR-TERM-125",
-    "PR-TERM-126",
-    "PR-TERM-127",
-    "PR-TERM-128",
-    "PR-TERM-129",
-    "PR-TERM-130",
-    "PR-TERM-131",
-    "PR-TERM-132",
-    "PR-TERM-133",
-    "PR-TERM-134"
-   ],
-   "parts": [
-    [
-     "PR-TERM-125",
-     "PR-TERM-126",
-     "PR-TERM-127",
-     "PR-TERM-128",
-     "PR-TERM-129",
-     "PR-TERM-130",
-     "PR-TERM-131",
-     "PR-TERM-132",
-     "PR-TERM-133",
-     "PR-TERM-134"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-212"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.AntiSlopPolicy",

@@ -3057,7 +3057,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Port the chain verbatim over the Windows installed font families. With no Windows source of configured fonts the chain reduces to the first installed Nerd Font at 12, else the monospaced system font at 12, whose Windows face is Cascadia Mono under OD-0009, a named deviation. PLATFORM BOUNDARY: Ghostty, iTerm2 and Terminal.app are macOS applications and their defaults domains and Application Support paths do not exist on Windows; no ruling names a Windows terminal to read instead, so none is added (an engineering decision would be needed to add one).",
       "verification_method": "unit test with an injected configured list and installed family list covering each of the six outcomes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3086,7 +3086,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY: Ghostty, iTerm2 and Terminal.app are macOS applications and their defaults domains and Application Support paths do not exist on Windows; no ruling names a Windows terminal to read instead, so none is added (an engineering decision would be needed to add one). A literal port of the three readers yields an empty list on Windows.",
       "verification_method": "unit test with injected running sets asserting the order of the resulting list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3112,7 +3112,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY: Ghostty, iTerm2 and Terminal.app are macOS applications and their defaults domains and Application Support paths do not exist on Windows; no ruling names a Windows terminal to read instead, so none is added (an engineering decision would be needed to add one). If the parser is ported, it is ported with exactly these rules.",
       "verification_method": "unit test over config texts covering comments, a font family list with quotes, repeated font-size lines, an invalid size, an empty font-family and an unresolvable name",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3134,7 +3134,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY: Ghostty, iTerm2 and Terminal.app are macOS applications and their defaults domains and Application Support paths do not exist on Windows; no ruling names a Windows terminal to read instead, so none is added (an engineering decision would be needed to add one).",
       "verification_method": "unit test asserting the two paths and their order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3158,7 +3158,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY: Ghostty, iTerm2 and Terminal.app are macOS applications and their defaults domains and Application Support paths do not exist on Windows; no ruling names a Windows terminal to read instead, so none is added (an engineering decision would be needed to add one).",
       "verification_method": "unit test with an injected defaults dictionary covering the named profile, the Basic fallback and a missing Font",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3182,7 +3182,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY: Ghostty, iTerm2 and Terminal.app are macOS applications and their defaults domains and Application Support paths do not exist on Windows; no ruling names a Windows terminal to read instead, so none is added (an engineering decision would be needed to add one).",
       "verification_method": "unit test with injected bookmarks covering a valid entry, a missing size, an unresolvable name and array order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3202,7 +3202,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four code points, tested against the font's glyph coverage (on Windows through the font's character map).",
       "verification_method": "unit test with a font covering all four probes, one missing U+F0035 and one missing U+E0B0",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3227,7 +3227,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same normalization and matching over the Windows installed font families. PLATFORM BOUNDARY: Ghostty, iTerm2 and Terminal.app are macOS applications and their defaults domains and Application Support paths do not exist on Windows; no ruling names a Windows terminal to read instead, so none is added (an engineering decision would be needed to add one).",
       "verification_method": "unit test with an injected family list, asserting \"Geist Mono\" -> \"GeistMono Nerd Font\" and a non-match",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3251,7 +3251,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same case-insensitive substring search over the Windows installed font families, in the order the system lists them.",
       "verification_method": "unit test with an injected family list covering a match, case variants and an NF-only family",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3276,7 +3276,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-step resolution and the same normalization over the Windows installed font families.",
       "verification_method": "unit test asserting exact-name resolution, \"Geist Mono NF\" -> \"GeistMono Nerd Font\", hyphen and case variants, and a non-match",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
