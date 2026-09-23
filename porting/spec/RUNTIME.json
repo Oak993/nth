@@ -6061,7 +6061,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep these key names; the thread file is the compatibility surface for an existing installation. How the summary is computed from a diff is PR-GIT-092.",
       "verification_method": "contract fixture - encode a two-file summary, one of them binary, with JSONEncoder.storage, assert the exact bytes and keys, and decode it back equal",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

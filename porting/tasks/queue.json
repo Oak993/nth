@@ -184,7 +184,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1589,7 +1589,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1655,7 +1655,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1672,7 +1672,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": null,
       "notes": ""
     },
@@ -1812,7 +1812,7 @@
       "quarantined": [],
       "needs_desktop": false,
       "kind": "behaviour",
-      "status": "TODO",
+      "status": "DONE",
       "assignee": "codex-direct",
       "notes": "2026-09-22 TESTS_REVIEW: Director reviewed fixtures against all 81 Swift lines and PR-PROVACP-149..153; initial run failed CS0246/CS0103 because implementation is absent. Swift split and whitespace semantics cross-checked in primary library source. | 2026-09-22 DONE: 53 source-derived tests pass; solution 188/188; A/B/protected/quarantine and build/test floor pass. Director tests review and separate adversarial diff review only: GLM bypassed by explicit owner instruction. Review found U+200B whitespace mismatch, fixed after separately committed regression. Unchanged source blob in upstream 417ab7d3. No invented user-visible strings/numbers; no macOS runtime oracle."
     },
