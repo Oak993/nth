@@ -1,6 +1,8 @@
+using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Platform;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Marrow.UI.Port;
@@ -8,7 +10,7 @@ using Marrow.UI.Tests.Fixtures;
 
 namespace Marrow.UI.Tests.Port;
 
-// PORT-ONLY tests for the foundation unit F.SwiftColor (ED-092 part 1, ED-051, ED-062, ED-095; R-VIEW-11).
+// PORT-ONLY tests for the foundation unit F.SwiftColor (ED-092 part 1, ED-051, ED-062; R-VIEW-11, R-STR-7, R-NUM-1).
 // SwiftColor stands in for SwiftUI Color and AppKit NSColor. Expected values are transcribed from the pinned Swift
 // (B2 1fbf81e, cited per test) and from the recorded decisions, never from running the port.
 //
@@ -23,8 +25,9 @@ namespace Marrow.UI.Tests.Port;
 //   SwiftColor.Rgb(uint hex)                          Core/Models/MCP.swift:255-263 Color(rgb:)
 //   SwiftColor.Hex(string hex)                        UI/Theme/AppTheme.swift:236-248 Color(hex:)
 //   SwiftColor.Dynamic(light, dark)                   NSColor(name:dynamicProvider:) as an appearance pair
-//   SwiftColor.Clear, White, Black, Primary, Secondary, AccentColor, Yellow,
-//             LabelColor, PlaceholderTextColor, ControlAccentColor
+//   SwiftColor.Clear, White, Black, Primary, Secondary, AccentColor, LabelColor, ControlAccentColor
+//   (Yellow and PlaceholderTextColor are held: neither has a B2 value nor a recorded source for one, so both are
+//   reported as STOP items for a ruling and have no test and no implementation until the ruling exists.)
 //   SwiftColor Opacity(double)                        Color.opacity(_:)
 //   Avalonia.Media.Color Resolve(ThemeVariant)        the colour for a light or dark appearance
 //   IBrush Brush(Control)                             a solid brush that follows the control's ActualThemeVariant
@@ -93,9 +96,13 @@ public sealed class SwiftColorTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-092")]
-    [Trait("Decision", "ED-095")]
     public void NSColor_white_alpha_is_a_grey_with_that_alpha()
     {
+        // PENDING RULING (STOP F.SwiftColor #3): these values rest on ED-092's parenthetical, which lists
+        // NSColor(white:alpha:) with Color(white:alpha:), read here as an sRGB grey with every channel equal to white.
+        // They do NOT rest on AppKit semantics: colorWithWhite:alpha: builds the colour in the generic gamma 2.2 grey
+        // space (NSColor.h), where 0.12 converts to about 0.096 in sRGB (24 or 25, not 31). If the ruling picks the
+        // AppKit space, these expectations are replaced with the ruled values.
         // App/Views/Terminal/TerminalStore.swift:51: NSColor(white: 0.12, alpha: 1), 0.12*255 = 30.6
         Assert.Equal(Argb(255, 31, 31, 31), new SwiftColor(white: 0.12, opacity: 1).Resolve(Dark));
         // 0.2*255 = 51, 0.4*255 = 102
@@ -127,6 +134,7 @@ public sealed class SwiftColorTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-092")]
+    [Trait("Rule", "R-NUM-1")]
     public void Color_hex_reads_six_digits_with_or_without_a_leading_hash()
     {
         // AppTheme.swift:237 documents "CBA6F7" or "#CBA6F7" in sRGB; :240 drops one leading #.
@@ -139,15 +147,23 @@ public sealed class SwiftColorTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-092")]
+    [Trait("Rule", "R-STR-7")]
+    [Trait("Rule", "R-NUM-1")]
     public void Color_hex_trims_whitespace_and_newlines_before_looking_for_the_hash()
     {
         // AppTheme.swift:239 hex.trimmed, Core/Support/Text.swift:132 trimmingCharacters(in: .whitespacesAndNewlines)
         Assert.Equal(Argb(255, 0xCB, 0xA6, 0xF7), SwiftColor.Hex("  #CBA6F7\n").Resolve(Light));
         Assert.Equal(Argb(255, 0xCB, 0xA6, 0xF7), SwiftColor.Hex("\tCBA6F7\r\n").Resolve(Light));
+        // R-STR-7: Foundation's whitespace includes U+200B, so the trim removes it and the hash is then dropped.
+        Assert.Equal(Argb(255, 0xCB, 0xA6, 0xF7), SwiftColor.Hex("\u200B#CBA6F7\n").Resolve(Light));
+        // Negative control (R-TEST-4): String.Trim() keeps U+200B, so a port that used it would not find the hash
+        // first, the scanner would stop at the hash, and the colour would be black.
+        Assert.Equal("\u200B#CBA6F7", "\u200B#CBA6F7\n".Trim());
     }
 
     [Fact]
     [Trait("Decision", "ED-092")]
+    [Trait("Rule", "R-NUM-1")]
     public void Color_hex_scans_like_Foundation_Scanner()
     {
         // AppTheme.swift:242 Scanner(string: text).scanHexInt64(&value); Core/Port SwiftScanner.ScanHexInt64 documents
@@ -160,6 +176,7 @@ public sealed class SwiftColorTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-092")]
+    [Trait("Rule", "R-NUM-1")]
     public void Color_hex_has_no_shorthand_and_no_alpha_channel()
     {
         // AppTheme.swift:243-246: the value's low 24 bits are red, green, blue; opacity is always 1.
@@ -171,6 +188,7 @@ public sealed class SwiftColorTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-092")]
+    [Trait("Rule", "R-NUM-1")]
     public void Color_hex_that_scans_no_digit_is_opaque_black()
     {
         // AppTheme.swift:241 value starts at 0 and a failed scan leaves it there.
@@ -183,6 +201,7 @@ public sealed class SwiftColorTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-092")]
+    [Trait("Rule", "R-NUM-1")]
     [Trait("Oracle", "O-16")]
     public void Color_hex_that_overflows_64_bits_saturates_to_white_until_the_oracle_settles_O_16()
     {
@@ -194,7 +213,6 @@ public sealed class SwiftColorTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-092")]
-    [Trait("Decision", "ED-095")]
     public void An_appearance_pair_resolves_its_light_member_in_light_and_its_dark_member_in_dark()
     {
         // UI/Theme/AppTheme.swift:182-187: the System surface, 1E1E20 in darkAqua and white otherwise.
@@ -207,20 +225,35 @@ public sealed class SwiftColorTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-092")]
-    public void Opacity_on_an_appearance_pair_multiplies_both_members()
+    [Trait("Rule", "R-VAL-1")]
+    public void Opacity_on_an_appearance_pair_multiplies_both_members_and_leaves_the_pair_unchanged()
     {
-        // 0.5 * 0.4 = 0.2, 0.2*255 = 51; 1.0 * 0.4 = 0.4, 0.4*255 = 102
-        var pair = SwiftColor.Dynamic(light: new SwiftColor(white: 0, opacity: 0.5), dark: new SwiftColor(white: 1));
+        // Chrome.swift:71-73 and :79 derive overlay(x) and secondaryText from the one shared primaryText value, so
+        // fading a pair returns a new pair and leaves the original and its members as they were (R-VAL-1).
+        var light = new SwiftColor(white: 0, opacity: 0.4);
+        var dark = new SwiftColor(white: 1);
+        var pair = SwiftColor.Dynamic(light: light, dark: dark);
+        // light 0.4*255 = 102; dark opaque white
+        Assert.Equal(Argb(102, 0, 0, 0), pair.Resolve(Light));
+        Assert.Equal(Argb(255, 255, 255, 255), pair.Resolve(Dark));
+
         var faded = pair.Opacity(0.4);
-        Assert.Equal(Argb(51, 0, 0, 0), faded.Resolve(Light));
+        // 0.4 * 0.4 = 0.16, 0.16*255 = 40.8; 1.0 * 0.4 = 0.4, 0.4*255 = 102
+        Assert.Equal(Argb(41, 0, 0, 0), faded.Resolve(Light));
         Assert.Equal(Argb(102, 255, 255, 255), faded.Resolve(Dark));
+
+        Assert.Equal(Argb(102, 0, 0, 0), pair.Resolve(Light));
+        Assert.Equal(Argb(255, 255, 255, 255), pair.Resolve(Dark));
+        Assert.Equal(Argb(102, 0, 0, 0), light.Resolve(Light));
+        Assert.Equal(Argb(102, 0, 0, 0), light.Resolve(Dark));
+        Assert.Equal(Argb(255, 255, 255, 255), dark.Resolve(Light));
+        Assert.Equal(Argb(255, 255, 255, 255), dark.Resolve(Dark));
     }
 
     // ---- The text tokens (ED-051, ED-062) ----
 
     [Fact]
     [Trait("Decision", "ED-051")]
-    [Trait("Decision", "ED-095")]
     public void LabelColor_is_the_ED_051_primary_text_pair()
     {
         // UI/Chrome/Chrome.swift:76 primaryText = Color(nsColor: .labelColor);
@@ -252,6 +285,19 @@ public sealed class SwiftColorTests(HeadlessSession headless)
         Assert.Equal(Argb(152, 255, 255, 255), SwiftColor.Secondary.Resolve(Dark));
         Assert.Equal(SwiftColor.LabelColor.Opacity(0.7).Resolve(Light), SwiftColor.Secondary.Resolve(Light));
         Assert.Equal(SwiftColor.LabelColor.Opacity(0.7).Resolve(Dark), SwiftColor.Secondary.Resolve(Dark));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-062")]
+    [Trait("Decision", "ED-092")]
+    public void Opacity_on_an_already_faded_token_multiplies_the_exact_alpha_not_a_rounded_byte()
+    {
+        // App/Views/Settings/HydraCookbookPanel.swift:104, :110 and MCPSettingsPage.swift:264:
+        // Chrome.secondaryText.opacity(0.8), with secondaryText = primaryText.opacity(0.7) (Chrome.swift:79).
+        // Exact: 0.85 * 0.7 * 0.8 = 0.476, 0.476*255 = 121.38, so 121.
+        // Rounding to a byte at each step would give 217*0.7 = 151.9 -> 152, then 152*0.8 = 121.6 -> 122.
+        Assert.Equal(Argb(121, 0, 0, 0), SwiftColor.Secondary.Opacity(0.8).Resolve(Light));
+        Assert.Equal(Argb(121, 255, 255, 255), SwiftColor.Secondary.Opacity(0.8).Resolve(Dark));
     }
 
     [Fact]
@@ -296,18 +342,6 @@ public sealed class SwiftColorTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-092")]
-    public void Yellow_is_the_documented_system_yellow_in_each_appearance()
-    {
-        // UNVERIFIED under OD-0001 (ED-092: system colours with no B2 value use the macOS documented values).
-        // Apple Human Interface Guidelines, system yellow: light (255, 204, 0), dark (255, 214, 10).
-        Assert.Equal(Argb(255, 255, 204, 0), SwiftColor.Yellow.Resolve(Light));
-        Assert.Equal(Argb(255, 255, 214, 10), SwiftColor.Yellow.Resolve(Dark));
-        // App/Views/Composer/EffortSlider.swift:673 Color.yellow.opacity(0.18): 0.18*255 = 45.9
-        Assert.Equal(Argb(46, 255, 204, 0), SwiftColor.Yellow.Opacity(0.18).Resolve(Light));
-    }
-
-    [Fact]
     [Trait("Decision", "ED-051")]
     [Trait("Decision", "ED-092")]
     public void AccentColor_and_controlAccentColor_are_the_Windows_personalization_accent() => headless.OnUiThread(() =>
@@ -325,20 +359,6 @@ public sealed class SwiftColorTests(HeadlessSession headless)
         var fadedAlpha = (byte)Math.Round(accent.A * 0.4, MidpointRounding.AwayFromZero);
         Assert.Equal(Color.FromArgb(fadedAlpha, accent.R, accent.G, accent.B), SwiftColor.AccentColor.Opacity(0.4).Resolve(Light));
     });
-
-    [Fact]
-    [Trait("Decision", "ED-092")]
-    public void PlaceholderTextColor_is_a_distinct_named_colour_that_takes_opacity()
-    {
-        // App/Views/Composer/ComposerTextView.swift:204 NSColor.placeholderTextColor. Its value has no B2 source and
-        // no numeric AppKit documentation, so only the opacity contract is asserted: alpha scales, channels stay.
-        foreach (var theme in new[] { Light, Dark })
-        {
-            var baseColor = SwiftColor.PlaceholderTextColor.Resolve(theme);
-            var faded = SwiftColor.PlaceholderTextColor.Opacity(0).Resolve(theme);
-            Assert.Equal(Color.FromArgb(0, baseColor.R, baseColor.G, baseColor.B), faded);
-        }
-    }
 
     // ---- Opacity arithmetic and immutability ----
 
@@ -367,14 +387,17 @@ public sealed class SwiftColorTests(HeadlessSession headless)
     [Trait("Rule", "R-VAL-1")]
     public void Opacity_returns_a_new_value_and_never_changes_the_receiver()
     {
+        // 0.08*255 = 20.4; 0.28*255 = 71.4
         var grey = new SwiftColor(white: 0.08);
         var faded = grey.Opacity(0.28);
-        Assert.NotSame(grey, faded);
+        Assert.Equal(Argb(71, 20, 20, 20), faded.Resolve(Light));
         Assert.Equal(Argb(255, 20, 20, 20), grey.Resolve(Light));
 
+        // 0.85*255 = 216.75
         var label = SwiftColor.LabelColor;
         _ = label.Opacity(0.7);
-        Assert.Same(label, SwiftColor.LabelColor);
+        Assert.Equal(Argb(217, 0, 0, 0), label.Resolve(Light));
+        Assert.Equal(Argb(217, 255, 255, 255), label.Resolve(Dark));
         Assert.Equal(Argb(217, 0, 0, 0), SwiftColor.LabelColor.Resolve(Light));
         Assert.Equal(Argb(217, 255, 255, 255), SwiftColor.LabelColor.Resolve(Dark));
     }
@@ -442,7 +465,6 @@ public sealed class SwiftColorTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-092")]
-    [Trait("Decision", "ED-095")]
     public void A_brush_of_an_appearance_pair_takes_the_member_for_the_controls_current_theme() => headless.OnUiThread(() =>
     {
         // UI/Theme/AppTheme.swift:182-187 the System surface pair.
@@ -459,4 +481,64 @@ public sealed class SwiftColorTests(HeadlessSession headless)
         Assert.Equal(Argb(255, 0xFF, 0xFF, 0xFF), brush.Color);
         window.Close();
     });
+
+    [Fact]
+    [Trait("Decision", "ED-051")]
+    [Trait("Decision", "ED-092")]
+    public void An_accent_brush_follows_the_system_accent_when_the_platform_colours_change() => headless.OnUiThread(() =>
+    {
+        // UI/Chrome/Chrome.swift:75 "Dynamic system colors resolve at draw time", :80 Color(nsColor: .controlAccentColor):
+        // the control accent changes when the user picks a new system accent, and what is drawn with it follows.
+        // ED-051: on Windows that is the personalization accent, which Avalonia reports as PlatformColorValues.AccentColor1
+        // and announces through IPlatformSettings.ColorValuesChanged.
+        //
+        // Headless limit (Avalonia 12.1.2, read from the shipped assemblies): the headless platform binds
+        // DefaultPlatformSettings, whose GetColorValues always returns new PlatformColorValues { ThemeVariant = Light }
+        // (accent #FF0078D7), and IPlatformSettings cannot be implemented by user code, so a test cannot install
+        // settings whose GetColorValues changes. A test can raise ColorValuesChanged on the live settings, through
+        // DefaultPlatformSettings.OnColorValuesChanged, with the new values; on Windows the event carries the values
+        // GetColorValues then returns. So the brushes must take the accent the event carries.
+        var settings = Application.Current!.PlatformSettings!;
+        var original = settings.GetColorValues();
+        var target = new Border();
+        var window = Show(target);
+
+        var accentBrush = Assert.IsAssignableFrom<ISolidColorBrush>(SwiftColor.AccentColor.Brush(target));
+        var controlBrush = Assert.IsAssignableFrom<ISolidColorBrush>(SwiftColor.ControlAccentColor.Brush(target));
+        var fadedBrush = Assert.IsAssignableFrom<ISolidColorBrush>(SwiftColor.AccentColor.Opacity(0.4).Brush(target));
+        Assert.Equal(original.AccentColor1, accentBrush.Color);
+        Assert.Equal(original.AccentColor1, controlBrush.Color);
+
+        var changed = new PlatformColorValues
+        {
+            ThemeVariant = original.ThemeVariant,
+            ContrastPreference = original.ContrastPreference,
+            AccentColor1 = Color.FromArgb(255, 0xE8, 0x11, 0x23),
+            AccentColor2 = original.AccentColor2,
+            AccentColor3 = original.AccentColor3,
+        };
+        try
+        {
+            RaiseColorValuesChanged(settings, changed);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(Argb(255, 0xE8, 0x11, 0x23), accentBrush.Color);
+            Assert.Equal(Argb(255, 0xE8, 0x11, 0x23), controlBrush.Color);
+            // 0.4*255 = 102
+            Assert.Equal(Argb(102, 0xE8, 0x11, 0x23), fadedBrush.Color);
+        }
+        finally
+        {
+            RaiseColorValuesChanged(settings, original);
+            Dispatcher.UIThread.RunJobs();
+            window.Close();
+        }
+        Assert.Equal(original.AccentColor1, accentBrush.Color);
+    });
+
+    private static void RaiseColorValuesChanged(IPlatformSettings settings, PlatformColorValues values)
+    {
+        var raise = settings.GetType().GetMethod("OnColorValuesChanged", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(raise);
+        raise.Invoke(settings, [values]);
+    }
 }
