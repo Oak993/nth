@@ -15,13 +15,40 @@ namespace Marrow.UI.Tests.Port;
 [Collection("Headless")]
 public sealed class SwiftFontTests(HeadlessSession headless)
 {
+    // OD-0009 and porting/probes/p9/INTER.md "What to ship": Inter comes from Avalonia.Fonts.Inter, reached as
+    // fonts:Inter#Inter through the package's InterFontCollection (key fonts:Inter). A name lookup ("Inter") is not
+    // enough: probes/p9/RESULT.md section 2 finding 1, Avalonia substitutes Segoe UI for a family it cannot find, and on
+    // the owner's PC a per-user Inter 4.001 is installed (probes/p9/INTER.md, "Reference only"), so the key is checked too.
     private const string TextFace = "Inter";
+    private static readonly Uri TextFaceSource = new("fonts:Inter");
+
+    // OPEN, not proven: ED-091 and OD-0009 name Cascadia Mono, but no decision says where the port gets that face.
+    // probes/p9/RESULT.md section 2: it is not installed on Windows and resolves by name only while Windows Terminal
+    // registers it; section 8 recommends shipping it in the app through a FontCollectionBase. Until a ruling fixes the
+    // source (a bundled face with a fonts: key, or a named-lookup deviation), these tests check only the family name,
+    // which cannot tell a working port from a Segoe UI fallback. The key check and a glyph-typeface resolution test
+    // are to be added once that ruling exists.
     private const string MonospacedFace = "Cascadia Mono";
+
+    private static void AssertTextFace(FontFamily family)
+    {
+        Assert.Equal(TextFace, family.Name);
+        Assert.Equal(TextFaceSource, family.Key?.Source);
+    }
+
+    private static void AssertMonospacedFace(FontFamily family) => Assert.Equal(MonospacedFace, family.Name);
+
+    private static void AssertSameFace(FontFamily expected, FontFamily actual)
+    {
+        Assert.Equal(expected.Name, actual.Name);
+        Assert.Equal(expected.Key?.Source, actual.Key?.Source);
+    }
 
     private static bool HasNoFeatures(FontFeatureCollection? features) => features is null || features.Count == 0;
 
+    // ED-091: monospacedDigit is the tnum feature; exactly one feature, tnum with value 1, and nothing else.
     private static bool HasTabularDigits(FontFeatureCollection? features) =>
-        features is not null && features.Count(f => f.Tag == "tnum" && f.Value == 1) == 1;
+        features is not null && features.Count == 1 && features[0].Tag == "tnum" && features[0].Value == 1;
 
     // ---- The size of each text style (ED-059 table) ----
 
@@ -44,7 +71,7 @@ public sealed class SwiftFontTests(HeadlessSession headless)
     {
         var resolved = SwiftFont.System(style).Resolve();
         Assert.Equal(size, resolved.FontSize);
-        Assert.Equal(TextFace, resolved.FontFamily.Name);
+        AssertTextFace(resolved.FontFamily);
         Assert.Equal(FontStyle.Normal, resolved.FontStyle);
         Assert.True(HasNoFeatures(resolved.FontFeatures));
     }
@@ -77,7 +104,8 @@ public sealed class SwiftFontTests(HeadlessSession headless)
             var fromSystem = SwiftFont.System(style).Resolve();
             Assert.Equal(fromSystem.FontSize, fromStatic.FontSize);
             Assert.Equal((int)fromSystem.FontWeight, (int)fromStatic.FontWeight);
-            Assert.Equal(fromSystem.FontFamily.Name, fromStatic.FontFamily.Name);
+            AssertSameFace(fromSystem.FontFamily, fromStatic.FontFamily);
+            AssertTextFace(fromStatic.FontFamily);
             Assert.Equal(fromSystem.FontStyle, fromStatic.FontStyle);
         }
         Assert.Equal(26.0, SwiftFont.LargeTitle.Resolve().FontSize);
@@ -188,7 +216,7 @@ public sealed class SwiftFontTests(HeadlessSession headless)
         var eleven = SwiftFont.System(size: 11).Resolve();
         Assert.Equal(11.0, eleven.FontSize);
         Assert.Equal(400, (int)eleven.FontWeight);
-        Assert.Equal(TextFace, eleven.FontFamily.Name);
+        AssertTextFace(eleven.FontFamily);
         Assert.Equal(FontStyle.Normal, eleven.FontStyle);
         Assert.True(HasNoFeatures(eleven.FontFeatures));
 
@@ -226,19 +254,19 @@ public sealed class SwiftFontTests(HeadlessSession headless)
     {
         // App/Views/Chat/ChatView.swift:1550: .system(.subheadline, design: .monospaced)
         var styled = SwiftFont.System(SwiftFont.TextStyle.Subheadline, design: SwiftFont.Design.Monospaced).Resolve();
-        Assert.Equal(MonospacedFace, styled.FontFamily.Name);
+        AssertMonospacedFace(styled.FontFamily);
         Assert.Equal(11.0, styled.FontSize);
         Assert.Equal(400, (int)styled.FontWeight);
 
         // App/Views/Settings/SettingsView.swift:729: .system(size: 12, design: .monospaced)
         var sized = SwiftFont.System(size: 12, design: SwiftFont.Design.Monospaced).Resolve();
-        Assert.Equal(MonospacedFace, sized.FontFamily.Name);
+        AssertMonospacedFace(sized.FontFamily);
         Assert.Equal(12.0, sized.FontSize);
         Assert.Equal(400, (int)sized.FontWeight);
 
-        Assert.Equal(TextFace, SwiftFont.System(SwiftFont.TextStyle.Callout, design: SwiftFont.Design.Default).Resolve().FontFamily.Name);
-        Assert.Equal(TextFace, SwiftFont.System(size: 12, design: SwiftFont.Design.Default).Resolve().FontFamily.Name);
-        Assert.Equal(TextFace, SwiftFont.Body.Resolve().FontFamily.Name);
+        AssertTextFace(SwiftFont.System(SwiftFont.TextStyle.Callout, design: SwiftFont.Design.Default).Resolve().FontFamily);
+        AssertTextFace(SwiftFont.System(size: 12, design: SwiftFont.Design.Default).Resolve().FontFamily);
+        AssertTextFace(SwiftFont.Body.Resolve().FontFamily);
     }
 
     [Fact]
@@ -248,11 +276,11 @@ public sealed class SwiftFontTests(HeadlessSession headless)
         // UI/Common/ChatFont.swift:8 passes design through Font.system(style, design:); TimelineRows.swift:2122
         // asks for .caption monospaced.
         var caption = SwiftFont.System(SwiftFont.TextStyle.Caption, design: SwiftFont.Design.Monospaced).Resolve();
-        Assert.Equal(MonospacedFace, caption.FontFamily.Name);
+        AssertMonospacedFace(caption.FontFamily);
         Assert.Equal(10.0, caption.FontSize);
 
         var semibold = SwiftFont.System(SwiftFont.TextStyle.Callout, design: SwiftFont.Design.Monospaced, weight: SwiftFont.Weight.Semibold).Resolve();
-        Assert.Equal(MonospacedFace, semibold.FontFamily.Name);
+        AssertMonospacedFace(semibold.FontFamily);
         Assert.Equal(12.0, semibold.FontSize);
         Assert.Equal(600, (int)semibold.FontWeight);
     }
@@ -268,7 +296,7 @@ public sealed class SwiftFontTests(HeadlessSession headless)
         Assert.True(HasTabularDigits(badge.FontFeatures));
         Assert.Equal(10.0, badge.FontSize);
         Assert.Equal(700, (int)badge.FontWeight);
-        Assert.Equal(TextFace, badge.FontFamily.Name);
+        AssertTextFace(badge.FontFamily);
         Assert.Equal(FontStyle.Normal, badge.FontStyle);
 
         // UI/Common/Components.swift:54: .caption.monospacedDigit()
@@ -304,7 +332,7 @@ public sealed class SwiftFontTests(HeadlessSession headless)
         var chevron = SwiftFont.Caption2.FontWeight(SwiftFont.Weight.Semibold).Resolve();
         Assert.Equal(600, (int)chevron.FontWeight);
         Assert.Equal(10.0, chevron.FontSize);
-        Assert.Equal(TextFace, chevron.FontFamily.Name);
+        AssertTextFace(chevron.FontFamily);
 
         // App/Views/Terminal/TerminalPanel.swift:277: .caption2.weight(.bold)
         Assert.Equal(700, (int)SwiftFont.Caption2.FontWeight(SwiftFont.Weight.Bold).Resolve().FontWeight);
@@ -321,7 +349,7 @@ public sealed class SwiftFontTests(HeadlessSession headless)
         Assert.Equal(FontStyle.Italic, italic.FontStyle);
         Assert.Equal(12.0, italic.FontSize);
         Assert.Equal(500, (int)italic.FontWeight);
-        Assert.Equal(TextFace, italic.FontFamily.Name);
+        AssertTextFace(italic.FontFamily);
         Assert.True(HasNoFeatures(italic.FontFeatures));
     }
 
@@ -333,11 +361,11 @@ public sealed class SwiftFontTests(HeadlessSession headless)
         Assert.Equal(700, (int)bold.FontWeight);
         Assert.Equal(10.0, bold.FontSize);
         Assert.Equal(FontStyle.Normal, bold.FontStyle);
-        Assert.Equal(TextFace, bold.FontFamily.Name);
+        AssertTextFace(bold.FontFamily);
 
         var monospaced = SwiftFont.System(size: 12, design: SwiftFont.Design.Monospaced).Bold().Resolve();
         Assert.Equal(700, (int)monospaced.FontWeight);
-        Assert.Equal(MonospacedFace, monospaced.FontFamily.Name);
+        AssertMonospacedFace(monospaced.FontFamily);
     }
 
     [Fact]
@@ -350,7 +378,7 @@ public sealed class SwiftFontTests(HeadlessSession headless)
         Assert.Equal(600, (int)all.FontWeight);
         Assert.Equal(FontStyle.Italic, all.FontStyle);
         Assert.True(HasTabularDigits(all.FontFeatures));
-        Assert.Equal(MonospacedFace, all.FontFamily.Name);
+        AssertMonospacedFace(all.FontFamily);
     }
 
     [Fact]
@@ -373,7 +401,7 @@ public sealed class SwiftFontTests(HeadlessSession headless)
         Assert.Equal(400, (int)unchanged.FontWeight);
         Assert.Equal(FontStyle.Normal, unchanged.FontStyle);
         Assert.True(HasNoFeatures(unchanged.FontFeatures));
-        Assert.Equal(TextFace, unchanged.FontFamily.Name);
+        AssertTextFace(unchanged.FontFamily);
 
         // The shared static is untouched as well.
         var again = SwiftFont.Body.Resolve();
@@ -412,7 +440,7 @@ public sealed class SwiftFontTests(HeadlessSession headless)
         var composer = SwiftFont.SystemFont(ofSize: 14).Resolve();
         Assert.Equal(14.0, composer.FontSize);
         Assert.Equal(400, (int)composer.FontWeight);
-        Assert.Equal(TextFace, composer.FontFamily.Name);
+        AssertTextFace(composer.FontFamily);
         Assert.Equal(FontStyle.Normal, composer.FontStyle);
         Assert.True(HasNoFeatures(composer.FontFeatures));
 
@@ -420,7 +448,7 @@ public sealed class SwiftFontTests(HeadlessSession headless)
         var semibold = SwiftFont.SystemFont(ofSize: 13, weight: SwiftFont.Weight.Semibold).Resolve();
         Assert.Equal(13.0, semibold.FontSize);
         Assert.Equal(600, (int)semibold.FontWeight);
-        Assert.Equal(TextFace, semibold.FontFamily.Name);
+        AssertTextFace(semibold.FontFamily);
     }
 
     [Fact]
@@ -431,7 +459,7 @@ public sealed class SwiftFontTests(HeadlessSession headless)
         var bold = SwiftFont.BoldSystemFont(ofSize: 13).Resolve();
         Assert.Equal(13.0, bold.FontSize);
         Assert.Equal(700, (int)bold.FontWeight);
-        Assert.Equal(TextFace, bold.FontFamily.Name);
+        AssertTextFace(bold.FontFamily);
         Assert.Equal(FontStyle.Normal, bold.FontStyle);
 
         // UI/Markdown/LinkParagraphView.swift:116: the base font converted to the italic trait.
@@ -447,7 +475,7 @@ public sealed class SwiftFontTests(HeadlessSession headless)
     {
         // UI/Markdown/LinkParagraphView.swift:117: monospacedSystemFont(ofSize: max(9, pointSize - 1), weight: .regular)
         var inline = SwiftFont.MonospacedSystemFont(ofSize: 12, weight: SwiftFont.Weight.Regular).Resolve();
-        Assert.Equal(MonospacedFace, inline.FontFamily.Name);
+        AssertMonospacedFace(inline.FontFamily);
         Assert.Equal(12.0, inline.FontSize);
         Assert.Equal(400, (int)inline.FontWeight);
         Assert.Equal(FontStyle.Normal, inline.FontStyle);
@@ -455,7 +483,7 @@ public sealed class SwiftFontTests(HeadlessSession headless)
         var nine = SwiftFont.MonospacedSystemFont(ofSize: 9, weight: SwiftFont.Weight.Medium).Resolve();
         Assert.Equal(9.0, nine.FontSize);
         Assert.Equal(500, (int)nine.FontWeight);
-        Assert.Equal(MonospacedFace, nine.FontFamily.Name);
+        AssertMonospacedFace(nine.FontFamily);
     }
 
     // ---- Apply to Avalonia controls (headless, R-TEST-7) ----
@@ -467,7 +495,7 @@ public sealed class SwiftFontTests(HeadlessSession headless)
     {
         var text = new TextBlock();
         SwiftFont.System(SwiftFont.TextStyle.Caption2, weight: SwiftFont.Weight.Bold).MonospacedDigit().Italic().Apply(text);
-        Assert.Equal(TextFace, text.FontFamily.Name);
+        AssertTextFace(text.FontFamily);
         Assert.Equal(10.0, text.FontSize);
         Assert.Equal(700, (int)text.FontWeight);
         Assert.Equal(FontStyle.Italic, text.FontStyle);
@@ -481,7 +509,7 @@ public sealed class SwiftFontTests(HeadlessSession headless)
     {
         var button = new Button();
         SwiftFont.System(size: 12, design: SwiftFont.Design.Monospaced).Apply(button);
-        Assert.Equal(MonospacedFace, button.FontFamily.Name);
+        AssertMonospacedFace(button.FontFamily);
         Assert.Equal(12.0, button.FontSize);
         Assert.Equal(400, (int)button.FontWeight);
         Assert.Equal(FontStyle.Normal, button.FontStyle);
@@ -489,7 +517,7 @@ public sealed class SwiftFontTests(HeadlessSession headless)
 
         var box = new TextBox();
         SwiftFont.Headline.MonospacedDigit().Apply(box);
-        Assert.Equal(TextFace, box.FontFamily.Name);
+        AssertTextFace(box.FontFamily);
         Assert.Equal(13.0, box.FontSize);
         Assert.Equal(700, (int)box.FontWeight);
         Assert.True(HasTabularDigits(box.FontFeatures));
@@ -504,7 +532,7 @@ public sealed class SwiftFontTests(HeadlessSession headless)
         var text = new TextBlock();
         SwiftFont.System(size: 13, weight: SwiftFont.Weight.Medium, design: SwiftFont.Design.Monospaced).Italic().MonospacedDigit().Apply(text);
         SwiftFont.System(size: 12, weight: SwiftFont.Weight.Regular).Apply(text);
-        Assert.Equal(TextFace, text.FontFamily.Name);
+        AssertTextFace(text.FontFamily);
         Assert.Equal(12.0, text.FontSize);
         Assert.Equal(400, (int)text.FontWeight);
         Assert.Equal(FontStyle.Normal, text.FontStyle);
@@ -521,18 +549,208 @@ public sealed class SwiftFontTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-091")]
-    public void Resolve_and_Apply_agree_for_every_text_style() => headless.OnUiThread(() =>
+    public void Resolve_and_Apply_agree_for_every_text_style_with_and_without_monospacedDigit() => headless.OnUiThread(() =>
     {
+        // UI/Common/Components.swift:54 and HydraButton.swift:630 put .monospacedDigit() on a text style; Apply must
+        // carry the tnum feature exactly as Resolve gives it.
         foreach (var style in Enum.GetValues<SwiftFont.TextStyle>())
         {
-            var font = SwiftFont.System(style);
-            var resolved = font.Resolve();
-            var text = new TextBlock();
-            font.Apply(text);
-            Assert.Equal(resolved.FontSize, text.FontSize);
-            Assert.Equal((int)resolved.FontWeight, (int)text.FontWeight);
-            Assert.Equal(resolved.FontFamily.Name, text.FontFamily.Name);
-            Assert.Equal(resolved.FontStyle, text.FontStyle);
+            foreach (var font in new[] { SwiftFont.System(style), SwiftFont.System(style).MonospacedDigit() })
+            {
+                var resolved = font.Resolve();
+                var text = new TextBlock();
+                font.Apply(text);
+                Assert.Equal(resolved.FontSize, text.FontSize);
+                Assert.Equal((int)resolved.FontWeight, (int)text.FontWeight);
+                AssertSameFace(resolved.FontFamily, text.FontFamily);
+                AssertTextFace(text.FontFamily);
+                Assert.Equal(resolved.FontStyle, text.FontStyle);
+            }
+
+            var plain = new TextBlock();
+            SwiftFont.System(style).Apply(plain);
+            Assert.True(HasNoFeatures(SwiftFont.System(style).Resolve().FontFeatures));
+            Assert.True(HasNoFeatures(plain.FontFeatures));
+
+            var digits = new TextBlock();
+            SwiftFont.System(style).MonospacedDigit().Apply(digits);
+            Assert.True(HasTabularDigits(SwiftFont.System(style).MonospacedDigit().Resolve().FontFeatures));
+            Assert.True(HasTabularDigits(digits.FontFeatures));
         }
+
+        // The monospaced design with monospacedDigit: App/Views/Chat/HydraReportsPopover.swift:605 .monospacedDigit() inside
+        // :608 .font(.system(.subheadline, design: .monospaced)) (probes/p9/RESULT.md section 4).
+        var mono = SwiftFont.System(SwiftFont.TextStyle.Subheadline, design: SwiftFont.Design.Monospaced).MonospacedDigit();
+        var monoText = new TextBlock();
+        mono.Apply(monoText);
+        Assert.True(HasTabularDigits(mono.Resolve().FontFeatures));
+        Assert.True(HasTabularDigits(monoText.FontFeatures));
+        AssertMonospacedFace(monoText.FontFamily);
+        Assert.Equal(11.0, monoText.FontSize);
+    });
+
+    // ---- The headline default through every modifier and factory (ED-091) ----
+
+    [Fact]
+    [Trait("Decision", "ED-091")]
+    public void Headline_stays_bold_through_italic()
+    {
+        var italic = SwiftFont.Headline.Italic().Resolve();
+        Assert.Equal(700, (int)italic.FontWeight);
+        Assert.Equal(13.0, italic.FontSize);
+        Assert.Equal(FontStyle.Italic, italic.FontStyle);
+        AssertTextFace(italic.FontFamily);
+        Assert.True(HasNoFeatures(italic.FontFeatures));
+
+        Assert.Equal(700, (int)SwiftFont.System(SwiftFont.TextStyle.Headline).Italic().Resolve().FontWeight);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-091")]
+    public void Headline_in_the_monospaced_design_stays_bold()
+    {
+        // UI/Common/ChatFont.swift:8: let font = Font.system(style, design: design); :7 gives headline its weight only
+        // when the caller passes none, so the (style, design) factory itself must keep the headline default.
+        var mono = SwiftFont.System(SwiftFont.TextStyle.Headline, design: SwiftFont.Design.Monospaced).Resolve();
+        Assert.Equal(700, (int)mono.FontWeight);
+        Assert.Equal(13.0, mono.FontSize);
+        Assert.Equal(FontStyle.Normal, mono.FontStyle);
+        AssertMonospacedFace(mono.FontFamily);
+        Assert.True(HasNoFeatures(mono.FontFeatures));
+
+        var monoDigits = SwiftFont.System(SwiftFont.TextStyle.Headline, design: SwiftFont.Design.Monospaced).MonospacedDigit().Italic().Resolve();
+        Assert.Equal(700, (int)monoDigits.FontWeight);
+        Assert.Equal(FontStyle.Italic, monoDigits.FontStyle);
+        Assert.True(HasTabularDigits(monoDigits.FontFeatures));
+        AssertMonospacedFace(monoDigits.FontFamily);
+
+        // The default design through the same factory is Inter, still bold.
+        var text = SwiftFont.System(SwiftFont.TextStyle.Headline, design: SwiftFont.Design.Default).Resolve();
+        Assert.Equal(700, (int)text.FontWeight);
+        AssertTextFace(text.FontFamily);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-091")]
+    public void Headline_bold_is_700_and_keeps_size_style_and_face()
+    {
+        var bold = SwiftFont.Headline.Bold().Resolve();
+        Assert.Equal(700, (int)bold.FontWeight);
+        Assert.Equal(13.0, bold.FontSize);
+        Assert.Equal(FontStyle.Normal, bold.FontStyle);
+        AssertTextFace(bold.FontFamily);
+        Assert.True(HasNoFeatures(bold.FontFeatures));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-091")]
+    public void Headline_stays_bold_through_every_modifier_chain_of_two_and_three()
+    {
+        var digitsItalic = SwiftFont.Headline.MonospacedDigit().Italic().Resolve();
+        Assert.Equal(700, (int)digitsItalic.FontWeight);
+        Assert.Equal(13.0, digitsItalic.FontSize);
+        Assert.Equal(FontStyle.Italic, digitsItalic.FontStyle);
+        Assert.True(HasTabularDigits(digitsItalic.FontFeatures));
+        AssertTextFace(digitsItalic.FontFamily);
+
+        var chains = new[]
+        {
+            SwiftFont.Headline.Italic().MonospacedDigit(),
+            SwiftFont.Headline.MonospacedDigit().MonospacedDigit(),
+            SwiftFont.Headline.Italic().Italic(),
+            SwiftFont.Headline.MonospacedDigit().Italic().MonospacedDigit(),
+            SwiftFont.Headline.Italic().MonospacedDigit().Italic(),
+            SwiftFont.Headline.Bold().Italic().MonospacedDigit(),
+        };
+        foreach (var chain in chains)
+        {
+            var resolved = chain.Resolve();
+            Assert.Equal(700, (int)resolved.FontWeight);
+            Assert.Equal(13.0, resolved.FontSize);
+            AssertTextFace(resolved.FontFamily);
+        }
+
+        // An explicit weight later in the chain still wins over the default (ChatFont.swift:7-9).
+        Assert.Equal(600, (int)SwiftFont.Headline.Italic().MonospacedDigit().FontWeight(SwiftFont.Weight.Semibold).Resolve().FontWeight);
+        Assert.Equal(400, (int)SwiftFont.Headline.MonospacedDigit().FontWeight(SwiftFont.Weight.Regular).Italic().Resolve().FontWeight);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-091")]
+    public void Headline_applied_to_a_control_through_italic_is_bold() => headless.OnUiThread(() =>
+    {
+        var text = new TextBlock();
+        SwiftFont.Headline.Italic().Apply(text);
+        Assert.Equal(700, (int)text.FontWeight);
+        Assert.Equal(FontStyle.Italic, text.FontStyle);
+        Assert.Equal(13.0, text.FontSize);
+        AssertTextFace(text.FontFamily);
+
+        var button = new Button();
+        SwiftFont.System(SwiftFont.TextStyle.Headline, design: SwiftFont.Design.Monospaced).Apply(button);
+        Assert.Equal(700, (int)button.FontWeight);
+        AssertMonospacedFace(button.FontFamily);
+    });
+
+    // ---- Resolved Avalonia objects are not shared between values or controls ----
+
+    [Fact]
+    [Trait("Decision", "ED-091")]
+    public void Changing_a_resolved_feature_collection_does_not_change_a_later_resolve()
+    {
+        // ED-091: modifiers never change the receiver; the Avalonia FontFeatureCollection a Resolve hands out is
+        // mutable, so a later Resolve must not see changes made to an earlier one.
+        var font = SwiftFont.Caption.MonospacedDigit();
+
+        var first = font.Resolve();
+        Assert.NotNull(first.FontFeatures);
+        first.FontFeatures!.Add(new FontFeature { Tag = "liga", Value = 0 });
+        Assert.True(HasTabularDigits(font.Resolve().FontFeatures));
+        Assert.True(HasTabularDigits(SwiftFont.Caption.MonospacedDigit().Resolve().FontFeatures));
+        Assert.True(HasTabularDigits(SwiftFont.Body.MonospacedDigit().Resolve().FontFeatures));
+
+        var second = font.Resolve();
+        second.FontFeatures!.Clear();
+        Assert.True(HasTabularDigits(font.Resolve().FontFeatures));
+        Assert.True(HasTabularDigits(SwiftFont.System(size: 12.5, weight: SwiftFont.Weight.Semibold).MonospacedDigit().Resolve().FontFeatures));
+
+        // A value with no features: filling what it hands out (if it hands out a collection) leaks nowhere.
+        var plain = SwiftFont.Body.Resolve();
+        plain.FontFeatures?.Add(new FontFeature { Tag = "tnum", Value = 1 });
+        Assert.True(HasNoFeatures(SwiftFont.Body.Resolve().FontFeatures));
+        Assert.True(HasNoFeatures(SwiftFont.Caption.Resolve().FontFeatures));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-091")]
+    public void Changing_one_controls_features_after_Apply_changes_no_other_control_and_no_later_resolve() => headless.OnUiThread(() =>
+    {
+        var font = SwiftFont.Caption.MonospacedDigit();
+        var a = new TextBlock();
+        var b = new TextBlock();
+        font.Apply(a);
+        font.Apply(b);
+
+        Assert.NotNull(a.FontFeatures);
+        a.FontFeatures!.Add(new FontFeature { Tag = "liga", Value = 0 });
+        Assert.True(HasTabularDigits(b.FontFeatures));
+        Assert.True(HasTabularDigits(font.Resolve().FontFeatures));
+
+        a.FontFeatures.Clear();
+        Assert.True(HasTabularDigits(b.FontFeatures));
+        Assert.True(HasTabularDigits(font.Resolve().FontFeatures));
+
+        var c = new TextBlock();
+        font.Apply(c);
+        Assert.True(HasTabularDigits(c.FontFeatures));
+
+        // The same for a font with no features, and across control types.
+        var plainA = new TextBlock();
+        var plainB = new Button();
+        SwiftFont.Body.Apply(plainA);
+        SwiftFont.Body.Apply(plainB);
+        plainA.FontFeatures?.Add(new FontFeature { Tag = "tnum", Value = 1 });
+        Assert.True(HasNoFeatures(plainB.FontFeatures));
+        Assert.True(HasNoFeatures(SwiftFont.Body.Resolve().FontFeatures));
     });
 }
