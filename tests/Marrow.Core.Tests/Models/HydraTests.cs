@@ -2463,8 +2463,8 @@ public sealed class HydraTests
     [InlineData("\r")]
     [InlineData("\r\n")]
     [InlineData("\u0085")] // NEL
-    [InlineData(" ")] // LINE SEPARATOR
-    [InlineData(" ")] // PARAGRAPH SEPARATOR
+    [InlineData("\u2028")] // LINE SEPARATOR
+    [InlineData("\u2029")] // PARAGRAPH SEPARATOR
     public void DelegationBlockRange_fence_detection_recognizes_every_Foundation_newline_class(string newline)
     {
         var text = "```hydra\n[]" + newline + "```";
