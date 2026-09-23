@@ -321,7 +321,7 @@ public sealed class SettingsStoreTests
 
         Assert.Equal(new byte[] { 1, 2, 3 }, store.Data("modelList"));
         Assert.Equal(new[] { "grok" }, store.StringArray("disabledProviders"));
-        Assert.Equal(1, store.Dictionary("providerBinaryPaths")!.Count);
+        Assert.Single(store.Dictionary("providerBinaryPaths")!);
     }
 
     [Fact]
