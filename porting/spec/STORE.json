@@ -491,7 +491,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One shared serializer configured for ISO 8601 dates, sorted keys, no pretty printing and slash escaping. Slash escaping is kept because it is the encoder's default output, not because the sweep needs it (the sweep matches both forms, Storage.swift:129). The key comparer, the non-ASCII and control-character escaping and the number format must reproduce Foundation's JSONEncoder; an ordinal key sort and a relaxed escaper are not evidence of parity, and each is pinned only by the macOS-produced fixture.",
       "verification_method": "contract fixture: byte-compare encoded output against a macOS-produced file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003",
@@ -503,8 +503,7 @@
       ],
       "implemented_by_task": "T-M2-059",
       "spec_fix": "Said slash escaping is something the orphan sweep depends on and that the sweep matches the escaped form -> the sweep pattern makes the backslash optional and matches both forms (Storage.swift:129); and said only that keys are sorted while demanding a byte-compare -> the order, non-ASCII and control escaping and number format are those of Foundation's JSONEncoder behind .sortedKeys (Coding.swift:23, macOS 26 per project.yml:5), which the record now names and marks UNVERIFIED under UNK-0003",
-      "open_question": "Missing: output of the macOS 26 JSONEncoder with .sortedKeys (or the swift-foundation source of that SDK) for sibling keys that differ in case, contain digit runs and contain \"_\", for non-ASCII and C0/C1 control characters in strings, and for Double values, to pin the collation, escaping and number format this record names.",
-      "rework": true
+      "open_question": "Missing: output of the macOS 26 JSONEncoder with .sortedKeys (or the swift-foundation source of that SDK) for sibling keys that differ in case, contain digit runs and contain \"_\", for non-ASCII and C0/C1 control characters in strings, and for Double values, to pin the collation, escaping and number format this record names."
     },
     {
       "id": "PR-STORE-018",
@@ -519,7 +518,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One shared ISO 8601 deserializer.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -527,8 +526,7 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Coding.swift:28-33 - JSONDecoder.storage with dateDecodingStrategy = .iso8601"
       ],
-      "implemented_by_task": "T-M2-059",
-      "rework": true
+      "implemented_by_task": "T-M2-059"
     },
     {
       "id": "PR-STORE-019",
@@ -565,7 +563,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One helper with exactly these three collapse cases, used by every model decoder in this area. A port that only handles the missing-key case will turn a hand-edited file into a decode failure and lose the record.",
       "verification_method": "unit with all three shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -573,8 +571,7 @@
       "source_evidence": [
         "DroppyCode/Core/Support/Coding.swift:3-8 - func value<T: Decodable>(_ key: Key, default fallback: @autoclosure () -> T) -> T { ((try? decodeIfPresent(T.self, forKey: key)) ?? nil) ?? fallback() }"
       ],
-      "implemented_by_task": "T-M2-059",
-      "rework": true
+      "implemented_by_task": "T-M2-059"
     },
     {
       "id": "PR-STORE-021",
@@ -2779,7 +2776,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A parser that accepts top-level fragments and returns an optional. Most Windows JSON libraries reject fragments by default and must be configured to allow them.",
       "verification_method": "unit over a bare fragment and over malformed input",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2802,7 +2799,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Distinguish boolean from numeric explicitly. A port whose parser reports true as 1 will send the wrong type back to providers. Whether an integral value written as 1.0 arrives as .double or .int depends on the parser and must be tested against the provider fixtures.",
       "verification_method": "contract fixture over provider payloads containing booleans, integers and floats",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2824,7 +2821,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two option sets and the same \"null\" fallback on failure.",
       "verification_method": "unit including the failure fallback",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2846,7 +2843,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce each coercion rule exactly, including the isFinite guard and the asymmetry between int and double. Providers rely on these.",
       "verification_method": "unit over every case of every accessor",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2869,7 +2866,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same total, non-throwing accessors and the same distinction between absent and null.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2890,7 +2887,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same six branches. The double formatting is the visible risk: the port must match the source’s number-to-string rendering, including the trailing \".0\", or tool arguments read differently on screen.",
       "verification_method": "capture comparison of a tool row showing a numeric argument",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2912,7 +2909,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same: emit the explicit null.",
       "verification_method": "contract fixture over a produced request payload",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2932,7 +2929,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same last-wins rule wherever the port builds JSON objects from literal pairs.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3071,7 +3068,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Per-item observable boxes rather than a whole-list signal. This is the mechanism that keeps a long sidebar cheap; a port that re-renders the whole list on any change will not meet the source’s scroll behaviour.",
       "verification_method": "unit test counting row renders (each row body evaluated under observation tracking, R-OBS-4) when one thread's cell is written; the rename through the app model is PR-STORE-171",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4037,7 +4034,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One shared static parser tried in the same order: fractional form first, whole-second form second, null otherwise. It follows Foundation's ISO8601FormatStyle grammar, not a lenient general-purpose date parser, and every shape beyond the two documented ones is fixed by the fixture. OD-0012 I1: the Windows update feed is an internal value, empty by default, and no request is made while it is empty, so the UpdateChecker caller parses a release stamp only once a feed is set; the parser itself is unchanged.",
       "verification_method": "unit test: `2026-09-13T18:28:42.057Z` parses to 18:28:42.057 UTC, `2026-09-13T18:28:42Z` parses to 18:28:42 UTC, and `2026-09-13`, `` and `not a date` return null; edge shapes (numeric offsets, lowercase z, one and six fraction digits) asserted only against a fixture of Foundation's results",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003"
@@ -4062,7 +4059,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A separate date-only parser, never merged into the full-stamp parser, so a bare date is accepted only where the source asks for it. Midnight in the fixture-confirmed time zone of the Foundation style.",
       "verification_method": "unit test: `2026-09-13` parses to the fixture-confirmed instant, `2026-09-13T18:28:42Z`-style input goes through CopilotSession.parseDate's first branch, and `13/09/2026` and `` return null",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003"
@@ -4087,7 +4084,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Format in UTC with the invariant culture and the Gregorian calendar, four-digit year, two-digit fields, `T` and `Z` literals, so no Windows regional setting can change digits, separators or calendar.",
       "verification_method": "unit test on fixed instants (2026-09-13 18:28:42.000 UTC and 18:28:42.999 UTC, and a local-time Date on a non-UTC machine setting) asserting `2026-09-13T18:28:42Z`, with the .999 case checked against the Foundation fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003"

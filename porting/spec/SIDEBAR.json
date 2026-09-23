@@ -1199,7 +1199,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct translation of the arithmetic. A void-returning move callback would reorder forever past a refused move (port_impacts 154), so the Bool return is mandatory. The fallback height is the literal 29 (Chrome.rowHeight 28 plus the list's 1 pt spacing).",
       "verification_method": "unit test on RowDrag.settle covering multi-row flicks, a refused move, a missing id and both directions.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
