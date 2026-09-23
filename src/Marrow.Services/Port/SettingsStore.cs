@@ -1,4 +1,4 @@
-// PORT-ONLY: ED-079 and IMPLEMENTING.md 4.3 "Production settings store". Foundation's UserDefaults has no .NET twin; this is
+// PORT-ONLY: ED-079, ED-156 and IMPLEMENTING.md 4.3 "Production settings store". Foundation's UserDefaults has no .NET twin; this is
 // the store Marrow.App binds as UserDefaults.Standard, a per-user JSON file under the "Marrow Code" data folder (OD-0008 C7).
 using System.Collections;
 using System.Collections.ObjectModel;
@@ -24,10 +24,10 @@ namespace Marrow.Services.Port;
 /// The file is compact UTF-8 JSON: one object whose keys are the defaults keys in ordinal order, each value a one-member
 /// object tagged with its XML property-list element name (<c>bool</c>, <c>integer</c>, <c>real</c>, <c>string</c>,
 /// <c>data</c> as base64, <c>date</c> as round-trip UTC text, <c>array</c>, <c>dict</c>); a non-finite real is the
-/// string <c>+infinity</c>, <c>-infinity</c> or <c>nan</c>. Every change rewrites the whole file with one atomic replace
-/// through <see cref="FileOps.WriteAtomic"/> (PA-0015, R-FS-1) before the call returns, in call order. A write that fails
-/// keeps the value in memory, as UserDefaults does, and is kept in <see cref="LastWriteError"/>; <c>set</c> never throws
-/// at a call site (App/AppSettings.swift:288).
+/// string <c>+infinity</c>, <c>-infinity</c> or <c>nan</c>. Changes queue a coalesced atomic write outside the map lock;
+/// <see cref="Synchronize"/> drains that queue (ED-156, Storage.swift:337-356). A write that fails keeps the value in
+/// memory and is kept in <see cref="LastWriteError"/>; <c>set</c> never throws at a call site (App/AppSettings.swift:288).
+/// An unreadable document is preserved byte for byte before any later write can replace it (ED-156).
 /// </para>
 /// </summary>
 public sealed class SettingsStore : ISettingsStore
@@ -51,12 +51,14 @@ public sealed class SettingsStore : ISettingsStore
     private readonly object _gate = new();
     private readonly Dictionary<string, object> _values = new(StringComparer.Ordinal);
     private readonly string _path;
+    private readonly SerialQueue _writer = new("SettingsStore.writer");
+    private bool _writeQueued;
     private Exception? _lastWriteError;
 
     /// <summary>
     /// Opens the store kept in <paramref name="path"/>. A missing file is an empty store and nothing is created until the
-    /// first write. A file that is not a settings document reads as empty; an entry the store cannot read is skipped. A
-    /// file that exists but cannot be read throws, so a held or unreadable file is never overwritten with defaults.
+    /// first write. A document that cannot be fully parsed keeps its readable entries and preserves its original bytes
+    /// in an unreadable sidecar. A file that exists but cannot be read throws.
     /// </summary>
     public SettingsStore(string path)
     {
@@ -64,7 +66,7 @@ public sealed class SettingsStore : ISettingsStore
         _path = path;
         if (!File.Exists(path)) return;
         var bytes = File.ReadAllBytes(path); // R-FS-1: read bytes, then decode.
-        Load(bytes, _values);
+        if (!Load(bytes, _values)) PreserveUnreadable(bytes);
     }
 
     /// <summary>The file of the production store: <c>%LOCALAPPDATA%\Marrow Code\UserDefaults.json</c> (OD-0008 C7).</summary>
@@ -78,6 +80,13 @@ public sealed class SettingsStore : ISettingsStore
     public Exception? LastWriteError
     {
         get { lock (_gate) return _lastWriteError; }
+    }
+
+    /// <summary>Drains queued writes and reports whether the last write succeeded (ED-156).</summary>
+    public bool Synchronize()
+    {
+        if (!_writer.IsCurrent) _writer.Sync(() => { });
+        lock (_gate) return _lastWriteError is null;
     }
 
     /// <summary><c>object(forKey:)</c>: null when absent; a copy the caller may change freely.</summary>
@@ -104,7 +113,7 @@ public sealed class SettingsStore : ISettingsStore
         lock (_gate)
         {
             _values[key] = frozen;
-            Persist();
+            EnqueueWrite();
         }
     }
 
@@ -115,24 +124,54 @@ public sealed class SettingsStore : ISettingsStore
         lock (_gate)
         {
             _values.Remove(key);
-            Persist();
+            EnqueueWrite();
         }
     }
 
-    // Called under _gate: one atomic replace of the whole file, in call order.
-    private void Persist()
+    // ED-156 and Storage.swift:337-356: one queued writer, with the newest map captured under the lock.
+    private void EnqueueWrite()
     {
+        if (_writeQueued) return;
+        _writeQueued = true;
+        _writer.Async(WriteLatest);
+    }
+
+    private void WriteLatest()
+    {
+        Dictionary<string, object> snapshot;
+        lock (_gate)
+        {
+            _writeQueued = false;
+            snapshot = new Dictionary<string, object>(_values, StringComparer.Ordinal);
+        }
         try
         {
-            var bytes = Serialize(_values);
+            var bytes = Serialize(snapshot);
             var folder = Path.GetDirectoryName(_path);
             if (!string.IsNullOrEmpty(folder)) Directory.CreateDirectory(folder); // a first launch has no data folder yet
             FileOps.WriteAtomic(_path, bytes);
-            _lastWriteError = null;
+            lock (_gate) _lastWriteError = null;
         }
-        catch (Exception error) when (SwiftTry.IsThrownError(error))
+        catch (Exception e) when (SwiftTry.IsThrownError(e))
         {
-            _lastWriteError = error;
+            lock (_gate) _lastWriteError = e;
+        }
+    }
+
+    // ED-156: preserve a partial or corrupt source exactly, and never replace a different earlier copy.
+    private void PreserveUnreadable(byte[] bytes)
+    {
+        for (var suffix = 1; ; suffix++)
+        {
+            var candidate = _path + ".unreadable" + (suffix == 1 ? "" : "-" + suffix.ToString(CultureInfo.InvariantCulture));
+            if (File.Exists(candidate))
+            {
+                if (File.ReadAllBytes(candidate).AsSpan().SequenceEqual(bytes)) return;
+                continue;
+            }
+            if (Directory.Exists(candidate)) continue;
+            FileOps.WriteAtomic(candidate, bytes);
+            return;
         }
     }
 
@@ -262,24 +301,29 @@ public sealed class SettingsStore : ISettingsStore
         writer.WriteEndObject();
     }
 
-    private static void Load(byte[] bytes, Dictionary<string, object> into)
+    private static bool Load(byte[] bytes, Dictionary<string, object> into)
     {
         JsonDocument document;
         try
         {
-            document = JsonDocument.Parse(bytes, SwiftJson.DocumentOptions);
+            var text = bytes.AsSpan();
+            if (text.StartsWith(new byte[] { 0xEF, 0xBB, 0xBF })) text = text[3..]; // ED-156: skip exactly one UTF-8 BOM
+            document = JsonDocument.Parse(text.ToArray(), SwiftJson.DocumentOptions);
         }
         catch (JsonException)
         {
-            return; // not a settings document: an empty store
+            return false; // not a settings document: an empty store, with bytes preserved
         }
         using (document)
         {
-            if (document.RootElement.ValueKind != JsonValueKind.Object) return;
+            if (document.RootElement.ValueKind != JsonValueKind.Object) return false;
+            var fullyRead = true;
             foreach (var property in document.RootElement.EnumerateObject())
             {
                 if (TryRead(property.Value, out var value)) into[property.Name] = value; // an unreadable entry is skipped
+                else fullyRead = false;
             }
+            return fullyRead;
         }
     }
 
