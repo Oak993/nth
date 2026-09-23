@@ -11,7 +11,16 @@ namespace Marrow.Core.Tests.Support;
 // and the doc comment at :4-5 ("a change to any other item never re-renders it").
 // A "render" here is what SwiftUI does for a row body: evaluate it under observation tracking, and evaluate it again
 // when something it read changes (R-OBS-4, ObservationTracking.Track). The rows read ChatThreadSample, the trimmed
-// shape of Core/Models/Library.swift ChatThread kept in Fixtures/ObservationSamples.cs.
+// shape of DroppyCode/Core/Models/Library.swift:121-126 ChatThread ("struct ChatThread: Codable, Identifiable,
+// Hashable, Sendable {" ... "var id: UUID" ... "var title: String") kept in Fixtures/ObservationSamples.cs. ChatThread
+// is Hashable, so Equatable: record equality models it, and two equal values really are equal Swift values.
+//
+// PARTIAL PROOF. The Req("PR-STORE-128") traits in this file prove only the ObservedValue.swift:4-13 clauses of the
+// record: per-item re-render isolation (:4-5), exactly one property (:9), main-actor isolation (:6) and init storing
+// the value (:11-13). The record's other clauses, "is created once per item" and "Cells are built inside
+// AppModel.init because property observers do not fire there" (DroppyCode/App/AppModel.swift:137-139; the record
+// cites :138-140), stay open until the App.AppModel unit proves them. App.AppModel is not ported, so no test here
+// covers them and no stand-in AppModel is written (STOP Core.Support.ObservedValue #1, missing dependency).
 public sealed class ObservedValueTests
 {
     private static readonly Guid A = Guid.Parse("00000000-0000-0000-0000-00000000000A");
@@ -150,7 +159,8 @@ public sealed class ObservedValueTests
     public void Every_assignment_notifies_because_the_value_type_is_unconstrained()
     {
         // ObservedValue.swift:8-9: Value has no Equatable constraint, so the observable cannot compare old and new
-        // and every assignment is a change (SetAlways, R-OBS-3), even an equal one.
+        // and every assignment is a change (SetAlways, R-OBS-3), even an equal one. The two values below are equal
+        // Swift values: ChatThread is Hashable, so Equatable (Library.swift:121), and the record compares by fields.
         using var runtime = new TestRuntime();
         runtime.OnMain(() =>
         {
