@@ -13,7 +13,13 @@ internal sealed record FakeResponse(
     int Status,
     (string Name, string Value)[] Headers,
     byte[] Body,
-    string[]? SseChunks = null);
+    string[]? SseChunks = null,
+    // When true, SseChunks are written as chunked-transfer-encoded pieces and the connection is
+    // then closed WITHOUT the terminating zero-length chunk, so the client's HTTP layer sees the
+    // response body end mid-stream: an incomplete chunked framing, which .NET's HttpClient surfaces
+    // as an IOException (a dropped connection), not a clean end of stream. Used to drive a real
+    // transport error (PR-PROVAPI-137) without a mock.
+    bool TruncateChunked = false);
 
 internal sealed class FakeUpstreamServer : IAsyncDisposable
 {
@@ -88,6 +94,26 @@ internal sealed class FakeUpstreamServer : IAsyncDisposable
         var request = new FakeRequest(method, path, headers, body);
         Received.Add(request);
         var response = Handler(request);
+        if (response.SseChunks is not null && response.TruncateChunked)
+        {
+            var head = new StringBuilder("HTTP/1.1 " + response.Status.ToString(CultureInfo.InvariantCulture) + " X\r\n");
+            foreach (var (name, value) in response.Headers) head.Append(name).Append(": ").Append(value).Append("\r\n");
+            head.Append("Transfer-Encoding: chunked\r\n\r\n");
+            await stream.WriteAsync(Encoding.UTF8.GetBytes(head.ToString()));
+            foreach (var text in response.SseChunks)
+            {
+                var bytes = Encoding.UTF8.GetBytes(text);
+                await stream.WriteAsync(Encoding.UTF8.GetBytes(bytes.Length.ToString("x", CultureInfo.InvariantCulture) + "\r\n"));
+                await stream.WriteAsync(bytes);
+                await stream.WriteAsync(Encoding.UTF8.GetBytes("\r\n"));
+                await stream.FlushAsync();
+            }
+            // No terminating "0\r\n\r\n" chunk: close the raw socket immediately so the client sees
+            // the connection drop mid-body instead of a clean end of the chunked stream.
+            owned.Client.LingerState = new LingerOption(true, 0);
+            owned.Close();
+            return;
+        }
         if (response.SseChunks is not null)
         {
             var head = new StringBuilder("HTTP/1.1 " + response.Status.ToString(CultureInfo.InvariantCulture) + " X\r\n");
