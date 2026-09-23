@@ -1,5 +1,6 @@
 using System.Text;
 using Marrow.Core.Models;
+using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.MCP;
 using Marrow.Services.Port;
@@ -72,9 +73,9 @@ public sealed class MCPKeychainTests
         new("github", "GitHub", "GitHub", "Issues, pull requests and code across your repositories",
             MCPCategory.Developer, "mcp-github", 0x24292F,
             new MCPTransport.Http("https://api.githubcopilot.com/mcp/",
-                new Dictionary<string, string> { ["Authorization"] = "Bearer {token}" }),
+                new ValueMap<string, string>(new Dictionary<string, string> { ["Authorization"] = "Bearer {token}" })),
             "https://github.com/github/github-mcp-server")
-        { IsMonochrome = true, Fields = fields };
+        { IsMonochrome = true, Fields = new ValueList<MCPField>(fields) };
 
     // A custom server's entry as MCPCustomServer.catalogEntry() builds it (Core/Models/MCPCustom.swift:93-117):
     // every variable becomes a field with label = key and placeholder "", kind .secret or .text; vendor "Custom",
@@ -82,25 +83,25 @@ public sealed class MCPKeychainTests
     // has the "custom-" prefix of makeID (:62-76), so no catalog entry carries it.
     private static MCPCatalogEntry CustomServer() =>
         new("custom-my-notes", "My Notes", "Custom", "Runs on this Mac: notes-server --stdio.",
-            MCPCategory.Developer, "", 0, new MCPTransport.Stdio("notes-server", ["--stdio"]), "")
+            MCPCategory.Developer, "", 0, new MCPTransport.Stdio("notes-server", new ValueList<string>(["--stdio"])), "")
         {
             IsMonochrome = true,
-            Fields =
+            Fields = new ValueList<MCPField>(
             [
                 new("API_TOKEN", "API_TOKEN", "", MCPField.Kind.Secret),
                 new("BASE_URL", "BASE_URL", "", MCPField.Kind.Text),
                 new("REGION", "REGION", "", MCPField.Kind.Secret),
-            ],
-            Env = new Dictionary<string, string>
+            ]),
+            Env = new ValueMap<string, string>(new Dictionary<string, string>
             {
                 ["API_TOKEN"] = "{API_TOKEN}", ["BASE_URL"] = "{BASE_URL}", ["REGION"] = "{REGION}",
-            },
+            }),
         };
 
     // ---- PR-MCP-095: the account string and the one service ----
 
     [Fact]
-    [Trait("Req", "PR-MCP-095")]
+    [Trait("Req", "PR-MCP-095")] // Services/MCP/MCPKeychain.swift:7-19
     [Trait("Rule", "R-SEC-1")]
     public void Set_stores_one_item_under_the_app_name_service_and_the_account_MCP_space_server_space_field()
     {
@@ -119,7 +120,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-095")]
+    [Trait("Req", "PR-MCP-095")] // Services/MCP/MCPKeychain.swift:7-19
     public void Value_reads_the_item_stored_under_the_account_MCP_space_server_space_field()
     {
         // :13-19: the read query is the same service and account.
@@ -132,7 +133,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-095")]
+    [Trait("Req", "PR-MCP-095")] // Services/MCP/MCPKeychain.swift:7-19
     public void Delete_removes_the_item_stored_under_the_account_MCP_space_server_space_field()
     {
         // :52-59: the delete query is the same service and account.
@@ -148,7 +149,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-095")]
+    [Trait("Req", "PR-MCP-095")] // Services/MCP/MCPKeychain.swift:7-19
     public void The_parts_are_joined_without_escaping_so_a_space_in_the_server_id_makes_the_account_ambiguous()
     {
         // :8 plain concatenation: ("my server", "key") and ("my", "server key") are both "MCP my server key".
@@ -164,7 +165,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-095")]
+    [Trait("Req", "PR-MCP-095")] // Services/MCP/MCPKeychain.swift:7-19
     public void The_OAuth_field_names_oauth_and_oauth_client_address_their_own_accounts()
     {
         // MCPOAuth.swift:712 and :397 write field "oauth" and "oauth-client" through this helper; :8 gives the
@@ -180,7 +181,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-095")]
+    [Trait("Req", "PR-MCP-095")] // Services/MCP/MCPKeychain.swift:7-19
     [Trait("Decision", "ED-093")]
     public void Field_keys_that_differ_only_in_case_are_separate_items()
     {
@@ -198,7 +199,7 @@ public sealed class MCPKeychainTests
     // ---- PR-MCP-096: reading trims and treats blank as absent ----
 
     [Fact]
-    [Trait("Req", "PR-MCP-096")]
+    [Trait("Req", "PR-MCP-096")] // Services/MCP/MCPKeychain.swift:11-26
     public void Value_returns_the_stored_value_trimmed_of_whitespace_and_newlines()
     {
         // :25 return value.trimmed; Text.swift:132 trims .whitespacesAndNewlines. Interior spaces stay.
@@ -209,7 +210,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-096")]
+    [Trait("Req", "PR-MCP-096")] // Services/MCP/MCPKeychain.swift:11-26
     public void Value_of_a_whitespace_only_stored_value_is_null()
     {
         // :24 !value.trimmed.isEmpty else { return nil }.
@@ -220,7 +221,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-096")]
+    [Trait("Req", "PR-MCP-096")] // Services/MCP/MCPKeychain.swift:11-26
     public void Value_of_an_empty_stored_value_is_null()
     {
         // :24 as above, with nothing to trim.
@@ -231,7 +232,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-096")]
+    [Trait("Req", "PR-MCP-096")] // Services/MCP/MCPKeychain.swift:11-26
     public void Value_of_an_account_that_holds_nothing_is_null()
     {
         // :21 SecItemCopyMatching(...) == errSecSuccess fails, so nil.
@@ -241,7 +242,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-096")]
+    [Trait("Req", "PR-MCP-096")] // Services/MCP/MCPKeychain.swift:11-26
     public void Value_of_bytes_that_are_not_valid_UTF8_is_null()
     {
         // :23 String(data: data, encoding: .utf8) fails for 0xFF, so nil.
@@ -252,7 +253,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-096")]
+    [Trait("Req", "PR-MCP-096")] // Services/MCP/MCPKeychain.swift:11-26
     public void Value_decodes_the_stored_bytes_as_UTF8()
     {
         // :23 String(data:encoding: .utf8): C3 A9 is U+00E9.
@@ -264,7 +265,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-096")]
+    [Trait("Req", "PR-MCP-096")] // Services/MCP/MCPKeychain.swift:11-26
     public void Value_from_a_store_that_refuses_the_read_is_null_not_an_error()
     {
         // :21 any status but errSecSuccess is nil: a locked or unavailable store surfaces as a missing value.
@@ -278,7 +279,7 @@ public sealed class MCPKeychainTests
     // ---- PR-MCP-097: an empty or blank write deletes and reports success ----
 
     [Fact]
-    [Trait("Req", "PR-MCP-097")]
+    [Trait("Req", "PR-MCP-097")] // Services/MCP/MCPKeychain.swift:29-35
     public void Set_of_an_empty_value_deletes_the_item_and_returns_true()
     {
         // :31-35: trimmed is empty, so delete(server:field:) and return true.
@@ -292,7 +293,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-097")]
+    [Trait("Req", "PR-MCP-097")] // Services/MCP/MCPKeychain.swift:29-35
     public void Set_of_a_whitespace_only_value_deletes_the_item_and_returns_true()
     {
         // :31 value.trimmed of " \t\r\n " is empty.
@@ -306,7 +307,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-097")]
+    [Trait("Req", "PR-MCP-097")] // Services/MCP/MCPKeychain.swift:29-35
     public void Set_of_an_empty_value_with_nothing_stored_returns_true_and_writes_nothing()
     {
         // :32-34: deleting a missing item is a no-op and the call still returns true; no item is created.
@@ -319,7 +320,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-097")]
+    [Trait("Req", "PR-MCP-097")] // Services/MCP/MCPKeychain.swift:29-35
     public void Set_of_an_empty_value_leaves_the_other_fields_of_the_server()
     {
         // :33 deletes only (server, field).
@@ -336,7 +337,7 @@ public sealed class MCPKeychainTests
     // ---- PR-MCP-098: update in place first, add only when nothing exists ----
 
     [Fact]
-    [Trait("Req", "PR-MCP-098")]
+    [Trait("Req", "PR-MCP-098")] // Services/MCP/MCPKeychain.swift:36-49
     public void Set_stores_the_trimmed_value_as_UTF8_bytes()
     {
         // :31 let trimmed = value.trimmed; :36 let data = Data(trimmed.utf8).
@@ -348,7 +349,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-098")]
+    [Trait("Req", "PR-MCP-098")] // Services/MCP/MCPKeychain.swift:36-49
     public void Set_with_nothing_stored_adds_the_item_and_returns_true()
     {
         // :42-44 SecItemUpdate reports errSecItemNotFound; :45-49 SecItemAdd succeeds, so true.
@@ -361,7 +362,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-098")]
+    [Trait("Req", "PR-MCP-098")] // Services/MCP/MCPKeychain.swift:36-49
     public void Set_over_an_existing_item_updates_it_in_place_and_returns_true()
     {
         // :42-43 SecItemUpdate succeeds: true, one item, the new bytes.
@@ -376,7 +377,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-098")]
+    [Trait("Req", "PR-MCP-098")] // Services/MCP/MCPKeychain.swift:36-49
     public void Set_whose_update_is_refused_returns_false_and_keeps_the_old_value()
     {
         // :44 guard updated == errSecItemNotFound else { return false }: any other failing status is false, and the
@@ -393,7 +394,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-098")]
+    [Trait("Req", "PR-MCP-098")] // Services/MCP/MCPKeychain.swift:36-49
     public void Set_with_nothing_stored_whose_add_is_refused_returns_false_and_stores_nothing()
     {
         // :44 errSecItemNotFound goes on to :49 return SecItemAdd(...) == errSecSuccess, which fails: false.
@@ -408,7 +409,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-098")]
+    [Trait("Req", "PR-MCP-098")] // Services/MCP/MCPKeychain.swift:36-49
     public void Set_keeps_the_other_fields_and_servers_untouched()
     {
         // :37-41 the query names one account; the update carries only the data.
@@ -426,8 +427,8 @@ public sealed class MCPKeychainTests
     // ---- PR-MCP-099 and PR-MCP-228: deleteAll walks the ENTRY's fields; OD-0008 A12 checks each deletion ----
 
     [Fact]
-    [Trait("Req", "PR-MCP-099")]
-    [Trait("Req", "PR-MCP-228")]
+    [Trait("Req", "PR-MCP-099")] // Services/MCP/MCPKeychain.swift:61-67
+    [Trait("Req", "PR-MCP-228")] // Services/MCP/MCPKeychain.swift:52-67
     public void DeleteAll_deletes_one_item_per_field_the_entry_declares_in_field_order()
     {
         // :64-66 for field in entry.fields { delete(server: entry.id, field: field.key) }: every field, secret or
@@ -446,8 +447,8 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-099")]
-    [Trait("Req", "PR-MCP-228")]
+    [Trait("Req", "PR-MCP-099")] // Services/MCP/MCPKeychain.swift:61-67
+    [Trait("Req", "PR-MCP-228")] // Services/MCP/MCPKeychain.swift:52-67
     public void DeleteAll_deletes_a_custom_servers_variables_although_no_catalog_entry_has_its_id()
     {
         // :61-62: the entry, not its id, "a custom server is not in the catalog, so looking it up there would
@@ -464,8 +465,8 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-099")]
-    [Trait("Req", "PR-MCP-228")]
+    [Trait("Req", "PR-MCP-099")] // Services/MCP/MCPKeychain.swift:61-67
+    [Trait("Req", "PR-MCP-228")] // Services/MCP/MCPKeychain.swift:52-67
     public void DeleteAll_takes_the_fields_from_the_entry_passed_not_from_the_catalog_entry_with_that_id()
     {
         // :64 entry.fields. The catalog's GitHub entry declares "token" (MCPCatalog.swift:15-17); an entry with the
@@ -483,8 +484,8 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-099")]
-    [Trait("Req", "PR-MCP-228")]
+    [Trait("Req", "PR-MCP-099")] // Services/MCP/MCPKeychain.swift:61-67
+    [Trait("Req", "PR-MCP-228")] // Services/MCP/MCPKeychain.swift:52-67
     public void DeleteAll_leaves_the_two_OAuth_items_which_are_not_entry_fields()
     {
         // "oauth" and "oauth-client" are deleted separately by MCPOAuth.signOut (MCPOAuth.swift:189-191).
@@ -501,7 +502,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-228")]
+    [Trait("Req", "PR-MCP-228")] // Services/MCP/MCPKeychain.swift:52-67
     public void DeleteAll_of_an_entry_with_no_fields_deletes_nothing_and_is_not_an_error()
     {
         // :64 iterates an empty list.
@@ -515,8 +516,8 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-099")]
-    [Trait("Req", "PR-MCP-228")]
+    [Trait("Req", "PR-MCP-099")] // Services/MCP/MCPKeychain.swift:61-67
+    [Trait("Req", "PR-MCP-228")] // Services/MCP/MCPKeychain.swift:52-67
     public void DeleteAll_of_fields_that_hold_nothing_still_attempts_each_and_is_not_a_failure()
     {
         // :64-66 walks every declared field whether set or not; the deviation: an item that did not exist is not a
@@ -531,8 +532,8 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-099")]
-    [Trait("Req", "PR-MCP-228")]
+    [Trait("Req", "PR-MCP-099")] // Services/MCP/MCPKeychain.swift:61-67
+    [Trait("Req", "PR-MCP-228")] // Services/MCP/MCPKeychain.swift:52-67
     public void DeleteAll_reports_false_when_the_store_refuses_a_deletion_and_still_deletes_the_other_fields()
     {
         // DEVIATION OD-0008 A12: a refused deletion is reported instead of a silent success. The Swift loop
@@ -553,7 +554,7 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-228")]
+    [Trait("Req", "PR-MCP-228")] // Services/MCP/MCPKeychain.swift:52-67
     public void DeleteAll_reports_false_when_the_refused_deletion_is_the_last_field()
     {
         // DEVIATION OD-0008 A12: one refusal anywhere in the walk makes the whole call a failure.
@@ -569,8 +570,8 @@ public sealed class MCPKeychainTests
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-099")]
-    [Trait("Req", "PR-MCP-228")]
+    [Trait("Req", "PR-MCP-099")] // Services/MCP/MCPKeychain.swift:61-67
+    [Trait("Req", "PR-MCP-228")] // Services/MCP/MCPKeychain.swift:52-67
     public void Delete_reports_true_for_a_removed_item_true_for_a_missing_one_and_false_for_a_refusal()
     {
         // :52-59 deletes one account. DEVIATION OD-0008 A12: its status is checked, so the OAuth deletions that
