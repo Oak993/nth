@@ -7,9 +7,9 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "IMPLEMENTED": 1256,
+      "IMPLEMENTED": 1396,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
-      "SPECIFIED": 2633,
+      "SPECIFIED": 2493,
       "RETIRED": 6,
       "DISCOVERED": 18
     },
@@ -30418,7 +30418,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order and the same conditional flag. The JSON argument must be passed as one argv element; a shell-quoted command line would mangle it.",
       "verification_method": "unit over the three argument groups plus a launch test asserting the argument vector",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -30445,7 +30445,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key names, the command-as-array shape and the \"environment\" spelling. The whole JSON must survive environment-block construction; Windows environment variables have a large but finite size, so a very long configuration is a real limit to note. It applies to OpenCode Go as well as OpenCode.",
       "verification_method": "contract fixture comparing the emitted JSON string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -31982,7 +31982,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same mapping, including .opencodeGo as a fifth ACP kind that runs the same opencode executable as .opencode. No platform boundary; provider identity is data.",
       "verification_method": "unit (session-factory table over every ProviderKind: ACPSession for exactly .cursor, .opencode, .opencodeGo, .grok and .devin)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -32011,7 +32011,7 @@
       "cancellation": "The sleep's thrown error is discarded by `try?`, so cancelling the awaiting task does not abort the start at this point.",
       "windows_path": "A single module-level async mutex holding nextSlot, awaited in the Electron main process before child_process.spawn. It must be one instance for the whole app, not per session, per window or per provider.",
       "verification_method": "unit (fake clock: the Nth start releases at (N-1)*1500 ms, a single start at 0 ms)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32037,7 +32037,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard. Executable resolution itself is outside PROVACP; PROVACP only sees resolved-or-nil.",
       "verification_method": "unit (one assertion per ACP kind on the exact notInstalled message)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -32065,7 +32065,7 @@
       "cancellation": "not cancellable",
       "windows_path": "child_process.spawn(exe, argv, { cwd, env, stdio: ['pipe','pipe','pipe'], shell: false, windowsHide: true }). shell:false is mandatory: tokens such as --permission-mode and --always-approve must not pass through CMD. The env object is passed whole, not merged with process.env, to match `process.environment = environment`.",
       "verification_method": "contract fixture (spawn recorder asserting exe, argv array, cwd, env map)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -32087,7 +32087,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array passed to spawn with shell:false.",
       "verification_method": "unit (argv table test)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32108,7 +32108,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32129,7 +32129,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32150,7 +32150,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32174,7 +32174,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array. Never lowercase or kebab-case the value.",
       "verification_method": "unit (argv table test asserting the exact string \"acceptEdits\")",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32195,7 +32195,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32218,7 +32218,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array, same order.",
       "verification_method": "unit (argv table test asserting order)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32240,7 +32240,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32261,7 +32261,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test asserting the exact string \"accept-edits\")",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32282,7 +32282,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32305,7 +32305,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32328,7 +32328,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical token array.",
       "verification_method": "unit (argv table test across all four modes for .opencode and .opencodeGo)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -32354,7 +32354,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Do not add a relaunch-on-mode-change path; per port_impacts #23 the ACP launch flags require a process restart and the source does not perform one.",
       "verification_method": "interaction test (change mode mid-session, assert no second spawn)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32383,7 +32383,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same envelope. Per port_impacts #1 and #18, ACP is lines framing WITH the jsonrpc member; do not share an envelope builder with Codex, which omits it.",
       "verification_method": "contract fixture (wire recorder asserting every frame carries jsonrpc 2.0)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32410,7 +32410,7 @@
       "cancellation": "Cancelling the awaiting task removes the pending continuation and resumes it with CancellationError (JSONRPC.swift:82-86).",
       "windows_path": "Same payload with the ruled client identity: `\"clientInfo\": {\"name\": \"marrow\", \"title\": \"Marrow\", \"version\": <app version>}`. Every other field is identical to upstream.",
       "verification_method": "contract fixture (golden initialize frame asserting protocolVersion 1, clientInfo.name \"marrow\", clientInfo.title \"Marrow\" and request id 1)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -32436,7 +32436,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical payload. Do not opt into fs or terminal capabilities on Windows to work around anything; the agent CLI does its own file and process work in the cwd.",
       "verification_method": "contract fixture (golden initialize frame)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32464,7 +32464,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Identical, provider-gated.",
       "verification_method": "contract fixture (two golden initialize frames: Cursor with _meta, OpenCode Zen without) plus a unit assertion that .opencodeGo, .grok and .devin also omit _meta",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -32488,7 +32488,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (reply-parsing table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32510,7 +32510,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Downstream consequence to accept: the false branch makes the agent CLI spawn npx as a grandchild that PROVACP neither manages nor kills.",
       "verification_method": "unit (reply-parsing table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32531,7 +32531,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (reply-parsing table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32556,7 +32556,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32583,7 +32583,7 @@
       "cancellation": "not cancellable",
       "windows_path": "cwd must be the Windows path string of the working directory. The mcp-remote fallback spawns npx, which on Windows is npx.cmd; that resolution belongs to the agent CLI, not to PROVACP.",
       "verification_method": "contract fixture (golden session/new frame with zero, one stdio and one http server)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32610,7 +32610,7 @@
       "cancellation": "Cancellation of the awaiting task surfaces as CancellationError from the pending request.",
       "windows_path": "Same. Use a case-insensitive indexOf on the message string; do not switch to a code check.",
       "verification_method": "contract fixture (scripted agent that rejects the first session/new with an auth message, then accepts)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32635,7 +32635,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32658,7 +32658,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same swallow. Do not add a notice; that would be an invented behavior.",
       "verification_method": "contract fixture (scripted agent that errors on session/load and accepts session/new; assert no user-visible event)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32682,7 +32682,7 @@
       "cancellation": "If the load throws, isReplaying is still cleared at :260 before the fallthrough.",
       "windows_path": "Same flag, same window.",
       "verification_method": "contract fixture (scripted replay; assert zero timeline events)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32705,7 +32705,7 @@
       "cancellation": "Cancellation surfaces as CancellationError.",
       "windows_path": "Same.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32730,7 +32730,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering. Do not parallelize; the calls mutate shared session state on the agent.",
       "verification_method": "contract fixture (frame order assertion)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32756,7 +32756,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string, same provider display names.",
       "verification_method": "contract fixture (scripted agent replying {} to session/new), asserting the message for each of the five ACP kinds",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -32782,7 +32782,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (state-parsing table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32805,7 +32805,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same exact-match test.",
       "verification_method": "unit (mode-resolution table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32828,7 +32828,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Implement as a first-match over the agent's ordered ids, not as a lookup over the literal set.",
       "verification_method": "unit (mode-resolution table, including the order-sensitivity case where the agent lists code before agent)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32853,7 +32853,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Preserve the currentModelId-vs-availableModels stripping asymmetry exactly.",
       "verification_method": "unit (model-state table for each of the five ACP providers: .cursor, .opencode, .opencodeGo, .grok, .devin)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -32878,7 +32878,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32906,7 +32906,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the reset and its asymmetry exactly. Per port_impacts #13: do not repair it by resetting all four or none; either change alters which controls disappear.",
       "verification_method": "contract fixture (scripted agent: full configOptions, then a partial reply; assert the effort and fast ids are gone while model and mode ids survive)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "1",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32929,7 +32929,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (config-option classification table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32952,7 +32952,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same single-level flatMap.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32973,7 +32973,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -32999,7 +32999,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Build a Map once per call. The renderer must not do this work per value; the 400-model OpenCode walk is the stated stress case.",
       "verification_method": "unit plus a performance guard (400 models x 400 replies completes without blocking)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33020,7 +33020,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33044,7 +33044,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (including the boolean thinking option)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33065,7 +33065,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same seven-member set, same any-match rule. Do not widen it to match the rank table.",
       "verification_method": "unit (table covering all seven plus the ranked-but-unrecognized values)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33088,7 +33088,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The sort must be stable on the original index; a JS Array.prototype.sort is stable, but the comparator must still return 0 only where the source falls through to the offset comparison.",
       "verification_method": "unit (Grok's descending list, a single-recognized-value list, an unknown level between two known ones)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33135,7 +33135,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same exact-id test.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33158,7 +33158,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. fastTier is the literal string \"true\", not a boolean; ModelOption.supportsFast is `fastTier != nil` (Provider.swift:255).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33181,7 +33181,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The catalog probe's model walk emits one .models per model; the receiving side must tolerate that rate (PR-PROVACP-043).",
       "verification_method": "interaction test (count events across a probe walk)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33204,7 +33204,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33225,7 +33225,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the nil-nil false result.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33246,7 +33246,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33267,7 +33267,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Treat empty string as absent.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33292,7 +33292,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the optimistic currentModel assignment after a swallowed failure.",
       "verification_method": "contract fixture (both branches, plus a rejected set_model)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33317,7 +33317,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33342,7 +33342,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The value must be a JSON string.",
       "verification_method": "contract fixture (assert the string literals)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33365,7 +33365,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit plus contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33390,7 +33390,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-branch preference.",
       "verification_method": "contract fixture (both branches)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33413,7 +33413,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Do not move the assignment inside the transport branches.",
       "verification_method": "unit (assert currentMode changed with zero frames written)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33438,7 +33438,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. This is the single funnel for model, effort, fast and mode changes; keep it one function so the reply feedback path is shared.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33462,7 +33462,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33487,7 +33487,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering: selection first, prompt second, on the same connection.",
       "verification_method": "contract fixture (frame order)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33519,7 +33519,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape and the same downscale rule: longest side over 2000 px -> JPEG at most 2000 px on the longest side, orientation applied, quality 0.8, mimeType \"image/jpeg\"; otherwise the original bytes and mime type. Read the attachment's bytes and base64-encode them (Convert.ToBase64String); do not prefix a data URL. The image codec is a platform boundary: Windows JPEG bytes will not equal ImageIO's, so verification compares dimensions, mime type and orientation, not bytes.",
       "verification_method": "contract fixture (golden session/prompt frame with two images: one 2000 px or smaller sent byte for byte with its own mime type, one over 2000 px on its longest side with an EXIF orientation flag, asserting mimeType \"image/jpeg\", a longest side of 2000 and upright pixels)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -33543,7 +33543,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the nil turn id.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33568,7 +33568,7 @@
       "cancellation": "The request is not cancelled by interrupt(); interruption is signalled out of band by session/cancel (PR-PROVACP-070) and the request still resolves, normally with stopReason \"cancelled\".",
       "windows_path": "Same: a floating promise whose resolution and rejection both route into finishPrompt. Do not await it in the IPC handler.",
       "verification_method": "contract fixture plus interaction test (send resolves before the turn completes)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33589,7 +33589,7 @@
       "cancellation": "This is the cancellation entry point.",
       "windows_path": "Same guard.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33612,7 +33612,7 @@
       "cancellation": "This is the cancellation path.",
       "windows_path": "Same payload shape.",
       "verification_method": "contract fixture (two open approvals, assert two cancelled responses and two resolutions)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33637,7 +33637,7 @@
       "cancellation": "This is the cancellation path.",
       "windows_path": "Same. Do not substitute a process signal; per port_impacts #24 the wire interrupt ports directly and Windows has no SIGTERM equivalent to fall back on.",
       "verification_method": "contract fixture (frame order: responses then notification)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33664,7 +33664,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string. Whether /compact is run locally at all is decided elsewhere by ProviderKind.supportsCompact (Provider.swift:149-154), which is false for every ACP kind, so a typed /compact is not handled locally for them (ThreadRuntime.swift:1164); PROVACP's contract is the message when compact() is invoked.",
       "verification_method": "unit (one assertion per ACP kind on the exact message)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -33691,7 +33691,7 @@
       "cancellation": "Superseded by interrupt() and finishPrompt, which answer cancelled.",
       "windows_path": "Same payload shape and same remove-then-respond order.",
       "verification_method": "contract fixture (double click on one card yields one response)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33712,7 +33712,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same empty implementation. Do not throw 'not supported'; the source returns silently.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33737,7 +33737,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same flag-before-kill ordering; port_impacts #24 calls this ordering out explicitly so the chat does not report an unexpected exit.",
       "verification_method": "interaction test (stop a running session, assert no exited event)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33758,7 +33758,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same definition. Do not implement it as a process liveness probe.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33781,7 +33781,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ten-value dispatch, same silent default.",
       "verification_method": "unit (dispatch table including an unknown value)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33806,7 +33806,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the \"message-\" prefix literal.",
       "verification_method": "interaction test (two chunks with the same messageId land in one bubble)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33829,7 +33829,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same asymmetry: thoughts clear nothing, messages clear the thought id.",
       "verification_method": "interaction test (thought, message, thought produces two reasoning blocks and one bubble)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33850,7 +33850,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same format. Use a UUID v4 rendered uppercase with hyphens and take its first eight characters, so the shape matches; the value is opaque but the format is observable in stored threads.",
       "verification_method": "unit (regex on the produced id)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33873,7 +33873,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33896,7 +33896,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-event sequence and the same non-nil test on exactly those two fields.",
       "verification_method": "interaction test (single-notification completed tool call)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33921,7 +33921,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the unconditional emit and the absence of id clearing.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33948,7 +33948,7 @@
       "cancellation": "todoToolCallIDs is cleared by finishPrompt at the end of every turn.",
       "windows_path": "Same. The remembered-id set must be per session and cleared per turn.",
       "verification_method": "interaction test (opencode-style todowrite call plus two updates)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33969,7 +33969,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same presence test; check for key existence, not truthiness.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -33991,7 +33991,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Use a Unicode digit test equivalent to Swift's Character.isNumber, not an ASCII-only regex, since the source accepts any numeric character.",
       "verification_method": "unit (table including \"3 todos\", \"TodoWrite\", \"my todos\", \" todos\")",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -34015,7 +34015,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order and the same JSON-parse-from-text behavior.",
       "verification_method": "unit (one fixture per source, plus a precedence fixture where two sources disagree)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34041,7 +34041,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key order and the same seven status literals, case-sensitive.",
       "verification_method": "unit (status table plus key-precedence table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -34065,7 +34065,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Per port_impacts #14, emit todos from `plan` even when the parse yields nothing.",
       "verification_method": "interaction test (plan with empty entries clears the checklist)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34088,7 +34088,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Per port_impacts #14, let an empty array clear the menu.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34113,7 +34113,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the planMode gate and the nil assignment.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34136,7 +34136,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shared path; per port_impacts #14 route config_option_update through the same function as the set_config_option reply.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "1",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34159,7 +34159,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same emptiness test, with no trimming.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34184,7 +34184,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Per port_impacts #14, do NOT feed ACP usage_update into the spend ledger.",
       "verification_method": "interaction test plus a guard test asserting the ledger total is unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34209,7 +34209,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same code and same message string.",
       "verification_method": "contract fixture (send fs/read_text_file, assert the exact error frame)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34232,7 +34232,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same policy, driven by the per-turn runtimeMode, never by the launch argv.",
       "verification_method": "unit (matrix of four runtime modes x the eight tool kinds x option sets)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34255,7 +34255,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "contract fixture (full-access session: assert a selected response and zero approval events)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34279,7 +34279,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four-way mapping and the same id-as-label fallback.",
       "verification_method": "unit (option-kind table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34303,7 +34303,7 @@
       "cancellation": "Entries are drained by interrupt() and by finishPrompt.",
       "windows_path": "Same key derivation. A JS implementation must use String(id) for numeric ids, not the raw number, so the key type matches.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34325,7 +34325,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-way mapping and the same three headline strings.",
       "verification_method": "unit plus capture comparison against a reference approval card",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34350,7 +34350,7 @@
       "cancellation": "The card is dismissed by .requestResolved on interrupt, on turn end, or on the user's choice.",
       "windows_path": "Same, including the null-toolCall fallback.",
       "verification_method": "contract fixture",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34371,7 +34371,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard-and-clear ordering.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34396,7 +34396,7 @@
       "cancellation": "This is part of the cancellation path.",
       "windows_path": "Same.",
       "verification_method": "interaction test (open approval, let the turn fail, assert the card is gone)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34419,7 +34419,7 @@
       "cancellation": "This is the cancellation outcome.",
       "windows_path": "Same precedence order and the same literal.",
       "verification_method": "unit (outcome table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34442,7 +34442,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The error text must be the provider's own message, not a wrapped or prefixed one.",
       "verification_method": "unit (outcome table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34465,7 +34465,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same string.",
       "verification_method": "unit (outcome table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34490,7 +34490,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (outcome table including an unknown stop reason)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34516,7 +34516,7 @@
       "cancellation": "A close following a user stop still reports .interrupted, because cancelRequested is checked first in finishPrompt.",
       "windows_path": "Same: strip ANSI, keep the last four non-empty trimmed lines. Windows CLIs may emit CRLF; the newline split must treat CR LF as one break so a blank line is not manufactured.",
       "verification_method": "contract fixture (kill a scripted agent mid-turn with six stderr lines, assert the last four)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34539,7 +34539,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, including the nil-error case.",
       "verification_method": "interaction test (crash versus stop)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34561,7 +34561,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same six-case mapping.",
       "verification_method": "unit (kind table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34582,7 +34582,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit (status table)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34603,7 +34603,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same eight strings verbatim.",
       "verification_method": "unit plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34624,7 +34624,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ten literals and the same delegation.",
       "verification_method": "unit (table of all ten plus a real path)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34647,7 +34647,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same thirty-five entries. Do not add Windows-flavoured names such as `cmd` or `powershell`; that would be an invention.",
       "verification_method": "unit (set-membership table, count asserted at 35)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34668,7 +34668,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-character set. A CRLF-terminated title keeps its carriage return, which is observable; do not widen the set to fix it.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34691,7 +34691,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same sixteen entries in the same declared order, matched with a lowercased startsWith.",
       "verification_method": "unit (all sixteen phrases plus the ordering case)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34714,7 +34714,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same forty-eight entries. Split on the ASCII space only, with at most one split, to match maxSplits: 1.",
       "verification_method": "unit (verb table plus the bare-verb retention case)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34736,7 +34736,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same four pairs including the curly quotes U+201C and U+201D, and the same no-break loop.",
       "verification_method": "unit (each pair plus a doubly quoted title)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -34758,7 +34758,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same early return order.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34783,7 +34783,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Boundary: relativePath appends a forward slash to the root and does a prefix compare. On Windows the agent reports backslash paths, so the comparison must use the platform separator, and the case-insensitivity of Windows paths means an exact prefix compare can fail where macOS succeeds. Specify the Windows behavior as: same drop-the-root-prefix rule, using the platform separator, with the same case sensitivity the agent's own output uses. This is a named platform boundary and must be probed against each of the four CLIs.",
       "verification_method": "unit plus a Windows interaction test against a real cursor-agent or opencode run",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -34806,7 +34806,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Boundary: the six prefixes are all Unix shells. On Windows an agent CLI is more likely to report a bare command or a cmd.exe or powershell wrapper, none of which are in the list, so such a command is shown unwrapped. Reproduce the six-entry list exactly; do NOT add Windows shell prefixes, which would be an invented default. Record the observed Windows wrappers per CLI as evidence before any future change.",
       "verification_method": "unit plus a Windows capture of each CLI's reported command string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34827,7 +34827,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34848,7 +34848,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same five keys and the same four-part detail condition.",
       "verification_method": "unit (key table plus the four detail conditions)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34869,7 +34869,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three keys in order.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34890,7 +34890,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34911,7 +34911,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34934,7 +34934,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, with the relativePath boundary of PR-PROVACP-119. Line endings inside oldText and newText are passed through unchanged; do not normalize CRLF.",
       "verification_method": "unit plus capture comparison of a diff row",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34955,7 +34955,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same nil-versus-default split.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34976,7 +34976,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-part guard.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -34997,7 +34997,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, with the unwrapShell boundary of PR-PROVACP-120.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35018,7 +35018,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same, with the relativePath boundary.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35039,7 +35039,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. The separator is a bare line feed, not CRLF.",
       "verification_method": "unit (content-wins fixture plus the stdout/stderr/output order)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35060,7 +35060,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two sources in the same order. Windows exit codes can exceed the signed range Unix uses; store the integer the agent reports without clamping.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35081,7 +35081,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same literal.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35102,7 +35102,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Note that a Windows command failing with a large unsigned exit code is still non-zero and so is downgraded.",
       "verification_method": "unit (status and exit-code matrix)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35123,7 +35123,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same nil-versus-empty distinction.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35156,7 +35156,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Boundary: the directory is Path.Combine(Path.GetTempPath(), \"marrow-catalog\"), that is %TEMP%\\marrow-catalog, created with Directory.CreateDirectory and a creation failure swallowed. Deviation OD-0008 (OD-PENDING-17): the folder is named \"marrow-catalog\", not upstream's \"droppy-code-catalog\"; it is only the probe session's working directory and nothing reads it across runs.",
       "verification_method": "contract fixture plus a filesystem assertion on the folder name \"marrow-catalog\", plus a spawn counter asserting one opencode probe for a Zen load followed by a Go load, and a second probe after a forced load",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -35187,7 +35187,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same: a try/finally around the probe so the child is always terminated.",
       "verification_method": "contract fixture (assert the child exits even when start throws)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -35214,7 +35214,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same walk. The performance requirement of PR-PROVACP-043 is what keeps this from blocking the app for a 400-model catalog.",
       "verification_method": "contract fixture (three models, one pre-scaled, assert two set_config_option calls plus one restore)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -43923,7 +43923,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A whole JSON document as one argv token is the hardest Windows quoting case in this area: it contains double quotes, backslashes in any Windows paths inside it, and possibly a trailing backslash before the closing quote. Escaping is the port's problem; the source uses a process API with no shell and must not gain one (port_impacts.md entry 5 of the ordering list).",
       "verification_method": "contract fixture asserting the child receives the exact JSON text, with a config containing Windows paths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

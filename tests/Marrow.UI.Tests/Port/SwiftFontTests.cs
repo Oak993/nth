@@ -138,10 +138,13 @@ public sealed class SwiftFontTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-091")]
+    [Trait("Decision", "ED-186")]
+    [Trait("Oracle", "O-64")]
     public void Headline_with_no_weight_resolves_bold_700()
     {
         // ED-091: macOS sets headline bold; platform knowledge, UNVERIFIED under OD-0001.
         // .font(.headline) at App/Views/Composer/RequestCards.swift:13.
+        // ED-186, O-64: only ChatFont.Chat resolves .headline to semibold; the plain style stays bold here.
         Assert.Equal(700, (int)SwiftFont.Headline.Resolve().FontWeight);
         Assert.Equal(700, (int)SwiftFont.System(SwiftFont.TextStyle.Headline).Resolve().FontWeight);
         Assert.Equal(13.0, SwiftFont.Headline.Resolve().FontSize);

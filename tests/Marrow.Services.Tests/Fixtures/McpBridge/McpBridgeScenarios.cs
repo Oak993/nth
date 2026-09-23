@@ -13,7 +13,7 @@ public static class McpBridgeScenarios
 {
     private static string NewScratchDir(string label)
     {
-        var dataDirectory = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
+        var dataDirectory = Marrow.Testing.TestDataDirectory.Read();
         if (string.IsNullOrEmpty(dataDirectory))
             throw new InvalidOperationException("Set MARROW_PORT_DATA_DIR to a throwaway folder before running the tests (R-TEST-9).");
         var path = Path.Combine(dataDirectory, "MCPBridgeSourceTests", label, Guid.NewGuid().ToString("N"));

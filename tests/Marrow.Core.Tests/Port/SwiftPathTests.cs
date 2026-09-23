@@ -910,7 +910,7 @@ public sealed class SwiftPathTests
     public void StandardizingPath_is_lexical_on_a_real_folder()
     {
         // ED-141: purely lexical for existing and missing paths alike. <tmp>\a\b exists; <tmp>\a\c does not.
-        var data = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
+        var data = Marrow.Testing.TestDataDirectory.Read();
         Assert.False(string.IsNullOrEmpty(data), "MARROW_PORT_DATA_DIR must point at a throwaway folder (R-TEST-9)");
         var tmp = System.IO.Path.GetFullPath(System.IO.Path.Combine(data!, "SwiftPathTests-" + Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(System.IO.Path.Combine(tmp, "a", "b"));

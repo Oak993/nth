@@ -13,7 +13,7 @@ public sealed class ScratchFolder : IDisposable
     public ScratchFolder()
     {
         // R-TEST-9: the variable is set before anything runs. No fallback folder is invented when it is missing.
-        var root = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
+        var root = Marrow.Testing.TestDataDirectory.Read();
         if (string.IsNullOrEmpty(root))
             throw new InvalidOperationException("MARROW_PORT_DATA_DIR is not set; R-TEST-9 requires it before any test runs");
         FullPath = System.IO.Path.Combine(root, "FileOpsTests", Guid.NewGuid().ToString("N"));

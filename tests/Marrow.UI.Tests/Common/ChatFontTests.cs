@@ -24,6 +24,7 @@ public sealed class ChatFontTests
     [Trait("Req", "PR-CHAT-193")] // UI/Common/ChatFont.swift:6-9; ED-059 sizes
     [Trait("Req", "PR-THEME-179")] // UI/Common/ChatFont.swift:4-9
     [Trait("Req", "UI-CHAT-082")] // UI/Common/ChatFont.swift:3-10
+    [Trait("Decision", "ED-186")] // only ChatFont.Chat resolves .headline to semibold, ChatFont.swift:7
     public void Each_chat_style_keeps_its_plain_text_style_size_and_default_weight(SwiftFont.TextStyle style, int size)
     {
         var actual = ChatFont.Chat(style).Resolve();
@@ -46,6 +47,7 @@ public sealed class ChatFontTests
     [InlineData(SwiftFont.Weight.Black, 900)]
     [Trait("Req", "PR-CHAT-193")] // UI/Common/ChatFont.swift:6-9
     [Trait("Req", "UI-CHAT-082")] // UI/Common/ChatFont.swift:6-9
+    [Trait("Decision", "ED-186")] // an explicit weight wins over the chat builder's semibold default, ChatFont.swift:7
     public void Explicit_weight_wins_over_the_headline_default(SwiftFont.Weight weight, int expected)
     {
         var actual = ChatFont.Chat(SwiftFont.TextStyle.Headline, weight: weight).Resolve();
