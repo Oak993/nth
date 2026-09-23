@@ -270,6 +270,44 @@ instruction may change one.
   upstream. Where, when and how it moves is ED-097. The motion is option A "Orbit" from
   `E:/Droppy/work/icon/loading_preview.html` unless the owner picks B "Ratchet" or C "Bloom".
 
+## OD-0017 Live resize: adopt `stretch`, accept the Windows residual
+
+- **Asked:** 2026-09-23, after probe P4b (porting/probes/p4b/RESULT.md) found no remedy that removes every edge strip,
+  as OD-0013 required it to come back.
+- **Put to the owner:** `stretch` lowers the moving grow-edge strip from 2.54 % to 0.16 % of samples and removes every
+  shrink clip; the rest is a one-frame lag composed by DWM that also occurs without the remedy and that no app code
+  reaches, and about 2 % of moving samples show the previous frame scaled by up to 5 px for one frame instead of a
+  strip; nothing changes at rest. Options: adopt and accept the rest as a named deviation (recommended); adopt and keep
+  the chrome open; keep the chrome blocked.
+- **Answer, verbatim (selected option):** "Adopt fix, accept rest (Recommended)"
+- **Effect:** every resizable top-level window uses `stretch` as ED-101 builds it, and the window chrome is accepted
+  once that is in and verified. The DWM type B frame (one frame, 3 to 9 px of what is behind the window, about 1 resize
+  step in 150 to 250 at P4's drag speed) and the one-frame scaled frames are a named deviation in the final report.
+  OD-0013 is closed by this decision.
+
+## OD-0018 Loading mark: "Comet", a large boot animation, one pulse per turn
+
+- **Asked:** 2026-09-23, after the owner found the first three motions not premium enough and was shown round 2
+  (`porting/design/loading_mark/loading_premium.html`: A Tide, B Comet, C Glass).
+- **Answers, verbatim:** "I like B. Ship it! I also want the animation to show up large when starting the app, but the
+  animation must come to life in a highly premium way at boot up, like particles flying to form the animation and the
+  animation must smoothly initiate a running state." Then: "although the pulse the central white dot releases must be
+  controlled to trigger once when the spiral comes to a stop. To make it seem that the pulse initiates the spiral."
+- **Effect:** the loading mark of OD-0016 moves as "Comet" (ED-102): one eased turn from rest to rest, trails only at
+  speed, and the core pulses once per turn, exactly when the turn comes to rest, releasing one ring, so the pulse starts
+  the next turn. Every launch opens with a large boot splash: particles in the arms' colours spiral in and form the
+  mark, the core's first pulse sets the first turn going, and the mark runs until the app is ready, then hands over to
+  the main window. The boot splash replaces the 400 ms launch-splash rule of ED-097 (5); the other loading sites keep
+  that rule. An owner-requested deviation, listed with OD-0016 in the final report. Reference previews:
+  `porting/design/loading_mark/boot_sequence.html` and `loading_premium.html` (card B).
+
+- **Amended the same day, verbatim:** "boot animation = particles form the spiral, pulse happens and spiral happens,
+  spiral ends motion, logo disintegrates into particles and forms the app complete window."
+- **Effect of the amendment:** the boot splash no longer fades out. After the first turn comes to rest (more turns,
+  each started by a pulse, while the app is not ready), the mark breaks back into its particles, and they fly out and
+  build the main window: its edge first, then its contents, which appear as the particles land. ED-103 gives the
+  numbers; the reference preview is `porting/design/loading_mark/boot_sequence.html`.
+
 ## OD-0019 Agent models for the implementation waves
 
 - **Asked:** 2026-09-23, after measuring that wave A spent 834 million context tokens for 2 merged units, when the owner
