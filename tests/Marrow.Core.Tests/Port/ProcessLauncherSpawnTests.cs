@@ -728,6 +728,8 @@ public sealed class ProcessLauncherSpawnTests
             Assert.True(match.Success);
             var grandchild = Process.GetProcessById(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture));
             Assert.False(grandchild.HasExited);
+            // Retain the native handle before exit so ExitCode is available for this attached Process.
+            _ = grandchild.SafeHandle;
             return (launcher, grandchild, output, recorder);
         }
         catch
