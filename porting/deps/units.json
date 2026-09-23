@@ -1072,24 +1072,14 @@
    ],
    "intra_deps": [],
    "records_total": 3,
-   "records_todo": [
-    "PR-CHAT-193",
-    "PR-THEME-179",
-    "UI-CHAT-082"
-   ],
-   "parts": [
-    [
-     "PR-CHAT-193",
-     "PR-THEME-179",
-     "UI-CHAT-082"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-033",
     "T-M5-034"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Common.Genie",

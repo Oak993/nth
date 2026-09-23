@@ -7,11 +7,11 @@
   "counts": {
     "total": 3939,
     "by_status": {
-      "SPECIFIED": 3759,
+      "SPECIFIED": 3757,
       "NOT_APPLICABLE_WITH_EVIDENCE": 26,
       "DISCOVERED": 34,
       "RETIRED": 6,
-      "IMPLEMENTED": 114
+      "IMPLEMENTED": 116
     },
     "by_area": {
       "CHAT": 193,
@@ -4650,7 +4650,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One text-style table for the whole app; the conversation carries no second scale and no zoom factor. Per ED-059 each text style takes the size of upstream's B1 table, in Inter, and in Cascadia Mono where the design is .monospaced (OD-0009): largeTitle 26 (B1:DroppyCode/UI/Common/ChatZoom.swift:47), title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), title2 17 (B1:DroppyCode/UI/Common/ChatZoom.swift:49), title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), headline and body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), footnote, caption and caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). The sizes are fixed per style and scale only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); no B2 file restates them, so visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "unit over the font helper for every text style with and without an explicit weight, plus a capture comparison showing a chat row and a chrome label at the same text style render at the same size",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -88040,7 +88040,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not port the B1 chat zoom or its \"chatZoom\" stored value: nothing at B2 reads it and there is no migration. Markdown sizes come from the port's text-style table; scaling is applied once at the window root by the app zoom, never per font. Text size (ED-059): .title2 17 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:49), .title3 15 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .headline 13 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .callout 12 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .caption 10 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:54) in Inter, monospaced code in Cascadia Mono (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "unit: the font helper has no zoom input and returns the plain text style (semibold for headline by default) for every style; capture comparison: the same reply at app zoom 100 and 150 differs only by the whole-window scale",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
