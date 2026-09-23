@@ -1,7 +1,8 @@
-// Source: DroppyCode/UI/Markdown/LinkTitles.swift (B2 1fbf81e), :1-113. Partial port: VideoID's "?v=<id>" case
-// (:25-27) and TitleForVideo/OembedURL/OEmbed (:43-69) are not ported, each with a STOP note below (see report).
+// Source: DroppyCode/UI/Markdown/LinkTitles.swift (B2 1fbf81e), :1-113.
 
+using System.Text.Json;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 
 namespace Marrow.UI.Markdown;
 
@@ -14,17 +15,6 @@ public static class LinkTitles
     /// <summary>
     /// The video id a link carries, or null for anything that is not a video link. :13-31.
     /// </summary>
-    // STOP UI.Markdown.LinkTitles #1 (missing dependency, PR-THEME-134). Swift :25-27 falls back to
-    //   URLComponents(url:, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "v" })?.value
-    // for the "?v=<id>" shape ("youtube.com/watch?v=..."). SwiftURL (src/Marrow.Core/Port/SwiftURL.cs) exposes
-    // no public Query or QueryItems reader; its one percent-decoder, RFC3986Parser.PercentDecode, is `internal`
-    // to Marrow.Core, unreachable from Marrow.UI, and no F.URL query-item unit is built. Needed to proceed: a
-    // public, evidenced query-item reader on SwiftURL (or a new F.URL sub-unit) reachable from Marrow.UI. Done
-    // so far: the youtu.be and the /shorts, /embed, /live, /v path-prefix shapes below are implemented and
-    // tested (LinkTitlesTests.cs). For a youtube.com-family host whose first path segment is not one of those
-    // four (a plain "/watch?v=..." included), this returns null rather than guess: the caller's existing
-    // "not a video link" fallback applies (:29), so nothing incorrect is shown, but that shape's title is not
-    // fetched until the dependency above lands.
     public static string? VideoID(SwiftURL url)
     {
         if (url.Host is not { } host) return null; // :14 url.host?.lowercased() guard
@@ -43,7 +33,11 @@ public static class LinkTitles
         {
             if (segments.Count >= 2 && IsRecognizedPathPrefix(segments[0])) // :22
                 return Checked(segments[1]); // :23
-            return null; // :25-27, see the STOP note above pending the query-item dependency
+            // :25-26 URLComponents(url:, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "v" })?.value
+            var query = URLComponents.Create(url, resolvingAgainstBaseURL: false)?.QueryItems;
+            if (query?.FirstOrDefault(item => SwiftString.Equal(item.Name, "v"))?.Value is not { } value)
+                return null; // :26 guard let value = ... else { return nil }
+            return Checked(value); // :27
         }
 
         return null; // :29 default
@@ -63,20 +57,75 @@ public static class LinkTitles
         return Store.Shared.Title(id); // :37
     }
 
-    // STOP UI.Markdown.LinkTitles #2 (missing dependency, PR-THEME-135). Swift :43-56 title(forVideo:) makes a
-    // GET to YouTube's oEmbed endpoint via URLSession.shared.data(from:). R-NET-1 requires every such call to
-    // go through the one shared HttpClient in the F.HTTP unit (src/Marrow.Services/Port/Http.cs), documented
-    // there as serving exactly this site, but Http.cs lives in Marrow.Services and Marrow.UI.csproj references
-    // only Marrow.Core (Services and UI are siblings; UI cannot reach Services without a forbidden project
-    // reference and a LayeringTests violation). Building the request URL (:62-69 oembedURL(for:)) is blocked
-    // the same way as STOP #1: it needs URLComponents-style query-value percent-encoding, and
-    // RFC3986Parser.PercentEncode is `internal` to Marrow.Core. Needed to proceed: an owner/engineering
-    // decision moving this call (or a delegate to it) across the Services/UI boundary, the way MarkdownView's
-    // hydra-fence rendering and MCP.swift's MCPProxy/Storage.root uses already move up a layer (CLAUDE.md /
-    // HANDOFF.md section 9), plus a public query-item encoder reachable from Marrow.UI. Done so far: nothing
-    // implemented at this site (no TitleForVideo, OembedURL or OEmbed in this file). The Store type these would
-    // call (claim/finish/the 400-entry flush, PR-THEME-136) is implemented and fully tested below without
-    // needing the network call itself.
+    /// <summary>
+    /// The title for a video, fetched at most once: null while the fetch is in flight, and null for good when
+    /// there is none to have (private, deleted, offline), so the host-and-path form stands and the row never
+    /// asks again. :43-56.
+    /// </summary>
+    /// <param name="oembedUrl">
+    /// PORT-ONLY test seam (MetaAPI.cs precedent, src/Marrow.Services/Providers/MetaAPI.cs): overrides the
+    /// request URL <see cref="OembedURL"/> builds, so tests can point at a loopback server (R-TEST-10) instead
+    /// of the real endpoint. Every production call site passes null and gets <see cref="OembedURL"/>(id)
+    /// unchanged, exactly as Swift's <c>title(forVideo:)</c> takes only <c>id</c>.
+    /// </param>
+    public static async Task<string?> TitleForVideo(string id, Uri? oembedUrl = null)
+    {
+        if (Store.Shared.Title(id) is { } known) return known; // :44
+        if (!Store.Shared.Claim(id)) return null; // :45
+
+        if ((oembedUrl ?? OembedURL(id)) is not { } url) // :46 guard let url = oembedURL(for: id)
+        {
+            Store.Shared.Finish(id, null); // :50
+            return null; // :51
+        }
+
+        // :47 let (data, response) = try? await URLSession.shared.data(from: url)
+        var fetch = await SwiftTry.OptionalValueAsync(() => URLSession.Shared.Data(url));
+        if (fetch is not { } exchange || exchange.Response is not HTTPURLResponse { StatusCode: 200 }) // :48
+        {
+            Store.Shared.Finish(id, null); // :50
+            return null; // :51
+        }
+
+        // :49 let payload = try? JSONDecoder().decode(OEmbed.self, from: data)
+        var payload = SwiftTry.OptionalValue(() => DecodeOEmbed(exchange.Data));
+        if (payload is not { } p)
+        {
+            Store.Shared.Finish(id, null); // :50
+            return null; // :51
+        }
+
+        var title = p.Title.Trimmed(); // :53
+        Store.Shared.Finish(id, title.Length == 0 ? null : title); // :54
+        return title.Length == 0 ? null : title; // :55
+    }
+
+    /// <summary>Swift <c>OEmbed</c>, a private decoding target with one field. :58-60.</summary>
+    private readonly record struct OEmbed(string Title);
+
+    // :49 JSONDecoder().decode(OEmbed.self, from: data), per R-CODE-1/R-CODE-8.
+    private static OEmbed DecodeOEmbed(byte[] data)
+    {
+        using var document = JsonDocument.Parse(data, SwiftJson.DocumentOptions);
+        return new OEmbed(SwiftDecoding.Decode(document.RootElement, "title", SwiftDecoding.ReadString));
+    }
+
+    /// <summary>The oEmbed request URL for a video id, or null when the components make no URL. :62-69.</summary>
+    private static Uri? OembedURL(string id)
+    {
+        var components = URLComponents.Create("https://www.youtube.com/oembed"); // :63
+        if (components is null) return null;
+        components = components with
+        {
+            QueryItems = new ValueList<URLQueryItem>(
+            [
+                new URLQueryItem("url", $"https://www.youtube.com/watch?v={id}"), // :65
+                new URLQueryItem("format", "json"), // :66
+            ]),
+        }; // :64-67
+        if (components.Url is not { } url) return null; // :68 return components?.url
+        return new Uri(url.AbsoluteString); // :68, converted for URLSession.Data's Uri parameter (R-NET-1)
+    }
 
     /// <summary>
     /// Titles by video id (:79-111). A claimed id counts as answered, so a streaming row that restarts its task
